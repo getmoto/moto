@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sagemaker
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 TEST_REGION_NAME = "us-east-1"
 
 
-@mock_sagemaker
+@mock_aws
 def test_create__trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -32,7 +32,7 @@ def test_create__trial_component():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_trial_components():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -60,7 +60,7 @@ def test_list_trial_components():
     assert resp.get("NextToken") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_delete__trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -76,7 +76,7 @@ def test_delete__trial_component():
     assert len(resp["TrialComponentSummaries"]) == 0
 
 
-@mock_sagemaker
+@mock_aws
 def test_add_tags_to_trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -99,7 +99,7 @@ def test_add_tags_to_trial_component():
     assert resp["Tags"] == tags
 
 
-@mock_sagemaker
+@mock_aws
 def test_delete_tags_to_trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -124,7 +124,7 @@ def test_delete_tags_to_trial_component():
     assert resp["Tags"] == []
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_trial_component_tags():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -151,7 +151,7 @@ def test_list_trial_component_tags():
     assert response["Tags"] == tags[50:]
 
 
-@mock_sagemaker
+@mock_aws
 def test_associate_trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -206,7 +206,7 @@ def test_associate_trial_component():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_sagemaker
+@mock_aws
 def test_disassociate_trial_component():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 

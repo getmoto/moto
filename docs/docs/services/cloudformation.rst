@@ -14,17 +14,6 @@ cloudformation
 
 .. autoclass:: moto.cloudformation.models.CloudFormationBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_cloudformation
-            def test_cloudformation_behaviour:
-                boto3.client("cloudformation")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_organizations_access
@@ -33,6 +22,7 @@ cloudformation
 - [ ] cancel_update_stack
 - [ ] continue_update_rollback
 - [X] create_change_set
+- [ ] create_generated_template
 - [X] create_stack
   
         The functionality behind EnableTerminationProtection is not yet implemented.
@@ -51,6 +41,7 @@ cloudformation
 - [ ] deactivate_organizations_access
 - [ ] deactivate_type
 - [X] delete_change_set
+- [ ] delete_generated_template
 - [X] delete_stack
 - [X] delete_stack_instances
   
@@ -62,8 +53,10 @@ cloudformation
 - [ ] describe_account_limits
 - [X] describe_change_set
 - [ ] describe_change_set_hooks
+- [ ] describe_generated_template
 - [ ] describe_organizations_access
 - [ ] describe_publisher
+- [ ] describe_resource_scan
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
 - [X] describe_stack_instance
@@ -80,13 +73,18 @@ cloudformation
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
+- [ ] get_generated_template
 - [X] get_stack_policy
 - [X] get_template
 - [ ] get_template_summary
 - [ ] import_stacks_to_stack_set
 - [X] list_change_sets
 - [X] list_exports
+- [ ] list_generated_templates
 - [ ] list_imports
+- [ ] list_resource_scan_related_resources
+- [ ] list_resource_scan_resources
+- [ ] list_resource_scans
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
   
@@ -115,8 +113,10 @@ cloudformation
 - [ ] set_type_configuration
 - [ ] set_type_default_version
 - [ ] signal_resource
+- [ ] start_resource_scan
 - [X] stop_stack_set_operation
 - [ ] test_type
+- [ ] update_generated_template
 - [X] update_stack
 - [X] update_stack_instances
   

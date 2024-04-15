@@ -2,14 +2,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_appsync
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_appsync
+@mock_aws
 def test_create_graphql_api():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     resp = client.create_graphql_api(name="api1", authenticationType="API_KEY")
@@ -29,7 +29,7 @@ def test_create_graphql_api():
     assert "logConfig" not in api
 
 
-@mock_appsync
+@mock_aws
 def test_create_graphql_api_advanced():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     resp = client.create_graphql_api(
@@ -63,7 +63,7 @@ def test_create_graphql_api_advanced():
     assert api["xrayEnabled"] is True
 
 
-@mock_appsync
+@mock_aws
 def test_get_graphql_api():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -79,7 +79,7 @@ def test_get_graphql_api():
     assert api["authenticationType"] == "API_KEY"
 
 
-@mock_appsync
+@mock_aws
 def test_update_graphql_api():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
@@ -122,7 +122,7 @@ def test_update_graphql_api():
     assert graphql_api["xrayEnabled"] is True
 
 
-@mock_appsync
+@mock_aws
 def test_get_graphql_api_unknown():
     client = boto3.client("appsync", region_name="ap-southeast-1")
 
@@ -134,7 +134,7 @@ def test_get_graphql_api_unknown():
     assert err["Message"] == "GraphQL API unknown not found."
 
 
-@mock_appsync
+@mock_aws
 def test_delete_graphql_api():
     client = boto3.client("appsync", region_name="eu-west-1")
 
@@ -151,7 +151,7 @@ def test_delete_graphql_api():
     assert len(resp["graphqlApis"]) == 0
 
 
-@mock_appsync
+@mock_aws
 def test_list_graphql_apis():
     client = boto3.client("appsync", region_name="ap-southeast-1")
     resp = client.list_graphql_apis()

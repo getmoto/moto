@@ -1,6 +1,302 @@
 Moto Changelog
 ==============
 
+5.0.5
+-----
+Docker Digest for 5.0.5: _sha256:b95cf0d65557475f29e7256938028eef352e23acafe8e07c071cd58b67c44708_
+
+    General:
+        * DynamoDB: scan() now returns items in a alphabetical order
+    
+    New Methods:
+        * SecretsManager:
+            * batch_get_secret_value()
+
+    Miscellaneous:
+        * ApplicationAutoscaling: put_scaling_policy() now generates CW alarms for DynamoDB and ECS
+        * DynamoDB: Fix pagination for scan()/query()
+        * DynamoDB: batch_write_item() now validates for duplicate DELETE or PUT requests
+        * Events: put_events() now validates that input-values cannot be empty
+        * IOT: create_topic_rule() now validates name-format
+        * ResourceGroupsTaggingAPI: tag_resources() now supports RDS snapshots
+        * SFN: Fixed a bug where the executionInput was double encoded
+
+
+5.0.4
+-----
+Docker Digest for 5.0.4: _sha256:e13e917e563bd1e3bb745b0ce914bdcc3bd4577542e13e1468eac5078774b2aa_
+
+    General:
+        * Lambda: The results of a Dockerless invocation can now be configured.
+          See http://docs.getmoto.org/en/latest/docs/services/lambda.html
+
+        * StepFunctions can now execute the provided StepFunctionMachine (opt-in), instead of returning static data (still the default).
+          See http://docs.getmoto.org/en/latest/docs/services/stepfunctions.html
+
+    New Service:
+        * ElastiCache:
+            * list_tags_for_resource()
+
+        * ResilienceHub:
+            * create_app()
+            * create_app_version_app_component()
+            * create_app_version_resource()
+            * create_resiliency_policy()
+            * describe_app()
+            * describe_resiliency_policy()
+            * import_resources_to_draft_app_version()
+            * list_app_assessments()
+            * list_app_version_app_components()
+            * list_app_version_resources()
+            * list_app_versions()
+            * list_apps()
+            * list_resiliency_policies()
+            * list_tags_for_resource()
+            * publish_app_version()
+            * tag_resource()
+            * untag_resource()
+
+        * Workspaces:
+            * create_tags()
+            * create_workspace_image()
+            * create_workspaces()
+            * deregister_workspace_directory()
+            * describe_client_properties()
+            * describe_tags()
+            * describe_workspace_directories()
+            * describe_workspace_image_permissions()
+            * describe_workspace_images()
+            * describe_workspaces()
+            * modify_client_properties()
+            * modify_selfservice_permissions()
+            * modify_workspace_creation_properties()
+            * register_workspace_directory()
+            * update_workspace_image_permission()
+
+    Miscellaneous:
+        * APIGateway: update_usage_plan() now supports some remove-operations
+        * Autoscaling: describe_auto_scaling_groups() now returns a dynamic CreatedTime
+        * CloudFormation: Outputs now support Conditions
+        * CloudFormation: Outputs now return Descriptions
+        * CognitoIDP: admin_update_user_attributes() and admin_delete_user_attributes now correctly update the UserLastModifiedDate
+        * DynamoDB: query() no longer requires the LastEvaluatedKey to exist
+        * EC2: describe_vpc_endpoint_services() now supports all services
+        * Kinesis: list_streams() now returns StreamSummaries
+        * Lambda: get_policy() now throws an error when no statements exist
+        * ResourceGroupsTaggingAPI now supports DynamoDB tables
+        * ResourceGroupsTaggingAPI now supports SSM documents
+        * S3: EventBridge notifications are now supported for ObjectRestore:Post
+        * S3: restore_object() now contains limited validation when supplying both Days- and Type-argument
+        * S3: select_object_content() now supports Compressed requests and CSV responses
+        * SecretsManager: list_secrets() now handles negative matches correctly
+        * SNS: delete_endpoint() is now an idempotent operation, just like AWS
+
+
+5.0.3
+-----
+Docker Digest for 5.0.3: _sha256:032d8ead42f289d9700e9bc844c6d264575ad11b3f6c22cc76d65ff638c8c7bd_
+
+    General:
+        * New configuration options for:
+          - Passing URL's through the proxy
+          - Configuring DOcker-less services in ServerMode
+          See http://docs.getmoto.org/en/latest/docs/configuration/index.html
+
+    New Services:
+        * Route53Domains:
+            * delete_domain()
+            * list_domains()
+            * list_operations()
+            * register_domain()
+            * update_domain_nameservers()
+
+    New Methods:
+        * CostExplorer:
+            * get_cost_and_usage()
+
+        * ECR:
+            * get_registry_scanning_configuration()
+
+    Miscellaneous:
+        * ApiGateway: update_usage_plan() now supports adding apiStages
+        * Athena: get_query_execution() now returns exact OutputLocation file
+        * Autoscaling: describe_auto_scaling_groups() now supports the filters-argument
+        * CloudFront: create_distribution() now supports CustomHeaders
+        * CloudFront: update_distribution() now handles updates to DistributionConfig correctly
+        * CloudFormation - Now supports creation and deletion of AWS::EMR::Cluster
+        * CloudFormation - Now supports creation and deletion of AWS::EMR::SecurityConfiguration
+        * CloudFormation - Now supports creation and deletion of AWS::EFS::AccessPoint
+        * CloudFormation - Now supports creation and deletion of AWS::EFS::FileSystem
+        * CloudFormation - Now supports creation and deletion of AWS::EMR::InstanceGroupConfig
+        * CloudFormation - Now supports deletion of AWS::Logs::LogGroup
+        * CloudFormation: delete_stack() now handles resource dependencies better
+        * CloudWatch: put_metric_data() now supports large (compressed) requests
+        * CognitoIDP: admin_initiate_auth() and respond_to_auth_challenge() now support SMS_MFA
+        * DynamoDB: transact_write_items() now raises ValidationException when putting and deleting the same item
+        * EC2: authorize_security_group_egress/_ingress now support the TagSpecifications-argument
+        * EC2: describe_security_group_rules() now supports Tag-filters
+        * S3: EventBridge notifications are now supported for ObjectCreated:POST/COPY/MULTIPART_UPLOAD and ObjectDeleted
+        * SNS: subscribe() now adds support the `$or`, `equals-ignore-case` and `suffix` features in a FilterPolicy 
+        * SQS: send_message() should respect DelaySeconds of 0
+
+
+5.0.2
+-----
+Docker Digest for 5.0.2: _sha256:89cc6c764d714bf76e592a61f0c06fd142f672085e1dd3a53eb734aaeb4e14e2_
+
+    General:
+        * Removed the `python-jose` and `sshpubkeys` dependencies in favor of `joserfc`. This removes a transitive dependency on `ecdsa`, which contains a open security vulnerability
+
+    New Methods:
+        * Autoscaling:
+            * batch_put_scheduled_update_group_action()
+            * batch_delete_scheduled_action()
+
+        * RDS:
+            * create_db_proxy()
+            * describe_db_proxies()
+
+    Miscellaneous:
+        * AWSLambda: The ImageConfig.EntryPoint of a function is now used when invoking it in a Docker container
+        * CognitoIDP now allows public actions even if IAM auth is enabled
+        * DynamoDB: create_table() now validates the number of KeySchema-items
+        * EC2: modify_image_attributes() now supports all LaunchPermissions
+        * ECS: register_task_definition() now has improved validation around `memory`-parameters
+        * Glue: create_database() now supports the `tags`-parameter
+        * IAM: assume_user()/create_user()/get_caller_identity() now return the correct partition for China (aws-cn) when called from a Chinese region
+        * ResourceGroupsTagging: get_resources() now supports ELB resources
+        * Route53: list_hosted_zones() now supports pagination
+        * S3: put_bucket_notification_configuration() now supports EventBridge-notifications
+        * SES now returns errors in the correct format
+
+5.0.1
+-----
+Docker Digest for 5.0.1: _sha256:b6004b2e112c0ba870b2103049548abecec476edeac7a724ed9c71249358e821_
+
+    New Methods:
+        * SecretsManager:
+            * remove_regions_from_replication()
+            * replicate_secret_to_regions()
+
+    Miscellaneous:
+        * AWSLambda: create_event_source_mapping() now supports Kinesis streams as targets
+        * CloudFront: Removed error handling for InvalidOriginServer, as our validation was too strict
+        * DynamoDB: batch_execute_statement() now supports for Update/Insert/Delete-statements
+        * DynamoDB: query() now correctly handles calls where both Limit and ScanIndexForward are supplied
+        * EC2: Now supports availability zones for eu-central-2 (Zurich)
+        * S3: list_objects_v2() can now return more then 1000 results max (again)
+        * S3: copy_object() now allows in-place copies when bucket versioning is enabled
+        * SecretsManager: create_secrets() now supports the parameters AddReplicaRegions and ForceOverwriteReplicaSecret
+        * SecretsManager: list_secrets() now supports the filters primary-region and owning-service
+
+
+5.0.0
+-----
+Docker Digest for 5.0.0: _sha256:2faf2460a6446dfe472ac0d799e00341b1c84203d08540c247a6cc09be7c54e9_
+
+    General:
+        * All decorators have been replaced with a single decorator:
+          `mock_aws`
+
+        * The `mock_batch_simple` and `mock_lambda_simple` decorators can now be configured using the `config`-parameter:
+          `@mock_aws(config={"batch": {"use_docker": False}, "lambda": {"use_docker": False}})`
+
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+
+        * All requests now return a RequestId
+
+    Miscellaneous:
+
+        * IAM: The AWS managed Policies are no longer loaded by default.
+          If your application depends on these policies, tell Moto explicitly to load them like so:
+
+          @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
+
+          Or by setting an environment variable:
+          MOTO_IAM_LOAD_MANAGED_POLICIES=true
+
+        * S3: list_objects() now returns a hashed ContinuationToken
+
+
+4.2.14
+-----
+Docker Digest for 4.2.14: _sha256:2fa10aa48e32f85c63c62a7d437b8a4b320a56a8494bc25d45ced370bc159c23_
+
+    New Services:
+        * Backup:
+            * create_backup_plan()
+            * create_backup_vault()
+            * get_backup_plan()
+            * describe_backup_vault()
+            * delete_backup_plan()
+            * list_backup_plans()
+            * list_backup_vaults()
+            * list_tags()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * RDS:
+            * describe_db_cluster_snapshot_attributes()
+            * describe_db_snapshot_attributes()
+            * modify_db_cluster_snapshot_attribute()
+            * modify_db_snapshot_attribute()
+            * restore_db_instance_to_point_in_time()
+
+        * SageMaker:
+            * create_feature_group()
+
+        * SageMakerRuntime:
+            * invoke_endpoint_async()
+
+    Miscellaneous:
+        * Cognito: The ID-token now contains custom attributes
+        * DynamoDB: query() now returns the correct ScannedCount
+        * EC2: Security Group Rules now have tag support 
+        * LakeFormation: grant_permissions() now has better support for known principal-resource pairs
+        * SNS: set_subscription_attributes() can now unset the FilterPolicy
+
+
+5.0.0alpha3
+-----------
+
+    Miscellaneous:
+        * IAM: The AWS managed Policies are no longer loaded by default.
+          If your application depends on these policies, tell Moto explicitly to load them like so:
+
+          @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
+
+          Or by setting an environment variable:
+          MOTO_IAM_LOAD_MANAGED_POLICIES=true
+
+
+5.0.0alpha2:
+------------
+
+    General:
+        * It is now possible to configure methods/services which should reach out to AWS.
+          @mock_aws(
+              config={"core": {"mock_credentials": False, "passthrough": {"urls": [], "services": []}}}
+          )
+        * All requests now return a RequestId
+
+    Miscellaneous:
+        * S3: list_objects() now returns a hashed ContinuationToken
+
+
+5.0.0alpha1:
+------------
+
+    General:
+        * All decorators have been replaced with a single decorator:
+          `mock_aws`
+        * The `mock_batch_simple` and `mock_lambda_simple` decorators can now be configured using the `config`-parameter:
+          `@mock_aws(config={"batch": {"use_docker": False}, "lambda": {"use_docker": False}})`
+
+
 4.2.13
 -----
 Docker Digest for 4.2.13: _sha256:20a2fdd4828b0ce1170ae26186ed28b64523cf6af83af892a74d9b3e23f84471_

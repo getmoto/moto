@@ -3,14 +3,14 @@
 The logic to check the details of VPCs and Subnets is shared between the
 "create directory" APIs, so it will not be repeated here.
 """
+
 from datetime import datetime, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ds
-from moto.ec2 import mock_ec2
+from moto import mock_aws
 from moto.moto_api._internal import mock_random
 
 from .test_ds_simple_ad_directory import TEST_REGION, create_subnets, create_vpc
@@ -51,7 +51,7 @@ def create_test_ad_connector(
     return result["DirectoryId"]
 
 
-@mock_ds
+@mock_aws
 def test_ds_connect_directory_validations():
     """Test validation errs that aren't caught by botocore.
 
@@ -151,8 +151,7 @@ def test_ds_connect_directory_validations():
     )
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_connect_directory_good_args():
     """Test creation of AD connect directory using good arguments."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -177,8 +176,7 @@ def test_ds_connect_directory_good_args():
     )
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_connect_directory_bad_args():
     """Test validation of non-vpc related ConnectionSettings values."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -212,8 +210,7 @@ def test_ds_connect_directory_bad_args():
     )
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_connect_directory_delete():
     """Test deletion of AD Connector directory."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -225,8 +222,7 @@ def test_ds_connect_directory_delete():
     assert result["DirectoryId"] == directory_id
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_connect_directory_describe():
     """Test describe_directory() for AD Connector directory."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -257,8 +253,7 @@ def test_ds_connect_directory_describe():
     assert "NextToken" not in result
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_connect_directory_tags():
     """Test that directory tags can be added and retrieved."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -272,8 +267,7 @@ def test_ds_connect_directory_tags():
     assert result["Tags"] == added_tags
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_get_connect_directory_limits():
     """Test return value for ad connector directory limits."""
     client = boto3.client("ds", region_name=TEST_REGION)

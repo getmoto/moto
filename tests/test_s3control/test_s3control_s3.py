@@ -1,7 +1,6 @@
-"""Test that using both s3 and s3control do not interfere"""
 import boto3
 
-from moto import mock_s3, mock_s3control, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 REGION = "us-east-1"
@@ -9,8 +8,7 @@ REGION = "us-east-1"
 
 if not settings.TEST_SERVER_MODE:
 
-    @mock_s3
-    @mock_s3control
+    @mock_aws
     def test_pab_are_kept_separate():
         client = boto3.client("s3control", region_name=REGION)
         s3_client = boto3.client("s3", region_name=REGION)
@@ -52,8 +50,7 @@ if not settings.TEST_SERVER_MODE:
             "RestrictPublicBuckets": False,
         }
 
-    @mock_s3control
-    @mock_s3
+    @mock_aws
     def test_pab_are_kept_separate_with_inverse_mocks():
         client = boto3.client("s3control", region_name=REGION)
         s3_client = boto3.client("s3", region_name=REGION)
@@ -95,8 +92,7 @@ if not settings.TEST_SERVER_MODE:
             "RestrictPublicBuckets": False,
         }
 
-    @mock_s3
-    @mock_s3control
+    @mock_aws
     def test_access_point_read_write():
         # Setup
         bucket = "test-bucket"

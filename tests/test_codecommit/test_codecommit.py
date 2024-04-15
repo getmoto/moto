@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_codecommit
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_codecommit
+@mock_aws
 def test_create_repository():
     client = boto3.client("codecommit", region_name="eu-central-1")
     metadata = client.create_repository(
@@ -33,7 +33,7 @@ def test_create_repository():
     assert metadata["accountId"] == ACCOUNT_ID
 
 
-@mock_codecommit
+@mock_aws
 def test_create_repository_without_description():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
@@ -62,7 +62,7 @@ def test_create_repository_without_description():
     assert metadata["accountId"] == ACCOUNT_ID
 
 
-@mock_codecommit
+@mock_aws
 def test_create_repository_repository_name_exists():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
@@ -83,7 +83,7 @@ def test_create_repository_repository_name_exists():
     )
 
 
-@mock_codecommit
+@mock_aws
 def test_create_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
@@ -99,7 +99,7 @@ def test_create_repository_invalid_repository_name():
     )
 
 
-@mock_codecommit
+@mock_aws
 def test_get_repository():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
@@ -143,7 +143,7 @@ def test_get_repository():
     assert ex.response["Error"]["Message"] == f"{repository_name} does not exist"
 
 
-@mock_codecommit
+@mock_aws
 def test_get_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="eu-central-1")
 
@@ -158,7 +158,7 @@ def test_get_repository_invalid_repository_name():
     )
 
 
-@mock_codecommit
+@mock_aws
 def test_delete_repository():
     client = boto3.client("codecommit", region_name="us-east-1")
 
@@ -176,7 +176,7 @@ def test_delete_repository():
     assert response.get("repositoryId") is None
 
 
-@mock_codecommit
+@mock_aws
 def test_delete_repository_invalid_repository_name():
     client = boto3.client("codecommit", region_name="us-east-1")
 

@@ -1,13 +1,15 @@
 import hashlib
 import json
 import re
+import threading
 from collections import namedtuple
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.ecr.exceptions import (
     ImageAlreadyExistsException,
@@ -107,9 +109,9 @@ class Repository(BaseObject, CloudFormationModel):
         if not encryption_config:
             return {"encryptionType": "AES256"}
         if encryption_config == {"encryptionType": "KMS"}:
-            encryption_config[
-                "kmsKey"
-            ] = f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{random.uuid4()}"
+            encryption_config["kmsKey"] = (
+                f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{random.uuid4()}"
+            )
         return encryption_config
 
     def _get_image(
@@ -370,7 +372,9 @@ class Image(BaseObject):
             "registryId": self.registry_id,
         }
         return {
-            k: v for k, v in response_object.items() if v is not None and v != [None]  # type: ignore
+            k: v
+            for k, v in response_object.items()
+            if v is not None and v != [None]  # type: ignore
         }
 
     @property
@@ -379,7 +383,9 @@ class Image(BaseObject):
         response_object["imageDigest"] = self.get_image_digest()
         response_object["imageTag"] = self.image_tag
         return {
-            k: v for k, v in response_object.items() if v is not None and v != [None]  # type: ignore
+            k: v
+            for k, v in response_object.items()
+            if v is not None and v != [None]  # type: ignore
         }
 
 
@@ -389,10 +395,17 @@ class ECRBackend(BaseBackend):
         self.registry_policy: Optional[str] = None
         self.replication_config: Dict[str, Any] = {"rules": []}
         self.repositories: Dict[str, Repository] = {}
+        self.registry_scanning_configuration: Dict[str, Any] = {
+            "scanType": "BASIC",
+            "rules": [],
+        }
+        self.registry_scanning_configuration_update_lock = threading.RLock()
         self.tagger = TaggingService(tag_name="tags")
 
     @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def default_vpc_endpoint_service(  # type: ignore[misc]
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, Any]]:
         """Default VPC endpoint service."""
         docker_endpoint = {
             "AcceptanceRequired": False,
@@ -493,6 +506,19 @@ class ECRBackend(BaseBackend):
         )
         self.repositories[repository_name] = repository
         self.tagger.tag_resource(repository.arn, tags)
+
+        # check if any of the registry scanning policies applies to the repository
+        with self.registry_scanning_configuration_update_lock:
+            for rule in self.registry_scanning_configuration["rules"]:
+                for repo_filter in rule["repositoryFilters"]:
+                    if self._match_repository_filter(
+                        repo_filter["filter"], repository_name
+                    ):
+                        repository.scanning_config["scanFrequency"] = rule[
+                            "scanFrequency"
+                        ]
+                        # AWS testing seems to indicate that this is always overwritten
+                        repository.scanning_config["appliedScanFilters"] = [repo_filter]
 
         return repository
 
@@ -678,14 +704,14 @@ class ECRBackend(BaseBackend):
                     found = True
                     response["images"].append(image.response_batch_get_image)
 
-        if not found:
-            response["failures"].append(
-                {
-                    "imageId": {"imageTag": image_id.get("imageTag", "null")},
-                    "failureCode": "ImageNotFound",
-                    "failureReason": "Requested image not found",
-                }
-            )
+            if not found:
+                response["failures"].append(
+                    {
+                        "imageId": {"imageTag": image_id.get("imageTag", "null")},
+                        "failureCode": "ImageNotFound",
+                        "failureReason": "Requested image not found",
+                    }
+                )
 
         return response
 
@@ -737,7 +763,6 @@ class ECRBackend(BaseBackend):
                     continue
 
             for num, image in enumerate(repository.images):
-
                 # Search by matching both digest and tag
                 if "imageDigest" in image_id and "imageTag" in image_id:
                     if (
@@ -1116,16 +1141,41 @@ class ECRBackend(BaseBackend):
 
         return {"replicationConfiguration": replication_config}
 
-    def put_registry_scanning_configuration(self, rules: List[Dict[str, Any]]) -> None:
-        for rule in rules:
-            for repo_filter in rule["repositoryFilters"]:
-                for repo in self.repositories.values():
-                    if repo_filter["filter"] == repo.name or re.match(
-                        repo_filter["filter"], repo.name
-                    ):
-                        repo.scanning_config["scanFrequency"] = rule["scanFrequency"]
-                        # AWS testing seems to indicate that this is always overwritten
-                        repo.scanning_config["appliedScanFilters"] = [repo_filter]
+    def _match_repository_filter(self, filter: str, repository_name: str) -> bool:
+        filter_regex = filter.replace("*", ".*")
+        return filter in repository_name or bool(
+            re.match(filter_regex, repository_name)
+        )
+
+    def get_registry_scanning_configuration(self) -> Dict[str, Any]:
+        return self.registry_scanning_configuration
+
+    def put_registry_scanning_configuration(
+        self, scan_type: str, rules: List[Dict[str, Any]]
+    ) -> None:
+        # locking here to avoid simultaneous updates which leads to inconsistent state
+        with self.registry_scanning_configuration_update_lock:
+            self.registry_scanning_configuration = {
+                "scanType": scan_type,
+                "rules": rules,
+            }
+
+            # reset all rules first
+            for repo in self.repositories.values():
+                repo.scanning_config["scanFrequency"] = "MANUAL"
+                repo.scanning_config["appliedScanFilters"] = []
+
+            for rule in rules:
+                for repo_filter in rule["repositoryFilters"]:
+                    for repo in self.repositories.values():
+                        if self._match_repository_filter(
+                            repo_filter["filter"], repo.name
+                        ):
+                            repo.scanning_config["scanFrequency"] = rule[
+                                "scanFrequency"
+                            ]
+                            # AWS testing seems to indicate that this is always overwritten
+                            repo.scanning_config["appliedScanFilters"] = [repo_filter]
 
     def describe_registry(self) -> Dict[str, Any]:
         return {

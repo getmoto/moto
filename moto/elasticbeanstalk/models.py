@@ -1,7 +1,8 @@
 import weakref
 from typing import Dict, List
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 
 from .exceptions import (
     ApplicationNotFound,
@@ -82,17 +83,6 @@ class EBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.applications: Dict[str, FakeApplication] = dict()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticbeanstalk"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticbeanstalk-health"
-        )
 
     def create_application(self, application_name: str) -> FakeApplication:
         if application_name in self.applications:

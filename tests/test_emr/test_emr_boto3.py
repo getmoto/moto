@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_emr
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 run_job_flow_args = dict(
@@ -69,7 +69,7 @@ input_instance_groups = [
 ]
 
 
-@mock_emr
+@mock_aws
 @pytest.mark.filterwarnings("ignore")
 def test_describe_cluster():
     region_name = "us-east-1"
@@ -189,7 +189,7 @@ def test_describe_cluster():
     )
 
 
-@mock_emr
+@mock_aws
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
@@ -198,7 +198,7 @@ def test_describe_cluster_not_found():
     assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_emr
+@mock_aws
 def test_describe_job_flows():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -251,7 +251,7 @@ def test_describe_job_flows():
     assert len(resp["JobFlows"]) == 2
 
 
-@mock_emr
+@mock_aws
 @pytest.mark.filterwarnings("ignore")
 def test_describe_job_flow():
     client = boto3.client("emr", region_name="us-east-1")
@@ -321,7 +321,7 @@ def test_describe_job_flow():
     assert jf["VisibleToAllUsers"] is True
 
 
-@mock_emr
+@mock_aws
 def test_list_clusters():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -390,7 +390,7 @@ def test_list_clusters():
     assert len(resp["Clusters"]) == 30
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow():
     region_name = "us-east-1"
     client = boto3.client("emr", region_name=region_name)
@@ -417,7 +417,7 @@ def test_run_job_flow():
     assert resp["Steps"] == []
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_invalid_params():
     client = boto3.client("emr", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -429,7 +429,7 @@ def test_run_job_flow_with_invalid_params():
     assert ex.value.response["Error"]["Code"] == "ValidationException"
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_in_multiple_regions():
     regions = {}
     for region in ["us-east-1", "eu-west-1"]:
@@ -445,14 +445,14 @@ def test_run_job_flow_in_multiple_regions():
         assert resp["Cluster"]["Name"] == region
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_new_params():
     client = boto3.client("emr", region_name="us-east-1")
     resp = client.run_job_flow(**run_job_flow_args)
     assert "JobFlowId" in resp
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_visible_to_all_users():
     client = boto3.client("emr", region_name="us-east-1")
     for expected in (True, False):
@@ -479,7 +479,7 @@ def _do_assertion_ebs_configuration(x, y):
     assert comp_total_size == comp_total_size
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_instance_groups():
     input_groups = dict((g["Name"], g) for g in input_instance_groups)
     client = boto3.client("emr", region_name="us-east-1")
@@ -532,7 +532,7 @@ auto_scaling_policy = {
 }
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_instance_groups_with_autoscaling():
     input_groups = dict((g["Name"], g) for g in input_instance_groups)
 
@@ -558,7 +558,7 @@ def test_run_job_flow_with_instance_groups_with_autoscaling():
             assert returned_policy == auto_scaling_policy_with_cluster_id
 
 
-@mock_emr
+@mock_aws
 def test_put_remove_auto_scaling_policy():
     region_name = "us-east-1"
     client = boto3.client("emr", region_name=region_name)
@@ -619,7 +619,7 @@ def _patch_cluster_id_placeholder_in_autoscaling_policy(policy, cluster_id):
     return policy_copy
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_custom_ami():
     client = boto3.client("emr", region_name="us-east-1")
 
@@ -660,7 +660,7 @@ def test_run_job_flow_with_custom_ami():
     assert resp["Cluster"]["CustomAmiId"] == "MyEmrCustomAmi"
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_step_concurrency():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -672,7 +672,7 @@ def test_run_job_flow_with_step_concurrency():
     assert resp["StepConcurrencyLevel"] == 2
 
 
-@mock_emr
+@mock_aws
 def test_modify_cluster():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -690,7 +690,7 @@ def test_modify_cluster():
     assert resp["StepConcurrencyLevel"] == 4
 
 
-@mock_emr
+@mock_aws
 def test_set_termination_protection():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -708,7 +708,7 @@ def test_set_termination_protection():
         assert resp["Cluster"]["TerminationProtected"] == expected
 
 
-@mock_emr
+@mock_aws
 def test_terminate_protected_job_flow_raises_error():
     client = boto3.client("emr", region_name="us-east-1")
     resp = client.run_job_flow(**run_job_flow_args)
@@ -726,7 +726,7 @@ def test_terminate_protected_job_flow_raises_error():
     )
 
 
-@mock_emr
+@mock_aws
 def test_set_visible_to_all_users():
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -744,7 +744,7 @@ def test_set_visible_to_all_users():
         assert resp["Cluster"]["VisibleToAllUsers"] == expected
 
 
-@mock_emr
+@mock_aws
 def test_terminate_job_flows():
     client = boto3.client("emr", region_name="us-east-1")
 
@@ -761,7 +761,7 @@ def test_terminate_job_flows():
 # testing multiple end points for each feature
 
 
-@mock_emr
+@mock_aws
 def test_bootstrap_actions():
     bootstrap_actions = [
         {
@@ -794,7 +794,7 @@ def test_bootstrap_actions():
         assert x["ScriptPath"] == y["ScriptBootstrapAction"]["Path"]
 
 
-@mock_emr
+@mock_aws
 def test_instances():
     input_groups = dict((g["Name"], g) for g in input_instance_groups)
     client = boto3.client("emr", region_name="us-east-1")
@@ -835,7 +835,7 @@ def test_instances():
         )
 
 
-@mock_emr
+@mock_aws
 def test_instance_groups():
     input_groups = dict((g["Name"], g) for g in input_instance_groups)
 
@@ -926,7 +926,7 @@ def test_instance_groups():
     assert igs["task-2"]["InstanceRunningCount"] == 3
 
 
-@mock_emr
+@mock_aws
 def test_steps():
     input_steps = [
         {
@@ -1067,7 +1067,7 @@ def test_steps():
     assert steps[0]["Id"] == step_id
 
 
-@mock_emr
+@mock_aws
 def test_tags():
     input_tags = [
         {"Key": "newkey1", "Value": "newval1"},
@@ -1089,9 +1089,8 @@ def test_tags():
     assert resp["Tags"] == []
 
 
-@mock_emr
+@mock_aws
 def test_security_configurations():
-
     client = boto3.client("emr", region_name="us-east-1")
 
     security_configuration_name = "MySecurityConfiguration"
@@ -1143,7 +1142,7 @@ def test_security_configurations():
     )
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_invalid_number_of_master_nodes_raises_error():
     client = boto3.client("emr", region_name="us-east-1")
     params = dict(
@@ -1170,7 +1169,7 @@ def test_run_job_flow_with_invalid_number_of_master_nodes_raises_error():
     )
 
 
-@mock_emr
+@mock_aws
 def test_run_job_flow_with_multiple_master_nodes():
     client = boto3.client("emr", region_name="us-east-1")
     params = dict(

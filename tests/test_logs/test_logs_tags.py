@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_logs
+from moto import mock_aws
 
 
-@mock_logs
+@mock_aws
 def test_destination_tags():
     logs = boto3.client("logs", "us-west-2")
     destination_name = "test-destination"
@@ -20,7 +20,7 @@ def test_destination_tags():
     _verify_tag_operations(destination_arn, logs)
 
 
-@mock_logs
+@mock_aws
 def test_log_groups_tags():
     logs = boto3.client("logs", "us-west-2")
     log_group_name = "test"

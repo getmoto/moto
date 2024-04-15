@@ -12,17 +12,6 @@
 iot-data
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_iotdata
-            def test_iotdata_behaviour:
-                boto3.client("iot-data")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] delete_thing_shadow

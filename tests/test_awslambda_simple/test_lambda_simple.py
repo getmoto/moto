@@ -2,8 +2,9 @@ import json
 from unittest import SkipTest
 
 import boto3
+import requests
 
-from moto import mock_iam, mock_lambda_simple, settings
+from moto import mock_aws, settings
 
 from ..test_awslambda.utilities import get_role_name, get_test_zip_file1
 
@@ -15,8 +16,7 @@ if settings.TEST_SERVER_MODE:
     raise SkipTest("No point in testing batch_simple in ServerMode")
 
 
-@mock_iam
-@mock_lambda_simple
+@mock_aws(config={"lambda": {"use_docker": False}})
 def test_run_function():
     # Setup
     client = setup_lambda()
@@ -32,8 +32,7 @@ def test_run_function():
     assert result["Payload"].read().decode("utf-8") == "Simple Lambda happy path OK"
 
 
-@mock_iam
-@mock_lambda_simple
+@mock_aws(config={"lambda": {"use_docker": False}})
 def test_run_function_no_log():
     # Setup
     client = setup_lambda()
@@ -45,6 +44,50 @@ def test_run_function_no_log():
     # Verify
     assert result["StatusCode"] == 200
     assert json.loads(result["Payload"].read().decode("utf-8")) == payload
+
+    # Execute
+    result = client.invoke(FunctionName=FUNCTION_NAME)
+
+    # Verify
+    assert result["StatusCode"] == 200
+    assert result["Payload"].read().decode("utf-8") == "Simple Lambda happy path OK"
+
+
+@mock_aws(config={"lambda": {"use_docker": False}})
+def test_set_lambda_simple_query_results():
+    # Setup
+    base_url = (
+        settings.test_server_mode_endpoint()
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+    results = {"results": ["test", "test 2"], "region": LAMBDA_REGION}
+    resp = requests.post(
+        f"{base_url}/moto-api/static/lambda-simple/response",
+        json=results,
+    )
+    assert resp.status_code == 201
+
+    client = setup_lambda()
+
+    # Execute & Verify
+    resp = client.invoke(
+        FunctionName=FUNCTION_NAME,
+        LogType="Tail",
+    )
+    assert resp["Payload"].read().decode() == results["results"][0]
+
+    resp = client.invoke(
+        FunctionName=FUNCTION_NAME,
+        LogType="Tail",
+    )
+    assert resp["Payload"].read().decode() == results["results"][1]
+
+    resp = client.invoke(
+        FunctionName=FUNCTION_NAME,
+        LogType="Tail",
+    )
+    assert resp["Payload"].read().decode() == "Simple Lambda happy path OK"
 
 
 def setup_lambda():

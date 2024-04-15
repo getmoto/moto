@@ -14,17 +14,6 @@ firehose
 
 .. autoclass:: moto.firehose.models.FirehoseBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_firehose
-            def test_firehose_behaviour:
-                boto3.client("firehose")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_delivery_stream

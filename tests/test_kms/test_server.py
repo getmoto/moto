@@ -1,14 +1,14 @@
 import json
 
 import moto.server as server
-from moto import mock_kms
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_kms
+@mock_aws
 def test_list_keys():
     backend = server.create_backend_app("kms")
     test_client = backend.test_client()

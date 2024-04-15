@@ -4,7 +4,7 @@ import boto3
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from moto import mock_kms
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 grantee_principal = (
@@ -12,7 +12,7 @@ grantee_principal = (
 )
 
 
-@mock_kms
+@mock_aws
 def test_create_grant():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
@@ -27,7 +27,7 @@ def test_create_grant():
     assert "GrantToken" in resp
 
 
-@mock_kms
+@mock_aws
 def test_list_grants():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
@@ -79,7 +79,7 @@ def test_list_grants():
     assert len(grants) == 0
 
 
-@mock_kms
+@mock_aws
 def test_list_retirable_grants():
     client = boto3.client("kms", region_name="us-east-1")
     key_id1 = create_key(client)
@@ -118,9 +118,8 @@ def test_list_retirable_grants():
     assert grants[0]["GrantId"] == grant2_key2
 
 
-@mock_kms
+@mock_aws
 def test_revoke_grant():
-
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
 
@@ -138,7 +137,7 @@ def test_revoke_grant():
     assert len(client.list_grants(KeyId=key_id)["Grants"]) == 0
 
 
-@mock_kms
+@mock_aws
 def test_revoke_grant_raises_when_grant_does_not_exist():
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
@@ -154,9 +153,8 @@ def test_revoke_grant_raises_when_grant_does_not_exist():
     )
 
 
-@mock_kms
+@mock_aws
 def test_retire_grant_by_token():
-
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
 
@@ -173,9 +171,8 @@ def test_retire_grant_by_token():
     assert len(client.list_grants(KeyId=key_id)["Grants"]) == 2
 
 
-@mock_kms
+@mock_aws
 def test_retire_grant_by_grant_id():
-
     client = boto3.client("kms", region_name="us-east-1")
     key_id = create_key(client)
 

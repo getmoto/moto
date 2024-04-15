@@ -3,7 +3,6 @@ from typing import Any, Dict
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import DataBrewBackend, databrew_backends
 
@@ -22,7 +21,6 @@ class DataBrewResponse(BaseResponse):
     def parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
         return json.loads(self.body)
 
-    @amzn_request_id
     def create_recipe(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipe.html
         recipe_description = self.parameters.get("Description")
@@ -31,11 +29,13 @@ class DataBrewResponse(BaseResponse):
         tags = self.parameters.get("Tags")
         return json.dumps(
             self.databrew_backend.create_recipe(
-                recipe_name, recipe_description, recipe_steps, tags  # type: ignore[arg-type]
+                recipe_name,  # type: ignore[arg-type]
+                recipe_description,  # type: ignore[arg-type]
+                recipe_steps,  # type: ignore[arg-type]
+                tags,  # type: ignore[arg-type]
             ).as_dict()
         )
 
-    @amzn_request_id
     def delete_recipe_version(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DeleteRecipeVersion.html
         split_path = self._get_path().strip("/").split("/")
@@ -47,7 +47,6 @@ class DataBrewResponse(BaseResponse):
     def _get_path(self) -> str:
         return unquote(self.parsed_url.path)
 
-    @amzn_request_id
     def list_recipes(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         next_token = self._get_param("NextToken", self._get_param("nextToken"))
@@ -71,7 +70,6 @@ class DataBrewResponse(BaseResponse):
             }
         )
 
-    @amzn_request_id
     def list_recipe_versions(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         recipe_name = self._get_param("Name", self._get_param("name"))
@@ -91,7 +89,6 @@ class DataBrewResponse(BaseResponse):
             }
         )
 
-    @amzn_request_id
     def publish_recipe(self) -> str:
         recipe_name = self._get_path().strip("/").split("/", 2)[1]
         recipe_description = self.parameters.get("Description")
@@ -104,7 +101,9 @@ class DataBrewResponse(BaseResponse):
         recipe_steps = self.parameters.get("Steps")
 
         self.databrew_backend.update_recipe(
-            recipe_name, recipe_description, recipe_steps  # type: ignore[arg-type]
+            recipe_name,
+            recipe_description,  # type: ignore[arg-type]
+            recipe_steps,  # type: ignore[arg-type]
         )
         return json.dumps({"Name": recipe_name})
 
@@ -123,7 +122,6 @@ class DataBrewResponse(BaseResponse):
 
     # region Rulesets
 
-    @amzn_request_id
     def create_ruleset(self) -> str:
         ruleset_description = self.parameters.get("Description")
         ruleset_rules = self.parameters.get("Rules")
@@ -148,7 +146,10 @@ class DataBrewResponse(BaseResponse):
         tags = self.parameters.get("Tags")
 
         ruleset = self.databrew_backend.update_ruleset(
-            ruleset_name, ruleset_description, ruleset_rules, tags  # type: ignore[arg-type]
+            ruleset_name,
+            ruleset_description,  # type: ignore[arg-type]
+            ruleset_rules,  # type: ignore[arg-type]
+            tags,  # type: ignore[arg-type]
         )
         return json.dumps(ruleset.as_dict())
 
@@ -162,7 +163,6 @@ class DataBrewResponse(BaseResponse):
         self.databrew_backend.delete_ruleset(ruleset_name)
         return json.dumps({"Name": ruleset_name})
 
-    @amzn_request_id
     def list_rulesets(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRulesets.html
         next_token = self._get_param("NextToken", self._get_param("nextToken"))
@@ -185,7 +185,6 @@ class DataBrewResponse(BaseResponse):
 
     # region Datasets
 
-    @amzn_request_id
     def create_dataset(self) -> str:
         dataset_name = self.parameters.get("Name")
         dataset_format = self.parameters.get("Format")
@@ -205,7 +204,6 @@ class DataBrewResponse(BaseResponse):
             ).as_dict()
         )
 
-    @amzn_request_id
     def list_datasets(self) -> str:
         next_token = self._get_param("NextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
@@ -224,7 +222,6 @@ class DataBrewResponse(BaseResponse):
             }
         )
 
-    @amzn_request_id
     def update_dataset(self) -> str:
         dataset_name = self._get_path().split("/")[-1]
         dataset_format = self.parameters.get("Format")
@@ -243,13 +240,11 @@ class DataBrewResponse(BaseResponse):
         )
         return json.dumps(dataset.as_dict())
 
-    @amzn_request_id
     def delete_dataset(self) -> str:
         dataset_name = self._get_path().split("/")[-1]
         self.databrew_backend.delete_dataset(dataset_name)
         return json.dumps({"Name": dataset_name})
 
-    @amzn_request_id
     def describe_dataset(self) -> str:
         dataset_name = self._get_path().split("/")[-1]
         dataset = self.databrew_backend.describe_dataset(dataset_name)
@@ -258,7 +253,6 @@ class DataBrewResponse(BaseResponse):
     # endregion
 
     # region Jobs
-    @amzn_request_id
     def list_jobs(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         dataset_name = self._get_param("datasetName")
@@ -291,7 +285,6 @@ class DataBrewResponse(BaseResponse):
         self.databrew_backend.delete_job(job_name)
         return json.dumps({"Name": job_name})
 
-    @amzn_request_id
     def create_profile_job(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateProfileJob.html
         kwargs = {
@@ -331,7 +324,6 @@ class DataBrewResponse(BaseResponse):
         }
         return json.dumps(self.databrew_backend.update_profile_job(**kwargs).as_dict())
 
-    @amzn_request_id
     def create_recipe_job(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipeJob.html
         kwargs = {
@@ -353,7 +345,6 @@ class DataBrewResponse(BaseResponse):
         }
         return json.dumps(self.databrew_backend.create_recipe_job(**kwargs).as_dict())
 
-    @amzn_request_id
     def update_recipe_job(self) -> str:
         name = self._get_path().rstrip("/").rsplit("/", 1)[1]
         # https://docs.aws.amazon.com/databrew/latest/dg/API_UpdateRecipeJob.html

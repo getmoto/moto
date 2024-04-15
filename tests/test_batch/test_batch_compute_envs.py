@@ -3,16 +3,12 @@ from uuid import uuid4
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, settings
+from moto import mock_aws, settings
 
 from . import _get_clients, _setup
 
 
-# Yes, yes it talks to all the things
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_managed_compute_environment():
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
@@ -58,10 +54,7 @@ def test_create_managed_compute_environment():
     assert our_env["ecsClusterArn"] in all_clusters
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_managed_compute_environment_with_instance_family():
     """
     The InstanceType parameter can have multiple values:
@@ -102,10 +95,7 @@ def test_create_managed_compute_environment_with_instance_family():
     assert our_env["computeResources"]["instanceTypes"] == ["t2"]
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_managed_compute_environment_with_unknown_instance_type():
     """
     The InstanceType parameter can have multiple values:
@@ -145,10 +135,7 @@ def test_create_managed_compute_environment_with_unknown_instance_type():
     assert err["Message"] == "Instance type unknown does not exist"
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_unmanaged_compute_environment():
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -183,10 +170,7 @@ def test_create_unmanaged_compute_environment():
 # TODO create 1000s of tests to test complex option combinations of create environment
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_describe_compute_environment():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -216,10 +200,7 @@ def test_describe_compute_environment():
     assert len(resp["computeEnvironments"]) == 0
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_delete_unmanaged_compute_environment():
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -248,10 +229,7 @@ def test_delete_unmanaged_compute_environment():
     assert cluster["status"] == "INACTIVE"
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_delete_managed_compute_environment():
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
@@ -303,10 +281,7 @@ def test_delete_managed_compute_environment():
     assert cluster["status"] == "INACTIVE"
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_update_unmanaged_compute_environment_state():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -329,10 +304,7 @@ def test_update_unmanaged_compute_environment_state():
     assert our_envs[0]["state"] == "DISABLED"
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_update_iam_role():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -366,10 +338,7 @@ def test_update_iam_role():
 
 
 @pytest.mark.parametrize("compute_env_type", ["FARGATE", "FARGATE_SPOT"])
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_fargate_managed_compute_environment(compute_env_type):
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
@@ -400,17 +369,16 @@ def test_create_fargate_managed_compute_environment(compute_env_type):
     assert our_env["ecsClusterArn"] in all_clusters
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_ec2_managed_compute_environment__without_required_params():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, subnet_id, _, iam_arn = _setup(ec2_client, iam_client)
 
+    env_name = "ec2-env"
+
     with pytest.raises(ClientError) as exc:
         batch_client.create_compute_environment(
-            computeEnvironmentName="ec2-env",
+            computeEnvironmentName=env_name,
             type="MANAGED",
             state="ENABLED",
             computeResources={"type": "EC2", "maxvCpus": 1, "subnets": [subnet_id]},
@@ -425,7 +393,7 @@ def test_create_ec2_managed_compute_environment__without_required_params():
 
     with pytest.raises(ClientError) as exc:
         batch_client.create_compute_environment(
-            computeEnvironmentName="ec2-env",
+            computeEnvironmentName=env_name,
             type="MANAGED",
             state="ENABLED",
             computeResources={
@@ -440,5 +408,18 @@ def test_create_ec2_managed_compute_environment__without_required_params():
     assert err["Code"] == "ClientException"
     assert (
         "Error executing request, Exception : Resource minvCpus is required."
+        in err["Message"]
+    )
+
+    with pytest.raises(ClientError) as exc:
+        batch_client.create_compute_environment(
+            computeEnvironmentName=env_name,
+            type="UNMANGED",
+            state="ENABLED",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClientException"
+    assert (
+        "Error executing request, Exception : ServiceRole is required.,"
         in err["Message"]
     )

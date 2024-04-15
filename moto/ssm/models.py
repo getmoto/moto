@@ -9,7 +9,8 @@ from typing import Any, DefaultDict, Dict, Iterator, List, Optional, Tuple
 
 import yaml
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
@@ -131,7 +132,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
 
     def _get_secretsmanager_parameter(self, secret_name: str) -> List["Parameter"]:
         secrets_backend = secretsmanager_backends[self.account_id][self.region_name]
-        secret = secrets_backend.describe_secret(secret_name)
+        secret = secrets_backend.describe_secret(secret_name).to_dict()
         version_id_to_stage = secret["VersionIdsToStages"]
         # Sort version ID's so that AWSCURRENT is last
         sorted_version_ids = [
@@ -373,7 +374,7 @@ MAX_TIMEOUT_SECONDS = 3600
 
 
 def generate_ssm_doc_param_list(
-    parameters: Dict[str, Any]
+    parameters: Dict[str, Any],
 ) -> Optional[List[Dict[str, Any]]]:
     if not parameters:
         return None
@@ -1177,26 +1178,15 @@ class SimpleSystemManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._parameters = ParameterDict(account_id, region_name)
 
-        self._resource_tags: DefaultDict[
-            str, DefaultDict[str, Dict[str, str]]
-        ] = defaultdict(lambda: defaultdict(dict))
+        self._resource_tags: DefaultDict[str, DefaultDict[str, Dict[str, str]]] = (
+            defaultdict(lambda: defaultdict(dict))
+        )
         self._commands: List[Command] = []
         self._errors: List[str] = []
         self._documents: Dict[str, Documents] = {}
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint services."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ssm"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ssmmessages"
-        )
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str

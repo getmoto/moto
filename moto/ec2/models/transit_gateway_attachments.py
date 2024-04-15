@@ -132,9 +132,9 @@ class TransitGatewayAttachmentBackend:
             transit_gateway_id=transit_gateway_id,
             tags=tags,
         )
-        self.transit_gateway_attachments[
-            transit_gateway_vpn_attachment.id
-        ] = transit_gateway_vpn_attachment
+        self.transit_gateway_attachments[transit_gateway_vpn_attachment.id] = (
+            transit_gateway_vpn_attachment
+        )
         return transit_gateway_vpn_attachment
 
     def create_transit_gateway_vpc_attachment(
@@ -153,9 +153,9 @@ class TransitGatewayAttachmentBackend:
             subnet_ids=subnet_ids,
             options=options,
         )
-        self.transit_gateway_attachments[
-            transit_gateway_vpc_attachment.id
-        ] = transit_gateway_vpc_attachment
+        self.transit_gateway_attachments[transit_gateway_vpc_attachment.id] = (
+            transit_gateway_vpc_attachment
+        )
         return transit_gateway_vpc_attachment
 
     def describe_transit_gateway_attachments(
@@ -222,6 +222,18 @@ class TransitGatewayAttachmentBackend:
             transit_gateway_attachment_id
         )
         transit_gateway_attachment.state = "deleted"
+        try:
+            route_table_id = transit_gateway_attachment.propagation.get(
+                "transitGatewayRouteTableId"
+            )
+            route_table = self.transit_gateways_route_tables[route_table_id]  # type: ignore[attr-defined]
+            route_table.route_table_propagation = [
+                prop
+                for prop in route_table.route_table_propagation
+                if prop["transitGatewayAttachmentId"] != transit_gateway_attachment_id
+            ]
+        except (AttributeError, KeyError, IndexError):
+            pass
         return transit_gateway_attachment
 
     def modify_transit_gateway_vpc_attachment(
@@ -231,11 +243,12 @@ class TransitGatewayAttachmentBackend:
         options: Optional[Dict[str, str]] = None,
         remove_subnet_ids: Optional[List[str]] = None,
     ) -> TransitGatewayAttachment:
-
         tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
         if remove_subnet_ids:
             tgw_attachment.subnet_ids = [  # type: ignore[attr-defined]
-                id for id in tgw_attachment.subnet_ids if id not in remove_subnet_ids  # type: ignore[attr-defined]
+                id
+                for id in tgw_attachment.subnet_ids  # type: ignore[attr-defined]
+                if id not in remove_subnet_ids
             ]
 
         if options:
@@ -294,9 +307,9 @@ class TransitGatewayAttachmentBackend:
             region_name=self.region_name,  # type: ignore[attr-defined]
         )
 
-        self.transit_gateway_attachments[
-            transit_gateway_peering_attachment.id
-        ] = transit_gateway_peering_attachment
+        self.transit_gateway_attachments[transit_gateway_peering_attachment.id] = (
+            transit_gateway_peering_attachment
+        )
 
         # If the peer is not same as the current account or region, create attachment in peer backend
         if self.account_id != peer_account_id or self.region_name != peer_region:  # type: ignore[attr-defined]
@@ -356,12 +369,18 @@ class TransitGatewayAttachmentBackend:
         accepter_region_name = transit_gateway_attachment.accepter_tgw_info["region"]  # type: ignore[attr-defined]
 
         # For cross-account peering, must be accepted by the accepter
-        if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
+        if (
+            requester_account_id != accepter_account_id
+            and self.account_id != accepter_account_id  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "accept", transit_gateway_attachment_id
             )
 
-        if requester_region_name != accepter_region_name and self.region_name != accepter_region_name:  # type: ignore[attr-defined]
+        if (
+            requester_region_name != accepter_region_name
+            and self.region_name != accepter_region_name  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "accept", transit_gateway_attachment_id
             )
@@ -384,12 +403,18 @@ class TransitGatewayAttachmentBackend:
         accepter_account_id = transit_gateway_attachment.accepter_tgw_info["ownerId"]  # type: ignore[attr-defined]
         accepter_region_name = transit_gateway_attachment.requester_tgw_info["region"]  # type: ignore[attr-defined]
 
-        if requester_account_id != accepter_account_id and self.account_id != accepter_account_id:  # type: ignore[attr-defined]
+        if (
+            requester_account_id != accepter_account_id
+            and self.account_id != accepter_account_id  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "reject", transit_gateway_attachment_id
             )
 
-        if requester_region_name != accepter_region_name and self.region_name != accepter_region_name:  # type: ignore[attr-defined]
+        if (
+            requester_region_name != accepter_region_name
+            and self.region_name != accepter_region_name  # type: ignore[attr-defined]
+        ):
             raise InvalidParameterValueErrorPeeringAttachment(
                 "reject", transit_gateway_attachment_id
             )

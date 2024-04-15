@@ -4,10 +4,10 @@ import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_route53, settings
+from moto import mock_aws, settings
 
 
-@mock_route53
+@mock_aws
 def test_create_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
     response = conn.create_hosted_zone(
@@ -31,7 +31,7 @@ def test_create_hosted_zone():
         assert "<Name>testdns.aws.com.</Name>" in requests.get(location).text
 
 
-@mock_route53
+@mock_aws
 def test_get_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
     name = "testdns.aws.com."
@@ -44,7 +44,7 @@ def test_get_hosted_zone():
     assert res["HostedZone"]["CallerReference"] == caller_ref
 
 
-@mock_route53
+@mock_aws
 def test_list_hosted_zones():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -65,7 +65,7 @@ def test_list_hosted_zones():
     assert zone2 in res
 
 
-@mock_route53
+@mock_aws
 def test_delete_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -80,7 +80,7 @@ def test_delete_hosted_zone():
     assert len(res) == 1
 
 
-@mock_route53
+@mock_aws
 def test_delete_hosted_zone_with_change_sets():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -114,14 +114,14 @@ def test_delete_hosted_zone_with_change_sets():
     )
 
 
-@mock_route53
+@mock_aws
 def test_get_hosted_zone_count_no_zones():
     conn = boto3.client("route53", region_name="us-east-1")
     zone_count = conn.get_hosted_zone_count()
     assert zone_count["HostedZoneCount"] == 0
 
 
-@mock_route53
+@mock_aws
 def test_get_hosted_zone_count_one_zone():
     conn = boto3.client("route53", region_name="us-east-1")
     zone = "a"
@@ -135,7 +135,7 @@ def test_get_hosted_zone_count_one_zone():
     assert zone_count["HostedZoneCount"] == 1
 
 
-@mock_route53
+@mock_aws
 def test_get_hosted_zone_count_many_zones():
     conn = boto3.client("route53", region_name="us-east-1")
     zones = {}
@@ -158,7 +158,7 @@ def test_get_hosted_zone_count_many_zones():
     assert zone_count["HostedZoneCount"] == len(zone_indexes)
 
 
-@mock_route53
+@mock_aws
 def test_get_unknown_hosted_zone():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -170,7 +170,7 @@ def test_get_unknown_hosted_zone():
     assert err["Message"] == "No hosted zone found with ID: unknown"
 
 
-@mock_route53
+@mock_aws
 def test_update_hosted_zone_comment():
     conn = boto3.client("route53", region_name="us-east-1")
     response = conn.create_hosted_zone(
@@ -184,7 +184,7 @@ def test_update_hosted_zone_comment():
     assert resp["Config"]["Comment"] == "yolo"
 
 
-@mock_route53
+@mock_aws
 def test_list_resource_record_set_unknown_zone():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -196,7 +196,7 @@ def test_list_resource_record_set_unknown_zone():
     assert err["Message"] == "No hosted zone found with ID: abcd"
 
 
-@mock_route53
+@mock_aws
 def test_list_resource_record_set_unknown_type():
     conn = boto3.client("route53", region_name="us-east-1")
     zone = conn.create_hosted_zone(
@@ -211,7 +211,7 @@ def test_list_resource_record_set_unknown_type():
     assert err["Message"] == "Bad Request"
 
 
-@mock_route53
+@mock_aws
 def test_use_health_check_in_resource_record_set():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -257,7 +257,7 @@ def test_use_health_check_in_resource_record_set():
     assert record_sets[2]["HealthCheckId"] == check_id
 
 
-@mock_route53
+@mock_aws
 def test_hosted_zone_comment_preserved():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -275,7 +275,7 @@ def test_hosted_zone_comment_preserved():
     assert hosted_zones["HostedZones"][0]["Config"]["Comment"] == "test comment"
 
 
-@mock_route53
+@mock_aws
 def test_deleting_weighted_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -332,7 +332,7 @@ def test_deleting_weighted_route():
     assert cnames[-1]["SetIdentifier"] == "success-test-bar"
 
 
-@mock_route53
+@mock_aws
 def test_deleting_latency_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -399,7 +399,7 @@ def test_deleting_latency_route():
     assert cnames[-1]["Region"] == "us-west-1"
 
 
-@mock_route53
+@mock_aws
 def test_list_or_change_tags_for_resource_request():
     conn = boto3.client("route53", region_name="us-east-1")
     health_check = conn.create_health_check(
@@ -487,8 +487,7 @@ def test_list_or_change_tags_for_resource_request():
     assert response["ResourceTagSet"]["Tags"] == []
 
 
-@mock_ec2
-@mock_route53
+@mock_aws
 def test_list_hosted_zones_by_name():
     # Create mock VPC so we can get a VPC ID
     ec2c = boto3.client("ec2", region_name="us-east-1")
@@ -552,7 +551,7 @@ def test_list_hosted_zones_by_name():
     assert zones["HostedZones"][2]["Name"] == "test.a.org."
 
 
-@mock_route53
+@mock_aws
 def test_list_hosted_zones_by_dns_name():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -603,7 +602,45 @@ def test_list_hosted_zones_by_dns_name():
     assert zones["HostedZones"][3]["CallerReference"] == str(hash("bar"))
 
 
-@mock_route53
+@mock_aws
+def test_list_hosted_zones_pagination():
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    for idx in range(150):
+        conn.create_hosted_zone(
+            Name=f"test{idx}.com.", CallerReference=str(hash(f"h{idx}"))
+        )
+
+    page1 = conn.list_hosted_zones()
+    assert "Marker" not in page1
+    assert page1["IsTruncated"] is True
+    assert "NextMarker" in page1
+    assert "MaxItems" not in page1
+    assert len(page1["HostedZones"]) == 100
+
+    page2 = conn.list_hosted_zones(Marker=page1["NextMarker"])
+    assert page2["Marker"] == page1["NextMarker"]
+    assert page2["IsTruncated"] is False
+    assert "NextMarker" not in page2
+    assert "MaxItems" not in page2
+    assert len(page2["HostedZones"]) == 50
+
+    small_page = conn.list_hosted_zones(MaxItems="75")
+    assert "Marker" not in small_page
+    assert small_page["IsTruncated"] is True
+    assert "NextMarker" in small_page
+    assert small_page["MaxItems"] == "75"
+    assert len(small_page["HostedZones"]) == 75
+
+    remainer = conn.list_hosted_zones(Marker=small_page["NextMarker"])
+    assert remainer["Marker"] == small_page["NextMarker"]
+    assert remainer["IsTruncated"] is False
+    assert "NextMarker" not in remainer
+    assert "MaxItems" not in remainer
+    assert len(remainer["HostedZones"]) == 75
+
+
+@mock_aws
 def test_change_resource_record_sets_crud_valid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -728,7 +765,7 @@ def test_change_resource_record_sets_crud_valid():
     assert len(response["ResourceRecordSets"]) == 2
 
 
-@mock_route53
+@mock_aws
 @pytest.mark.parametrize("multi_value_answer", [True, False, None])
 def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
     multi_value_answer,
@@ -833,7 +870,7 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
     assert len(response["ResourceRecordSets"]) == 2
 
 
-@mock_route53
+@mock_aws
 def test_change_resource_record_set__delete_should_match_create():
     # To delete a resource record set, you must specify all the same values that you specified when you created it.
     client = boto3.client("route53", region_name="us-east-1")
@@ -868,7 +905,7 @@ def test_change_resource_record_set__delete_should_match_create():
                         "Action": "DELETE",
                         "ResourceRecordSet": {
                             "Name": name,
-                            "Type": "A"
+                            "Type": "A",
                             # Missing TTL and ResourceRecords
                         },
                     }
@@ -883,7 +920,7 @@ def test_change_resource_record_set__delete_should_match_create():
     )
 
 
-@mock_route53
+@mock_aws
 def test_change_weighted_resource_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
     conn.create_hosted_zone(
@@ -995,7 +1032,7 @@ def test_change_weighted_resource_record_sets():
                 assert record["Weight"] == 10
 
 
-@mock_route53
+@mock_aws
 def test_failover_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
     conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
@@ -1026,7 +1063,7 @@ def test_failover_record_sets():
     assert record["Failover"] == "PRIMARY"
 
 
-@mock_route53
+@mock_aws
 def test_geolocation_record_sets():
     conn = boto3.client("route53", region_name="us-east-2")
     conn.create_hosted_zone(Name="test.zone.", CallerReference=str(hash("test")))
@@ -1068,7 +1105,7 @@ def test_geolocation_record_sets():
     assert rrs[3]["GeoLocation"] == {"CountryCode": "US", "SubdivisionCode": "NY"}
 
 
-@mock_route53
+@mock_aws
 def test_change_resource_record_invalid():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -1129,7 +1166,7 @@ def test_change_resource_record_invalid():
     assert len(response["ResourceRecordSets"]) == 2
 
 
-@mock_route53
+@mock_aws
 def test_change_resource_record_invalid_action_value():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -1174,7 +1211,7 @@ def test_change_resource_record_invalid_action_value():
     assert len(response["ResourceRecordSets"]) == 2
 
 
-@mock_route53
+@mock_aws
 def test_change_resource_record_set_create__should_fail_when_record_already_exists():
     ZONE = "cname.local"
     FQDN = f"test.{ZONE}"
@@ -1210,7 +1247,7 @@ def test_change_resource_record_set_create__should_fail_when_record_already_exis
     )
 
 
-@mock_route53
+@mock_aws
 def test_change_resource_record_set__should_create_record_when_using_upsert():
     route53_client = boto3.client("route53", region_name="us-east-1")
 
@@ -1252,7 +1289,7 @@ def test_change_resource_record_set__should_create_record_when_using_upsert():
     assert response["ResourceRecordSets"][2] == resource_record
 
 
-@mock_route53
+@mock_aws
 def test_list_resource_record_sets_name_type_filters():
     conn = boto3.client("route53", region_name="us-east-1")
     create_hosted_zone_response = conn.create_hosted_zone(
@@ -1310,7 +1347,7 @@ def test_list_resource_record_sets_name_type_filters():
         assert desired_record in returned_records
 
 
-@mock_route53
+@mock_aws
 def test_get_change():
     conn = boto3.client("route53", region_name="us-east-2")
 
@@ -1321,7 +1358,7 @@ def test_get_change():
     assert response["ChangeInfo"]["Status"] == "INSYNC"
 
 
-@mock_route53
+@mock_aws
 def test_change_resource_record_sets_records_limit():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -1441,7 +1478,7 @@ def test_change_resource_record_sets_records_limit():
     assert err["Message"] == "Number of records limit of 1000 exceeded."
 
 
-@mock_route53
+@mock_aws
 def test_list_resource_recordset_pagination():
     conn = boto3.client("route53", region_name="us-east-1")
     conn.create_hosted_zone(
@@ -1507,7 +1544,7 @@ def test_list_resource_recordset_pagination():
     assert "NextRecordType" not in response
 
 
-@mock_route53
+@mock_aws
 def test_get_dns_sec():
     client = boto3.client("route53", region_name="us-east-1")
 
@@ -1516,3 +1553,54 @@ def test_get_dns_sec():
     )["HostedZone"]["Id"]
     dns_sec = client.get_dnssec(HostedZoneId=hosted_zone_id)
     assert dns_sec["Status"] == {"ServeSignature": "NOT_SIGNING"}
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "domain1,domain2",
+    (
+        ["a.com", "a.com"],
+        ["a.b.com", "b.com"],
+        ["b.com", "a.b.com"],
+        ["a.b.com", "a.b.com"],
+    ),
+)
+def test_conflicting_domain_exists(domain1, domain2):
+    delegation_set_id = "N10015061S366L6NMTRKQ"
+    conn = boto3.client("route53", region_name="us-east-1")
+    conn.create_hosted_zone(
+        Name=domain1,
+        CallerReference=str(hash("foo")),
+        DelegationSetId=delegation_set_id,
+    )
+    with pytest.raises(ClientError) as exc_info:
+        conn.create_hosted_zone(
+            Name=domain2,
+            CallerReference=str(hash("bar")),
+            DelegationSetId=delegation_set_id,
+        )
+    assert exc_info.value.response.get("Error").get("Code") == "ConflictingDomainExists"
+    for string in [delegation_set_id, domain2]:
+        assert string in exc_info.value.response.get("Error").get("Message")
+
+    # Now test that these domains can be created with different delegation set ids
+    conn.create_hosted_zone(
+        Name=domain1,
+        CallerReference=str(hash("foo")),
+    )
+    conn.create_hosted_zone(
+        Name=domain2,
+        CallerReference=str(hash("bar")),
+    )
+
+    # And, finally, test that these domains can be created with different named delegation sets
+    conn.create_hosted_zone(
+        Name=domain1,
+        CallerReference=str(hash("foo")),
+        DelegationSetId="1",
+    )
+    conn.create_hosted_zone(
+        Name=domain2,
+        CallerReference=str(hash("bar")),
+        DelegationSetId="2",
+    )

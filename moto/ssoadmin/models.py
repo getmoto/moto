@@ -1,7 +1,8 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.iam.aws_managed_policies import aws_managed_policies_data
 from moto.moto_api._internal import mock_random as random
@@ -336,7 +337,7 @@ class SSOAdminBackend(BaseBackend):
             message=f"Could not find PermissionSet with id {ps_id}"
         )
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_permission_sets(self, instance_arn: str) -> List[PermissionSet]:
         permission_sets = []
         for permission_set in self.permission_sets:
@@ -398,7 +399,7 @@ class SSOAdminBackend(BaseBackend):
         permissionset.managed_policies.append(managed_policy)
         permissionset.total_managed_policies_attached += 1
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_managed_policies_in_permission_set(
         self,
         instance_arn: str,
@@ -466,7 +467,7 @@ class SSOAdminBackend(BaseBackend):
         permissionset.customer_managed_policies.append(customer_managed_policy)
         permissionset.total_managed_policies_attached += 1
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_customer_managed_policy_references_in_permission_set(
         self, instance_arn: str, permission_set_arn: str
     ) -> List[CustomerManagedPolicy]:

@@ -5,7 +5,8 @@ from typing import Any, Dict, Iterable, List, Optional
 from botocore.exceptions import ParamValidationError
 from jinja2 import Template
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
@@ -576,7 +577,11 @@ class FakeLoadBalancer(CloudFormationModel):
         "access_logs.s3.enabled",
         "access_logs.s3.bucket",
         "access_logs.s3.prefix",
+        "connection_logs.s3.bucket",
+        "connection_logs.s3.enabled",
+        "connection_logs.s3.prefix",
         "deletion_protection.enabled",
+        "dns_record.client_routing_policy",
         "idle_timeout.timeout_seconds",
         "ipv6.deny_all_igw_traffic",
         "load_balancing.cross_zone.enabled",
@@ -716,15 +721,6 @@ class ELBv2Backend(BaseBackend):
         self.target_groups: Dict[str, FakeTargetGroup] = OrderedDict()
         self.load_balancers: Dict[str, FakeLoadBalancer] = OrderedDict()
         self.tagging_service = TaggingService()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticloadbalancing"
-        )
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
@@ -1224,7 +1220,6 @@ Member must satisfy regular expression pattern: {expression}"
             healthcheck_timeout_seconds is not None
             and healthcheck_interval_seconds is not None
         ):
-
             if healthcheck_interval_seconds < healthcheck_timeout_seconds:
                 message = f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than or equal to the interval '{healthcheck_interval_seconds}'"
                 if protocol in ("HTTP", "HTTPS"):
@@ -1470,7 +1465,6 @@ Member must satisfy regular expression pattern: {expression}"
         target_group_arns: List[str],
         names: Optional[List[str]],
     ) -> Iterable[FakeTargetGroup]:
-
         args = sum(bool(arg) for arg in [load_balancer_arn, target_group_arns, names])
 
         if args > 1:

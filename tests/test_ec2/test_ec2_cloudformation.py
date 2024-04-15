@@ -5,7 +5,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_ec2
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 from tests.test_cloudformation.fixtures import (
     ec2_classic_eip,
@@ -36,8 +36,7 @@ template_subnet = {
 }
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_vpc_single_instance_in_subnet():
     template_json = json.dumps(vpc_single_instance_in_subnet.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -96,8 +95,7 @@ def test_vpc_single_instance_in_subnet():
     assert eip["InstanceId"] == instance["InstanceId"]
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_delete_stack_with_vpc():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
@@ -114,8 +112,7 @@ def test_delete_stack_with_vpc():
         ec2.describe_vpcs(VpcIds=[vpc_id])
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_delete_stack_with_subnet():
     cf = boto3.client("cloudformation", region_name="us-east-1")
     ec2 = boto3.client("ec2", region_name="us-east-1")
@@ -137,8 +134,7 @@ def test_delete_stack_with_subnet():
         ec2.describe_subnets(SubnetIds=subnet_ids)
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_elastic_network_interfaces_cloudformation_boto3():
     template = vpc_eni.template
     template_json = json.dumps(template)
@@ -165,8 +161,7 @@ def test_elastic_network_interfaces_cloudformation_boto3():
     assert received_ip in all_ips
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_volume_size_through_cloudformation():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -214,8 +209,7 @@ def test_volume_size_through_cloudformation():
     assert volumes["Volumes"][0]["Size"] == 50
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_attach_internet_gateway():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -261,8 +255,7 @@ def test_attach_internet_gateway():
     } in gateway["Tags"]
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_attach_vpn_gateway():
     ec2 = boto3.client("ec2", region_name="us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -307,8 +300,7 @@ def get_resource_id(resource_type, stack_resources):
     return r["PhysicalResourceId"]
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_subnet_tags_through_cloudformation_boto3():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2_res = boto3.resource("ec2", region_name="us-west-1")
@@ -344,8 +336,7 @@ def test_subnet_tags_through_cloudformation_boto3():
     assert {"Key": "blah", "Value": "baz"} in subnet["Tags"]
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_single_instance_with_ebs_volume():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -381,8 +372,7 @@ def test_single_instance_with_ebs_volume():
     assert volume["Attachments"][0]["InstanceId"] == ec2_instance["InstanceId"]
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_classic_eip():
     template_json = json.dumps(ec2_classic_eip.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -400,8 +390,7 @@ def test_classic_eip():
     assert cfn_eip["PhysicalResourceId"] in all_ips
 
 
-@mock_ec2
-@mock_cloudformation
+@mock_aws
 def test_vpc_eip():
     template_json = json.dumps(vpc_eip.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
@@ -420,8 +409,7 @@ def test_vpc_eip():
     assert cfn_eip["PhysicalResourceId"] in all_ips
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -464,8 +452,7 @@ def test_vpc_gateway_attachment_creation_should_attach_itself_to_vpc():
     assert len(igws) == 1
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_vpc_peering_creation():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -494,8 +481,7 @@ def test_vpc_peering_creation():
     assert len(peering_connections) == 1
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     sg1 = str(uuid4())[0:6]
     sg2 = str(uuid4())[0:6]
@@ -548,8 +534,7 @@ def test_multiple_security_group_ingress_separate_from_security_group_by_id():
     assert security_group1["IpPermissions"][0]["ToPort"] == 8080
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_security_group_ingress_separate_from_security_group_by_id():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     sg_name = str(uuid4())
@@ -598,8 +583,7 @@ def test_security_group_ingress_separate_from_security_group_by_id():
     assert security_group1["IpPermissions"][0]["ToPort"] == 8080
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -655,8 +639,7 @@ def test_security_group_ingress_separate_from_security_group_by_id_using_vpc():
     assert security_group1["IpPermissions"][0]["ToPort"] == 8080
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_security_group_with_update():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -692,8 +675,7 @@ def test_security_group_with_update():
     assert security_group["VpcId"] == vpc2.id
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_subnets_should_be_created_with_availability_zone():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -729,8 +711,7 @@ def get_secgroup_by_tag(ec2, sg_):
     )["SecurityGroups"][0]
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_vpc_endpoint_creation():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     ec2_client = boto3.client("ec2", region_name="us-west-1")
@@ -783,7 +764,11 @@ def test_vpc_endpoint_creation():
 
     outputs = cf.describe_stacks(StackName=stack_name)["Stacks"][0]["Outputs"]
     assert len(outputs) == 1
-    assert outputs[0] == {"OutputKey": "EndpointId", "OutputValue": vpc_endpoint_id}
+    assert outputs[0] == {
+        "OutputKey": "EndpointId",
+        "OutputValue": vpc_endpoint_id,
+        "Description": "Id of the endpoint created",
+    }
 
     endpoint = ec2_client.describe_vpc_endpoints(VpcEndpointIds=[vpc_endpoint_id])[
         "VpcEndpoints"
@@ -795,8 +780,7 @@ def test_vpc_endpoint_creation():
     assert endpoint["VpcEndpointType"] == "GatewayLoadBalancer"
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_launch_template_create():
     cf = boto3.client("cloudformation", region_name="us-west-1")
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -856,6 +840,7 @@ def test_launch_template_create():
     assert outputs[0] == {
         "OutputKey": "LaunchTemplateId",
         "OutputValue": launch_template_id,
+        "Description": "The ID of the created launch template",
     }
 
     launch_template = ec2.describe_launch_templates(
@@ -878,8 +863,7 @@ def test_launch_template_create():
     )
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_launch_template_update():
     cf = boto3.client("cloudformation", region_name="us-west-1")
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -935,8 +919,7 @@ def test_launch_template_update():
     assert launch_template_versions[1]["VersionDescription"] == "a better template"
 
 
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_launch_template_delete():
     cf = boto3.client("cloudformation", region_name="us-west-1")
     ec2 = boto3.client("ec2", region_name="us-west-1")

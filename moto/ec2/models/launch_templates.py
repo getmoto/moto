@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
@@ -127,9 +127,8 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "LaunchTemplate":
-
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
@@ -160,7 +159,6 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> "LaunchTemplate":
-
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
@@ -176,24 +174,15 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
         return launch_template
 
-    @classmethod
-    def delete_from_cloudformation_json(  # type: ignore[misc]
-        cls,
-        resource_name: str,
-        cloudformation_json: Any,
+    def delete(
+        self,
         account_id: str,
         region_name: str,
     ) -> None:
-
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
-
-        properties = cloudformation_json["Properties"]
-
-        name = properties.get("LaunchTemplateName")
-
-        backend.delete_launch_template(name, None)
+        backend.delete_launch_template(self.name, None)
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:

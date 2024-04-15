@@ -47,7 +47,9 @@ class FilterPolicyMatcher:
             if message_attributes is None:
                 message_attributes = {}
 
-            return self._attributes_based_match(message_attributes)
+            return FilterPolicyMatcher._attributes_based_match(
+                message_attributes, source=self.filter_policy
+            )
         else:
             try:
                 message_dict = json.loads(message)
@@ -55,10 +57,13 @@ class FilterPolicyMatcher:
                 return False
             return self._body_based_match(message_dict)
 
-    def _attributes_based_match(self, message_attributes: Dict[str, Any]) -> bool:
+    @staticmethod
+    def _attributes_based_match(  # type: ignore[misc]
+        message_attributes: Dict[str, Any], source: Dict[str, Any]
+    ) -> bool:
         return all(
             FilterPolicyMatcher._field_match(field, rules, message_attributes)
-            for field, rules in self.filter_policy.items()
+            for field, rules in source.items()
         )
 
     def _body_based_match(self, message_dict: Dict[str, Any]) -> bool:
@@ -218,6 +223,9 @@ class FilterPolicyMatcher:
         def _prefix_match(prefix: str, value: str) -> bool:
             return value.startswith(prefix)
 
+        def _suffix_match(prefix: str, value: str) -> bool:
+            return value.endswith(prefix)
+
         def _anything_but_match(
             filter_value: Union[Dict[str, Any], List[str], str],
             actual_values: List[str],
@@ -316,6 +324,19 @@ class FilterPolicyMatcher:
                     else:
                         if _exists_match(value, field, dict_body):
                             return True
+
+                elif keyword == "equals-ignore-case" and isinstance(value, str):
+                    if attributes_based_check:
+                        if field not in dict_body:
+                            return False
+                        if _str_exact_match(dict_body[field]["Value"].lower(), value):
+                            return True
+                    else:
+                        if field not in dict_body:
+                            return False
+                        if _str_exact_match(dict_body[field].lower(), value):
+                            return True
+
                 elif keyword == "prefix" and isinstance(value, str):
                     if attributes_based_check:
                         if field in dict_body:
@@ -326,6 +347,17 @@ class FilterPolicyMatcher:
                     else:
                         if field in dict_body:
                             if _prefix_match(value, dict_body[field]):
+                                return True
+                elif keyword == "suffix" and isinstance(value, str):
+                    if attributes_based_check:
+                        if field in dict_body:
+                            attr = dict_body[field]
+                            if attr["Type"] == "String":
+                                if _suffix_match(value, attr["Value"]):
+                                    return True
+                    else:
+                        if field in dict_body:
+                            if _suffix_match(value, dict_body[field]):
                                 return True
 
                 elif keyword == "anything-but":
@@ -374,7 +406,6 @@ class FilterPolicyMatcher:
                 elif keyword == "numeric" and isinstance(value, list):
                     if attributes_based_check:
                         if dict_body.get(field, {}).get("Type", "") == "Number":
-
                             checks = value
                             numeric_ranges = zip(checks[0::2], checks[1::2])
                             if _numeric_match(
@@ -389,5 +420,13 @@ class FilterPolicyMatcher:
                         numeric_ranges = zip(checks[0::2], checks[1::2])
                         if _numeric_match(numeric_ranges, dict_body[field]):
                             return True
+
+            if field == "$or" and isinstance(rules, list):
+                return any(
+                    [
+                        FilterPolicyMatcher._attributes_based_match(dict_body, rule)
+                        for rule in rules
+                    ]
+                )
 
         return False

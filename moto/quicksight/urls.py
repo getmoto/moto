@@ -1,4 +1,5 @@
 """quicksight base URL and path."""
+
 from .responses import QuickSightResponse
 
 url_bases = [

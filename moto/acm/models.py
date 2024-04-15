@@ -10,7 +10,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import OID_COMMON_NAME, DNSName, NameOID
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 
 from .exceptions import (
@@ -237,12 +238,12 @@ class CertBundle(BaseModel):
             )
 
             now = utcnow()
-            if _cert.not_valid_after < now:
+            if self._not_valid_after(_cert) < now:
                 raise AWSValidationException(
                     "The certificate has expired, is not valid."
                 )
 
-            if _cert.not_valid_before > now:
+            if self._not_valid_before(_cert) > now:
                 raise AWSValidationException(
                     "The certificate is not in effect yet, is not valid."
                 )
@@ -255,6 +256,22 @@ class CertBundle(BaseModel):
             )
         return _cert
 
+    def _not_valid_after(
+        self, _cert: cryptography.x509.base.Certificate
+    ) -> datetime.datetime:
+        try:
+            return _cert.not_valid_after_utc.replace(tzinfo=None)
+        except AttributeError:
+            return _cert.not_valid_after
+
+    def _not_valid_before(
+        self, _cert: cryptography.x509.base.Certificate
+    ) -> datetime.datetime:
+        try:
+            return _cert.not_valid_before_utc.replace(tzinfo=None)
+        except AttributeError:
+            return _cert.not_valid_before
+
     def validate_chain(self) -> None:
         try:
             for cert_armored in self.chain.split(b"-\n-"):
@@ -266,12 +283,12 @@ class CertBundle(BaseModel):
                 )
 
                 now = utcnow()
-                if self._cert.not_valid_after < now:
+                if self._not_valid_after(self._cert) < now:
                     raise AWSValidationException(
                         "The certificate chain has expired, is not valid."
                     )
 
-                if self._cert.not_valid_before > now:
+                if self._not_valid_before(self._cert) > now:
                     raise AWSValidationException(
                         "The certificate chain is not in effect yet, is not valid."
                     )
@@ -324,8 +341,8 @@ class CertBundle(BaseModel):
                     0
                 ].value,
                 "KeyAlgorithm": key_algo,
-                "NotAfter": datetime_to_epoch(self._cert.not_valid_after),
-                "NotBefore": datetime_to_epoch(self._cert.not_valid_before),
+                "NotAfter": datetime_to_epoch(self._not_valid_after(self._cert)),
+                "NotBefore": datetime_to_epoch(self._not_valid_before(self._cert)),
                 "Serial": str(self._cert.serial_number),
                 "SignatureAlgorithm": self._cert.signature_algorithm_oid._name.upper().replace(
                     "ENCRYPTION", ""
@@ -392,15 +409,6 @@ class AWSCertificateManagerBackend(BaseBackend):
         self._certificates: Dict[str, CertBundle] = {}
         self._idempotency_tokens: Dict[str, Any] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "acm-pca"
-        )
-
     def set_certificate_in_use_by(self, arn: str, load_balancer_name: str) -> None:
         if arn not in self._certificates:
             raise CertificateNotFound(arn=arn, account_id=self.account_id)
@@ -437,7 +445,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             "expires": utcnow() + datetime.timedelta(hours=1),
         }
 
-    def import_cert(
+    def import_certificate(
         self,
         certificate: bytes,
         private_key: bytes,
@@ -475,13 +483,7 @@ class AWSCertificateManagerBackend(BaseBackend):
 
         return bundle.arn
 
-    def get_certificates_list(self, statuses: List[str]) -> Iterable[CertBundle]:
-        """
-        Get list of certificates
-
-        :return: List of certificates
-        :rtype: list of CertBundle
-        """
+    def list_certificates(self, statuses: List[str]) -> Iterable[CertBundle]:
         for arn in self._certificates.keys():
             cert = self.get_certificate(arn)
             if not statuses or cert.status in statuses:
@@ -494,6 +496,9 @@ class AWSCertificateManagerBackend(BaseBackend):
         cert_bundle = self._certificates[arn]
         cert_bundle.check()
         return cert_bundle
+
+    def describe_certificate(self, arn: str) -> CertBundle:
+        return self.get_certificate(arn)
 
     def delete_certificate(self, arn: str) -> None:
         if arn not in self._certificates:

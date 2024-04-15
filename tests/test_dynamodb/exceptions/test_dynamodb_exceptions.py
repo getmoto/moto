@@ -6,7 +6,7 @@ import pytest
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb, settings
+from moto import mock_aws, settings
 
 from .. import dynamodb_aws_verified
 
@@ -30,7 +30,7 @@ table_schema = {
 }
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     item = {
         "partitionKey": "pk-1",
@@ -97,7 +97,7 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     assert err["Message"] == "Query condition missed key schema element: gsiK1SortKey"
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_table_with_wrong_key_attribute_names_throws_exception():
     item = {
         "partitionKey": "pk-1",
@@ -122,7 +122,7 @@ def test_query_table_with_wrong_key_attribute_names_throws_exception():
     assert err["Message"] == "Query condition missed key schema element: partitionKey"
 
 
-@mock_dynamodb
+@mock_aws
 def test_empty_expressionattributenames():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -139,7 +139,7 @@ def test_empty_expressionattributenames():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_empty_expressionattributenames_with_empty_projection():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -155,7 +155,7 @@ def test_empty_expressionattributenames_with_empty_projection():
     assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
-@mock_dynamodb
+@mock_aws
 def test_empty_expressionattributenames_with_projection():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -171,7 +171,7 @@ def test_empty_expressionattributenames_with_projection():
     assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_range_key_set():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -194,7 +194,7 @@ def test_update_item_range_key_set():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_get_item_non_existing_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -205,7 +205,7 @@ def test_batch_get_item_non_existing_table():
     assert err["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_batch_write_item_non_existing_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -219,7 +219,7 @@ def test_batch_write_item_non_existing_table():
     assert err["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_redundant_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -268,7 +268,7 @@ def test_create_table_with_redundant_attributes():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_missing_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -313,7 +313,7 @@ def test_create_table_with_missing_attributes():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table_with_redundant_and_missing_attributes():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -358,7 +358,7 @@ def test_create_table_with_redundant_and_missing_attributes():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_wrong_attribute_type():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
@@ -406,7 +406,7 @@ def test_put_item_wrong_attribute_type():
     )
 
 
-@mock_dynamodb
+@mock_aws
 # https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
 def test_hash_key_cannot_use_begins_with_operations():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -435,7 +435,7 @@ def test_hash_key_cannot_use_begins_with_operations():
 
 
 # Test this again, but with manually supplying an operator
-@mock_dynamodb
+@mock_aws
 @pytest.mark.parametrize("operator", ["<", "<=", ">", ">="])
 def test_hash_key_can_only_use_equals_operations(operator):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -457,7 +457,7 @@ def test_hash_key_can_only_use_equals_operations(operator):
     assert err["Message"] == "Query key condition not supported"
 
 
-@mock_dynamodb
+@mock_aws
 def test_creating_table_with_0_local_indexes():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -477,7 +477,7 @@ def test_creating_table_with_0_local_indexes():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_creating_table_with_0_global_indexes():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -497,7 +497,81 @@ def test_creating_table_with_0_global_indexes():
     )
 
 
-@mock_dynamodb
+@mock_aws
+def test_multiple_transactions_on_same_item():
+    schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
+    )
+    # Insert an item
+    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+
+    def update_email_transact(email):
+        return {
+            "Update": {
+                "Key": {"id": {"S": "foo"}},
+                "TableName": "test-table",
+                "UpdateExpression": "SET #e = :v",
+                "ExpressionAttributeNames": {"#e": "email_address"},
+                "ExpressionAttributeValues": {":v": {"S": email}},
+            }
+        }
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                update_email_transact("test1@moto.com"),
+                update_email_transact("test2@moto.com"),
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Transaction request cannot include multiple operations on one item"
+    )
+
+
+@mock_aws
+def test_transact_write_items__too_many_transactions():
+    schema = {
+        "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
+    )
+
+    def update_email_transact(email):
+        return {
+            "Put": {
+                "TableName": "test-table",
+                "Item": {"pk": {"S": ":v"}},
+                "ExpressionAttributeValues": {":v": {"S": email}},
+            }
+        }
+
+    update_email_transact("test1@moto.com")
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                update_email_transact(f"test{idx}@moto.com") for idx in range(101)
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "1 validation error detected at 'transactItems' failed to satisfy constraint: Member must have length less than or equal to 100."
+    )
+
+
+@mock_aws
 def test_update_item_non_existent_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
     with pytest.raises(client.exceptions.ResourceNotFoundException) as exc:
@@ -512,7 +586,7 @@ def test_update_item_non_existent_table():
     assert err["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 @pytest.mark.parametrize(
     "expression",
     [
@@ -552,7 +626,7 @@ def test_update_item_with_duplicate_expressions(expression):
     assert item == {"pk": "example_id", "example_column": "example"}
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_wrong_datatype():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to mock a session with Config in ServerMode")
@@ -582,7 +656,7 @@ def test_put_item_wrong_datatype():
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_empty_set():
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
@@ -603,7 +677,7 @@ def test_put_item_empty_set():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_returns_old_item():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.create_table(
@@ -645,7 +719,7 @@ def test_put_item_returns_old_item():
     assert resp["Item"] == {"pk": {"S": "foo"}, "bar": {"S": "baz"}}
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_expression_with_trailing_comma():
     resource = boto3.resource(service_name="dynamodb", region_name="us-east-1")
     table = resource.create_table(
@@ -672,7 +746,36 @@ def test_update_expression_with_trailing_comma():
     )
 
 
-@mock_dynamodb
+@mock_aws
+def test_batch_items_should_throw_exception_for_duplicate_request(
+    ddb_resource, create_user_table, users_table_name
+):
+    # Setup
+    table = ddb_resource.Table(users_table_name)
+    test_item = {"forum_name": "test_dupe", "subject": "test1"}
+
+    # Execute
+    with pytest.raises(ClientError) as ex:
+        with table.batch_writer() as batch:
+            for i in range(0, 5):
+                batch.put_item(Item=test_item)
+
+    with pytest.raises(ClientError) as ex2:
+        with table.batch_writer() as batch:
+            for i in range(0, 5):
+                batch.delete_item(Key=test_item)
+
+    # Verify
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Provided list of item keys contains duplicates"
+
+    err2 = ex2.value.response["Error"]
+    assert err2["Code"] == "ValidationException"
+    assert err2["Message"] == "Provided list of item keys contains duplicates"
+
+
+@mock_aws
 def test_batch_put_item_with_empty_value():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -716,7 +819,7 @@ def test_batch_put_item_with_empty_value():
         batch.put_item(Item={"pk": "sth", "sk": "else", "par": ""})
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_begins_with_without_brackets():
     client = boto3.client("dynamodb", region_name="us-east-1")
     client.create_table(
@@ -742,7 +845,83 @@ def test_query_begins_with_without_brackets():
     assert err["Code"] == "ValidationException"
 
 
-@mock_dynamodb
+@mock_aws
+def test_transact_write_items_multiple_operations_fail():
+    # Setup
+    schema = {
+        "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
+        "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
+    }
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = "test-table"
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {"id": {"S": "test"}},
+                        "TableName": table_name,
+                    },
+                    "Delete": {
+                        "Key": {"id": {"S": "test"}},
+                        "TableName": table_name,
+                    },
+                }
+            ]
+        )
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "TransactItems can only contain one of Check, Put, Update or Delete"
+    )
+
+
+@mock_aws
+def test_transact_write_items_with_empty_gsi_key():
+    client = boto3.client("dynamodb", "us-east-2")
+
+    client.create_table(
+        TableName="test_table",
+        KeySchema=[{"AttributeName": "unique_code", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "unique_code", "AttributeType": "S"},
+            {"AttributeName": "unique_id", "AttributeType": "S"},
+        ],
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "gsi_index",
+                "KeySchema": [{"AttributeName": "unique_id", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+            }
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    transact_items = [
+        {
+            "Put": {
+                "Item": {"unique_code": {"S": "some code"}, "unique_id": {"S": ""}},
+                "TableName": "test_table",
+            }
+        }
+    ]
+
+    with pytest.raises(ClientError) as exc:
+        client.transact_write_items(TransactItems=transact_items)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values are not valid. A value specified for a secondary index key is not supported. The AttributeValue for a key attribute cannot contain an empty string value. IndexName: gsi_index, IndexKey: unique_id"
+    )
+
+
+@mock_aws
 def test_update_primary_key_with_sortkey():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     schema = {
@@ -781,7 +960,7 @@ def test_update_primary_key_with_sortkey():
     assert item == {"pk": "testchangepk", "sk": "else"}
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_primary_key():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     schema = {
@@ -814,7 +993,7 @@ def test_update_primary_key():
     assert item == {"pk": "testchangepk"}
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item__string_as_integer_value():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to mock a session with Config in ServerMode")
@@ -849,7 +1028,7 @@ def test_put_item__string_as_integer_value():
     assert item == {"pk": {"S": "val"}, "S": {"S": "asdf"}}
 
 
-@mock_dynamodb
+@mock_aws
 def test_gsi_key_cannot_be_empty():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     hello_index = {
@@ -890,7 +1069,7 @@ def test_gsi_key_cannot_be_empty():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_list_append_errors_for_unknown_attribute_value():
     # Verify whether the list_append operation works as expected
     client = boto3.client("dynamodb", region_name="us-east-1")
@@ -965,7 +1144,7 @@ def test_list_append_errors_for_unknown_attribute_value():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_with_empty_filter_expression():
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     ddb.create_table(
@@ -992,7 +1171,7 @@ def test_query_with_empty_filter_expression():
     )
 
 
-@mock_dynamodb
+@mock_aws
 def test_query_with_missing_expression_attribute():
     ddb = boto3.resource("dynamodb", region_name="us-west-2")
     ddb.create_table(TableName="test", BillingMode="PAY_PER_REQUEST", **table_schema)
@@ -1092,3 +1271,121 @@ def test_scan_with_missing_value(table_name=None):
         err["Message"]
         == 'ExpressionAttributeValues contains invalid key: Syntax error; key: "loc"'
     )
+
+
+@mock_aws
+def test_too_many_key_schema_attributes():
+    ddb = boto3.resource("dynamodb", "us-east-1")
+    TableName = "my_test_"
+
+    AttributeDefinitions = [
+        {"AttributeName": "UUID", "AttributeType": "S"},
+        {"AttributeName": "ComicBook", "AttributeType": "S"},
+    ]
+
+    KeySchema = [
+        {"AttributeName": "UUID", "KeyType": "HASH"},
+        {"AttributeName": "ComicBook", "KeyType": "RANGE"},
+        {"AttributeName": "Creator", "KeyType": "RANGE"},
+    ]
+
+    ProvisionedThroughput = {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+
+    expected_err = "1 validation error detected: Value '[KeySchemaElement(attributeName=UUID, keyType=HASH), KeySchemaElement(attributeName=ComicBook, keyType=RANGE), KeySchemaElement(attributeName=Creator, keyType=RANGE)]' at 'keySchema' failed to satisfy constraint: Member must have length less than or equal to 2"
+    with pytest.raises(ClientError) as exc:
+        ddb.create_table(
+            TableName=TableName,
+            KeySchema=KeySchema,
+            AttributeDefinitions=AttributeDefinitions,
+            ProvisionedThroughput=ProvisionedThroughput,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == expected_err
+
+
+@mock_aws
+def test_cannot_query_gsi_with_consistent_read():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_hash_key", "AttributeType": "S"},
+            {"AttributeName": "gsi_range_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key", "KeyType": "HASH"},
+                    {"AttributeName": "gsi_range_key", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.query(
+            TableName="test",
+            IndexName="test_gsi",
+            KeyConditionExpression="gsi_hash_key = :gsi_hash_key and gsi_range_key = :gsi_range_key",
+            ExpressionAttributeValues={
+                ":gsi_hash_key": {"S": "key1"},
+                ":gsi_range_key": {"S": "range1"},
+            },
+            ConsistentRead=True,
+        )
+
+    assert exc.value.response["Error"] == {
+        "Code": "ValidationException",
+        "Message": "Consistent reads are not supported on global secondary indexes",
+    }
+
+
+@mock_aws
+def test_cannot_scan_gsi_with_consistent_read():
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    dynamodb.create_table(
+        TableName="test",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_hash_key", "AttributeType": "S"},
+            {"AttributeName": "gsi_range_key", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [
+                    {"AttributeName": "gsi_hash_key", "KeyType": "HASH"},
+                    {"AttributeName": "gsi_range_key", "KeyType": "RANGE"},
+                ],
+                "Projection": {"ProjectionType": "ALL"},
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": 1,
+                    "WriteCapacityUnits": 1,
+                },
+            }
+        ],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.scan(
+            TableName="test",
+            IndexName="test_gsi",
+            ConsistentRead=True,
+        )
+
+    assert exc.value.response["Error"] == {
+        "Code": "ValidationException",
+        "Message": "Consistent reads are not supported on global secondary indexes",
+    }

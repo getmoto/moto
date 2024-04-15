@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
 import re
+import select
 import socket
 import ssl
 from http.server import BaseHTTPRequestHandler
 from subprocess import CalledProcessError, check_output
 from threading import Lock
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
+from urllib.parse import urlparse
 
 from botocore.awsrequest import AWSPreparedRequest
 
 from moto.backend_index import backend_url_patterns
 from moto.backends import get_backend
-from moto.core import DEFAULT_ACCOUNT_ID, BackendDict
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict
 from moto.core.exceptions import RESTError
+from moto.moto_api._internal.models import moto_api_backend
 
 from . import debug, error, info, with_color
 from .certificate_creator import CertificateCreator
@@ -38,6 +42,8 @@ class MotoRequestHandler:
         # We do not match against URL parameters
         path = path.split("?")[0]
         backend_name = self.get_backend_for_host(host)
+        if not backend_name:
+            return None
         backend_dict = get_backend(backend_name)
 
         # Get an instance of this backend.
@@ -66,6 +72,8 @@ class MotoRequestHandler:
         form_data: Dict[str, Any],
     ) -> Any:
         handler = self.get_handler_for_host(host=host, path=path)
+        if handler is None:
+            return 404, {}, b"AWS Service not recognized or supported"
         full_url = host + path
         request = AWSPreparedRequest(
             method, full_url, headers, body, stream_output=False
@@ -99,8 +107,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             raise
 
     def do_CONNECT(self) -> None:
-        certpath = self.cert_creator.create(self.path)
+        address = self.path.split(":")
+        port = int(address[1]) or 443  # type: ignore
+        if address[0] in moto_api_backend.proxy_hosts_to_passthrough:
+            self.connect_relay((address[0], port))
+            return
 
+        certpath = self.cert_creator.create(self.path)
         self.wfile.write(
             f"{self.protocol_version} 200 Connection Established\r\n".encode("utf-8")
         )
@@ -128,6 +141,13 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         req = self
+        host, path = self._get_host_and_path(req)
+
+        if f"{host}{path}" in moto_api_backend.proxy_urls_to_passthrough:
+            parsed = urlparse(host)
+            self.passthrough_http((parsed.netloc, 80))
+            return
+
         req_body = b""
         if "Content-Length" in req.headers:
             content_length = int(req.headers["Content-Length"])
@@ -139,16 +159,11 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             boundary = self.headers["Content-Type"].split("boundary=")[-1]
             req_body, form_data = get_body_from_form_data(req_body, boundary)  # type: ignore
             for key, val in form_data.items():
-                self.headers[key] = [val]
+                self.headers[key] = [val]  # type: ignore[assignment]
         else:
             form_data = {}
 
         req_body = self.decode_request_body(req.headers, req_body)  # type: ignore
-        if isinstance(self.connection, ssl.SSLSocket):
-            host = "https://" + req.headers["Host"]
-        else:
-            host = "http://" + req.headers["Host"]
-        path = req.path
 
         try:
             info(f"{with_color(33, req.command.upper())} {host}{path}")  # noqa
@@ -160,7 +175,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
                 host=host,
                 path=path,
                 headers=req.headers,
-                body=req_body,  # type: ignore[arg-type]
+                body=req_body,
                 form_data=form_data,
             )
             debug("\t=====RESPONSE========")
@@ -205,6 +220,51 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
         if res_body:
             self.wfile.write(res_body)
         self.close_connection = True
+
+    def _get_host_and_path(self, req: Any) -> Tuple[str, str]:
+        if isinstance(self.connection, ssl.SSLSocket):
+            host = "https://" + req.headers["Host"]
+        else:
+            host = "http://" + req.headers["Host"]
+        path = req.path
+        if path.startswith(host):
+            path = path[len(host) :]
+        return host, path
+
+    def passthrough_http(self, address: Tuple[str, int]) -> None:
+        s = socket.create_connection(address, timeout=self.timeout)
+        s.send(self.raw_requestline)  # type: ignore[attr-defined]
+        for key, val in self.headers.items():
+            s.send(f"{key}: {val}\r\n".encode("utf-8"))
+        s.send(b"\r\n")
+        while True:
+            data = s.recv(1024)
+            if not data:
+                break
+            self.wfile.write(data)
+
+    def connect_relay(self, address: Tuple[str, int]) -> None:
+        try:
+            s = socket.create_connection(address, timeout=self.timeout)
+        except Exception:
+            self.send_error(502)
+            return
+        self.send_response(200, "Connection Established")
+        self.end_headers()
+
+        conns = [self.connection, s]
+        self.close_connection = False
+        while not self.close_connection:
+            rlist, wlist, xlist = select.select(conns, [], conns, self.timeout)
+            if xlist or not rlist:
+                break
+            for r in rlist:
+                other = conns[1] if r is conns[0] else conns[0]
+                data = r.recv(8192)
+                if not data:
+                    self.close_connection = True
+                    break
+                other.sendall(data)
 
     def read_chunked_body(self, reader: Any) -> bytes:
         chunked_body = b""

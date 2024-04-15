@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from moto import mock_resourcegroups
+from moto import mock_aws
 
 
 def create_group(client):
@@ -24,7 +24,7 @@ def create_group(client):
     )
 
 
-@mock_resourcegroups
+@mock_aws
 def test_create_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -34,7 +34,7 @@ def test_create_group():
     assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_delete_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -48,7 +48,7 @@ def test_delete_group():
     assert len(response["Groups"]) == 0
 
 
-@mock_resourcegroups
+@mock_aws
 def test_get_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -58,7 +58,7 @@ def test_get_group():
     assert "description" in response["Group"]["Description"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_get_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -71,7 +71,7 @@ def test_get_group_query():
     assert "TAG_FILTERS_1_0" in response_get["GroupQuery"]["ResourceQuery"]["Type"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_get_tags():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -82,7 +82,7 @@ def test_get_tags():
     assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_list_groups():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -93,7 +93,7 @@ def test_list_groups():
     assert len(response["Groups"]) == 1
 
 
-@mock_resourcegroups
+@mock_aws
 def test_tag():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -110,7 +110,7 @@ def test_tag():
     assert "resource_group_tag_value_2" in response["Tags"]["resource_group_tag_key_2"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_untag():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -123,7 +123,7 @@ def test_untag():
     assert len(response["Tags"]) == 0
 
 
-@mock_resourcegroups
+@mock_aws
 def test_update_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -138,7 +138,7 @@ def test_update_group():
     assert "description_2" in response["Group"]["Description"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_get_group_configuration():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -168,7 +168,7 @@ def test_get_group_configuration():
     )
 
 
-@mock_resourcegroups
+@mock_aws
 def test_create_group_with_configuration():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
@@ -205,7 +205,7 @@ def test_create_group_with_configuration():
     assert "resource_group_tag_value" in response["Tags"]["resource_group_tag_key"]
 
 
-@mock_resourcegroups
+@mock_aws
 def test_update_group_query():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 

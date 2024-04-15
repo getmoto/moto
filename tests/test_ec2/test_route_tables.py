@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
+@mock_aws
 def test_route_tables_defaults():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -38,7 +38,7 @@ def test_route_tables_defaults():
     assert len(all_route_tables) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_route_tables_additional():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -83,7 +83,7 @@ def test_route_tables_additional():
     assert "RequestId" in ex.value.response["ResponseMetadata"]
 
 
-@mock_ec2
+@mock_aws
 def test_route_tables_filters_standard():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -169,7 +169,7 @@ def test_route_tables_filters_standard():
             client.describe_route_tables(Filters=filters)
 
 
-@mock_ec2
+@mock_aws
 def test_route_tables_filters_associations():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -217,7 +217,7 @@ def test_route_tables_filters_associations():
     assert len(subnet_route_tables[0]["Associations"]) == 2
 
 
-@mock_ec2
+@mock_aws
 def test_route_tables_filters_vpc_peering_connection():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -269,7 +269,7 @@ def test_route_tables_filters_vpc_peering_connection():
     all(vpc_pcx_id == vpc_pcx.id for vpc_pcx_id in vpc_pcx_ids)
 
 
-@mock_ec2
+@mock_aws
 def test_route_table_associations():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -340,7 +340,7 @@ def test_route_table_associations():
     assert ex.value.response["Error"]["Code"] == "InvalidRouteTableID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_route_table_replace_route_table_association():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -430,7 +430,7 @@ def test_route_table_replace_route_table_association():
     assert ex.value.response["Error"]["Code"] == "InvalidRouteTableID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_route_table_replace_route_table_association_for_main():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -477,7 +477,7 @@ def test_route_table_replace_route_table_association_for_main():
     assert new_route_table["Associations"][0]["Main"] is True
 
 
-@mock_ec2
+@mock_aws
 def test_route_table_get_by_tag():
     ec2 = boto3.resource("ec2", region_name="eu-central-1")
 
@@ -497,7 +497,7 @@ def test_route_table_get_by_tag():
     assert route_tables[0].tags[0] == {"Key": "Name", "Value": tag_value}
 
 
-@mock_ec2
+@mock_aws
 def test_routes_additional():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -550,7 +550,7 @@ def test_routes_additional():
     assert ex.value.response["Error"]["Code"] == "InvalidRoute.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_routes_replace():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -651,7 +651,7 @@ def test_routes_replace():
     assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
 
 
-@mock_ec2
+@mock_aws
 def test_routes_already_exist():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -703,7 +703,7 @@ def test_routes_already_exist():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_routes_not_supported():
     client = boto3.client("ec2", region_name="us-east-1")
     main_route_table_id = client.describe_route_tables()["RouteTables"][0][
@@ -724,7 +724,7 @@ def test_routes_not_supported():
     assert ex.value.response["Error"]["Code"] == "InvalidNetworkInterfaceID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_routes_vpc_peering_connection():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -762,7 +762,7 @@ def test_routes_vpc_peering_connection():
     assert new_route.destination_cidr_block == ROUTE_CIDR
 
 
-@mock_ec2
+@mock_aws
 def test_routes_vpn_gateway():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -795,7 +795,7 @@ def test_routes_vpn_gateway():
     assert new_route.vpc_peering_connection_id is None
 
 
-@mock_ec2
+@mock_aws
 def test_network_acl_tagging():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -818,7 +818,7 @@ def test_network_acl_tagging():
     assert test_route_table["Tags"] == [{"Value": "some value", "Key": "a key"}]
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_with_invalid_destination_cidr_block_parameter():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
@@ -856,7 +856,7 @@ def test_create_route_with_invalid_destination_cidr_block_parameter():
     assert new_routes[0].route_table_id is not None
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_with_network_interface_id():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     ec2_client = boto3.client("ec2", region_name="us-west-2")
@@ -882,7 +882,7 @@ def test_create_route_with_network_interface_id():
     assert route["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_ec2
+@mock_aws
 def test_describe_route_tables_with_nat_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="192.168.0.0/23")["Vpc"]["VpcId"]
@@ -919,7 +919,7 @@ def test_describe_route_tables_with_nat_gateway():
     assert nat_gw_routes[0]["State"] == "active"
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpc_end_point():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -972,7 +972,7 @@ def test_create_vpc_end_point():
     assert len(vpc_end_point["VpcEndpoint"]["DnsEntries"]) > 0
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_tables_with_tags():
     ec2 = boto3.resource("ec2", region_name="eu-central-1")
 
@@ -991,7 +991,7 @@ def test_create_route_tables_with_tags():
     assert len(route_table.tags) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_with_egress_only_igw():
     ec2 = boto3.resource("ec2", region_name="eu-central-1")
     ec2_client = boto3.client("ec2", region_name="eu-central-1")
@@ -1018,7 +1018,7 @@ def test_create_route_with_egress_only_igw():
     assert eigw_route.get("State") == "active"
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_with_unknown_egress_only_igw():
     ec2 = boto3.resource("ec2", region_name="eu-central-1")
     ec2_client = boto3.client("ec2", region_name="eu-central-1")
@@ -1039,7 +1039,7 @@ def test_create_route_with_unknown_egress_only_igw():
     assert err["Message"] == "The eigw ID 'eoigw' does not exist"
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_with_vpc_endpoint():
     # Setup
     _, ec2_client, route_table, vpc = setup_vpc()
@@ -1058,7 +1058,7 @@ def test_create_route_with_vpc_endpoint():
         VpcEndpointId=vpce_id,
         RouteTableId=route_table.id,
     )
-    rt = ec2_client.describe_route_tables()
+    rt = ec2_client.describe_route_tables(RouteTableIds=[route_table.id])
     new_route = rt["RouteTables"][-1]["Routes"][1]
 
     # Verify
@@ -1066,7 +1066,7 @@ def test_create_route_with_vpc_endpoint():
     assert new_route["GatewayId"] == vpce_id
 
 
-@mock_ec2
+@mock_aws
 def test_create_route_with_invalid_vpc_endpoint():
     # Setup
     _, ec2_client, route_table, vpc = setup_vpc()
@@ -1095,7 +1095,7 @@ def test_create_route_with_invalid_vpc_endpoint():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_associate_route_table_by_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
@@ -1118,7 +1118,7 @@ def test_associate_route_table_by_gateway():
     assert "SubnetId" not in verify[0]["Associations"][0]
 
 
-@mock_ec2
+@mock_aws
 def test_associate_route_table_by_subnet():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]

@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.core.utils import underscores_to_camelcase, unix_time
 
 from ..utils import decapitalize

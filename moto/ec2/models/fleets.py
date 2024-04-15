@@ -28,7 +28,6 @@ class Fleet(TaggedEC2Resource):
         valid_until: str,
         tag_specifications: List[Dict[str, Any]],
     ):
-
         self.ec2_backend = ec2_backend
         self.id = fleet_id
         self.spot_options = spot_options
@@ -158,7 +157,7 @@ class Fleet(TaggedEC2Resource):
     def create_on_demand_requests(self, weight_to_add: float) -> None:
         weight_map, added_weight = self.get_launch_spec_counts(weight_to_add)
         for launch_spec, count in weight_map.items():
-            reservation = self.ec2_backend.add_instances(
+            reservation = self.ec2_backend.run_instances(
                 image_id=launch_spec.image_id,
                 count=count,
                 instance_type=launch_spec.instance_type,
@@ -269,7 +268,6 @@ class FleetsBackend:
         valid_until: str,
         tag_specifications: List[Dict[str, Any]],
     ) -> Fleet:
-
         fleet_id = random_fleet_id()
         fleet = Fleet(
             self,
@@ -309,7 +307,6 @@ class FleetsBackend:
     def delete_fleets(
         self, fleet_ids: List[str], terminate_instances: bool
     ) -> List[Fleet]:
-
         fleets = []
         for fleet_id in fleet_ids:
             fleet = self.fleets[fleet_id]

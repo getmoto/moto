@@ -1,7 +1,8 @@
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 
 from .exceptions import InvalidRequestException
 
@@ -45,7 +46,6 @@ class Task(BaseModel):
 
 
 class TaskExecution(BaseModel):
-
     # For simplicity, task_execution can never fail
     # Some documentation refers to this list:
     # 'Status': 'QUEUED'|'LAUNCHING'|'PREPARING'|'TRANSFERRING'|'VERIFYING'|'SUCCESS'|'ERROR'
@@ -102,13 +102,6 @@ class DataSyncBackend(BaseBackend):
         self.locations: Dict[str, Location] = OrderedDict()
         self.tasks: Dict[str, Task] = OrderedDict()
         self.task_executions: Dict[str, TaskExecution] = OrderedDict()
-
-    @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "datasync"
-        )
 
     def create_location(
         self, location_uri: str, typ: str, metadata: Dict[str, Any]

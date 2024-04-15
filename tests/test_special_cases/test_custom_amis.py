@@ -2,6 +2,7 @@
 This test lives on its own as it requires moto to be imported after
 setting of MOTO_AMIS_PATH env var, as per ec2 models documentation
 """
+
 import importlib
 import json
 import os
@@ -11,7 +12,7 @@ from unittest import SkipTest, TestCase, mock
 import boto3
 
 import moto
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2.models import ec2_backends
 
@@ -19,7 +20,7 @@ from moto.ec2.models import ec2_backends
 # The default AMIs are not loaded for our test case, to speed things up
 # But we do need it for this specific test (and others in this file..)
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
-@mock_ec2
+@mock_aws
 class TestEC2CustomAMIs(TestCase):
     def setup_amis(self):
         test_ami_path = Path(__file__).parent / "test_ami.json"

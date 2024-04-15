@@ -12,17 +12,6 @@
 resourcegroupstaggingapi
 ========================
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_resourcegroupstaggingapi
-            def test_resourcegroupstaggingapi_behaviour:
-                boto3.client("resourcegroupstaggingapi")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] describe_report_creation
@@ -33,7 +22,7 @@ resourcegroupstaggingapi
 - [ ] start_report_creation
 - [X] tag_resources
   
-        Only Logs and RDS resources are currently supported
+        Only DynamoDB, Logs and RDS resources are currently supported
         
 
 - [ ] untag_resources

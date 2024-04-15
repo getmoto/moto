@@ -9,7 +9,7 @@ import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 
-from moto import mock_stepfunctions, mock_sts
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "us-east-1"
@@ -22,8 +22,7 @@ simple_definition = (
 account_id = None
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_creation_succeeds():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
@@ -39,7 +38,7 @@ def test_state_machine_creation_succeeds():
     )
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_creation_fails_with_invalid_names():
     client = boto3.client("stepfunctions", region_name=region)
     invalid_names = [
@@ -76,12 +75,12 @@ def test_state_machine_creation_fails_with_invalid_names():
         "uni\u0007code",
         "uni\u0008code",
         "uni\u0009code",
-        "uni\u000Acode",
-        "uni\u000Bcode",
-        "uni\u000Ccode",
-        "uni\u000Dcode",
-        "uni\u000Ecode",
-        "uni\u000Fcode",
+        "uni\u000acode",
+        "uni\u000bcode",
+        "uni\u000ccode",
+        "uni\u000dcode",
+        "uni\u000ecode",
+        "uni\u000fcode",
         "uni\u0010code",
         "uni\u0011code",
         "uni\u0012code",
@@ -92,13 +91,13 @@ def test_state_machine_creation_fails_with_invalid_names():
         "uni\u0017code",
         "uni\u0018code",
         "uni\u0019code",
-        "uni\u001Acode",
-        "uni\u001Bcode",
-        "uni\u001Ccode",
-        "uni\u001Dcode",
-        "uni\u001Ecode",
-        "uni\u001Fcode",
-        "uni\u007Fcode",
+        "uni\u001acode",
+        "uni\u001bcode",
+        "uni\u001ccode",
+        "uni\u001dcode",
+        "uni\u001ecode",
+        "uni\u001fcode",
+        "uni\u007fcode",
         "uni\u0080code",
         "uni\u0081code",
         "uni\u0082code",
@@ -109,12 +108,12 @@ def test_state_machine_creation_fails_with_invalid_names():
         "uni\u0087code",
         "uni\u0088code",
         "uni\u0089code",
-        "uni\u008Acode",
-        "uni\u008Bcode",
-        "uni\u008Ccode",
-        "uni\u008Dcode",
-        "uni\u008Ecode",
-        "uni\u008Fcode",
+        "uni\u008acode",
+        "uni\u008bcode",
+        "uni\u008ccode",
+        "uni\u008dcode",
+        "uni\u008ecode",
+        "uni\u008fcode",
         "uni\u0090code",
         "uni\u0091code",
         "uni\u0092code",
@@ -125,12 +124,12 @@ def test_state_machine_creation_fails_with_invalid_names():
         "uni\u0097code",
         "uni\u0098code",
         "uni\u0099code",
-        "uni\u009Acode",
-        "uni\u009Bcode",
-        "uni\u009Ccode",
-        "uni\u009Dcode",
-        "uni\u009Ecode",
-        "uni\u009Fcode",
+        "uni\u009acode",
+        "uni\u009bcode",
+        "uni\u009ccode",
+        "uni\u009dcode",
+        "uni\u009ecode",
+        "uni\u009fcode",
     ]
     #
 
@@ -143,7 +142,7 @@ def test_state_machine_creation_fails_with_invalid_names():
             )
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_creation_requires_valid_role_arn():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
@@ -156,8 +155,7 @@ def test_state_machine_creation_requires_valid_role_arn():
         )
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_update_state_machine():
     client = boto3.client("stepfunctions", region_name=region)
 
@@ -183,7 +181,7 @@ def test_update_state_machine():
     assert desc["roleArn"] == updated_role
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_list_returns_empty_list_by_default():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -191,8 +189,7 @@ def test_state_machine_list_returns_empty_list_by_default():
     assert sm_list["stateMachines"] == []
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_returns_created_state_machines():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -219,8 +216,7 @@ def test_state_machine_list_returns_created_state_machines():
     assert sm_list["stateMachines"][1]["stateMachineArn"] == machine2["stateMachineArn"]
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_pagination():
     client = boto3.client("stepfunctions", region_name=region)
     for i in range(25):
@@ -243,8 +239,7 @@ def test_state_machine_list_pagination():
     assert "24" in page_list[-1]["stateMachines"][-1]["name"]
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_creation_is_idempotent_by_name():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -267,8 +262,7 @@ def test_state_machine_creation_is_idempotent_by_name():
     assert len(sm_list["stateMachines"]) == 2
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_creation_can_be_described():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -285,8 +279,7 @@ def test_state_machine_creation_can_be_described():
     assert desc["status"] == "ACTIVE"
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_throws_error_when_describing_unknown_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -297,8 +290,7 @@ def test_state_machine_throws_error_when_describing_unknown_machine():
         client.describe_state_machine(stateMachineArn=unknown_state_machine)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_throws_error_when_describing_bad_arn():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -306,8 +298,7 @@ def test_state_machine_throws_error_when_describing_bad_arn():
         client.describe_state_machine(stateMachineArn="bad")
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_throws_error_when_describing_machine_in_different_account():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -318,8 +309,7 @@ def test_state_machine_throws_error_when_describing_machine_in_different_account
         client.describe_state_machine(stateMachineArn=unknown_state_machine)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_can_be_deleted():
     client = boto3.client("stepfunctions", region_name=region)
     sm = client.create_state_machine(
@@ -333,8 +323,7 @@ def test_state_machine_can_be_deleted():
     assert len(sm_list["stateMachines"]) == 0
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_can_deleted_nonexisting_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -348,7 +337,7 @@ def test_state_machine_can_deleted_nonexisting_machine():
     assert len(sm_list["stateMachines"]) == 0
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_tagging_non_existent_resource_fails():
     client = boto3.client("stepfunctions", region_name=region)
     non_existent_arn = f"arn:aws:states:{region}:{ACCOUNT_ID}:stateMachine:non-existent"
@@ -358,7 +347,7 @@ def test_state_machine_tagging_non_existent_resource_fails():
     assert non_existent_arn in ex.value.response["Error"]["Message"]
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_untagging_non_existent_resource_fails():
     client = boto3.client("stepfunctions", region_name=region)
     non_existent_arn = f"arn:aws:states:{region}:{ACCOUNT_ID}:stateMachine:non-existent"
@@ -368,8 +357,7 @@ def test_state_machine_untagging_non_existent_resource_fails():
     assert non_existent_arn in ex.value.response["Error"]["Message"]
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_tagging():
     client = boto3.client("stepfunctions", region_name=region)
     tags = [
@@ -397,8 +385,7 @@ def test_state_machine_tagging():
     assert resp["tags"] == tags_expected
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_untagging():
     client = boto3.client("stepfunctions", region_name=region)
     tags = [
@@ -423,8 +410,7 @@ def test_state_machine_untagging():
     assert resp["tags"] == expected_tags
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_tags_for_created_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -440,8 +426,7 @@ def test_state_machine_list_tags_for_created_machine():
     assert tags[0] == {"key": "tag_key", "value": "tag_value"}
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_tags_for_machine_without_tags():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -453,8 +438,7 @@ def test_state_machine_list_tags_for_machine_without_tags():
     assert len(tags) == 0
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_tags_for_nonexisting_machine():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -466,8 +450,7 @@ def test_state_machine_list_tags_for_nonexisting_machine():
     assert len(tags) == 0
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_start_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -485,8 +468,7 @@ def test_state_machine_start_execution():
     assert isinstance(execution["startDate"], datetime)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_start_execution_bad_arn_raises_exception():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -494,8 +476,7 @@ def test_state_machine_start_execution_bad_arn_raises_exception():
         client.start_execution(stateMachineArn="bad")
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_start_execution_with_custom_name():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -514,8 +495,7 @@ def test_state_machine_start_execution_with_custom_name():
     assert isinstance(execution["startDate"], datetime)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_start_execution_fails_on_duplicate_execution_name():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -535,8 +515,7 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name():
     )
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_start_execution_with_custom_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -557,8 +536,7 @@ def test_state_machine_start_execution_with_custom_input():
     assert isinstance(execution["startDate"], datetime)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_start_execution_with_invalid_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -566,13 +544,12 @@ def test_state_machine_start_execution_with_invalid_input():
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
     with pytest.raises(ClientError):
-        _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="")
+        client.start_execution(stateMachineArn=sm["stateMachineArn"], input="")
     with pytest.raises(ClientError):
-        _ = client.start_execution(stateMachineArn=sm["stateMachineArn"], input="{")
+        client.start_execution(stateMachineArn=sm["stateMachineArn"], input="{")
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_executions():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -594,7 +571,7 @@ def test_state_machine_list_executions():
     assert "stopDate" not in executions["executions"][0]
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_list_executions_with_filter():
     client = boto3.client("stepfunctions", region_name=region)
     sm = client.create_state_machine(
@@ -615,7 +592,7 @@ def test_state_machine_list_executions_with_filter():
     assert all(e["status"] == "ABORTED" for e in resp["executions"]) is True
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_list_executions_with_pagination():
     client = boto3.client("stepfunctions", region_name=region)
     sm = client.create_state_machine(
@@ -655,8 +632,7 @@ def test_state_machine_list_executions_with_pagination():
     assert ex.value.response["Error"]["Code"] == "InvalidToken"
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_list_executions_when_none_exist():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -669,8 +645,7 @@ def test_state_machine_list_executions_when_none_exist():
     assert len(executions["executions"]) == 0
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_describe_execution_with_no_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -690,8 +665,7 @@ def test_state_machine_describe_execution_with_no_input():
     assert "stopDate" not in description
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_describe_execution_with_custom_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -714,8 +688,7 @@ def test_state_machine_describe_execution_with_custom_input():
     assert "stopDate" not in description
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_execution_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -724,8 +697,7 @@ def test_execution_throws_error_when_describing_unknown_execution():
         client.describe_execution(executionArn=unknown_execution)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_can_be_described_by_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -743,8 +715,7 @@ def test_state_machine_can_be_described_by_execution():
     assert desc["stateMachineArn"] == sm["stateMachineArn"]
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_throws_error_when_describing_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -753,8 +724,7 @@ def test_state_machine_throws_error_when_describing_unknown_execution():
         client.describe_state_machine_for_execution(executionArn=unknown_execution)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_stop_execution():
     client = boto3.client("stepfunctions", region_name=region)
     #
@@ -775,8 +745,7 @@ def test_state_machine_stop_execution():
     assert isinstance(execution["stopDate"], datetime)
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_stop_raises_error_when_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     client.create_state_machine(
@@ -793,8 +762,7 @@ def test_state_machine_stop_raises_error_when_unknown_execution():
     assert "Execution Does Not Exist:" in ex.value.response["Error"]["Message"]
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_get_execution_history_throws_error_with_unknown_execution():
     client = boto3.client("stepfunctions", region_name=region)
     client.create_state_machine(
@@ -811,8 +779,7 @@ def test_state_machine_get_execution_history_throws_error_with_unknown_execution
     assert "Execution Does Not Exist:" in ex.value.response["Error"]["Message"]
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 def test_state_machine_get_execution_history_contains_expected_success_events_when_started():
     expected_events = [
         {
@@ -878,15 +845,14 @@ def test_state_machine_get_execution_history_contains_expected_success_events_wh
 @pytest.mark.parametrize(
     "test_region", ["us-west-2", "cn-northwest-1", "us-isob-east-1"]
 )
-@mock_stepfunctions
+@mock_aws
 def test_stepfunction_regions(test_region):
     client = boto3.client("stepfunctions", region_name=test_region)
     resp = client.list_state_machines()
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_stepfunctions
-@mock_sts
+@mock_aws
 @mock.patch.dict(os.environ, {"SF_EXECUTION_HISTORY_TYPE": "FAILURE"})
 def test_state_machine_get_execution_history_contains_expected_failure_events_when_started():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
@@ -946,7 +912,7 @@ def test_state_machine_get_execution_history_contains_expected_failure_events_wh
     assert exc["status"] == "FAILED"
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_name_limits():
     # Setup
     client = boto3.client("stepfunctions", region_name=region)
@@ -969,7 +935,7 @@ def test_state_machine_name_limits():
     )
 
 
-@mock_stepfunctions
+@mock_aws
 def test_state_machine_execution_name_limits():
     # Setup
     client = boto3.client("stepfunctions", region_name=region)

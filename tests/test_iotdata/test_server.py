@@ -3,15 +3,15 @@ from urllib.parse import quote
 import pytest
 
 import moto.server as server
-from moto import mock_iotdata
+from moto import mock_aws
 
 """
 Test the different server responses
 """
 
 
-@mock_iotdata
-def test_iotdata_list():
+@mock_aws
+def test_iotdata_list() -> None:
     backend = server.create_backend_app("iot-data")
     test_client = backend.test_client()
 
@@ -28,8 +28,8 @@ def test_iotdata_list():
         pytest.param(False, id="Topic in Path is *not* URL encoded"),
     ],
 )
-@mock_iotdata
-def test_publish(url_encode_topic):
+@mock_aws
+def test_publish(url_encode_topic: bool) -> None:
     backend = server.create_backend_app("iot-data")
     test_client = backend.test_client()
 

@@ -1,7 +1,7 @@
 from time import sleep
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 
 from ..exceptions import (
     SWFDomainAlreadyExistsFault,
@@ -196,7 +196,9 @@ class SWFBackend(BaseBackend):
         **kwargs: Any,
     ) -> WorkflowExecution:
         domain = self._get_domain(domain_name)
-        wf_type: WorkflowType = domain.get_type("workflow", workflow_name, workflow_version)  # type: ignore
+        wf_type: WorkflowType = domain.get_type(
+            "workflow", workflow_name, workflow_version
+        )  # type: ignore
         if wf_type.status == "DEPRECATED":
             raise SWFTypeDeprecatedFault(wf_type)
         wfe = WorkflowExecution(

@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import (
     iso_8601_datetime_without_milliseconds,
@@ -33,7 +34,7 @@ from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
-from .utils import PAGINATION_MODEL
+from .utils import _BASE_EVENT_MESSAGE, PAGINATION_MODEL, EventMessageType
 
 # Sentinel to signal the absence of a field for `Exists` pattern matching
 UNDEFINED = object()
@@ -112,7 +113,7 @@ class Rule(CloudFormationModel):
             if index is not None:
                 self.targets.pop(index)
 
-    def send_to_targets(self, event: Dict[str, Any]) -> None:
+    def send_to_targets(self, event: EventMessageType) -> None:
         if not self.event_pattern.matches_event(event):
             return
 
@@ -165,12 +166,12 @@ class Rule(CloudFormationModel):
             else:
                 raise NotImplementedError(f"Expr not defined for {type(self)}")
 
-    def _send_to_cw_log_group(self, name: str, event: Dict[str, Any]) -> None:
+    def _send_to_cw_log_group(self, name: str, event: EventMessageType) -> None:
         from moto.logs import logs_backends
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])  # type: ignore[arg-type]
         )
 
         log_stream_name = str(random.uuid4())
@@ -182,13 +183,15 @@ class Rule(CloudFormationModel):
         log_backend.create_log_stream(name, log_stream_name)
         log_backend.put_log_events(name, log_stream_name, log_events)
 
-    def _send_to_events_archive(self, resource_id: str, event: Dict[str, Any]) -> None:
+    def _send_to_events_archive(
+        self, resource_id: str, event: EventMessageType
+    ) -> None:
         archive_name, archive_uuid = resource_id.split(":")
         archive = events_backends[self.account_id][self.region_name].archives.get(
             archive_name
         )
         if archive.uuid == archive_uuid:  # type: ignore[union-attr]
-            archive.events.append(event)  # type: ignore[arg-type,union-attr]
+            archive.events.append(event)  # type: ignore[union-attr]
 
     def _find_api_destination(self, resource_id: str) -> "Destination":
         backend: "EventsBackend" = events_backends[self.account_id][self.region_name]
@@ -196,13 +199,13 @@ class Rule(CloudFormationModel):
         return backend.destinations[destination_name]
 
     def _send_to_sqs_queue(
-        self, resource_id: str, event: Dict[str, Any], group_id: Optional[str] = None
+        self, resource_id: str, event: EventMessageType, group_id: Optional[str] = None
     ) -> None:
         from moto.sqs import sqs_backends
 
         event_copy = copy.deepcopy(event)
         event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event_copy["time"])
+            utcfromtimestamp(event_copy["time"])  # type: ignore[arg-type]
         )
 
         if group_id:
@@ -556,7 +559,7 @@ class Archive(CloudFormationModel):
         self.state = "ENABLED"
         self.uuid = str(random.uuid4())
 
-        self.events: List[str] = []
+        self.events: List[EventMessageType] = []
         self.event_bus_name = source_arn.split("/")[-1]
 
     def describe_short(self) -> Dict[str, Any]:
@@ -735,7 +738,8 @@ class Replay(BaseModel):
             for rule in event_bus.rules.values():
                 rule.send_to_targets(
                     dict(
-                        event, **{"id": str(random.uuid4()), "replay-name": self.name}  # type: ignore
+                        event,
+                        **{"id": str(random.uuid4()), "replay-name": self.name},  # type: ignore
                     ),
                 )
 
@@ -872,16 +876,18 @@ class EventPattern:
     def get_pattern(self) -> Dict[str, Any]:
         return self._pattern
 
-    def matches_event(self, event: Dict[str, Any]) -> bool:
+    def matches_event(self, event: EventMessageType) -> bool:
         if not self._pattern:
             return True
         event = json.loads(json.dumps(event))
         return self._does_event_match(event, self._pattern)
 
-    def _does_event_match(self, event: Dict[str, Any], pattern: Dict[str, Any]) -> bool:
+    def _does_event_match(
+        self, event: EventMessageType, pattern: Dict[str, Any]
+    ) -> bool:
         items_and_filters = [(event.get(k, UNDEFINED), v) for k, v in pattern.items()]
         nested_filter_matches = [
-            self._does_event_match(item, nested_filter)
+            self._does_event_match(item, nested_filter)  # type: ignore
             for item, nested_filter in items_and_filters
             if isinstance(nested_filter, dict)
         ]
@@ -1019,15 +1025,6 @@ class EventsBackend(BaseBackend):
         self.destinations: Dict[str, Destination] = {}
         self.partner_event_sources: Dict[str, PartnerEventSource] = {}
         self.approved_parent_event_bus_names: List[str] = []
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "events"
-        )
 
     def _add_default_event_bus(self) -> None:
         self.event_buses["default"] = EventBus(
@@ -1178,7 +1175,7 @@ class EventsBackend(BaseBackend):
 
         return False
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_names_by_target(
         self, target_arn: str, event_bus_arn: Optional[str]
     ) -> List[Rule]:
@@ -1193,7 +1190,7 @@ class EventsBackend(BaseBackend):
 
         return matching_rules
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rules(
         self, prefix: Optional[str] = None, event_bus_arn: Optional[str] = None
     ) -> List[Rule]:
@@ -1304,21 +1301,21 @@ class EventsBackend(BaseBackend):
 
         entries = []
         for event in events:
-            if "Source" not in event:
+            if not event.get("Source"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
                         "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
                     }
                 )
-            elif "DetailType" not in event:
+            elif not event.get("DetailType"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
                         "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
                     }
                 )
-            elif "Detail" not in event:
+            elif not event.get("Detail"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
@@ -1351,19 +1348,16 @@ class EventsBackend(BaseBackend):
 
                 event_bus = self.describe_event_bus(event_bus_name)
                 for rule in event_bus.rules.values():
-                    rule.send_to_targets(
-                        {
-                            "version": "0",
-                            "id": event_id,
-                            "detail-type": event["DetailType"],
-                            "source": event["Source"],
-                            "account": self.account_id,
-                            "time": event.get("Time", unix_time()),
-                            "region": self.region_name,
-                            "resources": event.get("Resources", []),
-                            "detail": json.loads(event["Detail"]),
-                        },
-                    )
+                    event_msg = copy.deepcopy(_BASE_EVENT_MESSAGE)
+                    event_msg["id"] = event_id
+                    event_msg["detail-type"] = event["DetailType"]
+                    event_msg["source"] = event["Source"]
+                    event_msg["account"] = self.account_id
+                    event_msg["time"] = event.get("Time", unix_time())
+                    event_msg["region"] = self.region_name
+                    event_msg["resources"] = event.get("Resources", [])
+                    event_msg["detail"] = json.loads(event["Detail"])
+                    rule.send_to_targets(event_msg)
 
         return entries
 
@@ -1395,7 +1389,9 @@ class EventsBackend(BaseBackend):
             )
 
     @staticmethod
-    def _condition_param_to_stmt_condition(condition: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+    def _condition_param_to_stmt_condition(  # type: ignore[misc]
+        condition: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
         if condition:
             key = condition["Key"]
             value = condition["Value"]

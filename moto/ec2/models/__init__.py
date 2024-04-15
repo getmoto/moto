@@ -1,6 +1,6 @@
-from typing import Any, Dict, List
+from typing import List
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 
 from ..exceptions import (
     EC2ClientError,
@@ -162,15 +162,6 @@ class EC2Backend(
             cidr_block = ".".join(str(i) for i in ip) + "/20"
             self.create_subnet(vpc.id, cidr_block, availability_zone=az_name)
             ip[2] += 16  # type: ignore
-
-    @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ec2"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ec2messages"
-        )
 
     # Use this to generate a proper error template response when in a response
     # handler.

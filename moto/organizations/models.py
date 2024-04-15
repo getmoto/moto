@@ -2,7 +2,8 @@ import json
 import re
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, utcnow
 from moto.organizations import utils
@@ -536,7 +537,7 @@ class OrganizationsBackend(BaseBackend):
             next_token = str(len(accounts_resp))
         return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts(self) -> List[FakeAccount]:
         accounts = [account.describe() for account in self.accounts]
         return sorted(accounts, key=lambda x: x["JoinedTimestamp"])  # type: ignore

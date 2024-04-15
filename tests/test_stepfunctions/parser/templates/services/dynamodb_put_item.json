@@ -1,0 +1,16 @@
+{
+  "Comment": "AWS_SDK_DYNAMODB_PUT_ITEM",
+  "StartAt": "PutItem",
+  "States": {
+    "PutItem": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:putItem",
+      "Parameters": {
+        "TableName.$": "$.TableName",
+        "Item.$": "$.Item"
+      },
+      "ResultPath": "$.putItemOutput",
+      "End": true
+    }
+  }
+}

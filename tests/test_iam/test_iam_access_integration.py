@@ -5,13 +5,12 @@ from unittest import SkipTest
 import boto3
 from dateutil.parser import parse
 
-from moto import mock_ec2, mock_iam, mock_sts, settings
+from moto import mock_aws, settings
 from moto.iam.models import IAMBackend, iam_backends
 from tests import DEFAULT_ACCOUNT_ID
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_invoking_ec2_mark_access_key_as_used():
     c_iam = boto3.client("iam", region_name="us-east-1")
     c_iam.create_user(Path="my/path", UserName="fakeUser")
@@ -33,8 +32,7 @@ def test_invoking_ec2_mark_access_key_as_used():
     assert last_used["Region"] == "us-east-2"
 
 
-@mock_iam
-@mock_sts
+@mock_aws
 def test_mark_role_as_last_used():
     role_name = "role_name_created_jan_1st"
     iam = boto3.client("iam", "us-east-1")
@@ -66,8 +64,7 @@ def test_mark_role_as_last_used():
         assert iam.get_role(role_name).last_used is not None
 
 
-@mock_ec2
-@mock_iam
+@mock_aws
 def test_get_credential_report_content__set_last_used_automatically():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("No point testing this in ServerMode")

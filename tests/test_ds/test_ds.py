@@ -3,21 +3,20 @@
 Simple AD directories are used for test data, but the operations are
 common to the other directory types.
 """
+
 from datetime import datetime, timezone
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ds
-from moto.ec2 import mock_ec2
+from moto import mock_aws
 from moto.moto_api._internal import mock_random
 
 from .test_ds_simple_ad_directory import TEST_REGION, create_test_directory
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_delete_directory():
     """Test good and bad invocations of delete_directory()."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -67,8 +66,7 @@ def test_ds_delete_directory():
     ) in err["Message"]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_get_directory_limits():
     """Test return value for directory limits."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -93,8 +91,7 @@ def test_ds_get_directory_limits():
     assert not limits["ConnectedDirectoriesCurrentCount"]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_describe_directories():
     """Test good and bad invocations of describe_directories()."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -166,8 +163,7 @@ def test_ds_describe_directories():
     assert result["DirectoryDescriptions"][0]["DirectoryId"] == directory_ids[5]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_create_alias():
     """Test good and bad invocations of create_alias()."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -229,8 +225,7 @@ def test_ds_create_alias():
     assert f"Alias '{good_alias}' already exists." in err["Message"]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_enable_sso():
     """Test good and bad invocations of enable_sso()."""
     client = boto3.client("ds", region_name=TEST_REGION)
@@ -286,8 +281,7 @@ def test_ds_enable_sso():
     assert directory["SsoEnabled"]
 
 
-@mock_ec2
-@mock_ds
+@mock_aws
 def test_ds_disable_sso():
     """Test good and bad invocations of disable_sso()."""
     client = boto3.client("ds", region_name=TEST_REGION)

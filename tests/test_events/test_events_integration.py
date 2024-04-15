@@ -5,13 +5,12 @@ from unittest import SkipTest, mock
 
 import boto3
 
-from moto import mock_events, mock_logs, mock_sqs, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 
 
-@mock_events
-@mock_logs
+@mock_aws
 def test_send_to_cw_log_group():
     # given
     client_events = boto3.client("events", "eu-central-1")
@@ -67,8 +66,7 @@ def test_send_to_cw_log_group():
     assert message["detail"] == {"key": "value"}
 
 
-@mock_events
-@mock_sqs
+@mock_aws
 def test_send_to_sqs_fifo_queue():
     # given
     client_events = boto3.client("events", "eu-central-1")
@@ -155,8 +153,7 @@ def test_send_to_sqs_fifo_queue():
     assert "Messages" not in response
 
 
-@mock_events
-@mock_sqs
+@mock_aws
 def test_send_to_sqs_queue():
     # given
     client_events = boto3.client("events", "eu-central-1")
@@ -205,8 +202,7 @@ def test_send_to_sqs_queue():
     assert body["detail"] == {"key": "value"}
 
 
-@mock_events
-@mock_sqs
+@mock_aws
 def test_send_to_sqs_queue_with_custom_event_bus():
     # given
     client_events = boto3.client("events", "eu-central-1")
@@ -250,8 +246,7 @@ def test_send_to_sqs_queue_with_custom_event_bus():
     assert body["detail"] == {"key": "value"}
 
 
-@mock_events
-@mock_logs
+@mock_aws
 def test_moto_matches_none_value_with_exists_filter():
     pattern = {
         "source": ["test-source"],
@@ -317,8 +312,7 @@ def test_moto_matches_none_value_with_exists_filter():
     ]
 
 
-@mock_events
-@mock_sqs
+@mock_aws
 def test_put_events_event_bus_forwarding_rules():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cross-account test - easiest to just test in DecoratorMode")

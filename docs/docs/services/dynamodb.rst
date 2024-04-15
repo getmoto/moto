@@ -12,17 +12,6 @@
 dynamodb
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_dynamodb
-            def test_dynamodb_behaviour:
-                boto3.client("dynamodb")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] batch_execute_statement
@@ -94,6 +83,7 @@ dynamodb
 - [ ] update_global_table
 - [ ] update_global_table_settings
 - [X] update_item
+- [ ] update_kinesis_streaming_destination
 - [X] update_table
 - [ ] update_table_replica_auto_scaling
 - [X] update_time_to_live

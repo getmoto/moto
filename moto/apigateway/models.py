@@ -19,7 +19,8 @@ except ImportError:
 from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
 
 from moto.apigateway.exceptions import MethodNotFoundException
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import path_url
 from moto.moto_api._internal import mock_random as random
 
@@ -452,7 +453,8 @@ class Resource(CloudFormationModel):
         integration_type = integration.integration_type  # type: ignore[union-attr]
 
         status, result = self.integration_parsers[integration_type].invoke(
-            request, integration  # type: ignore[arg-type]
+            request,
+            integration,  # type: ignore[arg-type]
         )
 
         return status, result
@@ -703,12 +705,12 @@ class Stage(BaseModel):
         updated_key = self._method_settings_translations(key)
         if updated_key is not None:
             if resource_path_and_method not in self.method_settings:
-                self.method_settings[
-                    resource_path_and_method
-                ] = self._get_default_method_settings()
-            self.method_settings[resource_path_and_method][
-                updated_key
-            ] = self._convert_to_type(updated_key, value)
+                self.method_settings[resource_path_and_method] = (
+                    self._get_default_method_settings()
+                )
+            self.method_settings[resource_path_and_method][updated_key] = (
+                self._convert_to_type(updated_key, value)
+            )
 
     def _get_default_method_settings(self) -> Dict[str, Any]:
         return {
@@ -858,36 +860,61 @@ class UsagePlan(BaseModel):
         self.tags = tags
 
     def to_json(self) -> Dict[str, Any]:
-        return {
+        resp = {
             "id": self.id,
             "name": self.name,
             "description": self.description,
             "apiStages": self.api_stages,
-            "throttle": self.throttle,
-            "quota": self.quota,
             "productCode": self.product_code,
             "tags": self.tags,
         }
+        if self.throttle:
+            resp["throttle"] = self.throttle
+        if self.quota:
+            resp["quota"] = self.quota
+        return resp
 
     def apply_patch_operations(self, patch_operations: List[Dict[str, Any]]) -> None:
         for op in patch_operations:
             path = op["path"]
-            value = op["value"]
+            if op["op"] == "add":
+                value = op["value"]
+                if path == "/apiStages":
+                    self.api_stages.append(
+                        {"apiId": value.split(":")[0], "stage": value.split(":")[1]}
+                    )
             if op["op"] == "replace":
+                value = op["value"]
                 if "/name" in path:
                     self.name = value
-                if "/productCode" in path:
-                    self.product_code = value
                 if "/description" in path:
                     self.description = value
+            if op["op"] in ["add", "replace"]:
+                value = op["value"]
+                if "/productCode" in path:
+                    self.product_code = value
                 if "/quota/limit" in path:
                     self.quota["limit"] = value
                 if "/quota/period" in path:
                     self.quota["period"] = value
+                if path == "/quota/offset":
+                    self.quota["offset"] = value
                 if "/throttle/rateLimit" in path:
-                    self.throttle["rateLimit"] = value
+                    self.throttle["rateLimit"] = int(value)
                 if "/throttle/burstLimit" in path:
-                    self.throttle["burstLimit"] = value
+                    self.throttle["burstLimit"] = int(value)
+            if op["op"] == "remove":
+                if path == "/apiStages":
+                    value = op["value"]
+                    self.api_stages.remove(
+                        {"apiId": value.split(":")[0], "stage": value.split(":")[1]}
+                    )
+                if path == "/productCode":
+                    self.product_code = None
+                if path == "/quota":
+                    self.quota.clear()
+                if path == "/throttle":
+                    self.throttle.clear()
 
 
 class RequestValidator(BaseModel):
@@ -978,7 +1005,6 @@ class VpcLink(BaseModel):
 
 
 class RestAPI(CloudFormationModel):
-
     PROP_ID = "id"
     PROP_NAME = "name"
     PROP_DESCRIPTION = "description"
@@ -1436,7 +1462,6 @@ class Model(BaseModel):
 
 
 class BasePathMapping(BaseModel):
-
     # operations
     OPERATION_REPLACE = "replace"
     OPERATION_PATH = "path"
@@ -1578,10 +1603,6 @@ class APIGatewayBackend(BaseBackend):
                 validate(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
-            except AttributeError:
-                # Call can fail in Python3.7 due to `typing_extensions 4.6.0` throwing an error
-                # Easiest to just ignore this for now - Py3.7 is EOL soon anyway
-                pass
         name = api_doc["info"]["title"]
         description = api_doc["info"]["description"]
         api = self.create_rest_api(name=name, description=description)
@@ -1653,19 +1674,13 @@ class APIGatewayBackend(BaseBackend):
                 validate(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
                 raise InvalidOpenAPIDocumentException(e)
-            except AttributeError:
-                # Call can fail in Python3.7 due to `typing_extensions 4.6.0` throwing an error
-                # Easiest to just ignore this for now - Py3.7 is EOL soon anyway
-                pass
 
         if mode == "overwrite":
             api = self.get_rest_api(function_id)
             api.resources = {}
             api.default = api.add_child("/")  # Add default child
 
-        for (path, resource_doc) in sorted(
-            api_doc["paths"].items(), key=lambda x: x[0]
-        ):
+        for path, resource_doc in sorted(api_doc["paths"].items(), key=lambda x: x[0]):
             # We may want to create a path like /store/inventory
             # Ensure that /store exists first, so we can use it as a parent
             ancestors = path.split("/")[
@@ -1697,12 +1712,12 @@ class APIGatewayBackend(BaseBackend):
                 path_part=path[path.rfind("/") + 1 :],
             )
 
-            for (method_type, method_doc) in resource_doc.items():
+            for method_type, method_doc in resource_doc.items():
                 method_type = method_type.upper()
                 if method_doc.get("x-amazon-apigateway-integration") is None:
                     self.put_method(function_id, resource.id, method_type, None)
                     method_responses = method_doc.get("responses", {}).items()
-                    for (response_code, _) in method_responses:
+                    for response_code, _ in method_responses:
                         self.put_method_response(
                             function_id,
                             resource.id,
@@ -2110,6 +2125,13 @@ class APIGatewayBackend(BaseBackend):
         return self.usage_plans[usage_plan_id]
 
     def update_usage_plan(self, usage_plan_id: str, patch_operations: Any) -> UsagePlan:
+        """
+        The following PatchOperations are currently supported:
+        add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        remove : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        copy   : Nothing yet
+        """
         if usage_plan_id not in self.usage_plans:
             raise UsagePlanNotFoundException()
         self.usage_plans[usage_plan_id].apply_patch_operations(patch_operations)
@@ -2350,7 +2372,6 @@ class APIGatewayBackend(BaseBackend):
     def update_base_path_mapping(
         self, domain_name: str, base_path: str, patch_operations: Any
     ) -> BasePathMapping:
-
         if domain_name not in self.domain_names:
             raise DomainNameNotFound()
 

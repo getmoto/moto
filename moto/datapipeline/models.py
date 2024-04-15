@@ -2,7 +2,8 @@ import datetime
 from collections import OrderedDict
 from typing import Any, Dict, Iterable, List
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 
 from .utils import get_random_pipeline_id, remove_capitalization_of_dict_keys
@@ -90,7 +91,7 @@ class Pipeline(CloudFormationModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Pipeline":
         datapipeline_backend = datapipeline_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]

@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 import responses
 from werkzeug.wrappers import Request
 
+from moto.backends import get_service_from_url
+from moto.core.config import passthrough_service, passthrough_url
 from moto.core.versions import is_responses_0_17_x
 
 from .responses import TYPE_RESPONSE
@@ -69,6 +71,19 @@ class CallbackResponse(responses.CallbackResponse):
             # Need to not decode_content to mimic requests
             decode_content=False,
         )
+
+    def matches(self, request: "responses.PreparedRequest") -> Tuple[bool, str]:
+        if request.method != self.method:
+            return False, "Method does not match"
+
+        if not self._url_matches(self.url, str(request.url)):
+            return False, "URL does not match"
+
+        service = get_service_from_url(request.url)  # type: ignore
+        if (service and passthrough_service(service)) or passthrough_url(request.url):  # type: ignore
+            return False, "URL does not match"
+
+        return super().matches(request)
 
     def _url_matches(
         self, url: Any, other: Any, match_querystring: bool = False

@@ -2,10 +2,10 @@ import unittest
 
 import boto3
 
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 class ClassDecoratorTest(unittest.TestCase):
     """
     https://github.com/getmoto/moto/issues/3535

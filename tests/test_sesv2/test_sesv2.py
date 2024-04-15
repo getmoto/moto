@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ses, mock_sesv2, settings
+from moto import mock_aws, settings
 from moto.ses.models import Message, RawMessage, ses_backends
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -12,11 +12,11 @@ from ..test_ses.test_ses_boto3 import get_raw_email
 @pytest.fixture(scope="function")
 def ses_v1():
     """Use this for API calls which exist in v1 but not in v2"""
-    with mock_ses():
+    with mock_aws():
         yield boto3.client("ses", region_name="us-east-1")
 
 
-@mock_sesv2
+@mock_aws
 def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -55,7 +55,7 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
         assert msg.body == "test body"
 
 
-@mock_sesv2
+@mock_aws
 def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -88,7 +88,7 @@ def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
         assert msg.body == "<h1>Test HTML</h1>"
 
 
-@mock_sesv2
+@mock_aws
 def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -112,7 +112,7 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
     assert int(send_quota["SentLast24Hours"]) == 4
 
 
-@mock_sesv2
+@mock_aws
 def test_send_raw_email__with_specific_message(
     ses_v1,
 ):  # pylint: disable=redefined-outer-name
@@ -143,7 +143,7 @@ def test_send_raw_email__with_specific_message(
         assert msg.destinations == ["to@example.com", "foo@example.com"]
 
 
-@mock_sesv2
+@mock_aws
 def test_send_raw_email__with_to_address_display_name(
     ses_v1,
 ):  # pylint: disable=redefined-outer-name
@@ -178,7 +178,7 @@ def test_send_raw_email__with_to_address_display_name(
         ]
 
 
-@mock_sesv2
+@mock_aws
 def test_create_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -195,7 +195,7 @@ def test_create_contact_list():
     assert result["ContactLists"][0]["ContactListName"] == contact_list_name
 
 
-@mock_sesv2
+@mock_aws
 def test_create_contact_list__with_topics():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -219,7 +219,7 @@ def test_create_contact_list__with_topics():
     assert result["ContactLists"][0]["ContactListName"] == contact_list_name
 
 
-@mock_sesv2
+@mock_aws
 def test_list_contact_lists():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -231,7 +231,7 @@ def test_list_contact_lists():
     assert result["ContactLists"] == []
 
 
-@mock_sesv2
+@mock_aws
 def test_get_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -255,7 +255,7 @@ def test_get_contact_list():
     assert result["ContactListName"] == contact_list_name
 
 
-@mock_sesv2
+@mock_aws
 def test_delete_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -279,7 +279,7 @@ def test_delete_contact_list():
     assert len(result["ContactLists"]) == 0
 
 
-@mock_sesv2
+@mock_aws
 def test_list_contacts():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -295,7 +295,7 @@ def test_list_contacts():
     assert result["Contacts"] == []
 
 
-@mock_sesv2
+@mock_aws
 def test_create_contact_no_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -317,7 +317,7 @@ def test_create_contact_no_contact_list():
     )
 
 
-@mock_sesv2
+@mock_aws
 def test_create_contact():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -340,7 +340,7 @@ def test_create_contact():
     assert result["Contacts"][0]["EmailAddress"] == email
 
 
-@mock_sesv2
+@mock_aws
 def test_get_contact_no_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -359,7 +359,7 @@ def test_get_contact_no_contact_list():
     )
 
 
-@mock_sesv2
+@mock_aws
 def test_get_contact():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -381,7 +381,7 @@ def test_get_contact():
     assert result["EmailAddress"] == email
 
 
-@mock_sesv2
+@mock_aws
 def test_get_contact_no_contact():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -399,7 +399,7 @@ def test_get_contact_no_contact():
     assert e.value.response["Error"]["Message"] == f"{email} doesn't exist in List."
 
 
-@mock_sesv2
+@mock_aws
 def test_delete_contact_no_contact_list():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -418,7 +418,7 @@ def test_delete_contact_no_contact_list():
     )
 
 
-@mock_sesv2
+@mock_aws
 def test_delete_contact_no_contact():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
@@ -436,7 +436,7 @@ def test_delete_contact_no_contact():
     assert e.value.response["Error"]["Message"] == f"{email} doesn't exist in List."
 
 
-@mock_sesv2
+@mock_aws
 def test_delete_contact():
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")

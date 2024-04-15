@@ -1,17 +1,21 @@
 import json
+import sys
+from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 import moto.iotdata.models
-from moto import mock_iot, mock_iotdata, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
-@mock_iot
-@mock_iotdata
-def test_basic():
+@mock_aws
+def test_basic() -> None:
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     name = "my-thing"
@@ -32,7 +36,7 @@ def test_basic():
 
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
-    expected_state = b'{"desired": {"led": "on"}, "delta": {"led": "on"}}'
+    expected_state = '{"desired": {"led": "on"}, "delta": {"led": "on"}}'
     assert payload["state"] == json.loads(expected_state)
     assert "led" in payload["metadata"]["desired"]
     assert payload["version"] == 1
@@ -43,9 +47,8 @@ def test_basic():
         client.get_thing_shadow(thingName=name)
 
 
-@mock_iot
-@mock_iotdata
-def test_update():
+@mock_aws
+def test_update() -> None:
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     name = "my-thing"
@@ -63,7 +66,7 @@ def test_update():
 
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
-    expected_state = b'{"desired": {"led": "on"}, "delta": {"led": "on"}}'
+    expected_state = '{"desired": {"led": "on"}, "delta": {"led": "on"}}'
     assert payload["state"] == json.loads(expected_state)
     assert "led" in payload["metadata"]["desired"]
     assert payload["version"] == 1
@@ -81,7 +84,7 @@ def test_update():
 
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
-    expected_state = b'{"desired": {"led": "on"}, "reported": {"led": "on"}}'
+    expected_state = '{"desired": {"led": "on"}, "reported": {"led": "on"}}'
     assert payload["state"] == json.loads(expected_state)
     assert "led" in payload["metadata"]["desired"]
     assert payload["version"] == 2
@@ -94,9 +97,10 @@ def test_update():
     assert ex.value.response["Error"]["Message"] == "Version conflict"
 
 
-@mock_iot
-@mock_iotdata
-def test_create_named_shadows():
+@mock_aws
+def test_create_named_shadows() -> None:
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameter only available in newer versions")
     iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     thing_name = "my-thing"
@@ -149,25 +153,26 @@ def test_create_named_shadows():
     )
 
 
-@mock_iotdata
-def test_publish():
+@mock_aws
+def test_publish() -> None:
     region_name = "ap-northeast-1"
     client = boto3.client("iot-data", region_name=region_name)
     client.publish(topic="test/topic1", qos=1, payload=b"pl1")
     client.publish(topic="test/topic2", qos=1, payload=b"pl2")
     client.publish(topic="test/topic3", qos=1, payload=b"\xbf")
+    client.publish(topic="test/topic4", qos=1, payload="string")
 
     if not settings.TEST_SERVER_MODE:
         mock_backend = moto.iotdata.models.iotdata_backends[ACCOUNT_ID][region_name]
-        assert len(mock_backend.published_payloads) == 3
+        assert len(mock_backend.published_payloads) == 4
         assert ("test/topic1", b"pl1") in mock_backend.published_payloads
         assert ("test/topic2", b"pl2") in mock_backend.published_payloads
         assert ("test/topic3", b"\xbf") in mock_backend.published_payloads
+        assert ("test/topic4", b"string") in mock_backend.published_payloads
 
 
-@mock_iot
-@mock_iotdata
-def test_delete_field_from_device_shadow():
+@mock_aws
+def test_delete_field_from_device_shadow() -> None:
     test_thing_name = "TestThing"
 
     iot_raw_client = boto3.client("iot", region_name="eu-central-1")

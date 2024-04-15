@@ -12,17 +12,6 @@
 kinesis-video-archived-media
 ============================
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_kinesisvideoarchivedmedia
-            def test_kinesisvideoarchivedmedia_behaviour:
-                boto3.client("kinesis-video-archived-media")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] get_clip

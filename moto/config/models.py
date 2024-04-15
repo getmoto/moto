@@ -1,4 +1,5 @@
 """Implementation of the AWS Config Service APIs."""
+
 import json
 import re
 import time
@@ -48,8 +49,8 @@ from moto.config.exceptions import (
     TooManyTags,
     ValidationException,
 )
-from moto.core import BackendDict, BaseBackend, BaseModel
-from moto.core.common_models import ConfigQueryModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, ConfigQueryModel
 from moto.core.responses import AWSServiceSpec
 from moto.core.utils import utcnow
 from moto.iam.config import policy_config_query, role_config_query
@@ -487,7 +488,6 @@ class OrganizationConformancePack(ConfigEmptyDictable):
 
 
 class Scope(ConfigEmptyDictable):
-
     """Defines resources that can trigger an evaluation for the rule.
 
     Per boto3 documentation, Scope can be one of:
@@ -536,7 +536,6 @@ class Scope(ConfigEmptyDictable):
 
 
 class SourceDetail(ConfigEmptyDictable):
-
     """Source and type of event triggering AWS Config resource evaluation.
 
     Applies only to customer rules.
@@ -633,7 +632,6 @@ class SourceDetail(ConfigEmptyDictable):
 
 
 class Source(ConfigEmptyDictable):
-
     """Defines rule owner, id and notification for triggering evaluation."""
 
     OWNERS = {"AWS", "CUSTOM_LAMBDA"}
@@ -684,10 +682,10 @@ class Source(ConfigEmptyDictable):
 
         # Import is slow and as it's not needed for all config service
         # operations, only load it if needed.
-        from moto.awslambda import lambda_backends
+        from moto.awslambda.utils import get_backend
 
         try:
-            lambda_backends[account_id][region].get_function(source_identifier)
+            get_backend(account_id, region).get_function(source_identifier)
         except Exception:
             raise InsufficientPermissionsException(
                 f"The AWS Lambda function {source_identifier} cannot be "
@@ -713,7 +711,6 @@ class Source(ConfigEmptyDictable):
 
 
 class ConfigRule(ConfigEmptyDictable):
-
     """AWS Config Rule to evaluate compliance of resources to configuration.
 
     Can be a managed or custom config rule.  Contains the instantiations of
@@ -919,13 +916,6 @@ class ConfigBackend(BaseBackend):
         self.config_rules: Dict[str, ConfigRule] = {}
         self.config_schema: Optional[AWSServiceSpec] = None
         self.retention_configuration: Optional[RetentionConfiguration] = None
-
-    @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "config"
-        )
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:

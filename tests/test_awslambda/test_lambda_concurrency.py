@@ -3,17 +3,16 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import mock_lambda
+from moto import mock_aws
 
 from .utilities import get_role_name, get_test_zip_file1
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_put_function_concurrency(key):
     expected_concurrency = 15
     function_name = str(uuid4())[0:6]
@@ -39,7 +38,7 @@ def test_put_function_concurrency(key):
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_delete_function_concurrency(key):
     function_name = str(uuid4())[0:6]
 
@@ -67,7 +66,7 @@ def test_delete_function_concurrency(key):
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_get_function_concurrency(key):
     expected_concurrency = 15
     function_name = str(uuid4())[0:6]

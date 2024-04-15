@@ -6,12 +6,12 @@ import pytest
 from botocore.client import ClientError
 from botocore.config import Config
 
-from moto import mock_s3
+from moto import mock_aws
 from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
 
 
-@mock_s3
+@mock_aws
 def test_locked_object():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
@@ -48,7 +48,7 @@ def test_locked_object():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_fail_locked_object():
     bucket_name = "locked-bucket2"
     key_name = "file.txt"
@@ -75,7 +75,7 @@ def test_fail_locked_object():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_put_object_lock():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
@@ -113,7 +113,7 @@ def test_put_object_lock():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_put_object_legal_hold():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
@@ -154,7 +154,7 @@ def test_put_object_legal_hold():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_put_default_lock():
     # do not run this test in aws, it will block the deletion for a whole day
 
@@ -199,7 +199,7 @@ def test_put_default_lock():
     )
 
 
-@mock_s3
+@mock_aws
 def test_put_object_legal_hold_with_versions():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
@@ -261,7 +261,7 @@ def test_put_object_legal_hold_with_versions():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_put_object_lock_with_versions():
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 

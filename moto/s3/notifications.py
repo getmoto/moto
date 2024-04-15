@@ -1,11 +1,66 @@
+import copy
 import json
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, List
+
+from moto.core.utils import unix_time
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
-S3_OBJECT_CREATE_COPY = "s3:ObjectCreated:Copy"
-S3_OBJECT_CREATE_PUT = "s3:ObjectCreated:Put"
+
+class S3NotificationEvent(str, Enum):
+    REDUCED_REDUNDANCY_LOST_OBJECT_EVENT = "s3:ReducedRedundancyLostObject"
+    OBJECT_CREATED_EVENT = "s3:ObjectCreated:*"
+    OBJECT_CREATED_PUT_EVENT = "s3:ObjectCreated:Put"
+    OBJECT_CREATED_POST_EVENT = "s3:ObjectCreated:Post"
+    OBJECT_CREATED_COPY_EVENT = "s3:ObjectCreated:Copy"
+    OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD_EVENT = (
+        "s3:ObjectCreated:CompleteMultipartUpload"
+    )
+    OBJECT_REMOVED_EVENT = "s3:ObjectRemoved:*"
+    OBJECT_REMOVED_DELETE_EVENT = "s3:ObjectRemoved:Delete"
+    OBJECT_REMOVED_DELETE_MARKER_CREATED_EVENT = "s3:ObjectRemoved:DeleteMarkerCreated"
+    OBJECT_RESTORE_EVENT = "s3:ObjectRestore:*"
+    OBJECT_RESTORE_POST_EVENT = "s3:ObjectRestore:Post"
+    OBJECT_RESTORE_COMPLETED_EVENT = "s3:ObjectRestore:Completed"
+    REPLICATION_EVENT = "s3:Replication:*"
+    REPLICATION_OPERATION_FAILED_REPLICATION_EVENT = (
+        "s3:Replication:OperationFailedReplication"
+    )
+    REPLICATION_OPERATION_NOT_TRACKED_EVENT = "s3:Replication:OperationNotTracked"
+    REPLICATION_OPERATION_MISSED_THRESHOLD_EVENT = (
+        "s3:Replication:OperationMissedThreshold"
+    )
+    REPLICATION_OPERATION_REPLICATED_AFTER_THRESHOLD_EVENT = (
+        "s3:Replication:OperationReplicatedAfterThreshold"
+    )
+    OBJECT_RESTORE_DELETE_EVENT = "s3:ObjectRestore:Delete"
+    LIFECYCLE_TRANSITION_EVENT = "s3:LifecycleTransition"
+    INTELLIGENT_TIERING_EVENT = "s3:IntelligentTiering"
+    OBJECT_ACL_EVENT = "s3:ObjectAcl:Put"
+    LIFECYCLE_EXPIRATION_EVENT = "s3:LifecycleExpiration:*"
+    LIFECYCLEEXPIRATION_DELETE_EVENT = "s3:LifecycleExpiration:Delete"
+    LIFECYCLE_EXPIRATION_DELETE_MARKER_CREATED_EVENT = (
+        "s3:LifecycleExpiration:DeleteMarkerCreated"
+    )
+    OBJECT_TAGGING_EVENT = "s3:ObjectTagging:*"
+    OBJECT_TAGGING_PUT_EVENT = "s3:ObjectTagging:Put"
+    OBJECT_TAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
+
+    @classmethod
+    def events(self) -> List[str]:
+        return sorted([item.value for item in S3NotificationEvent])
+
+    @classmethod
+    def is_event_valid(self, event_name: str) -> bool:
+        # Ex) s3:ObjectCreated:Put
+        if event_name in self.events():
+            return True
+        # Ex) event name without `s3:` like ObjectCreated:Put
+        if event_name in [e[:3] for e in self.events()]:
+            return True
+        return False
 
 
 def _get_s3_event(
@@ -41,7 +96,9 @@ def _get_region_from_arn(arn: str) -> str:
     return arn.split(":")[3]
 
 
-def send_event(account_id: str, event_name: str, bucket: Any, key: Any) -> None:
+def send_event(
+    account_id: str, event_name: S3NotificationEvent, bucket: Any, key: Any
+) -> None:
     if bucket.notification_configuration is None:
         return
 
@@ -67,6 +124,9 @@ def send_event(account_id: str, event_name: str, bucket: Any, key: Any) -> None:
             topic_arn = notification.arn
 
             _send_sns_message(account_id, event_body, topic_arn, region_name)
+
+    if bucket.notification_configuration.event_bridge is not None:
+        _send_event_bridge_message(account_id, bucket, event_name, key)
 
 
 def _send_sqs_message(
@@ -103,13 +163,105 @@ def _send_sns_message(
         pass
 
 
+def _send_event_bridge_message(
+    account_id: str,
+    bucket: Any,
+    event_name: str,
+    key: Any,
+) -> None:
+    try:
+        from moto.events.models import events_backends
+        from moto.events.utils import _BASE_EVENT_MESSAGE
+
+        event = copy.deepcopy(_BASE_EVENT_MESSAGE)
+        event["detail-type"] = _detail_type(event_name)
+        event["source"] = "aws.s3"
+        event["account"] = account_id
+        event["time"] = unix_time()
+        event["region"] = bucket.region_name
+        event["resources"] = [f"arn:aws:s3:::{bucket.name}"]
+        event["detail"] = {
+            "version": "0",
+            "bucket": {"name": bucket.name},
+            "object": {
+                "key": key.name,
+                "size": key.size,
+                "eTag": key.etag.replace('"', ""),
+                "version-id": key.version_id,
+                "sequencer": "617f08299329d189",
+            },
+            "request-id": "N4N7GDK58NMKJ12R",
+            "requester": "123456789012",
+            "source-ip-address": "1.2.3.4",
+            # ex) s3:ObjectCreated:Put -> ObjectCreated
+            "reason": event_name.split(":")[1],
+        }
+
+        events_backend = events_backends[account_id][bucket.region_name]
+        for event_bus in events_backend.event_buses.values():
+            for rule in event_bus.rules.values():
+                rule.send_to_targets(event)
+
+    except:  # noqa
+        # This is an async action in AWS.
+        # Even if this part fails, the calling function should pass, so catch all errors
+        # Possible exceptions that could be thrown:
+        # - EventBridge does not exist
+        pass
+
+
+def _detail_type(event_name: str) -> str:
+    """Detail type field values for event messages of s3 EventBridge notification
+
+    document: https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html
+    """
+    if event_name in [e for e in S3NotificationEvent.events() if "ObjectCreated" in e]:
+        return "Object Created"
+    elif event_name in [
+        e
+        for e in S3NotificationEvent.events()
+        if "ObjectRemoved" in e or "LifecycleExpiration" in e
+    ]:
+        return "Object Deleted"
+    elif event_name in [
+        e for e in S3NotificationEvent.events() if "ObjectRestore" in e
+    ]:
+        if event_name == S3NotificationEvent.OBJECT_RESTORE_POST_EVENT:
+            return "Object Restore Initiated"
+        elif event_name == S3NotificationEvent.OBJECT_RESTORE_COMPLETED_EVENT:
+            return "Object Restore Completed"
+        else:
+            # s3:ObjectRestore:Delete event
+            return "Object Restore Expired"
+    elif event_name in [
+        e for e in S3NotificationEvent.events() if "LifecycleTransition" in e
+    ]:
+        return "Object Storage Class Changed"
+    elif event_name in [
+        e for e in S3NotificationEvent.events() if "IntelligentTiering" in e
+    ]:
+        return "Object Access Tier Changed"
+    elif event_name in [e for e in S3NotificationEvent.events() if "ObjectAcl" in e]:
+        return "Object ACL Updated"
+    elif event_name in [e for e in S3NotificationEvent.events() if "ObjectTagging"]:
+        if event_name == S3NotificationEvent.OBJECT_TAGGING_PUT_EVENT:
+            return "Object Tags Added"
+        else:
+            # s3:ObjectTagging:Delete event
+            return "Object Tags Deleted"
+    else:
+        raise ValueError(
+            f"unsupported event `{event_name}` for s3 eventbridge notification (https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html)"
+        )
+
+
 def _invoke_awslambda(
     account_id: str, event_body: Any, fn_arn: str, region_name: str
 ) -> None:
     try:
-        from moto.awslambda.models import lambda_backends
+        from moto.awslambda.utils import get_backend
 
-        lambda_backend = lambda_backends[account_id][region_name]
+        lambda_backend = get_backend(account_id, region_name)
         func = lambda_backend.get_function(fn_arn)
         func.invoke(json.dumps(event_body), dict(), dict())
     except:  # noqa

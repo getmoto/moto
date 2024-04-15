@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.dynamodb.comparisons import get_expected, get_filter_expression
@@ -318,6 +318,7 @@ class DynamoDBBackend(BaseBackend):
         scan_index_forward: bool,
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         expr_names: Optional[Dict[str, str]] = None,
         expr_values: Optional[Dict[str, Dict[str, str]]] = None,
         filter_expression: Optional[str] = None,
@@ -341,6 +342,7 @@ class DynamoDBBackend(BaseBackend):
             scan_index_forward,
             projection_expressions,
             index_name,
+            consistent_read,
             filter_expression_op,
             **filter_kwargs,
         )
@@ -355,6 +357,7 @@ class DynamoDBBackend(BaseBackend):
         expr_names: Dict[str, Any],
         expr_values: Dict[str, Any],
         index_name: str,
+        consistent_read: bool,
         projection_expression: Optional[List[List[str]]],
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         table = self.get_table(table_name)
@@ -374,6 +377,7 @@ class DynamoDBBackend(BaseBackend):
             exclusive_start_key,
             filter_expression_op,
             index_name,
+            consistent_read,
             projection_expression,
         )
 
@@ -473,7 +477,9 @@ class DynamoDBBackend(BaseBackend):
             validated_ast.normalize()
             try:
                 UpdateExpressionExecutor(
-                    validated_ast, item, expression_attribute_names  # type: ignore[arg-type]
+                    validated_ast,
+                    item,  # type: ignore[arg-type]
+                    expression_attribute_names,
                 ).execute()
             except ItemSizeTooLarge:
                 raise ItemSizeToUpdateTooLarge()
@@ -579,7 +585,11 @@ class DynamoDBBackend(BaseBackend):
                     item = item["Put"]
                     attrs = item["Item"]
                     table_name = item["TableName"]
-                    check_unicity(table_name, item)
+                    table = self.get_table(table_name)
+                    key = {table.hash_key_attr: attrs[table.hash_key_attr]}
+                    if table.range_key_attr is not None:
+                        key[table.range_key_attr] = attrs[table.range_key_attr]
+                    check_unicity(table_name, key)
                     condition_expression = item.get("ConditionExpression", None)
                     expression_attribute_names = item.get(
                         "ExpressionAttributeNames", None
@@ -855,27 +865,31 @@ class DynamoDBBackend(BaseBackend):
                 }
             else:
                 response["TableName"] = table_name
-                table = self.tables[table_name]
-                for required_attr in table.table_key_attrs:
-                    if required_attr not in filter_keys:
-                        response["Error"] = {
-                            "Code": "ValidationError",
-                            "Message": "Select statements within BatchExecuteStatement must specify the primary key in the where clause.",
-                        }
+                if metadata.is_select_query():
+                    table = self.tables[table_name]
+                    for required_attr in table.table_key_attrs:
+                        if required_attr not in filter_keys:
+                            response["Error"] = {
+                                "Code": "ValidationError",
+                                "Message": "Select statements within BatchExecuteStatement must specify the primary key in the where clause.",
+                            }
             responses.append(response)
 
         # Execution
         for idx, stmt in enumerate(statements):
             if "Error" in responses[idx]:
                 continue
-            items = self.execute_statement(
-                statement=stmt["Statement"], parameters=stmt.get("Parameters", [])
-            )
-            # Statements should always contain a HashKey and SortKey
-            # An item with those keys may not exist
-            if items:
-                # But if it does, it will always only contain one item at most
-                responses[idx]["Item"] = items[0]
+            try:
+                items = self.execute_statement(
+                    statement=stmt["Statement"], parameters=stmt.get("Parameters", [])
+                )
+                # Statements should always contain a HashKey and SortKey
+                # An item with those keys may not exist
+                if items:
+                    # But if it does, it will always only contain one item at most
+                    responses[idx]["Item"] = items[0]
+            except Exception as e:
+                responses[idx] = {"Error": {"Code": e.name, "Message": e.message}}  # type: ignore
         return responses
 
 

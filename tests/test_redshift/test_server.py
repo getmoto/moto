@@ -1,4 +1,5 @@
 """Test the different server responses."""
+
 import json
 import re
 import unittest
@@ -7,7 +8,7 @@ import pytest
 import xmltodict
 
 import moto.server as server
-from moto import mock_redshift, settings
+from moto import mock_aws, settings
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -16,7 +17,7 @@ def skip_in_server_mode():
         raise unittest.SkipTest("No point in testing this in ServerMode")
 
 
-@mock_redshift
+@mock_aws
 def test_describe_clusters():
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -27,7 +28,7 @@ def test_describe_clusters():
     assert "<Clusters></Clusters>" in result
 
 
-@mock_redshift
+@mock_aws
 def test_describe_clusters_with_json_content_type():
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -42,7 +43,7 @@ def test_describe_clusters_with_json_content_type():
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
-@mock_redshift
+@mock_aws
 def test_create_cluster(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -92,7 +93,7 @@ def test_create_cluster(is_json):
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
-@mock_redshift
+@mock_aws
 def test_create_cluster_multiple_params(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -157,7 +158,7 @@ def test_create_cluster_multiple_params(is_json):
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
-@mock_redshift
+@mock_aws
 def test_create_and_describe_clusters(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -199,7 +200,7 @@ def test_create_and_describe_clusters(is_json):
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
-@mock_redshift
+@mock_aws
 def test_create_and_describe_cluster_security_group(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -261,7 +262,7 @@ def test_create_and_describe_cluster_security_group(is_json):
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
-@mock_redshift
+@mock_aws
 def test_describe_unknown_cluster_security_group(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()
@@ -288,7 +289,7 @@ def test_describe_unknown_cluster_security_group(is_json):
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
-@mock_redshift
+@mock_aws
 def test_create_cluster_with_security_group(is_json):
     backend = server.create_backend_app("redshift")
     test_client = backend.test_client()

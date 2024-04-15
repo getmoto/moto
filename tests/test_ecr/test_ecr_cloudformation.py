@@ -4,7 +4,7 @@ from string import Template
 
 import boto3
 
-from moto import mock_cloudformation, mock_ecr
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 repo_template = Template(
@@ -29,8 +29,7 @@ repo_template = Template(
 )
 
 
-@mock_ecr
-@mock_cloudformation
+@mock_aws
 def test_create_repository():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
@@ -52,8 +51,7 @@ def test_create_repository():
     assert response["repositories"][0]["repositoryArn"] == repo_arn
 
 
-@mock_ecr
-@mock_cloudformation
+@mock_aws
 def test_update_repository():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
@@ -63,9 +61,9 @@ def test_update_repository():
     cfn_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     template_update = copy.deepcopy(json.loads(template))
-    template_update["Resources"]["Repo"]["Properties"][
-        "ImageTagMutability"
-    ] = "IMMUTABLE"
+    template_update["Resources"]["Repo"]["Properties"]["ImageTagMutability"] = (
+        "IMMUTABLE"
+    )
 
     # when
     cfn_client.update_stack(
@@ -84,8 +82,7 @@ def test_update_repository():
     assert repo["imageTagMutability"] == "IMMUTABLE"
 
 
-@mock_ecr
-@mock_cloudformation
+@mock_aws
 def test_delete_repository():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")

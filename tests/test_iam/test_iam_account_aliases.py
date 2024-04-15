@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_iam
+from moto import mock_aws
 
 
-@mock_iam()
+@mock_aws()
 def test_account_aliases():
     client = boto3.client("iam", region_name="us-east-1")
 

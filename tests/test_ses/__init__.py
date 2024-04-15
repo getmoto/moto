@@ -1,7 +1,7 @@
 import os
 from functools import wraps
 
-from moto import mock_ses
+from moto import mock_aws
 
 
 def ses_aws_verified(func):
@@ -10,7 +10,7 @@ def ses_aws_verified(func):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_ses` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
     """
 
     @wraps(func)
@@ -22,7 +22,7 @@ def ses_aws_verified(func):
         if allow_aws_request:
             resp = func()
         else:
-            with mock_ses():
+            with mock_aws():
                 resp = func()
         return resp
 

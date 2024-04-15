@@ -6,12 +6,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto import mock_ses
+from moto import mock_aws
 
 from . import ses_aws_verified
 
 
-@mock_ses
+@mock_aws
 def test_list_verified_identities():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_email_identity(EmailAddress="test@example.com")
@@ -40,7 +40,7 @@ def test_list_verified_identities():
     )
 
 
-@mock_ses
+@mock_aws
 def test_identities_are_region_specific():
     us_east = boto3.client("ses", region_name="us-east-1")
     us_east.verify_email_identity(EmailAddress="test@example.com")
@@ -49,7 +49,7 @@ def test_identities_are_region_specific():
     assert not us_west.list_identities()["Identities"]
 
 
-@mock_ses
+@mock_aws
 def test_verify_email_identity_idempotency():
     conn = boto3.client("ses", region_name="us-east-1")
     address = "test@example.com"
@@ -61,7 +61,7 @@ def test_verify_email_identity_idempotency():
     assert address_list == [address]
 
 
-@mock_ses
+@mock_aws
 def test_verify_email_address():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_email_address(EmailAddress="test@example.com")
@@ -70,7 +70,7 @@ def test_verify_email_address():
     assert email == "test@example.com"
 
 
-@mock_ses
+@mock_aws
 def test_delete_identity():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_email_identity(EmailAddress="test@example.com")
@@ -80,7 +80,7 @@ def test_delete_identity():
     assert not conn.list_identities()["Identities"]
 
 
-@mock_ses
+@mock_aws
 def test_send_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -112,7 +112,7 @@ def test_send_email():
     assert sent_count == 3
 
 
-@mock_ses
+@mock_aws
 def test_send_email_when_verify_source():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -141,7 +141,7 @@ def test_send_email_when_verify_source():
     assert sent_count == 2
 
 
-@mock_ses
+@mock_aws
 def test_send_unverified_email_with_chevrons():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -167,7 +167,7 @@ def test_send_unverified_email_with_chevrons():
     )
 
 
-@mock_ses
+@mock_aws
 def test_send_email_invalid_address():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_domain_identity(Domain="example.com")
@@ -190,7 +190,7 @@ def test_send_email_invalid_address():
     assert err["Message"] == "Missing domain"
 
 
-@mock_ses
+@mock_aws
 def test_send_bulk_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -286,7 +286,7 @@ def test_send_bulk_templated_email():
     assert sent_count == 6
 
 
-@mock_ses
+@mock_aws
 def test_send_templated_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -333,7 +333,7 @@ def test_send_templated_email():
     assert sent_count == 3
 
 
-@mock_ses
+@mock_aws
 def test_send_templated_email_invalid_address():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_domain_identity(Domain="example.com")
@@ -362,7 +362,7 @@ def test_send_templated_email_invalid_address():
     assert err["Message"] == "Missing domain"
 
 
-@mock_ses
+@mock_aws
 def test_send_html_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -386,7 +386,7 @@ def test_send_html_email():
     assert sent_count == 1
 
 
-@mock_ses
+@mock_aws
 def test_send_raw_email():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -405,7 +405,7 @@ def test_send_raw_email():
     assert sent_count == 2
 
 
-@mock_ses
+@mock_aws
 def test_send_raw_email_validate_domain():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -424,7 +424,7 @@ def test_send_raw_email_validate_domain():
     assert sent_count == 2
 
 
-@mock_ses
+@mock_aws
 def test_send_raw_email_invalid_address():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.verify_domain_identity(Domain="example.com")
@@ -458,7 +458,7 @@ def get_raw_email():
     return message
 
 
-@mock_ses
+@mock_aws
 def test_send_raw_email_without_source():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -489,7 +489,7 @@ def test_send_raw_email_without_source():
     assert sent_count == 2
 
 
-@mock_ses
+@mock_aws
 def test_send_raw_email_without_source_or_from():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -511,7 +511,7 @@ def test_send_raw_email_without_source_or_from():
         conn.send_raw_email(**kwargs)
 
 
-@mock_ses
+@mock_aws
 def test_send_email_notification_with_encoded_sender():
     sender = "Foo <foo@bar.baz>"
     conn = boto3.client("ses", region_name="us-east-1")
@@ -524,7 +524,7 @@ def test_send_email_notification_with_encoded_sender():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_ses
+@mock_aws
 def test_create_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
@@ -576,7 +576,7 @@ def test_create_configuration_set():
     assert ex.value.response["Error"]["Code"] == "EventDestinationAlreadyExists"
 
 
-@mock_ses
+@mock_aws
 def test_describe_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -595,7 +595,7 @@ def test_describe_configuration_set():
     assert config_set["ConfigurationSet"]["Name"] == name
 
 
-@mock_ses
+@mock_aws
 def test_create_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     result = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
@@ -608,7 +608,7 @@ def test_create_receipt_rule_set():
     assert ex.value.response["Error"]["Code"] == "RuleSetNameAlreadyExists"
 
 
-@mock_ses
+@mock_aws
 def test_create_receipt_rule():
     conn = boto3.client("ses", region_name="us-east-1")
     rule_set_name = "testRuleSet"
@@ -707,7 +707,7 @@ def test_create_receipt_rule():
     assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
 
 
-@mock_ses
+@mock_aws
 def test_describe_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     create_receipt_rule_set_response = conn.create_receipt_rule_set(
@@ -724,7 +724,7 @@ def test_describe_receipt_rule_set():
     assert not result["Rules"]
 
 
-@mock_ses
+@mock_aws
 def test_describe_receipt_rule_set_with_rules():
     conn = boto3.client("ses", region_name="us-east-1")
     create_receipt_rule_set_response = conn.create_receipt_rule_set(
@@ -773,7 +773,7 @@ def test_describe_receipt_rule_set_with_rules():
     assert result["Rules"][0] == receipt_rule
 
 
-@mock_ses
+@mock_aws
 def test_describe_receipt_rule():
     conn = boto3.client("ses", region_name="us-east-1")
     rule_set_name = "testRuleSet"
@@ -875,7 +875,7 @@ def test_describe_receipt_rule():
     assert error.value.response["Error"]["Code"] == "RuleDoesNotExist"
 
 
-@mock_ses
+@mock_aws
 def test_update_receipt_rule():
     conn = boto3.client("ses", region_name="us-east-1")
     rule_set_name = "testRuleSet"
@@ -1054,7 +1054,7 @@ def test_update_receipt_rule():
     ) in str(error.value)
 
 
-@mock_ses
+@mock_aws
 def test_update_receipt_rule_actions():
     conn = boto3.client("ses", region_name="us-east-1")
     rule_set_name = "testRuleSet"
@@ -1127,11 +1127,13 @@ def test_update_receipt_rule_actions():
     assert "S3Action" in updated_rule_description["Rule"]["Actions"][0]
 
     assert (
-        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["TopicArn"]
-    ) == "newString"
+        (updated_rule_description["Rule"]["Actions"][0]["S3Action"]["TopicArn"])
+        == "newString"
+    )
     assert (
-        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["BucketName"]
-    ) == "updatedTestBucketName"
+        (updated_rule_description["Rule"]["Actions"][0]["S3Action"]["BucketName"])
+        == "updatedTestBucketName"
+    )
     assert updated_rule_description["Rule"]["Actions"][0]["S3Action"][
         "ObjectKeyPrefix"
     ] == ("updatedTestObjectKeyPrefix")
@@ -1147,11 +1149,17 @@ def test_update_receipt_rule_actions():
         == "newString"
     )
     assert (
-        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["SmtpReplyCode"]
-    ) == "newString"
+        (
+            updated_rule_description["Rule"]["Actions"][0]["BounceAction"][
+                "SmtpReplyCode"
+            ]
+        )
+        == "newString"
+    )
     assert (
-        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["StatusCode"]
-    ) == "newString"
+        (updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["StatusCode"])
+        == "newString"
+    )
     assert (
         updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["Message"]
         == "newString"
@@ -1195,7 +1203,7 @@ def test_update_receipt_rule_actions():
     ) in str(error.value)
 
 
-@mock_ses
+@mock_aws
 def test_create_ses_template():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -1240,7 +1248,7 @@ def test_create_ses_template():
     assert result["TemplatesMetadata"][0]["Name"] == "MyTemplate"
 
 
-@mock_ses
+@mock_aws
 def test_render_template():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -1338,7 +1346,7 @@ def test_render_template__advanced():
         conn.delete_template(TemplateName="MTT")
 
 
-@mock_ses
+@mock_aws
 def test_update_ses_template():
     conn = boto3.client("ses", region_name="us-east-1")
     template = {
@@ -1357,9 +1365,9 @@ def test_update_ses_template():
 
     template["SubjectPart"] = "Hi, {{name}}!"
     template["TextPart"] = "Dear {{name}},\r\n Your favorite color is {{color}}"
-    template[
-        "HtmlPart"
-    ] = "<h1>Hello {{name}},</h1><p>Your favorite color is {{color}}</p>"
+    template["HtmlPart"] = (
+        "<h1>Hello {{name}},</h1><p>Your favorite color is {{color}}</p>"
+    )
     conn.update_template(Template=template)
 
     result = conn.get_template(TemplateName=template["TemplateName"])
@@ -1372,7 +1380,7 @@ def test_update_ses_template():
     )
 
 
-@mock_ses
+@mock_aws
 def test_domains_are_case_insensitive():
     client = boto3.client("ses", region_name="us-east-1")
     duplicate_domains = [
@@ -1388,7 +1396,7 @@ def test_domains_are_case_insensitive():
         assert identities[0] == "example.com"
 
 
-@mock_ses
+@mock_aws
 def test_get_send_statistics():
     conn = boto3.client("ses", region_name="us-east-1")
 
@@ -1429,7 +1437,7 @@ def test_get_send_statistics():
     assert stats[0]["DeliveryAttempts"] == 1
 
 
-@mock_ses
+@mock_aws
 def test_set_identity_mail_from_domain():
     conn = boto3.client("ses", region_name="eu-central-1")
 
@@ -1511,7 +1519,7 @@ def test_set_identity_mail_from_domain():
     assert "MailFromDomainStatus" not in actual_attributes
 
 
-@mock_ses
+@mock_aws
 def test_get_identity_mail_from_domain_attributes():
     conn = boto3.client("ses", region_name="eu-central-1")
 
@@ -1529,8 +1537,9 @@ def test_get_identity_mail_from_domain_attributes():
     assert len(attributes["MailFromDomainAttributes"]) == 1
     assert len(attributes["MailFromDomainAttributes"]["bar@foo.com"]) == 1
     assert (
-        attributes["MailFromDomainAttributes"]["bar@foo.com"]["BehaviorOnMXFailure"]
-    ) == "UseDefaultValue"
+        (attributes["MailFromDomainAttributes"]["bar@foo.com"]["BehaviorOnMXFailure"])
+        == "UseDefaultValue"
+    )
 
     # Must return multiple configured identities
     conn.verify_domain_identity(Domain="lorem.com")
@@ -1542,7 +1551,7 @@ def test_get_identity_mail_from_domain_attributes():
     assert len(attributes["MailFromDomainAttributes"]["lorem.com"]) == 1
 
 
-@mock_ses
+@mock_aws
 def test_get_identity_verification_attributes():
     conn = boto3.client("ses", region_name="eu-central-1")
 

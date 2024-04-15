@@ -24,7 +24,7 @@ def generate_boto3_response(
     """
 
     def _boto3_request(
-        method: Callable[["ElasticMapReduceResponse"], str]
+        method: Callable[["ElasticMapReduceResponse"], str],
     ) -> Callable[["ElasticMapReduceResponse"], str]:
         @wraps(method)
         def f(self: "ElasticMapReduceResponse") -> str:
@@ -49,7 +49,6 @@ def generate_boto3_response(
 
 
 class ElasticMapReduceResponse(BaseResponse):
-
     # EMR end points are inconsistent in the placement of region name
     # in the URL, so parsing it out needs to be handled differently
     emr_region_regex: List[Pattern[str]] = [
@@ -366,9 +365,9 @@ class ElasticMapReduceResponse(BaseResponse):
             "KerberosAttributes.CrossRealmTrustPrincipalPassword"
         )
         if cross_realm_principal_password:
-            kerberos_attributes[
-                "CrossRealmTrustPrincipalPassword"
-            ] = cross_realm_principal_password
+            kerberos_attributes["CrossRealmTrustPrincipalPassword"] = (
+                cross_realm_principal_password
+            )
 
         ad_domain_join_user = self._get_param("KerberosAttributes.ADDomainJoinUser")
         if ad_domain_join_user:
@@ -402,7 +401,7 @@ class ElasticMapReduceResponse(BaseResponse):
                 cluster.id, instance_groups
             )
             for i in range(0, len(instance_group_result)):
-                self.backend.add_instances(
+                self.backend.run_instances(
                     cluster.id, instance_groups[i], instance_group_result[i]
                 )
 
@@ -472,9 +471,9 @@ class ElasticMapReduceResponse(BaseResponse):
                     )
                 if vol_type in ebs_configuration:
                     instance_group.pop(vol_type)
-                    ebs_block[volume_specification][
-                        volume_type
-                    ] = ebs_configuration.pop(vol_type)
+                    ebs_block[volume_specification][volume_type] = (
+                        ebs_configuration.pop(vol_type)
+                    )
 
                 per_instance = f"{key}._{volumes_per_instance}"
                 if per_instance in ebs_configuration:
@@ -758,7 +757,7 @@ DESCRIBE_JOB_FLOWS_TEMPLATE = """<DescribeJobFlowsResponse xmlns="http://elastic
               <InstanceRequestCount>{{ instance_group.num_instances }}</InstanceRequestCount>
               <InstanceRole>{{ instance_group.role }}</InstanceRole>
               <InstanceRunningCount>{{ instance_group.num_instances }}</InstanceRunningCount>
-              <InstanceType>{{ instance_group.type }}</InstanceType>
+              <InstanceType>{{ instance_group.instance_type }}</InstanceType>
               <LastStateChangeReason/>
               <Market>{{ instance_group.market }}</Market>
               <Name>{{ instance_group.name }}</Name>
@@ -1084,7 +1083,7 @@ LIST_INSTANCE_GROUPS_TEMPLATE = """<ListInstanceGroupsResponse xmlns="http://ela
         {% endif %}
         <Id>{{ instance_group.id }}</Id>
         <InstanceGroupType>{{ instance_group.role }}</InstanceGroupType>
-        <InstanceType>{{ instance_group.type }}</InstanceType>
+        <InstanceType>{{ instance_group.instance_type }}</InstanceType>
         <Market>{{ instance_group.market }}</Market>
         <Name>{{ instance_group.name }}</Name>
         <RequestedInstanceCount>{{ instance_group.num_instances }}</RequestedInstanceCount>

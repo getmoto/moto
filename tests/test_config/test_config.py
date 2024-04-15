@@ -9,13 +9,12 @@ import pytest
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from moto import mock_s3
-from moto.config import mock_config
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
 
-@mock_config
+@mock_aws
 def test_put_configuration_recorder():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -341,7 +340,7 @@ def test_put_configuration_recorder():
     )
 
 
-@mock_config
+@mock_aws
 def test_put_configuration_aggregator():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -597,7 +596,7 @@ def test_put_configuration_aggregator():
     }
 
 
-@mock_config
+@mock_aws
 def test_describe_configuration_aggregators():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -703,7 +702,7 @@ def test_describe_configuration_aggregators():
     assert ce.value.response["Error"]["Code"] == "InvalidNextTokenException"
 
 
-@mock_config
+@mock_aws
 def test_put_aggregation_authorization():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -799,7 +798,7 @@ def test_put_aggregation_authorization():
     assert result["AggregationAuthorization"]["CreationTime"] == creation_date
 
 
-@mock_config
+@mock_aws
 def test_describe_aggregation_authorizations():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -854,7 +853,7 @@ def test_describe_aggregation_authorizations():
     assert ce.value.response["Error"]["Code"] == "InvalidNextTokenException"
 
 
-@mock_config
+@mock_aws
 def test_delete_aggregation_authorization():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -876,7 +875,7 @@ def test_delete_aggregation_authorization():
     )
 
 
-@mock_config
+@mock_aws
 def test_delete_configuration_aggregator():
     client = boto3.client("config", region_name="us-west-2")
     client.put_configuration_aggregator(
@@ -900,7 +899,7 @@ def test_delete_configuration_aggregator():
     )
 
 
-@mock_config
+@mock_aws
 def test_describe_configurations():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -947,7 +946,7 @@ def test_describe_configurations():
     assert "wrong" in ce.value.response["Error"]["Message"]
 
 
-@mock_config
+@mock_aws
 def test_delivery_channels():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1110,7 +1109,7 @@ def test_delivery_channels():
     )
 
 
-@mock_config
+@mock_aws
 def test_describe_delivery_channels():
     client = boto3.client("config", region_name="us-west-2")
     client.put_configuration_recorder(
@@ -1175,7 +1174,7 @@ def test_describe_delivery_channels():
     assert "wrong" in ce.value.response["Error"]["Message"]
 
 
-@mock_config
+@mock_aws
 def test_start_configuration_recorder():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1223,7 +1222,7 @@ def test_start_configuration_recorder():
     )
 
 
-@mock_config
+@mock_aws
 def test_stop_configuration_recorder():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1268,7 +1267,7 @@ def test_stop_configuration_recorder():
     )
 
 
-@mock_config
+@mock_aws
 def test_describe_configuration_recorder_status():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1314,7 +1313,7 @@ def test_describe_configuration_recorder_status():
     assert "wrong" in ce.value.response["Error"]["Message"]
 
 
-@mock_config
+@mock_aws
 def test_delete_configuration_recorder():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1340,7 +1339,7 @@ def test_delete_configuration_recorder():
     assert ce.value.response["Error"]["Code"] == "NoSuchConfigurationRecorderException"
 
 
-@mock_config
+@mock_aws
 def test_delete_delivery_channel():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1384,8 +1383,7 @@ def test_delete_delivery_channel():
     assert ce.value.response["Error"]["Code"] == "NoSuchDeliveryChannelException"
 
 
-@mock_config
-@mock_s3
+@mock_aws
 def test_list_discovered_resource():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "list_config_service_resources" function.
@@ -1490,8 +1488,7 @@ def test_list_discovered_resource():
     )
 
 
-@mock_config
-@mock_s3
+@mock_aws
 def test_list_aggregate_discovered_resource():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "list_config_service_resources" function.
@@ -1634,8 +1631,7 @@ def test_list_aggregate_discovered_resource():
     assert "101" in ce.value.response["Error"]["Message"]
 
 
-@mock_config
-@mock_s3
+@mock_aws
 def test_get_resource_config_history():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "get_config_resource" function.
@@ -1693,8 +1689,7 @@ def test_get_resource_config_history():
     assert ce.value.response["Error"]["Code"] == "ResourceNotDiscoveredException"
 
 
-@mock_config
-@mock_s3
+@mock_aws
 def test_batch_get_resource_config():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "get_config_resource" function.
@@ -1757,8 +1752,7 @@ def test_batch_get_resource_config():
     assert not result["baseConfigurationItems"]
 
 
-@mock_config
-@mock_s3
+@mock_aws
 def test_batch_get_aggregate_resource_config():
     """NOTE: We are only really testing the Config part. For each individual service, please add tests
     for that individual service's "get_config_resource" function.
@@ -1928,7 +1922,7 @@ def test_batch_get_aggregate_resource_config():
     )
 
 
-@mock_config
+@mock_aws
 def test_put_evaluations():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -1991,13 +1985,14 @@ def test_put_evaluations():
     # this is hard to match against, so remove it
     response["ResponseMetadata"].pop("HTTPHeaders", None)
     response["ResponseMetadata"].pop("RetryAttempts", None)
+    response["ResponseMetadata"].pop("RequestId")
     assert response == {
         "FailedEvaluations": [],
         "ResponseMetadata": {"HTTPStatusCode": 200},
     }
 
 
-@mock_config
+@mock_aws
 def test_put_organization_conformance_pack():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2027,7 +2022,7 @@ def test_put_organization_conformance_pack():
     assert response["OrganizationConformancePackArn"] == arn
 
 
-@mock_config
+@mock_aws
 def test_put_organization_conformance_pack_errors():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2065,7 +2060,7 @@ def test_put_organization_conformance_pack_errors():
     )
 
 
-@mock_config
+@mock_aws
 def test_describe_organization_conformance_packs():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2091,7 +2086,7 @@ def test_describe_organization_conformance_packs():
     assert isinstance(pack["LastUpdateTime"], datetime)
 
 
-@mock_config
+@mock_aws
 def test_describe_organization_conformance_packs_errors():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2113,7 +2108,7 @@ def test_describe_organization_conformance_packs_errors():
     )
 
 
-@mock_config
+@mock_aws
 def test_describe_organization_conformance_pack_statuses():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2165,7 +2160,7 @@ def test_describe_organization_conformance_pack_statuses():
     assert status["LastUpdateTime"] > update_time
 
 
-@mock_config
+@mock_aws
 def test_describe_organization_conformance_pack_statuses_errors():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2187,7 +2182,7 @@ def test_describe_organization_conformance_pack_statuses_errors():
     )
 
 
-@mock_config
+@mock_aws
 def test_get_organization_conformance_pack_detailed_status():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2235,7 +2230,7 @@ def test_get_organization_conformance_pack_detailed_status():
     assert status["LastUpdateTime"] > update_time
 
 
-@mock_config
+@mock_aws
 def test_get_organization_conformance_pack_detailed_status_errors():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2257,7 +2252,7 @@ def test_get_organization_conformance_pack_detailed_status_errors():
     )
 
 
-@mock_config
+@mock_aws
 def test_delete_organization_conformance_pack():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2277,7 +2272,7 @@ def test_delete_organization_conformance_pack():
     assert len(response["OrganizationConformancePackStatuses"]) == 0
 
 
-@mock_config
+@mock_aws
 def test_delete_organization_conformance_pack_errors():
     # given
     client = boto3.client("config", region_name="us-east-1")
@@ -2299,7 +2294,7 @@ def test_delete_organization_conformance_pack_errors():
     )
 
 
-@mock_config
+@mock_aws
 def test_put_retention_configuration():
     # Test with parameter validation being False to test the retention days check:
     client = boto3.client(
@@ -2332,7 +2327,7 @@ def test_put_retention_configuration():
     }
 
 
-@mock_config
+@mock_aws
 def test_describe_retention_configurations():
     client = boto3.client("config", region_name="us-west-2")
 
@@ -2377,7 +2372,7 @@ def test_describe_retention_configurations():
     )
 
 
-@mock_config
+@mock_aws
 def test_delete_retention_configuration():
     client = boto3.client("config", region_name="us-west-2")
 

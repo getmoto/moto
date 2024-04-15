@@ -103,7 +103,9 @@ class ManagedPrefixListBackend:
         return self.managed_prefix_lists.get(prefix_list_id)
 
     def delete_managed_prefix_list(self, prefix_list_id: str) -> ManagedPrefixList:
-        managed_prefix_list: ManagedPrefixList = self.managed_prefix_lists.get(prefix_list_id)  # type: ignore
+        managed_prefix_list: ManagedPrefixList = self.managed_prefix_lists.get(
+            prefix_list_id
+        )  # type: ignore
         managed_prefix_list.state = "delete-complete"
         return managed_prefix_list
 

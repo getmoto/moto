@@ -12,17 +12,6 @@
 route53
 =======
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_route53
-            def test_route53_behaviour:
-                boto3.client("route53")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] activate_key_signing_key
@@ -83,6 +72,10 @@ route53
 - [ ] list_geo_locations
 - [X] list_health_checks
 - [X] list_hosted_zones
+  
+        The parameters DelegationSetId and HostedZoneType are not yet implemented
+        
+
 - [X] list_hosted_zones_by_name
 - [X] list_hosted_zones_by_vpc
   

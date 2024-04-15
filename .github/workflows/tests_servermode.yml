@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10", "3.11", "3.12"]
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -52,19 +52,18 @@ jobs:
         make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'getmoto/moto'}}
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         fail_ci_if_error: false
         flags: servertests
     - name: "Stop MotoServer"
       if: always()
       run: |
-        mkdir serverlogs
-        pwd
         ls -la
-        cp server_output.log serverlogs/server_output.log
         docker stop motoserver
-    - name: Archive TF logs
+        mkdir serverlogs
+        cp server_output.log serverlogs/server_output.log
+    - name: Archive Server logs
       if: always()
       uses: actions/upload-artifact@v4
       with:

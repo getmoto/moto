@@ -5,11 +5,13 @@ import pytest
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
-from moto import mock_dynamodb
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
+from . import dynamodb_aws_verified
 
-@mock_dynamodb
+
+@mock_aws
 def test_create_table():
     client = boto3.client("dynamodb", region_name="us-east-2")
     client.create_table(
@@ -68,7 +70,7 @@ def test_create_table():
     assert actual["ItemCount"] == 0
 
 
-@mock_dynamodb
+@mock_aws
 def test_delete_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
     conn.create_table(
@@ -90,7 +92,7 @@ def test_delete_table():
     assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_item_add_and_describe_and_update():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -130,7 +132,7 @@ def test_item_add_and_describe_and_update():
     }
 
 
-@mock_dynamodb
+@mock_aws
 def test_item_put_without_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -149,7 +151,7 @@ def test_item_put_without_table():
     assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_get_item_with_undeclared_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -161,7 +163,7 @@ def test_get_item_with_undeclared_table():
     assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_delete_item():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -188,7 +190,7 @@ def test_delete_item():
     table.delete_item(Key={"id": "LOLCat Forum"})
 
 
-@mock_dynamodb
+@mock_aws
 def test_delete_item_with_undeclared_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -202,7 +204,7 @@ def test_delete_item_with_undeclared_table():
     assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_scan_with_undeclared_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
 
@@ -214,7 +216,7 @@ def test_scan_with_undeclared_table():
     assert ex.value.response["Error"]["Message"] == "Requested resource not found"
 
 
-@mock_dynamodb
+@mock_aws
 def test_get_key_schema():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
     table = conn.create_table(
@@ -227,7 +229,7 @@ def test_get_key_schema():
     assert table.key_schema == [{"AttributeName": "id", "KeyType": "HASH"}]
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_double_nested_remove():
     conn = boto3.client("dynamodb", region_name="us-east-1")
     conn.create_table(
@@ -262,7 +264,7 @@ def test_update_item_double_nested_remove():
     assert returned_item["Item"] == expected_item
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_set():
     conn = boto3.resource("dynamodb", region_name="us-east-1")
     table = conn.create_table(
@@ -286,7 +288,7 @@ def test_update_item_set():
     assert returned_item == {"username": "steve", "foo": "bar", "blah": "baz"}
 
 
-@mock_dynamodb
+@mock_aws
 def test_create_table__using_resource():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
@@ -311,7 +313,7 @@ def _create_user_table():
     return dynamodb.Table("users")
 
 
-@mock_dynamodb
+@mock_aws
 def test_conditions():
     table = _create_user_table()
 
@@ -323,7 +325,7 @@ def test_conditions():
     assert response["Items"] == [{"username": "johndoe"}]
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_conditions_pass():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -335,7 +337,7 @@ def test_put_item_conditions_pass():
     assert final_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_conditions_pass_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -347,7 +349,7 @@ def test_put_item_conditions_pass_because_expect_not_exists_by_compare_to_null()
     assert final_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_conditions_pass_because_expect_exists_by_compare_to_not_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -359,7 +361,7 @@ def test_put_item_conditions_pass_because_expect_exists_by_compare_to_not_null()
     assert final_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_put_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -374,7 +376,7 @@ def test_put_item_conditions_fail():
     assert err["Code"] == "ConditionalCheckFailedException"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_fail():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
@@ -389,7 +391,7 @@ def test_update_item_conditions_fail():
     assert err["Code"] == "ConditionalCheckFailedException"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_fail_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
@@ -404,7 +406,7 @@ def test_update_item_conditions_fail_because_expect_not_exists():
     assert err["Code"] == "ConditionalCheckFailedException"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_fail_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "baz"})
@@ -419,7 +421,7 @@ def test_update_item_conditions_fail_because_expect_not_exists_by_compare_to_nul
     assert err["Code"] == "ConditionalCheckFailedException"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_pass():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -433,7 +435,7 @@ def test_update_item_conditions_pass():
     assert returned_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_pass_because_expect_not_exists():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -447,7 +449,7 @@ def test_update_item_conditions_pass_because_expect_not_exists():
     assert returned_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_pass_because_expect_not_exists_by_compare_to_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -461,7 +463,7 @@ def test_update_item_conditions_pass_because_expect_not_exists_by_compare_to_nul
     assert returned_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_item_conditions_pass_because_expect_exists_by_compare_to_not_null():
     table = _create_user_table()
     table.put_item(Item={"username": "johndoe", "foo": "bar"})
@@ -475,7 +477,7 @@ def test_update_item_conditions_pass_because_expect_exists_by_compare_to_not_nul
     assert returned_item["Item"]["foo"] == "baz"
 
 
-@mock_dynamodb
+@mock_aws
 def test_update_settype_item_with_conditions():
     class OrderedSet(set):
         """A set with predictable iteration order"""
@@ -512,80 +514,24 @@ def test_update_settype_item_with_conditions():
     assert returned_item["Item"]["foo"] == set(["baz"])
 
 
-@mock_dynamodb
-def test_scan_pagination():
-    table = _create_user_table()
-
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_scan_pagination(table_name=None):
+    table = boto3.resource("dynamodb", "us-east-1").Table(table_name)
     expected_usernames = [f"user{i}" for i in range(10)]
     for u in expected_usernames:
-        table.put_item(Item={"username": u})
+        table.put_item(Item={"pk": u})
 
     page1 = table.scan(Limit=6)
     assert page1["Count"] == 6
     assert len(page1["Items"]) == 6
-    page1_results = set([r["username"] for r in page1["Items"]])
-    assert page1_results == {"user0", "user3", "user1", "user2", "user5", "user4"}
+    page1_results = [r["pk"] for r in page1["Items"]]
 
     page2 = table.scan(Limit=6, ExclusiveStartKey=page1["LastEvaluatedKey"])
     assert page2["Count"] == 4
     assert len(page2["Items"]) == 4
     assert "LastEvaluatedKey" not in page2
-    page2_results = set([r["username"] for r in page2["Items"]])
-    assert page2_results == {"user6", "user7", "user8", "user9"}
+    page2_results = [r["pk"] for r in page2["Items"]]
 
-    results = page1["Items"] + page2["Items"]
-    usernames = set([r["username"] for r in results])
+    usernames = set(page1_results + page2_results)
     assert usernames == set(expected_usernames)
-
-
-@mock_dynamodb
-def test_scan_by_index():
-    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-
-    dynamodb.create_table(
-        TableName="test",
-        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
-        AttributeDefinitions=[
-            {"AttributeName": "id", "AttributeType": "S"},
-            {"AttributeName": "gsi_col", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
-        GlobalSecondaryIndexes=[
-            {
-                "IndexName": "test_gsi",
-                "KeySchema": [{"AttributeName": "gsi_col", "KeyType": "HASH"}],
-                "Projection": {"ProjectionType": "ALL"},
-                "ProvisionedThroughput": {
-                    "ReadCapacityUnits": 1,
-                    "WriteCapacityUnits": 1,
-                },
-            }
-        ],
-    )
-
-    dynamodb.put_item(
-        TableName="test",
-        Item={"id": {"S": "1"}, "col1": {"S": "val1"}, "gsi_col": {"S": "gsi_val1"}},
-    )
-
-    dynamodb.put_item(
-        TableName="test",
-        Item={"id": {"S": "2"}, "col1": {"S": "val2"}, "gsi_col": {"S": "gsi_val2"}},
-    )
-
-    dynamodb.put_item(TableName="test", Item={"id": {"S": "3"}, "col1": {"S": "val3"}})
-
-    res = dynamodb.scan(TableName="test")
-    assert res["Count"] == 3
-    assert len(res["Items"]) == 3
-
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi")
-    assert res["Count"] == 2
-    assert len(res["Items"]) == 2
-
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi", Limit=1)
-    assert res["Count"] == 1
-    assert len(res["Items"]) == 1
-    last_eval_key = res["LastEvaluatedKey"]
-    assert last_eval_key["id"]["S"] == "1"
-    assert last_eval_key["gsi_col"]["S"] == "gsi_val1"

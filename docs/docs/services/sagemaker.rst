@@ -12,17 +12,6 @@
 sagemaker
 =========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_sagemaker
-            def test_sagemaker_behaviour:
-                boto3.client("sagemaker")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_association
@@ -49,7 +38,7 @@ sagemaker
 - [X] create_endpoint
 - [X] create_endpoint_config
 - [X] create_experiment
-- [ ] create_feature_group
+- [X] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_hub
 - [ ] create_human_task_ui
@@ -108,6 +97,7 @@ sagemaker
 - [ ] delete_hub
 - [ ] delete_hub_content
 - [ ] delete_human_task_ui
+- [ ] delete_hyper_parameter_tuning_job
 - [ ] delete_image
 - [ ] delete_image_version
 - [ ] delete_inference_component
@@ -155,7 +145,7 @@ sagemaker
 - [X] describe_endpoint
 - [X] describe_endpoint_config
 - [X] describe_experiment
-- [ ] describe_feature_group
+- [X] describe_feature_group
 - [ ] describe_feature_metadata
 - [ ] describe_flow_definition
 - [ ] describe_hub
@@ -316,6 +306,7 @@ sagemaker
 - [ ] update_app_image_config
 - [ ] update_artifact
 - [ ] update_cluster
+- [ ] update_cluster_software
 - [ ] update_code_repository
 - [ ] update_context
 - [ ] update_device_fleet

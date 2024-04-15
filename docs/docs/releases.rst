@@ -51,3 +51,9 @@ For Moto 3.x:
 
 For Moto 4.x:
  - Removed decorators `mock_dynamodb2` and `mock_rds2` (they were functionally equivalent with `mock_dynamodb` and `mock_rds` since 3.x)
+
+For Moto 5.x:
+ - All decorators have been replaced with `mock_aws`
+ - The `batch_simple` decorator has been replaced with: `@mock_aws(config={"batch": {"use_docker": False}})`
+ - The `awslambda_simple` decorator has been replaced with: `@mock_aws(config={"lambda": {"use_docker": False}})`
+ - When starting the MotoServer, the `service`-argument (i.e.: `motoserver s3`) is no longer supported. A single MotoServer-instance can be used for all AWS-services.

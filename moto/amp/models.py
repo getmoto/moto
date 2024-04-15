@@ -2,7 +2,8 @@
 
 from typing import Any, Callable, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
@@ -117,7 +118,7 @@ class PrometheusServiceBackend(BaseBackend):
         """
         self.workspaces.pop(workspace_id, None)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_workspaces(self, alias: str) -> List[Workspace]:
         if alias:
             return [w for w in self.workspaces.values() if w.alias == alias]
@@ -174,7 +175,7 @@ class PrometheusServiceBackend(BaseBackend):
         ns.update(data)
         return ns
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_groups_namespaces(
         self, name: str, workspace_id: str
     ) -> List[RuleGroupNamespace]:

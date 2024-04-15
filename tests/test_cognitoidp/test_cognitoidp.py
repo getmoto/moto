@@ -6,6 +6,7 @@ import json
 import os
 import random
 import re
+import time
 import uuid
 from unittest import SkipTest, mock
 
@@ -13,15 +14,20 @@ import boto3
 import pytest
 import requests
 from botocore.exceptions import ClientError, ParamValidationError
-from jose import jws, jwt
+from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
-from moto import mock_cognitoidp, settings
+from moto import cognitoidp, mock_aws, settings
 from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import set_initial_no_auth_action_count
+from moto.utilities.utils import load_resource
+
+private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
+PUBLIC_KEY = jwk.RSAKey.import_key(private_key)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -36,8 +42,10 @@ def test_create_user_pool():
     assert result["UserPool"]["Name"] == name
     assert result["UserPool"]["LambdaConfig"]["PreSignUp"] == value
 
+    assert "RequestId" in result["ResponseMetadata"]
 
-@mock_cognitoidp
+
+@mock_aws
 def test_create_user_pool__overwrite_template_messages():
     client = boto3.client("cognito-idp", "us-east-2")
     resp = client.create_user_pool(
@@ -57,7 +65,7 @@ def test_create_user_pool__overwrite_template_messages():
     assert pool["EmailVerificationMessage"] == "foo {####} bar"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_should_have_all_default_attributes_in_schema():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -90,7 +98,7 @@ def test_create_user_pool_should_have_all_default_attributes_in_schema():
             assert attribute["DeveloperOnlyAttribute"] is False
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_unknown_attribute_data_type():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -111,7 +119,7 @@ def test_create_user_pool_unknown_attribute_data_type():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_custom_attribute_without_data_type():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -125,7 +133,7 @@ def test_create_user_pool_custom_attribute_without_data_type():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_custom_attribute_defaults():
     conn = boto3.client("cognito-idp", "us-west-2")
     res = conn.create_user_pool(
@@ -153,7 +161,7 @@ def test_create_user_pool_custom_attribute_defaults():
     assert "NumberAttributeConstraints" not in number_attribute
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_custom_attribute_developer_only():
     conn = boto3.client("cognito-idp", "us-west-2")
     res = conn.create_user_pool(
@@ -175,7 +183,7 @@ def test_create_user_pool_custom_attribute_developer_only():
     assert attribute["DeveloperOnlyAttribute"] is True
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_custom_attribute_required():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -194,7 +202,7 @@ def test_create_user_pool_custom_attribute_required():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 @pytest.mark.parametrize(
     "attribute",
     [
@@ -217,7 +225,7 @@ def test_create_user_pool_standard_attribute_with_changed_data_type_or_developer
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_attribute_with_schema():
     conn = boto3.client("cognito-idp", "us-west-2")
     res = conn.create_user_pool(
@@ -274,7 +282,7 @@ def test_create_user_pool_attribute_with_schema():
     assert "StringAttributeConstraints" not in boolean_attribute
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_attribute_partial_schema():
     conn = boto3.client("cognito-idp", "us-west-2")
     res = conn.create_user_pool(
@@ -333,7 +341,7 @@ def test_create_user_pool_attribute_partial_schema():
     assert "MaxValue" not in number_no_max["NumberAttributeConstraints"]
 
 
-@mock_cognitoidp
+@mock_aws
 @pytest.mark.parametrize(
     ("constraint_type", "attribute"),
     [
@@ -389,7 +397,7 @@ def test_create_user_pool_invalid_schema_values(constraint_type, attribute):
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 @pytest.mark.parametrize(
     "attribute",
     [
@@ -418,7 +426,7 @@ def test_create_user_pool_string_schema_max_length_over_2048(attribute):
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_string_schema_min_bigger_than_max():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -440,7 +448,7 @@ def test_create_user_pool_string_schema_min_bigger_than_max():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_number_schema_min_bigger_than_max():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -462,7 +470,7 @@ def test_create_user_pool_number_schema_min_bigger_than_max():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_add_custom_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
     pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -484,7 +492,7 @@ def test_add_custom_attributes():
     assert described_attribute is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_add_custom_attributes_existing_attribute():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -510,7 +518,7 @@ def test_add_custom_attributes_existing_attribute():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_default_id_strategy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -520,7 +528,7 @@ def test_create_user_pool_default_id_strategy():
     assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
 
-@mock_cognitoidp
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
 def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
     if settings.TEST_SERVER_MODE:
@@ -534,7 +542,7 @@ def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
     assert first_pool["UserPool"]["Id"] == second_pool["UserPool"]["Id"]
 
 
-@mock_cognitoidp
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
 def test_create_user_pool_hash_id_strategy_with_different_pool_name():
     if settings.TEST_SERVER_MODE:
@@ -548,7 +556,7 @@ def test_create_user_pool_hash_id_strategy_with_different_pool_name():
     assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
 
-@mock_cognitoidp
+@mock_aws
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
 def test_create_user_pool_hash_id_strategy_with_different_attributes():
     if settings.TEST_SERVER_MODE:
@@ -578,7 +586,7 @@ def test_create_user_pool_hash_id_strategy_with_different_attributes():
     assert first_pool["UserPool"]["Id"] != second_pool["UserPool"]["Id"]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pools():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -589,7 +597,7 @@ def test_list_user_pools():
     assert result["UserPools"][0]["Name"] == name
 
 
-@mock_cognitoidp
+@mock_aws
 def test_authorize_user_with_force_password_change_status():
     conn = boto3.client("cognito-idp", "us-west-2")
     pool_id = conn.create_user_pool(PoolName="TestUserPool")["UserPool"]["Id"]
@@ -649,7 +657,7 @@ def test_authorize_user_with_force_password_change_status():
     assert result["AuthenticationResult"]["AccessToken"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_set_user_pool_mfa_config():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -746,7 +754,7 @@ def test_set_user_pool_mfa_config():
     assert mfa_config["MfaConfiguration"] == "ON"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pools_returns_max_items():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -761,7 +769,7 @@ def test_list_user_pools_returns_max_items():
     assert "NextToken" in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pools_returns_next_tokens():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -781,7 +789,7 @@ def test_list_user_pools_returns_next_tokens():
     assert "NextToken" not in result_2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pools_when_max_items_more_than_total_items():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -796,7 +804,7 @@ def test_list_user_pools_when_max_items_more_than_total_items():
     assert "NextToken" not in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -817,7 +825,7 @@ def test_describe_user_pool():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_user_pool_estimated_number_of_users():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -833,7 +841,7 @@ def test_describe_user_pool_estimated_number_of_users():
     assert result["UserPool"]["EstimatedNumberOfUsers"] == users_count
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_user_pool_resource_not_found():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -846,7 +854,7 @@ def test_describe_user_pool_resource_not_found():
     assert err["Message"] == f"User pool {user_pool_id} does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_user_pool():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -889,7 +897,7 @@ def test_update_user_pool():
     assert updated_user_pool_details["UserPool"]["AccountRecoverySetting"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_delete_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -899,7 +907,7 @@ def test_delete_user_pool():
     assert len(conn.list_user_pools(MaxResults=10)["UserPools"]) == 0
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_domain():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -910,7 +918,7 @@ def test_create_user_pool_domain():
     assert result["CloudFrontDomain"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_domain_custom_domain_config():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -926,7 +934,7 @@ def test_create_user_pool_domain_custom_domain_config():
     assert result["CloudFrontDomain"] == "e2c343b3293ee505.cloudfront.net"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_user_pool_domain():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -941,7 +949,7 @@ def test_describe_user_pool_domain():
     assert result["UserPool"]["Domain"] == domain
 
 
-@mock_cognitoidp
+@mock_aws
 def test_delete_user_pool_domain():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -957,7 +965,7 @@ def test_delete_user_pool_domain():
     assert len(result["DomainDescription"].keys()) == 0
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_user_pool_domain():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -974,7 +982,7 @@ def test_update_user_pool_domain():
     assert result["CloudFrontDomain"] == "e2c343b3293ee505.cloudfront.net"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_client():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -993,7 +1001,7 @@ def test_create_user_pool_client():
     assert result["UserPoolClient"]["CallbackURLs"][0] == value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_user_pool_client_returns_secret():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1015,7 +1023,7 @@ def test_create_user_pool_client_returns_secret():
     assert result["UserPoolClient"]["CallbackURLs"][0] == value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pool_clients():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1027,7 +1035,7 @@ def test_list_user_pool_clients():
     assert result["UserPoolClients"][0]["ClientName"] == client_name
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pool_clients_returns_max_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1045,7 +1053,7 @@ def test_list_user_pool_clients_returns_max_items():
     assert "NextToken" in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pool_clients_returns_next_tokens():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1070,7 +1078,7 @@ def test_list_user_pool_clients_returns_next_tokens():
     assert "NextToken" not in result_2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_user_pool_clients_when_max_items_more_than_total_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1088,7 +1096,7 @@ def test_list_user_pool_clients_when_max_items_more_than_total_items():
     assert "NextToken" not in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_user_pool_client():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1108,7 +1116,7 @@ def test_describe_user_pool_client():
     assert result["UserPoolClient"]["CallbackURLs"][0] == value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_user_pool_client():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1134,7 +1142,7 @@ def test_update_user_pool_client():
     assert result["UserPoolClient"]["CallbackURLs"][0] == new_value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_user_pool_client_returns_secret():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1164,7 +1172,7 @@ def test_update_user_pool_client_returns_secret():
     assert result["UserPoolClient"]["CallbackURLs"][0] == new_value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_delete_user_pool_client():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1186,7 +1194,7 @@ def test_delete_user_pool_client():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_identity_provider():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1207,7 +1215,7 @@ def test_create_identity_provider():
     assert result["IdentityProvider"]["ProviderDetails"]["thing"] == value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_identity_providers():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1228,7 +1236,7 @@ def test_list_identity_providers():
     assert result["Providers"][0]["ProviderType"] == provider_type
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_identity_providers_returns_max_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1253,7 +1261,7 @@ def test_list_identity_providers_returns_max_items():
     assert "NextToken" in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_identity_providers_returns_next_tokens():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1285,7 +1293,7 @@ def test_list_identity_providers_returns_next_tokens():
     assert "NextToken" not in result_2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_identity_providers_when_max_items_more_than_total_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1310,7 +1318,7 @@ def test_list_identity_providers_when_max_items_more_than_total_items():
     assert "NextToken" not in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_identity_providers():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1335,7 +1343,7 @@ def test_describe_identity_providers():
     assert result["IdentityProvider"]["ProviderDetails"]["thing"] == value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_identity_provider():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1365,7 +1373,7 @@ def test_update_identity_provider():
     assert result["AttributeMapping"] == {"email": "email", "username": "sub"}
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_identity_provider_no_user_pool():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1381,7 +1389,7 @@ def test_update_identity_provider_no_user_pool():
     assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_identity_provider_no_identity_provider():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1400,7 +1408,7 @@ def test_update_identity_provider_no_identity_provider():
     assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_delete_identity_providers():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1425,7 +1433,7 @@ def test_delete_identity_providers():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1452,7 +1460,7 @@ def test_create_group():
     assert isinstance(result["Group"]["CreationDate"], datetime.datetime)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1490,7 +1498,7 @@ def test_update_group():
     assert isinstance(result["Group"]["CreationDate"], datetime.datetime)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_group_in_access_token():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1540,11 +1548,12 @@ def test_group_in_access_token():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["AccessToken"])
+    payload = jwt.decode(result["AuthenticationResult"]["AccessToken"], PUBLIC_KEY)
+    claims = payload.claims
     assert claims["cognito:groups"] == [group_name]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_other_attributes_in_id_token():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1601,12 +1610,13 @@ def test_other_attributes_in_id_token():
         ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
     )
 
-    claims = jwt.get_unverified_claims(result["AuthenticationResult"]["IdToken"])
+    payload = jwt.decode(result["AuthenticationResult"]["IdToken"], PUBLIC_KEY)
+    claims = payload.claims
     assert claims["cognito:groups"] == [group_name]
     assert claims["custom:myattr"] == "some val"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_group_with_duplicate_name_raises_error():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1622,7 +1632,7 @@ def test_create_group_with_duplicate_name_raises_error():
     assert cm.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_get_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1638,7 +1648,7 @@ def test_get_group():
     assert isinstance(result["Group"]["CreationDate"], datetime.datetime)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_groups():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1652,7 +1662,7 @@ def test_list_groups():
     assert result["Groups"][0]["GroupName"] == group_name
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_groups_returns_pagination_tokens():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1675,7 +1685,7 @@ def test_list_groups_returns_pagination_tokens():
     assert "NextToken" not in result_2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_groups_when_limit_more_than_total_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -1691,7 +1701,7 @@ def test_list_groups_when_limit_more_than_total_items():
     assert "NextToken" not in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_delete_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1707,7 +1717,7 @@ def test_delete_group():
     assert cm.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_add_user_to_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1724,7 +1734,7 @@ def test_admin_add_user_to_group():
     assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_add_user_to_group_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1743,7 +1753,7 @@ def test_admin_add_user_to_group_with_username_attributes():
     assert list(result.keys()) == ["ResponseMetadata"]  # No response expected
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_add_user_to_group_again_is_noop():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1762,7 +1772,7 @@ def test_admin_add_user_to_group_again_is_noop():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_in_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1783,7 +1793,7 @@ def test_list_users_in_group():
     assert result["Users"][0]["Username"] == username
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_in_group_ignores_deleted_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1810,7 +1820,7 @@ def test_list_users_in_group_ignores_deleted_user():
     assert result["Users"][0]["Username"] == username2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_in_group_returns_pagination_tokens():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1844,7 +1854,7 @@ def test_list_users_in_group_returns_pagination_tokens():
     assert "NextToken" not in result_2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_in_group_when_limit_more_than_total_items():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1868,7 +1878,7 @@ def test_list_users_in_group_when_limit_more_than_total_items():
     assert "NextToken" not in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_list_groups_for_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1889,7 +1899,7 @@ def test_admin_list_groups_for_user():
     assert result["Groups"][0]["GroupName"] == group_name
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_list_groups_for_user_with_username_attribute():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1912,7 +1922,7 @@ def test_admin_list_groups_for_user_with_username_attribute():
     assert result["Groups"][0]["GroupName"] == group_name
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_list_groups_for_user_ignores_deleted_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1939,7 +1949,7 @@ def test_admin_list_groups_for_user_ignores_deleted_group():
     assert result["Groups"][0]["GroupName"] == group_name2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_remove_user_from_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1965,7 +1975,7 @@ def test_admin_remove_user_from_group():
     assert resp["Groups"] == []
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_remove_user_from_group_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1993,7 +2003,7 @@ def test_admin_remove_user_from_group_with_username_attributes():
     assert resp["Groups"] == []
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_remove_user_from_group_again_is_noop():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2012,7 +2022,7 @@ def test_admin_remove_user_from_group_again_is_noop():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_create_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2038,7 +2048,7 @@ def test_admin_create_user():
     assert result["User"]["Enabled"] is True
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_create_user_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2067,7 +2077,7 @@ def test_admin_create_user_with_username_attributes():
     assert result["User"]["Enabled"] is True
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_create_user_with_incorrect_username_attribute_type_fails():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2088,7 +2098,7 @@ def test_admin_create_user_with_incorrect_username_attribute_type_fails():
     assert err["Message"] == "Username should be either an email or a phone number."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_create_user_with_existing_username_attribute_fails():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2116,7 +2126,7 @@ def test_admin_create_user_with_existing_username_attribute_fails():
     assert err["Message"] == "test@example.com"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_create_existing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2139,7 +2149,7 @@ def test_admin_create_existing_user():
     assert err["Code"] == "UsernameExistsException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_confirm_sign_up():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -2162,7 +2172,7 @@ def test_admin_confirm_sign_up():
     assert user["UserStatus"] == "CONFIRMED"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_confirm_sign_up_non_existing_user():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -2179,7 +2189,7 @@ def test_admin_confirm_sign_up_non_existing_user():
     assert err["Message"] == "User does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_confirm_sign_up_non_existing_pool():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -2192,7 +2202,7 @@ def test_admin_confirm_sign_up_non_existing_pool():
     assert err["Message"] == f"User pool {user_pool_id} does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_resend_invitation_existing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2214,7 +2224,7 @@ def test_admin_resend_invitation_existing_user():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_resend_invitation_missing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2234,7 +2244,7 @@ def test_admin_resend_invitation_missing_user():
     assert err["Message"] == "User does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_get_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2252,7 +2262,7 @@ def test_admin_get_user():
     assert len(result["UserAttributes"]) == 2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_get_user_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2305,7 +2315,7 @@ def test_admin_get_user_with_username_attributes():
     _verify_attribute("email", "test@example.com")
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_get_missing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2320,7 +2330,7 @@ def test_admin_get_missing_user():
     assert err["Message"] == "User does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_get_missing_user_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2337,7 +2347,66 @@ def test_admin_get_missing_user_with_username_attributes():
     assert err["Message"] == "User does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
+def test_new_user_contains_same_created_and_updated_dates():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+
+    resp = conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    new_user = resp["User"]
+
+    assert new_user["UserCreateDate"] == new_user["UserLastModifiedDate"]
+
+
+@mock_aws
+def test_update_user_attributes_also_changes_last_modified_date():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+
+    time.sleep(1)  # Wait enough to account for a different in the time format
+    conn.admin_update_user_attributes(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+123456789"}],
+    )
+
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert user["UserCreateDate"] < user["UserLastModifiedDate"]
+
+
+@mock_aws
+def test_delete_user_attributes_also_changes_last_modified_date():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = "test@example.com"
+    user_pool_id = conn.create_user_pool(
+        PoolName=str(uuid.uuid4()), UsernameAttributes=["email"]
+    )["UserPool"]["Id"]
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+123456789"}],
+    )
+
+    time.sleep(1)  # Wait enough to account for a different in the time format
+    conn.admin_delete_user_attributes(
+        UserPoolId=user_pool_id, Username=username, UserAttributeNames=["phone_number"]
+    )
+
+    user = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert user["UserCreateDate"] < user["UserLastModifiedDate"]
+
+
+@mock_aws
 def test_get_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
@@ -2354,7 +2423,8 @@ def test_get_user():
         _verify_attribute(key, value)
 
 
-@mock_cognitoidp
+@mock_aws
+@set_initial_no_auth_action_count(0)
 def test_get_user_unknown_accesstoken():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -2364,7 +2434,7 @@ def test_get_user_unknown_accesstoken():
     assert err["Message"] == "Invalid token"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2411,7 +2481,7 @@ def test_list_users():
     assert len(result["Users"]) == 0
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_incorrect_filter():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2432,7 +2502,7 @@ def _assert_filter_parsing_error(exc):
     assert err["Message"] == "Error while parsing filter"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_invalid_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2445,7 +2515,7 @@ def test_list_users_invalid_attributes():
     assert err["Message"] == "Invalid search attribute: custom:foo"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2489,7 +2559,7 @@ def test_list_users_with_username_attributes():
     _verify_attribute("email", username_bis)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_inherent_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2526,7 +2596,7 @@ def test_list_users_inherent_attributes():
         assert result["Users"][0][response_field] == response_field_expected_value
 
 
-@mock_cognitoidp
+@mock_aws
 def test_get_user_unconfirmed():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Cant patch attributes in server mode.")
@@ -2544,7 +2614,7 @@ def test_get_user_unconfirmed():
     assert err["Message"] == "username"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_returns_limit_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -2559,7 +2629,7 @@ def test_list_users_returns_limit_items():
     assert "PaginationToken" in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_returns_pagination_tokens():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -2582,7 +2652,7 @@ def test_list_users_returns_pagination_tokens():
     assert "PaginationToken" not in result_2
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_when_limit_more_than_total_items():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -2598,7 +2668,7 @@ def test_list_users_when_limit_more_than_total_items():
     assert "PaginationToken" not in result
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_users_with_attributes_to_get():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -2625,7 +2695,7 @@ def test_list_users_with_attributes_to_get():
         assert {"Name": "custom:foo", "Value": "bar"} in user["Attributes"]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_disable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2642,7 +2712,7 @@ def test_admin_disable_user():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_disable_user_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2661,7 +2731,7 @@ def test_admin_disable_user_with_username_attributes():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_enable_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2676,7 +2746,7 @@ def test_admin_enable_user():
     assert conn.admin_get_user(UserPoolId=user_pool_id, Username=username)["Enabled"]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_enable_user_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2693,7 +2763,7 @@ def test_admin_enable_user_with_username_attributes():
     assert conn.admin_get_user(UserPoolId=user_pool_id, Username=username)["Enabled"]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_delete_user():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2709,7 +2779,7 @@ def test_admin_delete_user():
     assert err["Code"] == "UserNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_delete_user_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2781,7 +2851,7 @@ def authentication_flow(conn, auth_flow):
     }
 
 
-@mock_cognitoidp
+@mock_aws
 def test_authentication_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2789,7 +2859,7 @@ def test_authentication_flow():
         authentication_flow(conn, auth_flow)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_authentication_flow_invalid_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2804,7 +2874,7 @@ def test_authentication_flow_invalid_flow():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_authentication_flow_invalid_user_flow():
     """Pass a user authFlow to admin_initiate_auth"""
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -2940,20 +3010,20 @@ def user_authentication_flow(conn):
     }
 
 
-@mock_cognitoidp
+@mock_aws
 def test_user_authentication_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     user_authentication_flow(conn)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_token_legitimacy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     path = "../../moto/cognitoidp/resources/jwks-public.json"
     with open(os.path.join(os.path.dirname(__file__), path)) as f:
-        json_web_key = json.loads(f.read())["keys"][0]
+        json_web_key = jwk.RSAKey.import_key(json.loads(f.read())["keys"][0])
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
         outputs = authentication_flow(conn, auth_flow)
@@ -2964,21 +3034,21 @@ def test_token_legitimacy():
         issuer = (
             f"https://cognito-idp.us-west-2.amazonaws.com/{outputs['user_pool_id']}"
         )
-        id_claims = json.loads(jws.verify(id_token, json_web_key, "RS256"))
+        id_claims = jwt.decode(id_token, json_web_key, ["RS256"]).claims
         assert id_claims["iss"] == issuer
         assert id_claims["aud"] == client_id
         assert id_claims["token_use"] == "id"
         assert id_claims["cognito:username"] == username
         for k, v in outputs["additional_fields"].items():
             assert id_claims[k] == v
-        access_claims = json.loads(jws.verify(access_token, json_web_key, "RS256"))
+        access_claims = jwt.decode(access_token, json_web_key, ["RS256"]).claims
         assert access_claims["iss"] == issuer
         assert access_claims["client_id"] == client_id
         assert access_claims["token_use"] == "access"
         assert access_claims["username"] == username
 
 
-@mock_cognitoidp
+@mock_aws
 def test_change_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -3008,7 +3078,7 @@ def test_change_password():
         assert result["AuthenticationResult"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_change_password__using_custom_user_agent_header():
     # https://github.com/getmoto/moto/issues/3098
     # As the admin_initiate_auth-method is unauthenticated, we use the user-agent header to pass in the region
@@ -3044,7 +3114,8 @@ def test_change_password__using_custom_user_agent_header():
         assert result["AuthenticationResult"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
+@set_initial_no_auth_action_count(2)
 def test_forgot_password():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -3057,7 +3128,7 @@ def test_forgot_password():
     assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_forgot_password_nonexistent_client_id():
     conn = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -3068,7 +3139,7 @@ def test_forgot_password_nonexistent_client_id():
     assert err["Message"] == "Username/client id combination not found."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_forgot_password_admin_only_recovery():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(
@@ -3089,7 +3160,7 @@ def test_forgot_password_admin_only_recovery():
     assert err["Message"] == "Contact administrator to reset password."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_forgot_password_user_with_all_recovery_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(
@@ -3131,7 +3202,7 @@ def test_forgot_password_user_with_all_recovery_attributes():
     assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_forgot_password_nonexistent_user_or_user_without_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(
@@ -3168,7 +3239,7 @@ def test_forgot_password_nonexistent_user_or_user_without_attributes():
         assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_confirm_forgot_password_legacy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -3193,7 +3264,7 @@ def test_confirm_forgot_password_legacy():
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_cognitoidp
+@mock_aws
 def test_confirm_forgot_password_opt_in_verification():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -3223,7 +3294,7 @@ def test_confirm_forgot_password_opt_in_verification():
     assert res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_cognitoidp
+@mock_aws
 def test_confirm_forgot_password_opt_in_verification_invalid_confirmation_code():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -3248,7 +3319,7 @@ def test_confirm_forgot_password_opt_in_verification_invalid_confirmation_code()
     assert err["Message"] == "Invalid code provided, please request a code again."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_user_global_sign_out():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -3271,7 +3342,7 @@ def test_admin_user_global_sign_out():
     assert err["Message"] == "Refresh Token has been revoked"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_user_global_sign_out_twice():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -3298,7 +3369,7 @@ def test_admin_user_global_sign_out_twice():
     assert err["Message"] == "Refresh Token has been revoked"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_user_global_sign_out_unknown_userpool():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -3308,7 +3379,7 @@ def test_admin_user_global_sign_out_unknown_userpool():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_user_global_sign_out_unknown_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -3321,7 +3392,7 @@ def test_admin_user_global_sign_out_unknown_user():
     assert err["Message"] == "User does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_global_sign_out():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -3348,7 +3419,7 @@ def test_global_sign_out():
     assert err["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_global_sign_out_unknown_accesstoken():
     conn = boto3.client("cognito-idp", "us-east-2")
     with pytest.raises(ClientError) as ex:
@@ -3357,7 +3428,7 @@ def test_global_sign_out_unknown_accesstoken():
     assert err["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_update_user_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -3392,7 +3463,7 @@ def test_admin_update_user_attributes():
             assert val == "Jane"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_delete_user_attributes():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -3435,7 +3506,7 @@ def test_admin_delete_user_attributes():
     assert {"Name": "custom:foo", "Value": "bar"} not in user["UserAttributes"]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_delete_user_attributes_non_existing_attribute():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -3479,7 +3550,7 @@ def test_admin_delete_user_attributes_non_existing_attribute():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_delete_user_attributes_non_existing_user():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -3497,7 +3568,7 @@ def test_admin_delete_user_attributes_non_existing_user():
     assert err["Message"] == "User does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_delete_user_attributes_non_existing_pool():
     conn = boto3.client("cognito-idp", "us-east-1")
 
@@ -3514,7 +3585,7 @@ def test_admin_delete_user_attributes_non_existing_pool():
     assert err["Message"] == f"User pool {user_pool_id} does not exist."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_user_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -3538,7 +3609,7 @@ def test_update_user_attributes():
     assert {"Name": "given_name", "Value": "Jane"} in attributes
 
 
-@mock_cognitoidp
+@mock_aws
 def test_update_user_attributes_unknown_accesstoken():
     conn = boto3.client("cognito-idp", "us-east-2")
     with pytest.raises(ClientError) as ex:
@@ -3549,7 +3620,7 @@ def test_update_user_attributes_unknown_accesstoken():
     assert err["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_resource_server():
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3586,7 +3657,7 @@ def test_create_resource_server():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_create_resource_server_with_no_scopes():
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3606,9 +3677,8 @@ def test_create_resource_server_with_no_scopes():
     assert "Scopes" not in res["ResourceServer"]
 
 
-@mock_cognitoidp
+@mock_aws
 def test_describe_resource_server():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3663,9 +3733,8 @@ def test_describe_resource_server():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_resource_servers_empty_set():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3689,9 +3758,8 @@ def test_list_resource_servers_empty_set():
     assert len(servers["ResourceServers"]) == 0
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_resource_servers_single_page():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3745,9 +3813,8 @@ def test_list_resource_servers_single_page():
             )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_list_resource_servers_multi_page():
-
     # Create a user pool to attach a resource server to
     client = boto3.client("cognito-idp", "us-west-2")
     name = str(uuid.uuid4())
@@ -3824,7 +3891,7 @@ def test_list_resource_servers_multi_page():
             )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_sign_up():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -3838,7 +3905,7 @@ def test_sign_up():
     assert result["UserSub"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 @pytest.mark.parametrize("password", ["p2$$word", "P2$s"])
 def test_sign_up_with_invalid_password(password):
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -3854,7 +3921,7 @@ def test_sign_up_with_invalid_password(password):
     assert err["Code"] == "InvalidPasswordException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_sign_up_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(
@@ -3882,7 +3949,7 @@ def test_sign_up_with_username_attributes():
     assert result["UserSub"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_sign_up_existing_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
@@ -3902,7 +3969,7 @@ def test_sign_up_existing_user():
     assert err.value.response["Error"]["Code"] == "UsernameExistsException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_confirm_sign_up():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -3911,17 +3978,24 @@ def test_confirm_sign_up():
     client_id = conn.create_user_pool_client(
         UserPoolId=user_pool_id, ClientName=str(uuid.uuid4()), GenerateSecret=True
     )["UserPoolClient"]["ClientId"]
+    _signup_and_confirm(client_id, conn, password, username)
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert result["UserStatus"] == "CONFIRMED"
+
+
+@set_initial_no_auth_action_count(0)
+def _signup_and_confirm(client_id, conn, password, username):
+    # Also verify Authentication works for these actions
+    # There are no IAM policies, but they should be public - accessible by anyone
     conn.sign_up(ClientId=client_id, Username=username, Password=password)
 
     conn.confirm_sign_up(
         ClientId=client_id, Username=username, ConfirmationCode="123456"
     )
 
-    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
-    assert result["UserStatus"] == "CONFIRMED"
 
-
-@mock_cognitoidp
+@mock_aws
 def test_confirm_sign_up_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = "test@example.com"
@@ -3942,7 +4016,7 @@ def test_confirm_sign_up_with_username_attributes():
     assert result["UserStatus"] == "CONFIRMED"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_SRP_AUTH():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -3978,7 +4052,7 @@ def test_initiate_auth_USER_SRP_AUTH():
     assert result["ChallengeParameters"]["USERNAME"] == username
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_SRP_AUTH_with_username_attributes():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = "test@example.com"
@@ -4015,7 +4089,7 @@ def test_initiate_auth_USER_SRP_AUTH_with_username_attributes():
     assert result["ChallengeName"] == "PASSWORD_VERIFIER"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_REFRESH_TOKEN():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -4031,7 +4105,7 @@ def test_initiate_auth_REFRESH_TOKEN():
     assert result["AuthenticationResult"]["AccessToken"] is not None
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -4047,7 +4121,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
     assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_invalid_auth_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -4072,7 +4146,7 @@ def test_initiate_auth_invalid_auth_flow():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_invalid_admin_auth_flow():
     """Pass an admin auth_flow to the regular initiate_auth"""
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -4095,7 +4169,7 @@ def test_initiate_auth_invalid_admin_auth_flow():
     assert err["Message"] == "Initiate Auth method not supported"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
     # Test flow:
     # 1. Create user with FORCE_CHANGE_PASSWORD status
@@ -4146,7 +4220,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
     assert result["AuthenticationResult"]["AccessToken"] != ""
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -4160,7 +4234,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_user_not_found():
     assert err["Code"] == "UserNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH_user_incorrect_password():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -4177,7 +4251,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_user_incorrect_password():
     assert err["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH_unconfirmed_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4198,7 +4272,7 @@ def test_initiate_auth_USER_PASSWORD_AUTH_unconfirmed_user():
     assert err["Code"] == "UserNotConfirmedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_for_unconfirmed_user():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4231,7 +4305,7 @@ def test_initiate_auth_for_unconfirmed_user():
     assert err["Code"] == "UserNotConfirmedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_initiate_auth_with_invalid_secret_hash():
     conn = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4262,7 +4336,7 @@ def test_initiate_auth_with_invalid_secret_hash():
     assert err["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_setting_mfa():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4298,7 +4372,7 @@ def test_setting_mfa():
         assert user["PreferredMfaSetting"] == ""
 
 
-@mock_cognitoidp
+@mock_aws
 def test_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4315,7 +4389,7 @@ def test_setting_mfa_when_token_not_verified():
         assert err["Code"] == "InvalidParameterException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_setting_single_mfa():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4346,7 +4420,7 @@ def test_admin_setting_single_mfa():
     assert result["PreferredMfaSetting"] == ""
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_setting_mfa_totp_and_sms():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4380,7 +4454,7 @@ def test_admin_setting_mfa_totp_and_sms():
     assert result["PreferredMfaSetting"] == ""
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_initiate_auth_when_token_totp_enabled():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4436,7 +4510,57 @@ def test_admin_initiate_auth_when_token_totp_enabled():
     assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
 
-@mock_cognitoidp
+@mock_aws
+def test_admin_initiate_auth_when_sms_mfa_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    client_id = result["client_id"]
+    password = result["password"]
+
+    # Set MFA SMS methods
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 1
+    assert result["PreferredMfaSetting"] == "SMS_MFA"
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "PASSWORD": password,
+        },
+    )
+
+    assert result["ChallengeName"] == "SMS_MFA"
+    assert result["Session"] != ""
+
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        ChallengeName="SMS_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SMS_MFA_CODE": "123456",
+            "USERNAME": username,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
+@mock_aws
 def test_admin_setting_mfa_when_token_not_verified():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4454,7 +4578,7 @@ def test_admin_setting_mfa_when_token_not_verified():
         )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_respond_to_auth_challenge_with_invalid_secret_hash():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
@@ -4498,7 +4622,7 @@ def test_respond_to_auth_challenge_with_invalid_secret_hash():
     assert err["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_set_user_password():
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -4526,7 +4650,7 @@ def test_admin_set_user_password():
     _verify_attribute("thing", value)
 
 
-@mock_cognitoidp
+@mock_aws
 @pytest.mark.parametrize("password", ["pa$$word", "Password", "p2ssword", "P2$S"])
 def test_admin_set_invalid_user_password(password):
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -4550,7 +4674,7 @@ def test_admin_set_invalid_user_password(password):
     assert err["Code"] == "InvalidPasswordException"
 
 
-@mock_cognitoidp
+@mock_aws
 @pytest.mark.parametrize("password", ["password", "P2$$word"])
 def test_admin_set_invalid_user_password__custom_policy_provided(password):
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -4593,7 +4717,7 @@ def test_admin_set_invalid_user_password__custom_policy_provided(password):
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_change_password_with_invalid_token_raises_error():
     client = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -4605,7 +4729,7 @@ def test_change_password_with_invalid_token_raises_error():
     assert ex.value.response["Error"]["Code"] == "NotAuthorizedException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_confirm_forgot_password_with_non_existent_client_id_raises_error():
     client = boto3.client("cognito-idp", "us-west-2")
     with pytest.raises(ClientError) as ex:
@@ -4618,7 +4742,7 @@ def test_confirm_forgot_password_with_non_existent_client_id_raises_error():
     assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_reset_password_and_change_password():
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4674,7 +4798,7 @@ def test_admin_reset_password_and_change_password():
     assert result["UserStatus"] == "CONFIRMED"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_initiate_auth__use_access_token():
     client = boto3.client("cognito-idp", "us-west-2")
     un = str(uuid.uuid4())
@@ -4709,7 +4833,7 @@ def test_admin_initiate_auth__use_access_token():
     client.global_sign_out(AccessToken=access_token)
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_reset_password_disabled_user():
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4728,7 +4852,7 @@ def test_admin_reset_password_disabled_user():
     assert err["Message"] == "User is disabled"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_reset_password_unconfirmed_user():
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4746,7 +4870,7 @@ def test_admin_reset_password_unconfirmed_user():
     assert err["Message"] == "User password cannot be reset in the current state."
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_reset_password_no_verified_notification_channel():
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4773,7 +4897,7 @@ def test_admin_reset_password_no_verified_notification_channel():
     )
 
 
-@mock_cognitoidp
+@mock_aws
 def test_admin_reset_password_multiple_invocations():
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4801,7 +4925,7 @@ def test_admin_reset_password_multiple_invocations():
         assert user["UserStatus"] == "RESET_REQUIRED"
 
 
-@mock_cognitoidp
+@mock_aws
 def test_login_denied_if_account_disabled():
     """Make sure a disabled account is denied login"""
     conn = boto3.client("cognito-idp", "us-west-2")
@@ -4855,11 +4979,26 @@ def test_login_denied_if_account_disabled():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
+@mock_aws
+# Also validate that we don't need IAM policies, as this operation should be publicly accessible
+@set_initial_no_auth_action_count(0)
+def test_initiate_auth_with_invalid_user_pool():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    with pytest.raises(ClientError) as exc:
+        conn.initiate_auth(
+            ClientId="unknown",
+            AuthFlow="USER_PASSWORD_AUTH",
+            AuthParameters={"USERNAME": "user", "PASSWORD": "pass"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
 # Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
 # which isnt mocked in ServerMode
 if not settings.TEST_SERVER_MODE:
 
-    @mock_cognitoidp
+    @mock_aws
     def test_idtoken_contains_kid_header():
         # https://github.com/getmoto/moto/issues/3078
         # Setup
@@ -4911,8 +5050,10 @@ if not settings.TEST_SERVER_MODE:
 
 def verify_kid_header(token):
     """Verifies the kid-header is corresponds with the public key"""
-    headers = jwt.get_unverified_headers(token)
-    kid = headers["kid"]
+    if isinstance(token, str):
+        token = token.encode("ascii")
+    sig = jws.extract_compact(token)
+    kid = sig.headers()["kid"]
 
     key_index = -1
     keys = fetch_public_keys()

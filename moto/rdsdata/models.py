@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 
 
 class QueryResults:
@@ -63,7 +63,7 @@ class RDSDataServiceBackend(BaseBackend):
                 ],
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/rds-data/statement-results",
+                "http://motoapi.amazonaws.com/moto-api/static/rds-data/statement-results",
                 json=expected_results,
             )
             assert resp.status_code == 201

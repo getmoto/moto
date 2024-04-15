@@ -12,20 +12,9 @@
 secretsmanager
 ==============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_secretsmanager
-            def test_secretsmanager_behaviour:
-                boto3.client("secretsmanager")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] batch_get_secret_value
+- [X] batch_get_secret_value
 - [X] cancel_rotate_secret
 - [X] create_secret
 - [X] delete_resource_policy
@@ -42,8 +31,8 @@ secretsmanager
         
 
 - [X] put_secret_value
-- [ ] remove_regions_from_replication
-- [ ] replicate_secret_to_regions
+- [X] remove_regions_from_replication
+- [X] replicate_secret_to_regions
 - [X] restore_secret
 - [X] rotate_secret
 - [ ] stop_replication_to_replica

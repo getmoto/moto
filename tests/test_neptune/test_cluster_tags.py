@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_neptune
+from moto import mock_aws
 
 
-@mock_neptune
+@mock_aws
 def test_add_tags_to_cluster():
     conn = boto3.client("neptune", region_name="us-west-2")
     resp = conn.create_db_cluster(

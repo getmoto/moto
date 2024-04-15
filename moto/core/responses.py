@@ -37,6 +37,7 @@ from moto.core.utils import (
     params_sort_function,
     utcfromtimestamp,
 )
+from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.utils import load_resource, load_resource_as_bytes
 
 log = logging.getLogger(__name__)
@@ -142,6 +143,16 @@ class _TemplateEnvironmentMixin(object):
 class ActionAuthenticatorMixin(object):
     request_count: ClassVar[int] = 0
 
+    PUBLIC_OPERATIONS = [
+        "AWSCognitoIdentityService.GetId",
+        "AWSCognitoIdentityService.GetOpenIdToken",
+        "AWSCognitoIdentityProviderService.ConfirmSignUp",
+        "AWSCognitoIdentityProviderService.GetUser",
+        "AWSCognitoIdentityProviderService.ForgotPassword",
+        "AWSCognitoIdentityProviderService.InitiateAuth",
+        "AWSCognitoIdentityProviderService.SignUp",
+    ]
+
     def _authenticate_and_authorize_action(
         self, iam_request_cls: type, resource: str = "*"
     ) -> None:
@@ -149,6 +160,11 @@ class ActionAuthenticatorMixin(object):
             ActionAuthenticatorMixin.request_count
             >= settings.INITIAL_NO_AUTH_ACTION_COUNT
         ):
+            if (
+                self.headers.get("X-Amz-Target")  # type: ignore[attr-defined]
+                in ActionAuthenticatorMixin.PUBLIC_OPERATIONS
+            ):
+                return
             parsed_url = urlparse(self.uri)  # type: ignore[attr-defined]
             path = parsed_url.path
             if parsed_url.query:
@@ -267,7 +283,15 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         @functools.wraps(to_call)  # type: ignore
         def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-            return getattr(cls(), to_call.__name__)(request, full_url, headers)
+            response = getattr(cls(), to_call.__name__)(request, full_url, headers)
+            if isinstance(response, str):
+                status = 200
+                body = response
+                headers = {}
+            else:
+                status, headers, body = response
+            headers, body = cls._enrich_response(headers, body)
+            return status, headers, body
 
         return _inner
 
@@ -309,7 +333,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                     self.body = k
         if hasattr(request, "files") and request.files:
             for _, value in request.files.items():
-                self.body = value.stream
+                self.body = value.stream.read()
+                value.stream.close()
             if querystring.get("key"):
                 filename = os.path.basename(request.files["file"].filename)
                 querystring["key"] = [
@@ -318,8 +343,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if hasattr(self.body, "read"):
             self.body = self.body.read()
-
-        raw_body = self.body
 
         # https://github.com/getmoto/moto/issues/6692
         # Content coming from SDK's can be GZipped for performance reasons
@@ -355,7 +378,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                         OrderedDict(
                             (key, [value])
                             for key, value in parse_qsl(
-                                raw_body, keep_blank_values=True
+                                self.body, keep_blank_values=True
                             )
                         )
                     )
@@ -538,7 +561,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             self._authenticate_and_authorize_normal_action(resource)
         except HTTPException as http_error:
             response = http_error.description, dict(status=http_error.code)
-            return self._send_response(headers, response)
+            status, headers, body = self._transform_response(headers, response)
+            headers, body = self._enrich_response(headers, body)
+
+            return status, headers, body
 
         action = camelcase_to_underscores(self._get_action())
         method_names = method_names_from_class(self.__class__)
@@ -555,9 +581,14 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response = http_error.description, response_headers  # type: ignore[assignment]
 
             if isinstance(response, str):
-                return 200, headers, response
+                status = 200
+                body = response
             else:
-                return self._send_response(headers, response)
+                status, headers, body = self._transform_response(headers, response)
+
+            headers, body = self._enrich_response(headers, body)
+
+            return status, headers, body
 
         if not action:
             return 404, headers, ""
@@ -565,19 +596,33 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         raise NotImplementedError(f"The {action} action has not been implemented")
 
     @staticmethod
-    def _send_response(headers: Dict[str, str], response: Any) -> Tuple[int, Dict[str, str], str]:  # type: ignore[misc]
+    def _transform_response(headers: Dict[str, str], response: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         if response is None:
             response = "", {}
         if len(response) == 2:
             body, new_headers = response
         else:
             status, new_headers, body = response
-        status = new_headers.get("status", 200)
+        status = int(new_headers.get("status", 200))
         headers.update(new_headers)
+        return status, headers, body
+
+    @staticmethod
+    def _enrich_response(  # type: ignore[misc]
+        headers: Dict[str, str], body: Any
+    ) -> Tuple[Dict[str, str], Any]:
         # Cast status to string
         if "status" in headers:
             headers["status"] = str(headers["status"])
-        return status, headers, body
+        # add request id
+        request_id = gen_amzn_requestid_long(headers)
+
+        # Update request ID in XML
+        try:
+            body = re.sub(r"(?<=<RequestId>).*(?=<\/RequestId>)", request_id, body)
+        except Exception:  # Will just ignore if it cant work
+            pass
+        return headers, body
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         val = self.querystring.get(param_name)
@@ -588,9 +633,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if self.body is not None:
             try:
                 return json.loads(self.body)[param_name]
-            except ValueError:
-                pass
-            except KeyError:
+            except (ValueError, KeyError):
                 pass
         # try to get path parameter
         if self.uri_match:
@@ -602,7 +645,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_int_param(
-        self, param_name: str, if_none: TYPE_IF_NONE = None  # type: ignore[assignment]
+        self,
+        param_name: str,
+        if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
     ) -> Union[int, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:
@@ -610,7 +655,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return if_none
 
     def _get_bool_param(
-        self, param_name: str, if_none: TYPE_IF_NONE = None  # type: ignore[assignment]
+        self,
+        param_name: str,
+        if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
     ) -> Union[bool, TYPE_IF_NONE]:
         val = self._get_param(param_name)
         if val is not None:

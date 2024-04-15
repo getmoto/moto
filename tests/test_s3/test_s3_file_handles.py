@@ -5,8 +5,9 @@ from functools import wraps
 from unittest import SkipTest, TestCase
 
 import boto3
+import requests
 
-from moto import mock_s3, settings
+from moto import mock_aws, settings
 from moto.dynamodb.models import DynamoDBBackend
 from moto.s3 import models as s3model
 from moto.s3 import s3_backends
@@ -234,30 +235,30 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
         self.s3_client = boto3.client("s3", "us-east-1")
 
     @verify_zero_warnings
-    @mock_s3
+    @mock_aws
     def test_use_decorator(self):
         self.s3_client.create_bucket(Bucket="foo")
         self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff")
 
     @verify_zero_warnings
-    @mock_s3
+    @mock_aws
     def test_use_decorator_and_context_mngt(self):
-        with mock_s3():
+        with mock_aws():
             self.s3_client.create_bucket(Bucket="foo")
             self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff")
 
     @verify_zero_warnings
     def test_use_multiple_context_managers(self):
-        with mock_s3():
+        with mock_aws():
             self.s3_client.create_bucket(Bucket="foo")
             self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff")
 
-        with mock_s3():
+        with mock_aws():
             pass
 
     @verify_zero_warnings
     def test_create_multipart(self):
-        with mock_s3():
+        with mock_aws():
             self.s3_client.create_bucket(Bucket="foo")
             self.s3_client.put_object(Bucket="foo", Key="k1", Body="stuff")
 
@@ -270,22 +271,22 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
                 UploadId=mpart["UploadId"],
             )
 
-        with mock_s3():
+        with mock_aws():
             pass
 
     @verify_zero_warnings
     def test_overwrite_file(self):
-        with mock_s3():
+        with mock_aws():
             self.s3_client.create_bucket(Bucket="foo")
             self.s3_client.put_object(Bucket="foo", Key="k1", Body="stuff")
             self.s3_client.put_object(Bucket="foo", Key="k1", Body="b" * 10_000_000)
 
-        with mock_s3():
+        with mock_aws():
             pass
 
     @verify_zero_warnings
     def test_delete_object_with_version(self):
-        with mock_s3():
+        with mock_aws():
             self.s3_client.create_bucket(Bucket="foo")
             self.s3_client.put_bucket_versioning(
                 Bucket="foo",
@@ -299,7 +300,7 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
     @verify_zero_warnings
     def test_update_versioned_object__while_looping(self):
         for _ in (1, 2):
-            with mock_s3():
+            with mock_aws():
                 self.s3_client.create_bucket(Bucket="foo")
                 self.s3_client.put_bucket_versioning(
                     Bucket="foo",
@@ -310,6 +311,16 @@ class TestS3FileHandleClosuresUsingMocks(TestCase):
                 )
                 self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff")
                 self.s3_client.put_object(Bucket="foo", Key="bar", Body="stuff2")
+
+    @verify_zero_warnings
+    def test_upload_using_form(self):
+        with mock_aws():
+            self.s3_client.create_bucket(Bucket="foo")
+            requests.post(
+                "https://foo.s3.amazonaws.com/",
+                data={"key": "test-key"},
+                files={"file": ("tmp.txt", b"test content")},
+            )
 
 
 def test_verify_key_can_be_copied_after_disposing():

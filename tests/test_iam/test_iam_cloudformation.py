@@ -1,13 +1,16 @@
 import json
+from uuid import uuid4
 
 import boto3
 import pytest
 import yaml
 from botocore.exceptions import ClientError
 
-from moto import mock_autoscaling, mock_cloudformation, mock_iam, mock_s3, mock_sts
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
+from tests.test_iam import iam_aws_verified
+from tests.test_iam.test_iam import MOCK_STS_EC2_POLICY_DOCUMENT
 
 TEMPLATE_MINIMAL_ROLE = """
 AWSTemplateFormatVersion: 2010-09-09
@@ -24,6 +27,13 @@ Resources:
               - ec2.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+Outputs:
+  RootRole:
+    Value: !Ref RootRole
+  RoleARN:
+    Value: {"Fn::GetAtt": ["RootRole", "Arn"]}
+  RoleID:
+    Value: {"Fn::GetAtt": ["RootRole", "RoleId"]}
 """
 
 
@@ -62,8 +72,7 @@ Resources:
 
 
 # AWS::IAM::User Tests
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -76,9 +85,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: {0}
-""".strip().format(
-        user_name
-    )
+""".strip().format(user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -89,8 +96,7 @@ Resources:
     assert provisioned_resource["PhysicalResourceId"] == user_name
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_user_no_interruption():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -119,9 +125,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       Path: {0}
-""".strip().format(
-        path
-    )
+""".strip().format(path)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -129,8 +133,7 @@ Resources:
     assert user["Path"] == path
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_user_replacement():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -159,9 +162,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: {0}
-""".strip().format(
-        new_user_name
-    )
+""".strip().format(new_user_name)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -172,8 +173,7 @@ Resources:
     iam_client.get_user(UserName=new_user_name)
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_drop_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -234,8 +234,7 @@ Resources:
     assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_user():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -248,9 +247,7 @@ Resources:
     Type: AWS::IAM::User
     Properties:
       UserName: {}
-""".strip().format(
-        user_name
-    )
+""".strip().format(user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -264,8 +261,7 @@ Resources:
     assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_user_having_generated_name():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -294,8 +290,7 @@ Resources:
     assert e.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_user_get_attr():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -313,9 +308,7 @@ Outputs:
     Value: !Ref TheUser
   UserArn:
     Value: !GetAtt TheUser.Arn
-""".strip().format(
-        user_name
-    )
+""".strip().format(user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
     stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
@@ -336,8 +329,7 @@ Outputs:
 
 
 # AWS::IAM::ManagedPolicy Tests
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -380,8 +372,7 @@ Resources:
     assert policy["Path"] == "/"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_with_additional_properties():
     iam_client = boto3.client("iam", region_name="us-east-1")
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
@@ -403,9 +394,7 @@ Resources:
         - Effect: Allow
           Action: s3:*
           Resource: '*'
-""".strip().format(
-        desc, name
-    )
+""".strip().format(desc, name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -425,8 +414,7 @@ Resources:
     assert policy["PolicyName"] == name
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_attached_to_a_group():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
@@ -451,9 +439,7 @@ Resources:
           Resource: '*'
       Groups:
         - {1}
-""".strip().format(
-        desc, group_name
-    )
+""".strip().format(desc, group_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -474,8 +460,7 @@ Resources:
     assert "GroupId" in response["PolicyGroups"][0]
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_attached_to_a_user():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
@@ -500,9 +485,7 @@ Resources:
           Resource: '*'
       Users:
         - {1}
-""".strip().format(
-        desc, user_name
-    )
+""".strip().format(desc, user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -523,8 +506,7 @@ Resources:
     assert "UserId" in response["PolicyUsers"][0]
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_managed_policy_attached_to_a_role():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
@@ -549,9 +531,7 @@ Resources:
           Resource: '*'
       Roles:
         - {1}
-""".strip().format(
-        desc, role_name
-    )
+""".strip().format(desc, role_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -573,9 +553,7 @@ Resources:
 
 
 # AWS::IAM::Policy Tests
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_user_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
@@ -604,9 +582,7 @@ Resources:
           Resource: {1}
       Users:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, user_name
-    )
+""".strip().format(policy_name, bucket_arn, user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -623,9 +599,7 @@ Resources:
     assert policy["PolicyDocument"] == original_policy_document
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_user_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name_1 = "MyUser1"
@@ -656,9 +630,7 @@ Resources:
           Resource: {1}
       Users:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, user_name_1
-    )
+""".strip().format(policy_name, bucket_arn, user_name_1)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -689,9 +661,7 @@ Resources:
           Resource: {1}
       Users:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, user_name_2
-    )
+""".strip().format(policy_name, bucket_arn, user_name_2)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -711,9 +681,7 @@ Resources:
         iam_client.get_user_policy(UserName=user_name_1, PolicyName=policy_name)
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_user_policy_having_generated_name():
     iam_client = boto3.client("iam", region_name="us-east-1")
     user_name = "MyUser"
@@ -742,9 +710,7 @@ Resources:
           Resource: {0}
       Users:
         - {1}
-""".strip().format(
-        bucket_arn, user_name
-    )
+""".strip().format(bucket_arn, user_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -765,9 +731,7 @@ Resources:
         iam_client.get_user_policy(UserName=user_name, PolicyName=policy_name)
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_role_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
@@ -796,9 +760,7 @@ Resources:
           Resource: {1}
       Roles:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, role_name
-    )
+""".strip().format(policy_name, bucket_arn, role_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -815,9 +777,7 @@ Resources:
     assert policy["PolicyDocument"] == original_policy_document
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_role_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name_1 = "MyRole1"
@@ -848,9 +808,7 @@ Resources:
           Resource: {1}
       Roles:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, role_name_1
-    )
+""".strip().format(policy_name, bucket_arn, role_name_1)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -881,9 +839,7 @@ Resources:
           Resource: {1}
       Roles:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, role_name_2
-    )
+""".strip().format(policy_name, bucket_arn, role_name_2)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -903,9 +859,7 @@ Resources:
         iam_client.get_role_policy(RoleName=role_name_1, PolicyName=policy_name)
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_role_policy_having_generated_name():
     iam_client = boto3.client("iam", region_name="us-east-1")
     role_name = "MyRole"
@@ -934,9 +888,7 @@ Resources:
           Resource: {0}
       Roles:
         - {1}
-""".strip().format(
-        bucket_arn, role_name
-    )
+""".strip().format(bucket_arn, role_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -958,9 +910,7 @@ Resources:
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_group_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
@@ -989,9 +939,7 @@ Resources:
           Resource: {1}
       Groups:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, group_name
-    )
+""".strip().format(policy_name, bucket_arn, group_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1008,9 +956,7 @@ Resources:
     assert policy["PolicyDocument"] == original_policy_document
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_group_policy():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name_1 = "MyGroup1"
@@ -1041,9 +987,7 @@ Resources:
           Resource: {1}
       Groups:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, group_name_1
-    )
+""".strip().format(policy_name, bucket_arn, group_name_1)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1074,9 +1018,7 @@ Resources:
           Resource: {1}
       Groups:
         - {2}
-""".strip().format(
-        policy_name, bucket_arn, group_name_2
-    )
+""".strip().format(policy_name, bucket_arn, group_name_2)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1097,9 +1039,7 @@ Resources:
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_s3
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_group_policy_having_generated_name():
     iam_client = boto3.client("iam", region_name="us-east-1")
     group_name = "MyGroup"
@@ -1128,9 +1068,7 @@ Resources:
           Resource: {0}
       Groups:
         - {1}
-""".strip().format(
-        bucket_arn, group_name
-    )
+""".strip().format(bucket_arn, group_name)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1153,8 +1091,7 @@ Resources:
 
 
 # AWS::IAM::User AccessKeys
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_user_with_access_key():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1197,9 +1134,7 @@ Resources:
     assert access_keys["AccessKeyMetadata"][0]["UserName"] == user_name
 
 
-@mock_sts
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_access_key_get_attr():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1255,8 +1190,7 @@ Outputs:
     pass
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_delete_users_access_key():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1312,8 +1246,7 @@ def test_iam_cloudformation_delete_users_access_key():
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_users_access_key_no_interruption():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1369,8 +1302,7 @@ Resources:
     assert access_keys["AccessKeyMetadata"][0]["Status"] == "Inactive"
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_update_users_access_key_replacement():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1422,9 +1354,7 @@ Resources:
     Type: AWS::IAM::AccessKey
     Properties:
       UserName: {0}
-""".strip().format(
-        other_user_name
-    )
+""".strip().format(other_user_name)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=template)
 
@@ -1435,8 +1365,7 @@ Resources:
     assert access_key_id != access_keys["AccessKeyMetadata"][0]["AccessKeyId"]
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_role():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1451,16 +1380,23 @@ def test_iam_cloudformation_create_role():
     role = [res for res in resources if res["ResourceType"] == "AWS::IAM::Role"][0]
     assert role["LogicalResourceId"] == "RootRole"
 
+    outputs = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]["Outputs"]
+    outputs = {o["OutputKey"]: o["OutputValue"] for o in outputs}
+
     iam_client = boto3.client("iam", region_name="us-east-1")
-    assert len(iam_client.list_roles()["Roles"]) == 1
+    roles = iam_client.list_roles()["Roles"]
+    assert len(roles) == 1
+
+    assert roles[0]["RoleName"] == [v for k, v in outputs.items() if k == "RootRole"][0]
+    assert roles[0]["Arn"] == [v for k, v in outputs.items() if k == "RoleARN"][0]
+    assert roles[0]["RoleId"] == [v for k, v in outputs.items() if k == "RoleID"][0]
 
     cf_client.delete_stack(StackName=stack_name)
 
     assert len(iam_client.list_roles()["Roles"]) == 0
 
 
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_cloudformation_create_role_and_instance_profile():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
@@ -1493,9 +1429,7 @@ def test_iam_cloudformation_create_role_and_instance_profile():
     assert len(iam_client.list_roles()["Roles"]) == 0
 
 
-@mock_autoscaling
-@mock_iam
-@mock_cloudformation
+@mock_aws
 def test_iam_roles():
     iam_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -1649,3 +1583,47 @@ def test_iam_roles():
         if resource["ResourceType"] == "AWS::IAM::Role"
     ]
     assert {r["PhysicalResourceId"] for r in role_resources} == set(role_names)
+
+
+template_with_instance_profile = """
+Parameters:
+    InputRole:
+        Type: String
+        Default: "test-emr-role"
+
+Resources:
+    emrEc2InstanceProfile:
+        Type: 'AWS::IAM::InstanceProfile'
+        Properties:
+            Path: /
+            Roles:
+              - !Ref InputRole
+"""
+
+
+@pytest.mark.aws_verified
+@iam_aws_verified
+def test_delete_instance_profile_with_existing_role():
+    region = "us-east-1"
+    iam = boto3.client("iam", region_name=region)
+    iam_role_name = f"moto_{str(uuid4())[0:6]}"
+    iam.create_role(
+        RoleName=iam_role_name, AssumeRolePolicyDocument=MOCK_STS_EC2_POLICY_DOCUMENT
+    )
+
+    try:
+        cf = boto3.client("cloudformation", region_name=region)
+        cf.create_stack(
+            StackName="teststack",
+            TemplateBody=template_with_instance_profile,
+            Parameters=[{"ParameterKey": "InputRole", "ParameterValue": iam_role_name}],
+            Capabilities=["CAPABILITY_NAMED_IAM"],
+        )
+
+        # Just verify that we can delete the InstanceProfile
+        cf.delete_stack(StackName="teststack")
+
+        # The role still exists at this point
+        iam.get_role(RoleName=iam_role_name)
+    finally:
+        iam.delete_role(RoleName=iam_role_name)

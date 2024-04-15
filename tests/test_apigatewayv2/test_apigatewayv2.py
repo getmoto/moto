@@ -1,15 +1,16 @@
 """Unit tests for apigatewayv2-supported APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_with_unknown_protocol_type():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
 
@@ -22,7 +23,7 @@ def test_create_api_with_unknown_protocol_type():
     )
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api_minimal():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     resp = client.create_api(Name="test-api", ProtocolType="HTTP")
@@ -40,7 +41,7 @@ def test_create_api_minimal():
     assert resp["RouteSelectionExpression"] == "$request.method $request.path"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_api():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     resp = client.create_api(
@@ -86,7 +87,7 @@ def test_create_api():
     assert resp["Version"] == "1.0"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_api():
     client = boto3.client("apigatewayv2", region_name="us-east-2")
     api_id = client.create_api(Name="t", ProtocolType="HTTP")["ApiId"]
@@ -98,7 +99,7 @@ def test_delete_api():
     assert exc.value.response["Error"]["Code"] == "NotFoundException"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_delete_cors_configuration():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(
@@ -129,7 +130,7 @@ def test_delete_cors_configuration():
     assert resp["Name"] == "test-api"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_api_unknown():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -140,7 +141,7 @@ def test_get_api_unknown():
     assert err["Message"] == "Invalid API identifier specified unknown"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_api():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     api_id = client.create_api(Name="test-get-api", ProtocolType="WEBSOCKET")["ApiId"]
@@ -160,7 +161,7 @@ def test_get_api():
     assert resp["RouteSelectionExpression"] == "$request.method $request.path"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_get_apis():
     client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
     assert len(client.get_apis()["Items"]) == 0
@@ -174,7 +175,7 @@ def test_get_apis():
     assert api_id_2 in api_ids
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_api_minimal():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(
@@ -232,7 +233,7 @@ def test_update_api_minimal():
     assert resp["Version"] == "1.0"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_api_empty_fields():
     client = boto3.client("apigatewayv2", region_name="eu-west-1")
     api_id = client.create_api(
@@ -271,7 +272,7 @@ def test_update_api_empty_fields():
     assert resp["Version"] == ""
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_update_api():
     client = boto3.client("apigatewayv2", region_name="us-east-2")
     api_id = client.create_api(Name="test-api", ProtocolType="HTTP")["ApiId"]

@@ -7,14 +7,14 @@ from botocore.exceptions import ClientError
 from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 
-from moto import mock_swf, settings
+from moto import mock_aws, settings
 
 from ..utils import setup_workflow_boto3
 
 # PollForDecisionTask endpoint
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_when_one_boto3():
     client = setup_workflow_boto3()
 
@@ -40,7 +40,7 @@ def test_poll_for_decision_task_when_one_boto3():
     )
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_previous_started_event_id_boto3():
     client = setup_workflow_boto3()
 
@@ -70,7 +70,7 @@ def test_poll_for_decision_task_previous_started_event_id_boto3():
     assert resp["previousStartedEventId"] == 3
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_ensure_single_started_task():
     client = setup_workflow_boto3()
 
@@ -137,7 +137,7 @@ def test_poll_for_decision_task_ensure_single_started_task():
     ]
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_exclude_completed_executions():
     client = setup_workflow_boto3()
 
@@ -157,7 +157,7 @@ def test_poll_for_decision_task_exclude_completed_executions():
     assert "taskToken" not in resp
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_when_none_boto3():
     client = setup_workflow_boto3()
 
@@ -172,7 +172,7 @@ def test_poll_for_decision_task_when_none_boto3():
     assert resp["startedEventId"] == 0
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_on_non_existent_queue_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -182,7 +182,7 @@ def test_poll_for_decision_task_on_non_existent_queue_boto3():
     assert resp["startedEventId"] == 0
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_decision_task_with_reverse_order_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -199,7 +199,7 @@ def test_poll_for_decision_task_with_reverse_order_boto3():
 # CountPendingDecisionTasks endpoint
 
 
-@mock_swf
+@mock_aws
 def test_count_pending_decision_tasks_boto3():
     client = setup_workflow_boto3()
     client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
@@ -210,7 +210,7 @@ def test_count_pending_decision_tasks_boto3():
     assert resp["truncated"] is False
 
 
-@mock_swf
+@mock_aws
 def test_count_pending_decision_tasks_on_non_existent_task_list_boto3():
     client = setup_workflow_boto3()
     resp = client.count_pending_decision_tasks(
@@ -220,7 +220,7 @@ def test_count_pending_decision_tasks_on_non_existent_task_list_boto3():
     assert resp["truncated"] is False
 
 
-@mock_swf
+@mock_aws
 def test_count_pending_decision_tasks_after_decision_completes_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -238,7 +238,7 @@ def test_count_pending_decision_tasks_after_decision_completes_boto3():
 # RespondDecisionTaskCompleted endpoint
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_no_decision_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -275,7 +275,7 @@ def test_respond_decision_task_completed_with_no_decision_boto3():
     assert resp["latestExecutionContext"] == "free-form context"
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_wrong_token_boto3():
     client = setup_workflow_boto3()
     client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
@@ -286,7 +286,7 @@ def test_respond_decision_task_completed_with_wrong_token_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_on_close_workflow_execution_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -305,7 +305,7 @@ def test_respond_decision_task_completed_on_close_workflow_execution_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_task_already_completed_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -323,7 +323,7 @@ def test_respond_decision_task_completed_with_task_already_completed_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_complete_workflow_execution_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -357,7 +357,7 @@ def test_respond_decision_task_completed_with_complete_workflow_execution_boto3(
     )
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_close_decision_not_last_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -381,7 +381,7 @@ def test_respond_decision_task_completed_with_close_decision_not_last_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_invalid_decision_type_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -406,7 +406,7 @@ def test_respond_decision_task_completed_with_invalid_decision_type_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_missing_attributes_totally_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -432,7 +432,7 @@ def test_respond_decision_task_completed_with_missing_attributes_totally_boto3()
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_decision_task_completed_with_fail_workflow_execution_boto3():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -468,7 +468,7 @@ def test_respond_decision_task_completed_with_fail_workflow_execution_boto3():
     assert attrs["details"] == "foo"
 
 
-@mock_swf
+@mock_aws
 @freeze_time("2015-01-01 12:00:00 UTC")
 def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
     client = setup_workflow_boto3()
@@ -522,7 +522,7 @@ def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
         assert ts == dtparse("2015-01-01 12:00:00 UTC")
 
 
-@mock_swf
+@mock_aws
 def test_record_marker_decision():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -556,7 +556,7 @@ def test_record_marker_decision():
     }
 
 
-@mock_swf
+@mock_aws
 def test_start_and_fire_timer_decision():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -601,7 +601,7 @@ def test_start_and_fire_timer_decision():
     }
 
 
-@mock_swf
+@mock_aws
 def test_cancel_workflow_decision():
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(

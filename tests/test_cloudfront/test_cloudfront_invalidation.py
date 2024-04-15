@@ -1,11 +1,11 @@
 import boto3
 
-from moto import mock_cloudfront
+from moto import mock_aws
 
 from . import cloudfront_test_scaffolding as scaffold
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_invalidation_with_single_path():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -32,7 +32,7 @@ def test_create_invalidation_with_single_path():
     }
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_invalidation_with_multiple_paths():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -59,7 +59,7 @@ def test_create_invalidation_with_multiple_paths():
     }
 
 
-@mock_cloudfront
+@mock_aws
 def test_list_invalidations():
     client = boto3.client("cloudfront", region_name="us-west-1")
     config = scaffold.example_distribution_config("ref")
@@ -86,7 +86,7 @@ def test_list_invalidations():
     assert resp["InvalidationList"]["Items"][0]["Status"] == "COMPLETED"
 
 
-@mock_cloudfront
+@mock_aws
 def test_list_invalidations__no_entries():
     client = boto3.client("cloudfront", region_name="us-west-1")
 

@@ -2,9 +2,9 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 
-name = "my-rule"
+name = "myrule"
 payload = {
     "sql": "SELECT * FROM 'topic/*' WHERE something > 0",
     "actions": [
@@ -19,7 +19,18 @@ payload = {
 }
 
 
-@mock_iot
+@mock_aws
+@pytest.mark.parametrize("invalid_name", ["t-r", "t.r", "t r"])
+def test_topic_rule_create_with_invalid_name(invalid_name):
+    client = boto3.client("iot", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_topic_rule(ruleName=invalid_name, topicRulePayload=payload)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert "Member must satisfy regular expression pattern" in err["Message"]
+
+
+@mock_aws
 def test_topic_rule_create():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -32,7 +43,7 @@ def test_topic_rule_create():
     assert error_code == "ResourceAlreadyExistsException"
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_list():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -41,11 +52,11 @@ def test_topic_rule_list():
     assert len(res["rules"]) == 0
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
-    client.create_topic_rule(ruleName="my-rule-2", topicRulePayload=payload)
+    client.create_topic_rule(ruleName=f"{name}2", topicRulePayload=payload)
 
     res = client.list_topic_rules()
     assert len(res["rules"]) == 2
-    for rule, rule_name in zip(res["rules"], [name, "my-rule-2"]):
+    for rule, rule_name in zip(res["rules"], [name, f"{name}2"]):
         assert rule["ruleName"] == rule_name
         assert rule["createdAt"] is not None
         assert rule["ruleArn"] is not None
@@ -53,7 +64,7 @@ def test_topic_rule_list():
         assert rule["topicPattern"] == "topic/*"
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_get():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -79,7 +90,7 @@ def test_topic_rule_get():
     assert rrule["sql"] == payload["sql"]
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_replace():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -100,7 +111,7 @@ def test_topic_rule_replace():
     assert rule["rule"]["description"] == my_payload["description"]
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_disable():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -119,7 +130,7 @@ def test_topic_rule_disable():
     assert rule["rule"]["ruleDisabled"] is True
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_enable():
     client = boto3.client("iot", region_name="ap-northeast-1")
 
@@ -140,7 +151,7 @@ def test_topic_rule_enable():
     assert rule["rule"]["ruleDisabled"] is False
 
 
-@mock_iot
+@mock_aws
 def test_topic_rule_delete():
     client = boto3.client("iot", region_name="ap-northeast-1")
 

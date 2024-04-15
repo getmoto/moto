@@ -1,8 +1,8 @@
 import json
 from urllib.parse import unquote, urlsplit
 
+from moto.core.models import default_user_config
 from moto.core.responses import BaseResponse
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import BatchBackend, batch_backends
 
@@ -13,18 +13,17 @@ class BatchResponse(BaseResponse):
 
     @property
     def batch_backend(self) -> BatchBackend:
-        """
-        :return: Batch Backend
-        :rtype: moto.batch.models.BatchBackend
-        """
-        return batch_backends[self.current_account][self.region]
+        if default_user_config.get("batch", {}).get("use_docker", True) is False:
+            from moto.batch_simple.models import batch_simple_backends
+
+            return batch_simple_backends[self.current_account][self.region]
+        else:
+            return batch_backends[self.current_account][self.region]
 
     def _get_action(self) -> str:
         # Return element after the /v1/*
         return urlsplit(self.uri).path.lstrip("/").split("/")[1]
 
-    # CreateComputeEnvironment
-    @amzn_request_id
     def createcomputeenvironment(self) -> str:
         compute_env_name = self._get_param("computeEnvironmentName")
         compute_resource = self._get_param("computeResources")
@@ -44,8 +43,6 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # DescribeComputeEnvironments
-    @amzn_request_id
     def describecomputeenvironments(self) -> str:
         compute_environments = self._get_param("computeEnvironments")
 
@@ -54,8 +51,6 @@ class BatchResponse(BaseResponse):
         result = {"computeEnvironments": envs}
         return json.dumps(result)
 
-    # DeleteComputeEnvironment
-    @amzn_request_id
     def deletecomputeenvironment(self) -> str:
         compute_environment = self._get_param("computeEnvironment")
 
@@ -63,8 +58,6 @@ class BatchResponse(BaseResponse):
 
         return ""
 
-    # UpdateComputeEnvironment
-    @amzn_request_id
     def updatecomputeenvironment(self) -> str:
         compute_env_name = self._get_param("computeEnvironment")
         compute_resource = self._get_param("computeResources")
@@ -82,8 +75,6 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # CreateJobQueue
-    @amzn_request_id
     def createjobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueueName")
@@ -105,8 +96,6 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # DescribeJobQueues
-    @amzn_request_id
     def describejobqueues(self) -> str:
         job_queues = self._get_param("jobQueues")
 
@@ -115,8 +104,6 @@ class BatchResponse(BaseResponse):
         result = {"jobQueues": queues}
         return json.dumps(result)
 
-    # UpdateJobQueue
-    @amzn_request_id
     def updatejobqueue(self) -> str:
         compute_env_order = self._get_param("computeEnvironmentOrder")
         queue_name = self._get_param("jobQueue")
@@ -136,8 +123,6 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # DeleteJobQueue
-    @amzn_request_id
     def deletejobqueue(self) -> str:
         queue_name = self._get_param("jobQueue")
 
@@ -145,8 +130,6 @@ class BatchResponse(BaseResponse):
 
         return ""
 
-    # RegisterJobDefinition
-    @amzn_request_id
     def registerjobdefinition(self) -> str:
         container_properties = self._get_param("containerProperties")
         node_properties = self._get_param("nodeProperties")
@@ -179,8 +162,6 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # DeregisterJobDefinition
-    @amzn_request_id
     def deregisterjobdefinition(self) -> str:
         queue_name = self._get_param("jobDefinition")
 
@@ -188,8 +169,6 @@ class BatchResponse(BaseResponse):
 
         return ""
 
-    # DescribeJobDefinitions
-    @amzn_request_id
     def describejobdefinitions(self) -> str:
         job_def_name = self._get_param("jobDefinitionName")
         job_def_list = self._get_param("jobDefinitions")
@@ -202,8 +181,6 @@ class BatchResponse(BaseResponse):
         result = {"jobDefinitions": [job.describe() for job in job_defs]}
         return json.dumps(result)
 
-    # SubmitJob
-    @amzn_request_id
     def submitjob(self) -> str:
         container_overrides = self._get_param("containerOverrides")
         depends_on = self._get_param("dependsOn")
@@ -227,15 +204,11 @@ class BatchResponse(BaseResponse):
 
         return json.dumps(result)
 
-    # DescribeJobs
-    @amzn_request_id
     def describejobs(self) -> str:
         jobs = self._get_param("jobs")
 
         return json.dumps({"jobs": self.batch_backend.describe_jobs(jobs)})
 
-    # ListJobs
-    @amzn_request_id
     def listjobs(self) -> str:
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
@@ -246,8 +219,6 @@ class BatchResponse(BaseResponse):
         result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)
 
-    # TerminateJob
-    @amzn_request_id
     def terminatejob(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
@@ -256,8 +227,6 @@ class BatchResponse(BaseResponse):
 
         return ""
 
-    # CancelJob
-    @amzn_request_id
     def canceljob(self) -> str:
         job_id = self._get_param("jobId")
         reason = self._get_param("reason")
@@ -265,7 +234,6 @@ class BatchResponse(BaseResponse):
 
         return ""
 
-    @amzn_request_id
     def tags(self) -> str:
         resource_arn = unquote(self.path).split("/v1/tags/")[-1]
         tags = self._get_param("tags")
@@ -279,7 +247,6 @@ class BatchResponse(BaseResponse):
             self.batch_backend.untag_resource(resource_arn, tag_keys)  # type: ignore[arg-type]
         return ""
 
-    @amzn_request_id
     def createschedulingpolicy(self) -> str:
         body = json.loads(self.body)
         name = body.get("name")
@@ -290,26 +257,22 @@ class BatchResponse(BaseResponse):
         )
         return json.dumps(policy.to_dict(create=True))
 
-    @amzn_request_id
     def describeschedulingpolicies(self) -> str:
         body = json.loads(self.body)
         arns = body.get("arns") or []
         policies = self.batch_backend.describe_scheduling_policies(arns)
         return json.dumps({"schedulingPolicies": [pol.to_dict() for pol in policies]})
 
-    @amzn_request_id
     def listschedulingpolicies(self) -> str:
         arns = self.batch_backend.list_scheduling_policies()
         return json.dumps({"schedulingPolicies": [{"arn": arn} for arn in arns]})
 
-    @amzn_request_id
     def deleteschedulingpolicy(self) -> str:
         body = json.loads(self.body)
         arn = body["arn"]
         self.batch_backend.delete_scheduling_policy(arn)
         return ""
 
-    @amzn_request_id
     def updateschedulingpolicy(self) -> str:
         body = json.loads(self.body)
         arn = body.get("arn")

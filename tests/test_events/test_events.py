@@ -8,10 +8,9 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.events import mock_events
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -83,7 +82,7 @@ def generate_environment(add_targets=True):
     return client
 
 
-@mock_events
+@mock_aws
 def test_put_rule():
     client = boto3.client("events", "us-west-2")
     assert len(client.list_rules()["Rules"]) == 0
@@ -105,7 +104,7 @@ def test_put_rule():
     assert rules[0]["State"] == "ENABLED"
 
 
-@mock_events
+@mock_aws
 def test_put_rule__where_event_bus_name_is_arn():
     client = boto3.client("events", "us-west-2")
     event_bus_name = "test-bus"
@@ -119,7 +118,7 @@ def test_put_rule__where_event_bus_name_is_arn():
     assert rule_arn == f"arn:aws:events:us-west-2:{ACCOUNT_ID}:rule/test-bus/my-event"
 
 
-@mock_events
+@mock_aws
 def test_put_rule_error_schedule_expression_custom_event_bus():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -145,7 +144,7 @@ def test_put_rule_error_schedule_expression_custom_event_bus():
     )
 
 
-@mock_events
+@mock_aws
 def test_list_rules():
     client = generate_environment()
     response = client.list_rules()
@@ -153,7 +152,7 @@ def test_list_rules():
     assert len(rules) == len(RULES)
 
 
-@mock_events
+@mock_aws
 def test_list_rules_with_token():
     client = generate_environment()
     response = client.list_rules()
@@ -172,7 +171,7 @@ def test_list_rules_with_token():
     assert len(rules) == 2
 
 
-@mock_events
+@mock_aws
 def test_list_rules_with_prefix_and_token():
     client = generate_environment()
     response = client.list_rules(NamePrefix="test")
@@ -191,7 +190,7 @@ def test_list_rules_with_prefix_and_token():
     assert len(rules) == 2
 
 
-@mock_events
+@mock_aws
 def test_describe_rule():
     rule_name = get_random_rule()["Name"]
     client = generate_environment()
@@ -201,7 +200,7 @@ def test_describe_rule():
     assert response["Arn"] == f"arn:aws:events:us-west-2:{ACCOUNT_ID}:rule/{rule_name}"
 
 
-@mock_events
+@mock_aws
 def test_describe_rule_with_event_bus_name():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -237,7 +236,7 @@ def test_describe_rule_with_event_bus_name():
     assert "ScheduleExpression" not in response
 
 
-@mock_events
+@mock_aws
 def test_enable_disable_rule():
     rule_name = get_random_rule()["Name"]
     client = generate_environment()
@@ -262,7 +261,7 @@ def test_enable_disable_rule():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_events
+@mock_aws
 def test_disable_unknown_rule():
     client = generate_environment()
 
@@ -272,7 +271,7 @@ def test_disable_unknown_rule():
     assert err["Message"] == "Rule unknown does not exist."
 
 
-@mock_events
+@mock_aws
 def test_list_rule_names_by_target():
     test_1_target = TARGETS["test-target-1"]
     test_2_target = TARGETS["test-target-2"]
@@ -289,7 +288,7 @@ def test_list_rule_names_by_target():
         assert rule in test_2_target["Rules"]
 
 
-@mock_events
+@mock_aws
 def test_list_rule_names_by_target_using_limit():
     test_1_target = TARGETS["test-target-1"]
     client = generate_environment()
@@ -305,7 +304,7 @@ def test_list_rule_names_by_target_using_limit():
     assert len(response["RuleNames"]) == 1
 
 
-@mock_events
+@mock_aws
 def test_delete_rule():
     client = generate_environment(add_targets=False)
 
@@ -314,7 +313,7 @@ def test_delete_rule():
     assert len(rules["Rules"]) == len(RULES) - 1
 
 
-@mock_events
+@mock_aws
 def test_delete_rule_with_targets():
     # given
     client = generate_environment()
@@ -333,7 +332,7 @@ def test_delete_rule_with_targets():
     )
 
 
-@mock_events
+@mock_aws
 def test_delete_unknown_rule():
     client = boto3.client("events", "us-west-1")
     resp = client.delete_rule(Name="unknown")
@@ -342,7 +341,7 @@ def test_delete_unknown_rule():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_events
+@mock_aws
 def test_list_targets_by_rule():
     rule_name = get_random_rule()["Name"]
     client = generate_environment()
@@ -356,7 +355,7 @@ def test_list_targets_by_rule():
     assert len(targets["Targets"]) == len(expected_targets)
 
 
-@mock_events
+@mock_aws
 def test_list_targets_by_rule_for_different_event_bus():
     client = generate_environment()
 
@@ -390,7 +389,7 @@ def test_list_targets_by_rule_for_different_event_bus():
     assert [t["Id"] for t in targets] == ["newtarget"]
 
 
-@mock_events
+@mock_aws
 def test_remove_targets():
     rule_name = get_random_rule()["Name"]
     client = generate_environment()
@@ -408,7 +407,7 @@ def test_remove_targets():
     assert targets_before - 1 == targets_after
 
 
-@mock_events
+@mock_aws
 def test_update_rule_with_targets():
     client = boto3.client("events", "us-west-2")
     client.put_rule(Name="test1", ScheduleExpression="rate(5 minutes)", EventPattern="")
@@ -435,7 +434,7 @@ def test_update_rule_with_targets():
     assert targets[0].get("Id") == "test-target-1"
 
 
-@mock_events
+@mock_aws
 def test_remove_targets_error_unknown_rule():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -455,7 +454,7 @@ def test_remove_targets_error_unknown_rule():
     )
 
 
-@mock_events
+@mock_aws
 def test_put_targets():
     client = boto3.client("events", "us-west-2")
     rule_name = "my-event"
@@ -484,7 +483,7 @@ def test_put_targets():
     assert targets[0]["Id"] == "test_id"
 
 
-@mock_events
+@mock_aws
 def test_put_targets_error_invalid_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -516,7 +515,7 @@ def test_put_targets_error_invalid_arn():
     )
 
 
-@mock_events
+@mock_aws
 def test_put_targets_error_unknown_rule():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -538,7 +537,7 @@ def test_put_targets_error_unknown_rule():
     )
 
 
-@mock_events
+@mock_aws
 def test_put_targets_error_missing_parameter_sqs_fifo():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -566,7 +565,7 @@ def test_put_targets_error_missing_parameter_sqs_fifo():
     )
 
 
-@mock_events
+@mock_aws
 def test_permissions():
     client = boto3.client("events", "eu-central-1")
 
@@ -589,7 +588,7 @@ def test_permissions():
     assert resp_policy["Statement"][0]["Sid"] == "Account1"
 
 
-@mock_events
+@mock_aws
 def test_permission_policy():
     client = boto3.client("events", "eu-central-1")
 
@@ -613,7 +612,7 @@ def test_permission_policy():
     assert resp_policy["Statement"][0]["Sid"] == "asdf"
 
 
-@mock_events
+@mock_aws
 def test_put_permission_errors():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus")
@@ -639,7 +638,7 @@ def test_put_permission_errors():
     assert err["Message"] == "Provided value in parameter 'action' is not supported."
 
 
-@mock_events
+@mock_aws
 def test_remove_permission_errors():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus")
@@ -667,7 +666,7 @@ def test_remove_permission_errors():
     assert err["Message"] == "Statement with the provided id does not exist."
 
 
-@mock_events
+@mock_aws
 def test_put_events():
     client = boto3.client("events", "eu-central-1")
 
@@ -691,7 +690,7 @@ def test_put_events():
         assert any(["EventDetail should be of type dict" in msg for msg in messages])
 
 
-@mock_events
+@mock_aws
 def test_put_events_error_too_many_entries():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -720,58 +719,35 @@ def test_put_events_error_too_many_entries():
     )
 
 
-@mock_events
-def test_put_events_error_missing_argument_source():
+@mock_aws
+@pytest.mark.parametrize(
+    "argument,entries",
+    [
+        ("Source", [{}]),
+        ("Source", [{"Source": ""}]),
+        ("DetailType", [{"Source": "source"}]),
+        ("DetailType", [{"Source": "source", "DetailType": ""}]),
+        ("Detail", [{"Source": "source", "DetailType": "type"}]),
+        ("Detail", [{"Source": "source", "DetailType": "typee", "Detail": ""}]),
+    ],
+)
+def test_put_events_error_missing_or_empty_required_argument(argument, entries):
     # given
     client = boto3.client("events", "eu-central-1")
 
     # when
-    response = client.put_events(Entries=[{}])
+    response = client.put_events(Entries=entries)
 
     # then
     assert response["FailedEntryCount"] == 1
     assert len(response["Entries"]) == 1
     assert response["Entries"][0] == {
         "ErrorCode": "InvalidArgument",
-        "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
+        "ErrorMessage": f"Parameter {argument} is not valid. Reason: {argument} is a required argument.",
     }
 
 
-@mock_events
-def test_put_events_error_missing_argument_detail_type():
-    # given
-    client = boto3.client("events", "eu-central-1")
-
-    # when
-    response = client.put_events(Entries=[{"Source": "source"}])
-
-    # then
-    assert response["FailedEntryCount"] == 1
-    assert len(response["Entries"]) == 1
-    assert response["Entries"][0] == {
-        "ErrorCode": "InvalidArgument",
-        "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
-    }
-
-
-@mock_events
-def test_put_events_error_missing_argument_detail():
-    # given
-    client = boto3.client("events", "eu-central-1")
-
-    # when
-    response = client.put_events(Entries=[{"DetailType": "type", "Source": "source"}])
-
-    # then
-    assert response["FailedEntryCount"] == 1
-    assert len(response["Entries"]) == 1
-    assert response["Entries"][0] == {
-        "ErrorCode": "InvalidArgument",
-        "ErrorMessage": "Parameter Detail is not valid. Reason: Detail is a required argument.",
-    }
-
-
-@mock_events
+@mock_aws
 def test_put_events_error_invalid_json_detail():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -790,7 +766,7 @@ def test_put_events_error_invalid_json_detail():
     }
 
 
-@mock_events
+@mock_aws
 def test_put_events_with_mixed_entries():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -812,7 +788,7 @@ def test_put_events_with_mixed_entries():
     assert len([entry for entry in response["Entries"] if "ErrorCode" in entry]) == 2
 
 
-@mock_events
+@mock_aws
 def test_create_event_bus():
     client = boto3.client("events", "us-east-1")
     response = client.create_event_bus(Name="test-bus")
@@ -823,7 +799,7 @@ def test_create_event_bus():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_event_bus_errors():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus")
@@ -854,7 +830,7 @@ def test_create_event_bus_errors():
     assert err["Message"] == "Event source aws.partner/test/test-bus does not exist."
 
 
-@mock_events
+@mock_aws
 def test_describe_event_bus():
     client = boto3.client("events", "us-east-1")
 
@@ -892,7 +868,7 @@ def test_describe_event_bus():
     }
 
 
-@mock_events
+@mock_aws
 def test_describe_event_bus_errors():
     client = boto3.client("events", "us-east-1")
 
@@ -902,7 +878,7 @@ def test_describe_event_bus_errors():
     assert err["Message"] == "Event bus non-existing does not exist."
 
 
-@mock_events
+@mock_aws
 def test_list_event_buses():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus-1")
@@ -951,7 +927,7 @@ def test_list_event_buses():
     ]
 
 
-@mock_events
+@mock_aws
 def test_delete_event_bus():
     client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus")
@@ -974,7 +950,7 @@ def test_delete_event_bus():
     client.delete_event_bus(Name="non-existing")
 
 
-@mock_events
+@mock_aws
 def test_delete_event_bus_errors():
     client = boto3.client("events", "us-east-1")
 
@@ -984,7 +960,7 @@ def test_delete_event_bus_errors():
     assert err["Message"] == "Cannot delete event bus default."
 
 
-@mock_events
+@mock_aws
 def test_create_rule_with_tags():
     client = generate_environment()
     rule_name = "test2"
@@ -994,7 +970,7 @@ def test_create_rule_with_tags():
     assert actual == [{"Key": "tagk1", "Value": "tagv1"}]
 
 
-@mock_events
+@mock_aws
 def test_delete_rule_with_tags():
     client = generate_environment(add_targets=False)
     rule_name = "test2"
@@ -1012,7 +988,7 @@ def test_delete_rule_with_tags():
     assert err["Message"] == "Rule test2 does not exist."
 
 
-@mock_events
+@mock_aws
 def test_rule_tagging_happy():
     client = generate_environment()
     rule_name = "test1"
@@ -1036,7 +1012,7 @@ def test_rule_tagging_happy():
     assert expected == actual
 
 
-@mock_events
+@mock_aws
 def test_tag_resource_error_unknown_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1059,7 +1035,7 @@ def test_tag_resource_error_unknown_arn():
     )
 
 
-@mock_events
+@mock_aws
 def test_untag_resource_error_unknown_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1082,7 +1058,7 @@ def test_untag_resource_error_unknown_arn():
     )
 
 
-@mock_events
+@mock_aws
 def test_list_tags_for_resource_error_unknown_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1104,7 +1080,7 @@ def test_list_tags_for_resource_error_unknown_arn():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1143,7 +1119,7 @@ def test_create_archive():
     assert "ScheduleExpression" not in response
 
 
-@mock_events
+@mock_aws
 def test_create_archive_custom_event_bus():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1171,7 +1147,7 @@ def test_create_archive_custom_event_bus():
     assert response["State"] == "ENABLED"
 
 
-@mock_events
+@mock_aws
 def test_create_archive_error_long_name():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1197,7 +1173,7 @@ def test_create_archive_error_long_name():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_archive_error_invalid_event_pattern():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1223,7 +1199,7 @@ def test_create_archive_error_invalid_event_pattern():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_archive_error_invalid_event_pattern_not_an_array():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1256,7 +1232,7 @@ def test_create_archive_error_invalid_event_pattern_not_an_array():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_archive_error_unknown_event_bus():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1281,7 +1257,7 @@ def test_create_archive_error_unknown_event_bus():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_archive_error_duplicate():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1301,7 +1277,7 @@ def test_create_archive_error_duplicate():
     assert ex.response["Error"]["Message"] == "Archive test-archive already exists."
 
 
-@mock_events
+@mock_aws
 def test_describe_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1334,7 +1310,7 @@ def test_describe_archive():
     assert response["State"] == "ENABLED"
 
 
-@mock_events
+@mock_aws
 def test_describe_archive_error_unknown_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1352,7 +1328,7 @@ def test_describe_archive_error_unknown_archive():
     assert ex.response["Error"]["Message"] == f"Archive {name} does not exist."
 
 
-@mock_events
+@mock_aws
 def test_list_archives():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1385,7 +1361,7 @@ def test_list_archives():
     assert "EventPattern" not in archive
 
 
-@mock_events
+@mock_aws
 def test_list_archives_with_name_prefix():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1401,7 +1377,7 @@ def test_list_archives_with_name_prefix():
     assert archives[0]["ArchiveName"] == "test-archive"
 
 
-@mock_events
+@mock_aws
 def test_list_archives_with_source_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1418,7 +1394,7 @@ def test_list_archives_with_source_arn():
     assert archives[0]["ArchiveName"] == "test"
 
 
-@mock_events
+@mock_aws
 def test_list_archives_with_state():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1433,7 +1409,7 @@ def test_list_archives_with_state():
     assert len(archives) == 0
 
 
-@mock_events
+@mock_aws
 def test_list_archives_error_multiple_filters():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1453,7 +1429,7 @@ def test_list_archives_error_multiple_filters():
     )
 
 
-@mock_events
+@mock_aws
 def test_list_archives_error_invalid_state():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1473,7 +1449,7 @@ def test_list_archives_error_invalid_state():
     )
 
 
-@mock_events
+@mock_aws
 def test_update_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1511,7 +1487,7 @@ def test_update_archive():
     assert response["State"] == "ENABLED"
 
 
-@mock_events
+@mock_aws
 def test_update_archive_error_invalid_event_pattern():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1536,7 +1512,7 @@ def test_update_archive_error_invalid_event_pattern():
     )
 
 
-@mock_events
+@mock_aws
 def test_update_archive_error_unknown_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1554,7 +1530,7 @@ def test_update_archive_error_unknown_archive():
     assert ex.response["Error"]["Message"] == f"Archive {name} does not exist."
 
 
-@mock_events
+@mock_aws
 def test_delete_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1572,7 +1548,7 @@ def test_delete_archive():
     assert len(response) == 0
 
 
-@mock_events
+@mock_aws
 def test_delete_archive_error_unknown_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1590,7 +1566,7 @@ def test_delete_archive_error_unknown_archive():
     assert ex.response["Error"]["Message"] == f"Archive {name} does not exist."
 
 
-@mock_events
+@mock_aws
 def test_archive_actual_events():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1635,7 +1611,7 @@ def test_archive_actual_events():
     assert response["SizeBytes"] > 0
 
 
-@mock_events
+@mock_aws
 def test_archive_event_with_bus_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1661,7 +1637,7 @@ def test_archive_event_with_bus_arn():
     assert response["SizeBytes"] > 0
 
 
-@mock_events
+@mock_aws
 def test_start_replay():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1689,7 +1665,7 @@ def test_start_replay():
     assert response["State"] == "STARTING"
 
 
-@mock_events
+@mock_aws
 def test_start_replay_error_unknown_event_bus():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1717,7 +1693,7 @@ def test_start_replay_error_unknown_event_bus():
     )
 
 
-@mock_events
+@mock_aws
 def test_start_replay_error_invalid_event_bus_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1745,7 +1721,7 @@ def test_start_replay_error_invalid_event_bus_arn():
     )
 
 
-@mock_events
+@mock_aws
 def test_start_replay_error_unknown_archive():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1774,7 +1750,7 @@ def test_start_replay_error_unknown_archive():
     )
 
 
-@mock_events
+@mock_aws
 def test_start_replay_error_cross_event_bus():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1805,7 +1781,7 @@ def test_start_replay_error_cross_event_bus():
     )
 
 
-@mock_events
+@mock_aws
 def test_start_replay_error_invalid_end_time():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1835,7 +1811,7 @@ def test_start_replay_error_invalid_end_time():
     )
 
 
-@mock_events
+@mock_aws
 def test_start_replay_error_duplicate():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1870,7 +1846,7 @@ def test_start_replay_error_duplicate():
     assert ex.response["Error"]["Message"] == f"Replay {name} already exists."
 
 
-@mock_events
+@mock_aws
 def test_describe_replay():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1907,7 +1883,7 @@ def test_describe_replay():
     assert response["State"] == "COMPLETED"
 
 
-@mock_events
+@mock_aws
 def test_describe_replay_error_unknown_replay():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1925,7 +1901,7 @@ def test_describe_replay_error_unknown_replay():
     assert ex.response["Error"]["Message"] == f"Replay {name} does not exist."
 
 
-@mock_events
+@mock_aws
 def test_list_replays():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1958,7 +1934,7 @@ def test_list_replays():
     assert replay["State"] == "COMPLETED"
 
 
-@mock_events
+@mock_aws
 def test_list_replays_with_name_prefix():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -1989,7 +1965,7 @@ def test_list_replays_with_name_prefix():
     assert replays[0]["ReplayName"] == "test-replay"
 
 
-@mock_events
+@mock_aws
 def test_list_replays_with_source_arn():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2019,7 +1995,7 @@ def test_list_replays_with_source_arn():
     assert len(replays) == 2
 
 
-@mock_events
+@mock_aws
 def test_list_replays_with_state():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2049,7 +2025,7 @@ def test_list_replays_with_state():
     assert len(replays) == 0
 
 
-@mock_events
+@mock_aws
 def test_list_replays_error_multiple_filters():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2069,7 +2045,7 @@ def test_list_replays_error_multiple_filters():
     )
 
 
-@mock_events
+@mock_aws
 def test_list_replays_error_invalid_state():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2089,7 +2065,7 @@ def test_list_replays_error_invalid_state():
     )
 
 
-@mock_events
+@mock_aws
 def test_cancel_replay():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2121,7 +2097,7 @@ def test_cancel_replay():
     assert response["State"] == "CANCELLED"
 
 
-@mock_events
+@mock_aws
 def test_cancel_replay_error_unknown_replay():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2139,7 +2115,7 @@ def test_cancel_replay_error_unknown_replay():
     assert ex.response["Error"]["Message"] == f"Replay {name} does not exist."
 
 
-@mock_events
+@mock_aws
 def test_cancel_replay_error_illegal_state():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2173,8 +2149,7 @@ def test_cancel_replay_error_illegal_state():
     )
 
 
-@mock_events
-@mock_logs
+@mock_aws
 def test_start_replay_send_to_log_group():
     # given
     client = boto3.client("events", "eu-central-1")
@@ -2245,7 +2220,7 @@ def test_start_replay_send_to_log_group():
     assert event_replay["replay-name"] == "test-replay"
 
 
-@mock_events
+@mock_aws
 def test_create_and_list_connections():
     client = boto3.client("events", "eu-central-1")
 
@@ -2275,7 +2250,7 @@ def test_create_and_list_connections():
     )
 
 
-@mock_events
+@mock_aws
 def test_create_and_describe_connection():
     client = boto3.client("events", "eu-central-1")
 
@@ -2297,7 +2272,7 @@ def test_create_and_describe_connection():
     assert "CreationTime" in description
 
 
-@mock_events
+@mock_aws
 def test_create_and_update_connection():
     client = boto3.client("events", "eu-central-1")
 
@@ -2321,7 +2296,7 @@ def test_create_and_update_connection():
     assert "CreationTime" in description
 
 
-@mock_events
+@mock_aws
 def test_update_unknown_connection():
     client = boto3.client("events", "eu-north-1")
 
@@ -2331,7 +2306,7 @@ def test_update_unknown_connection():
     assert err["Message"] == "Connection 'unknown' does not exist."
 
 
-@mock_events
+@mock_aws
 def test_delete_connection():
     client = boto3.client("events", "eu-central-1")
 
@@ -2356,7 +2331,7 @@ def test_delete_connection():
     assert len(conns) == 0
 
 
-@mock_events
+@mock_aws
 def test_create_and_list_api_destinations():
     client = boto3.client("events", "eu-central-1")
 
@@ -2411,7 +2386,7 @@ def test_create_and_list_api_destinations():
         ("HttpMethod", "GET", "PATCH"),
     ],
 )
-@mock_events
+@mock_aws
 def test_create_and_update_api_destination(key, initial_value, updated_value):
     client = boto3.client("events", "eu-central-1")
 
@@ -2443,7 +2418,7 @@ def test_create_and_update_api_destination(key, initial_value, updated_value):
     assert destination[key] == updated_value
 
 
-@mock_events
+@mock_aws
 def test_delete_api_destination():
     client = boto3.client("events", "eu-central-1")
 
@@ -2471,7 +2446,7 @@ def test_delete_api_destination():
     assert len(client.list_api_destinations()["ApiDestinations"]) == 0
 
 
-@mock_events
+@mock_aws
 def test_describe_unknown_api_destination():
     client = boto3.client("events", "eu-central-1")
 
@@ -2481,7 +2456,7 @@ def test_describe_unknown_api_destination():
     assert err["Message"] == "An api-destination 'unknown' does not exist."
 
 
-@mock_events
+@mock_aws
 def test_delete_unknown_api_destination():
     client = boto3.client("events", "eu-central-1")
 
@@ -2494,7 +2469,7 @@ def test_delete_unknown_api_destination():
 # Scenarios for describe_connection
 # Scenario 01: Success
 # Scenario 02: Failure - Connection not present
-@mock_events
+@mock_aws
 def test_describe_connection_success():
     # Given
     conn_name = "test_conn_name"
@@ -2523,7 +2498,7 @@ def test_describe_connection_success():
     assert response["AuthParameters"] == expected_auth_param
 
 
-@mock_events
+@mock_aws
 def test_describe_connection_not_present():
     conn_name = "test_conn_name"
 
@@ -2539,7 +2514,7 @@ def test_describe_connection_not_present():
 # Scenario 02: Failure - Connection not present
 
 
-@mock_events
+@mock_aws
 def test_delete_connection_success():
     # Given
     conn_name = "test_conn_name"
@@ -2569,7 +2544,7 @@ def test_delete_connection_success():
         _ = client.describe_connection(Name=conn_name)
 
 
-@mock_events
+@mock_aws
 def test_delete_connection_not_present():
     conn_name = "test_conn_name"
 

@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_swf
+from moto import mock_aws
 
 
 # RegisterWorkflowType endpoint
-@mock_swf
+@mock_aws
 def test_register_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -24,7 +24,7 @@ def test_register_workflow_type_boto3():
     assert actype["workflowType"]["version"] == "v1.0"
 
 
-@mock_swf
+@mock_aws
 def test_register_already_existing_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -45,7 +45,7 @@ def test_register_already_existing_workflow_type_boto3():
 
 
 # ListWorkflowTypes endpoint
-@mock_swf
+@mock_aws
 def test_list_workflow_types_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -72,7 +72,7 @@ def test_list_workflow_types_boto3():
 
 
 # ListWorkflowTypes endpoint
-@mock_swf
+@mock_aws
 def test_list_workflow_types_reverse_order_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -99,7 +99,7 @@ def test_list_workflow_types_reverse_order_boto3():
 
 
 # DeprecateWorkflowType endpoint
-@mock_swf
+@mock_aws
 def test_deprecate_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -120,7 +120,7 @@ def test_deprecate_workflow_type_boto3():
     assert actype["workflowType"]["version"] == "v1.0"
 
 
-@mock_swf
+@mock_aws
 def test_deprecate_already_deprecated_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -144,7 +144,7 @@ def test_deprecate_already_deprecated_workflow_type_boto3():
     )
 
 
-@mock_swf
+@mock_aws
 def test_deprecate_non_existent_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -163,7 +163,7 @@ def test_deprecate_non_existent_workflow_type_boto3():
 
 
 # UndeprecateWorkflowType endpoint
-@mock_swf
+@mock_aws
 def test_undeprecate_workflow_type():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -185,7 +185,7 @@ def test_undeprecate_workflow_type():
     assert resp["typeInfo"]["status"] == "REGISTERED"
 
 
-@mock_swf
+@mock_aws
 def test_undeprecate_already_undeprecated_workflow_type():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -208,7 +208,7 @@ def test_undeprecate_already_undeprecated_workflow_type():
         )
 
 
-@mock_swf
+@mock_aws
 def test_undeprecate_never_deprecated_workflow_type():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -225,7 +225,7 @@ def test_undeprecate_never_deprecated_workflow_type():
         )
 
 
-@mock_swf
+@mock_aws
 def test_undeprecate_non_existent_workflow_type():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
@@ -240,7 +240,7 @@ def test_undeprecate_non_existent_workflow_type():
 
 
 # DescribeWorkflowType endpoint
-@mock_swf
+@mock_aws
 def test_describe_workflow_type_full_boto3():
     # boto3 required as boto doesn't support all of the arguments
     client = boto3.client("swf", region_name="us-east-1")
@@ -275,7 +275,7 @@ def test_describe_workflow_type_full_boto3():
     assert resp["configuration"]["defaultLambdaRole"] == "arn:bar"
 
 
-@mock_swf
+@mock_aws
 def test_describe_non_existent_workflow_type_boto3():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(

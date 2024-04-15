@@ -2,7 +2,7 @@ import json
 
 import boto3
 
-from moto import mock_autoscaling, mock_cloudformation, mock_ecs, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
@@ -88,9 +88,7 @@ depends_on_template_list_json = json.dumps(depends_on_template_list)
 depends_on_template_string_json = json.dumps(depends_on_template_string)
 
 
-@mock_cloudformation
-@mock_autoscaling
-@mock_ecs
+@mock_aws
 def test_create_stack_with_depends_on():
     boto3.client("cloudformation", region_name="us-east-1").create_stack(
         StackName="depends_on_test", TemplateBody=depends_on_template_list_json
@@ -116,8 +114,7 @@ def test_create_stack_with_depends_on():
     assert cluster_arn == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:cluster/test-cluster"
 
 
-@mock_cloudformation
-@mock_autoscaling
+@mock_aws
 def test_create_stack_with_depends_on_string():
     boto3.client("cloudformation", region_name="us-east-1").create_stack(
         StackName="depends_on_string_test", TemplateBody=depends_on_template_string_json
@@ -139,8 +136,7 @@ def test_create_stack_with_depends_on_string():
     assert launch_configuration["LaunchConfigurationName"] == "test-launch-config"
 
 
-@mock_cloudformation
-@mock_s3
+@mock_aws
 def test_create_chained_depends_on_stack():
     boto3.client("cloudformation", region_name="us-east-1").create_stack(
         StackName="linked_depends_on_test",

@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudfront
+from moto import mock_aws
 
 
-@mock_cloudfront
+@mock_aws
 def test_create_origin_access_control():
     cf = boto3.client("cloudfront", "us-east-1")
 
@@ -46,7 +46,7 @@ def test_create_origin_access_control():
     assert err["Message"] == "The specified origin access control does not exist."
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_origin_access_control():
     # http://localhost:5000/2020-05-31/origin-access-control/DE53MREVCPIFL/config
     cf = boto3.client("cloudfront", "us-east-1")

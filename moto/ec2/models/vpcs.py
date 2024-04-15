@@ -1,11 +1,13 @@
 import ipaddress
 import json
+import threading
 import weakref
 from collections import defaultdict
 from operator import itemgetter
 from typing import Any, Dict, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.base_backend import BaseBackend
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import (
     CidrLimitExceeded,
@@ -36,56 +38,294 @@ from ..utils import (
 from .availability_zones_and_regions import RegionsAndZonesBackend
 from .core import TaggedEC2Resource
 
-# We used to load the entirety of Moto into memory, and check every module if it's supported
-# But having a fixed list is much more performant
-# Maintaining it is more difficult, but the contents of this list does not change very often
+# List of Moto services that exposes a non-standard EndpointService config
 IMPLEMENTED_ENDPOINT_SERVICES = [
-    "acm",
-    "applicationautoscaling",
-    "athena",
-    "autoscaling",
-    "lambda",
     "cloudformation",
-    "cloudwatch",
-    "codecommit",
     "codepipeline",
-    "config",
-    "datasync",
-    "dms",
-    "ds",
     "dynamodb",
-    "ec2",
     "ecr",
-    "ecs",
-    "elasticbeanstalk",
-    "elbv2",
-    "emr",
-    "events",
     "firehose",
-    "glue",
     "iot",
     "kinesis",
-    "kms",
-    "logs",
-    "rds",
-    "redshift",
+    "redshiftdata",
     "route53resolver",
     "s3",
     "sagemaker",
+]
+# List of names used by AWS that are implemented by our services
+COVERED_ENDPOINT_SERVICES = IMPLEMENTED_ENDPOINT_SERVICES + [
+    "ecr.api",
+    "ecr.dkr",
+    "iot.data",
+    "kinesis-firehose",
+    "kinesis-streams",
+    "redshift-data",
+    "sagemaker.api",
+]
+# All endpoints offered by AWS
+# We expose a sensible default for these services, if we don't implement a service-specific non-standard
+AWS_ENDPOINT_SERVICES = [
+    "access-analyzer",
+    "account",
+    "acm-pca",
+    "airflow.api",
+    "airflow.env",
+    "airflow.ops",
+    "analytics-omics",
+    "app-integrations",
+    "appconfig",
+    "appconfigdata",
+    "application-autoscaling",
+    "appmesh",
+    "appmesh-envoy-management",
+    "apprunner",
+    "apprunner.requests",
+    "appstream.api",
+    "appstream.streaming",
+    "appsync-api",
+    "aps",
+    "aps-workspaces",
+    "athena",
+    "auditmanager",
+    "autoscaling",
+    "autoscaling-plans",
+    "awsconnector",
+    "b2bi",
+    "backup",
+    "backup-gateway",
+    "batch",
+    "bedrock",
+    "bedrock-agent",
+    "bedrock-agent-runtime",
+    "bedrock-runtime",
+    "billingconductor",
+    "braket",
+    "cases",
+    "cassandra",
+    "cassandra-fips",
+    "cleanrooms",
+    "cloudcontrolapi",
+    "cloudcontrolapi-fips",
+    "clouddirectory",
+    "cloudformation",
+    "cloudhsmv2",
+    "cloudtrail",
+    "codeartifact.api",
+    "codeartifact.repositories",
+    "codebuild",
+    "codebuild-fips",
+    "codecommit",
+    "codecommit-fips",
+    "codedeploy",
+    "codedeploy-commands-secure",
+    "codeguru-profiler",
+    "codeguru-reviewer",
+    "codepipeline",
+    "codestar-connections.api",
+    "codewhisperer",
+    "comprehend",
+    "comprehendmedical",
+    "config",
+    "connect-campaigns",
+    "console",
+    "control-storage-omics",
+    "data-servicediscovery",
+    "data-servicediscovery-fips",
+    "databrew",
+    "dataexchange",
+    "datasync",
+    "datazone",
+    "deviceadvisor.iot",
+    "devops-guru",
+    "dms",
+    "dms-fips",
+    "drs",
+    "ds",
+    "dynamodb",
+    "ebs",
+    "ec2",
+    "ec2messages",
+    "ecr.api",
+    "ecr.dkr",
+    "ecs",
+    "ecs-agent",
+    "ecs-telemetry",
+    "eks",
+    "eks-auth",
+    "elastic-inference.runtime",
+    "elasticache",
+    "elasticache-fips",
+    "elasticbeanstalk",
+    "elasticbeanstalk-health",
+    "elasticfilesystem",
+    "elasticfilesystem-fips",
+    "elasticloadbalancing",
+    "elasticmapreduce",
+    "email-smtp",
+    "emr-containers",
+    "emr-serverless",
+    "emrwal.prod",
+    "entityresolution",
+    "events",
+    "evidently",
+    "evidently-dataplane",
+    "execute-api",
+    "finspace",
+    "finspace-api",
+    "fis",
+    "forecast",
+    "forecast-fips",
+    "forecastquery",
+    "forecastquery-fips",
+    "frauddetector",
+    "fsx",
+    "fsx-fips",
+    "git-codecommit",
+    "git-codecommit-fips",
+    "glue",
+    "grafana",
+    "grafana-workspace",
+    "greengrass",
+    "groundstation",
+    "guardduty-data",
+    "guardduty-data-fips",
+    "healthlake",
+    "identitystore",
+    "imagebuilder",
+    "inspector2",
+    "iot.credentials",
+    "iot.data",
+    "iot.fleethub.api",
+    "iotfleetwise",
+    "iotroborunner",
+    "iotsitewise.api",
+    "iotsitewise.data",
+    "iottwinmaker.api",
+    "iottwinmaker.data",
+    "iotwireless.api",
+    "kendra",
+    "kinesis-firehose",
+    "kinesis-streams",
+    "kms",
+    "kms-fips",
+    "lakeformation",
+    "lambda",
+    "license-manager",
+    "license-manager-fips",
+    "license-manager-user-subscriptions",
+    "logs",
+    "lookoutequipment",
+    "lookoutmetrics",
+    "lookoutvision",
+    "lorawan.cups",
+    "lorawan.lns",
+    "m2",
+    "macie2",
+    "managedblockchain-query",
+    "managedblockchain.bitcoin.mainnet",
+    "managedblockchain.bitcoin.testnet",
+    "mediaconnect",
+    "medical-imaging",
+    "memory-db",
+    "memorydb-fips",
+    "mgn",
+    "migrationhub-orchestrator",
+    "models-v2-lex",
+    "monitoring",
+    "neptune-graph",
+    "networkmonitor",
+    "nimble",
+    "organizations",
+    "organizations-fips",
+    "panorama",
+    "payment-cryptography.controlplane",
+    "payment-cryptography.dataplane",
+    "pca-connector-ad",
+    "personalize",
+    "personalize-events",
+    "personalize-runtime",
+    "pinpoint",
+    "pinpoint-sms-voice-v2",
+    "polly",
+    "private-networks",
+    "profile",
+    "proton",
+    "qldb.session",
+    "rds",
+    "rds-data",
+    "redshift",
+    "redshift-data",
+    "redshift-fips",
+    "refactor-spaces",
+    "rekognition",
+    "rekognition-fips",
+    "robomaker",
+    "rolesanywhere",
+    "rum",
+    "rum-dataplane",
+    "runtime-medical-imaging",
+    "runtime-v2-lex",
+    "s3",
+    "s3",
+    "s3-outposts",
+    "s3express",
+    "sagemaker.api",
+    "sagemaker.featurestore-runtime",
+    "sagemaker.metrics",
+    "sagemaker.runtime",
+    "sagemaker.runtime-fips",
+    "scn",
     "secretsmanager",
+    "securityhub",
+    "servicecatalog",
+    "servicecatalog-appregistry",
+    "servicediscovery",
+    "servicediscovery-fips",
+    "signin",
+    "simspaceweaver",
+    "snow-device-management",
     "sns",
     "sqs",
     "ssm",
+    "ssm-contacts",
+    "ssm-incidents",
+    "ssmmessages",
+    "states",
+    "storage-omics",
+    "storagegateway",
+    "streaming-rekognition",
+    "streaming-rekognition-fips",
     "sts",
+    "swf",
+    "swf-fips",
+    "sync-states",
+    "synthetics",
+    "tags-omics",
+    "textract",
+    "textract-fips",
+    "thinclient.api",
+    "timestream-influxdb",
+    "tnb",
     "transcribe",
+    "transcribestreaming",
+    "transfer",
+    "transfer.server",
+    "translate",
+    "trustedadvisor",
+    "verifiedpermissions",
+    "voiceid",
+    "vpc-lattice",
+    "wisdom",
+    "workflows-omics",
+    "workspaces",
     "xray",
 ]
 MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS = 1000
-DEFAULT_VPC_ENDPOINT_SERVICES: List[Dict[str, str]] = []
+DEFAULT_VPC_ENDPOINT_SERVICES: Dict[str, List[Dict[str, str]]] = {}
+ENDPOINT_SERVICE_COLLECTION_LOCK = threading.Lock()
 
 
 class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
-
     DEFAULT_POLICY = {
         "Version": "2008-10-17",
         "Statement": [
@@ -221,7 +461,6 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         amazon_provided_ipv6_cidr_block: bool = False,
         ipv6_cidr_block_network_border_group: Optional[str] = None,
     ):
-
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
@@ -262,6 +501,22 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
     def cloudformation_type() -> str:
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpc.html
         return "AWS::EC2::VPC"
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "CidrBlock":
+            return self.cidr_block
+        elif attribute_name == "CidrBlockAssociations":
+            return self.cidr_block_association_set
+        elif attribute_name == "DefaultSecurityGroup":
+            sec_group = self.ec2_backend.get_security_group_from_name(
+                "default", vpc_id=self.id
+            )
+            return sec_group.id
+        elif attribute_name == "VpcId":
+            return self.id
+        raise UnformattedGetAttTemplateException()
 
     @classmethod
     def create_from_cloudformation_json(  # type: ignore[misc]
@@ -384,9 +639,9 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         )
         if amazon_provided_ipv6_cidr_block:
             association_set["ipv6_pool"] = "Amazon"
-            association_set[
-                "ipv6_cidr_block_network_border_group"
-            ] = ipv6_cidr_block_network_border_group
+            association_set["ipv6_cidr_block_network_border_group"] = (
+                ipv6_cidr_block_network_border_group
+            )
         self.cidr_block_association_set[association_id] = association_set
         return association_set
 
@@ -652,7 +907,6 @@ class VPCBackend:
         tags: Optional[Dict[str, str]] = None,
         private_dns_enabled: Optional[str] = None,
     ) -> VPCEndPoint:
-
         vpc_endpoint_id = random_vpc_ep_id()
 
         # validates if vpc is present or not.
@@ -660,7 +914,6 @@ class VPCBackend:
         destination_prefix_list_id = None
 
         if endpoint_type and endpoint_type.lower() == "interface":
-
             network_interface_ids = []
             for subnet_id in subnet_ids or []:
                 self.get_subnet(subnet_id)  # type: ignore[attr-defined]
@@ -757,38 +1010,51 @@ class VPCBackend:
         account_id: str, region: str
     ) -> List[Dict[str, str]]:
         """Return list of default services using list of backends."""
-        if DEFAULT_VPC_ENDPOINT_SERVICES:
-            return DEFAULT_VPC_ENDPOINT_SERVICES
+        with ENDPOINT_SERVICE_COLLECTION_LOCK:
+            if region in DEFAULT_VPC_ENDPOINT_SERVICES:
+                return DEFAULT_VPC_ENDPOINT_SERVICES[region]
 
-        zones = [
-            zone.name
-            for zones in RegionsAndZonesBackend.zones.values()
-            for zone in zones
-            if zone.name.startswith(region)
-        ]
+            DEFAULT_VPC_ENDPOINT_SERVICES[region] = []
+            zones = [
+                zone.name
+                for zones in RegionsAndZonesBackend.zones.values()
+                for zone in zones
+                if zone.name.startswith(region)
+            ]
 
-        from moto import backends  # pylint: disable=import-outside-toplevel
+            from moto import backends  # pylint: disable=import-outside-toplevel
 
-        for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
-            _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
-            account_backend = _backends[account_id]
-            if region in account_backend:
-                service = account_backend[region].default_vpc_endpoint_service(
-                    region, zones
-                )
-                if service:
-                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
+            for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
+                _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
+                account_backend = _backends[account_id]
+                if region in account_backend:
+                    service = account_backend[region].default_vpc_endpoint_service(
+                        region, zones
+                    )
+                    if service:
+                        DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service)
 
-            if "global" in account_backend:
-                service = account_backend["global"].default_vpc_endpoint_service(
-                    region, zones
-                )
-                if service:
-                    DEFAULT_VPC_ENDPOINT_SERVICES.extend(service)
-        return DEFAULT_VPC_ENDPOINT_SERVICES
+                if "global" in account_backend:
+                    service = account_backend["global"].default_vpc_endpoint_service(
+                        region, zones
+                    )
+                    if service:
+                        DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service)
+
+            # Return sensible defaults, for services that do not offer a custom implementation
+            for aws_service in AWS_ENDPOINT_SERVICES:
+                if aws_service not in COVERED_ENDPOINT_SERVICES:
+                    service_configs = BaseBackend.default_vpc_endpoint_service_factory(
+                        region, zones, aws_service
+                    )
+                    DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service_configs)
+
+            return DEFAULT_VPC_ENDPOINT_SERVICES[region]
 
     @staticmethod
-    def _matches_service_by_tags(service: Dict[str, Any], filter_item: Dict[str, Any]) -> bool:  # type: ignore[misc]
+    def _matches_service_by_tags(  # type: ignore[misc]
+        service: Dict[str, Any], filter_item: Dict[str, Any]
+    ) -> bool:
         """Return True if service tags are not filtered by their tags.
 
         Note that the API specifies a key of "Values" for a filter, but
@@ -820,7 +1086,11 @@ class VPCBackend:
         return matched
 
     @staticmethod
-    def _filter_endpoint_services(service_names_filters: List[str], filters: List[Dict[str, Any]], services: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def _filter_endpoint_services(  # type: ignore[misc]
+        service_names_filters: List[str],
+        filters: List[Dict[str, Any]],
+        services: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
         """Return filtered list of VPC endpoint services."""
         if not service_names_filters and not filters:
             return services
@@ -893,7 +1163,8 @@ class VPCBackend:
         The DryRun parameter is ignored.
         """
         default_services = self._collect_default_endpoint_services(
-            self.account_id, region  # type: ignore[attr-defined]
+            self.account_id,  # type: ignore[attr-defined]
+            region,
         )
         custom_services = [x.to_dict() for x in self.configurations.values()]  # type: ignore
         all_services = default_services + custom_services

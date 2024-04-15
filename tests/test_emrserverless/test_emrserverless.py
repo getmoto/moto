@@ -1,4 +1,5 @@
 """Unit tests for emrserverless-supported APIs."""
+
 import re
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -8,7 +9,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_emrserverless, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.emrserverless import REGION as DEFAULT_REGION
 from moto.emrserverless import RELEASE_LABEL as DEFAULT_RELEASE_LABEL
@@ -21,7 +22,7 @@ def does_not_raise():
 
 @pytest.fixture(scope="function", name="client")
 def fixture_client():
-    with mock_emrserverless():
+    with mock_aws():
         yield boto3.client("emr-serverless", region_name=DEFAULT_REGION)
 
 
@@ -71,7 +72,7 @@ def fixture_application_factory(client):
 
 class TestCreateApplication:
     @staticmethod
-    @mock_emrserverless
+    @mock_aws
     def test_create_application(client):
         resp = client.create_application(
             name="test-emr-serverless-application",
@@ -87,7 +88,7 @@ class TestCreateApplication:
         )
 
     @staticmethod
-    @mock_emrserverless
+    @mock_aws
     def test_create_application_incorrect_type(client):
         with pytest.raises(ClientError) as exc:
             client.create_application(
@@ -102,7 +103,7 @@ class TestCreateApplication:
         assert err["Message"] == "Unsupported engine SPARK3"
 
     @staticmethod
-    @mock_emrserverless
+    @mock_aws
     def test_create_application_incorrect_release_label(client):
         with pytest.raises(ClientError) as exc:
             client.create_application(

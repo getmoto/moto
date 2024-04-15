@@ -2,7 +2,8 @@ import datetime
 import re
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 
 from .exceptions import (
@@ -414,9 +415,9 @@ class ManagedBlockchainMember(BaseModel):
         self.status = "DELETED"
 
     def update(self, logpublishingconfiguration: Dict[str, Any]) -> None:
-        self.member_configuration[
-            "LogPublishingConfiguration"
-        ] = logpublishingconfiguration
+        self.member_configuration["LogPublishingConfiguration"] = (
+            logpublishingconfiguration
+        )
 
 
 class ManagedBlockchainNode(BaseModel):

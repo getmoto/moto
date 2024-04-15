@@ -2,12 +2,12 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_athena, settings
+from moto import mock_aws, settings
 from moto.athena.models import QueryResults, athena_backends
 from moto.core import DEFAULT_ACCOUNT_ID
 
 
-@mock_athena
+@mock_aws
 def test_create_work_group():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -57,7 +57,7 @@ def test_create_work_group():
     assert work_group["State"] == "ENABLED"
 
 
-@mock_athena
+@mock_aws
 def test_get_primary_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
     assert len(client.list_work_groups()["WorkGroups"]) == 1
@@ -67,7 +67,7 @@ def test_get_primary_workgroup():
     assert primary["Configuration"] == {}
 
 
-@mock_athena
+@mock_aws
 def test_create_and_get_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -85,7 +85,7 @@ def test_create_and_get_workgroup():
     }
 
 
-@mock_athena
+@mock_aws
 def test_start_query_execution():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -107,7 +107,7 @@ def test_start_query_execution():
     assert response["QueryExecutionId"] != sec_response["QueryExecutionId"]
 
 
-@mock_athena
+@mock_aws
 def test_start_query_validate_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -122,12 +122,14 @@ def test_start_query_validate_workgroup():
     assert err.value.response["Error"]["Message"] == "WorkGroup does not exist"
 
 
-@mock_athena
-def test_get_query_execution():
+@mock_aws
+@pytest.mark.parametrize(
+    "location", ["s3://bucket-name/prefix/", "s3://bucket-name/prefix_wo_slash"]
+)
+def test_get_query_execution(location):
     client = boto3.client("athena", region_name="us-east-1")
 
     query = "SELECT stuff"
-    location = "s3://bucket-name/prefix/"
     database = "database"
     # Start Query
     exex_id = client.start_query_execution(
@@ -141,7 +143,11 @@ def test_get_query_execution():
     assert details["QueryExecutionId"] == exex_id
     assert details["Query"] == query
     assert details["StatementType"] == "DML"
-    assert details["ResultConfiguration"]["OutputLocation"] == location
+    result_config = details["ResultConfiguration"]
+    if location.endswith("/"):
+        assert result_config["OutputLocation"] == f"{location}{exex_id}.csv"
+    else:
+        assert result_config["OutputLocation"] == f"{location}/{exex_id}.csv"
     assert details["QueryExecutionContext"]["Database"] == database
     assert details["Status"]["State"] == "SUCCEEDED"
     assert details["Statistics"] == {
@@ -155,7 +161,7 @@ def test_get_query_execution():
     assert "WorkGroup" not in details
 
 
-@mock_athena
+@mock_aws
 def test_stop_query_execution():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -177,7 +183,7 @@ def test_stop_query_execution():
     assert details["Status"]["State"] == "CANCELLED"
 
 
-@mock_athena
+@mock_aws
 def test_create_named_query():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -189,7 +195,7 @@ def test_create_named_query():
     assert "NamedQueryId" in res
 
 
-@mock_athena
+@mock_aws
 def test_get_named_query():
     client = boto3.client("athena", region_name="us-east-1")
     query_name = "query-name"
@@ -224,7 +230,7 @@ def create_basic_workgroup(client, name):
     )
 
 
-@mock_athena
+@mock_aws
 def test_create_data_catalog():
     client = boto3.client("athena", region_name="us-east-1")
     response = client.create_data_catalog(
@@ -257,7 +263,7 @@ def test_create_data_catalog():
     assert data_catalog["Type"] == "GLUE"
 
 
-@mock_athena
+@mock_aws
 def test_create_and_get_data_catalog():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -278,7 +284,7 @@ def test_create_and_get_data_catalog():
     }
 
 
-@mock_athena
+@mock_aws
 def test_get_query_results():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -287,7 +293,7 @@ def test_get_query_results():
     assert result["ResultSet"]["Rows"] == []
     assert result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"] == []
 
-    if not settings.TEST_SERVER_MODE:
+    if settings.TEST_DECORATOR_MODE:
         backend = athena_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
         rows = [{"Data": [{"VarCharValue": ".."}]}]
         column_info = [
@@ -314,7 +320,7 @@ def test_get_query_results():
         assert result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"] == column_info
 
 
-@mock_athena
+@mock_aws
 def test_get_query_results_queue():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -360,7 +366,7 @@ def test_get_query_results_queue():
         assert result["ResultSet"]["ResultSetMetadata"]["ColumnInfo"] == column_info
 
 
-@mock_athena
+@mock_aws
 def test_list_query_executions():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -378,7 +384,7 @@ def test_list_query_executions():
     assert executions["QueryExecutionIds"][0] == exec_id
 
 
-@mock_athena
+@mock_aws
 def test_list_named_queries():
     client = boto3.client("athena", region_name="us-east-1")
     create_basic_workgroup(client=client, name="athena_workgroup")
@@ -394,7 +400,7 @@ def test_list_named_queries():
     assert len(list_primary_wg["NamedQueryIds"]) == 0
 
 
-@mock_athena
+@mock_aws
 def test_create_prepared_statement():
     client = boto3.client("athena", region_name="us-east-1")
     create_basic_workgroup(client=client, name="athena_workgroup")
@@ -408,7 +414,7 @@ def test_create_prepared_statement():
     assert metadata["RetryAttempts"] == 0
 
 
-@mock_athena
+@mock_aws
 def test_get_prepared_statement():
     client = boto3.client("athena", region_name="us-east-1")
     create_basic_workgroup(client=client, name="athena_workgroup")

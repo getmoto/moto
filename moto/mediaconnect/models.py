@@ -1,7 +1,8 @@
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.mediaconnect.exceptions import NotFoundException
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
@@ -18,9 +19,9 @@ class Flow(BaseModel):
         self.source_failover_config = kwargs.get("source_failover_config", {})
         self.sources = kwargs.get("sources", [])
         self.vpc_interfaces = kwargs.get("vpc_interfaces", [])
-        self.status: Optional[
-            str
-        ] = "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
+        self.status: Optional[str] = (
+            "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
+        )
         self._previous_status: Optional[str] = None
         self.description = "A Moto test flow"
         self.flow_arn = f"arn:aws:mediaconnect:{region_name}:{account_id}:flow:{self.id}:{self.name}"
@@ -261,9 +262,9 @@ class MediaConnectBackend(BaseBackend):
                 output["destination"] = destination
                 output["encryption"] = encryption
                 output["maxLatency"] = max_latency
-                output[
-                    "mediaStreamOutputConfiguration"
-                ] = media_stream_output_configuration
+                output["mediaStreamOutputConfiguration"] = (
+                    media_stream_output_configuration
+                )
                 output["minLatency"] = min_latency
                 output["port"] = port
                 output["protocol"] = protocol
@@ -327,9 +328,9 @@ class MediaConnectBackend(BaseBackend):
             source["maxBitrate"] = max_bitrate
             source["maxLatency"] = max_latency
             source["maxSyncBuffer"] = max_sync_buffer
-            source[
-                "mediaStreamSourceConfigurations"
-            ] = media_stream_source_configurations
+            source["mediaStreamSourceConfigurations"] = (
+                media_stream_source_configurations
+            )
             source["minLatency"] = min_latency
             source["protocol"] = protocol
             source["senderControlPort"] = sender_control_port

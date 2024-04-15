@@ -1,17 +1,18 @@
 """Unit tests for lakeformation-supported APIs."""
+
 from typing import Dict, Optional
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_lakeformation
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_lakeformation
+@mock_aws
 def test_register_resource():
     client = boto3.client("lakeformation", region_name="us-east-2")
     resp = client.register_resource(ResourceArn="some arn", RoleArn="another arn")
@@ -22,7 +23,7 @@ def test_register_resource():
         client.register_resource(ResourceArn="some arn", RoleArn="another arn")
 
 
-@mock_lakeformation
+@mock_aws
 def test_describe_resource():
     client = boto3.client("lakeformation", region_name="us-east-2")
     client.register_resource(ResourceArn="some arn", RoleArn="role arn")
@@ -32,7 +33,7 @@ def test_describe_resource():
     assert resp["ResourceInfo"] == {"ResourceArn": "some arn", "RoleArn": "role arn"}
 
 
-@mock_lakeformation
+@mock_aws
 def test_deregister_resource():
     client = boto3.client("lakeformation", region_name="us-east-2")
     client.register_resource(ResourceArn="some arn")
@@ -49,7 +50,7 @@ def test_deregister_resource():
     assert err["Code"] == "EntityNotFoundException"
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_resources():
     client = boto3.client("lakeformation", region_name="us-east-2")
 
@@ -63,7 +64,7 @@ def test_list_resources():
     assert len(resp["ResourceInfoList"]) == 2
 
 
-@mock_lakeformation
+@mock_aws
 def test_data_lake_settings():
     client = boto3.client("lakeformation", region_name="us-east-2")
     resp = client.get_data_lake_settings()
@@ -93,7 +94,7 @@ def test_data_lake_settings():
     assert resp["DataLakeSettings"] == settings
 
 
-@mock_lakeformation
+@mock_aws
 def test_grant_permissions():
     client = boto3.client("lakeformation", region_name="us-east-2")
 
@@ -115,7 +116,7 @@ def test_grant_permissions():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_grant_permissions_idempotent():
     client = boto3.client("lakeformation", region_name="us-east-2")
 
@@ -138,7 +139,7 @@ def test_grant_permissions_idempotent():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_grant_permissions_staggered():
     client = boto3.client("lakeformation", region_name="us-east-2")
     client.grant_permissions(
@@ -159,7 +160,7 @@ def test_grant_permissions_staggered():
     )
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 
@@ -185,7 +186,7 @@ def test_list_permissions():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions_invalid_input():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 
@@ -309,7 +310,7 @@ def data_location_response(
     return response
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions_filtered_for_catalog_id():
     client = boto3.client("lakeformation", region_name="eu-west-2")
     catalog_id_1 = "000000000000"
@@ -335,7 +336,7 @@ def test_list_permissions_filtered_for_catalog_id():
     assert permissions == [catalog_response(principal=principal_2)]
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions_filtered_for_resource_type():
     client = boto3.client("lakeformation", region_name="eu-west-2")
     catalog_id = "000000000000"
@@ -375,7 +376,7 @@ def test_list_permissions_filtered_for_resource_type():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions_filtered_for_resource_db():
     client = boto3.client("lakeformation", region_name="eu-west-2")
     catalog_id = "000000000000"
@@ -406,7 +407,7 @@ def test_list_permissions_filtered_for_resource_db():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions_filtered_for_resource_table():
     client = boto3.client("lakeformation", region_name="eu-west-2")
     catalog_id = "000000000000"
@@ -453,7 +454,7 @@ def test_list_permissions_filtered_for_resource_table():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_permissions_filtered_for_resource_data_location():
     client = boto3.client("lakeformation", region_name="eu-west-2")
     catalog_id = "000000000000"
@@ -492,7 +493,7 @@ def test_list_permissions_filtered_for_resource_data_location():
     ]
 
 
-@mock_lakeformation
+@mock_aws
 def test_revoke_permissions():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 
@@ -534,7 +535,7 @@ def test_revoke_permissions():
     )
 
 
-@mock_lakeformation
+@mock_aws
 def test_revoke_permissions_unknown_catalog_id():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 
@@ -559,7 +560,7 @@ def test_revoke_permissions_unknown_catalog_id():
     assert len(["PrincipalResourcePermissions"]) == 1
 
 
-@mock_lakeformation
+@mock_aws
 def test_list_data_cells_filter():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 
@@ -567,7 +568,7 @@ def test_list_data_cells_filter():
     assert resp["DataCellsFilters"] == []
 
 
-@mock_lakeformation
+@mock_aws
 def test_batch_revoke_permissions():
     client = boto3.client("lakeformation", region_name="eu-west-2")
 

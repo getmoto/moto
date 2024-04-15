@@ -14,17 +14,6 @@ appsync
 
 .. autoclass:: moto.appsync.models.AppSyncBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_appsync
-            def test_appsync_behaviour:
-                boto3.client("appsync")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_api
@@ -59,6 +48,7 @@ appsync
 - [ ] get_domain_name
 - [ ] get_function
 - [X] get_graphql_api
+- [ ] get_graphql_api_environment_variables
 - [ ] get_introspection_schema
 - [ ] get_resolver
 - [X] get_schema_creation_status
@@ -83,6 +73,7 @@ appsync
 - [X] list_tags_for_resource
 - [ ] list_types
 - [ ] list_types_by_association
+- [ ] put_graphql_api_environment_variables
 - [ ] start_data_source_introspection
 - [X] start_schema_creation
 - [ ] start_schema_merge

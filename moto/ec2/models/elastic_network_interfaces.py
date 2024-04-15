@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 
 from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
 from .core import TaggedEC2Resource
@@ -309,7 +309,7 @@ class NetworkInterfaceBackend:
         enis = list(self.enis.values())
 
         if filters:
-            for (_filter, _filter_value) in filters.items():
+            for _filter, _filter_value in filters.items():
                 if _filter == "network-interface-id":
                     _filter = "id"
                     enis = [

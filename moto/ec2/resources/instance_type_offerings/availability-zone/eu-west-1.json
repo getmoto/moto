@@ -616,6 +616,10 @@
   "Location": "eu-west-1a"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "eu-west-1a"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "eu-west-1a"
  },
@@ -645,6 +649,10 @@
  },
  {
   "InstanceType": "c7gn.medium",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "c7gn.metal",
   "Location": "eu-west-1a"
  },
  {
@@ -1796,6 +1804,10 @@
   "Location": "eu-west-1a"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "eu-west-1a"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "eu-west-1a"
  },
@@ -2561,6 +2573,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "eu-west-1a"
  },
  {
@@ -3588,6 +3604,10 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "eu-west-1b"
  },
@@ -3617,6 +3637,10 @@
  },
  {
   "InstanceType": "c7gn.medium",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "c7gn.metal",
   "Location": "eu-west-1b"
  },
  {
@@ -4756,6 +4780,10 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "eu-west-1b"
  },
@@ -5537,6 +5565,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "eu-west-1b"
  },
  {
@@ -6540,6 +6572,10 @@
   "Location": "eu-west-1c"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "eu-west-1c"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "eu-west-1c"
  },
@@ -6569,6 +6605,10 @@
  },
  {
   "InstanceType": "c7gn.medium",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "c7gn.metal",
   "Location": "eu-west-1c"
  },
  {
@@ -7692,6 +7732,10 @@
   "Location": "eu-west-1c"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "eu-west-1c"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "eu-west-1c"
  },
@@ -8457,6 +8501,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "eu-west-1c"
  },
  {

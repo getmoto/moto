@@ -8,7 +8,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_logs, mock_s3, mock_sts, settings
+from moto import mock_aws, settings
 from moto.core.utils import unix_time_millis
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
@@ -53,7 +53,7 @@ def account_id():
         identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
         yield identity["Account"]
     else:
-        with mock_sts():
+        with mock_aws():
             identity = boto3.client(
                 "sts", region_name="us-east-1"
             ).get_caller_identity()
@@ -65,7 +65,7 @@ def logs():
     if allow_aws_request:
         yield boto3.client("logs", region_name="us-east-1")
     else:
-        with mock_logs():
+        with mock_aws():
             yield boto3.client("logs", region_name="us-east-1")
 
 
@@ -74,7 +74,7 @@ def s3():
     if allow_aws_request:
         yield boto3.client("s3", region_name="us-east-1")
     else:
-        with mock_s3():
+        with mock_aws():
             yield boto3.client("s3", region_name="us-east-1")
 
 
@@ -122,9 +122,7 @@ def bucket_name(s3, account_id):  # pylint: disable=redefined-outer-name
 
 
 @pytest.mark.aws_verified
-def test_create_export_task_happy_path(
-    logs, s3, log_group_name, bucket_name
-):  # pylint: disable=redefined-outer-name
+def test_create_export_task_happy_path(logs, s3, log_group_name, bucket_name):  # pylint: disable=redefined-outer-name
     fromTime = 1611316574
     to = 1642852574
     resp = logs.create_export_task(
@@ -144,8 +142,9 @@ def test_create_export_task_happy_path(
 
 @pytest.mark.aws_verified
 def test_create_export_task_raises_ClientError_when_bucket_not_found(
-    logs, log_group_name  # pylint: disable=redefined-outer-name
-):
+    logs,
+    log_group_name,
+):  # pylint: disable=redefined-outer-name
     destination = "368a7022dea3dd621"
     fromTime = 1611316574
     to = 1642852574
@@ -157,8 +156,6 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(
             destination=destination,
         )
     err = exc.value.response["Error"]
-    if err["Code"] != "InvalidParameterException":
-        print(err)
     assert err["Code"] == "InvalidParameterException"
     assert (
         err["Message"]
@@ -168,8 +165,9 @@ def test_create_export_task_raises_ClientError_when_bucket_not_found(
 
 @pytest.mark.aws_verified
 def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
-    logs, bucket_name  # pylint: disable=redefined-outer-name
-):
+    logs,
+    bucket_name,
+):  # pylint: disable=redefined-outer-name
     with pytest.raises(logs.exceptions.ResourceNotFoundException) as exc:
         logs.create_export_task(
             logGroupName=f"/aws/nonexisting/{str(uuid4())[0:6]}",
@@ -183,9 +181,7 @@ def test_create_export_raises_ResourceNotFoundException_log_group_not_found(
 
 
 @pytest.mark.aws_verified
-def test_create_export_executes_export_task(
-    logs, s3, log_group_name, bucket_name
-):  # pylint: disable=redefined-outer-name
+def test_create_export_executes_export_task(logs, s3, log_group_name, bucket_name):  # pylint: disable=redefined-outer-name
     fromTime = int(unix_time_millis(datetime.now() - timedelta(days=1)))
     to = int(unix_time_millis(datetime.now() + timedelta(days=1)))
 
@@ -219,12 +215,31 @@ def test_create_export_executes_export_task(
     assert "aws-logs-write-test" in key_names
 
 
-def test_describe_export_tasks_happy_path(
-    logs, s3, log_group_name
-):  # pylint: disable=redefined-outer-name
+def test_describe_export_tasks_happy_path(logs, s3, log_group_name):  # pylint: disable=redefined-outer-name
     destination = "mybucket"
     fromTime = 1611316574
     to = 1642852574
+    s3.create_bucket(Bucket=destination)
+    logs.create_export_task(
+        logGroupName=log_group_name,
+        fromTime=fromTime,
+        to=to,
+        destination=destination,
+    )
+    resp = logs.describe_export_tasks()
+    assert len(resp["exportTasks"]) == 1
+    assert resp["exportTasks"][0]["logGroupName"] == log_group_name
+    assert resp["exportTasks"][0]["destination"] == destination
+    assert resp["exportTasks"][0]["from"] == fromTime
+    assert resp["exportTasks"][0]["to"] == to
+    assert resp["exportTasks"][0]["status"]["code"] == "COMPLETED"
+    assert resp["exportTasks"][0]["status"]["message"] == "Completed successfully"
+
+
+def test_describe_export_tasks_out_of_order_timestamps(logs, s3, log_group_name):  # pylint: disable=redefined-outer-name
+    destination = "mybucket"
+    fromTime = 1000
+    to = 500
     s3.create_bucket(Bucket=destination)
     logs.create_export_task(
         logGroupName=log_group_name,
@@ -242,9 +257,7 @@ def test_describe_export_tasks_happy_path(
     assert resp["exportTasks"][0]["status"]["message"] == "Task is active"
 
 
-def test_describe_export_tasks_task_id(
-    logs, log_group_name, bucket_name
-):  # pylint: disable=redefined-outer-name
+def test_describe_export_tasks_task_id(logs, log_group_name, bucket_name):  # pylint: disable=redefined-outer-name
     fromTime = 1611316574
     to = 1642852574
     resp = logs.create_export_task(
@@ -260,8 +273,8 @@ def test_describe_export_tasks_task_id(
     assert resp["exportTasks"][0]["destination"] == bucket_name
     assert resp["exportTasks"][0]["from"] == fromTime
     assert resp["exportTasks"][0]["to"] == to
-    assert resp["exportTasks"][0]["status"]["code"] == "active"
-    assert resp["exportTasks"][0]["status"]["message"] == "Task is active"
+    assert resp["exportTasks"][0]["status"]["code"] == "COMPLETED"
+    assert resp["exportTasks"][0]["status"]["message"] == "Completed successfully"
 
 
 def test_describe_export_tasks_raises_ResourceNotFoundException_task_id_not_found(

@@ -64,7 +64,7 @@ class UnknownFunctionException(LambdaClientError):
         super().__init__("ResourceNotFoundException", f"Function not found: {arn}")
 
 
-class FunctionUrlConfigNotFound(LambdaClientError):
+class GenericResourcNotFound(LambdaClientError):
     code = 404
 
     def __init__(self) -> None:

@@ -181,9 +181,9 @@ class SNSResponse(BaseResponse):
                 attributes["KmsMasterKeyId"] = topic.kms_master_key_id
             if topic.fifo_topic == "true":
                 attributes["FifoTopic"] = topic.fifo_topic
-                attributes[
-                    "ContentBasedDeduplication"
-                ] = topic.content_based_deduplication
+                attributes["ContentBasedDeduplication"] = (
+                    topic.content_based_deduplication
+                )
             response = {
                 "GetTopicAttributesResponse": {
                     "GetTopicAttributesResult": {"Attributes": attributes},

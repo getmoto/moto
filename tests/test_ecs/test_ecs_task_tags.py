@@ -1,12 +1,11 @@
 import boto3
 
-from moto import mock_ec2, mock_ecs
+from moto import mock_aws
 
 from .test_ecs_boto3 import setup_ecs_cluster_with_ec2_instance
 
 
-@mock_ec2
-@mock_ecs
+@mock_aws
 def test_describe_tasks_include_tags():
     client = boto3.client("ecs", region_name="us-east-1")
     test_cluster_name = "test_ecs_cluster"
@@ -42,8 +41,7 @@ def test_describe_tasks_include_tags():
     assert tags == task_tags
 
 
-@mock_ec2
-@mock_ecs
+@mock_aws
 def test_add_tags_to_task():
     client = boto3.client("ecs", region_name="us-east-1")
     test_cluster_name = "test_ecs_cluster"

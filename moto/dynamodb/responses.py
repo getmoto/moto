@@ -6,12 +6,11 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
-from moto.core.utils import camelcase_to_underscores
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
     KeyIsEmptyStringException,
@@ -30,7 +29,7 @@ def include_consumed_capacity(
     Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]],
 ]:
     def _inner(
-        f: Callable[..., Union[str, TYPE_RESPONSE]]
+        f: Callable[..., Union[str, TYPE_RESPONSE]],
     ) -> Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]]:
         @wraps(f)
         def _wrapper(
@@ -40,10 +39,12 @@ def include_consumed_capacity(
             expected_capacity = handler.body.get("ReturnConsumedCapacity", "NONE")
             if expected_capacity not in ["NONE", "TOTAL", "INDEXES"]:
                 type_ = "ValidationException"
+                headers = handler.response_headers.copy()
+                headers["status"] = "400"
                 message = f"1 validation error detected: Value '{expected_capacity}' at 'returnConsumedCapacity' failed to satisfy constraint: Member must satisfy enum value set: [INDEXES, TOTAL, NONE]"
                 return (
                     400,
-                    handler.response_headers,
+                    headers,
                     dynamo_json_dump({"__type": type_, "message": message}),
                 )
             table_name = handler.body.get("TableName", "")
@@ -189,22 +190,9 @@ class DynamoHandler(BaseResponse):
         return dynamodb_backends[self.current_account][self.region]
 
     @amz_crc32
-    @amzn_request_id
     def call_action(self) -> TYPE_RESPONSE:
         self.body = json.loads(self.body or "{}")
-        endpoint = self.get_endpoint_name(self.headers)
-        if endpoint:
-            endpoint = camelcase_to_underscores(endpoint)
-            response = getattr(self, endpoint)()
-            if isinstance(response, str):
-                return 200, self.response_headers, response
-
-            else:
-                status_code, new_headers, response_content = response
-                self.response_headers.update(new_headers)
-                return status_code, self.response_headers, response_content
-        else:
-            return 404, self.response_headers, ""
+        return super().call_action()
 
     def list_tables(self) -> str:
         body = self.body
@@ -249,6 +237,14 @@ class DynamoHandler(BaseResponse):
                 raise UnknownKeyType(
                     key_type=key_type, position=f"keySchema.{idx}.member.keyType"
                 )
+        if len(key_schema) > 2:
+            key_elements = [
+                f"KeySchemaElement(attributeName={key.get('AttributeName')}, keyType={key['KeyType']})"
+                for key in key_schema
+            ]
+            provided_keys = ", ".join(key_elements)
+            err = f"1 validation error detected: Value '[{provided_keys}]' at 'keySchema' failed to satisfy constraint: Member must have length less than or equal to 2"
+            raise MockValidationException(err)
         # getting attribute definition
         attr = body["AttributeDefinitions"]
 
@@ -530,7 +526,12 @@ class DynamoHandler(BaseResponse):
                 elif request_type == "DeleteRequest":
                     keys = request["Key"]
                     delete_requests.append((table_name, keys))
-
+        if self._contains_duplicates(
+            [json.dumps(k[1]) for k in delete_requests]
+        ) or self._contains_duplicates([json.dumps(k[1]) for k in put_requests]):
+            raise MockValidationException(
+                "Provided list of item keys contains duplicates"
+            )
         for table_name, item in put_requests:
             self.dynamodb_backend.put_item(table_name, item)
         for table_name, keys in delete_requests:
@@ -734,7 +735,9 @@ class DynamoHandler(BaseResponse):
         index_name = self.body.get("IndexName")
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
-        scan_index_forward = self.body.get("ScanIndexForward")
+        scan_index_forward = self.body.get("ScanIndexForward", True)
+        consistent_read = self.body.get("ConsistentRead", False)
+
         items, scanned_count, last_evaluated_key = self.dynamodb_backend.query(
             name,
             hash_key,
@@ -745,6 +748,7 @@ class DynamoHandler(BaseResponse):
             scan_index_forward,
             projection_expressions,
             index_name=index_name,
+            consistent_read=consistent_read,
             expr_names=expression_attribute_names,
             expr_values=expression_attribute_values,
             filter_expression=filter_expression,
@@ -805,6 +809,7 @@ class DynamoHandler(BaseResponse):
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
+        consistent_read = self.body.get("ConsistentRead", False)
 
         projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
@@ -820,6 +825,7 @@ class DynamoHandler(BaseResponse):
                 expression_attribute_names,
                 expression_attribute_values,
                 index_name,
+                consistent_read,
                 projection_expressions,
             )
         except ValueError as err:
@@ -968,12 +974,11 @@ class DynamoHandler(BaseResponse):
                 if len(changed) != len(original):
                     return changed
                 else:
-                    return [
-                        self._build_updated_new_attributes(
-                            original[index], changed[index]
-                        )
+                    any_element_has_changed = any(
+                        changed[index] != original[index]
                         for index in range(len(changed))
-                    ]
+                    )
+                    return changed if any_element_has_changed else original
             else:
                 return changed
 

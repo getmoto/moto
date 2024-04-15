@@ -1,4 +1,3 @@
-"""Test different server responses."""
 import io
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
@@ -193,7 +192,10 @@ def test_s3_server_post_unicode_bucket_key():
     """Verify non-ascii characters in request URLs (e.g., S3 object names)."""
     dispatcher = server.DomainDispatcherApplication(server.create_backend_app)
     backend_app = dispatcher.get_application(
-        {"HTTP_HOST": "s3.amazonaws.com", "PATH_INFO": "/test-bucket/test-object-てすと"}
+        {
+            "HTTP_HOST": "s3.amazonaws.com",
+            "PATH_INFO": "/test-bucket/test-object-てすと",
+        }
     )
     assert backend_app
     backend_app = dispatcher.get_application(

@@ -7,7 +7,6 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
 from moto.s3.responses import S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION
-from moto.utilities.aws_headers import amzn_request_id
 
 from .models import S3ControlBackend, s3control_backends
 
@@ -20,8 +19,9 @@ class S3ControlResponse(BaseResponse):
     def backend(self) -> S3ControlBackend:
         return s3control_backends[self.current_account]["global"]
 
-    @amzn_request_id
-    def public_access_block(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def public_access_block(  # type: ignore
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         try:
             if request.method == "GET":
@@ -70,7 +70,9 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point(full_url)
 
-    def access_point_policy(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def access_point_policy(  # type: ignore[return]
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point_policy(full_url)
@@ -79,7 +81,9 @@ class S3ControlResponse(BaseResponse):
         if request.method == "DELETE":
             return self.delete_access_point_policy(full_url)
 
-    def access_point_policy_status(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def access_point_policy_status(  # type: ignore[return]
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "PUT":
             return self.create_access_point(full_url)

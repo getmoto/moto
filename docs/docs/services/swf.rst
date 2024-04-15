@@ -12,17 +12,6 @@
 swf
 ===
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_swf
-            def test_swf_behaviour:
-                boto3.client("swf")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] count_closed_workflow_executions

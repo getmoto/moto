@@ -1,60 +1,32 @@
-from typing import Any, Optional, Union
+from typing import Any, List, Optional, Union
 
-from ..awslambda.models import (
-    BaseBackend,
-    LambdaBackend,
-    lambda_backends,
-)
-from ..core import BackendDict
+from moto.awslambda.models import LambdaBackend
+from moto.core.base_backend import BackendDict
 
 
-class LambdaSimpleBackend(BaseBackend):
+class LambdaSimpleBackend(LambdaBackend):
     """
     Implements a Lambda-Backend that does not use Docker containers, will always succeed.
-    Annotate your tests with `@mock_lambda_simple`-decorator to use this Lambda-implementation.
+    Annotate your tests with `@mock_aws(config={"lambda": {"use_docker": False}}) to use this Lambda-implementation.
     """
 
-    @property
-    def backend(self) -> LambdaBackend:
-        return lambda_backends[self.account_id][self.region_name]
-
-    def __getattribute__(self, name: str) -> Any:
-        """
-        Magic part that makes this class behave like a wrapper around the regular lambda_backend
-        """
-        if name in [
-            "backend",
-            "account_id",
-            "region_name",
-            "urls",
-            "_url_module",
-            "__class__",
-            "url_bases",
-        ]:
-            return object.__getattribute__(self, name)
-        if name in ["invoke", "invoke_async"]:
-
-            def newfunc(*args: Any, **kwargs: Any) -> Any:
-                attr = object.__getattribute__(self, name)
-                return attr(*args, **kwargs)
-
-            return newfunc
-        else:
-            return object.__getattribute__(self.backend, name)
+    def __init__(self, region_name: str, account_id: str):
+        super().__init__(region_name, account_id)
+        self.lambda_simple_results_queue: List[str] = []
 
     # pylint: disable=unused-argument
     def invoke(
         self,
         function_name: str,
-        qualifier: str,
+        qualifier: Optional[str],
         body: Any,
         headers: Any,
         response_headers: Any,
     ) -> Optional[Union[str, bytes]]:
-
-        if body:
-            return str.encode(body)
-        return b"Simple Lambda happy path OK"
+        default_result = body or "Simple Lambda happy path OK"
+        if self.lambda_simple_results_queue:
+            default_result = self.lambda_simple_results_queue.pop(0)
+        return str.encode(default_result)
 
 
 lambda_simple_backends = BackendDict(LambdaSimpleBackend, "lambda")

@@ -4,10 +4,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iot
+from moto import mock_aws
 
 
-@mock_iot
+@mock_aws
 def test_describe_job_execution():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -72,7 +72,7 @@ def test_describe_job_execution():
     assert error_code == "ResourceNotFoundException"
 
 
-@mock_iot
+@mock_aws
 def test_cancel_job_execution():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -108,7 +108,7 @@ def test_cancel_job_execution():
     assert job_execution["execution"]["status"] == "CANCELED"
 
 
-@mock_iot
+@mock_aws
 def test_delete_job_execution():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -146,7 +146,7 @@ def test_delete_job_execution():
     assert error_code == "ResourceNotFoundException"
 
 
-@mock_iot
+@mock_aws
 def test_list_job_executions_for_job():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -183,7 +183,7 @@ def test_list_job_executions_for_job():
     assert job_execution["executionSummaries"][0]["thingArn"] == thing["thingArn"]
 
 
-@mock_iot
+@mock_aws
 def test_list_job_executions_for_thing():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"
@@ -222,7 +222,7 @@ def test_list_job_executions_for_thing():
     assert job_execution["executionSummaries"][0]["jobId"] == job_id
 
 
-@mock_iot
+@mock_aws
 def test_list_job_executions_for_thing_paginated():
     client = boto3.client("iot", region_name="eu-west-1")
     name = "my-thing"

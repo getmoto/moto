@@ -1,9 +1,9 @@
-import warnings
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BaseBackend
+from moto.core.models import BackendDict
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 
@@ -134,6 +134,9 @@ class IdentityStoreBackend(BaseBackend):
     def get_group_id(
         self, identity_store_id: str, alternate_identifier: Dict[str, Any]
     ) -> Tuple[str, str]:
+        """
+        The ExternalId alternate identifier is not yet implemented
+        """
         identity_store = self.__get_identity_store(identity_store_id)
         if "UniqueAttribute" in alternate_identifier:
             if (
@@ -147,8 +150,6 @@ class IdentityStoreBackend(BaseBackend):
                         == alternate_identifier["UniqueAttribute"]["AttributeValue"]
                     ):
                         return g.GroupId, identity_store_id
-        elif "ExternalId" in alternate_identifier:
-            warnings.warn("ExternalId has not been implemented.")
 
         raise ResourceNotFoundException(
             message="GROUP not found.", resource_type="GROUP"
@@ -300,7 +301,7 @@ class IdentityStoreBackend(BaseBackend):
 
         return [m._asdict() for m in identity_store.groups.values()]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(
         self, identity_store_id: str, filters: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:

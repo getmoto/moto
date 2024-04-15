@@ -2,7 +2,8 @@ import json
 from collections import OrderedDict, defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 
 from .comparisons import get_comparison_func
@@ -164,7 +165,9 @@ class Table(BaseModel):
     def put_item(self, item_attrs: Dict[str, Any]) -> Item:
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))  # type: ignore[arg-type]
         if self.has_range_key:
-            range_value: Optional[DynamoType] = DynamoType(item_attrs.get(self.range_key_attr))  # type: ignore[arg-type]
+            range_value: Optional[DynamoType] = DynamoType(
+                item_attrs.get(self.range_key_attr)  # type: ignore[arg-type]
+            )
         else:
             range_value = None
 

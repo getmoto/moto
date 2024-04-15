@@ -1,7 +1,7 @@
 import ipaddress
 from typing import Any, Dict, List, Optional, Set
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.carrier_gateways import CarrierGateway
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.instances import Instance
@@ -488,7 +488,9 @@ class RouteBackend:
             )
 
         route.instance = self.get_instance(instance_id) if instance_id else None  # type: ignore[attr-defined]
-        route.interface = self.get_network_interface(interface_id) if interface_id else None  # type: ignore[attr-defined]
+        route.interface = (
+            self.get_network_interface(interface_id) if interface_id else None  # type: ignore[attr-defined]
+        )
         route.vpc_pcx = (
             self.get_vpc_peering_connection(vpc_peering_connection_id)  # type: ignore[attr-defined]
             if vpc_peering_connection_id

@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_ecs
+from moto import mock_aws
 
 
-@mock_ecs
+@mock_aws
 def test_describe_task_definition_with_tags():
     client = boto3.client("ecs", region_name="us-east-1")
     task_def = client.register_task_definition(

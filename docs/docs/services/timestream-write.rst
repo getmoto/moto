@@ -14,17 +14,6 @@ timestream-write
 
 .. autoclass:: moto.timestreamwrite.models.TimestreamWriteBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_timestreamwrite
-            def test_timestreamwrite_behaviour:
-                boto3.client("timestream-write")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_batch_load_task

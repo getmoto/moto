@@ -1,22 +1,26 @@
 import json
+import sys
+from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_lambda, mock_s3
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 
 from .utilities import get_role_name, get_test_zip_file1, get_test_zip_file2
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
-boto3.setup_default_session(region_name=_lambda_region)
+
+boto3_version = sys.modules["botocore"].__version__
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_add_function_permission(key):
     """
     Parametrized to ensure that we can add permission by using the FunctionName and the FunctionArn
@@ -50,8 +54,10 @@ def test_add_function_permission(key):
     }
 
 
-@mock_lambda
+@mock_aws
 def test_add_permission_with_principalorgid():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
@@ -81,7 +87,7 @@ def test_add_permission_with_principalorgid():
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_get_function_policy(key):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -119,7 +125,7 @@ def test_get_function_policy(key):
     )
 
 
-@mock_lambda
+@mock_aws
 def test_get_policy_with_qualifier():
     # assert that the resource within the statement ends with :qualifier
     conn = boto3.client("lambda", _lambda_region)
@@ -164,7 +170,7 @@ def test_get_policy_with_qualifier():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_add_permission_with_unknown_qualifier():
     # assert that the resource within the statement ends with :qualifier
     conn = boto3.client("lambda", _lambda_region)
@@ -200,7 +206,7 @@ def test_add_permission_with_unknown_qualifier():
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_remove_function_permission(key):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -224,13 +230,17 @@ def test_remove_function_permission(key):
 
     remove = conn.remove_permission(FunctionName=name_or_arn, StatementId="1")
     assert remove["ResponseMetadata"]["HTTPStatusCode"] == 204
-    policy = conn.get_policy(FunctionName=name_or_arn)["Policy"]
-    policy = json.loads(policy)
-    assert policy["Statement"] == []
+
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(FunctionName=name_or_arn)["Policy"]
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."
 
 
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_lambda
+@mock_aws
 def test_remove_function_permission__with_qualifier(key):
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
@@ -269,13 +279,15 @@ def test_remove_function_permission__with_qualifier(key):
         FunctionName=name_or_arn, StatementId="1", Qualifier="2"
     )
     assert remove["ResponseMetadata"]["HTTPStatusCode"] == 204
-    policy = conn.get_policy(FunctionName=name_or_arn, Qualifier="2")["Policy"]
-    policy = json.loads(policy)
-    assert policy["Statement"] == []
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(FunctionName=name_or_arn, Qualifier="2")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."
 
 
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_get_unknown_policy():
     conn = boto3.client("lambda", _lambda_region)
 
@@ -287,3 +299,31 @@ def test_get_unknown_policy():
         err["Message"]
         == "Function not found: arn:aws:lambda:us-west-2:123456789012:function:unknown"
     )
+
+
+@mock_aws
+def test_policy_error_if_blank_resource_policy():
+    # Setup
+    conn = boto3.client("lambda", _lambda_region)
+    zip_content = get_test_zip_file1()
+    function_name = str(uuid4())[0:6]
+    conn.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=(get_role_name()),
+        Handler="lambda_function.handler",
+        Code={"ZipFile": zip_content},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+    )
+
+    # Execute
+    with pytest.raises(ClientError) as exc:
+        conn.get_policy(FunctionName=function_name)
+
+    # Verify
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."

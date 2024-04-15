@@ -14,17 +14,6 @@ ec2
 
 .. autoclass:: moto.ec2.models.EC2Backend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_ec2
-            def test_ec2_behaviour:
-                boto3.client("ec2")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_address_transfer
@@ -556,7 +545,7 @@ ec2
 - [X] modify_hosts
 - [ ] modify_id_format
 - [ ] modify_identity_id_format
-- [ ] modify_image_attribute
+- [X] modify_image_attribute
 - [X] modify_instance_attribute
 - [ ] modify_instance_capacity_reservation_attributes
 - [ ] modify_instance_credit_specification

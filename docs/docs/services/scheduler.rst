@@ -14,17 +14,6 @@ scheduler
 
 .. autoclass:: moto.scheduler.models.EventBridgeSchedulerBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_scheduler
-            def test_scheduler_behaviour:
-                boto3.client("scheduler")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_schedule

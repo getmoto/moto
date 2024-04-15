@@ -8,9 +8,10 @@ import typing
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from jose import jws
+from joserfc import jwk, jwt
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
@@ -63,7 +64,6 @@ class AuthFlow(str, enum.Enum):
 
 
 class CognitoIdpUserPoolAttribute(BaseModel):
-
     STANDARD_SCHEMA = {
         "sub": {
             "AttributeDataType": "String",
@@ -384,7 +384,6 @@ DEFAULT_USER_POOL_CONFIG: Dict[str, Any] = {
 
 
 class CognitoIdpUserPool(BaseModel):
-
     MAX_ID_LENGTH = 55
 
     def __init__(
@@ -425,10 +424,10 @@ class CognitoIdpUserPool(BaseModel):
                 standard_attribute_name,
                 standard_attribute_schema,
             ) in CognitoIdpUserPoolAttribute.STANDARD_SCHEMA.items():
-                self.schema_attributes[
-                    standard_attribute_name
-                ] = CognitoIdpUserPoolAttribute(
-                    standard_attribute_name, False, standard_attribute_schema
+                self.schema_attributes[standard_attribute_name] = (
+                    CognitoIdpUserPoolAttribute(
+                        standard_attribute_name, False, standard_attribute_schema
+                    )
                 )
 
         self.clients: Dict[str, CognitoIdpUserPoolClient] = OrderedDict()
@@ -443,7 +442,7 @@ class CognitoIdpUserPool(BaseModel):
         with open(
             os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
         ) as f:
-            self.json_web_key = json.loads(f.read())
+            self.json_web_key = jwk.RSAKey.import_key(json.loads(f.read()))
 
     @property
     def backend(self) -> "CognitoIdpBackend":
@@ -542,10 +541,10 @@ class CognitoIdpUserPool(BaseModel):
             "username" if token_use == "access" else "cognito:username": username,
         }
         payload.update(extra_data or {})
-        headers = {"kid": "dummy"}  # KID as present in jwks-public.json
+        headers = {"kid": "dummy", "alg": "RS256"}  # KID as present in jwks-public.json
 
         return (
-            jws.sign(payload, self.json_web_key, headers, algorithm="RS256"),
+            jwt.encode(headers, payload, self.json_web_key),
             expires_in,
         )
 
@@ -868,6 +867,7 @@ class CognitoIdpUser(BaseModel):
         flat_attributes.update(flatten_attrs(new_attributes))
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
+        self.last_modified_date = utcnow()
 
     def delete_attributes(self, attrs_to_delete: List[str]) -> None:
         flat_attributes = flatten_attrs(self.attributes)
@@ -890,6 +890,7 @@ class CognitoIdpUser(BaseModel):
             )
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
+        self.last_modified_date = utcnow()
 
 
 class CognitoResourceServer(BaseModel):
@@ -972,7 +973,7 @@ class CognitoIdpBackend(BaseBackend):
             "MfaConfiguration": user_pool.mfa_config,
         }
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_pools(self) -> List[CognitoIdpUserPool]:
         return list(self.user_pools.values())
 
@@ -1045,7 +1046,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.clients[user_pool_client.id] = user_pool_client
         return user_pool_client
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_pool_clients(
         self, user_pool_id: str
     ) -> List[CognitoIdpUserPoolClient]:
@@ -1094,7 +1095,7 @@ class CognitoIdpBackend(BaseBackend):
         user_pool.identity_providers[name] = identity_provider
         return identity_provider
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_identity_providers(
         self, user_pool_id: str
     ) -> List[CognitoIdpIdentityProvider]:
@@ -1162,7 +1163,7 @@ class CognitoIdpBackend(BaseBackend):
 
         return user_pool.groups[group_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_groups(self, user_pool_id: str) -> List[CognitoIdpGroup]:
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1203,7 +1204,7 @@ class CognitoIdpBackend(BaseBackend):
         group.users.add(user)
         user.groups.add(group)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_users_in_group(
         self, user_pool_id: str, group_name: str
     ) -> List[CognitoIdpUser]:
@@ -1341,7 +1342,7 @@ class CognitoIdpBackend(BaseBackend):
                 return user
         raise NotAuthorizedError("Invalid token")
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(self, user_pool_id: str) -> List[CognitoIdpUser]:
         user_pool = self.describe_user_pool(user_pool_id)
 
@@ -1465,6 +1466,16 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if user.sms_mfa_enabled and user.preferred_mfa_setting == "SMS_MFA":
+                session = str(random.uuid4())
+                self.sessions[session] = user_pool
+
+                return {
+                    "ChallengeName": "SMS_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
             return self._log_user_in(user_pool, client, username)
         elif auth_flow in (AuthFlow.REFRESH_TOKEN, AuthFlow.REFRESH_TOKEN_AUTH):
             refresh_token: str = auth_parameters.get("REFRESH_TOKEN")  # type: ignore[assignment]
@@ -1577,13 +1588,13 @@ class CognitoIdpBackend(BaseBackend):
 
             del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
-        elif challenge_name == "SOFTWARE_TOKEN_MFA":
+        elif challenge_name == "SOFTWARE_TOKEN_MFA" or challenge_name == "SMS_MFA":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
             self.admin_get_user(user_pool.id, username)
 
-            software_token_mfa_code = challenge_responses.get("SOFTWARE_TOKEN_MFA_CODE")
-            if not software_token_mfa_code:
-                raise ResourceNotFoundError(software_token_mfa_code)
+            mfa_code = challenge_responses.get(f"{challenge_name}_CODE")
+            if not mfa_code:
+                raise ResourceNotFoundError(mfa_code)
 
             if client.generate_secret:
                 secret_hash = challenge_responses.get("SECRET_HASH")
@@ -1758,7 +1769,7 @@ class CognitoIdpBackend(BaseBackend):
 
         return resource_server
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resource_servers(self, user_pool_id: str) -> List[CognitoResourceServer]:
         user_pool = self.user_pools[user_pool_id]
         resource_servers = list(user_pool.resource_servers.values())
@@ -1953,7 +1964,7 @@ class CognitoIdpBackend(BaseBackend):
             if not refresh_token:
                 raise ResourceNotFoundError(refresh_token)
 
-            res = user_pool.refresh_tokens[refresh_token]
+            res = user_pool.refresh_tokens.get(refresh_token)
             if res is None:
                 raise NotAuthorizedError("Refresh Token has been revoked")
 

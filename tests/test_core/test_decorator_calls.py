@@ -1,19 +1,22 @@
+import inspect
+import os
 import unittest
 from typing import Any
-from unittest import SkipTest
+from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_kinesis, mock_s3, settings
+from moto import mock_aws, settings
+from moto.core.decorator import ProxyModeMockAWS, ServerModeMockAWS
 
 """
 Test the different ways that the decorator can be used
 """
 
 
-@mock_ec2
+@mock_aws
 def test_basic_decorator() -> None:
     client = boto3.client("ec2", region_name="us-west-1")
     assert client.describe_addresses()["Addresses"] == []
@@ -39,20 +42,33 @@ def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]  #
         err["Message"] == "AWS was not able to validate the provided access credentials"
     )
 
-    with mock_ec2():
+    with mock_aws():
         client = boto3.client("ec2", region_name="us-west-1")
         assert client.describe_addresses()["Addresses"] == []
+
+
+@mock.patch.dict(os.environ, {"MOTO_CALL_RESET_API": "false"})
+@pytest.mark.parametrize("mock_class", [mock_aws, ServerModeMockAWS, ProxyModeMockAWS])
+def test_context_decorator_exposes_bare_essentials(mock_class: Any) -> None:  # type: ignore
+    # Verify we're only exposing the necessary methods
+    with mock_class() as m:
+        exposed_attributes = [a for a in m.__dict__.keys() if not a.startswith("_")]
+        assert exposed_attributes == []
+
+        # Methods + Static attributes
+        exposed_methods = [n for n, _ in inspect.getmembers(m) if not n.startswith("_")]
+        assert sorted(exposed_methods) == ["reset", "start", "stop"]
 
 
 @pytest.mark.network
 def test_decorator_start_and_stop() -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Authentication always works in ServerMode")
-    mock = mock_ec2()
-    mock.start()
+    my_mock = mock_aws()
+    my_mock.start()
     client = boto3.client("ec2", region_name="us-west-1")
     assert client.describe_addresses()["Addresses"] == []
-    mock.stop()
+    my_mock.stop()
 
     with pytest.raises(ClientError) as exc:
         client.describe_addresses()
@@ -63,15 +79,18 @@ def test_decorator_start_and_stop() -> None:
     )
 
 
-@mock_ec2
+@mock_aws
 def test_decorater_wrapped_gets_set() -> None:
     """
     Moto decorator's __wrapped__ should get set to the tests function
     """
-    assert test_decorater_wrapped_gets_set.__wrapped__.__name__ == "test_decorater_wrapped_gets_set"  # type: ignore
+    assert (
+        test_decorater_wrapped_gets_set.__wrapped__.__name__  # type: ignore
+        == "test_decorater_wrapped_gets_set"
+    )
 
 
-@mock_ec2
+@mock_aws
 class Tester:
     def test_the_class(self) -> None:
         client = boto3.client("ec2", region_name="us-west-1")
@@ -82,7 +101,7 @@ class Tester:
         assert client.describe_addresses()["Addresses"] == []
 
 
-@mock_s3
+@mock_aws
 class TesterWithSetup(unittest.TestCase):
     def setUp(self) -> None:
         self.client = boto3.client("s3", region_name="us-east-1")
@@ -96,7 +115,7 @@ class TesterWithSetup(unittest.TestCase):
         assert "mybucket" in bucket_names
 
 
-@mock_s3
+@mock_aws
 class TesterWithStaticmethod:
     @staticmethod
     def static(*args: Any) -> None:  # type: ignore[misc]
@@ -106,7 +125,7 @@ class TesterWithStaticmethod:
         self.static()
 
 
-@mock_s3
+@mock_aws
 class TestWithSetup_UppercaseU(unittest.TestCase):
     def setUp(self) -> None:
         # This method will be executed automatically, provided we extend the TestCase-class
@@ -123,7 +142,7 @@ class TestWithSetup_UppercaseU(unittest.TestCase):
             s3.head_bucket(Bucket="unknown_bucket")
 
 
-@mock_s3
+@mock_aws
 class TestWithSetup_LowercaseU:
     def setup_method(self, *args: Any) -> None:  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
@@ -140,7 +159,7 @@ class TestWithSetup_LowercaseU:
             s3.head_bucket(Bucket="unknown_bucket")
 
 
-@mock_s3
+@mock_aws
 class TestWithSetupMethod:
     def setup_method(self, *args: Any) -> None:  # pylint: disable=unused-argument
         # This method will be executed automatically using pytest
@@ -157,7 +176,7 @@ class TestWithSetupMethod:
             s3.head_bucket(Bucket="unknown_bucket")
 
 
-@mock_kinesis
+@mock_aws
 class TestKinesisUsingSetupMethod:
     def setup_method(self, *args: Any) -> None:  # pylint: disable=unused-argument
         self.stream_name = "test_stream"
@@ -176,7 +195,7 @@ class TestKinesisUsingSetupMethod:
         pass
 
 
-@mock_s3
+@mock_aws
 class TestWithInvalidSetupMethod:
     def setupmethod(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
@@ -189,7 +208,7 @@ class TestWithInvalidSetupMethod:
             s3.head_bucket(Bucket="mybucket")
 
 
-@mock_s3
+@mock_aws
 class TestWithPublicMethod(unittest.TestCase):
     def ensure_bucket_exists(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
@@ -207,7 +226,7 @@ class TestWithPublicMethod(unittest.TestCase):
             s3.head_bucket(Bucket="mybucket")
 
 
-@mock_s3
+@mock_aws
 class TestWithPseudoPrivateMethod(unittest.TestCase):
     def _ensure_bucket_exists(self) -> None:
         s3 = boto3.client("s3", region_name="us-east-1")
@@ -224,7 +243,7 @@ class TestWithPseudoPrivateMethod(unittest.TestCase):
             s3.head_bucket(Bucket="mybucket")
 
 
-@mock_s3
+@mock_aws
 class Baseclass(unittest.TestCase):
     def setUp(self) -> None:
         self.s3 = boto3.resource("s3", region_name="us-east-1")
@@ -237,14 +256,14 @@ class Baseclass(unittest.TestCase):
         self.test_bucket.delete()
 
 
-@mock_s3
+@mock_aws
 class TestSetUpInBaseClass(Baseclass):
     def test_a_thing(self) -> None:
         # Verify that we can 'see' the setUp-method in the parent class
         assert self.client.head_bucket(Bucket="testbucket") is not None
 
 
-@mock_s3
+@mock_aws
 class TestWithNestedClasses:
     class NestedClass(unittest.TestCase):
         def _ensure_bucket_exists(self) -> None:

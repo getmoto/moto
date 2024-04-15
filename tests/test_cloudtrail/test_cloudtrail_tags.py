@@ -1,12 +1,11 @@
 import boto3
 
-from moto import mock_cloudtrail, mock_s3, mock_sns
+from moto import mock_aws
 
 from .test_cloudtrail import create_trail_advanced, create_trail_simple
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_add_tags():
     client = boto3.client("cloudtrail", region_name="ap-southeast-1")
     _, resp, _ = create_trail_simple(region_name="ap-southeast-1")
@@ -22,9 +21,7 @@ def test_add_tags():
     }
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_remove_tags():
     client = boto3.client("cloudtrail", region_name="ap-southeast-1")
     # Start with two tags
@@ -46,8 +43,7 @@ def test_remove_tags():
     }
 
 
-@mock_cloudtrail
-@mock_s3
+@mock_aws
 def test_create_trail_without_tags_and_list_tags():
     client = boto3.client("cloudtrail", region_name="us-east-2")
     _, resp, _ = create_trail_simple(region_name="us-east-2")
@@ -58,9 +54,7 @@ def test_create_trail_without_tags_and_list_tags():
     assert resp["ResourceTagList"][0] == {"ResourceId": trail_arn, "TagsList": []}
 
 
-@mock_cloudtrail
-@mock_s3
-@mock_sns
+@mock_aws
 def test_create_trail_with_tags_and_list_tags():
     client = boto3.client("cloudtrail", region_name="us-east-2")
     _, resp, _, _ = create_trail_advanced(region_name="us-east-2")

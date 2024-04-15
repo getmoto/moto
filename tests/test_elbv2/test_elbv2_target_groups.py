@@ -2,14 +2,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_elbv2
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_elbv2 import create_load_balancer
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_create_target_group_with_invalid_healthcheck_protocol():
     _, vpc, _, _, _, conn = create_load_balancer()
     # Can't create a target group with an invalid protocol
@@ -36,8 +35,7 @@ def test_create_target_group_with_invalid_healthcheck_protocol():
     )
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_target_group_with_tags():
     response, vpc, _, _, _, conn = create_load_balancer()
 
@@ -77,8 +75,7 @@ def test_create_target_group_with_tags():
     assert tags == [{"Key": "key2", "Value": "val2"}]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_target_group_and_listeners():
     response, vpc, _, _, _, conn = create_load_balancer()
 
@@ -207,8 +204,7 @@ def test_create_target_group_and_listeners():
     assert len(response["TargetGroups"]) == 0
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_target_group_without_non_required_parameters():
     response, vpc, _, _, _, conn = create_load_balancer()
 
@@ -225,8 +221,7 @@ def test_create_target_group_without_non_required_parameters():
     assert len(response.get("TargetGroups", [])) == 1
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_invalid_target_group_long_name():
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -258,8 +253,7 @@ def test_create_invalid_target_group_long_name():
     )
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("name", ["-name", "name-", "-name-", "Na--me"])
 def test_create_invalid_target_group_invalid_characters(name):
     conn = boto3.client("elbv2", region_name="us-east-1")
@@ -290,8 +284,7 @@ def test_create_invalid_target_group_invalid_characters(name):
     )
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("name", ["example.com", "test@test"])
 def test_create_invalid_target_group_alphanumeric_characters(name):
     conn = boto3.client("elbv2", region_name="us-east-1")
@@ -322,8 +315,7 @@ def test_create_invalid_target_group_alphanumeric_characters(name):
     )
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("name", ["name", "Name", "000"])
 def test_create_valid_target_group_valid_names(name):
     conn = boto3.client("elbv2", region_name="us-east-1")
@@ -347,8 +339,7 @@ def test_create_valid_target_group_valid_names(name):
     )
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_target_group_attributes():
     response, vpc, _, _, _, conn = create_load_balancer()
 
@@ -418,8 +409,7 @@ def test_target_group_attributes():
     assert attributes["stickiness.app_cookie.cookie_name"] == "my_cookie"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_target_group_invalid_protocol():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -450,7 +440,7 @@ def test_create_target_group_invalid_protocol():
     )
 
 
-@mock_elbv2
+@mock_aws
 def test_describe_invalid_target_group():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -462,8 +452,7 @@ def test_describe_invalid_target_group():
     assert err["Message"] == "One or more target groups not found"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_describe_target_groups():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
 
@@ -567,8 +556,7 @@ def test_describe_target_groups():
     assert groups[1]["TargetGroupName"] == "d-target"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_describe_target_groups_with_empty_load_balancer():
     response, _, _, _, _, conn = create_load_balancer()
 
@@ -581,8 +569,7 @@ def test_describe_target_groups_with_empty_load_balancer():
     assert err["Message"] == "One or more target groups not found"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_modify_target_group():
     client = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -630,8 +617,7 @@ def test_modify_target_group():
     assert response["TargetGroups"][0]["UnhealthyThresholdCount"] == 4
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize("target_type", ["instance", "ip", "lambda", "alb", "other"])
 def test_create_target_group_with_target_type(target_type):
     response, vpc, _, _, _, conn = create_load_balancer()
@@ -665,8 +651,7 @@ def test_create_target_group_with_target_type(target_type):
         assert "VpcId" in group
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_delete_target_group_after_modifying_listener():
     client = boto3.client("elbv2", region_name="us-east-1")
 
@@ -710,8 +695,7 @@ def test_delete_target_group_after_modifying_listener():
     assert default_actions == [{"Type": "forward", "TargetGroupArn": target_group_arn2}]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_listener_with_multiple_target_groups():
     client = boto3.client("elbv2", region_name="us-east-1")
 
@@ -758,8 +742,7 @@ def test_create_listener_with_multiple_target_groups():
     assert {"TargetGroupArn": target_group_arn2, "Weight": 0} in groups
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_listener_with_invalid_target_group():
     response, _, _, _, _, conn = create_load_balancer()
 
@@ -784,8 +767,7 @@ def test_create_listener_with_invalid_target_group():
     assert err["Message"] == "Target group 'unknown' not found"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_delete_target_group_while_listener_still_exists():
     client = boto3.client("elbv2", region_name="us-east-1")
 
@@ -831,8 +813,7 @@ def test_delete_target_group_while_listener_still_exists():
     client.delete_target_group(TargetGroupArn=target_group_arn1)
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 def test_create_target_group_validation_error():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     _, vpc, _, _, _, _ = create_load_balancer()
@@ -944,8 +925,7 @@ def test_create_target_group_validation_error():
     )
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 @pytest.mark.parametrize(
     "protocol_name, should_raise",
     [
@@ -998,8 +978,7 @@ def test_create_target_group_healthcheck_validation(protocol_name, should_raise)
         )
 
 
-@mock_ec2
-@mock_elbv2
+@mock_aws
 @pytest.mark.parametrize(
     "protocol, should_raise, stickiness_type, error_message",
     [

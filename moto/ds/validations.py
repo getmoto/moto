@@ -2,6 +2,7 @@
 
 Note that ValidationExceptions are accumulative.
 """
+
 import re
 from typing import Any
 
@@ -35,7 +36,7 @@ def validate_args(validators: Any) -> None:
     err_msgs = []
     # This eventually could be a switch (python 3.10), elminating the need
     # for the above map and individual functions.
-    for (fieldname, value) in validators:
+    for fieldname, value in validators:
         msg = validation_map[fieldname](value)
         if msg:
             err_msgs.append((fieldname, value, msg))

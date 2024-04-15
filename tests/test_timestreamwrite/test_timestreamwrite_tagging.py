@@ -3,12 +3,12 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import mock_timestreamwrite
+from moto import mock_aws
 
 from . import timestreamwrite_aws_verified
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_list_tagging_for_table_without_tags():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -27,7 +27,7 @@ def test_list_tagging_for_table_without_tags():
     assert resp["Tags"] == []
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_list_tagging_for_table_with_tags():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     ts.create_database(DatabaseName="mydatabase")
@@ -47,7 +47,7 @@ def test_list_tagging_for_table_with_tags():
     assert resp["Tags"] == [{"Key": "k1", "Value": "v1"}]
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_list_tagging_for_database_without_tags():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_arn = ts.create_database(DatabaseName="mydatabase")["Database"]["Arn"]
@@ -56,7 +56,7 @@ def test_list_tagging_for_database_without_tags():
     assert resp["Tags"] == []
 
 
-@mock_timestreamwrite
+@mock_aws
 def test_list_tagging_for_database_with_tags():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_arn = ts.create_database(

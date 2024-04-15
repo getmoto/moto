@@ -2,7 +2,7 @@ from threading import Lock
 from threading import Timer as ThreadingTimer
 from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BaseModel
+from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
 from moto.moto_api._internal import mock_random
 
@@ -25,7 +25,6 @@ from .workflow_type import WorkflowType
 
 # TODO: extract decision related logic into a Decision class
 class WorkflowExecution(BaseModel):
-
     # NB: the list is ordered exactly as in SWF validation exceptions so we can
     # mimic error messages closely ; don't reorder it without checking SWF.
     KNOWN_DECISION_TYPES = [

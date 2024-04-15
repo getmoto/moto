@@ -1,11 +1,12 @@
 """Unit tests for lambda-supported APIs."""
+
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_lambda
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .utilities import (
@@ -19,7 +20,7 @@ from .utilities import (
 PYTHON_VERSION = "python3.11"
 
 
-@mock_lambda
+@mock_aws
 def test_create_alias():
     client = boto3.client("lambda", region_name="ap-southeast-1")
     function_name = str(uuid4())[0:6]
@@ -47,7 +48,7 @@ def test_create_alias():
     assert "RoutingConfig" not in resp
 
 
-@mock_lambda
+@mock_aws
 def test_create_alias_with_routing_config():
     client = boto3.client("lambda", region_name="ap-southeast-1")
     function_name = str(uuid4())[0:6]
@@ -73,7 +74,7 @@ def test_create_alias_with_routing_config():
     assert resp["RoutingConfig"] == {"AdditionalVersionWeights": {"2": 0.5}}
 
 
-@mock_lambda
+@mock_aws
 def test_create_alias_using_function_arn():
     client = boto3.client("lambda", region_name="ap-southeast-1")
     function_name = str(uuid4())[0:6]
@@ -99,7 +100,7 @@ def test_create_alias_using_function_arn():
     assert resp["FunctionVersion"] == "$LATEST"
 
 
-@mock_lambda
+@mock_aws
 def test_delete_alias():
     client = boto3.client("lambda", region_name="us-east-2")
     function_name = str(uuid4())[0:6]
@@ -124,7 +125,7 @@ def test_delete_alias():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_lambda
+@mock_aws
 def test_get_alias():
     client = boto3.client("lambda", region_name="us-west-1")
     function_name = str(uuid4())[0:6]
@@ -153,7 +154,7 @@ def test_get_alias():
     assert "RevisionId" in resp
 
 
-@mock_lambda
+@mock_aws
 def test_aliases_are_unique_per_function():
     client = boto3.client("lambda", region_name="us-west-1")
     function_name = str(uuid4())[0:6]
@@ -203,7 +204,7 @@ def test_aliases_are_unique_per_function():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_get_alias_using_function_arn():
     client = boto3.client("lambda", region_name="us-west-1")
     function_name = str(uuid4())[0:6]
@@ -233,7 +234,7 @@ def test_get_alias_using_function_arn():
     assert "RevisionId" in resp
 
 
-@mock_lambda
+@mock_aws
 def test_get_alias_using_alias_arn():
     client = boto3.client("lambda", region_name="us-west-1")
     function_name = str(uuid4())[0:6]
@@ -263,7 +264,7 @@ def test_get_alias_using_alias_arn():
     assert "RevisionId" in resp
 
 
-@mock_lambda
+@mock_aws
 def test_get_unknown_alias():
     client = boto3.client("lambda", region_name="us-west-1")
     function_name = str(uuid4())[0:6]
@@ -286,7 +287,7 @@ def test_get_unknown_alias():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_update_alias():
     client = boto3.client("lambda", region_name="us-east-2")
     function_name = str(uuid4())[0:6]
@@ -326,7 +327,7 @@ def test_update_alias():
     assert "RevisionId" in resp
 
 
-@mock_lambda
+@mock_aws
 def test_update_alias_errors_if_version_doesnt_exist():
     client = boto3.client("lambda", region_name="us-east-2")
     function_name = str(uuid4())[0:6]
@@ -358,7 +359,7 @@ def test_update_alias_errors_if_version_doesnt_exist():
     )
 
 
-@mock_lambda
+@mock_aws
 def test_update_alias_routingconfig():
     client = boto3.client("lambda", region_name="us-east-2")
     function_name = str(uuid4())[0:6]
@@ -394,7 +395,7 @@ def test_update_alias_routingconfig():
     assert resp["RoutingConfig"] == {"AdditionalVersionWeights": {"2": 0.5}}
 
 
-@mock_lambda
+@mock_aws
 @pytest.mark.parametrize("qualifierIn", ["NAME", "SEPARATE", "BOTH"])
 def test_get_function_using_alias(qualifierIn):
     client = boto3.client("lambda", region_name="us-east-2")

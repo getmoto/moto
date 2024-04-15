@@ -14,17 +14,6 @@ opensearch
 
 .. autoclass:: moto.opensearch.models.OpenSearchServiceBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_opensearch
-            def test_opensearch_behaviour:
-                boto3.client("opensearch")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_inbound_connection
@@ -32,6 +21,7 @@ opensearch
 - [X] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
+- [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
 - [X] create_domain
 - [ ] create_outbound_connection

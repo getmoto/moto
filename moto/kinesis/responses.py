@@ -53,7 +53,14 @@ class KinesisResponse(BaseResponse):
             has_more_streams = True
 
         return json.dumps(
-            {"HasMoreStreams": has_more_streams, "StreamNames": streams_resp}
+            {
+                "HasMoreStreams": has_more_streams,
+                "StreamNames": streams_resp,
+                "StreamSummaries": [
+                    stream.to_json_summary()["StreamDescriptionSummary"]
+                    for stream in streams
+                ],
+            }
         )
 
     def delete_stream(self) -> str:
@@ -157,9 +164,7 @@ class KinesisResponse(BaseResponse):
             limit=max_results,
             next_token=next_token,
         )
-        res = {"Shards": shards}
-        if token:
-            res["NextToken"] = token
+        res = {"Shards": shards, "NextToken": token}
         return json.dumps(res)
 
     def update_shard_count(self) -> str:

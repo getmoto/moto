@@ -14,17 +14,6 @@ identitystore
 
 .. autoclass:: moto.identitystore.models.IdentityStoreBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_identitystore
-            def test_identitystore_behaviour:
-                boto3.client("identitystore")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_group
@@ -37,6 +26,10 @@ identitystore
 - [ ] describe_group_membership
 - [X] describe_user
 - [X] get_group_id
+  
+        The ExternalId alternate identifier is not yet implemented
+        
+
 - [ ] get_group_membership_id
 - [ ] get_user_id
 - [ ] is_member_in_groups

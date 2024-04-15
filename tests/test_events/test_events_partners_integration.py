@@ -5,10 +5,10 @@ from unittest import SkipTest, mock
 
 import boto3
 
-from moto import mock_events, mock_logs, settings
+from moto import mock_aws, settings
 
 
-@mock_events
+@mock_aws
 def test_create_partner_event_bus():
     client_account = "111122223333"
     client = boto3.client("events", "us-east-1")
@@ -23,7 +23,7 @@ def test_create_partner_event_bus():
     assert resp["Name"] == "mypartner/actions/action1"
 
 
-@mock_events
+@mock_aws
 def test_describe_partner_event_busses():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't change accounts easily in ServerMode")
@@ -54,8 +54,7 @@ def test_describe_partner_event_busses():
         assert resp["State"] == "DELETED"
 
 
-@mock_events
-@mock_logs
+@mock_aws
 def test_put_partner_events():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't change accounts easily in ServerMode")

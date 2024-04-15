@@ -2,14 +2,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_elasticache
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_elasticache
+@mock_aws
 def test_create_user_no_password_required():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     user_id = "user1"
@@ -35,7 +35,7 @@ def test_create_user_no_password_required():
     )
 
 
-@mock_elasticache
+@mock_aws
 def test_create_user_with_password_too_short():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     user_id = "user1"
@@ -52,7 +52,7 @@ def test_create_user_with_password_too_short():
     assert err["Message"] == "Passwords length must be between 16-128 characters."
 
 
-@mock_elasticache
+@mock_aws
 def test_create_user_with_password():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     user_id = "user1"
@@ -78,7 +78,7 @@ def test_create_user_with_password():
     )
 
 
-@mock_elasticache
+@mock_aws
 def test_create_user_without_password():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -93,7 +93,7 @@ def test_create_user_without_password():
     )
 
 
-@mock_elasticache
+@mock_aws
 def test_create_user_twice():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     user_id = "user1"
@@ -118,7 +118,7 @@ def test_create_user_twice():
     assert err["Message"] == "User user1 already exists."
 
 
-@mock_elasticache
+@mock_aws
 def test_delete_user_unknown():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -128,7 +128,7 @@ def test_delete_user_unknown():
     assert err["Message"] == "User unknown not found."
 
 
-@mock_elasticache
+@mock_aws
 def test_delete_user():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
 
@@ -152,7 +152,7 @@ def test_delete_user():
     assert exc.value.response["Error"]["Code"] == "UserNotFound"
 
 
-@mock_elasticache
+@mock_aws
 def test_describe_users_initial():
     client = boto3.client("elasticache", region_name="us-east-2")
     resp = client.describe_users()
@@ -171,7 +171,7 @@ def test_describe_users_initial():
     }
 
 
-@mock_elasticache
+@mock_aws
 def test_describe_users():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
 
@@ -199,7 +199,7 @@ def test_describe_users():
     } in resp["Users"]
 
 
-@mock_elasticache
+@mock_aws
 def test_describe_users_unknown_userid():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
 
@@ -210,7 +210,7 @@ def test_describe_users_unknown_userid():
     assert err["Message"] == "User unknown not found."
 
 
-@mock_elasticache
+@mock_aws
 def test_create_redis_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -236,7 +236,7 @@ def test_create_redis_cache_cluster():
     assert test_redis_cache_cluster_exist
 
 
-@mock_elasticache
+@mock_aws
 def test_create_memcached_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -262,7 +262,7 @@ def test_create_memcached_cache_cluster():
     assert test_memcached_cache_cluster_exist
 
 
-@mock_elasticache
+@mock_aws
 def test_create_duplicate_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -287,35 +287,38 @@ def test_create_duplicate_cache_cluster():
     assert err["Message"] == f"Cache cluster {cache_cluster_id} already exists."
 
 
-@mock_elasticache
+@mock_aws
 def test_describe_all_cache_clusters():
     client = boto3.client("elasticache", region_name="us-east-2")
 
-    test_memcached_cache_cluster_exist = False
+    num_clusters = 5
+    match_number = 0
 
-    cache_cluster_id = "test-cache-cluster"
-    cache_cluster_engine = "memcached"
-    cache_cluster_num_cache_nodes = 5
-
-    client.create_cache_cluster(
-        CacheClusterId=cache_cluster_id,
-        Engine=cache_cluster_engine,
-        NumCacheNodes=cache_cluster_num_cache_nodes,
-    )
+    for i in range(num_clusters):
+        client.create_cache_cluster(
+            CacheClusterId=f"test-cache-cluster-{i}",
+            Engine="memcached",
+            NumCacheNodes=5,
+        )
 
     resp = client.describe_cache_clusters()
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     cache_clusters = resp["CacheClusters"]
+    # account for the default cluster created moto/elasticache/models.py line 148
+    del cache_clusters[0]
 
-    for cache_cluster in cache_clusters:
-        if cache_cluster["CacheClusterId"] == cache_cluster_id:
-            test_memcached_cache_cluster_exist = True
+    for i, cache_cluster in enumerate(cache_clusters):
+        if cache_cluster["CacheClusterId"] == f"test-cache-cluster-{i}":
+            match_number = match_number + 1
 
-    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert test_memcached_cache_cluster_exist
+    if match_number == (num_clusters):
+        assert True
+    else:
+        assert False
 
 
-@mock_elasticache
+@mock_aws
 def test_describe_specific_cache_clusters():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -349,7 +352,7 @@ def test_describe_specific_cache_clusters():
     assert test_memcached_cache_cluster_exist
 
 
-@mock_elasticache
+@mock_aws
 def test_describe_unknown_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -373,7 +376,7 @@ def test_describe_unknown_cache_cluster():
     assert err["Message"] == f"Cache cluster {cache_cluster_id_unknown} not found."
 
 
-@mock_elasticache
+@mock_aws
 def test_delete_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -395,7 +398,7 @@ def test_delete_cache_cluster():
     assert resp["CacheClusters"][0]["CacheClusterStatus"] == "deleting"
 
 
-@mock_elasticache
+@mock_aws
 def test_delete_unknown_cache_cluster():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -417,3 +420,26 @@ def test_delete_unknown_cache_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "CacheClusterNotFound"
     assert err["Message"] == f"Cache cluster {cache_cluster_id_unknown} not found."
+
+
+@mock_aws
+def test_list_tags_cache_cluster():
+    conn = boto3.client("elasticache", region_name="ap-southeast-1")
+    result = conn.list_tags_for_resource(
+        ResourceName="arn:aws:elasticache:us-west-2:1234567890:cluster:foo"
+    )
+    assert result["TagList"] == []
+    test_instance = conn.create_cache_cluster(
+        CacheClusterId="test-cache-cluster",
+        Engine="memcached",
+        NumCacheNodes=2,
+        Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
+        SecurityGroupIds=["sg-1234"],
+    )
+    post_create_result = conn.list_tags_for_resource(
+        ResourceName=test_instance["CacheCluster"]["ARN"],
+    )
+    assert post_create_result["TagList"] == [
+        {"Value": "bar", "Key": "foo"},
+        {"Value": "bar1", "Key": "foo1"},
+    ]

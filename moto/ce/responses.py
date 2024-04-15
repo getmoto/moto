@@ -1,4 +1,5 @@
 """Handles incoming ce requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.responses import BaseResponse
@@ -102,3 +103,7 @@ class CostExplorerResponse(BaseResponse):
         tag_names = params.get("ResourceTagKeys")
         self.ce_backend.untag_resource(resource_arn, tag_names)
         return json.dumps({})
+
+    def get_cost_and_usage(self) -> str:
+        resp = self.ce_backend.get_cost_and_usage(self.body)
+        return json.dumps(resp)

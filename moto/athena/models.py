@@ -2,7 +2,8 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 
@@ -35,7 +36,6 @@ class TaggableResourceMixin:
 
 
 class WorkGroup(TaggableResourceMixin, BaseModel):
-
     resource_type = "workgroup"
     state = "ENABLED"
 
@@ -85,7 +85,9 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
 
 
 class Execution(BaseModel):
-    def __init__(self, query: str, context: str, config: str, workgroup: WorkGroup):
+    def __init__(
+        self, query: str, context: str, config: Dict[str, Any], workgroup: WorkGroup
+    ):
         self.id = str(mock_random.uuid4())
         self.query = query
         self.context = context
@@ -93,6 +95,11 @@ class Execution(BaseModel):
         self.workgroup = workgroup
         self.start_time = time.time()
         self.status = "SUCCEEDED"
+
+        if "OutputLocation" in self.config:
+            if not self.config["OutputLocation"].endswith("/"):
+                self.config["OutputLocation"] += "/"
+            self.config["OutputLocation"] += f"{self.id}.csv"
 
 
 class QueryResults(BaseModel):
@@ -166,15 +173,6 @@ class AthenaBackend(BaseBackend):
             name="primary", description="", configuration=dict(), tags=[]
         )
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "athena"
-        )
-
     def create_work_group(
         self,
         name: str,
@@ -212,7 +210,7 @@ class AthenaBackend(BaseBackend):
         }
 
     def start_query_execution(
-        self, query: str, context: str, config: str, workgroup: WorkGroup
+        self, query: str, context: str, config: Dict[str, Any], workgroup: WorkGroup
     ) -> str:
         execution = Execution(
             query=query, context=context, config=config, workgroup=workgroup
@@ -261,7 +259,7 @@ class AthenaBackend(BaseBackend):
                 ],
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/athena/query-results",
+                "http://motoapi.amazonaws.com/moto-api/static/athena/query-results",
                 json=expected_results,
             )
             assert resp.status_code == 201
@@ -339,7 +337,7 @@ class AthenaBackend(BaseBackend):
         self.data_catalogs[name] = data_catalog
         return data_catalog
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_named_queries(self, work_group: str) -> List[str]:
         named_query_ids = [
             q.id for q in self.named_queries.values() if q.workgroup.name == work_group

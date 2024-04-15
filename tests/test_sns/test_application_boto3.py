@@ -4,13 +4,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_sns
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import sns_aws_verified
 
 
-@mock_sns
+@mock_aws
 def test_create_platform_application():
     conn = boto3.client("sns", region_name="us-east-1")
     response = conn.create_platform_application(
@@ -27,7 +27,7 @@ def test_create_platform_application():
     )
 
 
-@mock_sns
+@mock_aws
 def test_get_platform_application_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -48,14 +48,14 @@ def test_get_platform_application_attributes():
     }
 
 
-@mock_sns
+@mock_aws
 def test_get_missing_platform_application_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     with pytest.raises(ClientError):
         conn.get_platform_application_attributes(PlatformApplicationArn="a-fake-arn")
 
 
-@mock_sns
+@mock_aws
 def test_set_platform_application_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -78,7 +78,7 @@ def test_set_platform_application_attributes():
     )
 
 
-@mock_sns
+@mock_aws
 def test_list_platform_applications():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_platform_application(
@@ -93,7 +93,7 @@ def test_list_platform_applications():
     assert len(applications) == 2
 
 
-@mock_sns
+@mock_aws
 def test_delete_platform_application():
     conn = boto3.client("sns", region_name="us-east-1")
     conn.create_platform_application(
@@ -115,7 +115,7 @@ def test_delete_platform_application():
     assert len(applications) == 1
 
 
-@mock_sns
+@mock_aws
 def test_create_platform_endpoint():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -266,6 +266,13 @@ def test_get_list_endpoints_by_platform_application(api_key=None):
         assert len(endpoint_list) == 1
         assert endpoint_list[0]["Attributes"]["CustomUserData"] == "some data"
         assert endpoint_list[0]["EndpointArn"] == endpoint_arn
+
+        resp = conn.delete_endpoint(EndpointArn=endpoint_arn)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+        # Idempotent operation
+        resp = conn.delete_endpoint(EndpointArn=endpoint_arn)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     finally:
         if application_arn is not None:
             conn.delete_platform_application(PlatformApplicationArn=application_arn)
@@ -279,7 +286,7 @@ def test_get_list_endpoints_by_platform_application(api_key=None):
     assert err["Message"] == "PlatformApplication does not exist"
 
 
-@mock_sns
+@mock_aws
 def test_get_endpoint_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -319,14 +326,14 @@ def test_get_non_existent_endpoint_attributes(
     assert error["Message"] == "Endpoint does not exist"
 
 
-@mock_sns
+@mock_aws
 def test_get_missing_endpoint_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     with pytest.raises(ClientError):
         conn.get_endpoint_attributes(EndpointArn="a-fake-arn")
 
 
-@mock_sns
+@mock_aws
 def test_set_endpoint_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -351,7 +358,7 @@ def test_set_endpoint_attributes():
     )
 
 
-@mock_sns
+@mock_aws
 def test_delete_endpoint():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -378,7 +385,7 @@ def test_delete_endpoint():
     assert len(endpoints) == 0
 
 
-@mock_sns
+@mock_aws
 def test_publish_to_platform_endpoint():
     conn = boto3.client("sns", region_name="us-east-1")
     platform_application = conn.create_platform_application(
@@ -431,7 +438,51 @@ def test_publish_to_disabled_platform_endpoint(api_key=None):
             conn.delete_platform_application(PlatformApplicationArn=application_arn)
 
 
-@mock_sns
+@pytest.mark.aws_verified
+@sns_aws_verified
+def test_publish_to_deleted_platform_endpoint(api_key=None):
+    conn = boto3.client("sns", region_name="us-east-1")
+    platform_name = str(uuid4())[0:6]
+    topic_name = "topic_" + str(uuid4())[0:6]
+    application_arn = None
+    try:
+        platform_application = conn.create_platform_application(
+            Name=platform_name,
+            Platform="GCM",
+            Attributes={"PlatformCredential": api_key},
+        )
+        application_arn = platform_application["PlatformApplicationArn"]
+
+        endpoint_arn = conn.create_platform_endpoint(
+            PlatformApplicationArn=application_arn,
+            Token="some_unique_id",
+            Attributes={"Enabled": "false"},
+        )["EndpointArn"]
+
+        topic_arn = conn.create_topic(Name=topic_name)["TopicArn"]
+
+        conn.delete_endpoint(EndpointArn=endpoint_arn)
+
+        with pytest.raises(ClientError) as exc:
+            conn.subscribe(
+                TopicArn=topic_arn,
+                Endpoint=endpoint_arn,
+                Protocol="application",
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameter"
+        assert (
+            err["Message"]
+            == f"Invalid parameter: Endpoint Reason: Endpoint does not exist for endpoint arn{endpoint_arn}"
+        )
+    finally:
+        if application_arn is not None:
+            conn.delete_topic(TopicArn=topic_arn)
+
+            conn.delete_platform_application(PlatformApplicationArn=application_arn)
+
+
+@mock_aws
 def test_set_sms_attributes():
     conn = boto3.client("sns", region_name="us-east-1")
 
@@ -447,7 +498,7 @@ def test_set_sms_attributes():
     assert response["attributes"]["test"] == "test"
 
 
-@mock_sns
+@mock_aws
 def test_get_sms_attributes_filtered():
     conn = boto3.client("sns", region_name="us-east-1")
 
@@ -462,7 +513,7 @@ def test_get_sms_attributes_filtered():
     assert response["attributes"]["DefaultSMSType"] == "Transactional"
 
 
-@mock_sns
+@mock_aws
 def test_delete_endpoints_of_delete_app():
     conn = boto3.client("sns", region_name="us-east-1")
 

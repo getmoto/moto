@@ -12,17 +12,6 @@
 kinesisvideo
 ============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_kinesisvideo
-            def test_kinesisvideo_behaviour:
-                boto3.client("kinesisvideo")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_signaling_channel

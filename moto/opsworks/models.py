@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
@@ -39,7 +40,6 @@ class OpsworkInstance(BaseModel):
         associate_public_ip: Optional[str] = None,
         security_group_ids: Optional[List[str]] = None,
     ):
-
         self.ec2_backend = ec2_backend
 
         self.instance_profile_arn = instance_profile_arn
@@ -89,7 +89,7 @@ class OpsworkInstance(BaseModel):
         attributes
         """
         if self.instance is None:
-            reservation = self.ec2_backend.add_instances(
+            reservation = self.ec2_backend.run_instances(
                 image_id=self.ami_id,
                 count=1,
                 user_data="",
@@ -319,7 +319,6 @@ class Stack(BaseModel):
         default_root_device_type: str = "instance-store",
         agent_version: str = "LATEST",
     ):
-
         self.name = name
         self.region = region
         self.service_role_arn = service_role_arn
@@ -589,7 +588,9 @@ class OpsWorksBackend(BaseBackend):
             raise ResourceNotFoundException(", ".join(unknown_apps))
         return [self.apps[id].to_dict() for id in app_ids]
 
-    def describe_instances(self, instance_ids: List[str], layer_id: str, stack_id: str) -> List[Dict[str, Any]]:  # type: ignore[return]
+    def describe_instances(  # type: ignore[return]
+        self, instance_ids: List[str], layer_id: str, stack_id: str
+    ) -> List[Dict[str, Any]]:
         if len(list(filter(None, (instance_ids, layer_id, stack_id)))) != 1:
             raise ValidationException(
                 "Please provide either one or more "

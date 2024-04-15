@@ -3,10 +3,10 @@ import pytest
 from boto3 import Session
 from botocore.client import ClientError
 
-from moto import mock_s3control
+from moto import mock_aws
 
 
-@mock_s3control
+@mock_aws
 def test_get_public_access_block_for_account():
     from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 

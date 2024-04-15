@@ -1,8 +1,19 @@
 import re
 import string
+import sys
 from functools import lru_cache
 from threading import RLock
-from typing import Any, Callable, ClassVar, Dict, Iterator, List, Optional, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    TypeVar,
+)
 from uuid import uuid4
 
 from boto3 import Session
@@ -12,6 +23,18 @@ from moto.settings import allow_unknown_region, enable_iso_regions
 from .model_instances import model_data
 from .responses import TYPE_RESPONSE
 from .utils import convert_regex_to_flask_path
+
+if TYPE_CHECKING:
+    from moto.core.common_models import BaseModel
+
+    if sys.version_info >= (3, 9):
+        from builtins import type as Type
+    else:
+        # https://github.com/python/mypy/issues/10068
+        # Legacy generic type annotation classes
+        # Deprecated in Python 3.9
+        # Remove once we no longer support Python 3.8 or lower
+        from typing import Type
 
 
 class InstanceTrackerMeta(type):
@@ -23,7 +46,7 @@ class InstanceTrackerMeta(type):
         service = cls.__module__.split(".")[1]
         if name not in model_data[service]:
             model_data[service][name] = cls
-        cls.instances: ClassVar[List[Any]] = []  # type: ignore
+        cls.instances: ClassVar[List["BaseModel"]] = []  # type: ignore
         return cls
 
 
@@ -117,7 +140,8 @@ class BaseBackend:
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]  # pylint: disable=unused-argument
+        service_region: str,
+        zones: List[str],  # pylint: disable=unused-argument
     ) -> List[Dict[str, str]]:
         """Invoke the factory method for any VPC endpoint(s) services."""
         return []
@@ -165,9 +189,9 @@ class BaseBackend:
         # Don't know how private DNS names are different, so for now just
         # one will be added.
         if private_dns_names:
-            endpoint_service[
-                "PrivateDnsName"
-            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsName"] = (
+                f"{service}.{service_region}.amazonaws.com"
+            )
             endpoint_service["PrivateDnsNameVerificationState"] = "verified"
             endpoint_service["PrivateDnsNames"] = [
                 {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}
@@ -251,7 +275,6 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
     def __setitem__(self, key: str, value: SERVICE_BACKEND) -> None:
         super().__setitem__(key, value)
 
-    @lru_cache()
     def __getitem__(self, region_name: str) -> SERVICE_BACKEND:
         if region_name in self.keys():
             return super().__getitem__(region_name)
@@ -276,9 +299,31 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
       [account_id: str][region: str] = BaseBackend
     """
 
+    # We keep track of the BackendDict's that were:
+    # - instantiated
+    # - contain at least one AccountSpecificBackend
+    #
+    # In other words, this is the list of backends which are in use by the user
+    #   making it trivial to determine which backends to reset when the mocks end
+    _instances: List["BackendDict[SERVICE_BACKEND]"] = []
+
+    @classmethod
+    def reset(cls) -> None:
+        with backend_lock:
+            for backend in BackendDict._instances:  # type: ignore[misc]
+                for account_specific_backend in backend.values():
+                    account_specific_backend.reset()
+                    # account_specific_backend.__getitem__.cache_clear()
+                backend.clear()
+            # https://github.com/getmoto/moto/issues/6592
+            # Could be fixed by removing the cache, forcing all data to be regenerated every reset
+            # But this also incurs a significant performance hit
+            # backend.__getitem__.cache_clear()
+            BackendDict._instances.clear()  # type: ignore[misc]
+
     def __init__(
         self,
-        backend: "type[SERVICE_BACKEND]",
+        backend: "Type[SERVICE_BACKEND]",
         service_name: str,
         use_boto3_regions: bool = True,
         additional_regions: Optional[List[str]] = None,
@@ -300,7 +345,6 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
     def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    @lru_cache()
     def __getitem__(self, account_id: str) -> AccountSpecificBackend[SERVICE_BACKEND]:
         self._create_account_specific_backend(account_id)
         return super().__getitem__(account_id)
@@ -331,3 +375,4 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
                     use_boto3_regions=self._use_boto3_regions,
                     additional_regions=self._additional_regions,
                 )
+                BackendDict._instances.append(self)  # type: ignore[misc]

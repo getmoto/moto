@@ -12,25 +12,14 @@
 autoscaling
 ===========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_autoscaling
-            def test_autoscaling_behaviour:
-                boto3.client("autoscaling")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] attach_instances
 - [X] attach_load_balancer_target_groups
 - [X] attach_load_balancers
 - [ ] attach_traffic_sources
-- [ ] batch_delete_scheduled_action
-- [ ] batch_put_scheduled_update_group_action
+- [X] batch_delete_scheduled_action
+- [X] batch_put_scheduled_update_group_action
 - [ ] cancel_instance_refresh
 - [ ] complete_lifecycle_action
 - [X] create_auto_scaling_group

@@ -2,12 +2,11 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_glue, mock_resourcegroupstaggingapi
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
 
-@mock_glue
-@mock_resourcegroupstaggingapi
+@mock_aws
 def test_glue_jobs():
     glue = boto3.client("glue", region_name="us-west-1")
     tag_key = str(uuid4())[0:6]

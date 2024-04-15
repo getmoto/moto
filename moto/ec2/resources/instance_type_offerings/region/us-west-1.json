@@ -472,6 +472,10 @@
   "Location": "us-west-1"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "us-west-1"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "us-west-1"
  },
@@ -1240,6 +1244,10 @@
   "Location": "us-west-1"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "us-west-1"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "us-west-1"
  },
@@ -1741,6 +1749,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "us-west-1"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "us-west-1"
  },
  {

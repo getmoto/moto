@@ -1,6 +1,8 @@
 import json
 from typing import Any, Dict, List
 
+from botocore.awsrequest import AWSPreparedRequest
+
 from moto import settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.common_types import TYPE_RESPONSE
@@ -110,9 +112,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
-        request_body_size = int(headers["Content-Length"])
-        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        body = json.loads(body)
+        body = self._get_body(headers, request)
         model_name = body["model_name"]
         transition = body["transition"]
 
@@ -127,9 +127,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
-        request_body_size = int(headers["Content-Length"])
-        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        body = json.loads(body)
+        body = self._get_body(headers, request)
         model_name = body["model_name"]
 
         moto_api_backend.unset_transition(model_name)
@@ -151,9 +149,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
-        request_body_size = int(headers["Content-Length"])
-        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        body = json.loads(body)
+        body = self._get_body(headers, request)
         account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
         region = body.get("region", "us-east-1")
 
@@ -168,6 +164,39 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_ce_cost_usage_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+
+        for result in body.get("results", []):
+            moto_api_backend.set_ce_cost_usage(result=result, account_id=account_id)
+        return 201, {}, ""
+
+    def set_lambda_simple_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            moto_api_backend.set_lambda_simple_result(
+                result=result, account_id=account_id, region=region
+            )
+        return 201, {}, ""
+
     def set_sagemaker_result(
         self,
         request: Any,
@@ -176,9 +205,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
-        request_body_size = int(headers["Content-Length"])
-        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        body = json.loads(body)
+        body = self._get_body(headers, request)
         account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
         region = body.get("region", "us-east-1")
 
@@ -205,9 +232,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
-        request_body_size = int(headers["Content-Length"])
-        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        body = json.loads(body)
+        body = self._get_body(headers, request)
         account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
         region = body.get("region", "us-east-1")
 
@@ -236,9 +261,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
-        request_body_size = int(headers["Content-Length"])
-        body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
-        body = json.loads(body)
+        body = self._get_body(headers, request)
         account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
         region = body.get("region", "us-east-1")
 
@@ -249,3 +272,51 @@ class MotoAPIResponse(BaseResponse):
                 region=region,
             )
         return 201, {}, ""
+
+    def set_proxy_passthrough(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        res_headers = {"Content-Type": "application/json"}
+
+        if request.method == "POST":
+            body = self._get_body(headers, request)
+            http_urls = body.get("http_urls", [])
+            https_hosts = body.get("https_hosts", [])
+            moto_api_backend.set_proxy_passthrough(http_urls, https_hosts)
+        if request.method == "DELETE":
+            moto_api_backend.delete_proxy_passthroughs()
+
+        urls, hosts = moto_api_backend.get_proxy_passthrough()
+        resp = {"http_urls": list(urls), "https_hosts": list(hosts)}
+        return 201, res_headers, json.dumps(resp).encode("utf-8")
+
+    def config(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        res_headers = {"Content-Type": "application/json"}
+
+        if request.method == "POST":
+            config = self._get_body(headers, request)
+            moto_api_backend.set_config(config)
+
+        config = moto_api_backend.get_config()
+        return 201, res_headers, json.dumps(config).encode("utf-8")
+
+    def _get_body(self, headers: Any, request: Any) -> Any:
+        if isinstance(request, AWSPreparedRequest):
+            return json.loads(request.body)  # type: ignore[arg-type]
+        else:
+            # Werkzeug request
+            request_body_size = int(headers["Content-Length"])
+            body = request.environ["wsgi.input"].read(request_body_size).decode("utf-8")
+            return json.loads(body)

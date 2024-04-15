@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_databrew
+from moto import mock_aws
 
 
 def _create_databrew_client():
@@ -40,7 +40,7 @@ def _create_test_rulesets(client, count):
         _create_test_ruleset(client)
 
 
-@mock_databrew
+@mock_aws
 def test_ruleset_list_when_empty():
     client = _create_databrew_client()
 
@@ -49,7 +49,7 @@ def test_ruleset_list_when_empty():
     assert len(response["Rulesets"]) == 0
 
 
-@mock_databrew
+@mock_aws
 def test_list_ruleset_with_max_results():
     client = _create_databrew_client()
 
@@ -59,7 +59,7 @@ def test_list_ruleset_with_max_results():
     assert "NextToken" in response
 
 
-@mock_databrew
+@mock_aws
 def test_list_rulesets_from_next_token():
     client = _create_databrew_client()
     _create_test_rulesets(client, 10)
@@ -68,7 +68,7 @@ def test_list_rulesets_from_next_token():
     assert len(response["Rulesets"]) == 7
 
 
-@mock_databrew
+@mock_aws
 def test_list_rulesets_with_max_results_greater_than_actual_results():
     client = _create_databrew_client()
     _create_test_rulesets(client, 4)
@@ -76,7 +76,7 @@ def test_list_rulesets_with_max_results_greater_than_actual_results():
     assert len(response["Rulesets"]) == 4
 
 
-@mock_databrew
+@mock_aws
 def test_describe_ruleset():
     client = _create_databrew_client()
     response = _create_test_ruleset(client)
@@ -88,7 +88,7 @@ def test_describe_ruleset():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_databrew
+@mock_aws
 def test_describe_ruleset_that_does_not_exist():
     client = _create_databrew_client()
 
@@ -99,7 +99,7 @@ def test_describe_ruleset_that_does_not_exist():
     assert err["Message"] == "Ruleset DoseNotExist not found."
 
 
-@mock_databrew
+@mock_aws
 def test_create_ruleset_that_already_exists():
     client = _create_databrew_client()
 
@@ -112,7 +112,7 @@ def test_create_ruleset_that_already_exists():
     assert err["Message"] == "Ruleset already exists."
 
 
-@mock_databrew
+@mock_aws
 def test_delete_ruleset():
     client = _create_databrew_client()
     response = _create_test_ruleset(client)
@@ -143,7 +143,7 @@ def test_delete_ruleset():
     assert err["Message"] == f"Ruleset {ruleset_name} not found."
 
 
-@mock_databrew
+@mock_aws
 @pytest.mark.parametrize("name", ["name", "name with space"])
 def test_update_ruleset(name):
     client = _create_databrew_client()

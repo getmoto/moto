@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_apigatewayv2
+from moto import mock_aws
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_stage__defaults():
     client = boto3.client("apigatewayv2", "us-east-2")
 
@@ -42,7 +42,7 @@ def test_create_stage__defaults():
     assert err["Message"] == "Invalid stage identifier specified"
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_stage__defaults_for_websocket_api():
     client = boto3.client("apigatewayv2", "us-east-2")
 
@@ -59,7 +59,7 @@ def test_create_stage__defaults_for_websocket_api():
     }
 
 
-@mock_apigatewayv2
+@mock_aws
 def test_create_stage():
     client = boto3.client("apigatewayv2", "us-east-2")
 

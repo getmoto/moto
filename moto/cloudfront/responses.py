@@ -40,14 +40,18 @@ class CloudFrontResponse(BaseResponse):
         if request.method == "GET":
             return self.list_tags_for_resource()
 
-    def origin_access_controls(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def origin_access_controls(  # type: ignore[return]
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return self.create_origin_access_control()
         if request.method == "GET":
             return self.list_origin_access_controls()
 
-    def origin_access_control(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def origin_access_control(  # type: ignore[return]
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
             return self.get_origin_access_control()
@@ -82,7 +86,9 @@ class CloudFrontResponse(BaseResponse):
         response = template.render(distributions=distributions)
         return 200, {}, response
 
-    def individual_distribution(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
+    def individual_distribution(  # type: ignore[return]
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         distribution_id = full_url.split("/")[-1]
         if request.method == "DELETE":
@@ -212,8 +218,10 @@ DIST_CONFIG_TEMPLATE = """
               <Quantity>{{ origin.custom_headers|length }}</Quantity>
               <Items>
                 {% for header  in origin.custom_headers %}
-                  <HeaderName>{{ header.header_name }}</HeaderName>
-                  <HeaderValue>{{ header.header_value }}</HeaderValue>
+                  <OriginCustomHeader>
+                  <HeaderName>{{ header['HeaderName'] }}</HeaderName>
+                  <HeaderValue>{{ header['HeaderValue'] }}</HeaderValue>
+                  </OriginCustomHeader>
                 {% endfor %}
               </Items>
             </CustomHeaders>

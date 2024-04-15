@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Tuple
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
 
 
@@ -42,7 +42,7 @@ class SageMakerRuntimeBackend(BaseBackend):
                 ],
             }
             requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/sagemaker/endpoint-results",
+                "http://motoapi.amazonaws.com/moto-api/static/sagemaker/endpoint-results",
                 json=expected_results,
             )
 
@@ -92,9 +92,9 @@ class SageMakerRuntimeBackend(BaseBackend):
         s3_backend = s3_backends[self.account_id]["global"]
         s3_backend.create_bucket(output_bucket, region_name=self.region_name)
         s3_backend.put_object(output_bucket, output_location, value=output)
-        self.async_results[endpoint_name][
-            input_location
-        ] = f"s3://{output_bucket}/{output_location}"
+        self.async_results[endpoint_name][input_location] = (
+            f"s3://{output_bucket}/{output_location}"
+        )
         return self.async_results[endpoint_name][input_location]
 
 

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
 from ..utils import random_nat_gateway_id, random_private_ip
@@ -64,7 +64,7 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "NatGateway":
         from ..models import ec2_backends
 

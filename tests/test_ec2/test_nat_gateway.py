@@ -2,10 +2,10 @@ from unittest import SkipTest
 
 import boto3
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 
 
-@mock_ec2
+@mock_aws
 def test_describe_nat_gateways():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to have no resources")
@@ -16,7 +16,7 @@ def test_describe_nat_gateways():
     assert len(response["NatGateways"]) == 0
 
 
-@mock_ec2
+@mock_aws
 def test_create_nat_gateway():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
@@ -34,7 +34,7 @@ def test_create_nat_gateway():
     assert response["NatGateway"]["State"] == "available"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_nat_gateway_tags():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
@@ -71,7 +71,7 @@ def test_describe_nat_gateway_tags():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_delete_nat_gateway():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
@@ -100,7 +100,7 @@ def test_delete_nat_gateway():
     }
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_describe_nat_gateway():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
@@ -138,7 +138,7 @@ def test_create_and_describe_nat_gateway():
     assert describe[0]["NatGatewayAddresses"][0]["PublicIp"] == public_ip
 
 
-@mock_ec2
+@mock_aws
 def test_describe_nat_gateway_filter_by_net_gateway_id_and_state():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
@@ -180,7 +180,7 @@ def test_describe_nat_gateway_filter_by_net_gateway_id_and_state():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_nat_gateway_filter_by_subnet_id():
     conn = boto3.client("ec2", "us-east-1")
     vpc = conn.create_vpc(CidrBlock="10.0.0.0/16")
@@ -222,7 +222,7 @@ def test_describe_nat_gateway_filter_by_subnet_id():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_describe_nat_gateway_filter_vpc_id():
     conn = boto3.client("ec2", "us-east-1")
     vpc_1 = conn.create_vpc(CidrBlock="10.0.0.0/16")

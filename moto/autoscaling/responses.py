@@ -1,6 +1,7 @@
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 
 from .models import AutoScalingBackend, autoscaling_backends
 
@@ -12,6 +13,10 @@ class AutoScalingResponse(BaseResponse):
     @property
     def autoscaling_backend(self) -> AutoScalingBackend:
         return autoscaling_backends[self.current_account][self.region]
+
+    @amz_crc32
+    def call_action(self) -> TYPE_RESPONSE:
+        return super().call_action()
 
     def create_launch_configuration(self) -> str:
         instance_monitoring_string = self._get_param("InstanceMonitoring.Enabled")
@@ -85,7 +90,7 @@ class AutoScalingResponse(BaseResponse):
             instance_id=self._get_param("InstanceId"),
             launch_config_name=self._get_param("LaunchConfigurationName"),
             launch_template=self._get_dict_param("LaunchTemplate."),
-            mixed_instance_policy=params.get("MixedInstancesPolicy"),
+            mixed_instances_policy=params.get("MixedInstancesPolicy"),
             vpc_zone_identifier=self._get_param("VPCZoneIdentifier"),
             default_cooldown=self._get_int_param("DefaultCooldown"),
             health_check_period=self._get_int_param("HealthCheckGracePeriod"),
@@ -113,9 +118,22 @@ class AutoScalingResponse(BaseResponse):
             start_time=self._get_param("StartTime"),
             end_time=self._get_param("EndTime"),
             recurrence=self._get_param("Recurrence"),
+            timezone=self._get_param("TimeZone"),
         )
         template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
         return template.render()
+
+    def batch_put_scheduled_update_group_action(self) -> str:
+        failed_actions = (
+            self.autoscaling_backend.batch_put_scheduled_update_group_action(
+                name=self._get_param("AutoScalingGroupName"),
+                actions=self._get_multi_param("ScheduledUpdateGroupActions.member"),
+            )
+        )
+        template = self.response_template(
+            BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE
+        )
+        return template.render(failed_actions=failed_actions)
 
     def describe_scheduled_actions(self) -> str:
         scheduled_actions = self.autoscaling_backend.describe_scheduled_actions(
@@ -135,12 +153,20 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DELETE_SCHEDULED_ACTION_TEMPLATE)
         return template.render()
 
+    def batch_delete_scheduled_action(self) -> str:
+        auto_scaling_group_name = self._get_param("AutoScalingGroupName")
+        scheduled_action_names = self._get_multi_param("ScheduledActionNames.member")
+        failed_actions = self.autoscaling_backend.batch_delete_scheduled_action(
+            auto_scaling_group_name=auto_scaling_group_name,
+            scheduled_action_names=scheduled_action_names,
+        )
+        template = self.response_template(BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE)
+        return template.render(failed_actions=failed_actions)
+
     def describe_scaling_activities(self) -> str:
         template = self.response_template(DESCRIBE_SCALING_ACTIVITIES_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def attach_instances(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -148,8 +174,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def set_instance_health(self) -> str:
         instance_id = self._get_param("InstanceId")
         health_status = self._get_param("HealthStatus")
@@ -159,8 +183,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(SET_INSTANCE_HEALTH_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def detach_instances(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -175,8 +197,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DETACH_INSTANCES_TEMPLATE)
         return template.render(detached_instances=detached_instances)
 
-    @amz_crc32
-    @amzn_request_id
     def attach_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self._get_multi_param("TargetGroupARNs.member")
@@ -187,8 +207,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def describe_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = (
@@ -197,8 +215,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
         return template.render(target_group_arns=target_group_arns)
 
-    @amz_crc32
-    @amzn_request_id
     def detach_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self._get_multi_param("TargetGroupARNs.member")
@@ -212,7 +228,10 @@ class AutoScalingResponse(BaseResponse):
     def describe_auto_scaling_groups(self) -> str:
         names = self._get_multi_param("AutoScalingGroupNames.member")
         token = self._get_param("NextToken")
-        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(names)
+        filters = self._get_params().get("Filters", [])
+        all_groups = self.autoscaling_backend.describe_auto_scaling_groups(
+            names, filters=filters
+        )
         all_names = [group.name for group in all_groups]
         if token:
             start = all_names.index(token) + 1
@@ -347,8 +366,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(EXECUTE_POLICY_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def attach_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
@@ -356,16 +373,12 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def describe_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
         template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
         return template.render(load_balancers=load_balancers)
 
-    @amz_crc32
-    @amzn_request_id
     def detach_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
@@ -373,8 +386,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def enter_standby(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -399,8 +410,6 @@ class AutoScalingResponse(BaseResponse):
             timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
-    @amz_crc32
-    @amzn_request_id
     def exit_standby(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
@@ -445,8 +454,6 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(SET_INSTANCE_PROTECTION_TEMPLATE)
         return template.render()
 
-    @amz_crc32
-    @amzn_request_id
     def terminate_instance_in_auto_scaling_group(self) -> str:
         instance_id = self._get_param("InstanceId")
         should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
@@ -650,13 +657,35 @@ PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionRe
 </ResponseMetadata>
 </PutScheduledUpdateGroupActionResponse>"""
 
+
+BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<BatchPutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <BatchPutScheduledUpdateGroupActionResult>
+    <FailedScheduledUpdateGroupActions>
+      {% for failed_action in failed_actions %}
+      <member>
+        <ScheduledActionName>{{ failed_action.scheduled_action_name }}</ScheduledActionName>
+        {% if failed_action.error_code %}
+        <ErrorCode>{{ failed_action.error_code }}</ErrorCode>
+        {% endif %}
+        {% if failed_action.error_message %}
+        <ErrorMessage>{{ failed_action.error_message }}</ErrorMessage>
+        {% endif %}
+      </member>
+      {% endfor %}
+    </FailedScheduledUpdateGroupActions>
+  </BatchPutScheduledUpdateGroupActionResult>
+  <ResponseMetadata>
+    <RequestId></RequestId>
+  </ResponseMetadata>
+</BatchPutScheduledUpdateGroupActionResponse>"""
+
 DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeScheduledActionsResult>
     <ScheduledUpdateGroupActions>
       {% for scheduled_action in scheduled_actions %}
       <member>
         <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
-        <ScheduledActionName> {{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
+        <ScheduledActionName>{{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
         {% if scheduled_action.start_time %}
         <StartTime>{{ scheduled_action.start_time }}</StartTime>
         {% endif %}
@@ -666,9 +695,18 @@ DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://
         {% if scheduled_action.recurrence %}
         <Recurrence>{{ scheduled_action.recurrence }}</Recurrence>
         {% endif %}
+        {% if scheduled_action.min_size is not none %}
         <MinSize>{{ scheduled_action.min_size }}</MinSize>
+        {% endif %}
+        {% if scheduled_action.max_size is not none %}
         <MaxSize>{{ scheduled_action.max_size }}</MaxSize>
+        {% endif %}
+        {% if scheduled_action.desired_capacity is not none %}
         <DesiredCapacity>{{ scheduled_action.desired_capacity }}</DesiredCapacity>
+        {% endif %}
+        {% if scheduled_action.timezone %}
+        <TimeZone>{{ scheduled_action.timezone }}</TimeZone>
+        {% endif %}
       </member>
       {% endfor %}
     </ScheduledUpdateGroupActions>
@@ -681,6 +719,27 @@ DELETE_SCHEDULED_ACTION_TEMPLATE = """<DeleteScheduledActionResponse xmlns="http
     <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
   </ResponseMetadata>
 </DeleteScheduledActionResponse>"""
+
+BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE = """<BatchDeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+  <BatchDeleteScheduledActionResult>
+    <FailedScheduledActions>
+      {% for failed_action in failed_actions %}
+      <member>
+        <ScheduledActionName>{{ failed_action.scheduled_action_name }}</ScheduledActionName>
+        {% if failed_action.error_code %}
+        <ErrorCode>{{ failed_action.error_code }}</ErrorCode>
+        {% endif %}
+        {% if failed_action.error_message %}
+        <ErrorMessage>{{ failed_action.error_message }}</ErrorMessage>
+        {% endif %}
+      </member>
+      {% endfor %}
+    </FailedScheduledActions>
+  </BatchDeleteScheduledActionResult>
+  <ResponseMetadata>
+    <RequestId></RequestId>
+  </ResponseMetadata>
+</BatchDeleteScheduledActionResponse>"""
 
 ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <AttachLoadBalancerTargetGroupsResult>
@@ -774,10 +833,10 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         </SuspendedProcesses>
         <AutoScalingGroupName>{{ group.name }}</AutoScalingGroupName>
         <HealthCheckType>{{ group.health_check_type }}</HealthCheckType>
-        <CreatedTime>2013-05-06T17:47:15.107Z</CreatedTime>
+        <CreatedTime>{{ group.created_time }}</CreatedTime>
         {% if group.launch_config_name %}
         <LaunchConfigurationName>{{ group.launch_config_name }}</LaunchConfigurationName>
-        {% elif group.mixed_instance_policy %}
+        {% elif group.mixed_instances_policy %}
         <MixedInstancesPolicy>
           <LaunchTemplate>
             <LaunchTemplateSpecification>
@@ -785,9 +844,9 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
               <Version>{{ group.launch_template_version }}</Version>
               <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
             </LaunchTemplateSpecification>
-            {% if group.mixed_instance_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+            {% if group.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
             <Overrides>
-              {% for member in group.mixed_instance_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+              {% for member in group.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
               <member>
                 {% if member.get("InstanceType") %}
                 <InstanceType>{{ member.get("InstanceType") }}</InstanceType>
@@ -800,25 +859,25 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
             </Overrides>
             {% endif %}
           </LaunchTemplate>
-          {% if group.mixed_instance_policy.get("InstancesDistribution") %}
+          {% if group.mixed_instances_policy.get("InstancesDistribution") %}
           <InstancesDistribution>
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") %}
-            <OnDemandAllocationStrategy>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") }}</OnDemandAllocationStrategy>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") %}
+            <OnDemandAllocationStrategy>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") }}</OnDemandAllocationStrategy>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") %}
-            <OnDemandBaseCapacity>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") }}</OnDemandBaseCapacity>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") %}
+            <OnDemandBaseCapacity>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") }}</OnDemandBaseCapacity>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") %}
-            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instance_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") }}</OnDemandPercentageAboveBaseCapacity>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") %}
+            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") }}</OnDemandPercentageAboveBaseCapacity>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotAllocationStrategy") %}
-            <SpotAllocationStrategy>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotAllocationStrategy") }}</SpotAllocationStrategy>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotAllocationStrategy") %}
+            <SpotAllocationStrategy>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotAllocationStrategy") }}</SpotAllocationStrategy>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotInstancePools") %}
-            <SpotInstancePools>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotInstancePools") }}</SpotInstancePools>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotInstancePools") %}
+            <SpotInstancePools>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotInstancePools") }}</SpotInstancePools>
             {% endif %}
-            {% if group.mixed_instance_policy.get("InstancesDistribution").get("SpotMaxPrice") %}
-            <SpotMaxPrice>{{ group.mixed_instance_policy.get("InstancesDistribution").get("SpotMaxPrice") }}</SpotMaxPrice>
+            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotMaxPrice") %}
+            <SpotMaxPrice>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotMaxPrice") }}</SpotMaxPrice>
             {% endif %}
           </InstancesDistribution>
           {% endif %}

@@ -3,14 +3,12 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_sqs, mock_sts
+from moto import mock_aws
 
 
 class TestStsAssumeRole(unittest.TestCase):
-    @mock_sqs
-    @mock_sts
+    @mock_aws
     def test_list_queues_in_different_account(self):
-
         sqs = boto3.client("sqs", region_name="us-east-1")
         queue_url = sqs.create_queue(QueueName=str(uuid4()))["QueueUrl"]
 

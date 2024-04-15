@@ -1,9 +1,8 @@
-"""Unit tests for cloudfront-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto import mock_cloudfront
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import cloudfront_test_scaffolding as scaffold
@@ -12,7 +11,7 @@ from . import cloudfront_test_scaffolding as scaffold
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_distribution():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -123,7 +122,7 @@ def test_update_distribution():
     assert restriction["Quantity"] == 0
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_distribution_no_such_distId():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -151,7 +150,7 @@ def test_update_distribution_no_such_distId():
     assert err["Message"] == "The specified distribution does not exist."
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_distribution_distId_is_None():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -178,7 +177,7 @@ def test_update_distribution_distId_is_None():
     assert error.exconly() == error_str
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_distribution_IfMatch_not_set():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -206,7 +205,7 @@ def test_update_distribution_IfMatch_not_set():
     assert err["Message"] == msg
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_distribution_dist_config_not_set():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -227,7 +226,7 @@ def test_update_distribution_dist_config_not_set():
     assert error.exconly() == error_str
 
 
-@mock_cloudfront
+@mock_aws
 def test_update_default_root_object():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -249,3 +248,34 @@ def test_update_default_root_object():
 
     dist_config = client.get_distribution_config(Id=dist_id)
     assert dist_config["DistributionConfig"]["DefaultRootObject"] == "index.html"
+
+
+@mock_aws
+def test_update_distribution_applies_changes():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+    dist = client.create_distribution(DistributionConfig=config)
+    dist_id = dist["Distribution"]["Id"]
+
+    # Assert that default 'Enabled' value is false
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert not actual_dist_config["Enabled"]
+
+    # Update 'Enabled' value to true
+    get_config_response = client.get_distribution_config(Id=dist_id)
+    actual_dist_config = get_config_response["DistributionConfig"]
+    etag = get_config_response["ETag"]
+    actual_dist_config["Enabled"] = True
+    client.update_distribution(
+        DistributionConfig=actual_dist_config, Id=dist_id, IfMatch=etag
+    )
+
+    # Assert that 'Enabled' value is true
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert actual_dist_config["Enabled"]

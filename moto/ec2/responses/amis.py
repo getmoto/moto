@@ -65,10 +65,7 @@ class AmisResponse(EC2BaseResponse):
             "description": "description",
             "kernel": "kernel_id",
             "ramdisk": "ramdisk",
-            "launchPermission": {
-                "groups": "launch_permission_groups",
-                "users": "launch_permission_users",
-            },
+            "launchPermission": "launch_permissions",
             "productCodes": "product_codes",
             "blockDeviceMapping": "bdm",
             "sriovNetSupport": "sriov",
@@ -85,45 +82,63 @@ class AmisResponse(EC2BaseResponse):
             # https://github.com/aws/aws-cli/issues/1083
             raise AuthFailureRestricted
 
-        groups = None
-        users = None
         attribute_value = None
+        launch_permissions = None
         if attribute_name == "launchPermission":
-            groups = self.ec2_backend.describe_image_attribute(
-                ami_id, valid_atrributes_list[attribute_name]["groups"]  # type: ignore[index]
-            )
-            users = self.ec2_backend.describe_image_attribute(
-                ami_id, valid_atrributes_list[attribute_name]["users"]  # type: ignore[index]
+            launch_permissions = self.ec2_backend.describe_image_attribute(
+                ami_id, valid_atrributes_list[attribute_name]
             )
         else:
             attribute_value = self.ec2_backend.describe_image_attribute(
                 ami_id, valid_atrributes_list[attribute_name]
             )
+
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)
         return template.render(
             ami_id=ami_id,
-            users=users,
-            groups=groups,
+            launch_permissions=launch_permissions,
             attribute_name=attribute_name,
             attribute_value=attribute_value,
         )
 
     def modify_image_attribute(self) -> str:
         ami_id = self._get_param("ImageId")
+        launch_permissions_to_add = list(
+            self._get_params().get("LaunchPermission", {}).get("Add", {}).values()
+        )
+        launch_permissions_to_remove = list(
+            self._get_params().get("LaunchPermission", {}).get("Remove", {}).values()
+        )
+        # If only one OperationType is added, the other attributes are submitted as different variables
         operation_type = self._get_param("OperationType")
-        group = self._get_param("UserGroup.1")
-        user_ids = self._get_multi_param("UserId")
+        if operation_type in ["add", "remove"]:
+            group = self._get_param("UserGroup.1")
+            lp = (
+                launch_permissions_to_add
+                if operation_type == "add"
+                else launch_permissions_to_remove
+            )
+            if group:
+                lp.append({"Group": group})
+
+            for user_id in self._get_multi_param("UserId"):
+                lp.append({"UserId": user_id})
+
+            org_arn = self._get_param("OrganizationArn.1")
+            if org_arn:
+                lp.append({"OrganizationArn": org_arn})
+
+            ou_arn = self._get_param("OrganizationalUnitArn.1")
+            if ou_arn:
+                lp.append({"OrganizationalUnitArn": ou_arn})
 
         self.error_on_dryrun()
 
-        if operation_type == "add":
-            self.ec2_backend.add_launch_permission(
-                ami_id, user_ids=user_ids, group=group
-            )
-        elif operation_type == "remove":
-            self.ec2_backend.remove_launch_permission(
-                ami_id, user_ids=user_ids, group=group
-            )
+        self.ec2_backend.modify_image_attribute(
+            ami_id=ami_id,
+            launch_permissions_to_add=launch_permissions_to_add,
+            launch_permissions_to_remove=launch_permissions_to_remove,
+        )
         return MODIFY_IMAGE_ATTRIBUTE_RESPONSE
 
     def register_image(self) -> str:
@@ -232,17 +247,13 @@ DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE = """
         {% endfor %}
     {% endif %}
     {% if attribute_name == 'launchPermission' %}
-         {% if groups %}
-            {% for group in groups %}
+         {% if launch_permissions %}
+            {% for lp in launch_permissions %}
                <item>
-                  <group>{{ group }}</group>
-               </item>
-            {% endfor %}
-         {% endif %}
-         {% if users %}
-            {% for user in users %}
-               <item>
-                  <userId>{{ user }}</userId>
+                  {% if lp['UserId'] %}<userId>{{ lp['UserId'] }}</userId>{% endif %}
+                  {% if lp['Group'] %}<group>{{ lp['Group'] }}</group>{% endif %}
+                  {% if lp['OrganizationArn'] %}<organizationArn>{{ lp['OrganizationArn'] }}</organizationArn>{% endif %}
+                  {% if lp['OrganizationalUnitArn'] %}<organizationalUnitArn>{{ lp['OrganizationalUnitArn'] }}</organizationalUnitArn>{% endif %}
                </item>
             {% endfor %}
          {% endif %}

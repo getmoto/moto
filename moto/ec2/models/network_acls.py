@@ -79,7 +79,6 @@ class NetworkAclBackend:
         port_range_from: Optional[int],
         port_range_to: Optional[int],
     ) -> "NetworkAclEntry":
-
         network_acl = self.get_network_acl(network_acl_id)
         if any(
             entry.egress == egress and entry.rule_number == rule_number
@@ -129,7 +128,6 @@ class NetworkAclBackend:
         port_range_from: int,
         port_range_to: int,
     ) -> "NetworkAclEntry":
-
         self.delete_network_acl_entry(network_acl_id, rule_number, egress)
         network_acl_entry = self.create_network_acl_entry(
             network_acl_id,
@@ -148,7 +146,6 @@ class NetworkAclBackend:
     def replace_network_acl_association(
         self, association_id: str, network_acl_id: str
     ) -> "NetworkAclAssociation":
-
         # lookup existing association for subnet and delete it
         default_acl = next(
             value

@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_elasticbeanstalk
+from moto import mock_aws
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_create_application():
     # Create Elastic Beanstalk Application
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -14,7 +14,7 @@ def test_create_application():
     assert "myapp" in app["Application"]["ApplicationArn"]
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_create_application_dup():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp")
@@ -22,7 +22,7 @@ def test_create_application_dup():
         conn.create_application(ApplicationName="myapp")
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_describe_applications():
     # Create Elastic Beanstalk Application
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -34,7 +34,7 @@ def test_describe_applications():
     assert "myapp" in apps["Applications"][0]["ApplicationArn"]
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_delete_application():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
 
@@ -47,7 +47,7 @@ def test_delete_application():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_delete_unknown_application():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
 
@@ -65,7 +65,7 @@ def test_delete_unknown_application():
     )
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_create_environment():
     # Create Elastic Beanstalk Environment
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -75,7 +75,7 @@ def test_create_environment():
     assert "myapp/myenv" in env["EnvironmentArn"]
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_describe_environments():
     # List Elastic Beanstalk Envs
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
@@ -104,7 +104,7 @@ def tags_list_to_dict(tag_list):
     return tag_dict
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_create_environment_tags():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp")
@@ -120,7 +120,7 @@ def test_create_environment_tags():
     assert tags_list_to_dict(tags["ResourceTags"]) == env_tags
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_update_tags():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     conn.create_application(ApplicationName="myapp")
@@ -154,7 +154,7 @@ def test_update_tags():
     assert tags_list_to_dict(tags["ResourceTags"]) == total_env_tags
 
 
-@mock_elasticbeanstalk
+@mock_aws
 def test_list_available_solution_stacks():
     conn = boto3.client("elasticbeanstalk", region_name="us-east-1")
     stacks = conn.list_available_solution_stacks()

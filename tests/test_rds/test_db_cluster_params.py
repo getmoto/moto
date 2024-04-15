@@ -1,9 +1,9 @@
 import boto3
 
-from moto import mock_rds
+from moto import mock_aws
 
 
-@mock_rds
+@mock_aws
 def test_describe_db_cluster_parameters():
     client = boto3.client("rds", "us-east-2")
 

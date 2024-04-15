@@ -1,8 +1,10 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
+
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -86,7 +88,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 self.connect_settings["VpcId"]  # type: ignore[index]
             )
             self.eni_ids, self.subnet_ips = self.create_eni(
-                self.security_group_id, self.connect_settings["SubnetIds"]  # type: ignore[index]
+                self.security_group_id,
+                self.connect_settings["SubnetIds"],  # type: ignore[index]
             )
             self.connect_settings["SecurityGroupId"] = self.security_group_id  # type: ignore[index]
             self.connect_settings["ConnectIps"] = self.subnet_ips  # type: ignore[index]
@@ -97,7 +100,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 self.vpc_settings["VpcId"]  # type: ignore[index]
             )
             self.eni_ids, self.subnet_ips = self.create_eni(
-                self.security_group_id, self.vpc_settings["SubnetIds"]  # type: ignore[index]
+                self.security_group_id,
+                self.vpc_settings["SubnetIds"],  # type: ignore[index]
             )
             self.vpc_settings["SecurityGroupId"] = self.security_group_id  # type: ignore[index]
             self.dns_ip_addrs = self.subnet_ips
@@ -195,15 +199,6 @@ class DirectoryServiceBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
         self.tagger = TaggingService()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ds"
-        )
 
     def _verify_subnets(self, region: str, vpc_settings: Dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
@@ -476,7 +471,7 @@ class DirectoryServiceBackend(BaseBackend):
         directory = self.directories[directory_id]
         directory.enable_sso(True)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def describe_directories(
         self, directory_ids: Optional[List[str]] = None
     ) -> List[Directory]:
@@ -532,7 +527,7 @@ class DirectoryServiceBackend(BaseBackend):
         self._validate_directory_id(resource_id)
         self.tagger.untag_resource_using_names(resource_id, tag_keys)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags_for_resource(self, resource_id: str) -> List[Dict[str, str]]:
         """List all tags on a directory."""
         self._validate_directory_id(resource_id)

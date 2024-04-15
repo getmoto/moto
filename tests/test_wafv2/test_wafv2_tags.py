@@ -1,11 +1,11 @@
 import boto3
 
-from moto import mock_wafv2
+from moto import mock_aws
 
 from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 
-@mock_wafv2
+@mock_aws
 def test_list_tags_for_resource__none_supplied():
     conn = boto3.client("wafv2", region_name="us-east-1")
     arn = conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))["Summary"][
@@ -16,7 +16,7 @@ def test_list_tags_for_resource__none_supplied():
     assert tag_info["TagList"] == []
 
 
-@mock_wafv2
+@mock_aws
 def test_list_tags_for_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
     arn = conn.create_web_acl(
@@ -35,7 +35,7 @@ def test_list_tags_for_resource():
     assert tag_info["TagList"] == [{"Key": "k1", "Value": "v1"}]
 
 
-@mock_wafv2
+@mock_aws
 def test_tag_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
     arn = conn.create_web_acl(
@@ -64,7 +64,7 @@ def test_tag_resource():
     ]
 
 
-@mock_wafv2
+@mock_aws
 def test_untag_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
     arn = conn.create_web_acl(

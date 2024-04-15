@@ -6,12 +6,12 @@ import pytest
 from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 
-from moto import mock_kinesis
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
 
-@mock_kinesis
+@mock_aws
 def test_stream_creation_on_demand():
     client = boto3.client("kinesis", region_name="eu-west-1")
     client.create_stream(
@@ -37,7 +37,7 @@ def test_stream_creation_on_demand():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_update_stream_mode():
     client = boto3.client("kinesis", region_name="eu-west-1")
     client.create_stream(
@@ -56,7 +56,7 @@ def test_update_stream_mode():
     assert stream["StreamModeDetails"] == {"StreamMode": "PROVISIONED"}
 
 
-@mock_kinesis
+@mock_aws
 def test_describe_non_existent_stream():
     client = boto3.client("kinesis", region_name="us-west-2")
     with pytest.raises(ClientError) as exc:
@@ -66,7 +66,7 @@ def test_describe_non_existent_stream():
     assert err["Message"] == "Stream not-a-stream under account 123456789012 not found."
 
 
-@mock_kinesis
+@mock_aws
 def test_list_and_delete_stream():
     client = boto3.client("kinesis", region_name="us-west-2")
     assert len(client.list_streams()["StreamNames"]) == 0
@@ -83,7 +83,7 @@ def test_list_and_delete_stream():
     assert len(client.list_streams()["StreamNames"]) == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_delete_unknown_stream():
     client = boto3.client("kinesis", region_name="us-west-2")
     with pytest.raises(ClientError) as exc:
@@ -93,7 +93,7 @@ def test_delete_unknown_stream():
     assert err["Message"] == "Stream not-a-stream under account 123456789012 not found."
 
 
-@mock_kinesis
+@mock_aws
 def test_list_many_streams():
     conn = boto3.client("kinesis", region_name="us-west-2")
 
@@ -112,7 +112,7 @@ def test_list_many_streams():
     assert has_more_streams is False
 
 
-@mock_kinesis
+@mock_aws
 def test_describe_stream_summary():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream_summary"
@@ -137,7 +137,27 @@ def test_describe_stream_summary():
     assert stream["StreamName"] == stream_name
 
 
-@mock_kinesis
+@mock_aws
+def test_list_streams_stream_discription():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+
+    for i in range(3):
+        conn.create_stream(StreamName=f"stream{i}", ShardCount=i + 1)
+
+    resp = conn.list_streams()
+    assert len(resp["StreamSummaries"]) == 3
+    for i, stream in enumerate(resp["StreamSummaries"]):
+        stream_name = f"stream{i}"
+        assert stream["StreamName"] == stream_name
+        assert (
+            stream["StreamARN"]
+            == f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/{stream_name}"
+        )
+        assert stream["StreamStatus"] == "ACTIVE"
+        assert stream.get("StreamCreationTimestamp")
+
+
+@mock_aws
 def test_basic_shard_iterator():
     client = boto3.client("kinesis", region_name="us-west-1")
 
@@ -156,7 +176,7 @@ def test_basic_shard_iterator():
     assert resp["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_basic_shard_iterator_by_stream_arn():
     client = boto3.client("kinesis", region_name="us-west-1")
 
@@ -179,7 +199,7 @@ def test_basic_shard_iterator_by_stream_arn():
     assert resp["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_invalid_shard_iterator():
     client = boto3.client("kinesis", region_name="us-west-1")
 
@@ -200,7 +220,7 @@ def test_get_invalid_shard_iterator():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_put_records():
     client = boto3.client("kinesis", region_name="eu-west-2")
 
@@ -232,7 +252,7 @@ def test_put_records():
     assert record["SequenceNumber"] == "1"
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_limit():
     client = boto3.client("kinesis", region_name="eu-west-2")
 
@@ -262,7 +282,7 @@ def test_get_records_limit():
     assert len(response["Records"]) == 2
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_at_sequence_number():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
@@ -301,7 +321,7 @@ def test_get_records_at_sequence_number():
     assert resp["Records"][0]["Data"] == b"data_2"
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_after_sequence_number():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
@@ -341,7 +361,7 @@ def test_get_records_after_sequence_number():
     assert resp["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_latest():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
@@ -387,7 +407,7 @@ def test_get_records_latest():
     assert resp["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_at_timestamp():
     # AT_TIMESTAMP - Read the first record at or after the specified timestamp
     conn = boto3.client("kinesis", region_name="us-west-2")
@@ -431,7 +451,7 @@ def test_get_records_at_timestamp():
     assert response["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_at_very_old_timestamp():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -460,7 +480,7 @@ def test_get_records_at_very_old_timestamp():
     assert response["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_timestamp_filtering():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -490,7 +510,7 @@ def test_get_records_timestamp_filtering():
     assert response["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_millis_behind_latest():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -512,7 +532,7 @@ def test_get_records_millis_behind_latest():
     assert response["MillisBehindLatest"] > 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_at_very_new_timestamp():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -542,7 +562,7 @@ def test_get_records_at_very_new_timestamp():
     assert response["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_get_records_from_empty_stream_at_timestamp():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -567,7 +587,7 @@ def test_get_records_from_empty_stream_at_timestamp():
     assert response["MillisBehindLatest"] == 0
 
 
-@mock_kinesis
+@mock_aws
 def test_valid_increase_stream_retention_period():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -581,7 +601,7 @@ def test_valid_increase_stream_retention_period():
     assert response["StreamDescription"]["RetentionPeriodHours"] == 40
 
 
-@mock_kinesis
+@mock_aws
 def test_invalid_increase_stream_retention_period():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -601,7 +621,7 @@ def test_invalid_increase_stream_retention_period():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_invalid_increase_stream_retention_too_low():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -619,7 +639,7 @@ def test_invalid_increase_stream_retention_too_low():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_invalid_increase_stream_retention_too_high():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "my_stream"
@@ -637,7 +657,7 @@ def test_invalid_increase_stream_retention_too_high():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_valid_decrease_stream_retention_period():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "decrease_stream"
@@ -661,7 +681,7 @@ def test_valid_decrease_stream_retention_period():
     assert response["StreamDescription"]["RetentionPeriodHours"] == 26
 
 
-@mock_kinesis
+@mock_aws
 def test_decrease_stream_retention_period_upwards():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "decrease_stream"
@@ -679,7 +699,7 @@ def test_decrease_stream_retention_period_upwards():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_decrease_stream_retention_period_too_low():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "decrease_stream"
@@ -697,7 +717,7 @@ def test_decrease_stream_retention_period_too_low():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_decrease_stream_retention_period_too_high():
     conn = boto3.client("kinesis", region_name="us-west-2")
     stream_name = "decrease_stream"
@@ -715,7 +735,7 @@ def test_decrease_stream_retention_period_too_high():
     )
 
 
-@mock_kinesis
+@mock_aws
 def test_invalid_shard_iterator_type():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
@@ -732,7 +752,7 @@ def test_invalid_shard_iterator_type():
     assert err["Message"] == "Invalid ShardIteratorType: invalid-type"
 
 
-@mock_kinesis
+@mock_aws
 def test_add_list_remove_tags():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
@@ -772,7 +792,7 @@ def test_add_list_remove_tags():
     assert {"Key": "tag5", "Value": "val5"} in tags
 
 
-@mock_kinesis
+@mock_aws
 def test_merge_shards():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"
@@ -847,7 +867,7 @@ def test_merge_shards():
     } in active_shards
 
 
-@mock_kinesis
+@mock_aws
 def test_merge_shards_invalid_arg():
     client = boto3.client("kinesis", region_name="eu-west-2")
     stream_name = "my_stream_summary"

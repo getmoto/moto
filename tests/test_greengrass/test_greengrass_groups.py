@@ -3,13 +3,13 @@ import freezegun
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_greengrass
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.settings import TEST_SERVER_MODE
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_core_ver = {
@@ -45,7 +45,7 @@ def test_create_group():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_groups():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     grp_name = "TestGroup"
@@ -66,7 +66,7 @@ def test_list_groups():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     grp_name = "TestGroup"
@@ -90,7 +90,7 @@ def test_get_group():
         assert get_res["LastUpdatedTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_group_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -100,7 +100,7 @@ def test_get_group_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
@@ -110,7 +110,7 @@ def test_delete_group():
     assert del_res["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
-@mock_greengrass
+@mock_aws
 def test_delete_group_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -121,7 +121,7 @@ def test_delete_group_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
@@ -135,7 +135,7 @@ def test_update_group():
     assert get_res["Name"] == updated_group_name
 
 
-@mock_greengrass
+@mock_aws
 def test_update_group_with_empty_name():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
@@ -149,7 +149,7 @@ def test_update_group_with_empty_name():
     assert err["Code"] == "InvalidContainerDefinitionException"
 
 
-@mock_greengrass
+@mock_aws
 def test_update_group_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -161,7 +161,7 @@ def test_update_group_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_create_group_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_grp_res = client.create_group(Name="TestGroup")
@@ -177,7 +177,7 @@ def test_create_group_version():
         assert group_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_create_group_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -243,7 +243,7 @@ def test_create_group_version_with_invalid_id():
         ),
     ],
 )
-@mock_greengrass
+@mock_aws
 def test_create_group_version_with_invalid_version_arn(
     def_ver_key_name, arn, error_message
 ):
@@ -265,7 +265,7 @@ def test_create_group_version_with_invalid_version_arn(
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_list_group_versions():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
@@ -284,7 +284,7 @@ def test_list_group_versions():
         assert group_ver["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_list_group_versions_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -296,7 +296,7 @@ def test_list_group_versions_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_group_version():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     init_core_ver = {
@@ -412,7 +412,7 @@ def test_get_group_version():
         assert group_ver_res["CreationTimestamp"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_group_version_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
 
@@ -426,7 +426,7 @@ def test_get_group_version_with_invalid_id():
     assert err["Code"] == "IdNotFoundException"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_group_version_with_invalid_version_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     create_res = client.create_group(Name="TestGroup")
@@ -448,7 +448,7 @@ def test_get_group_version_with_invalid_version_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_associate_role_to_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     res = client.associate_role_to_group(
@@ -461,7 +461,7 @@ def test_associate_role_to_group():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_get_associated_role():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     group_id = "abc002c8-1093-485e-9324-3baadf38e582"
@@ -477,7 +477,7 @@ def test_get_associated_role():
         assert res["AssociatedAt"] == "2022-06-01T12:00:00.000Z"
 
 
-@mock_greengrass
+@mock_aws
 def test_get_associated_role_with_invalid_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     with pytest.raises(ClientError) as ex:
@@ -489,7 +489,7 @@ def test_get_associated_role_with_invalid_id():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_disassociate_role_from_group():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     group_id = "abc002c8-1093-485e-9324-3baadf38e582"
@@ -513,7 +513,7 @@ def test_disassociate_role_from_group():
 
 
 @freezegun.freeze_time("2022-06-01 12:00:00")
-@mock_greengrass
+@mock_aws
 def test_disassociate_role_from_group_with_none_exists_group_id():
     client = boto3.client("greengrass", region_name="ap-northeast-1")
     group_id = "abc002c8-1093-485e-9324-3baadf38e582"

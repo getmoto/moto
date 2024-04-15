@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iam, settings
+from moto import mock_aws, settings
 
 _lambda_region = "us-west-2"
 
@@ -25,6 +25,8 @@ def get_test_zip_file1():
     pfunc = """
 def lambda_handler(event, context):
     print("custom log event")
+    if "error" in event:
+        raise Exception('I failed!')
     return event
 """
     return _process_lambda(pfunc)
@@ -181,7 +183,7 @@ def create_invalid_lambda(role):
 
 
 def get_role_name():
-    with mock_iam():
+    with mock_aws():
         iam = boto3.client("iam", region_name=_lambda_region)
         while True:
             try:
@@ -198,6 +200,7 @@ def get_role_name():
 
 
 def wait_for_log_msg(expected_msg, log_group, wait_time=30):
+    expected_msgs = expected_msg if isinstance(expected_msg, list) else [expected_msg]
     logs_conn = boto3.client("logs", region_name="us-east-1")
     received_messages = []
     start = time.time()
@@ -219,7 +222,7 @@ def wait_for_log_msg(expected_msg, log_group, wait_time=30):
                 [event["message"] for event in result.get("events")]
             )
         for line in received_messages:
-            if expected_msg in line:
+            if any([msg in line for msg in expected_msgs]):
                 return True, set(received_messages)
         time.sleep(1)
     return False, set(received_messages)

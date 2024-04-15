@@ -1,4 +1,5 @@
 """Handles Directory Service requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.exceptions import InvalidToken

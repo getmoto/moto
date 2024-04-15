@@ -12,17 +12,6 @@
 athena
 ======
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_athena
-            def test_athena_behaviour:
-                boto3.client("athena")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_get_named_query
@@ -89,7 +78,7 @@ athena
                 ],
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/athena/query-results",
+                "http://motoapi.amazonaws.com/moto-api/static/athena/query-results",
                 json=expected_results,
             )
             assert resp.status_code == 201

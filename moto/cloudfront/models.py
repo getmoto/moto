@@ -1,7 +1,8 @@
 import string
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -11,7 +12,6 @@ from .exceptions import (
     DistributionAlreadyExists,
     DomainNameNotAnS3Bucket,
     InvalidIfMatchVersion,
-    InvalidOriginServer,
     NoSuchDistribution,
     NoSuchOriginAccessControl,
     OriginDoesNotExist,
@@ -113,15 +113,11 @@ class Origin:
         self.id = origin["Id"]
         self.domain_name = origin["DomainName"]
         self.origin_path = origin.get("OriginPath") or ""
-        self.custom_headers: List[Any] = []
         self.s3_access_identity = ""
         self.custom_origin = None
         self.origin_shield = origin.get("OriginShield")
         self.connection_attempts = origin.get("ConnectionAttempts") or 3
         self.connection_timeout = origin.get("ConnectionTimeout") or 10
-
-        if "S3OriginConfig" not in origin and "CustomOriginConfig" not in origin:
-            raise InvalidOriginServer
 
         if "S3OriginConfig" in origin:
             # Very rough validation
@@ -131,6 +127,14 @@ class Origin:
 
         if "CustomOriginConfig" in origin:
             self.custom_origin = CustomOriginConfig(origin["CustomOriginConfig"])
+
+        custom_headers = origin.get("CustomHeaders") or {}
+        custom_headers = custom_headers.get("Items") or {}
+        custom_headers = custom_headers.get("OriginCustomHeader") or []
+        if isinstance(custom_headers, dict):
+            # Happens if user only sends a single header
+            custom_headers = [custom_headers]
+        self.custom_headers = custom_headers
 
 
 class GeoRestrictions:
@@ -350,20 +354,7 @@ class CloudFrontBackend(BaseBackend):
             raise NoSuchDistribution
         dist = self.distributions[_id]
 
-        if dist_config.get("Aliases", {}).get("Items") is not None:
-            aliases = dist_config["Aliases"]["Items"]["CNAME"]
-            dist.distribution_config.aliases = aliases
-        origin = dist_config["Origins"]["Items"]["Origin"]
-        dist.distribution_config.config = dist_config
-        dist.distribution_config.origins = (
-            [Origin(o) for o in origin]
-            if isinstance(origin, list)
-            else [Origin(origin)]
-        )
-        if dist_config.get("DefaultRootObject") is not None:
-            dist.distribution_config.default_root_object = dist_config[
-                "DefaultRootObject"
-            ]
+        dist.distribution_config = DistributionConfig(dist_config)
         self.distributions[_id] = dist
         dist.advance()
         return dist, dist.location, dist.etag

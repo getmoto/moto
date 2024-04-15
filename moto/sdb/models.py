@@ -1,10 +1,12 @@
 """SimpleDBBackend class with methods for supported APIs."""
+
 import re
 from collections import defaultdict
 from threading import Lock
 from typing import Any, Dict, Iterable, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 
 from .exceptions import InvalidDomainName, UnknownDomainName
 

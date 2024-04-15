@@ -616,6 +616,10 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "eu-west-1"
  },
@@ -645,6 +649,10 @@
  },
  {
   "InstanceType": "c7gn.medium",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "c7gn.metal",
   "Location": "eu-west-1"
  },
  {
@@ -1812,6 +1820,10 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "m7gd.metal",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "m7gd.xlarge",
   "Location": "eu-west-1"
  },
@@ -2593,6 +2605,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "eu-west-1"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "eu-west-1"
  },
  {

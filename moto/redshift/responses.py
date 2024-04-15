@@ -269,7 +269,7 @@ class RedshiftResponse(BaseResponse):
         cluster_kwargs = {}
         # We only want parameters that were actually passed in, otherwise
         # we'll stomp all over our cluster metadata with None values.
-        for (key, value) in request_kwargs.items():
+        for key, value in request_kwargs.items():
             if value is not None and value != []:
                 cluster_kwargs[key] = value
 

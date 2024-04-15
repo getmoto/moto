@@ -1,10 +1,10 @@
 import boto3
 
-from moto import mock_cloudwatch
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_cloudwatch
+@mock_aws
 def test_create_alarm():
     region = "eu-west-1"
     cloudwatch = boto3.client("cloudwatch", region)
@@ -49,7 +49,7 @@ def test_create_alarm():
     assert alarm["ActionsEnabled"] is True
 
 
-@mock_cloudwatch
+@mock_aws
 def test_delete_alarm():
     cloudwatch = boto3.client("cloudwatch", region_name="eu-central-1")
 
@@ -83,7 +83,7 @@ def test_delete_alarm():
     assert len(alarms) == 0
 
 
-@mock_cloudwatch
+@mock_aws
 def test_delete_alarms_without_error():
     # given
     cloudwatch = boto3.client("cloudwatch", "eu-west-1")
@@ -92,7 +92,7 @@ def test_delete_alarms_without_error():
     cloudwatch.delete_alarms(AlarmNames=["not-exists"])
 
 
-@mock_cloudwatch
+@mock_aws
 def test_describe_alarms_for_metric():
     conn = boto3.client("cloudwatch", region_name="eu-central-1")
     conn.put_metric_alarm(
@@ -113,7 +113,7 @@ def test_describe_alarms_for_metric():
     assert alarm["ActionsEnabled"] is True
 
 
-@mock_cloudwatch
+@mock_aws
 def test_describe_alarms():
     conn = boto3.client("cloudwatch", region_name="eu-central-1")
     conn.put_metric_alarm(
@@ -181,7 +181,7 @@ def test_describe_alarms():
     ][0]
 
     assert single_metric_alarm["MetricName"] == "cpu"
-    assert "Metrics" not in single_metric_alarm
+    assert single_metric_alarm["Metrics"] == []
     assert single_metric_alarm["Namespace"] == "blah"
     assert single_metric_alarm["Period"] == 10
     assert single_metric_alarm["EvaluationPeriods"] == 5
@@ -199,7 +199,7 @@ def test_describe_alarms():
     assert multiple_metric_alarm["ActionsEnabled"] is True
 
 
-@mock_cloudwatch
+@mock_aws
 def test_alarm_state():
     client = boto3.client("cloudwatch", region_name="eu-central-1")
 

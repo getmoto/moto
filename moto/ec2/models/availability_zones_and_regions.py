@@ -228,6 +228,11 @@ class RegionsAndZonesBackend:
             Zone(region_name="eu-central-1", name="eu-central-1b", zone_id="euc1-az3"),
             Zone(region_name="eu-central-1", name="eu-central-1c", zone_id="euc1-az1"),
         ],
+        "eu-central-2": [
+            Zone(region_name="eu-central-2", name="eu-central-2a", zone_id="euc2-az1"),
+            Zone(region_name="eu-central-2", name="eu-central-2b", zone_id="euc2-az2"),
+            Zone(region_name="eu-central-2", name="eu-central-2c", zone_id="euc2-az3"),
+        ],
         "eu-south-1": [
             Zone(region_name="eu-south-1", name="eu-south-1a", zone_id="eus1-az1"),
             Zone(region_name="eu-south-1", name="eu-south-1b", zone_id="eus1-az2"),

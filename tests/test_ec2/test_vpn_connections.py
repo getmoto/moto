@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpn_connections_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     vpn_connection = client.create_vpn_connection(
@@ -15,7 +15,7 @@ def test_create_vpn_connections_boto3():
     assert vpn_connection["Type"] == "ipsec.1"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_vpn_connections_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     vpn_connection = client.create_vpn_connection(
@@ -35,7 +35,7 @@ def test_delete_vpn_connections_boto3():
     assert my_cnx["State"] == "deleted"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_vpn_connections_bad_id_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -45,7 +45,7 @@ def test_delete_vpn_connections_bad_id_boto3():
     assert ex.value.response["Error"]["Code"] == "InvalidVpnConnectionID.NotFound"
 
 
-@mock_ec2
+@mock_aws
 def test_create_vpn_connection_with_vpn_gateway():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -64,7 +64,7 @@ def test_create_vpn_connection_with_vpn_gateway():
     assert vpn_connection["CustomerGatewayId"] == customer_gateway["CustomerGatewayId"]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_boto3():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -98,7 +98,7 @@ def test_describe_vpn_connections_boto3():
     assert conns[0]["State"] == "available"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpn_connections_unknown():
     client = boto3.client("ec2", region_name="us-east-1")
 

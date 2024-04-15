@@ -1,14 +1,11 @@
 from uuid import uuid4
 
-from moto import mock_batch, mock_ec2, mock_ecs, mock_iam
+from moto import mock_aws
 
 from . import _get_clients, _setup
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_create_job_queue_with_tags():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -38,10 +35,7 @@ def test_create_job_queue_with_tags():
     assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_list_tags():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -71,10 +65,7 @@ def test_list_tags():
     assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_tag_job_queue():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
@@ -103,10 +94,7 @@ def test_tag_job_queue():
     assert my_queue["tags"] == {"k1": "v1", "k2": "v2"}
 
 
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 def test_untag_job_queue():
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)

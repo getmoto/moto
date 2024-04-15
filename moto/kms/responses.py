@@ -2,7 +2,6 @@ import base64
 import json
 import os
 import re
-import warnings
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
@@ -621,19 +620,12 @@ class KmsResponse(BaseResponse):
         return json.dumps({"Plaintext": response_entropy})
 
     def sign(self) -> str:
-        """https://docs.aws.amazon.com/kms/latest/APIReference/API_Sign.html"""
         key_id = self._get_param("KeyId")
         message = self._get_param("Message")
         message_type = self._get_param("MessageType")
-        grant_tokens = self._get_param("GrantTokens")
         signing_algorithm = self._get_param("SigningAlgorithm")
 
         self._validate_key_id(key_id)
-
-        if grant_tokens:
-            warnings.warn(
-                "The GrantTokens-parameter is not yet implemented for client.sign()"
-            )
 
         if isinstance(message, str):
             message = message.encode("utf-8")
@@ -669,19 +661,8 @@ class KmsResponse(BaseResponse):
         message_type = self._get_param("MessageType")
         signature = self._get_param("Signature")
         signing_algorithm = self._get_param("SigningAlgorithm")
-        grant_tokens = self._get_param("GrantTokens")
 
         self._validate_key_id(key_id)
-
-        if grant_tokens:
-            warnings.warn(
-                "The GrantTokens-parameter is not yet implemented for client.verify()"
-            )
-
-        if message_type == "DIGEST":
-            warnings.warn(
-                "The MessageType-parameter DIGEST is not yet implemented for client.verify()"
-            )
 
         if not message_type:
             message_type = "RAW"

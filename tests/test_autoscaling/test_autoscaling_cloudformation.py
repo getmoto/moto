@@ -2,14 +2,13 @@ import json
 
 import boto3
 
-from moto import mock_autoscaling, mock_cloudformation, mock_ec2, mock_elb
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
 
 
-@mock_autoscaling
-@mock_cloudformation
+@mock_aws
 def test_launch_configuration():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
     client = boto3.client("autoscaling", region_name="us-east-1")
@@ -27,9 +26,7 @@ Resources:
 Outputs:
     LaunchConfigurationName:
         Value: !Ref LaunchConfiguration
-""".strip().format(
-        EXAMPLE_AMI_ID
-    )
+""".strip().format(EXAMPLE_AMI_ID)
 
     cf_client.create_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
@@ -51,9 +48,7 @@ Resources:
 Outputs:
     LaunchConfigurationName:
         Value: !Ref LaunchConfiguration
-""".strip().format(
-        EXAMPLE_AMI_ID
-    )
+""".strip().format(EXAMPLE_AMI_ID)
 
     cf_client.update_stack(StackName=stack_name, TemplateBody=cf_template)
     stack = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
@@ -65,8 +60,7 @@ Outputs:
     assert lc["InstanceType"] == "m5.large"
 
 
-@mock_autoscaling
-@mock_cloudformation
+@mock_aws
 def test_autoscaling_group_from_launch_config():
     subnet_id = setup_networking()["subnet1"]
 
@@ -157,9 +151,7 @@ Outputs:
     assert asg["LaunchConfigurationName"] == "test_launch_configuration_new"
 
 
-@mock_autoscaling
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_autoscaling_group_from_launch_template():
     subnet_id = setup_networking()["subnet1"]
 
@@ -271,10 +263,7 @@ Outputs:
     assert lt["Version"] == "1"
 
 
-@mock_autoscaling
-@mock_elb
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_autoscaling_group_with_elb():
     web_setup_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -312,6 +301,7 @@ def test_autoscaling_group_with_elb():
                     "MinSize": 5,
                     "Recurrence": "* * * * *",
                     "StartTime": "2022-07-01T00:00:00Z",
+                    "TimeZone": "Etc/UTC",
                 },
             },
             "my-launch-config": {
@@ -425,9 +415,7 @@ def test_autoscaling_group_with_elb():
     assert len(response) == 1
 
 
-@mock_autoscaling
-@mock_cloudformation
-@mock_ec2
+@mock_aws
 def test_autoscaling_group_update():
     asg_template = {
         "AWSTemplateFormatVersion": "2010-09-09",

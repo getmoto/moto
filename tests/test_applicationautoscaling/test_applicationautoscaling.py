@@ -3,7 +3,7 @@ import re
 import boto3
 import pytest
 
-from moto import mock_applicationautoscaling, mock_ecs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 DEFAULT_REGION = "us-east-1"
@@ -50,8 +50,7 @@ def _create_ecs_defaults(ecs, create_service=True):
         )
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_one_basic_ecs_success():
     ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
     _create_ecs_defaults(ecs)
@@ -73,8 +72,7 @@ def test_describe_scalable_targets_one_basic_ecs_success():
     assert "CreationTime" in t
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_one_full_ecs_success():
     ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
     _create_ecs_defaults(ecs)
@@ -99,8 +97,7 @@ def test_describe_scalable_targets_one_full_ecs_success():
     )
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_only_return_ecs_targets():
     ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
     _create_ecs_defaults(ecs, create_service=False)
@@ -140,8 +137,7 @@ def test_describe_scalable_targets_only_return_ecs_targets():
     assert len(response["ScalableTargets"]) == 2
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scalable_targets_next_token_success():
     ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
     _create_ecs_defaults(ecs, create_service=False)
@@ -187,8 +183,7 @@ def register_scalable_target(client, **kwargs):
     )
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_register_scalable_target_resource_id_variations():
     # Required to register an ECS target in moto
     ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
@@ -266,8 +261,7 @@ def test_register_scalable_target_resource_id_variations():
         assert "CreationTime" in t
 
 
-@mock_ecs
-@mock_applicationautoscaling
+@mock_aws
 def test_register_scalable_target_updates_existing_target():
     ecs = boto3.client("ecs", region_name=DEFAULT_REGION)
     _create_ecs_defaults(ecs)
@@ -312,81 +306,7 @@ def test_register_scalable_target_updates_existing_target():
     )
 
 
-@pytest.mark.parametrize(
-    ["policy_type", "policy_body_kwargs"],
-    [
-        [
-            "TargetTrackingScaling",
-            {
-                "TargetTrackingScalingPolicyConfiguration": {
-                    "TargetValue": 70.0,
-                    "PredefinedMetricSpecification": {
-                        "PredefinedMetricType": "SageMakerVariantInvocationsPerInstance"
-                    },
-                }
-            },
-        ],
-        [
-            "TargetTrackingScaling",
-            {
-                "StepScalingPolicyConfiguration": {
-                    "AdjustmentType": "ChangeCapacity",
-                    "StepAdjustments": [{"ScalingAdjustment": 10}],
-                    "MinAdjustmentMagnitude": 2,
-                },
-            },
-        ],
-    ],
-)
-@mock_applicationautoscaling
-def test_put_scaling_policy(policy_type, policy_body_kwargs):
-    client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
-    namespace = "sagemaker"
-    resource_id = "endpoint/MyEndPoint/variant/MyVariant"
-    scalable_dimension = "sagemaker:variant:DesiredInstanceCount"
-
-    client.register_scalable_target(
-        ServiceNamespace=namespace,
-        ResourceId=resource_id,
-        ScalableDimension=scalable_dimension,
-        MinCapacity=1,
-        MaxCapacity=8,
-    )
-
-    policy_name = "MyPolicy"
-
-    with pytest.raises(client.exceptions.ValidationException) as e:
-        client.put_scaling_policy(
-            PolicyName=policy_name,
-            ServiceNamespace=namespace,
-            ResourceId=resource_id,
-            ScalableDimension=scalable_dimension,
-            PolicyType="ABCDEFG",
-            **policy_body_kwargs,
-        )
-    assert (
-        e.value.response["Error"]["Message"] == "Unknown policy type ABCDEFG specified."
-    )
-
-    response = client.put_scaling_policy(
-        PolicyName=policy_name,
-        ServiceNamespace=namespace,
-        ResourceId=resource_id,
-        ScalableDimension=scalable_dimension,
-        PolicyType=policy_type,
-        **policy_body_kwargs,
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert (
-        re.match(
-            pattern=rf"arn:aws:autoscaling:{DEFAULT_REGION}:{ACCOUNT_ID}:scalingPolicy:.*:resource/{namespace}/{resource_id}:policyName/{policy_name}",
-            string=response["PolicyARN"],
-        )
-        is not None
-    )
-
-
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scaling_policies():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     namespace = "sagemaker"
@@ -444,7 +364,7 @@ def test_describe_scaling_policies():
     assert "CreationTime" in policy
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_delete_scaling_policies():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     namespace = "sagemaker"
@@ -505,7 +425,7 @@ def test_delete_scaling_policies():
     assert len(response["ScalingPolicies"]) == 0
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_deregister_scalable_target():
     client = boto3.client("application-autoscaling", region_name=DEFAULT_REGION)
     namespace = "sagemaker"
@@ -541,7 +461,7 @@ def test_deregister_scalable_target():
     assert "No scalable target found" in e.value.response["Error"]["Message"]
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_delete_scheduled_action():
     client = boto3.client("application-autoscaling", region_name="eu-west-1")
     resp = client.describe_scheduled_actions(ServiceNamespace="ecs")
@@ -569,7 +489,7 @@ def test_delete_scheduled_action():
     assert len(resp["ScheduledActions"]) == 2
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_describe_scheduled_actions():
     client = boto3.client("application-autoscaling", region_name="eu-west-1")
     resp = client.describe_scheduled_actions(ServiceNamespace="ecs")
@@ -615,7 +535,7 @@ def test_describe_scheduled_actions():
     assert len(resp["ScheduledActions"]) == 0
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_put_scheduled_action():
     client = boto3.client("application-autoscaling", region_name="ap-southeast-1")
     client.put_scheduled_action(
@@ -641,7 +561,7 @@ def test_put_scheduled_action():
     assert "ScalableTargetAction" not in action
 
 
-@mock_applicationautoscaling
+@mock_aws
 def test_put_scheduled_action__use_update():
     client = boto3.client("application-autoscaling", region_name="ap-southeast-1")
     client.put_scheduled_action(

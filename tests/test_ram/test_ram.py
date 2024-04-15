@@ -6,11 +6,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_organizations, mock_ram
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ram
+@mock_aws
 def test_create_resource_share():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -66,7 +66,7 @@ def test_create_resource_share():
     assert len(response["resourceShares"]) == 2
 
 
-@mock_ram
+@mock_aws
 def test_create_resource_share_errors():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -118,8 +118,7 @@ def test_create_resource_share_errors():
     )
 
 
-@mock_ram
-@mock_organizations
+@mock_aws
 def test_create_resource_share_with_organization():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -157,8 +156,7 @@ def test_create_resource_share_with_organization():
     assert response["resourceShare"]["name"] == "test"
 
 
-@mock_ram
-@mock_organizations
+@mock_aws
 def test_create_resource_share_with_organization_errors():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -204,7 +202,7 @@ def test_create_resource_share_with_organization_errors():
     )
 
 
-@mock_ram
+@mock_aws
 def test_get_resource_shares():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -232,7 +230,7 @@ def test_get_resource_shares():
     assert resource["status"] == "ACTIVE"
 
 
-@mock_ram
+@mock_aws
 def test_get_resource_shares_errors():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -251,7 +249,7 @@ def test_get_resource_shares_errors():
     )
 
 
-@mock_ram
+@mock_aws
 def test_update_resource_share():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -282,7 +280,7 @@ def test_update_resource_share():
     assert len(response["resourceShares"]) == 1
 
 
-@mock_ram
+@mock_aws
 def test_update_resource_share_errors():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -304,7 +302,7 @@ def test_update_resource_share_errors():
     )
 
 
-@mock_ram
+@mock_aws
 def test_delete_resource_share():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -325,7 +323,7 @@ def test_delete_resource_share():
     assert resource["lastUpdatedTime"] > creation_time
 
 
-@mock_ram
+@mock_aws
 def test_delete_resource_share_errors():
     # given
     client = boto3.client("ram", region_name="us-east-1")
@@ -346,8 +344,7 @@ def test_delete_resource_share_errors():
     )
 
 
-@mock_ram
-@mock_organizations
+@mock_aws
 def test_enable_sharing_with_aws_organization():
     # given
     client = boto3.client("organizations", region_name="us-east-1")
@@ -361,8 +358,7 @@ def test_enable_sharing_with_aws_organization():
     assert response["returnValue"] is True
 
 
-@mock_ram
-@mock_organizations
+@mock_aws
 def test_enable_sharing_with_aws_organization_errors():
     # given
     client = boto3.client("ram", region_name="us-east-1")

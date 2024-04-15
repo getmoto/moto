@@ -1,6 +1,7 @@
 """{{ service_class }}Backend class with methods for supported APIs."""
 
-from moto.core import BaseBackend, BackendDict, BaseModel
+from moto.core.base_backend import BaseBackend, BackendDict
+from moto.core.common_models import BaseModel
 
 
 class {{ service_class }}Backend(BaseBackend):

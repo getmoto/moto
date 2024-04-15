@@ -9,7 +9,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_config, mock_iam, settings
+from moto import mock_aws, settings
 from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
@@ -85,7 +85,7 @@ MOCK_STS_EC2_POLICY_DOCUMENT = """{
     }"""
 
 
-@mock_iam
+@mock_aws
 def test_get_role__should_throw__when_role_does_not_exist():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -95,7 +95,7 @@ def test_get_role__should_throw__when_role_does_not_exist():
     assert "not found" in err["Message"]
 
 
-@mock_iam
+@mock_aws
 def test_get_role__should_contain_last_used():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -117,7 +117,7 @@ def test_get_role__should_contain_last_used():
         assert roleLastUsed["Region"] == region
 
 
-@mock_iam
+@mock_aws
 def test_get_instance_profile__should_throw__when_instance_profile_does_not_exist():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -127,7 +127,7 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
     assert "not found" in err["Message"]
 
 
-@mock_iam
+@mock_aws
 def test_create_role_and_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
@@ -160,7 +160,7 @@ def test_create_role_and_instance_profile():
     assert profile["InstanceProfile"]["Path"] == "/"
 
 
-@mock_iam
+@mock_aws
 def test_create_instance_profile_should_throw_when_name_is_not_unique():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
@@ -168,9 +168,8 @@ def test_create_instance_profile_should_throw_when_name_is_not_unique():
         conn.create_instance_profile(InstanceProfileName="unique-instance-profile")
 
 
-@mock_iam
+@mock_aws
 def test_create_add_additional_roles_to_instance_profile_error():
-
     # Setup
     iam = boto3.client("iam", region_name="us-east-1")
     name = "test_profile"
@@ -198,7 +197,7 @@ def test_create_add_additional_roles_to_instance_profile_error():
     )
 
 
-@mock_iam
+@mock_aws
 def test_remove_role_from_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
@@ -224,7 +223,7 @@ def test_remove_role_from_instance_profile():
     assert len(profile["Roles"]) == 0
 
 
-@mock_iam()
+@mock_aws()
 def test_delete_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -244,7 +243,7 @@ def test_delete_instance_profile():
         conn.get_instance_profile(InstanceProfileName="my-profile")
 
 
-@mock_iam()
+@mock_aws()
 def test_get_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -254,7 +253,7 @@ def test_get_login_profile():
     assert response["LoginProfile"]["UserName"] == "my-user"
 
 
-@mock_iam()
+@mock_aws()
 def test_update_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -269,7 +268,7 @@ def test_update_login_profile():
     assert response["LoginProfile"].get("PasswordResetRequired") is True
 
 
-@mock_iam()
+@mock_aws()
 def test_delete_role():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -332,7 +331,7 @@ def test_delete_role():
         conn.get_role(RoleName="my-role")
 
 
-@mock_iam
+@mock_aws
 def test_list_instance_profiles():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
@@ -351,7 +350,7 @@ def test_list_instance_profiles():
     assert profiles[0]["Roles"][0]["RoleName"] == "my-role"
 
 
-@mock_iam
+@mock_aws
 def test_list_instance_profiles_for_role():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -390,7 +389,7 @@ def test_list_instance_profiles_for_role():
     assert len(profile_list) == 0
 
 
-@mock_iam
+@mock_aws
 def test_list_role_policies():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -420,7 +419,7 @@ def test_list_role_policies():
     assert err["Message"] == "The role policy with name test policy cannot be found."
 
 
-@mock_iam
+@mock_aws
 def test_put_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -434,7 +433,7 @@ def test_put_role_policy():
     assert policy["PolicyDocument"] == json.loads(MOCK_POLICY)
 
 
-@mock_iam
+@mock_aws
 def test_get_role_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -444,7 +443,7 @@ def test_get_role_policy():
         conn.get_role_policy(RoleName="my-role", PolicyName="does-not-exist")
 
 
-@mock_iam
+@mock_aws
 def test_update_assume_role_invalid_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -457,7 +456,7 @@ def test_update_assume_role_invalid_policy():
     assert "Syntax errors in policy." in err["Message"]
 
 
-@mock_iam
+@mock_aws
 def test_update_assume_role_valid_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -472,7 +471,7 @@ def test_update_assume_role_valid_policy():
     )
 
 
-@mock_iam
+@mock_aws
 def test_update_assume_role_invalid_policy_bad_action():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -505,7 +504,7 @@ def test_update_assume_role_invalid_policy_bad_action():
     )
 
 
-@mock_iam
+@mock_aws
 def test_update_assume_role_invalid_policy_with_resource():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(
@@ -536,7 +535,7 @@ def test_update_assume_role_invalid_policy_with_resource():
     assert "Has prohibited field Resource." in err["Message"]
 
 
-@mock_iam
+@mock_aws
 def test_create_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     response = conn.create_policy(
@@ -548,7 +547,7 @@ def test_create_policy():
     )
 
 
-@mock_iam
+@mock_aws
 def test_create_policy_already_exists():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestCreatePolicy", PolicyDocument=MOCK_POLICY)
@@ -559,7 +558,7 @@ def test_create_policy_already_exists():
     assert "TestCreatePolicy" in ex.value.response["Error"]["Message"]
 
 
-@mock_iam
+@mock_aws
 def test_delete_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     response = conn.create_policy(
@@ -572,7 +571,7 @@ def test_delete_policy():
     assert conn.list_policies(Scope="Local")["Policies"] == []
 
 
-@mock_iam
+@mock_aws
 def test_create_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError):
@@ -601,7 +600,7 @@ def test_create_policy_versions():
     assert version.get("PolicyVersion")["IsDefaultVersion"] is False
 
 
-@mock_iam
+@mock_aws
 def test_create_many_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(
@@ -619,7 +618,7 @@ def test_create_many_policy_versions():
         )
 
 
-@mock_iam
+@mock_aws
 def test_set_default_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(
@@ -696,7 +695,7 @@ def test_set_default_policy_version():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestGetPolicy", PolicyDocument=MOCK_POLICY)
@@ -706,8 +705,10 @@ def test_get_policy():
     assert policy["Policy"]["Arn"] == f"arn:aws:iam::{ACCOUNT_ID}:policy/TestGetPolicy"
 
 
-@mock_iam
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/IAMUserChangePassword"
     managed_policy_create_date = datetime.strptime(
@@ -721,7 +722,7 @@ def test_get_aws_managed_policy():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestGetPolicyVersion", PolicyDocument=MOCK_POLICY)
@@ -742,8 +743,10 @@ def test_get_policy_version():
     assert retrieved.get("PolicyVersion")["IsDefaultVersion"] is False
 
 
-@mock_iam
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy_version():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = (
         "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -763,8 +766,10 @@ def test_get_aws_managed_policy_version():
     assert isinstance(retrieved["PolicyVersion"]["Document"], dict)
 
 
-@mock_iam
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy_v6_version():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
     with pytest.raises(ClientError):
@@ -778,7 +783,7 @@ def test_get_aws_managed_policy_v6_version():
     assert isinstance(retrieved["PolicyVersion"]["Document"], dict)
 
 
-@mock_iam
+@mock_aws
 def test_list_policy_versions():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError):
@@ -809,7 +814,7 @@ def test_list_policy_versions():
     assert versions["Versions"][2]["IsDefaultVersion"] is False
 
 
-@mock_iam
+@mock_aws
 def test_delete_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestDeletePolicyVersion", PolicyDocument=MOCK_POLICY)
@@ -832,7 +837,7 @@ def test_delete_policy_version():
     assert len(versions["Versions"]) == 1
 
 
-@mock_iam
+@mock_aws
 def test_delete_default_policy_version():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestDeletePolicyVersion", PolicyDocument=MOCK_POLICY)
@@ -847,7 +852,7 @@ def test_delete_default_policy_version():
         )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(
@@ -872,7 +877,7 @@ def test_create_policy_with_tags():
     assert policy["Description"] == "testing"
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_empty_tag_value():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -890,7 +895,7 @@ def test_create_policy_with_empty_tag_value():
     assert tags["Tags"][0]["Value"] == ""
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_too_many_tags():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -910,7 +915,7 @@ def test_create_policy_with_too_many_tags():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_duplicate_tag():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -927,7 +932,7 @@ def test_create_policy_with_duplicate_tag():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_duplicate_tag_different_casing():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -944,7 +949,7 @@ def test_create_policy_with_duplicate_tag_different_casing():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_tag_containing_large_key():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -961,7 +966,7 @@ def test_create_policy_with_tag_containing_large_key():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_tag_containing_large_value():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -978,7 +983,7 @@ def test_create_policy_with_tag_containing_large_value():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_tag_containing_invalid_character():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -995,7 +1000,7 @@ def test_create_policy_with_tag_containing_invalid_character():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_create_policy_with_no_tags():
     """Tests both the tag_policy and get_policy_tags capability"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1008,7 +1013,7 @@ def test_create_policy_with_no_tags():
     assert not policy.get("Tags")
 
 
-@mock_iam()
+@mock_aws()
 def test_get_policy_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1031,7 +1036,7 @@ def test_get_policy_with_tags():
     assert policy["Tags"][1]["Value"] == "someothervalue"
 
 
-@mock_iam()
+@mock_aws()
 def test_list_policy_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1056,7 +1061,7 @@ def test_list_policy_tags():
     assert not tags.get("Marker")
 
 
-@mock_iam()
+@mock_aws()
 def test_list_policy_tags_pagination():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1090,7 +1095,7 @@ def test_list_policy_tags_pagination():
     assert not tags.get("Marker")
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tag():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1115,7 +1120,7 @@ def test_updating_existing_tag():
     assert tags["Tags"][0]["Value"] == "somenewvalue"
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tag_with_empty_value():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1140,7 +1145,7 @@ def test_updating_existing_tag_with_empty_value():
     assert tags["Tags"][0]["Value"] == ""
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tagged_policy_with_too_many_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1167,7 +1172,7 @@ def test_updating_existing_tagged_policy_with_too_many_tags():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tagged_policy_with_duplicate_tag():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1191,7 +1196,7 @@ def test_updating_existing_tagged_policy_with_duplicate_tag():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1215,7 +1220,7 @@ def test_updating_existing_tagged_policy_with_duplicate_tag_different_casing():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tagged_policy_with_large_key():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1239,7 +1244,7 @@ def test_updating_existing_tagged_policy_with_large_key():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tagged_policy_with_large_value():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1263,7 +1268,7 @@ def test_updating_existing_tagged_policy_with_large_value():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_updating_existing_tagged_policy_with_invalid_character():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1287,7 +1292,7 @@ def test_updating_existing_tagged_policy_with_invalid_character():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_tag_non_existant_policy():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -1299,7 +1304,7 @@ def test_tag_non_existant_policy():
         )
 
 
-@mock_iam
+@mock_aws
 def test_untag_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_policy(PolicyName="TestUnTagPolicy", PolicyDocument=MOCK_POLICY)
@@ -1380,7 +1385,7 @@ def test_untag_policy():
         )
 
 
-@mock_iam
+@mock_aws
 def test_create_user_boto():
     conn = boto3.client("iam", region_name="us-east-1")
     u = conn.create_user(UserName="my-user")["User"]
@@ -1397,7 +1402,7 @@ def test_create_user_boto():
     assert err["Message"] == "User my-user already exists"
 
 
-@mock_iam
+@mock_aws
 def test_get_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1416,7 +1421,7 @@ def test_get_user():
     assert isinstance(u["CreateDate"], datetime)
 
 
-@mock_iam()
+@mock_aws()
 def test_update_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(conn.exceptions.NoSuchEntityException):
@@ -1429,7 +1434,7 @@ def test_update_user():
         conn.get_user(UserName="my-user")
 
 
-@mock_iam
+@mock_aws
 def test_get_current_user():
     """If no user is specific, IAM returns the current user"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1437,7 +1442,7 @@ def test_get_current_user():
     assert user["UserName"] == "default_user"
 
 
-@mock_iam()
+@mock_aws()
 def test_list_users():
     path_prefix = "/"
     max_items = 10
@@ -1457,7 +1462,7 @@ def test_list_users():
     assert user["Path"] == "myUser"
 
 
-@mock_iam()
+@mock_aws()
 def test_user_policies():
     policy_name = "UserManagedPolicy"
     user_name = "my-user"
@@ -1480,7 +1485,7 @@ def test_user_policies():
     assert len(policies["PolicyNames"]) == 0
 
 
-@mock_iam
+@mock_aws
 def test_create_login_profile_with_unknown_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1490,7 +1495,7 @@ def test_create_login_profile_with_unknown_user():
     assert err["Message"] == "The user with name my-user cannot be found."
 
 
-@mock_iam
+@mock_aws
 def test_delete_login_profile_with_unknown_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -1500,7 +1505,7 @@ def test_delete_login_profile_with_unknown_user():
     assert err["Message"] == "The user with name my-user cannot be found."
 
 
-@mock_iam
+@mock_aws
 def test_delete_nonexistent_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -1511,7 +1516,7 @@ def test_delete_nonexistent_login_profile():
     assert err["Message"] == "Login profile for my-user not found"
 
 
-@mock_iam
+@mock_aws
 def test_delete_login_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -1522,7 +1527,7 @@ def test_delete_login_profile():
         conn.get_login_profile(UserName="my-user")
 
 
-@mock_iam
+@mock_aws
 def test_create_access_key():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError):
@@ -1546,7 +1551,7 @@ def test_create_access_key():
     assert access_key["AccessKeyId"].startswith("AKIA")
 
 
-@mock_iam
+@mock_aws
 def test_limit_access_key_per_user():
     conn = boto3.client("iam", region_name=DEFAULT_REGION_NAME)
     user_name = "test-user"
@@ -1562,7 +1567,7 @@ def test_limit_access_key_per_user():
     assert err["Message"] == "Cannot exceed quota for AccessKeysPerUser: 2"
 
 
-@mock_iam
+@mock_aws
 def test_list_access_keys():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -1585,7 +1590,7 @@ def test_list_access_keys():
     )
 
 
-@mock_iam
+@mock_aws
 def test_delete_access_key():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -1595,7 +1600,7 @@ def test_delete_access_key():
     conn.delete_access_key(AccessKeyId=key["AccessKeyId"])
 
 
-@mock_iam()
+@mock_aws()
 def test_mfa_devices():
     # Test enable device
     conn = boto3.client("iam", region_name="us-east-1")
@@ -1618,7 +1623,7 @@ def test_mfa_devices():
     assert len(response["MFADevices"]) == 0
 
 
-@mock_iam
+@mock_aws
 def test_create_virtual_mfa_device():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
@@ -1648,7 +1653,7 @@ def test_create_virtual_mfa_device():
     assert isinstance(device["QRCodePNG"], bytes)
 
 
-@mock_iam
+@mock_aws
 def test_create_virtual_mfa_device_errors():
     client = boto3.client("iam", region_name="us-east-1")
     client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
@@ -1692,7 +1697,7 @@ def test_create_virtual_mfa_device_errors():
     )
 
 
-@mock_iam
+@mock_aws
 def test_delete_virtual_mfa_device():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
@@ -1706,7 +1711,7 @@ def test_delete_virtual_mfa_device():
     assert response["IsTruncated"] is False
 
 
-@mock_iam
+@mock_aws
 def test_delete_virtual_mfa_device_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -1720,7 +1725,7 @@ def test_delete_virtual_mfa_device_errors():
     )
 
 
-@mock_iam
+@mock_aws
 def test_list_virtual_mfa_devices():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
@@ -1766,7 +1771,7 @@ def test_list_virtual_mfa_devices():
     assert response["IsTruncated"] is False
 
 
-@mock_iam
+@mock_aws
 def test_list_virtual_mfa_devices_errors():
     client = boto3.client("iam", region_name="us-east-1")
     client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
@@ -1777,7 +1782,7 @@ def test_list_virtual_mfa_devices_errors():
     assert err["Message"] == "Invalid Marker."
 
 
-@mock_iam
+@mock_aws
 def test_enable_virtual_mfa_device():
     client = boto3.client("iam", region_name="us-east-1")
     response = client.create_virtual_mfa_device(VirtualMFADeviceName="test-device")
@@ -1822,7 +1827,7 @@ def test_enable_virtual_mfa_device():
     assert response["IsTruncated"] is False
 
 
-@mock_iam()
+@mock_aws()
 def test_delete_user():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(conn.exceptions.NoSuchEntityException):
@@ -1861,7 +1866,7 @@ def test_delete_user():
         conn.get_user(UserName="my-user")
 
 
-@mock_iam
+@mock_aws
 def test_generate_credential_report():
     conn = boto3.client("iam", region_name="us-east-1")
     result = conn.generate_credential_report()
@@ -1870,7 +1875,7 @@ def test_generate_credential_report():
     assert result["State"] == "COMPLETE"
 
 
-@mock_iam
+@mock_aws
 def test_get_credential_report():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -1884,7 +1889,7 @@ def test_get_credential_report():
     assert "my-user" in report
 
 
-@mock_iam
+@mock_aws
 def test_get_credential_report_content():
     conn = boto3.client("iam", region_name="us-east-1")
     username = "my-user"
@@ -1927,7 +1932,7 @@ def test_get_credential_report_content():
         assert user["password_last_used"] == "no_information"
 
 
-@mock_iam
+@mock_aws
 def test_get_access_key_last_used_when_used():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -1953,8 +1958,10 @@ def test_get_access_key_last_used_when_used():
     assert resp["AccessKeyLastUsed"]["Region"] == "us-east-1"
 
 
-@mock_iam
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_managed_policy():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-west-1")
 
     conn.create_policy(
@@ -2044,7 +2051,7 @@ def test_managed_policy():
     assert err["Message"] == "Policy arn:aws:iam::aws:policy/Nonexistent was not found."
 
 
-@mock_iam
+@mock_aws
 def test_create_login_profile__duplicate():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -2058,7 +2065,7 @@ def test_create_login_profile__duplicate():
     assert err["Message"] is None
 
 
-@mock_iam()
+@mock_aws()
 def test_attach_detach_user_policy():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = boto3.client("iam", region_name="us-east-1")
@@ -2098,7 +2105,7 @@ def test_attach_detach_user_policy():
     assert len(resp["AttachedPolicies"]) == 0
 
 
-@mock_iam()
+@mock_aws()
 def test_attach_detach_role_policy():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = boto3.client("iam", region_name="us-east-1")
@@ -2138,7 +2145,7 @@ def test_attach_detach_role_policy():
     assert len(resp["AttachedPolicies"]) == 0
 
 
-@mock_iam()
+@mock_aws()
 def test_only_detach_user_policy():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = boto3.client("iam", region_name="us-east-1")
@@ -2163,7 +2170,7 @@ def test_only_detach_user_policy():
     assert err["Message"] == f"Policy {policy.arn} was not found."
 
 
-@mock_iam()
+@mock_aws()
 def test_only_detach_group_policy():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = boto3.client("iam", region_name="us-east-1")
@@ -2188,7 +2195,7 @@ def test_only_detach_group_policy():
     assert err["Message"] == f"Policy {policy.arn} was not found."
 
 
-@mock_iam()
+@mock_aws()
 def test_only_detach_role_policy():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = boto3.client("iam", region_name="us-east-1")
@@ -2213,7 +2220,7 @@ def test_only_detach_role_policy():
     assert err["Message"] == f"Policy {policy.arn} was not found."
 
 
-@mock_iam
+@mock_aws
 def test_update_access_key():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2234,7 +2241,7 @@ def test_update_access_key():
     assert resp["AccessKeyMetadata"][0]["Status"] == "Active"
 
 
-@mock_iam
+@mock_aws
 def test_get_access_key_last_used_when_unused():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2250,7 +2257,7 @@ def test_get_access_key_last_used_when_unused():
     assert resp["UserName"] == create_key_response["UserName"]
 
 
-@mock_iam
+@mock_aws
 def test_upload_ssh_public_key():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2269,7 +2276,7 @@ def test_upload_ssh_public_key():
     assert 0 <= ((utcnow() - pubkey["UploadDate"].replace(tzinfo=None)).seconds) < 10
 
 
-@mock_iam
+@mock_aws
 def test_get_ssh_public_key():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2291,7 +2298,7 @@ def test_get_ssh_public_key():
     assert resp["SSHPublicKey"]["SSHPublicKeyBody"] == public_key
 
 
-@mock_iam
+@mock_aws
 def test_list_ssh_public_keys():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2310,7 +2317,7 @@ def test_list_ssh_public_keys():
     assert resp["SSHPublicKeys"][0]["SSHPublicKeyId"] == ssh_public_key_id
 
 
-@mock_iam
+@mock_aws
 def test_update_ssh_public_key():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2337,7 +2344,7 @@ def test_update_ssh_public_key():
     assert resp["SSHPublicKey"]["Status"] == "Inactive"
 
 
-@mock_iam
+@mock_aws
 def test_delete_ssh_public_key():
     iam = boto3.resource("iam", region_name="us-east-1")
     client = iam.meta.client
@@ -2364,8 +2371,10 @@ def test_delete_ssh_public_key():
     assert len(resp["SSHPublicKeys"]) == 0
 
 
-@mock_iam
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_account_authorization_details():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     test_policy = json.dumps(
         {
             "Version": "2012-10-17",
@@ -2531,7 +2540,7 @@ def test_get_account_authorization_details():
     assert len(result["Policies"]) > 1
 
 
-@mock_iam
+@mock_aws
 def test_signing_certs():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -2599,7 +2608,7 @@ def test_signing_certs():
         client.delete_signing_certificate(UserName="notauser", CertificateId=cert_id)
 
 
-@mock_iam()
+@mock_aws()
 def test_create_saml_provider():
     conn = boto3.client("iam", region_name="us-east-1")
     response = conn.create_saml_provider(
@@ -2611,7 +2620,7 @@ def test_create_saml_provider():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_get_saml_provider():
     conn = boto3.client("iam", region_name="us-east-1")
     saml_provider_create = conn.create_saml_provider(
@@ -2623,7 +2632,7 @@ def test_get_saml_provider():
     assert response["SAMLMetadataDocument"] == "a" * 1024
 
 
-@mock_iam()
+@mock_aws()
 def test_list_saml_providers():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_saml_provider(Name="TestSAMLProvider", SAMLMetadataDocument="a" * 1024)
@@ -2634,7 +2643,7 @@ def test_list_saml_providers():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_delete_saml_provider():
     conn = boto3.client("iam", region_name="us-east-1")
     saml_provider_create = conn.create_saml_provider(
@@ -2661,7 +2670,7 @@ def test_delete_saml_provider():
     assert not resp["Certificates"]
 
 
-@mock_iam()
+@mock_aws()
 def test_create_role_defaults():
     """Tests default values"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -2674,7 +2683,7 @@ def test_create_role_defaults():
     assert role.get("Description") is None
 
 
-@mock_iam()
+@mock_aws()
 def test_create_role_with_tags():
     """Tests both the tag_role and get_role_tags capability"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -2783,7 +2792,7 @@ def test_create_role_with_tags():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_tag_role():
     """Tests both the tag_role and get_role_tags capability"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -2914,7 +2923,7 @@ def test_tag_role():
         conn.tag_role(RoleName="notarole", Tags=[{"Key": "some", "Value": "value"}])
 
 
-@mock_iam
+@mock_aws
 def test_untag_role():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_role(RoleName="my-role", AssumeRolePolicyDocument="{}")
@@ -2973,7 +2982,7 @@ def test_untag_role():
         conn.untag_role(RoleName="notarole", TagKeys=["somevalue"])
 
 
-@mock_iam()
+@mock_aws()
 def test_update_role_description():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -2988,7 +2997,7 @@ def test_update_role_description():
     assert response["Role"]["RoleName"] == "my-role"
 
 
-@mock_iam()
+@mock_aws()
 def test_update_role():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -3002,7 +3011,7 @@ def test_update_role():
     assert len(response.keys()) == 1
 
 
-@mock_iam()
+@mock_aws()
 def test_update_role_defaults():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -3024,7 +3033,7 @@ def test_update_role_defaults():
     assert role.get("Description") is None
 
 
-@mock_iam()
+@mock_aws()
 def test_list_entities_for_policy():
     test_policy = json.dumps(
         {
@@ -3137,7 +3146,7 @@ def test_list_entities_for_policy():
     assert "RoleId" in response["PolicyRoles"][0]
 
 
-@mock_iam()
+@mock_aws()
 def test_create_role_no_path():
     conn = boto3.client("iam", region_name="us-east-1")
     resp = conn.create_role(
@@ -3148,7 +3157,7 @@ def test_create_role_no_path():
     assert resp["Role"]["Description"] == "test"
 
 
-@mock_iam()
+@mock_aws()
 def test_create_role_with_permissions_boundary():
     conn = boto3.client("iam", region_name="us-east-1")
     boundary = f"arn:aws:iam::{ACCOUNT_ID}:policy/boundary"
@@ -3190,7 +3199,7 @@ def test_create_role_with_permissions_boundary():
     assert conn.list_roles()["Roles"][0].get("PermissionsBoundary") == expected
 
 
-@mock_iam
+@mock_aws
 def test_create_role_with_same_name_should_fail():
     iam = boto3.client("iam", region_name="us-east-1")
     test_role_name = str(uuid4())
@@ -3211,7 +3220,7 @@ def test_create_role_with_same_name_should_fail():
     )
 
 
-@mock_iam
+@mock_aws
 def test_create_policy_with_same_name_should_fail():
     iam = boto3.client("iam", region_name="us-east-1")
     test_policy_name = str(uuid4())
@@ -3226,7 +3235,7 @@ def test_create_policy_with_same_name_should_fail():
     )
 
 
-@mock_iam
+@mock_aws
 def test_update_account_password_policy():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -3245,7 +3254,7 @@ def test_update_account_password_policy():
     }
 
 
-@mock_iam
+@mock_aws
 def test_update_account_password_policy_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -3260,7 +3269,7 @@ def test_update_account_password_policy_errors():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_account_password_policy():
     client = boto3.client("iam", region_name="us-east-1")
     client.update_account_password_policy(
@@ -3291,7 +3300,7 @@ def test_get_account_password_policy():
     }
 
 
-@mock_iam
+@mock_aws
 def test_get_account_password_policy_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -3304,7 +3313,7 @@ def test_get_account_password_policy_errors():
     )
 
 
-@mock_iam
+@mock_aws
 def test_delete_account_password_policy():
     client = boto3.client("iam", region_name="us-east-1")
     client.update_account_password_policy()
@@ -3324,7 +3333,7 @@ def test_delete_account_password_policy():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_account_summary():
     client = boto3.client("iam", region_name="us-east-1")
     iam = boto3.resource("iam", region_name="us-east-1")
@@ -3438,7 +3447,7 @@ def test_get_account_summary():
     }
 
 
-@mock_iam()
+@mock_aws()
 def test_list_user_tags():
     """Tests both setting a tags on a user in create_user and list_user_tags"""
     conn = boto3.client("iam", region_name="us-east-1")
@@ -3469,7 +3478,7 @@ def test_list_user_tags():
     assert response["IsTruncated"] is False
 
 
-@mock_iam()
+@mock_aws()
 def test_delete_role_with_instance_profiles_present():
     iam = boto3.client("iam", region_name="us-east-1")
 
@@ -3488,7 +3497,7 @@ def test_delete_role_with_instance_profiles_present():
     assert "Role2" not in role_names
 
 
-@mock_iam
+@mock_aws
 def test_delete_account_password_policy_errors():
     client = boto3.client("iam", region_name="us-east-1")
 
@@ -3500,7 +3509,7 @@ def test_delete_account_password_policy_errors():
     )
 
 
-@mock_iam
+@mock_aws
 def test_role_list_config_discovered_resources():
     from moto.iam.config import role_config_query
 
@@ -3579,7 +3588,7 @@ def test_role_list_config_discovered_resources():
     assert len(both_filter_bad) == 0
 
 
-@mock_iam
+@mock_aws
 def test_role_config_dict():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Using backend directly - no point in testing ServerMode")
@@ -3860,8 +3869,7 @@ def test_role_config_dict():
     ]
 
 
-@mock_iam
-@mock_config
+@mock_aws
 def test_role_config_client():
     from moto.iam.utils import random_role_id
 
@@ -3922,10 +3930,13 @@ def test_role_config_client():
 
     # Test non-aggregated pagination
     assert (
-        config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
-        )["resourceIdentifiers"][0]["resourceId"]
-    ) != first_result
+        (
+            config_client.list_discovered_resources(
+                resourceType="AWS::IAM::Role", limit=1, nextToken=result["nextToken"]
+            )["resourceIdentifiers"][0]["resourceId"]
+        )
+        != first_result
+    )
 
     # Test aggregated query - by `Limit=len(CONFIG_REGIONS)`, we should get a single policy duplicated across all regions
     agg_result = config_client.list_aggregate_discovered_resources(
@@ -4099,7 +4110,7 @@ def test_role_config_client():
     )
 
 
-@mock_iam
+@mock_aws
 def test_policy_list_config_discovered_resources():
     from moto.iam.config import policy_config_query
 
@@ -4190,7 +4201,7 @@ def test_policy_list_config_discovered_resources():
     assert len(both_filter_bad) == 0
 
 
-@mock_iam
+@mock_aws
 def test_policy_config_dict():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Using backend directly - no point in testing ServerMode")
@@ -4306,8 +4317,7 @@ def test_policy_config_dict():
     assert policy["supplementaryConfiguration"] == {}
 
 
-@mock_iam
-@mock_config
+@mock_aws
 def test_policy_config_client():
     from moto.iam.utils import random_policy_id
 
@@ -4373,10 +4383,13 @@ def test_policy_config_client():
 
     # Test non-aggregated pagination
     assert (
-        config_client.list_discovered_resources(
-            resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
-        )["resourceIdentifiers"][0]["resourceId"]
-    ) != first_result
+        (
+            config_client.list_discovered_resources(
+                resourceType="AWS::IAM::Policy", limit=1, nextToken=result["nextToken"]
+            )["resourceIdentifiers"][0]["resourceId"]
+        )
+        != first_result
+    )
 
     # Test aggregated query - by `Limit=len(CONFIG_REGIONS)`, we should get a single policy duplicated across all regions
     agg_result = config_client.list_aggregate_discovered_resources(
@@ -4522,7 +4535,7 @@ def test_policy_config_client():
     )
 
 
-@mock_iam()
+@mock_aws()
 def test_list_roles_with_more_than_100_roles_no_max_items_defaults_to_100():
     iam = boto3.client("iam", region_name="us-east-1")
     for i in range(150):
@@ -4536,7 +4549,7 @@ def test_list_roles_with_more_than_100_roles_no_max_items_defaults_to_100():
     assert len(roles) == 100
 
 
-@mock_iam()
+@mock_aws()
 def test_list_roles_max_item_and_marker_values_adhered():
     iam = boto3.client("iam", region_name="us-east-1")
     for i in range(10):
@@ -4556,7 +4569,7 @@ def test_list_roles_max_item_and_marker_values_adhered():
     assert len(roles) == 8
 
 
-@mock_iam()
+@mock_aws()
 def test_list_roles_path_prefix_value_adhered():
     iam = boto3.client("iam", region_name="us-east-1")
     iam.create_role(
@@ -4575,7 +4588,7 @@ def test_list_roles_path_prefix_value_adhered():
     assert roles[0]["RoleName"] == "test_role_with_path"
 
 
-@mock_iam()
+@mock_aws()
 def test_list_roles_none_found_returns_empty_list():
     iam = boto3.client("iam", region_name="us-east-1")
 
@@ -4596,7 +4609,7 @@ def test_list_roles_none_found_returns_empty_list():
     assert len(roles) == 0
 
 
-@mock_iam()
+@mock_aws()
 def test_list_roles():
     conn = boto3.client("iam", region_name="us-east-1")
     for desc in ["", "desc"]:
@@ -4622,7 +4635,7 @@ def test_list_roles():
     assert all([role["MaxSessionDuration"] for role in all_roles])
 
 
-@mock_iam()
+@mock_aws()
 def test_create_user_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
     user_name = "test-user"
@@ -4640,7 +4653,7 @@ def test_create_user_with_tags():
     assert "Tags" not in resp["User"]
 
 
-@mock_iam
+@mock_aws
 def test_tag_user():
     # given
     client = boto3.client("iam", region_name="eu-central-1")
@@ -4659,7 +4672,7 @@ def test_tag_user():
     assert sorted(response["Tags"], key=lambda item: item["Key"]) == tags
 
 
-@mock_iam
+@mock_aws
 def test_tag_user_error_unknown_user_name():
     # given
     client = boto3.client("iam", region_name="eu-central-1")
@@ -4679,7 +4692,7 @@ def test_tag_user_error_unknown_user_name():
     )
 
 
-@mock_iam
+@mock_aws
 def test_untag_user():
     # given
     client = boto3.client("iam", region_name="eu-central-1")
@@ -4697,7 +4710,7 @@ def test_untag_user():
     assert response["Tags"] == [{"Key": "key", "Value": "value"}]
 
 
-@mock_iam
+@mock_aws
 def test_untag_user_error_unknown_user_name():
     # given
     client = boto3.client("iam", region_name="eu-central-1")
@@ -4717,7 +4730,7 @@ def test_untag_user_error_unknown_user_name():
     )
 
 
-@mock_iam
+@mock_aws
 @pytest.mark.parametrize(
     "service,cased",
     [
@@ -4740,7 +4753,7 @@ def test_create_service_linked_role(service, cased):
     assert resp["RoleName"] == f"AWSServiceRoleFor{cased}"
 
 
-@mock_iam
+@mock_aws
 def test_create_service_linked_role__with_suffix():
     client = boto3.client("iam", region_name="eu-central-1")
 
@@ -4762,7 +4775,7 @@ def test_create_service_linked_role__with_suffix():
     ]
 
 
-@mock_iam
+@mock_aws
 def test_delete_service_linked_role():
     client = boto3.client("iam", region_name="eu-central-1")
 

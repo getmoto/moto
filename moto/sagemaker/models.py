@@ -7,13 +7,15 @@ from typing import Any, Dict, Iterable, List, Optional, Union, cast
 
 from dateutil.tz import tzutc
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
 
 from .exceptions import (
     AWSValidationException,
     MissingModel,
+    ResourceInUseException,
     ResourceNotFound,
     ValidationError,
 )
@@ -980,6 +982,63 @@ class ModelPackageGroup(BaseObject):
         return {k: v for k, v in response_object.items() if k in response_values}
 
 
+class FeatureGroup(BaseObject):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        feature_group_name: str,
+        record_identifier_feature_name: str,
+        event_time_feature_name: str,
+        feature_definitions: List[Dict[str, str]],
+        offline_store_config: Dict[str, Any],
+        role_arn: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> None:
+        self.feature_group_name = feature_group_name
+        self.record_identifier_feature_name = record_identifier_feature_name
+        self.event_time_feature_name = event_time_feature_name
+        self.feature_definitions = feature_definitions
+
+        table_name = (
+            f"{feature_group_name.replace('-','_')}_{int(datetime.now().timestamp())}"
+        )
+        offline_store_config["DataCatalogConfig"] = {
+            "TableName": table_name,
+            "Catalog": "AwsDataCatalog",
+            "Database": "sagemaker_featurestore",
+        }
+        offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
+            f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
+        )
+
+        self.offline_store_config = offline_store_config
+        self.role_arn = role_arn
+
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.feature_group_arn = arn_formatter(
+            region_name=region_name,
+            account_id=account_id,
+            _type="feature-group",
+            _id=f"{self.feature_group_name.lower()}",
+        )
+        self.tags = tags
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "FeatureGroupArn": self.feature_group_arn,
+            "FeatureGroupName": self.feature_group_name,
+            "RecordIdentifierFeatureName": self.record_identifier_feature_name,
+            "EventTimeFeatureName": self.event_time_feature_name,
+            "FeatureDefinitions": self.feature_definitions,
+            "CreationTime": self.creation_time,
+            "OfflineStoreConfig": self.offline_store_config,
+            "RoleArn": self.role_arn,
+            "ThroughputConfig": {"ThroughputMode": "OnDemand"},
+            "FeatureGroupStatus": "Created",
+        }
+
+
 class ModelPackage(BaseObject):
     def __init__(
         self,
@@ -1768,6 +1827,7 @@ class SageMakerModelBackend(BaseBackend):
         self.model_package_groups: Dict[str, ModelPackageGroup] = {}
         self.model_packages: Dict[str, ModelPackage] = {}
         self.model_package_name_mapping: Dict[str, str] = {}
+        self.feature_groups: Dict[str, FeatureGroup] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1911,7 +1971,7 @@ class SageMakerModelBackend(BaseBackend):
         resource.tags.extend(tags)
         return resource.tags
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_tags(self, arn: str) -> List[Dict[str, str]]:
         resource = self._get_resource_from_arn(arn)
         return resource.tags
@@ -1920,7 +1980,7 @@ class SageMakerModelBackend(BaseBackend):
         resource = self._get_resource_from_arn(arn)
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self) -> List["FakeExperiment"]:
         return list(self.experiments.values())
 
@@ -2090,7 +2150,7 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find trial configuration '{arn}'."
             )
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(
         self,
         experiment_name: Optional[str] = None,
@@ -2153,7 +2213,7 @@ class SageMakerModelBackend(BaseBackend):
     ) -> None:
         self.trial_components[trial_component_name].update(details_json)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_trial_components(
         self, trial_name: Optional[str] = None
     ) -> List["FakeTrialComponent"]:
@@ -2277,14 +2337,14 @@ class SageMakerModelBackend(BaseBackend):
             raise ValidationError(message=message)
         del self.notebook_instances[notebook_instance_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_notebook_instances(
         self,
         sort_by: str,
         sort_order: str,
         name_contains: Optional[str],
         status: Optional[str],
-    ) -> Iterable[FakeSagemakerNotebookInstance]:
+    ) -> List[FakeSagemakerNotebookInstance]:
         """
         The following parameters are not yet implemented:
         CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
@@ -2616,9 +2676,9 @@ class SageMakerModelBackend(BaseBackend):
             client_request_token=client_request_token,
         )
 
-        self.pipelines[pipeline_name].pipeline_executions[
-            pipeline_execution_arn
-        ] = fake_pipeline_execution
+        self.pipelines[pipeline_name].pipeline_executions[pipeline_execution_arn] = (
+            fake_pipeline_execution
+        )
         self.pipelines[
             pipeline_name
         ].last_execution_time = fake_pipeline_execution.start_time
@@ -3223,8 +3283,8 @@ class SageMakerModelBackend(BaseBackend):
             return True
         raise ValueError(f"Invalid model package type: {model_package_type}")
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_model_package_groups(  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_package_groups(
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],
@@ -3275,13 +3335,19 @@ class SageMakerModelBackend(BaseBackend):
     ) -> ModelPackageGroup:
         model_package_group = self.model_package_groups.get(model_package_group_name)
         if model_package_group is None:
+            model_package_group_arn = arn_formatter(
+                region_name=self.region_name,
+                account_id=self.account_id,
+                _type="model-package-group",
+                _id=f"{model_package_group_name}",
+            )
             raise ValidationError(
-                f"Model package group {model_package_group_name} not found"
+                f"ModelPackageGroup {model_package_group_arn} does not exist."
             )
         return model_package_group
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_model_packages(  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_packages(
         self,
         creation_time_after: Optional[int],
         creation_time_before: Optional[int],
@@ -3455,14 +3521,63 @@ class SageMakerModelBackend(BaseBackend):
             client_token=client_token,
             model_package_type=model_package_type,
         )
-        self.model_package_name_mapping[
-            model_package.model_package_name
-        ] = model_package.model_package_arn
-        self.model_package_name_mapping[
+        self.model_package_name_mapping[model_package.model_package_name] = (
             model_package.model_package_arn
-        ] = model_package.model_package_arn
+        )
+        self.model_package_name_mapping[model_package.model_package_arn] = (
+            model_package.model_package_arn
+        )
         self.model_packages[model_package.model_package_arn] = model_package
         return model_package.model_package_arn
+
+    def create_feature_group(
+        self,
+        feature_group_name: str,
+        record_identifier_feature_name: str,
+        event_time_feature_name: str,
+        feature_definitions: List[Dict[str, str]],
+        offline_store_config: Dict[str, Any],
+        role_arn: str,
+        tags: Any,
+    ) -> str:
+        feature_group_arn = arn_formatter(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            _type="feature-group",
+            _id=f"{feature_group_name.lower()}",
+        )
+        if feature_group_arn in self.feature_groups:
+            raise ResourceInUseException(
+                message=f"An error occurred (ResourceInUse) when calling the CreateFeatureGroup operation: Resource Already Exists: FeatureGroup with name {feature_group_name} already exists. Choose a different name.\nInfo: Feature Group '{feature_group_name}' already exists."
+            )
+
+        feature_group = FeatureGroup(
+            feature_group_name=feature_group_name,
+            record_identifier_feature_name=record_identifier_feature_name,
+            event_time_feature_name=event_time_feature_name,
+            feature_definitions=feature_definitions,
+            offline_store_config=offline_store_config,
+            role_arn=role_arn,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            tags=tags,
+        )
+        self.feature_groups[feature_group.feature_group_arn] = feature_group
+        return feature_group.feature_group_arn
+
+    def describe_feature_group(
+        self,
+        feature_group_name: str,
+    ) -> Dict[str, Any]:
+        feature_group_arn = arn_formatter(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            _type="feature-group",
+            _id=f"{feature_group_name.lower()}",
+        )
+
+        feature_group = self.feature_groups[feature_group_arn]
+        return feature_group.describe()
 
 
 class FakeExperiment(BaseObject):

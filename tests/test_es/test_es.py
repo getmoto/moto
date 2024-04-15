@@ -1,9 +1,10 @@
 """Unit tests for es-supported APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_es
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -12,7 +13,7 @@ from moto import mock_es
 @pytest.mark.parametrize(
     "name", ["getmoto.org", "search-is-$$$", "dev_or_test", "dev/test", "1love", "DEV"]
 )
-@mock_es
+@mock_aws
 def test_create_domain_invalid_name(name):
     client = boto3.client("es", region_name="us-east-2")
     with pytest.raises(ClientError) as exc:
@@ -25,7 +26,7 @@ def test_create_domain_invalid_name(name):
     assert err["Code"] == "ValidationException"
 
 
-@mock_es
+@mock_aws
 def test_create_elasticsearch_domain_minimal():
     client = boto3.client("es", region_name="us-east-2")
     resp = client.create_elasticsearch_domain(DomainName="motosearch")
@@ -40,7 +41,7 @@ def test_create_elasticsearch_domain_minimal():
     assert "ElasticsearchVersion" not in domain
 
 
-@mock_es
+@mock_aws
 def test_create_elasticsearch_domain():
     client = boto3.client("es", region_name="us-east-2")
     resp = client.create_elasticsearch_domain(
@@ -127,7 +128,7 @@ def test_create_elasticsearch_domain():
     assert auto_tune["State"] == "ENABLED"
 
 
-@mock_es
+@mock_aws
 def test_delete_elasticsearch_domain():
     client = boto3.client("es", region_name="ap-southeast-1")
     client.create_elasticsearch_domain(DomainName="motosearch")
@@ -136,7 +137,7 @@ def test_delete_elasticsearch_domain():
     assert client.list_domain_names()["DomainNames"] == []
 
 
-@mock_es
+@mock_aws
 def test_missing_delete_elasticsearch_domain():
     client = boto3.client("es", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -150,7 +151,7 @@ def test_missing_delete_elasticsearch_domain():
     assert err["Message"] == "Domain not found: unknown"
 
 
-@mock_es
+@mock_aws
 def test_describe_invalid_domain():
     client = boto3.client("es", region_name="us-east-2")
     with pytest.raises(ClientError) as exc:
@@ -165,7 +166,7 @@ def test_describe_invalid_domain():
     assert err["Code"] == "ValidationException"
 
 
-@mock_es
+@mock_aws
 def test_describe_unknown_domain():
     client = boto3.client("es", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -179,7 +180,7 @@ def test_describe_unknown_domain():
     assert err["Message"] == "Domain not found: unknown"
 
 
-@mock_es
+@mock_aws
 def test_describe_elasticsearch_domain():
     client = boto3.client("es", region_name="ap-southeast-1")
     client.create_elasticsearch_domain(DomainName="motosearch")
@@ -195,7 +196,7 @@ def test_describe_elasticsearch_domain():
     assert "ElasticsearchVersion" not in domain
 
 
-@mock_es
+@mock_aws
 def test_list_domain_names_initial():
     client = boto3.client("es", region_name="eu-west-1")
     resp = client.list_domain_names()
@@ -203,7 +204,7 @@ def test_list_domain_names_initial():
     assert resp["DomainNames"] == []
 
 
-@mock_es
+@mock_aws
 def test_list_domain_names_with_multiple_domains():
     client = boto3.client("es", region_name="eu-west-1")
     domain_names = [f"env{i}" for i in range(1, 5)]

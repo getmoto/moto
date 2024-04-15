@@ -5,11 +5,11 @@ import boto3
 import pytest
 from botocore.client import ClientError
 
-from moto import mock_s3control
+from moto import mock_aws
 from tests.test_s3 import s3_aws_verified
 
 
-@mock_s3control
+@mock_aws
 def test_get_unknown_access_point():
     client = boto3.client("s3control", region_name="ap-southeast-1")
 
@@ -21,7 +21,7 @@ def test_get_unknown_access_point():
     assert err["AccessPointName"] == "ap_name"
 
 
-@mock_s3control
+@mock_aws
 def test_get_access_point_minimal():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(
@@ -57,7 +57,7 @@ def test_get_access_point_minimal():
     )
 
 
-@mock_s3control
+@mock_aws
 def test_get_access_point_full():
     client = boto3.client("s3control", region_name="ap-southeast-1")
     client.create_access_point(

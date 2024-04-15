@@ -11,6 +11,7 @@ Incomplete list of unfinished items:
     are reported back to the user.  Instead an exception is raised.
   - put_record(), put_record_batch() always set "Encrypted" to False.
 """
+
 import io
 import json
 import warnings
@@ -22,7 +23,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.firehose.exceptions import (
     ConcurrentModificationException,
@@ -82,7 +84,7 @@ def find_destination_config_in_args(api_args: Dict[str, Any]) -> Tuple[str, Any]
 
 
 def create_s3_destination_config(
-    extended_s3_destination_config: Dict[str, Any]
+    extended_s3_destination_config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Return dict with selected fields copied from ExtendedS3 config.
 
@@ -104,9 +106,7 @@ def create_s3_destination_config(
     return destination
 
 
-class DeliveryStream(
-    BaseModel
-):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
+class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
     """Represents a delivery stream, its source and destination configs."""
 
     STATES = {"CREATING", "ACTIVE", "CREATING_FAILED"}
@@ -413,7 +413,9 @@ class FirehoseBackend(BaseBackend):
         }
 
     @staticmethod
-    def put_http_records(http_destination: Dict[str, Any], records: List[Dict[str, bytes]]) -> List[Dict[str, str]]:  # type: ignore[misc]
+    def put_http_records(  # type: ignore[misc]
+        http_destination: Dict[str, Any], records: List[Dict[str, bytes]]
+    ) -> List[Dict[str, str]]:
         """Put records to a HTTP destination."""
         # Mostly copied from localstack
         url = http_destination["EndpointConfiguration"]["Url"]
@@ -661,9 +663,9 @@ class FirehoseBackend(BaseBackend):
         # to be updated as well.  The problem is that they don't have the
         # same fields.
         if dest_name == "ExtendedS3":
-            delivery_stream.destinations[destination_idx][
-                "S3"
-            ] = create_s3_destination_config(dest_config)
+            delivery_stream.destinations[destination_idx]["S3"] = (
+                create_s3_destination_config(dest_config)
+            )
         elif dest_name == "S3" and "ExtendedS3" in destination:
             destination["ExtendedS3"] = {
                 k: v

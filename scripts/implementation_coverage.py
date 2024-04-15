@@ -5,46 +5,32 @@ from botocore import xform_name
 from botocore.session import Session
 import boto3
 
+from moto.backends import get_backend
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 alternative_service_names = {"lambda": "awslambda"}
 
 
 def get_moto_implementation(service_name):
-    service_name = (
-        service_name.replace("-", "") if "-" in service_name else service_name
-    )
-    alt_service_name = (
-        alternative_service_names[service_name]
-        if service_name in alternative_service_names
-        else service_name
-    )
-    mock = None
-    mock_name = None
-    if hasattr(moto, "mock_{}".format(alt_service_name)):
-        mock_name = "mock_{}".format(alt_service_name)
-        mock = getattr(moto, mock_name)
-    elif hasattr(moto, "mock_{}".format(service_name)):
-        mock_name = "mock_{}".format(service_name)
-        mock = getattr(moto, mock_name)
-    if mock is None:
-        return None, None
-    backends = list(mock().backends.values())
-    if backends:
-        backend = backends[0]["us-east-1"] if "us-east-1" in backends[0] else backends[0]["global"]
-        # Special use-case - neptune is only reachable via the RDS backend
-        # RDS has an attribute called 'neptune' pointing to the actual NeptuneBackend
-        if service_name == "neptune":
-            backend = backend.neptune
-        return backend, mock_name
+    try:
+        backends = get_backend(service_name)
+        backend = (
+            backends[0]["us-east-1"]
+            if "us-east-1" in backends[0]
+            else backends[0]["global"]
+        )
+        return backend, service_name
+    except ModuleNotFoundError:
+        return None, service_name
 
 
 def get_module_name(o):
     klass = o.__class__
     module = klass.__module__
-    if module == 'builtins':
-        return klass.__qualname__ # avoid outputs like 'builtins.str'
-    return module + '.' + klass.__qualname__
+    if module == "builtins":
+        return klass.__qualname__  # avoid outputs like 'builtins.str'
+    return module + "." + klass.__qualname__
 
 
 def calculate_extended_implementation_coverage():
@@ -61,6 +47,9 @@ def calculate_extended_implementation_coverage():
         operation_names = [
             xform_name(op) for op in real_client.meta.service_model.operation_names
         ]
+        # Not part of the spec - but very much part of S3
+        if service_name == "s3":
+            operation_names.extend(["upload_file", "upload_fileobj"])
 
         for op in operation_names:
             if moto_client and op in dir(moto_client):
@@ -90,6 +79,9 @@ def calculate_implementation_coverage():
         operation_names = [
             xform_name(op) for op in real_client.meta.service_model.operation_names
         ]
+        # Not part of the spec - but very much part of S3
+        if service_name == "s3":
+            operation_names.extend(["upload_file", "upload_fileobj"])
         for op in operation_names:
             if moto_client and op in dir(moto_client):
                 implemented.append(op)
@@ -179,7 +171,9 @@ def write_implementation_coverage_to_file(coverage):
 
 
 def write_implementation_coverage_to_docs(coverage):
-    implementation_coverage_file = "{}/../docs/docs/services/index.rst".format(script_dir)
+    implementation_coverage_file = "{}/../docs/docs/services/index.rst".format(
+        script_dir
+    )
     # rewrite the implementation coverage file with updated values
     # try deleting the implementation coverage file
     try:
@@ -197,7 +191,9 @@ def write_implementation_coverage_to_docs(coverage):
         not_implemented = coverage.get(service_name)["not_implemented"]
         operations = sorted(list(implemented.keys()) + not_implemented)
 
-        service_coverage_file = "{}/../docs/docs/services/{}.rst".format(script_dir, service_name)
+        service_coverage_file = "{}/../docs/docs/services/{}.rst".format(
+            script_dir, service_name
+        )
         shorthand = service_name.replace(" ", "_")
 
         with open(service_coverage_file, "w+") as file:
@@ -220,19 +216,10 @@ def write_implementation_coverage_to_docs(coverage):
 
             if coverage[service_name]["docs"]:
                 # Only show auto-generated documentation if it exists
-                file.write(".. autoclass:: " + coverage[service_name].get("module_name"))
+                file.write(
+                    ".. autoclass:: " + coverage[service_name].get("module_name")
+                )
                 file.write("\n\n")
-
-            file.write("|start-h3| Example usage |end-h3|\n\n")
-            file.write(f""".. sourcecode:: python
-
-            @{coverage[service_name]['name']}
-            def test_{coverage[service_name]['name'][5:]}_behaviour:
-                boto3.client("{service_name}")
-                ...
-
-""")
-            file.write("\n\n")
 
             file.write("|start-h3| Implemented features for this service |end-h3|\n\n")
 
@@ -246,7 +233,6 @@ def write_implementation_coverage_to_docs(coverage):
                     file.write("- [ ] {}\n".format(op))
             file.write("\n")
 
-
     with open(implementation_coverage_file, "w+") as file:
         file.write(".. _implemented_services:\n")
         file.write("\n")
@@ -256,20 +242,9 @@ def write_implementation_coverage_to_docs(coverage):
         file.write("Implemented Services\n")
         file.write("====================\n")
         file.write("\n")
-        file.write("Please see a list of all currently supported services. Each service will have a list of the endpoints that are implemented.\n")
-        file.write("Each service will also have an example on how to mock an individual service.\n\n")
-        file.write("Note that you can mock multiple services at the same time:\n\n")
-        file.write(".. sourcecode:: python\n\n")
-        file.write("    @mock_s3\n")
-        file.write("    @mock_sqs\n")
-        file.write("    def test_both_s3_and_sqs():\n")
-        file.write("        ...\n")
-        file.write("\n\n")
-        file.write(".. sourcecode:: python\n\n")
-        file.write("    @mock_all()\n")
-        file.write("    def test_all_supported_services_at_the_same_time():\n")
-        file.write("        ...\n")
-        file.write("\n")
+        file.write(
+            "Please see a list of all currently supported services. Each service will have a list of the endpoints that are implemented.\n"
+        )
 
         file.write("\n")
         file.write(".. toctree::\n")

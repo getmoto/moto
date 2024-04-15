@@ -14,17 +14,6 @@ cloudtrail
 
 .. autoclass:: moto.cloudtrail.models.CloudTrailBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_cloudtrail
-            def test_cloudtrail_behaviour:
-                boto3.client("cloudtrail")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] add_tags
@@ -54,6 +43,7 @@ cloudtrail
 - [ ] list_event_data_stores
 - [ ] list_import_failures
 - [ ] list_imports
+- [ ] list_insights_metric_data
 - [ ] list_public_keys
 - [ ] list_queries
 - [X] list_tags

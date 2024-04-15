@@ -1,17 +1,13 @@
 from unittest import SkipTest
 
-from moto import mock_batch, mock_ec2, mock_ecs, mock_iam, mock_logs, settings
+from moto import mock_aws, settings
 from moto.moto_api import state_manager
 from tests.markers import requires_docker
 from tests.test_batch import _get_clients, _setup
 from tests.test_batch.test_batch_jobs import _wait_for_job_status, prepare_job
 
 
-@mock_logs
-@mock_ec2
-@mock_ecs
-@mock_iam
-@mock_batch
+@mock_aws
 @requires_docker
 def test_cancel_pending_job():
     if settings.TEST_SERVER_MODE:
@@ -46,6 +42,6 @@ def test_cancel_pending_job():
     assert resp["jobs"][0]["statusReason"] == "test_cancel"
 
 
-@mock_batch
+@mock_aws
 def test_state_manager_should_return_registered_model():
     assert "batch::job" in state_manager.get_registered_models()

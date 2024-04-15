@@ -298,7 +298,6 @@ class ELBResponse(BaseResponse):
         return template.render(instances=instances)
 
     def add_tags(self) -> str:
-
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 load_balancer_name = value[0]
@@ -406,7 +405,8 @@ class ELBResponse(BaseResponse):
         subnets = params.get("Subnets")
 
         all_subnets = self.elb_backend.attach_load_balancer_to_subnets(
-            load_balancer_name, subnets  # type: ignore[arg-type]
+            load_balancer_name,  # type: ignore[arg-type]
+            subnets,  # type: ignore[arg-type]
         )
         template = self.response_template(ATTACH_LB_TO_SUBNETS_TEMPLATE)
         return template.render(subnets=all_subnets)
@@ -417,7 +417,8 @@ class ELBResponse(BaseResponse):
         subnets = params.get("Subnets")
 
         all_subnets = self.elb_backend.detach_load_balancer_from_subnets(
-            load_balancer_name, subnets  # type: ignore[arg-type]
+            load_balancer_name,  # type: ignore[arg-type]
+            subnets,  # type: ignore[arg-type]
         )
         template = self.response_template(DETACH_LB_FROM_SUBNETS_TEMPLATE)
         return template.render(subnets=all_subnets)

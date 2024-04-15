@@ -1,6 +1,6 @@
 from typing import Any, Dict, Iterable, List, Optional, Set
 
-from moto.core import CloudFormationModel
+from moto.core.common_models import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
 
 from ..exceptions import (
@@ -86,7 +86,7 @@ class VolumeAttachment(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "VolumeAttachment":
         from ..models import ec2_backends
 
@@ -160,7 +160,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Volume":
         from ..models import ec2_backends
 

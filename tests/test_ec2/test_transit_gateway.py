@@ -1,13 +1,14 @@
+from time import sleep
 from unittest import SkipTest
 
 import boto3
 import pytest
 
-from moto import mock_ec2, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateways():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -16,7 +17,7 @@ def test_describe_transit_gateways():
     assert response["TransitGateways"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway(
@@ -66,7 +67,7 @@ def test_create_transit_gateway():
     assert gateway == gateways[0]
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway(
@@ -89,7 +90,7 @@ def test_create_transit_gateway_with_tags():
     assert {"Key": "tag2", "Value": "val2"} in tags
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     g = ec2.create_transit_gateway(Description="my first gateway")["TransitGateway"]
@@ -104,7 +105,7 @@ def test_delete_transit_gateway():
     assert g_id not in [g["TransitGatewayId"] for g in all_gateways]
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_by_id():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
@@ -122,7 +123,7 @@ def test_describe_transit_gateway_by_id():
     assert my_gateway["Description"] == "my second gatway"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_by_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     ec2.create_transit_gateway(
@@ -164,7 +165,7 @@ def test_describe_transit_gateway_by_tags():
     assert my_gateway["Description"] == "my second gatway"
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     g = ec2.create_transit_gateway(Description="my first gatway")["TransitGateway"]
@@ -183,7 +184,7 @@ def test_modify_transit_gateway():
     assert my_gateway["Description"] == "my first gateway"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_vpc_attachments():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -192,7 +193,7 @@ def test_describe_transit_gateway_vpc_attachments():
     assert response["TransitGatewayVpcAttachments"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_attachments():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -212,7 +213,7 @@ def retrieve_all_transit_gateways(ec2):
     return all_tg
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_vpn_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -250,7 +251,7 @@ def retrieve_all_attachments(client):
     return att
 
 
-@mock_ec2
+@mock_aws
 def test_create_and_describe_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     response = ec2.create_transit_gateway_vpc_attachment(
@@ -298,7 +299,7 @@ def test_create_and_describe_transit_gateway_vpc_attachment():
     assert attachments[0]["TransitGatewayId"] == "gateway_id"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_transit_gateway_route_tables():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
@@ -307,7 +308,7 @@ def test_describe_transit_gateway_route_tables():
     assert response["TransitGatewayRouteTables"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -331,7 +332,7 @@ def test_create_transit_gateway_route_table():
     assert len(tables) == 1
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route_table_with_tags():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -356,7 +357,7 @@ def test_create_transit_gateway_route_table_with_tags():
     assert {"Key": "tag2", "Value": "val2"} in table["Tags"]
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
@@ -385,7 +386,7 @@ def test_delete_transit_gateway_route_table():
     assert tables[0]["State"] == "deleted"
 
 
-@mock_ec2
+@mock_aws
 def test_search_transit_gateway_routes_empty():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -403,7 +404,7 @@ def test_search_transit_gateway_routes_empty():
     assert response["AdditionalRoutesAvailable"] is False
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -422,7 +423,7 @@ def test_create_transit_gateway_route():
     assert route["State"] == "active"
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_route_as_blackhole():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -443,7 +444,7 @@ def test_create_transit_gateway_route_as_blackhole():
     assert route["State"] == "blackhole"
 
 
-@mock_ec2
+@mock_aws
 def test_search_transit_gateway_routes_by_state():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -493,7 +494,7 @@ def test_search_transit_gateway_routes_by_state():
     assert routes == []
 
 
-@mock_ec2
+@mock_aws
 def test_search_transit_gateway_routes_by_routesearch():
     client = boto3.client("ec2", region_name="us-west-2")
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
@@ -530,7 +531,7 @@ def test_search_transit_gateway_routes_by_routesearch():
         assert expected_route["Routes"][0]["DestinationCidrBlock"] == route
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway_route():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -567,7 +568,7 @@ def test_delete_transit_gateway_route():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_create_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -587,7 +588,7 @@ def test_create_transit_gateway_vpc_attachment():
     assert attachment["Tags"] == []
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway_vpc_attachment_add_subnets():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -608,7 +609,7 @@ def test_modify_transit_gateway_vpc_attachment_add_subnets():
     assert sorted(attachment["SubnetIds"]) == ["sub1", "sub2", "sub3"]
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway_vpc_attachment_remove_subnets():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -629,7 +630,7 @@ def test_modify_transit_gateway_vpc_attachment_remove_subnets():
     assert attachment["SubnetIds"] == ["sub1", "sub3"]
 
 
-@mock_ec2
+@mock_aws
 def test_modify_transit_gateway_vpc_attachment_change_options():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -660,7 +661,7 @@ def test_modify_transit_gateway_vpc_attachment_change_options():
     assert attachment["Options"]["Ipv6Support"] == "enable"
 
 
-@mock_ec2
+@mock_aws
 def test_delete_transit_gateway_vpc_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -692,7 +693,7 @@ def test_delete_transit_gateway_vpc_attachment():
     assert [a["TransitGatewayAttachmentId"] for a in all_attchmnts] == [a2]
 
 
-@mock_ec2
+@mock_aws
 def test_associate_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -735,7 +736,7 @@ def test_associate_transit_gateway_route_table():
     ]
 
 
-@mock_ec2
+@mock_aws
 def test_disassociate_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -779,55 +780,202 @@ def test_disassociate_transit_gateway_route_table():
     assert updated["State"] == ""
 
 
-@mock_ec2
+@mock_aws
 def test_enable_transit_gateway_route_table_propagation():
-    ec2 = boto3.client("ec2", region_name="us-west-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+    ec2_resource = boto3.resource("ec2", region_name="us-east-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
         "TransitGatewayId"
     ]
-    attchmnt = ec2.create_transit_gateway_vpc_attachment(
-        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
-    )["TransitGatewayVpcAttachment"]
+    vpc_id = ec2_resource.create_vpc(CidrBlock="10.0.0.0/16").id
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")["Subnet"][
+        "SubnetId"
+    ]
+
+    gateway1_status = "unknown"
+    while gateway1_status != "available":
+        sleep(0.5)
+        gateway1_status = ec2.describe_transit_gateways(TransitGatewayIds=[gateway_id])[
+            "TransitGateways"
+        ][0]["State"]
+
+    attchmnt_id = _create_attachment(ec2, gateway_id, subnet_id, vpc_id)
+
     table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
         "TransitGatewayRouteTable"
     ]
+    table_status = "unknown"
+    while table_status != "available":
+        table_status = ec2.describe_transit_gateway_route_tables(
+            TransitGatewayRouteTableIds=[table["TransitGatewayRouteTableId"]]
+        )["TransitGatewayRouteTables"][0]["State"]
+        sleep(0.5)
 
     initial = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )
-    assert initial["TransitGatewayRouteTablePropagations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
-    ]
-
-    ec2.associate_transit_gateway_route_table(
-        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
-        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
-    )
+    )["TransitGatewayRouteTablePropagations"]
+    assert initial == []
 
     ec2.enable_transit_gateway_route_table_propagation(
-        TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
+        TransitGatewayAttachmentId=attchmnt_id,
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
     )
 
-    enabled = ec2.get_transit_gateway_route_table_propagations(
+    propagations = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )
-    assert enabled["TransitGatewayRouteTablePropagations"] == [
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
         {
-            "TransitGatewayAttachmentId": attchmnt["TransitGatewayAttachmentId"],
-            "ResourceId": "vpc-id",
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
             "ResourceType": "vpc",
             "State": "enabled",
         }
     ]
 
+    # Create second propagation
+    vpc_id2 = ec2_resource.create_vpc(CidrBlock="10.0.0.1/16").id
+    subnet_id2 = ec2.create_subnet(VpcId=vpc_id2, CidrBlock="10.0.0.1/24")["Subnet"][
+        "SubnetId"
+    ]
+    attchmnt_id2 = _create_attachment(ec2, gateway_id, subnet_id2, vpc_id2)
 
-@mock_ec2
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        }
+    ]
+
+    ec2.enable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt_id2,
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+        {
+            "TransitGatewayAttachmentId": attchmnt_id2,
+            "ResourceId": vpc_id2,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+    ]
+
+    # Verify it disappears after deleting the attachment
+    _delete_attachment(attchmnt_id2, ec2)
+    ec2.delete_subnet(SubnetId=subnet_id2)
+    ec2.delete_vpc(VpcId=vpc_id2)
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        }
+    ]
+
+    # Create third propagation
+    vpc_id3 = ec2_resource.create_vpc(CidrBlock="10.0.0.2/16").id
+    subnet_id3 = ec2.create_subnet(VpcId=vpc_id3, CidrBlock="10.0.0.2/24")["Subnet"][
+        "SubnetId"
+    ]
+    attchmnt_id3 = _create_attachment(ec2, gateway_id, subnet_id3, vpc_id3)
+
+    ec2.enable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt_id3,
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+        {
+            "TransitGatewayAttachmentId": attchmnt_id3,
+            "ResourceId": vpc_id3,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        },
+    ]
+
+    # Verify it disappears after deleting the attachment
+    ec2.disable_transit_gateway_route_table_propagation(
+        TransitGatewayAttachmentId=attchmnt_id3,
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
+    )
+
+    propagations = ec2.get_transit_gateway_route_table_propagations(
+        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+    )["TransitGatewayRouteTablePropagations"]
+    assert propagations == [
+        {
+            "TransitGatewayAttachmentId": attchmnt_id,
+            "ResourceId": vpc_id,
+            "ResourceType": "vpc",
+            "State": "enabled",
+        }
+    ]
+    _delete_attachment(attchmnt_id3, ec2)
+    ec2.delete_subnet(SubnetId=subnet_id3)
+    ec2.delete_vpc(VpcId=vpc_id3)
+
+    _delete_attachment(attchmnt_id, ec2)
+    ec2.delete_transit_gateway(TransitGatewayId=gateway_id)
+    ec2.delete_subnet(SubnetId=subnet_id)
+    ec2.delete_vpc(VpcId=vpc_id)
+
+
+def _create_attachment(ec2, gateway_id, subnet_id, vpc_id):
+    attchmnt = ec2.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=gateway_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+    )["TransitGatewayVpcAttachment"]
+    attchmtn_status = "unknown"
+    while attchmtn_status != "available":
+        attchmtn_status = ec2.describe_transit_gateway_vpc_attachments(
+            TransitGatewayAttachmentIds=[attchmnt["TransitGatewayAttachmentId"]]
+        )["TransitGatewayVpcAttachments"][0]["State"]
+        sleep(0.1)
+    return attchmnt["TransitGatewayAttachmentId"]
+
+
+def _delete_attachment(attchmnt_id, ec2):
+    ec2.delete_transit_gateway_vpc_attachment(TransitGatewayAttachmentId=attchmnt_id)
+    attchmtn_status = "unknown"
+    while attchmtn_status != "deleted":
+        attachments = ec2.describe_transit_gateway_vpc_attachments(
+            TransitGatewayAttachmentIds=[attchmnt_id]
+        )["TransitGatewayVpcAttachments"]
+        if not attachments:
+            break
+        attchmtn_status = attachments[0]["State"]
+        sleep(0.1)
+
+
+@mock_aws
 def test_disable_transit_gateway_route_table_propagation_without_enabling_first():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -843,14 +991,7 @@ def test_disable_transit_gateway_route_table_propagation_without_enabling_first(
     initial = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
-    assert initial["TransitGatewayRouteTablePropagations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
-    ]
+    assert initial["TransitGatewayRouteTablePropagations"] == []
 
     ec2.associate_transit_gateway_route_table(
         TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
@@ -864,7 +1005,7 @@ def test_disable_transit_gateway_route_table_propagation_without_enabling_first(
         )
 
 
-@mock_ec2
+@mock_aws
 def test_disable_transit_gateway_route_table_propagation():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][
@@ -880,14 +1021,7 @@ def test_disable_transit_gateway_route_table_propagation():
     initial = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
-    assert initial["TransitGatewayRouteTablePropagations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
-    ]
+    assert initial["TransitGatewayRouteTablePropagations"] == []
 
     ec2.associate_transit_gateway_route_table(
         TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
@@ -906,11 +1040,4 @@ def test_disable_transit_gateway_route_table_propagation():
     disabled = ec2.get_transit_gateway_route_table_propagations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
     )
-    assert disabled["TransitGatewayRouteTablePropagations"] == [
-        {
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-            "TransitGatewayAttachmentId": "",
-        }
-    ]
+    assert disabled["TransitGatewayRouteTablePropagations"] == []

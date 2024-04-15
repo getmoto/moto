@@ -1,4 +1,5 @@
 """ds base URL and path."""
+
 from .responses import DirectoryServiceResponse
 
 url_bases = [

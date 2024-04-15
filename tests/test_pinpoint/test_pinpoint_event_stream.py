@@ -1,15 +1,16 @@
 """Unit tests for pinpoint-supported APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_pinpoint
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_pinpoint
+@mock_aws
 def test_put_event_stream():
     client = boto3.client("pinpoint", region_name="eu-west-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -27,7 +28,7 @@ def test_put_event_stream():
     assert resp["EventStream"]["RoleArn"] == "iam:arn"
 
 
-@mock_pinpoint
+@mock_aws
 def test_get_event_stream():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})
@@ -47,7 +48,7 @@ def test_get_event_stream():
     assert resp["EventStream"]["RoleArn"] == "iam:arn"
 
 
-@mock_pinpoint
+@mock_aws
 def test_delete_event_stream():
     client = boto3.client("pinpoint", region_name="us-east-1")
     resp = client.create_app(CreateApplicationRequest={"Name": "myfirstapp"})

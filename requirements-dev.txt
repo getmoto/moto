@@ -1,13 +1,12 @@
 -e .[all,server]
 -r requirements-tests.txt
 
-black==22.3.0
+ruff==0.3.3
 click
 inflection
 lxml
 mypy
-typing-extensions<=4.5.0; python_version < '3.8'
-typing-extensions; python_version >= '3.8'
+typing-extensions
 packaging
 build
 prompt_toolkit

@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.7, 3.8, 3.9, "3.10", "3.11", "3.12" ]
+        python-version: [ 3.8, 3.9, "3.10", "3.11", "3.12" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip cache
         id: pip-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ steps.pip-cache-dir.outputs.dir }}
           key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.9, "3.10", "3.11", "3.12"]
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -55,7 +55,7 @@ jobs:
       run: |
         echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
     - name: pip cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ steps.pip-cache.outputs.dir }}
         key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
@@ -68,7 +68,8 @@ jobs:
       run: |
         pip install -r requirements-dev.txt
     - name: Lint
-      run:
+      run: |
+        mkdir .mypy_cache
         make lint
 
   javatest:
@@ -202,7 +203,7 @@ jobs:
             echo "pr_found=true" >> $GITHUB_ENV
           fi
       - name: Leave PR comment with Moto version
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v4
         if: env.pr_found == 'true' && env.pr_repo == 'getmoto/moto'
         with:
           issue-number: ${{ env.pr_nr }}

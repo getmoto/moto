@@ -4,11 +4,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_iam
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
-@mock_iam
+@mock_aws
 def test_get_all_server_certs():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -24,7 +24,7 @@ def test_get_all_server_certs():
     assert cert1["Arn"] == f"arn:aws:iam::{ACCOUNT_ID}:server-certificate/certname"
 
 
-@mock_iam
+@mock_aws
 def test_get_server_cert_doesnt_exist():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -38,7 +38,7 @@ def test_get_server_cert_doesnt_exist():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_server_cert():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -62,7 +62,7 @@ def test_get_server_cert():
     assert isinstance(metadata["Expiration"], datetime)
 
 
-@mock_iam
+@mock_aws
 def test_delete_server_cert():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -83,7 +83,7 @@ def test_delete_server_cert():
     )
 
 
-@mock_iam
+@mock_aws
 def test_delete_unknown_server_cert():
     conn = boto3.client("iam", region_name="us-east-1")
 

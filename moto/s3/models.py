@@ -1,7 +1,9 @@
 import base64
+import bz2
 import codecs
 import copy
 import datetime
+import gzip
 import itertools
 import json
 import os
@@ -12,12 +14,12 @@ import threading
 import urllib.parse
 from bisect import insort
 from importlib import reload
+from io import BytesIO
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from moto.cloudwatch.models import MetricDatum
-from moto.core import (
-    BackendDict,
-    BaseBackend,
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import (
     BaseModel,
     CloudFormationModel,
     CloudWatchMetricProvider,
@@ -38,10 +40,14 @@ from moto.s3.exceptions import (
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
     CrossLocationLoggingProhibitted,
+    DaysMustNotProvidedForSelectRequest,
+    DaysMustProvidedExceptForSelectRequest,
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
     InvalidNotificationDestination,
+    InvalidNotificationEvent,
+    InvalidObjectState,
     InvalidPart,
     InvalidPublicAccessBlockConfiguration,
     InvalidRequest,
@@ -108,7 +114,7 @@ class FakeKey(BaseModel, ManagedState):
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
-        version_id: str = "null",
+        version_id: Optional[str] = None,
         max_buffer_size: Optional[int] = None,
         multipart: Optional["FakeMultipart"] = None,
         bucket_name: Optional[str] = None,
@@ -170,7 +176,7 @@ class FakeKey(BaseModel, ManagedState):
 
     @property
     def version_id(self) -> str:
-        return self._version_id
+        return self._version_id or "null"
 
     @property
     def value(self) -> bytes:
@@ -197,6 +203,25 @@ class FakeKey(BaseModel, ManagedState):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
+    @property
+    def status(self) -> Optional[str]:
+        previous = self._status
+        new_status = super().status
+        if previous != "RESTORED" and new_status == "RESTORED":
+            s3_backend = s3_backends[self.account_id]["global"]
+            bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.OBJECT_RESTORE_COMPLETED_EVENT,
+                bucket,
+                key=self,
+            )
+        return new_status
+
+    @status.setter
+    def status(self, value: str) -> None:
+        self._status = value
+
     def set_metadata(self, metadata: Any, replace: bool = False) -> None:
         if replace:
             self._metadata = {}  # type: ignore
@@ -215,6 +240,14 @@ class FakeKey(BaseModel, ManagedState):
 
     def restore(self, days: int) -> None:
         self._expiry = utcnow() + datetime.timedelta(days)
+        s3_backend = s3_backends[self.account_id]["global"]
+        bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_RESTORE_POST_EVENT,
+            bucket,
+            key=self,
+        )
 
     @property
     def etag(self) -> str:
@@ -256,9 +289,9 @@ class FakeKey(BaseModel, ManagedState):
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
         if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
-            res[
-                "x-amz-server-side-encryption-bucket-key-enabled"
-            ] = self.bucket_key_enabled
+            res["x-amz-server-side-encryption-bucket-key-enabled"] = (
+                self.bucket_key_enabled
+            )
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
@@ -344,11 +377,13 @@ class FakeKey(BaseModel, ManagedState):
             now = utcnow()
             try:
                 until = datetime.datetime.strptime(
-                    self.lock_until, "%Y-%m-%dT%H:%M:%SZ"  # type: ignore
+                    self.lock_until,  # type: ignore
+                    "%Y-%m-%dT%H:%M:%SZ",
                 )
             except ValueError:
                 until = datetime.datetime.strptime(
-                    self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ"  # type: ignore
+                    self.lock_until,  # type: ignore
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
                 )
 
             if until > now:
@@ -446,7 +481,11 @@ class FakeMultipart(BaseModel):
             raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(
-            part_id, value, account_id=self.account_id, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
+            part_id,  # type: ignore
+            value,
+            account_id=self.account_id,
+            encryption=self.sse_encryption,
+            kms_key_id=self.kms_key_id,
         )
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first
@@ -822,6 +861,9 @@ class Notification(BaseModel):
             random.choice(string.ascii_letters + string.digits) for _ in range(50)
         )
         self.arn = arn
+        for event_name in events:
+            if not notifications.S3NotificationEvent.is_event_valid(event_name):
+                raise InvalidNotificationEvent(event_name)
         self.events = events
         self.filters = filters if filters else {}
 
@@ -880,6 +922,7 @@ class NotificationConfiguration(BaseModel):
         topic: Optional[List[Dict[str, Any]]] = None,
         queue: Optional[List[Dict[str, Any]]] = None,
         cloud_function: Optional[List[Dict[str, Any]]] = None,
+        event_bridge: Optional[Dict[str, Any]] = None,
     ):
         self.topic = (
             [
@@ -920,6 +963,7 @@ class NotificationConfiguration(BaseModel):
             if cloud_function
             else []
         )
+        self.event_bridge = event_bridge
 
     def to_config_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {"configurations": {}}
@@ -942,6 +986,8 @@ class NotificationConfiguration(BaseModel):
             cf_config["type"] = "LambdaConfiguration"
             data["configurations"][cloud_function.id] = cf_config
 
+        if self.event_bridge is not None:
+            data["configurations"]["EventBridgeConfiguration"] = self.event_bridge
         return data
 
 
@@ -1291,7 +1337,7 @@ class FakeBucket(CloudFormationModel):
                 "The target bucket for logging does not exist."
             )
 
-        target_prefix = self.logging.get("TargetPrefix", None)
+        target_prefix = logging_config.get("TargetPrefix", None)
         has_policy_permissions = self._log_permissions_enabled_policy(
             target_bucket=target_bucket, target_prefix=target_prefix
         )
@@ -1322,6 +1368,7 @@ class FakeBucket(CloudFormationModel):
             topic=notification_config.get("TopicConfiguration"),
             queue=notification_config.get("QueueConfiguration"),
             cloud_function=notification_config.get("CloudFunctionConfiguration"),
+            event_bridge=notification_config.get("EventBridgeConfiguration"),
         )
 
         # Validate that the region is correct:
@@ -1542,9 +1589,9 @@ class FakeBucket(CloudFormationModel):
         )
 
         if self.notification_configuration:
-            s_config[
-                "BucketNotificationConfiguration"
-            ] = self.notification_configuration.to_config_dict()
+            s_config["BucketNotificationConfiguration"] = (
+                self.notification_configuration.to_config_dict()
+            )
         else:
             s_config["BucketNotificationConfiguration"] = {"configurations": {}}
 
@@ -1578,7 +1625,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         os.environ["MOTO_S3_CUSTOM_ENDPOINTS"] = "http://custom.internal.endpoint,http://custom.other.endpoint"
 
-        @mock_s3
+        @mock_aws
         def test_my_custom_endpoint():
             boto3.client("s3", endpoint_url="http://custom.internal.endpoint")
             ...
@@ -1613,6 +1660,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         super().__init__(region_name, account_id)
         self.buckets: Dict[str, FakeBucket] = {}
         self.tagger = TaggingService()
+        self._pagination_tokens: Dict[str, str] = {}
 
     def reset(self) -> None:
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
@@ -1899,7 +1947,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 and len(requested_versions) + len(delete_markers) + len(common_prefixes)
                 >= max_keys
             ):
-
                 next_key_marker = name
                 if is_common_prefix:
                     # No NextToken when returning common prefixes
@@ -2039,6 +2086,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
         checksum_value: Optional[str] = None,
+        # arguments to handle notification
+        request_method: Optional[str] = "PUT",
+        disable_notification: Optional[bool] = False,
     ) -> FakeKey:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
@@ -2087,9 +2137,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             keys = [new_key]
         bucket.keys.setlist(key_name, keys)
 
-        notifications.send_event(
-            self.account_id, notifications.S3_OBJECT_CREATE_PUT, bucket, new_key
-        )
+        if not disable_notification:
+            # Send event notification
+            if request_method == "POST":
+                notify_event_name = (
+                    notifications.S3NotificationEvent.OBJECT_CREATED_POST_EVENT
+                )
+            else:  # PUT request
+                notify_event_name = (
+                    notifications.S3NotificationEvent.OBJECT_CREATED_PUT_EVENT
+                )
+            notifications.send_event(
+                self.account_id,
+                notify_event_name,
+                bucket,
+                new_key,
+            )
 
         return new_key
 
@@ -2308,11 +2371,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - AWSLambda
          - SNS
          - SQS
+         - EventBridge
 
         For the following events:
-
+         - 's3:ObjectCreated:CompleteMultipartUpload'
          - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
+         - 's3:ObjectDeleted'
+         - 's3:ObjectRestore:Post'
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -2398,13 +2465,46 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def complete_multipart_upload(
         self, bucket_name: str, multipart_id: str, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[FakeMultipart, bytes, str, Optional[str]]:
+    ) -> Optional[FakeKey]:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
         value, etag, checksum = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
-        return multipart, value, etag, checksum
+
+        if value is None:
+            return None
+
+        key = self.put_object(
+            bucket_name,
+            multipart.key_name,
+            value,
+            storage=multipart.storage,
+            etag=etag,
+            multipart=multipart,
+            encryption=multipart.sse_encryption,
+            kms_key_id=multipart.kms_key_id,
+        )
+        key.set_metadata(multipart.metadata)
+
+        if checksum:
+            key.checksum_algorithm = multipart.metadata.get("x-amz-checksum-algorithm")
+            key.checksum_value = checksum
+
+        self.put_object_tagging(key, multipart.tags)
+        self.put_object_acl(
+            bucket_name=bucket_name,
+            key_name=key.name,
+            acl=multipart.acl,
+        )
+
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_CREATED_COMPLETE_MULTIPART_UPLOAD_EVENT,
+            bucket,
+            bucket.keys.get(multipart.key_name),
+        )
+        return key
 
     def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
         bucket = self.get_bucket(bucket_name)
@@ -2439,8 +2539,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return multipart.set_part(part_id, src_value)
 
     def list_objects(
-        self, bucket: FakeBucket, prefix: Optional[str], delimiter: Optional[str]
-    ) -> Tuple[Set[FakeKey], Set[str]]:
+        self,
+        bucket: FakeBucket,
+        prefix: Optional[str],
+        delimiter: Optional[str],
+        marker: Optional[str],
+        max_keys: Optional[int],
+    ) -> Tuple[Set[FakeKey], Set[str], bool, Optional[str]]:
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2471,16 +2576,74 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             folder_name for folder_name in sorted(folder_results, key=lambda key: key)
         ]
 
-        return key_results, folder_results
+        if marker:
+            limit = self._pagination_tokens.get(marker) or marker
+            key_results = self._get_results_from_token(key_results, limit)
+
+        if max_keys is not None:
+            key_results, is_truncated, next_marker = self._truncate_result(
+                key_results, max_keys
+            )
+        else:
+            is_truncated = False
+            next_marker = None
+
+        return key_results, folder_results, is_truncated, next_marker
 
     def list_objects_v2(
-        self, bucket: FakeBucket, prefix: Optional[str], delimiter: Optional[str]
-    ) -> Set[Union[FakeKey, str]]:
-        result_keys, result_folders = self.list_objects(bucket, prefix, delimiter)
+        self,
+        bucket: FakeBucket,
+        prefix: Optional[str],
+        delimiter: Optional[str],
+        continuation_token: Optional[str],
+        start_after: Optional[str],
+        max_keys: int,
+    ) -> Tuple[Set[Union[FakeKey, str]], bool, Optional[str]]:
+        result_keys, result_folders, _, _ = self.list_objects(
+            bucket, prefix, delimiter, marker=None, max_keys=None
+        )
         # sort the combination of folders and keys into lexicographical order
         all_keys = result_keys + result_folders  # type: ignore
         all_keys.sort(key=self._get_name)
-        return all_keys
+
+        if continuation_token or start_after:
+            limit = (
+                self._pagination_tokens.get(continuation_token)
+                if continuation_token
+                else start_after
+            )
+            all_keys = self._get_results_from_token(all_keys, limit)
+
+        truncated_keys, is_truncated, next_continuation_token = self._truncate_result(
+            all_keys, max_keys
+        )
+
+        return truncated_keys, is_truncated, next_continuation_token
+
+    def _get_results_from_token(self, result_keys: Any, token: Any) -> Any:
+        continuation_index = 0
+        for key in result_keys:
+            if (key.name if isinstance(key, FakeKey) else key) > token:
+                break
+            continuation_index += 1
+        return result_keys[continuation_index:]
+
+    def _truncate_result(self, result_keys: Any, max_keys: int) -> Any:
+        if max_keys == 0:
+            result_keys = []
+            is_truncated = True
+            next_continuation_token = None
+        elif len(result_keys) > max_keys:
+            is_truncated = "true"  # type: ignore
+            result_keys = result_keys[:max_keys]
+            item = result_keys[-1]
+            key_id = item.name if isinstance(item, FakeKey) else item
+            next_continuation_token = md5_hash(key_id.encode("utf-8")).hexdigest()
+            self._pagination_tokens[next_continuation_token] = key_id
+        else:
+            is_truncated = "false"  # type: ignore
+            next_continuation_token = None
+        return result_keys, is_truncated, next_continuation_token
 
     @staticmethod
     def _get_name(key: Union[str, FakeKey]) -> str:
@@ -2511,10 +2674,17 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
 
         response_meta = {}
+        delete_key = bucket.keys.get(key_name)
 
         try:
             if not bucket.is_versioned:
                 bucket.keys.pop(key_name)
+                notifications.send_event(
+                    self.account_id,
+                    notifications.S3NotificationEvent.OBJECT_REMOVED_DELETE_EVENT,
+                    bucket,
+                    delete_key,
+                )
             else:
                 if version_id is None:
                     delete_marker = self._set_delete_marker(bucket_name, key_name)
@@ -2557,6 +2727,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
                     if not bucket.keys.getlist(key_name):
                         bucket.keys.pop(key_name)
+                        notifications.send_event(
+                            self.account_id,
+                            notifications.S3NotificationEvent.OBJECT_REMOVED_DELETE_EVENT,
+                            bucket,
+                            delete_key,
+                        )
+
             return True, response_meta
         except KeyError:
             return False, None
@@ -2604,6 +2781,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     mdirective == "REPLACE",
                     website_redirect_location,
                     bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
+                    src_key._version_id and bucket.is_versioned,
                 )
             ):
                 raise CopyObjectMustChangeSomething
@@ -2620,6 +2798,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lock_mode=lock_mode,
             lock_legal_status=lock_legal_status,
             lock_until=lock_until,
+            disable_notification=True,  # avoid sending PutObject events here
         )
         self.tagger.copy_tags(src_key.arn, new_key.arn)
         if mdirective != "REPLACE":
@@ -2640,7 +2819,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         # Send notifications that an object was copied
         notifications.send_event(
-            self.account_id, notifications.S3_OBJECT_CREATE_COPY, bucket, new_key
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_CREATED_COPY_EVENT,
+            bucket,
+            new_key,
         )
 
     def put_bucket_acl(self, bucket_name: str, acl: Optional[FakeAcl]) -> None:
@@ -2680,6 +2862,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         select_query: str,
         input_details: Dict[str, Any],
+        output_details: Dict[str, Any],
     ) -> List[bytes]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
@@ -2692,24 +2875,83 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         """
         self.get_bucket(bucket_name)
         key = self.get_object(bucket_name, key_name)
-        query_input = key.value.decode("utf-8")  # type: ignore
+        if key is None:
+            raise MissingKey(key=key_name)
+        if input_details.get("CompressionType") == "GZIP":
+            with gzip.open(BytesIO(key.value), "rt") as f:
+                query_input = f.read()
+        elif input_details.get("CompressionType") == "BZIP2":
+            query_input = bz2.decompress(key.value).decode("utf-8")
+        else:
+            query_input = key.value.decode("utf-8")
         if "CSV" in input_details:
             # input is in CSV - we need to convert it to JSON before parsing
-            from py_partiql_parser._internal.csv_converter import (  # noqa # pylint: disable=unused-import
-                csv_to_json,
-            )
+            from py_partiql_parser import csv_to_json
 
-            use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
+            use_headers = (input_details.get("CSV") or {}).get(
+                "FileHeaderInfo", ""
+            ) == "USE"
             query_input = csv_to_json(query_input, use_headers)
-        query_result = parse_query(query_input, select_query)
-        from py_partiql_parser import SelectEncoder
+        query_result = parse_query(query_input, select_query)  # type: ignore
 
-        return [
-            json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder).encode(
-                "utf-8"
-            )
-            for x in query_result
-        ]
+        record_delimiter = "\n"
+        if "JSON" in output_details:
+            record_delimiter = (output_details.get("JSON") or {}).get(
+                "RecordDelimiter"
+            ) or "\n"
+        elif "CSV" in output_details:
+            record_delimiter = (output_details.get("CSV") or {}).get(
+                "RecordDelimiter"
+            ) or "\n"
+
+        if "CSV" in output_details:
+            field_delim = (output_details.get("CSV") or {}).get("FieldDelimiter") or ","
+
+            from py_partiql_parser import json_to_csv
+
+            query_result = json_to_csv(query_result, field_delim, record_delimiter)
+            return [query_result.encode("utf-8")]  # type: ignore
+
+        else:
+            from py_partiql_parser import SelectEncoder
+
+            return [
+                (
+                    json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder)
+                    + record_delimiter
+                ).encode("utf-8")
+                for x in query_result
+            ]
+
+    def restore_object(
+        self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]
+    ) -> bool:
+        key = self.get_object(bucket_name, key_name)
+        if not key:
+            raise MissingKey
+
+        if days is None and type_ is None:
+            raise DaysMustProvidedExceptForSelectRequest()
+
+        if days and type_:
+            raise DaysMustNotProvidedForSelectRequest()
+
+        if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
+            raise InvalidObjectState(storage_class=key.storage_class)
+        had_expiry_date = key.expiry_date is not None
+        if days:
+            key.restore(int(days))
+        return had_expiry_date
+
+    def upload_file(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
+
+    def upload_fileobj(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
 
 
 class S3BackendDict(BackendDict[S3Backend]):

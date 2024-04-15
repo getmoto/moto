@@ -1,4 +1,5 @@
 """servicediscovery base URL and path."""
+
 from .responses import ServiceDiscoveryResponse
 
 url_bases = [

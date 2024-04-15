@@ -1,9 +1,10 @@
 """Test the different server responses."""
+
 import moto.server as server
-from moto import mock_polly
+from moto import mock_aws
 
 
-@mock_polly
+@mock_aws
 def test_polly_list():
     backend = server.create_backend_app("polly")
     test_client = backend.test_client()

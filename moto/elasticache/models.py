@@ -1,15 +1,20 @@
-from typing import Any, Dict, List, Optional, Tuple
+from re import compile as re_compile
+from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.utilities.paginator import paginate
 
 from ..moto_api._internal import mock_random
 from .exceptions import (
     CacheClusterAlreadyExists,
     CacheClusterNotFound,
+    InvalidARNFault,
     UserAlreadyExists,
     UserNotFound,
 )
+from .utils import PAGINATION_MODEL
 
 
 class User(BaseModel):
@@ -77,7 +82,6 @@ class CacheCluster(BaseModel):
     ):
         if tags is None:
             tags = []
-
         self.cache_cluster_id = cache_cluster_id
         self.az_mode = az_mode
         self.preferred_availability_zone = preferred_availability_zone
@@ -120,8 +124,13 @@ class CacheCluster(BaseModel):
         self.cache_cluster_create_time = utcnow()
         self.auth_token_last_modified_date = utcnow()
         self.cache_cluster_status = "available"
-        self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:{cache_cluster_id}"
+        self.arn = (
+            f"arn:aws:elasticache:{region_name}:{account_id}:cluster:{cache_cluster_id}"
+        )
         self.cache_node_id = str(mock_random.uuid4())
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
 
 
 class ElastiCacheBackend(BaseBackend):
@@ -129,6 +138,9 @@ class ElastiCacheBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.arn_regex = re_compile(
+            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot):.*$"
+        )
         self.users = dict()
         self.users["default"] = User(
             account_id=self.account_id,
@@ -302,25 +314,24 @@ class ElastiCacheBackend(BaseBackend):
         self.cache_clusters[cache_cluster_id] = cache_cluster
         return cache_cluster
 
+    @paginate(PAGINATION_MODEL)
     def describe_cache_clusters(
         self,
         cache_cluster_id: str,
         max_records: int,
         marker: str,
-    ) -> Tuple[str, List[CacheCluster]]:
-        if marker is None:
-            marker = str(mock_random.uuid4())
+    ) -> List[CacheCluster]:
         if max_records is None:
             max_records = 100
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
                 cache_cluster = self.cache_clusters[cache_cluster_id]
-                return marker, [cache_cluster]
+                return list([cache_cluster])
             else:
                 raise CacheClusterNotFound(cache_cluster_id)
         cache_clusters = list(self.cache_clusters.values())[:max_records]
 
-        return marker, cache_clusters
+        return cache_clusters
 
     def delete_cache_cluster(self, cache_cluster_id: str) -> CacheCluster:
         if cache_cluster_id:
@@ -329,6 +340,20 @@ class ElastiCacheBackend(BaseBackend):
                 cache_cluster.cache_cluster_status = "deleting"
                 return cache_cluster
         raise CacheClusterNotFound(cache_cluster_id)
+
+    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+        if self.arn_regex.match(arn):
+            arn_breakdown = arn.split(":")
+            resource_type = arn_breakdown[len(arn_breakdown) - 2]
+            resource_name = arn_breakdown[len(arn_breakdown) - 1]
+            if resource_type == "cluster":
+                if resource_name in self.cache_clusters:
+                    return self.cache_clusters[resource_name].get_tags()
+            else:
+                return []
+        else:
+            raise InvalidARNFault(arn)
+        return []
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

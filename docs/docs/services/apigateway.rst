@@ -14,17 +14,6 @@ apigateway
 
 .. autoclass:: moto.apigateway.models.APIGatewayBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_apigateway
-            def test_apigateway_behaviour:
-                boto3.client("apigateway")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] create_api_key
@@ -162,5 +151,13 @@ apigateway
 - [X] update_stage
 - [ ] update_usage
 - [X] update_usage_plan
+  
+        The following PatchOperations are currently supported:
+        add    : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        replace: Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        remove : Everything except /apiStages/{apidId:stageName}/throttle/ and children
+        copy   : Nothing yet
+        
+
 - [ ] update_vpc_link
 

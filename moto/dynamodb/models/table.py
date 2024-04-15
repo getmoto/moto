@@ -1,8 +1,8 @@
 import copy
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from moto.core import BaseModel, CloudFormationModel
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
 from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
@@ -76,7 +76,9 @@ class LocalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct: Dict[str, Any], table_key_attrs: List[str]) -> "LocalSecondaryIndex":  # type: ignore[misc]
+    def create(  # type: ignore[misc]
+        dct: Dict[str, Any], table_key_attrs: List[str]
+    ) -> "LocalSecondaryIndex":
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -112,7 +114,9 @@ class GlobalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct: Dict[str, Any], table_key_attrs: List[str]) -> "GlobalSecondaryIndex":  # type: ignore[misc]
+    def create(  # type: ignore[misc]
+        dct: Dict[str, Any], table_key_attrs: List[str]
+    ) -> "GlobalSecondaryIndex":
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -203,14 +207,14 @@ class StreamShard(BaseModel):
         seq = len(self.items) + self.starting_sequence_number
         self.items.append(StreamRecord(self.table, t, event_name, old, new, seq))
         result = None
-        from moto.awslambda import lambda_backends
+        from moto.awslambda.utils import get_backend
 
         for arn, esm in self.table.lambda_event_source_mappings.items():
             region = arn[
                 len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
             ]
 
-            result = lambda_backends[self.account_id][region].send_dynamodb_items(
+            result = get_backend(self.account_id, region).send_dynamodb_items(
                 arn, self.items, esm.event_source_arn
             )
 
@@ -443,9 +447,9 @@ class Table(CloudFormationModel):
         }
         if self.latest_stream_label:
             results[base_key]["LatestStreamLabel"] = self.latest_stream_label
-            results[base_key][
-                "LatestStreamArn"
-            ] = f"{self.table_arn}/stream/{self.latest_stream_label}"
+            results[base_key]["LatestStreamArn"] = (
+                f"{self.table_arn}/stream/{self.latest_stream_label}"
+            )
         if self.stream_specification and self.stream_specification["StreamEnabled"]:
             results[base_key]["StreamSpecification"] = self.stream_specification
         if self.sse_specification and self.sse_specification.get("Enabled") is True:
@@ -653,10 +657,10 @@ class Table(CloudFormationModel):
         scan_index_forward: bool,
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         filter_expression: Any = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()
@@ -668,6 +672,12 @@ class Table(CloudFormationModel):
                 )
 
             index = indexes_by_name[index_name]
+
+            if consistent_read and index in self.global_indexes:
+                raise MockValidationException(
+                    "Consistent reads are not supported on global secondary indexes"
+                )
+
             try:
                 index_hash_key = [
                     key for key in index.schema if key["KeyType"] == "HASH"
@@ -682,30 +692,62 @@ class Table(CloudFormationModel):
                     key for key in index.schema if key["KeyType"] == "RANGE"
                 ][0]
             except IndexError:
-                index_range_key = None
+                if isinstance(index, GlobalSecondaryIndex):
+                    # If we're querying a GSI that does not have an index, the main hash key acts as a range key
+                    index_range_key = {"AttributeName": self.hash_key_attr}
+                else:
+                    index_range_key = None
                 if range_comparison:
                     raise ValueError(
                         f"Range Key comparison but no range key found for index: {index_name}"
                     )
 
+            actual_hash_attr = index_hash_key["AttributeName"]
+            actual_range_attr = (
+                index_range_key["AttributeName"] if index_range_key else None
+            )
+
             possible_results = []
             for item in self.all_items():
                 if not isinstance(item, Item):
                     continue
-                item_hash_key = item.attrs.get(index_hash_key["AttributeName"])
-                if index_range_key is None:
+                item_hash_key = item.attrs.get(actual_hash_attr)
+                if actual_range_attr is None:
                     if item_hash_key and item_hash_key == hash_key:
                         possible_results.append(item)
                 else:
-                    item_range_key = item.attrs.get(index_range_key["AttributeName"])
+                    item_range_key = item.attrs.get(actual_range_attr)
                     if item_hash_key and item_hash_key == hash_key and item_range_key:
                         possible_results.append(item)
         else:
+            actual_hash_attr = self.hash_key_attr
+            actual_range_attr = self.range_key_attr
+
             possible_results = [
                 item
-                for item in list(self.all_items())
+                for item in self.all_items()
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
+
+        # SORT
+        if index_name:
+            if actual_range_attr is not None:
+                # Convert to float if necessary to ensure proper ordering
+                def conv(x: DynamoType) -> Any:
+                    return float(x.value) if x.type == "N" else x.value
+
+                possible_results.sort(
+                    key=lambda item: (  # type: ignore
+                        conv(item.attrs[actual_range_attr])  # type: ignore
+                        if item.attrs.get(actual_range_attr)
+                        else None
+                    )
+                )
+        else:
+            possible_results.sort(key=lambda item: item.range_key)  # type: ignore
+
+        if scan_index_forward is False:
+            possible_results.reverse()
 
         # FILTER
         results: List[Item] = []
@@ -717,9 +759,16 @@ class Table(CloudFormationModel):
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
-                if self._item_equals_dct(result, exclusive_start_key):
+                if self._item_comes_before_dct(
+                    result,
+                    exclusive_start_key,
+                    actual_hash_attr,
+                    actual_range_attr,
+                    scan_index_forward,
+                ):
+                    continue
+                else:
                     processing_previous_page = False
-                continue
 
             # Check wether we've reached the limit of our result set
             # That can be either in number, or in size
@@ -763,24 +812,6 @@ class Table(CloudFormationModel):
                         result_size += result.size()
                 scanned_count += 1
 
-        # SORT
-        if index_name:
-            if index_range_key:
-                # Convert to float if necessary to ensure proper ordering
-                def conv(x: DynamoType) -> Any:
-                    return float(x.value) if x.type == "N" else x.value
-
-                results.sort(
-                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
-                    if item.attrs.get(index_range_key["AttributeName"])  # type: ignore
-                    else None
-                )
-        else:
-            results.sort(key=lambda item: item.range_key)  # type: ignore
-
-        if scan_index_forward is False:
-            results.reverse()
-
         results = copy.deepcopy(results)
         if index_name:
             index = self.get_index(index_name)
@@ -794,13 +825,18 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def all_items(self) -> Iterator[Item]:
+    def all_items(self) -> List[Item]:
+        items: List[Item] = []
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
-                    yield item
+                    items.append(item)
             else:
-                yield hash_set  # type: ignore
+                items.append(hash_set)  # type: ignore
+        return sorted(
+            items,
+            key=lambda x: (x.hash_key, x.range_key) if x.range_key else x.hash_key,
+        )
 
     def all_indexes(self) -> Sequence[SecondaryIndex]:
         return (self.global_indexes or []) + (self.indexes or [])  # type: ignore
@@ -814,18 +850,24 @@ class Table(CloudFormationModel):
             )
         return indexes_by_name[index_name]
 
-    def has_idx_items(self, index_name: str) -> Iterator[Item]:
+    def has_idx_items(self, index_name: str) -> List[Item]:
         idx = self.get_index(index_name)
         idx_col_set = set([i["AttributeName"] for i in idx.schema])
+
+        items: List[Item] = []
 
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
                     if idx_col_set.issubset(set(item.attrs)):
-                        yield item
+                        items.append(item)
             else:
                 if idx_col_set.issubset(set(hash_set.attrs)):  # type: ignore
-                    yield hash_set  # type: ignore
+                    items.append(hash_set)  # type: ignore
+        return sorted(
+            items,
+            key=lambda x: (x.hash_key, x.range_key) if x.range_key else x.hash_key,
+        )
 
     def scan(
         self,
@@ -834,6 +876,7 @@ class Table(CloudFormationModel):
         exclusive_start_key: Dict[str, Any],
         filter_expression: Any = None,
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         projection_expression: Optional[List[List[str]]] = None,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results: List[Item] = []
@@ -841,9 +884,39 @@ class Table(CloudFormationModel):
         scanned_count = 0
 
         if index_name:
-            self.get_index(index_name, error_if_not=True)
+            index = self.get_index(index_name, error_if_not=True)
+
+            if consistent_read and index in self.global_indexes:
+                raise MockValidationException(
+                    "Consistent reads are not supported on global secondary indexes"
+                )
+
+            try:
+                index_hash_key = [
+                    key for key in index.schema if key["KeyType"] == "HASH"
+                ][0]
+            except IndexError:
+                raise MockValidationException(
+                    f"Missing Hash Key. KeySchema: {index.name}"
+                )
+
+            try:
+                index_range_key = [
+                    key for key in index.schema if key["KeyType"] == "RANGE"
+                ][0]
+            except IndexError:
+                index_range_key = None
+
+            actual_hash_attr = index_hash_key["AttributeName"]
+            actual_range_attr = (
+                index_range_key["AttributeName"] if index_range_key else None
+            )
+
             items = self.has_idx_items(index_name)
         else:
+            actual_hash_attr = self.hash_key_attr
+            actual_range_attr = self.range_key_attr
+
             items = self.all_items()
 
         last_evaluated_key = None
@@ -852,11 +925,18 @@ class Table(CloudFormationModel):
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
-                if self._item_equals_dct(item, exclusive_start_key):
+                if self._item_comes_before_dct(
+                    item,
+                    exclusive_start_key,
+                    actual_hash_attr,
+                    actual_range_attr,
+                    True,
+                ):
+                    continue
+                else:
                     processing_previous_page = False
-                continue
 
-            # Check wether we've reached the limit of our result set
+            # Check whether we've reached the limit of our result set
             # That can be either in number, or in size
             reached_length_limit = len(results) == limit
             reached_size_limit = (result_size + item.size()) > RESULT_SIZE_LIMIT
@@ -905,12 +985,31 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def _item_equals_dct(self, item: Item, dct: Dict[str, Any]) -> bool:
-        hash_key = DynamoType(dct.get(self.hash_key_attr))  # type: ignore[arg-type]
-        range_key = dct.get(self.range_key_attr) if self.range_key_attr else None
-        if range_key is not None:
-            range_key = DynamoType(range_key)
-        return item.hash_key == hash_key and item.range_key == range_key
+    def _item_comes_before_dct(
+        self,
+        item: Item,
+        dct: Dict[str, Any],
+        hash_key_attr: str,
+        range_key_attr: Optional[str],
+        scan_index_forward: bool,
+    ) -> bool:
+        """Does item appear before or at dct relative to sort options?"""
+        dict_hash_val = DynamoType(dct.get(hash_key_attr))  # type: ignore[arg-type]
+        item_hash_val = item.attrs[hash_key_attr]
+        if item_hash_val != dict_hash_val:
+            # If hash keys are different, order immediately
+            return bool(item_hash_val < dict_hash_val) == scan_index_forward
+        if range_key_attr is None:
+            # If hash keys match and no range key, items are identical
+            return True
+        # We know hash keys are equal, use range key as tiebreaker
+        dict_range_val = DynamoType(dct.get(range_key_attr))  # type: ignore[arg-type]
+        item_range_val = item.attrs[range_key_attr]
+        if item_range_val == dict_range_val:
+            # If range keys (also) match, items are identical
+            return True
+        # Range keys are different, order accordingly
+        return bool(item_range_val < dict_range_val) == scan_index_forward  # type: ignore[arg-type]
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]

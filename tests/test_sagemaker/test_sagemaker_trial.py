@@ -2,13 +2,13 @@ import uuid
 
 import boto3
 
-from moto import mock_sagemaker
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 TEST_REGION_NAME = "us-east-1"
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_trial():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -32,7 +32,7 @@ def test_create_trial():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_trials():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -64,7 +64,7 @@ def test_list_trials():
     assert resp.get("NextToken") is None
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_trials_by_trial_component_name():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -86,7 +86,7 @@ def test_list_trials_by_trial_component_name():
     assert len(resp["TrialSummaries"]) == 0
 
 
-@mock_sagemaker
+@mock_aws
 def test_delete_trial():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -106,7 +106,7 @@ def test_delete_trial():
     assert len(resp["TrialSummaries"]) == 0
 
 
-@mock_sagemaker
+@mock_aws
 def test_add_tags_to_trial():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -133,7 +133,7 @@ def test_add_tags_to_trial():
     assert resp["Tags"] == tags
 
 
-@mock_sagemaker
+@mock_aws
 def test_delete_tags_to_trial():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
@@ -162,7 +162,7 @@ def test_delete_tags_to_trial():
     assert resp["Tags"] == []
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_trial_tags():
     client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 

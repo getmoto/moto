@@ -1,19 +1,20 @@
-"""Unit tests for sagemaker-supported APIs."""
 import uuid
 from datetime import datetime
 from unittest import SkipTest
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 from dateutil.tz import tzutc  # type: ignore
 from freezegun import freeze_time
 
-from moto import mock_sagemaker, settings
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_sagemaker
+@mock_aws
 def test_create_model_package_group():
     client = boto3.client("sagemaker", region_name="us-east-2")
     resp = client.create_model_package_group(
@@ -29,7 +30,7 @@ def test_create_model_package_group():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_package_groups():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     group1 = "test-model-package-group-1"
@@ -62,7 +63,7 @@ def test_list_model_package_groups():
     assert "NextToken" not in resp
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_package_groups_creation_time_before():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -82,7 +83,7 @@ def test_list_model_package_groups_creation_time_before():
     assert len(resp["ModelPackageGroupSummaryList"]) == 1
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_package_groups_creation_time_after():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -102,7 +103,7 @@ def test_list_model_package_groups_creation_time_after():
     assert len(resp["ModelPackageGroupSummaryList"]) == 1
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_package_groups_name_contains():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(
@@ -122,7 +123,7 @@ def test_list_model_package_groups_name_contains():
     assert len(resp["ModelPackageGroupSummaryList"]) == 2
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_package_groups_sort_by():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(
@@ -145,7 +146,7 @@ def test_list_model_package_groups_sort_by():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_list_model_package_groups_sort_order():
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(
@@ -168,7 +169,7 @@ def test_list_model_package_groups_sort_order():
     )
 
 
-@mock_sagemaker
+@mock_aws
 def test_describe_model_package_group():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
@@ -193,7 +194,22 @@ def test_describe_model_package_group():
     assert resp["CreationTime"] == datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc())
 
 
-@mock_sagemaker
+@mock_aws
+def test_describe_model_package_group_not_exists():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't freeze time in ServerMode")
+    client = boto3.client("sagemaker", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as e:
+        client.describe_model_package_group(
+            ModelPackageGroupName="test-model-package-group"
+        )
+
+    assert e.value.response["Error"]["Code"] == "ValidationException"
+    assert "does not exist" in e.value.response["Error"]["Message"]
+
+
+@mock_aws
 def test_list_tags_model_package_group():
     region_name = "eu-west-1"
     model_package_group_name = "test-model-package-group"
@@ -222,7 +238,7 @@ def test_list_tags_model_package_group():
     assert tags_from_paginator == tags
 
 
-@mock_sagemaker
+@mock_aws
 def test_delete_tags_model_package_group():
     region_name = "eu-west-1"
     model_package_group_name = "test-model-package-group"

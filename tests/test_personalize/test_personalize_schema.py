@@ -1,4 +1,5 @@
 """Unit tests for personalize-supported APIs."""
+
 import json
 import re
 
@@ -6,14 +7,14 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_personalize
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_personalize
+@mock_aws
 def test_create_schema():
     client = boto3.client("personalize", region_name="ap-southeast-1")
     schema = {
@@ -37,7 +38,7 @@ def test_create_schema():
     )
 
 
-@mock_personalize
+@mock_aws
 def test_delete_schema():
     client = boto3.client("personalize", region_name="us-east-1")
     schema_arn = client.create_schema(name="myname", schema=json.dumps("sth"))[
@@ -48,7 +49,7 @@ def test_delete_schema():
     assert client.list_schemas()["schemas"] == []
 
 
-@mock_personalize
+@mock_aws
 def test_delete_schema__unknown():
     arn = f"arn:aws:personalize:ap-southeast-1:{DEFAULT_ACCOUNT_ID}:schema/personalize-demo-schema"
     client = boto3.client("personalize", region_name="us-east-2")
@@ -59,7 +60,7 @@ def test_delete_schema__unknown():
     assert err["Message"] == f"Resource Arn {arn} does not exist."
 
 
-@mock_personalize
+@mock_aws
 def test_describe_schema():
     client = boto3.client("personalize", region_name="us-east-2")
     schema_arn = client.create_schema(name="myname", schema="sth")["schemaArn"]
@@ -74,7 +75,7 @@ def test_describe_schema():
     assert "lastUpdatedDateTime" in schema
 
 
-@mock_personalize
+@mock_aws
 def test_describe_schema__with_domain():
     client = boto3.client("personalize", region_name="us-east-2")
     schema_arn = client.create_schema(name="myname", schema="sth", domain="ECOMMERCE")[
@@ -87,7 +88,7 @@ def test_describe_schema__with_domain():
     assert schema["domain"] == "ECOMMERCE"
 
 
-@mock_personalize
+@mock_aws
 def test_describe_schema__unknown():
     arn = (
         "arn:aws:personalize:ap-southeast-1:486285699788:schema/personalize-demo-schema"
@@ -100,7 +101,7 @@ def test_describe_schema__unknown():
     assert err["Message"] == f"Resource Arn {arn} does not exist."
 
 
-@mock_personalize
+@mock_aws
 def test_list_schemas__initial():
     client = boto3.client("personalize", region_name="us-east-2")
     resp = client.list_schemas()
@@ -108,7 +109,7 @@ def test_list_schemas__initial():
     assert resp["schemas"] == []
 
 
-@mock_personalize
+@mock_aws
 def test_list_schema():
     client = boto3.client("personalize", region_name="us-east-2")
     schema_arn = client.create_schema(name="myname", schema="sth")["schemaArn"]

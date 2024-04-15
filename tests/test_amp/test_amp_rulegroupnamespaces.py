@@ -1,15 +1,14 @@
-"""Unit tests for amp-supported APIs."""
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_amp
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_amp
+@mock_aws
 def test_create_rule_groups_namespace():
     client = boto3.client("amp", region_name="ap-southeast-1")
     workspace_id = client.create_workspace()["workspaceId"]
@@ -22,7 +21,7 @@ def test_create_rule_groups_namespace():
     assert "status" in resp
 
 
-@mock_amp
+@mock_aws
 def test_delete_rule_groups_namespace():
     client = boto3.client("amp", region_name="us-east-2")
     workspace_id = client.create_workspace()["workspaceId"]
@@ -39,7 +38,7 @@ def test_delete_rule_groups_namespace():
     assert err["Message"] == "RuleGroupNamespace not found"
 
 
-@mock_amp
+@mock_aws
 def test_describe_rule_groups_namespace():
     client = boto3.client("amp", region_name="us-east-2")
 
@@ -62,7 +61,7 @@ def test_describe_rule_groups_namespace():
     assert "status" in ns
 
 
-@mock_amp
+@mock_aws
 def test_put_rule_groups_namespace():
     client = boto3.client("amp", region_name="eu-west-1")
 
@@ -86,7 +85,7 @@ def test_put_rule_groups_namespace():
     assert ns["data"] == b"updated"
 
 
-@mock_amp
+@mock_aws
 def test_list_rule_groups_namespaces():
     client = boto3.client("amp", region_name="ap-southeast-1")
     w_id = client.create_workspace()["workspaceId"]
@@ -110,7 +109,7 @@ def test_list_rule_groups_namespaces():
     assert set(names) == {"ns10"}
 
 
-@mock_amp
+@mock_aws
 def test_list_rule_groups_namespaces__paginated():
     client = boto3.client("amp", region_name="ap-southeast-1")
     w_id = client.create_workspace()["workspaceId"]
@@ -143,7 +142,7 @@ def test_list_rule_groups_namespaces__paginated():
     assert "nextToken" not in full_page
 
 
-@mock_amp
+@mock_aws
 def test_tag_resource():
     client = boto3.client("amp", region_name="us-east-2")
 

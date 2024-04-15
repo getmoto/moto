@@ -5,7 +5,8 @@ from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -112,17 +113,11 @@ class GlueBackend(BaseBackend):
         self.num_schemas = 0
         self.num_schema_versions = 0
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "glue"
-        )
-
     def create_database(
-        self, database_name: str, database_input: Dict[str, Any]
+        self,
+        database_name: str,
+        database_input: Dict[str, Any],
+        tags: Optional[Dict[str, str]] = None,
     ) -> "FakeDatabase":
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()
@@ -131,6 +126,8 @@ class GlueBackend(BaseBackend):
             database_name, database_input, catalog_id=self.account_id
         )
         self.databases[database_name] = database
+        resource_arn = f"arn:aws:glue:{self.region_name}:{self.account_id}:database/{database_name}"
+        self.tag_resource(resource_arn, tags)
         return database
 
     def get_database(self, database_name: str) -> "FakeDatabase":
@@ -330,7 +327,7 @@ class GlueBackend(BaseBackend):
     def get_crawlers(self) -> List["FakeCrawler"]:
         return [self.crawlers[key] for key in self.crawlers] if self.crawlers else []
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_crawlers(self) -> List["FakeCrawler"]:
         return [crawler for _, crawler in self.crawlers.items()]
 
@@ -405,7 +402,7 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise JobNotFoundException(name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def get_jobs(self) -> List["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
@@ -417,7 +414,7 @@ class GlueBackend(BaseBackend):
         job = self.get_job(name)
         return job.get_job_run(run_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> List["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
@@ -428,7 +425,7 @@ class GlueBackend(BaseBackend):
     def get_tags(self, resource_id: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: Optional[Dict[str, str]]) -> None:
         tag_list = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tag_list)
 
@@ -828,7 +825,7 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise SessionNotFoundException(session_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_sessions(self) -> List["FakeSession"]:
         return [session for _, session in self.sessions.items()]
 
@@ -883,7 +880,7 @@ class GlueBackend(BaseBackend):
         trigger = self.get_trigger(name)
         trigger.stop_trigger()
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def get_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:
         if dependent_job_name:
             triggers = []
@@ -897,7 +894,7 @@ class GlueBackend(BaseBackend):
 
         return list(self.triggers.values())
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_triggers(self, dependent_job_name: str) -> List["FakeTrigger"]:
         if dependent_job_name:
             triggers = []

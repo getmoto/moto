@@ -5,14 +5,14 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_swf, settings
+from moto import mock_aws, settings
 
 from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow_boto3
 
 # PollForActivityTask endpoint
 
 
-@mock_swf
+@mock_aws
 def test_poll_for_activity_task_when_one_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -41,7 +41,7 @@ def test_poll_for_activity_task_when_one_boto3():
 
 
 @pytest.mark.parametrize("task_name", ["activity-task-list", "non-existent-queue"])
-@mock_swf
+@mock_aws
 def test_poll_for_activity_task_when_none_boto3(task_name):
     client = setup_workflow_boto3()
     resp = client.poll_for_decision_task(
@@ -58,7 +58,7 @@ def test_poll_for_activity_task_when_none_boto3(task_name):
 @pytest.mark.parametrize(
     "task_name,cnt", [("activity-task-list", 1), ("non-existent", 0)]
 )
-@mock_swf
+@mock_aws
 def test_count_pending_activity_tasks_boto3(task_name, cnt):
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -78,7 +78,7 @@ def test_count_pending_activity_tasks_boto3(task_name, cnt):
 # RespondActivityTaskCompleted endpoint
 
 
-@mock_swf
+@mock_aws
 def test_respond_activity_task_completed_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -107,7 +107,7 @@ def test_respond_activity_task_completed_boto3():
     }
 
 
-@mock_swf
+@mock_aws
 def test_respond_activity_task_completed_on_closed_workflow_execution_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -131,7 +131,7 @@ def test_respond_activity_task_completed_on_closed_workflow_execution_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_respond_activity_task_completed_with_task_already_completed_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -158,7 +158,7 @@ def test_respond_activity_task_completed_with_task_already_completed_boto3():
 # RespondActivityTaskFailed endpoint
 
 
-@mock_swf
+@mock_aws
 def test_respond_activity_task_failed_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -188,7 +188,7 @@ def test_respond_activity_task_failed_boto3():
     }
 
 
-@mock_swf
+@mock_aws
 def test_respond_activity_task_completed_with_wrong_token_boto3():
     # NB: we just test ONE failure case for RespondActivityTaskFailed
     # because the safeguards are shared with RespondActivityTaskCompleted, so
@@ -214,7 +214,7 @@ def test_respond_activity_task_completed_with_wrong_token_boto3():
 # RecordActivityTaskHeartbeat endpoint
 
 
-@mock_swf
+@mock_aws
 def test_record_activity_task_heartbeat_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -231,7 +231,7 @@ def test_record_activity_task_heartbeat_boto3():
     assert resp["cancelRequested"] is False
 
 
-@mock_swf
+@mock_aws
 def test_record_activity_task_heartbeat_with_wrong_token_boto3():
     client = setup_workflow_boto3()
     decision_token = client.poll_for_decision_task(
@@ -251,7 +251,7 @@ def test_record_activity_task_heartbeat_with_wrong_token_boto3():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_swf
+@mock_aws
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout_boto3():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")

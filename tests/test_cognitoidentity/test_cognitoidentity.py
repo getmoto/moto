@@ -7,12 +7,13 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cognitoidentity, settings
+from moto import mock_aws, settings
 from moto.cognitoidentity.utils import get_random_identity_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core import set_initial_no_auth_action_count
 
 
-@mock_cognitoidentity
+@mock_aws
 @pytest.mark.parametrize("name", ["pool#name", "with!excl", "with?quest"])
 def test_create_identity_pool_invalid_name(name):
     conn = boto3.client("cognito-identity", "us-west-2")
@@ -29,7 +30,7 @@ def test_create_identity_pool_invalid_name(name):
     )
 
 
-@mock_cognitoidentity
+@mock_aws
 @pytest.mark.parametrize("name", ["x", "pool-", "pool_name", "with space"])
 def test_create_identity_pool_valid_name(name):
     conn = boto3.client("cognito-identity", "us-west-2")
@@ -39,7 +40,7 @@ def test_create_identity_pool_valid_name(name):
     )
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_create_identity_pool():
     conn = boto3.client("cognito-identity", "us-west-2")
 
@@ -61,7 +62,7 @@ def test_create_identity_pool():
     assert result["IdentityPoolId"] != ""
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_describe_identity_pool():
     conn = boto3.client("cognito-identity", "us-west-2")
 
@@ -107,7 +108,7 @@ def test_describe_identity_pool():
         ("DeveloperProviderName", "dev1", "dev2"),
     ],
 )
-@mock_cognitoidentity
+@mock_aws
 def test_update_identity_pool(key, initial_value, updated_value):
     conn = boto3.client("cognito-identity", "us-west-2")
 
@@ -132,7 +133,7 @@ def test_update_identity_pool(key, initial_value, updated_value):
     assert second[key] == response[key]
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_describe_identity_pool_with_invalid_id_raises_error():
     conn = boto3.client("cognito-identity", "us-west-2")
     with pytest.raises(ClientError) as cm:
@@ -152,7 +153,9 @@ def test_get_random_identity_id():
     UUID(identity_id, version=4)  # Will throw an error if it's not a valid UUID
 
 
-@mock_cognitoidentity
+@mock_aws
+# Verify we can call this operation without Authentication
+@set_initial_no_auth_action_count(1)
 def test_get_id():
     conn = boto3.client("cognito-identity", "us-west-2")
     identity_pool_data = conn.create_identity_pool(
@@ -166,7 +169,7 @@ def test_get_id():
     assert result.get("IdentityId").startswith("us-west-2")
 
 
-@mock_cognitoidentity
+@mock_aws
 @mock.patch.dict(os.environ, {"AWS_DEFAULT_REGION": "any-region"})
 @mock.patch.dict(os.environ, {"MOTO_ALLOW_NONEXISTENT_REGION": "trUe"})
 def test_get_id__unknown_region():
@@ -184,7 +187,7 @@ def test_get_id__unknown_region():
     assert result.get("IdentityId").startswith("any-region")
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_get_credentials_for_identity():
     conn = boto3.client("cognito-identity", "us-west-2")
     result = conn.get_credentials_for_identity(IdentityId="12345")
@@ -193,7 +196,7 @@ def test_get_credentials_for_identity():
     assert result.get("IdentityId") == "12345"
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_get_open_id_token_for_developer_identity():
     conn = boto3.client("cognito-identity", "us-west-2")
     result = conn.get_open_id_token_for_developer_identity(
@@ -206,7 +209,7 @@ def test_get_open_id_token_for_developer_identity():
     assert result["IdentityId"] == "12345"
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id():
     conn = boto3.client("cognito-identity", "us-west-2")
     result = conn.get_open_id_token_for_developer_identity(
@@ -216,7 +219,8 @@ def test_get_open_id_token_for_developer_identity_when_no_explicit_identity_id()
     assert len(result["IdentityId"]) > 0
 
 
-@mock_cognitoidentity
+@mock_aws
+@set_initial_no_auth_action_count(0)
 def test_get_open_id_token():
     conn = boto3.client("cognito-identity", "us-west-2")
     result = conn.get_open_id_token(IdentityId="12345", Logins={"someurl": "12345"})
@@ -224,7 +228,7 @@ def test_get_open_id_token():
     assert result["IdentityId"] == "12345"
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_list_identities():
     conn = boto3.client("cognito-identity", "us-west-2")
     identity_pool_data = conn.create_identity_pool(
@@ -242,7 +246,7 @@ def test_list_identities():
     assert identity_id in [x["IdentityId"] for x in identities["Identities"]]
 
 
-@mock_cognitoidentity
+@mock_aws
 def test_list_identity_pools():
     conn = boto3.client("cognito-identity", "us-west-2")
     identity_pool_data = conn.create_identity_pool(

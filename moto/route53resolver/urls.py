@@ -1,4 +1,5 @@
 """route53resolver base URL and path."""
+
 from .responses import Route53ResolverResponse
 
 url_bases = [

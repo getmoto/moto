@@ -14,17 +14,6 @@ lambda
 
 .. autoclass:: moto.awslambda.models.LambdaBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_lambda
-            def test_lambda_behaviour:
-                boto3.client("lambda")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_layer_version_permission
@@ -80,6 +69,26 @@ lambda
 - [X] invoke
   
         Invoking a Function with PackageType=Image is not yet supported.
+
+        Invoking a Funcation against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `invoke` will take the first result from that queue.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/lambda-simple/response`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            expected_results = {"results": ["test", "test 2"], "region": "us-east-1"}
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/lambda-simple/response",
+                json=expected_results
+            )
+            assert resp.status_code == 201
+
+            client = boto3.client("lambda", region_name="us-east-1")
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test"
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test2"
         
 
 - [ ] invoke_async

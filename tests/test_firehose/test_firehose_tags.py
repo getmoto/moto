@@ -1,16 +1,17 @@
 """Unit tests verifying tag-related delivery stream APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_firehose
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.firehose.models import MAX_TAGS_PER_DELIVERY_STREAM
 from moto.moto_api._internal import mock_random
 from tests.test_firehose.test_firehose import TEST_REGION, sample_s3_dest_config
 
 
-@mock_firehose
+@mock_aws
 def test_list_tags_for_delivery_stream():
     """Test invocations of list_tags_for_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -72,7 +73,7 @@ def test_list_tags_for_delivery_stream():
     assert result["HasMoreTags"] is False
 
 
-@mock_firehose
+@mock_aws
 def test_tag_delivery_stream():
     """Test successful, failed invocations of tag_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -133,7 +134,7 @@ def test_tag_delivery_stream():
     assert results["Tags"] == added_tags
 
 
-@mock_firehose
+@mock_aws
 def test_untag_delivery_stream():
     """Test successful, failed invocations of untag_delivery_stream()."""
     client = boto3.client("firehose", region_name=TEST_REGION)

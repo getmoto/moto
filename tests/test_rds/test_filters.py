@@ -2,11 +2,11 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_rds
+from moto import mock_aws
 
 
 class TestDBInstanceFilters:
-    mock = mock_rds()
+    mock = mock_aws()
 
     @classmethod
     def setup_class(cls):
@@ -188,7 +188,7 @@ class TestDBInstanceFilters:
 
 
 class TestDBSnapshotFilters:
-    mock = mock_rds()
+    mock = mock_aws()
 
     @classmethod
     def setup_class(cls):
@@ -385,7 +385,7 @@ class TestDBSnapshotFilters:
 
 
 class TestDBClusterSnapshotFilters:
-    mock = mock_rds()
+    mock = mock_aws()
 
     @classmethod
     def setup_class(cls):

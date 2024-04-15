@@ -1,11 +1,13 @@
 """Route53ResolverBackend class with methods for supported APIs."""
+
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
 from ipaddress import IPv4Address, ip_address, ip_network
 from typing import Any, Dict, List, Optional, Set
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSecurityGroupNotFoundError, InvalidSubnetIdError
 from moto.moto_api._internal import mock_random
@@ -121,7 +123,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
             f"[Trace id: 1-{mock_random.get_random_hex(8)}-{mock_random.get_random_hex(24)}] "
             f"Successfully created Resolver Rule"
         )
-        self.share_status = "SHARED_WITH_ME"
+        self.share_status = "NOT_SHARED"
         self.creation_time = datetime.now(timezone.utc).isoformat()
         self.modification_time = datetime.now(timezone.utc).isoformat()
 
@@ -232,9 +234,9 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         """
         subnets: Dict[str, Any] = defaultdict(dict)
         for entry in self.ip_addresses:
-            subnets[entry["SubnetId"]][
-                entry["Ip"]
-            ] = f"rni-{mock_random.get_random_hex(17)}"
+            subnets[entry["SubnetId"]][entry["Ip"]] = (
+                f"rni-{mock_random.get_random_hex(17)}"
+            )
         return subnets
 
     def create_eni(self) -> List[str]:
@@ -813,7 +815,7 @@ class Route53ResolverBackend(BaseBackend):
 
         return True
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_endpoints(self, filters: Any) -> List[ResolverEndpoint]:
         if not filters:
             filters = []
@@ -827,7 +829,7 @@ class Route53ResolverBackend(BaseBackend):
                 endpoints.append(endpoint)
         return endpoints
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rules(self, filters: Any) -> List[ResolverRule]:
         if not filters:
             filters = []
@@ -841,7 +843,7 @@ class Route53ResolverBackend(BaseBackend):
                 rules.append(rule)
         return rules
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_resolver_rule_associations(
         self, filters: Any
     ) -> List[ResolverRuleAssociation]:
@@ -871,12 +873,10 @@ class Route53ResolverBackend(BaseBackend):
             f"Resolver endpoint with ID '{resource_arn}' does not exist"
         )
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_tags_for_resource(
-        self, resource_arn: str
-    ) -> Optional[List[Dict[str, str]]]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         self._matched_arn(resource_arn)
-        return self.tagger.list_tags_for_resource(resource_arn).get("Tags")
+        return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         self._matched_arn(resource_arn)

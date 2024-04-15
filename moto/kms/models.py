@@ -5,7 +5,8 @@ from copy import copy
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
@@ -232,11 +233,11 @@ class Key(CloudFormationModel):
             policy=properties["KeyPolicy"],
             key_usage="ENCRYPT_DECRYPT",
             key_spec="SYMMETRIC_DEFAULT",
-            description=properties["Description"],
+            description=properties.get("Description"),
             tags=properties.get("Tags", []),
         )
-        key.key_rotation_status = properties["EnableKeyRotation"]
-        key.enabled = properties["Enabled"]
+        key.key_rotation_status = properties.get("EnableKeyRotation", False)
+        key.enabled = properties.get("Enabled", True)
 
         return key
 
@@ -258,15 +259,6 @@ class KmsBackend(BaseBackend):
         self.keys: Dict[str, Key] = {}
         self.key_to_aliases: Dict[str, Set[str]] = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "kms"
-        )
 
     def _generate_default_keys(self, alias_name: str) -> Optional[str]:
         """Creates default kms keys"""
@@ -650,6 +642,7 @@ class KmsBackend(BaseBackend):
         Verify message using public key from generated private key.
 
         - grant_tokens are not implemented
+        - The MessageType-parameter DIGEST is not yet implemented
         """
         key = self.describe_key(key_id)
 

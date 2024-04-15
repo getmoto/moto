@@ -1,7 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 
-from moto import mock_polly
+from moto import mock_aws
 
 # Polly only available in a few regions
 DEFAULT_REGION = "eu-west-1"
@@ -21,7 +21,7 @@ LEXICON_XML = """<?xml version="1.0" encoding="UTF-8"?>
 </lexicon>"""
 
 
-@mock_polly
+@mock_aws
 def test_describe_voices():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
 
@@ -39,7 +39,7 @@ def test_describe_voices():
         raise RuntimeError("Should have raised an exception")
 
 
-@mock_polly
+@mock_aws
 def test_put_list_lexicon():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
 
@@ -50,7 +50,7 @@ def test_put_list_lexicon():
     assert len(resp["Lexicons"]) == 1
 
 
-@mock_polly
+@mock_aws
 def test_put_get_lexicon():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
 
@@ -62,7 +62,7 @@ def test_put_get_lexicon():
     assert "LexiconAttributes" in resp
 
 
-@mock_polly
+@mock_aws
 def test_put_lexicon_bad_name():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
 
@@ -74,7 +74,7 @@ def test_put_lexicon_bad_name():
         raise RuntimeError("Should have raised an exception")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
 
@@ -94,7 +94,7 @@ def test_synthesize_speech():
         assert resp["ContentType"] == content_type
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_lexicon():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -114,7 +114,7 @@ def test_synthesize_speech_bad_lexicon():
         raise RuntimeError("Should have raised LexiconNotFoundException")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_output_format():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -134,7 +134,7 @@ def test_synthesize_speech_bad_output_format():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_sample_rate():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -154,7 +154,7 @@ def test_synthesize_speech_bad_sample_rate():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_text_type():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -174,7 +174,7 @@ def test_synthesize_speech_bad_text_type():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_voice_id():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -194,7 +194,7 @@ def test_synthesize_speech_bad_voice_id():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_text_too_long():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -214,7 +214,7 @@ def test_synthesize_speech_text_too_long():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_speech_marks1():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -235,7 +235,7 @@ def test_synthesize_speech_bad_speech_marks1():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_synthesize_speech_bad_speech_marks2():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)
@@ -256,7 +256,7 @@ def test_synthesize_speech_bad_speech_marks2():
         raise RuntimeError("Should have raised ")
 
 
-@mock_polly
+@mock_aws
 def test_update_lexicon():
     client = boto3.client("polly", region_name=DEFAULT_REGION)
     client.put_lexicon(Name="test", Content=LEXICON_XML)

@@ -1,4 +1,5 @@
 """amp base URL and path."""
+
 from .responses import PrometheusServiceResponse
 
 url_bases = [

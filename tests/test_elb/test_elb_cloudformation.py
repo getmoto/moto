@@ -2,13 +2,11 @@ import json
 
 import boto3
 
-from moto import mock_cloudformation, mock_ec2, mock_elb
+from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
 
-@mock_ec2
-@mock_elb
-@mock_cloudformation
+@mock_aws
 def test_stack_elb_integration_with_attached_ec2_instances():
     elb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -50,8 +48,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     assert load_balancer["AvailabilityZones"] == ["us-west-1a"]
 
 
-@mock_elb
-@mock_cloudformation
+@mock_aws
 def test_stack_elb_integration_with_health_check():
     elb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -95,8 +92,7 @@ def test_stack_elb_integration_with_health_check():
     assert health_check["UnhealthyThreshold"] == 2
 
 
-@mock_elb
-@mock_cloudformation
+@mock_aws
 def test_stack_elb_integration_with_update():
     elb_template = {
         "AWSTemplateFormatVersion": "2010-09-09",

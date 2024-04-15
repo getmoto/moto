@@ -1,4 +1,5 @@
 """rekognition base URL and path."""
+
 from .responses import RekognitionResponse
 
 url_bases = [

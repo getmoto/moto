@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
 
 
-@mock_ec2
+@mock_aws
 def test_boto3_describe_regions():
     ec2 = boto3.client("ec2", "us-east-1")
     resp = ec2.describe_regions()
@@ -26,7 +26,7 @@ def test_boto3_describe_regions():
     assert resp["Regions"][0]["OptInStatus"] == "not-opted-in"
 
 
-@mock_ec2
+@mock_aws
 def test_boto3_availability_zones():
     ec2 = boto3.client("ec2", "us-east-1")
     resp = ec2.describe_regions()
@@ -38,7 +38,7 @@ def test_boto3_availability_zones():
             assert region in rec["ZoneName"]
 
 
-@mock_ec2
+@mock_aws
 def test_availability_zones__parameters():
     us_east = boto3.client("ec2", "us-east-1")
     zones = us_east.describe_availability_zones(ZoneNames=["us-east-1b"])[
@@ -77,7 +77,7 @@ def test_availability_zones__parameters():
     assert zones[0]["ZoneId"] == "use1-az1"
 
 
-@mock_ec2
+@mock_aws
 def test_describe_availability_zones_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")
 
@@ -91,7 +91,7 @@ def test_describe_availability_zones_dryrun():
     )
 
 
-@mock_ec2
+@mock_aws
 def test_boto3_zoneId_in_availability_zones():
     conn = boto3.client("ec2", "us-east-1")
     resp = conn.describe_availability_zones()

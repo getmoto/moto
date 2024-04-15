@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from dateutil.tz import tzutc
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
 from moto.utilities.paginator import paginate
@@ -45,7 +46,7 @@ class BaseObject(BaseModel):
                 response_object[key[0].upper() + key[1:]] = value
         return response_object
 
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> Dict[str, Any]:
         return self.gen_response_object()
 
 
@@ -250,7 +251,7 @@ class PanoramaBackend(BaseBackend):
             raise ValidationError(f"Device {device_id} not found")
         return device
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_devices(
         self,
         device_aggregated_status_filter: str,

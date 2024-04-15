@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.redshiftdata.exceptions import ResourceNotFoundException, ValidationException
@@ -116,6 +116,15 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.statements: Dict[str, Statement] = {}
+
+    @staticmethod
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "redshift-data", policy_supported=False
+        )
 
     def cancel_statement(self, statement_id: str) -> None:
         _validate_uuid(statement_id)

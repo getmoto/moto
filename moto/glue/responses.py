@@ -4,7 +4,14 @@ from typing import Any, Dict, List
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .models import FakeCrawler, FakeJob, FakeSession, GlueBackend, glue_backends
+from .models import (
+    FakeCrawler,
+    FakeJob,
+    FakeSession,
+    FakeTrigger,
+    GlueBackend,
+    glue_backends,
+)
 
 
 class GlueResponse(BaseResponse):
@@ -24,7 +31,11 @@ class GlueResponse(BaseResponse):
         database_name = database_input.get("Name")  # type: ignore
         if "CatalogId" in self.parameters:
             database_input["CatalogId"] = self.parameters.get("CatalogId")  # type: ignore
-        self.glue_backend.create_database(database_name, database_input)  # type: ignore[arg-type]
+        self.glue_backend.create_database(
+            database_name,
+            database_input,  # type: ignore[arg-type]
+            self.parameters.get("Tags"),  # type: ignore[arg-type]
+        )
         return ""
 
     def get_database(self) -> str:
@@ -127,7 +138,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         expression = self.parameters.get("Expression")
         partitions = self.glue_backend.get_partitions(
-            database_name, table_name, expression  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            expression,  # type: ignore[arg-type]
         )
 
         return json.dumps({"Partitions": [p.as_dict() for p in partitions]})
@@ -147,7 +160,9 @@ class GlueResponse(BaseResponse):
         partitions_to_get = self.parameters.get("PartitionsToGet")
 
         partitions = self.glue_backend.batch_get_partition(
-            database_name, table_name, partitions_to_get  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            partitions_to_get,  # type: ignore[arg-type]
         )
 
         return json.dumps({"Partitions": partitions})
@@ -165,7 +180,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         partition_input = self.parameters.get("PartitionInputList")
         errors_output = self.glue_backend.batch_create_partition(
-            database_name, table_name, partition_input  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            partition_input,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -181,7 +198,10 @@ class GlueResponse(BaseResponse):
         part_to_update = self.parameters.get("PartitionValueList")
 
         self.glue_backend.update_partition(
-            database_name, table_name, part_input, part_to_update  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            part_input,  # type: ignore[arg-type]
+            part_to_update,  # type: ignore[arg-type]
         )
         return ""
 
@@ -191,7 +211,9 @@ class GlueResponse(BaseResponse):
         entries = self.parameters.get("Entries")
 
         errors_output = self.glue_backend.batch_update_partition(
-            database_name, table_name, entries  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            entries,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -214,7 +236,9 @@ class GlueResponse(BaseResponse):
         parts = self.parameters.get("PartitionsToDelete")
 
         errors_output = self.glue_backend.batch_delete_partition(
-            database_name, table_name, parts  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            parts,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -417,7 +441,7 @@ class GlueResponse(BaseResponse):
         return [job.get_name() for job in jobs if self.is_tags_match(job.arn, tags)]
 
     def filter_triggers_by_tags(
-        self, triggers: List[FakeJob], tags: Dict[str, str]
+        self, triggers: List[FakeTrigger], tags: Dict[str, str]
     ) -> List[str]:
         if not tags:
             return [trigger.get_name() for trigger in triggers]

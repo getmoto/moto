@@ -7,7 +7,8 @@ import yaml
 from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
 from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
@@ -116,7 +117,6 @@ class FakeStackSet(BaseModel):
         regions: List[str],
         operation_id: str,
     ) -> Dict[str, Any]:
-
         self.template = template or self.template
         self.description = description if description is not None else self.description
         self.parameters = parameters or self.parameters
@@ -438,7 +438,7 @@ class FakeStack(CloudFormationModel):
 
     @property
     def creation_time_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.creation_time)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
     def _add_stack_event(
         self,
@@ -446,7 +446,6 @@ class FakeStack(CloudFormationModel):
         resource_status_reason: Optional[str] = None,
         resource_properties: Optional[str] = None,
     ) -> None:
-
         event = FakeEvent(
             stack_id=self.stack_id,
             stack_name=self.name,
@@ -655,7 +654,7 @@ class FakeChangeSet(BaseModel):
 
     @property
     def creation_time_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.creation_time)  # type: ignore[return-value]
+        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
     def diff(self) -> List[FakeChange]:
         changes = []

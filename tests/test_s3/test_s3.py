@@ -6,6 +6,7 @@ import uuid
 import zlib
 from gzip import GzipFile
 from io import BytesIO
+from time import sleep
 from unittest import SkipTest
 from urllib.parse import parse_qs, urlparse
 
@@ -18,9 +19,10 @@ from botocore.handlers import disable_signing
 from freezegun import freeze_time
 
 import moto.s3.models as s3model
-from moto import mock_config, mock_s3, moto_proxy, settings
+from moto import mock_aws, moto_proxy, settings
 from moto.core.utils import utcnow
 from moto.moto_api import state_manager
+from moto.s3.models import s3_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -40,7 +42,7 @@ class MyModel:
         )
 
 
-@mock_s3
+@mock_aws
 def test_keys_are_pickleable():
     """Keys must be pickleable due to boto3 implementation details."""
     key = s3model.FakeKey("name", b"data!", account_id=DEFAULT_ACCOUNT_ID)
@@ -52,7 +54,7 @@ def test_keys_are_pickleable():
     assert loaded.account_id == key.account_id
 
 
-@mock_s3
+@mock_aws
 def test_my_model_save():
     # Create Bucket so that test can run
     conn = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -67,7 +69,7 @@ def test_my_model_save():
     assert body == "is awesome"
 
 
-@mock_s3
+@mock_aws
 def test_object_metadata():
     """Metadata keys can contain certain special characters like dash and dot"""
     # Create Bucket so that test can run
@@ -85,7 +87,7 @@ def test_object_metadata():
     assert meta == metadata
 
 
-@mock_s3
+@mock_aws
 def test_resource_get_object_returns_etag():
     conn = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     conn.create_bucket(Bucket="mybucket")
@@ -98,7 +100,7 @@ def test_resource_get_object_returns_etag():
     )
 
 
-@mock_s3
+@mock_aws
 def test_key_save_to_missing_bucket():
     s3_resource = boto3.resource("s3")
 
@@ -111,7 +113,7 @@ def test_key_save_to_missing_bucket():
     )
 
 
-@mock_s3
+@mock_aws
 def test_missing_key_request():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Only test status code in DecoratorMode")
@@ -122,7 +124,7 @@ def test_missing_key_request():
     assert response.status_code == 404
 
 
-@mock_s3
+@mock_aws
 def test_empty_key():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -136,7 +138,7 @@ def test_empty_key():
     assert resp["Body"].read() == b""
 
 
-@mock_s3
+@mock_aws
 def test_key_name_encoding_in_listing():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -162,7 +164,7 @@ def test_key_name_encoding_in_listing():
     assert key_received == name
 
 
-@mock_s3
+@mock_aws
 def test_empty_key_set_on_existing_key():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -182,7 +184,7 @@ def test_empty_key_set_on_existing_key():
     assert resp["Body"].read() == b""
 
 
-@mock_s3
+@mock_aws
 def test_large_key_save():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -195,7 +197,7 @@ def test_large_key_save():
     assert resp["Body"].read() == b"foobar" * 100000
 
 
-@mock_s3
+@mock_aws
 def test_set_metadata():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -209,7 +211,7 @@ def test_set_metadata():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_aws
 def test_last_modified():
     # See https://github.com/boto/boto/issues/466
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -230,7 +232,7 @@ def test_last_modified():
         assert as_header == "Sun, 01 Jan 2012 12:00:00 GMT"
 
 
-@mock_s3
+@mock_aws
 def test_missing_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as ex:
@@ -244,7 +246,7 @@ def test_missing_bucket():
     assert ex.value.response["Error"]["Message"] == "Not Found"
 
 
-@mock_s3
+@mock_aws
 def test_create_existing_bucket():
     """Creating a bucket that already exists should raise an Error."""
     client = boto3.client("s3", region_name="us-west-2")
@@ -261,7 +263,7 @@ def test_create_existing_bucket():
     )
 
 
-@mock_s3
+@mock_aws
 def test_create_existing_bucket_in_us_east_1():
     """Creating a bucket that already exists in us-east-1 returns the bucket.
 
@@ -276,7 +278,7 @@ def test_create_existing_bucket_in_us_east_1():
     client.create_bucket(Bucket="foobar")
 
 
-@mock_s3
+@mock_aws
 def test_bucket_deletion():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -305,7 +307,7 @@ def test_bucket_deletion():
     )
 
 
-@mock_s3
+@mock_aws
 def test_get_all_buckets():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
@@ -314,7 +316,7 @@ def test_get_all_buckets():
     assert len(client.list_buckets()["Buckets"]) == 2
 
 
-@mock_s3
+@mock_aws
 def test_post_to_bucket():
     if not settings.TEST_DECORATOR_MODE:
         # ServerMode does not allow unauthorized requests
@@ -331,7 +333,7 @@ def test_post_to_bucket():
     assert resp["Body"].read() == b"nothing"
 
 
-@mock_s3
+@mock_aws
 def test_post_with_metadata_to_bucket():
     if not settings.TEST_DECORATOR_MODE:
         # ServerMode does not allow unauthorized requests
@@ -348,7 +350,7 @@ def test_post_with_metadata_to_bucket():
     assert resp["Metadata"] == {"test": "metadata"}
 
 
-@mock_s3
+@mock_aws
 def test_delete_versioned_objects():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = "test"
@@ -405,7 +407,7 @@ def test_delete_versioned_objects():
     assert delete_markers is None
 
 
-@mock_s3
+@mock_aws
 def test_delete_missing_key():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
@@ -435,7 +437,7 @@ def test_delete_missing_key():
     assert {o.key for o in objects} == set(["key2", "key4"])
 
 
-@mock_s3
+@mock_aws
 def test_delete_empty_keys_list():
     with pytest.raises(ClientError) as err:
         boto3.client("s3").delete_objects(Bucket="foobar", Delete={"Objects": []})
@@ -443,7 +445,7 @@ def test_delete_empty_keys_list():
 
 
 @pytest.mark.parametrize("name", ["firstname.lastname", "with-dash"])
-@mock_s3
+@mock_aws
 def test_bucket_name_with_special_chars(name):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -459,9 +461,9 @@ def test_bucket_name_with_special_chars(name):
 @pytest.mark.parametrize(
     "key", ["normal", "test_list_keys_2/x?y", "/the-key-unîcode/test"]
 )
-@mock_s3
+@mock_aws
 def test_key_with_special_characters(key):
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         raise SkipTest("Keys starting with a / don't work well in ProxyMode")
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -477,7 +479,7 @@ def test_key_with_special_characters(key):
     assert resp["Body"].read() == b"value"
 
 
-@mock_s3
+@mock_aws
 def test_bucket_key_listing_order():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test_bucket"
@@ -517,7 +519,7 @@ def test_bucket_key_listing_order():
     assert keys == []
 
 
-@mock_s3
+@mock_aws
 def test_key_with_reduced_redundancy():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "test_bucket"
@@ -534,7 +536,7 @@ def test_key_with_reduced_redundancy():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_aws
 def test_restore_key():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
@@ -542,7 +544,8 @@ def test_restore_key():
 
     key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
     assert key.restore is None
-    key.restore_object(RestoreRequest={"Days": 1})
+    resp = key.restore_object(RestoreRequest={"Days": 1})
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
     if settings.TEST_SERVER_MODE:
         assert 'ongoing-request="false"' in key.restore
     elif settings.TEST_DECORATOR_MODE:
@@ -550,7 +553,8 @@ def test_restore_key():
             'ongoing-request="false", expiry-date="Mon, 02 Jan 2012 12:00:00 GMT"'
         )
 
-    key.restore_object(RestoreRequest={"Days": 2})
+    resp = key.restore_object(RestoreRequest={"Days": 2})
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     if settings.TEST_SERVER_MODE:
         assert 'ongoing-request="false"' in key.restore
@@ -561,7 +565,7 @@ def test_restore_key():
 
 
 @freeze_time("2012-01-01 12:00:00")
-@mock_s3
+@mock_aws
 def test_restore_key_transition():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't set transition directly in ServerMode")
@@ -592,7 +596,20 @@ def test_restore_key_transition():
     state_manager.unset_transition(model_name="s3::keyrestore")
 
 
-@mock_s3
+@mock_aws
+def test_restore_unknown_key():
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="mybucket")
+
+    with pytest.raises(ClientError) as exc:
+        client.restore_object(
+            Bucket="mybucket", Key="unknown", RestoreRequest={"Days": 1}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchKey"
+
+
+@mock_aws
 def test_cannot_restore_standard_class_object():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
@@ -610,7 +627,33 @@ def test_cannot_restore_standard_class_object():
     )
 
 
-@mock_s3
+@mock_aws
+def test_restore_object_invalid_request_params():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can't set transition directly in ServerMode")
+
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3_resource.Bucket("foobar")
+    bucket.create()
+
+    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
+
+    # `Days` must be provided except for select requests
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(RestoreRequest={})
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DaysMustProvidedExceptForSelectRequest"
+    assert err["Message"] == "`Days` must be provided except for select requests"
+
+    # `Days` must not be provided for select requests
+    with pytest.raises(ClientError) as exc:
+        key.restore_object(RestoreRequest={"Days": 1, "Type": "SELECT"})
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DaysMustNotProvidedForSelectRequest"
+    assert err["Message"] == "`Days` must not be provided for select requests"
+
+
+@mock_aws
 def test_get_versioning_status():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
@@ -626,7 +669,7 @@ def test_get_versioning_status():
     assert version_info.status == "Suspended"
 
 
-@mock_s3
+@mock_aws
 def test_key_version():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -646,7 +689,49 @@ def test_key_version():
     assert key["VersionId"] == versions[-1]
 
 
-@mock_s3
+@mock_aws
+def test_list_versions():
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = s3_resource.Bucket("foobar")
+    bucket.create()
+    bucket.Versioning().enable()
+
+    key_versions = []
+
+    key = bucket.put_object(Key="the-key", Body=b"Version 1")
+    key_versions.append(key.version_id)
+    key = bucket.put_object(Key="the-key", Body=b"Version 2")
+    key_versions.append(key.version_id)
+    assert len(key_versions) == 2
+
+    versions = client.list_object_versions(Bucket="foobar")["Versions"]
+    assert len(versions) == 2
+
+    assert versions[0]["Key"] == "the-key"
+    assert versions[0]["VersionId"] == key_versions[1]
+    resp = client.get_object(Bucket="foobar", Key="the-key")
+    assert resp["Body"].read() == b"Version 2"
+    resp = client.get_object(
+        Bucket="foobar", Key="the-key", VersionId=versions[0]["VersionId"]
+    )
+    assert resp["Body"].read() == b"Version 2"
+
+    assert versions[1]["Key"] == "the-key"
+    assert versions[1]["VersionId"] == key_versions[0]
+    resp = client.get_object(
+        Bucket="foobar", Key="the-key", VersionId=versions[1]["VersionId"]
+    )
+    assert resp["Body"].read() == b"Version 1"
+
+    bucket.put_object(Key="the2-key", Body=b"Version 1")
+
+    assert len(list(bucket.objects.all())) == 2
+    versions = client.list_object_versions(Bucket="foobar", Prefix="the2")["Versions"]
+    assert len(versions) == 1
+
+
+@mock_aws
 def test_acl_setting():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -669,7 +754,7 @@ def test_acl_setting():
     } in grants
 
 
-@mock_s3
+@mock_aws
 def test_acl_setting_via_headers():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -691,7 +776,7 @@ def test_acl_setting_via_headers():
     } in grants
 
 
-@mock_s3
+@mock_aws
 def test_acl_switching():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -712,7 +797,7 @@ def test_acl_switching():
     } not in grants
 
 
-@mock_s3
+@mock_aws
 def test_acl_switching_nonexistent_key():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -723,7 +808,7 @@ def test_acl_switching_nonexistent_key():
     assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
 
-@mock_s3
+@mock_aws
 def test_streaming_upload_from_file_to_presigned_url():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     bucket = s3_resource.Bucket("test-bucket")
@@ -736,13 +821,13 @@ def test_streaming_upload_from_file_to_presigned_url():
     )
     with open(__file__, "rb") as fhandle:
         get_kwargs = {"data": fhandle}
-        if settings.test_proxy_mode():
+        if settings.is_test_proxy_mode():
             add_proxy_details(get_kwargs)
         response = requests.get(presigned_url, **get_kwargs)
     assert response.status_code == 200
 
 
-@mock_s3
+@mock_aws
 def test_upload_from_file_to_presigned_url():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -758,7 +843,7 @@ def test_upload_from_file_to_presigned_url():
     files = {"upload_file": open("text.txt", "rb")}
 
     put_kwargs = {"files": files}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(put_kwargs)
     requests.put(presigned_url, **put_kwargs)
     resp = s3_client.get_object(Bucket="mybucket", Key="file_upload")
@@ -768,7 +853,7 @@ def test_upload_from_file_to_presigned_url():
     os.remove("text.txt")
 
 
-@mock_s3
+@mock_aws
 def test_upload_file_with_checksum_algorithm():
     random_bytes = (
         b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00"
@@ -789,7 +874,7 @@ def test_upload_file_with_checksum_algorithm():
     assert random_bytes == actual_content
 
 
-@mock_s3
+@mock_aws
 def test_put_chunked_with_v4_signature_in_body():
     bucket_name = "mybucket"
     file_name = "file"
@@ -833,7 +918,7 @@ def test_put_chunked_with_v4_signature_in_body():
     assert etag == boto_etag
 
 
-@mock_s3
+@mock_aws
 def test_s3_object_in_private_bucket():
     s3_resource = boto3.resource("s3")
     bucket = s3_resource.Bucket("test-bucket")
@@ -858,7 +943,7 @@ def test_s3_object_in_private_bucket():
     assert contents == b"ABCD"
 
 
-@mock_s3
+@mock_aws
 def test_unicode_key():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("mybucket")
@@ -872,7 +957,7 @@ def test_unicode_key():
     assert fetched_key.get()["Body"].read().decode("utf-8") == "Hello world!"
 
 
-@mock_s3
+@mock_aws
 def test_unicode_value():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("mybucket")
@@ -884,7 +969,7 @@ def test_unicode_value():
     assert key.get()["Body"].read().decode("utf-8") == "こんにちは.jpg"
 
 
-@mock_s3
+@mock_aws
 def test_setting_content_encoding():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("mybucket")
@@ -896,7 +981,7 @@ def test_setting_content_encoding():
     assert key.content_encoding == "gzip"
 
 
-@mock_s3
+@mock_aws
 def test_bucket_location_default():
     cli = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -905,7 +990,7 @@ def test_bucket_location_default():
     assert cli.get_bucket_location(Bucket=bucket_name)["LocationConstraint"] is None
 
 
-@mock_s3
+@mock_aws
 def test_bucket_location_nondefault():
     cli = boto3.client("s3", region_name="eu-central-1")
     bucket_name = "mybucket"
@@ -920,7 +1005,7 @@ def test_bucket_location_nondefault():
     )
 
 
-@mock_s3
+@mock_aws
 def test_s3_location_should_error_outside_useast1():
     s3_client = boto3.client("s3", region_name="eu-west-1")
 
@@ -934,7 +1019,7 @@ def test_s3_location_should_error_outside_useast1():
     )
 
 
-@mock_s3
+@mock_aws
 def test_ranged_get():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("mybucket")
@@ -1020,7 +1105,7 @@ def test_ranged_get():
     assert ex.value.response["Error"]["RangeRequested"] == "bytes=101-200"
 
 
-@mock_s3
+@mock_aws
 def test_policy():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -1065,7 +1150,7 @@ def test_policy():
     assert ex.value.response["Error"]["Code"] == "NoSuchBucketPolicy"
 
 
-@mock_s3
+@mock_aws
 def test_website_configuration_xml():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -1097,7 +1182,7 @@ def test_website_configuration_xml():
     assert "ErrorDocument" not in site_info
 
 
-@mock_s3
+@mock_aws
 def test_client_get_object_returns_etag():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1106,7 +1191,7 @@ def test_client_get_object_returns_etag():
     assert resp["ETag"] == '"d32bda93738f7e03adb22e66c90fbc04"'
 
 
-@mock_s3
+@mock_aws
 def test_website_redirect_location():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1123,7 +1208,7 @@ def test_website_redirect_location():
     assert resp["WebsiteRedirectLocation"] == url
 
 
-@mock_s3
+@mock_aws
 def test_delimiter_optional_in_response():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1134,7 +1219,7 @@ def test_delimiter_optional_in_response():
     assert resp.get("Delimiter") == "/"
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_with_pagesize_0():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1145,7 +1230,7 @@ def test_list_objects_with_pagesize_0():
     assert "Contents" not in resp
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_truncated_response():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1191,7 +1276,7 @@ def test_list_objects_truncated_response():
     assert "NextMarker" not in resp
 
 
-@mock_s3
+@mock_aws
 def test_list_keys_xml_escaped():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1211,7 +1296,7 @@ def test_list_keys_xml_escaped():
     assert "Owner" not in resp["Contents"][0]
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_v2_common_prefix_pagination():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1240,7 +1325,7 @@ def test_list_objects_v2_common_prefix_pagination():
     assert prefixes == [k[: k.rindex("/") + 1] for k in keys]
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_v2_common_invalid_continuation_token():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1266,7 +1351,7 @@ def test_list_objects_v2_common_invalid_continuation_token():
     )
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_v2_truncated_response():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1323,7 +1408,7 @@ def test_list_objects_v2_truncated_response():
     assert "NextContinuationToken" not in resp
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_v2_truncated_response_start_after():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1365,7 +1450,7 @@ def test_list_objects_v2_truncated_response_start_after():
     assert "Owner" not in listed_object
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_v2_fetch_owner():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1379,7 +1464,7 @@ def test_list_objects_v2_fetch_owner():
     assert len(owner.keys()) == 2
 
 
-@mock_s3
+@mock_aws
 def test_list_objects_v2_truncate_combined_keys_and_folders():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1399,7 +1484,7 @@ def test_list_objects_v2_truncate_combined_keys_and_folders():
     assert len(resp["CommonPrefixes"]) == 1
     assert resp["CommonPrefixes"][0]["Prefix"] == "1/"
 
-    last_tail = resp["NextContinuationToken"]
+    last_tail = resp["Contents"][-1]["Key"]
     resp = s3_client.list_objects_v2(
         Bucket="mybucket", MaxKeys=2, Prefix="", Delimiter="/", StartAfter=last_tail
     )
@@ -1411,7 +1496,34 @@ def test_list_objects_v2_truncate_combined_keys_and_folders():
     assert resp["CommonPrefixes"][0]["Prefix"] == "3/"
 
 
-@mock_s3
+@mock_aws
+def test_list_objects_v2__more_than_1000():
+    # Verify that the default pagination size (1000) works
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Accessing backends directly")
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="mybucket")
+
+    # Uploading >1000 files using boto3 takes ages, so let's just use the backend directly
+    backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
+    for i in range(1100):
+        backend.put_object(bucket_name="mybucket", key_name=f"{i}", value=b"")
+
+    # Page 1
+    resp = s3_client.list_objects_v2(Bucket="mybucket", Delimiter="/")
+    assert resp["KeyCount"] == 1000
+    assert len(resp["Contents"]) == 1000
+    assert resp["IsTruncated"] is True
+
+    # Page2
+    tail = resp["Contents"][-1]["Key"]
+    resp = s3_client.list_objects_v2(Bucket="mybucket", Delimiter="/", StartAfter=tail)
+    assert resp["KeyCount"] == 100
+    assert len(resp["Contents"]) == 100
+    assert resp["IsTruncated"] is False
+
+
+@mock_aws
 def test_list_objects_v2_checksum_algo():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
@@ -1441,7 +1553,7 @@ def test_list_objects_v2_checksum_algo():
     assert resp[2]["ChecksumAlgorithm"] == ["SHA256"]
 
 
-@mock_s3
+@mock_aws
 def test_bucket_create():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource.create_bucket(Bucket="blah")
@@ -1454,7 +1566,7 @@ def test_bucket_create():
     )
 
 
-@mock_s3
+@mock_aws
 def test_bucket_create_force_us_east_1():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
@@ -1465,7 +1577,7 @@ def test_bucket_create_force_us_east_1():
     assert exc.value.response["Error"]["Code"] == "InvalidLocationConstraint"
 
 
-@mock_s3
+@mock_aws
 def test_bucket_create_eu_central():
     s3_resource = boto3.resource("s3", region_name="eu-central-1")
     s3_resource.create_bucket(
@@ -1480,7 +1592,7 @@ def test_bucket_create_eu_central():
     )
 
 
-@mock_s3
+@mock_aws
 def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_error():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:
@@ -1489,7 +1601,7 @@ def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_er
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_s3
+@mock_aws
 def test_head_object():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource.create_bucket(Bucket="blah")
@@ -1507,7 +1619,7 @@ def test_head_object():
     assert exc.value.response["Error"]["Code"] == "404"
 
 
-@mock_s3
+@mock_aws
 def test_get_object():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource.create_bucket(Bucket="blah")
@@ -1524,7 +1636,7 @@ def test_get_object():
     assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
 
-@mock_s3
+@mock_aws
 def test_s3_content_type():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     my_bucket = s3_resource.Bucket("my-cool-bucket")
@@ -1540,7 +1652,7 @@ def test_s3_content_type():
     assert s3_resource.Object(my_bucket.name, s3_path).content_type == content_type
 
 
-@mock_s3
+@mock_aws
 def test_get_missing_object_with_part_number():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource.create_bucket(Bucket="blah")
@@ -1553,7 +1665,7 @@ def test_get_missing_object_with_part_number():
     assert exc.value.response["Error"]["Code"] == "404"
 
 
-@mock_s3
+@mock_aws
 def test_head_object_with_versioning():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.create_bucket(Bucket="blah")
@@ -1583,7 +1695,7 @@ def test_head_object_with_versioning():
     assert old_head_object["VersionId"] != head_object["VersionId"]
 
 
-@mock_s3
+@mock_aws
 def test_deleted_versionings_list():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -1600,7 +1712,7 @@ def test_deleted_versionings_list():
     assert len(listed["Contents"]) == 1
 
 
-@mock_s3
+@mock_aws
 def test_delete_objects_for_specific_version_id():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="blah")
@@ -1623,7 +1735,7 @@ def test_delete_objects_for_specific_version_id():
     assert len(listed["Contents"]) == 1
 
 
-@mock_s3
+@mock_aws
 def test_delete_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
@@ -1646,9 +1758,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     bucket = resource.Bucket(name)
     versions = bucket.object_versions
 
-    client.put_bucket_versioning(
-        Bucket=name, VersioningConfiguration={"Status": "Enabled"}
-    )
+    enable_versioning(name, client)
 
     client.put_object(Bucket=name, Key="test1", Body=b"test1")
 
@@ -1752,7 +1862,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     assert del_mrk4["VersionId"] == del_mrk2["VersionId"]
 
 
-@mock_s3
+@mock_aws
 def test_get_object_if_modified_since_refresh():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1774,7 +1884,7 @@ def test_get_object_if_modified_since_refresh():
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
 
 
-@mock_s3
+@mock_aws
 def test_get_object_if_modified_since():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1794,7 +1904,7 @@ def test_get_object_if_modified_since():
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
 
 
-@mock_s3
+@mock_aws
 def test_get_object_if_unmodified_since():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1815,7 +1925,7 @@ def test_get_object_if_unmodified_since():
     assert err_value.response["Error"]["Condition"] == "If-Unmodified-Since"
 
 
-@mock_s3
+@mock_aws
 def test_get_object_if_match():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1832,7 +1942,7 @@ def test_get_object_if_match():
     assert err_value.response["Error"]["Condition"] == "If-Match"
 
 
-@mock_s3
+@mock_aws
 def test_get_object_if_none_match():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1848,7 +1958,7 @@ def test_get_object_if_none_match():
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
 
 
-@mock_s3
+@mock_aws
 def test_head_object_if_modified_since():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1868,7 +1978,7 @@ def test_head_object_if_modified_since():
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
 
 
-@mock_s3
+@mock_aws
 def test_head_object_if_modified_since_refresh():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1890,7 +2000,7 @@ def test_head_object_if_modified_since_refresh():
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
 
 
-@mock_s3
+@mock_aws
 def test_head_object_if_unmodified_since():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1913,7 +2023,7 @@ def test_head_object_if_unmodified_since():
     }
 
 
-@mock_s3
+@mock_aws
 def test_head_object_if_match():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1932,7 +2042,7 @@ def test_head_object_if_match():
     }
 
 
-@mock_s3
+@mock_aws
 def test_head_object_if_none_match():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "blah"
@@ -1948,7 +2058,7 @@ def test_head_object_if_none_match():
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
 
 
-@mock_s3
+@mock_aws
 def test_put_bucket_cors():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -2010,7 +2120,7 @@ def test_put_bucket_cors():
     assert err_value.response["Error"]["Code"] == "MalformedXML"
 
 
-@mock_s3
+@mock_aws
 def test_get_bucket_cors():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -2081,7 +2191,7 @@ def test_delete_bucket_cors(bucket_name=None):
     )
 
 
-@mock_s3
+@mock_aws
 def test_put_bucket_notification():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="bucket")
@@ -2277,7 +2387,7 @@ def test_put_bucket_notification():
     assert not result.get("LambdaFunctionConfigurations")
 
 
-@mock_s3
+@mock_aws
 def test_put_bucket_notification_errors():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="bucket")
@@ -2336,11 +2446,11 @@ def test_put_bucket_notification_errors():
     assert err.value.response["Error"]["Code"] == "InvalidArgument"
     assert (
         err.value.response["Error"]["Message"]
-        == "The event is not supported for notifications"
+        == "The event 'notarealeventname' is not supported for notifications. Supported events are as follows: ['s3:IntelligentTiering', 's3:LifecycleExpiration:*', 's3:LifecycleExpiration:Delete', 's3:LifecycleExpiration:DeleteMarkerCreated', 's3:LifecycleTransition', 's3:ObjectAcl:Put', 's3:ObjectCreated:*', 's3:ObjectCreated:CompleteMultipartUpload', 's3:ObjectCreated:Copy', 's3:ObjectCreated:Post', 's3:ObjectCreated:Put', 's3:ObjectRemoved:*', 's3:ObjectRemoved:Delete', 's3:ObjectRemoved:DeleteMarkerCreated', 's3:ObjectRestore:*', 's3:ObjectRestore:Completed', 's3:ObjectRestore:Delete', 's3:ObjectRestore:Post', 's3:ObjectTagging:*', 's3:ObjectTagging:Delete', 's3:ObjectTagging:Put', 's3:ReducedRedundancyLostObject', 's3:Replication:*', 's3:Replication:OperationFailedReplication', 's3:Replication:OperationMissedThreshold', 's3:Replication:OperationNotTracked', 's3:Replication:OperationReplicatedAfterThreshold']"
     )
 
 
-@mock_s3
+@mock_aws
 def test_delete_markers():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -2383,7 +2493,7 @@ def test_delete_markers():
     assert oldest["Key"] == "key-with-versions-and-unicode-ó"
 
 
-@mock_s3
+@mock_aws
 def test_multiple_delete_markers():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -2432,7 +2542,7 @@ def test_multiple_delete_markers():
     assert oldest["Key"] == "key-with-versions-and-unicode-ó"
 
 
-@mock_s3
+@mock_aws
 def test_get_stream_gzipped():
     payload = b"this is some stuff here"
 
@@ -2472,7 +2582,7 @@ TEST_XML = """\
 """
 
 
-@mock_s3
+@mock_aws
 def test_bucket_name_too_long():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
@@ -2480,7 +2590,7 @@ def test_bucket_name_too_long():
     assert exc.value.response["Error"]["Code"] == "InvalidBucketName"
 
 
-@mock_s3
+@mock_aws
 def test_bucket_name_too_short():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
@@ -2488,7 +2598,7 @@ def test_bucket_name_too_short():
     assert exc.value.response["Error"]["Code"] == "InvalidBucketName"
 
 
-@mock_s3
+@mock_aws
 def test_accelerated_none_when_unspecified():
     bucket_name = "some_bucket"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2497,7 +2607,7 @@ def test_accelerated_none_when_unspecified():
     assert "Status" not in resp
 
 
-@mock_s3
+@mock_aws
 def test_can_enable_bucket_acceleration():
     bucket_name = "some_bucket"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2511,7 +2621,7 @@ def test_can_enable_bucket_acceleration():
     assert resp["Status"] == "Enabled"
 
 
-@mock_s3
+@mock_aws
 def test_can_suspend_bucket_acceleration():
     bucket_name = "some_bucket"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2528,7 +2638,7 @@ def test_can_suspend_bucket_acceleration():
     assert resp["Status"] == "Suspended"
 
 
-@mock_s3
+@mock_aws
 def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     bucket_name = "some_bucket"
     s3_client = boto3.client("s3")
@@ -2544,7 +2654,7 @@ def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     assert "Status" not in resp
 
 
-@mock_s3
+@mock_aws
 def test_accelerate_configuration_status_validation():
     bucket_name = "some_bucket"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2556,7 +2666,7 @@ def test_accelerate_configuration_status_validation():
     assert exc.value.response["Error"]["Code"] == "MalformedXML"
 
 
-@mock_s3
+@mock_aws
 def test_accelerate_configuration_is_not_supported_when_bucket_name_has_dots():
     bucket_name = "some.bucket.with.dots"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2580,12 +2690,12 @@ def store_and_read_back_a_key(key):
     assert response["Body"].read() == body
 
 
-@mock_s3
+@mock_aws
 def test_paths_with_leading_slashes_work():
     store_and_read_back_a_key("/a-key")
 
 
-@mock_s3
+@mock_aws
 def test_root_dir_with_empty_name_works():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Does not work in server mode due to error in Workzeug")
@@ -2593,10 +2703,10 @@ def test_root_dir_with_empty_name_works():
 
 
 @pytest.mark.parametrize("bucket_name", ["mybucket", "my.bucket"])
-@mock_s3
+@mock_aws
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         raise SkipTest("Doesn't quite work right with the Proxy")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
@@ -2619,7 +2729,7 @@ def test_leading_slashes_not_removed(bucket_name):
 @pytest.mark.parametrize(
     "key", ["foo/bar/baz", "foo", "foo/run_dt%3D2019-01-01%252012%253A30%253A00"]
 )
-@mock_s3
+@mock_aws
 def test_delete_objects_with_url_encoded_key(key):
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -2645,7 +2755,7 @@ def test_delete_objects_with_url_encoded_key(key):
     assert_deleted()
 
 
-@mock_s3
+@mock_aws
 def test_delete_objects_unknown_key():
     bucket_name = "test-moto-issue-1581"
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2661,8 +2771,7 @@ def test_delete_objects_unknown_key():
     client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_s3
-@mock_config
+@mock_aws
 def test_public_access_block():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="mybucket")
@@ -2754,7 +2863,7 @@ def test_public_access_block():
     assert exc.value.response["Error"]["Code"] == "NoSuchPublicAccessBlockConfiguration"
 
 
-@mock_s3
+@mock_aws
 def test_creating_presigned_post():
     bucket = "presigned-test"
     s3_client = boto3.client("s3", region_name="us-east-1")
@@ -2786,7 +2895,7 @@ def test_creating_presigned_post():
         "files": {"file": fdata},
         "allow_redirects": False,
     }
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     resp = requests.post(data["url"], **kwargs)
     assert resp.status_code == 303
@@ -2800,7 +2909,7 @@ def test_creating_presigned_post():
     assert s3_client.get_object(Bucket=bucket, Key=real_key)["Body"].read() == fdata
 
 
-@mock_s3
+@mock_aws
 def test_presigned_put_url_with_approved_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"
@@ -2818,7 +2927,7 @@ def test_presigned_put_url_with_approved_headers():
 
     # Verify S3 throws an error when the header is not provided
     kwargs = {"data": content}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 403
@@ -2830,7 +2939,7 @@ def test_presigned_put_url_with_approved_headers():
 
     # Verify S3 throws an error when the header has the wrong value
     kwargs = {"data": content, "headers": {"Content-Type": "application/unknown"}}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 403
@@ -2842,7 +2951,7 @@ def test_presigned_put_url_with_approved_headers():
 
     # Verify S3 uploads correctly when providing the meta data
     kwargs = {"data": content, "headers": {"Content-Type": expected_contenttype}}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 200
@@ -2858,7 +2967,7 @@ def test_presigned_put_url_with_approved_headers():
     s3_client.delete_bucket(Bucket=bucket)
 
 
-@mock_s3
+@mock_aws
 def test_presigned_put_url_with_custom_headers():
     bucket = str(uuid.uuid4())
     key = "file.txt"
@@ -2875,7 +2984,7 @@ def test_presigned_put_url_with_custom_headers():
 
     # Verify S3 uploads correctly when providing the meta data
     kwargs = {"data": content}
-    if settings.test_proxy_mode():
+    if settings.is_test_proxy_mode():
         add_proxy_details(kwargs)
     response = requests.put(url, **kwargs)
     assert response.status_code == 200
@@ -2890,7 +2999,7 @@ def test_presigned_put_url_with_custom_headers():
     s3_client.delete_bucket(Bucket=bucket)
 
 
-@mock_s3
+@mock_aws
 def test_request_partial_content_should_contain_content_length():
     bucket = "bucket"
     object_key = "key"
@@ -2903,7 +3012,7 @@ def test_request_partial_content_should_contain_content_length():
     assert response["ContentLength"] == 9
 
 
-@mock_s3
+@mock_aws
 def test_request_partial_content_should_contain_actual_content_length():
     bucket = "bucket"
     object_key = "key"
@@ -2924,7 +3033,7 @@ def test_request_partial_content_should_contain_actual_content_length():
         assert exc.response["Error"]["RangeRequested"] == requested_range
 
 
-@mock_s3
+@mock_aws
 def test_get_unknown_version_should_throw_specific_error():
     bucket_name = "my_bucket"
     object_key = "hello.txt"
@@ -2943,7 +3052,7 @@ def test_get_unknown_version_should_throw_specific_error():
     )
 
 
-@mock_s3
+@mock_aws
 def test_request_partial_content_without_specifying_range_should_return_full_object():
     bucket = "bucket"
     object_key = "key"
@@ -2956,7 +3065,7 @@ def test_request_partial_content_without_specifying_range_should_return_full_obj
     assert response["ContentLength"] == 30
 
 
-@mock_s3
+@mock_aws
 def test_object_headers():
     bucket = "my-bucket"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -2984,7 +3093,7 @@ def test_object_headers():
 
 if settings.TEST_SERVER_MODE:
 
-    @mock_s3
+    @mock_aws
     def test_upload_data_without_content_type():
         bucket = "mybucket"
         s3_client = boto3.client("s3")
@@ -2998,7 +3107,7 @@ if settings.TEST_SERVER_MODE:
         assert data == data_input
 
 
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize(
     "prefix", ["file", "file+else", "file&another", "file another"]
 )
@@ -3019,7 +3128,7 @@ def test_get_object_versions_with_prefix(prefix):
     assert versions["Prefix"] == prefix
 
 
-@mock_s3
+@mock_aws
 def test_create_bucket_duplicate():
     bucket_name = "same-bucket-test-1371"
     alternate_region = "eu-north-1"
@@ -3090,7 +3199,7 @@ def test_create_bucket_duplicate():
     assert err["BucketName"] == bucket_name
 
 
-@mock_s3
+@mock_aws
 def test_delete_objects_with_empty_keyname():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -3142,7 +3251,7 @@ def test_delete_objects_percent_encoded(bucket_name=None):
     assert "Contents" not in client.list_objects(Bucket=bucket_name)
 
 
-@mock_s3
+@mock_aws
 def test_head_object_should_return_default_content_type():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     s3_resource.create_bucket(Bucket="testbucket")
@@ -3163,7 +3272,7 @@ def test_head_object_should_return_default_content_type():
     )
 
 
-@mock_s3
+@mock_aws
 def test_request_partial_content_should_contain_all_metadata():
     # github.com/getmoto/moto/issues/4203
     bucket = "bucket"
@@ -3184,7 +3293,7 @@ def test_request_partial_content_should_contain_all_metadata():
     assert response["ContentRange"] == f"bytes {query_range}/{len(body)}"
 
 
-@mock_s3
+@mock_aws
 def test_head_versioned_key_in_not_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="simple-bucked")
@@ -3198,7 +3307,7 @@ def test_head_versioned_key_in_not_versioned_bucket():
     assert response["Error"]["Code"] == "400"
 
 
-@mock_s3
+@mock_aws
 def test_prefix_encoding():
     bucket_name = "encoding-bucket"
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -3221,7 +3330,7 @@ def test_prefix_encoding():
     assert ["foo%2Fbar/", "foo/"] == folders
 
 
-@mock_s3
+@mock_aws
 @pytest.mark.parametrize("algorithm", ["CRC32", "CRC32C", "SHA1", "SHA256"])
 def test_checksum_response(algorithm):
     bucket_name = "checksum-bucket"
@@ -3242,3 +3351,14 @@ def test_checksum_response(algorithm):
 def add_proxy_details(kwargs):
     kwargs["proxies"] = {"https": "http://localhost:5005"}
     kwargs["verify"] = moto_proxy.__file__.replace("__init__.py", "ca.crt")
+
+
+def enable_versioning(bucket_name, s3_client):
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    # Versioning is not active immediately, so wait until we have confirmation the change has gone through
+    resp = {}
+    while resp.get("Status") != "Enabled":
+        sleep(0.1)
+        resp = s3_client.get_bucket_versioning(Bucket=bucket_name)

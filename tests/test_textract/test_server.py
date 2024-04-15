@@ -1,11 +1,10 @@
-"""Test different server responses."""
 import json
 
 import moto.server as server
-from moto import mock_textract
+from moto import mock_aws
 
 
-@mock_textract
+@mock_aws
 def test_textract_start_text_detection():
     backend = server.create_backend_app("textract")
     test_client = backend.test_client()
@@ -23,7 +22,7 @@ def test_textract_start_text_detection():
     assert isinstance(data["JobId"], str)
 
 
-@mock_textract
+@mock_aws
 def test_detect_document_text():
     backend = server.create_backend_app("textract")
     test_client = backend.test_client()
@@ -39,7 +38,7 @@ def test_detect_document_text():
     assert isinstance(data["Blocks"], list)
 
 
-@mock_textract
+@mock_aws
 def test_textract_start_text_detection_without_document_location():
     backend = server.create_backend_app("textract")
     test_client = backend.test_client()
@@ -55,7 +54,7 @@ def test_textract_start_text_detection_without_document_location():
     )
 
 
-@mock_textract
+@mock_aws
 def test_textract_get_text_detection():
     backend = server.create_backend_app("textract")
     test_client = backend.test_client()
@@ -80,7 +79,7 @@ def test_textract_get_text_detection():
     assert data["JobStatus"] == "SUCCEEDED"
 
 
-@mock_textract
+@mock_aws
 def test_textract_get_text_detection_without_job_id():
     backend = server.create_backend_app("textract")
     test_client = backend.test_client()

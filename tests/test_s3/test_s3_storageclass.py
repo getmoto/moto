@@ -2,10 +2,10 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 def test_s3_storage_class_standard():
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_client.create_bucket(Bucket="Bucket")
@@ -19,7 +19,7 @@ def test_s3_storage_class_standard():
     assert list_of_objects["Contents"][0]["StorageClass"] == "STANDARD"
 
 
-@mock_s3
+@mock_aws
 def test_s3_storage_class_infrequent_access():
     s3_client = boto3.client("s3")
     s3_client.create_bucket(
@@ -40,7 +40,7 @@ def test_s3_storage_class_infrequent_access():
     assert objs["Contents"][0]["StorageClass"] == "STANDARD_IA"
 
 
-@mock_s3
+@mock_aws
 def test_s3_storage_class_intelligent_tiering():
     s3_client = boto3.client("s3")
 
@@ -59,7 +59,7 @@ def test_s3_storage_class_intelligent_tiering():
     assert objects["Contents"][0]["StorageClass"] == "INTELLIGENT_TIERING"
 
 
-@mock_s3
+@mock_aws
 def test_s3_storage_class_copy():
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_client.create_bucket(Bucket="Bucket")
@@ -84,7 +84,7 @@ def test_s3_storage_class_copy():
     assert list_of_copied_objects["Contents"][0]["StorageClass"] == "ONEZONE_IA"
 
 
-@mock_s3
+@mock_aws
 def test_s3_invalid_copied_storage_class():
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_client.create_bucket(Bucket="Bucket")
@@ -116,7 +116,7 @@ def test_s3_invalid_copied_storage_class():
     )
 
 
-@mock_s3
+@mock_aws
 def test_s3_invalid_storage_class():
     s3_client = boto3.client("s3")
     s3_client.create_bucket(
@@ -136,7 +136,7 @@ def test_s3_invalid_storage_class():
     )
 
 
-@mock_s3
+@mock_aws
 def test_s3_default_storage_class():
     s3_client = boto3.client("s3")
     s3_client.create_bucket(
@@ -151,7 +151,7 @@ def test_s3_default_storage_class():
     assert list_of_objects["Contents"][0]["StorageClass"] == "STANDARD"
 
 
-@mock_s3
+@mock_aws
 def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
     s3_client = boto3.client("s3")
     s3_client.create_bucket(
@@ -172,7 +172,7 @@ def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
     assert exc.value.response["Error"]["Code"] == "ObjectNotInActiveTierError"
 
 
-@mock_s3
+@mock_aws
 def test_s3_copy_object_error_for_deep_archive_storage_class_not_restored():
     s3_client = boto3.client("s3")
     s3_client.create_bucket(
@@ -193,7 +193,7 @@ def test_s3_copy_object_error_for_deep_archive_storage_class_not_restored():
     assert exc.value.response["Error"]["Code"] == "ObjectNotInActiveTierError"
 
 
-@mock_s3
+@mock_aws
 def test_s3_copy_object_for_glacier_storage_class_restored():
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_client.create_bucket(Bucket="Bucket")
@@ -203,9 +203,10 @@ def test_s3_copy_object_for_glacier_storage_class_restored():
     )
 
     s3_client.create_bucket(Bucket="Bucket2")
-    s3_client.restore_object(
+    resp = s3_client.restore_object(
         Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123}
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     s3_client.copy_object(
         CopySource={"Bucket": "Bucket", "Key": "First_Object"},
@@ -222,7 +223,7 @@ def test_s3_copy_object_for_glacier_storage_class_restored():
     )
 
 
-@mock_s3
+@mock_aws
 def test_s3_copy_object_for_deep_archive_storage_class_restored():
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_client.create_bucket(Bucket="Bucket")
@@ -241,9 +242,10 @@ def test_s3_copy_object_for_deep_archive_storage_class_restored():
     assert err["StorageClass"] == "DEEP_ARCHIVE"
 
     s3_client.create_bucket(Bucket="Bucket2")
-    s3_client.restore_object(
+    resp = s3_client.restore_object(
         Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123}
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
     s3_client.get_object(Bucket="Bucket", Key="First_Object")
 
     s3_client.copy_object(
@@ -261,7 +263,7 @@ def test_s3_copy_object_for_deep_archive_storage_class_restored():
     )
 
 
-@mock_s3
+@mock_aws
 def test_s3_get_object_from_glacier():
     s3_client = boto3.client("s3", region_name="us-east-1")
     bucket_name = "tests3getobjectfromglacier"

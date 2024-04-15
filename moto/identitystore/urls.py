@@ -1,4 +1,5 @@
 """identitystore base URL and path."""
+
 from .responses import IdentityStoreResponse
 
 url_bases = [

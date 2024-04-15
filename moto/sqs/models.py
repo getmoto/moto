@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import ParseResult
 from xml.sax.saxutils import escape
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -242,6 +243,7 @@ class Queue(CloudFormationModel):
         "RedrivePolicy",
         "ReceiveMessageWaitTimeSeconds",
         "VisibilityTimeout",
+        "SqsManagedSseEnabled",
     ]
     FIFO_ATTRIBUTES = [
         "ContentBasedDeduplication",
@@ -297,6 +299,7 @@ class Queue(CloudFormationModel):
             "ReceiveMessageWaitTimeSeconds": 0,
             "RedrivePolicy": None,
             "VisibilityTimeout": 30,
+            "SqsManagedSseEnabled": True,
         }
 
         defaults.update(kwargs)
@@ -310,6 +313,22 @@ class Queue(CloudFormationModel):
             or self.maximum_message_size > MAXIMUM_MESSAGE_SIZE_ATTR_UPPER_BOUND  # type: ignore
         ):
             raise InvalidAttributeValue("MaximumMessageSize")
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-QueueName
+        if re.match(r"^[a-zA-Z0-9\_-]{1,80}$", value) or re.match(
+            r"^[a-zA-Z0-9\_-]{1,75}(\.fifo)?$", value
+        ):
+            self._name = value
+        else:
+            raise InvalidParameterValue(
+                "Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length"
+            )
 
     @property
     def pending_messages(self) -> Set[Message]:
@@ -445,7 +464,9 @@ class Queue(CloudFormationModel):
         tags_dict = tags_from_cloudformation_tags_list(tags)
 
         # Could be passed as an integer - just treat it as a string
-        resource_name = str(resource_name)
+        # take first 80 characters of the q name, more is invalid
+        # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_CreateQueue.html#SQS-CreateQueue-request-QueueName
+        resource_name = str(resource_name)[0:80]
 
         sqs_backend = sqs_backends[account_id][region_name]
         return sqs_backend.create_queue(
@@ -586,9 +607,9 @@ class Queue(CloudFormationModel):
                 self.visibility_timeout,  # type: ignore
             )
 
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
-            result = lambda_backends[self.account_id][self.region].send_sqs_batch(
+            result = get_backend(self.account_id, self.region).send_sqs_batch(
                 arn, messages, self.queue_arn
             )
 
@@ -675,15 +696,6 @@ class SQSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.queues: Dict[str, Queue] = {}
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "sqs"
-        )
 
     def create_queue(
         self, name: str, tags: Optional[Dict[str, str]] = None, **kwargs: Any
@@ -789,6 +801,7 @@ class SQSBackend(BaseBackend):
         self,
         queue: Queue,
         message_body: str,
+        delay_seconds: int,
         deduplication_id: Optional[str] = None,
         group_id: Optional[str] = None,
     ) -> None:
@@ -810,6 +823,12 @@ class SQSBackend(BaseBackend):
                     "MessageDeduplicationId provided explicitly"
                 )
                 raise InvalidParameterValue(msg)
+
+            if delay_seconds > 0:
+                raise InvalidParameterValue(
+                    f"Value {delay_seconds} for parameter DelaySeconds is invalid. Reason: "
+                    "The request include parameter that is not valid for this queue type."
+                )
 
         if len(message_body) > queue.maximum_message_size:  # type: ignore
             msg = f"One or more parameters are invalid. Reason: Message must be shorter than {queue.maximum_message_size} bytes."  # type: ignore
@@ -840,9 +859,11 @@ class SQSBackend(BaseBackend):
     ) -> Message:
         queue = self.get_queue(queue_name)
 
-        self._validate_message(queue, message_body, deduplication_id, group_id)
+        self._validate_message(
+            queue, message_body, int(delay_seconds or 0), deduplication_id, group_id
+        )
 
-        if delay_seconds:
+        if delay_seconds is not None:
             delay_seconds = int(delay_seconds)
         else:
             delay_seconds = queue.delay_seconds  # type: ignore
@@ -914,6 +935,7 @@ class SQSBackend(BaseBackend):
             self._validate_message(
                 queue,
                 entry["MessageBody"],
+                int(entry.get("DelaySeconds") or 0),
                 entry.get("MessageDeduplicationId"),
                 entry.get("MessageGroupId"),
             )

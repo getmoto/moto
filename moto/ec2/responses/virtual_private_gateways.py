@@ -13,7 +13,7 @@ class VirtualPrivateGateways(EC2BaseResponse):
         gateway_type = self._get_param("Type")
         amazon_side_asn = self._get_param("AmazonSideAsn")
         availability_zone = self._get_param("AvailabilityZone")
-        tags = self._parse_tag_specification().get("virtual-private-gateway", {})
+        tags = self._parse_tag_specification().get("vpn-gateway", {})
         vpn_gateway = self.ec2_backend.create_vpn_gateway(
             gateway_type=gateway_type,
             amazon_side_asn=amazon_side_asn,
@@ -78,7 +78,7 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
         <amazonSideAsn>{{ vpn_gateway.amazon_side_asn }}</amazonSideAsn>
         {% endif %}
         <state>{{ vpn_gateway.state }}</state>
-        <type>{{ vpn_gateway.id }}</type>
+        <type>{{ vpn_gateway.type }}</type>
         <availabilityZone>{{ vpn_gateway.availability_zone }}</availabilityZone>
         <attachments>
           {% for attachment in vpn_gateway.attachments.values() %}
@@ -88,7 +88,6 @@ DESCRIBE_VPN_GATEWAYS_RESPONSE = """
             </item>
           {% endfor %}
         </attachments>
-        <tagSet/>
         <tagSet>
           {% for tag in vpn_gateway.get_tags() %}
             <item>

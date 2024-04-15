@@ -103,7 +103,7 @@ class InstanceResponse(EC2BaseResponse):
         iam_instance_profile_name = kwargs.get("iam_instance_profile_name")
         iam_instance_profile_arn = kwargs.get("iam_instance_profile_arn")
         if iam_instance_profile_arn or iam_instance_profile_name:
-            # Validate the profile exists, before we error_on_dryrun and add_instances
+            # Validate the profile exists, before we error_on_dryrun and run_instances
             filter_iam_instance_profiles(
                 self.current_account,
                 iam_instance_profile_arn=iam_instance_profile_arn,
@@ -112,7 +112,7 @@ class InstanceResponse(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        new_reservation = self.ec2_backend.add_instances(
+        new_reservation = self.ec2_backend.run_instances(
             image_id, min_count, user_data, security_group_names, **kwargs
         )
         if iam_instance_profile_name:
@@ -398,7 +398,6 @@ class InstanceResponse(EC2BaseResponse):
 
     @staticmethod
     def _validate_block_device_mapping(device_mapping: Dict[str, Any]) -> None:  # type: ignore[misc]
-
         from botocore import __version__ as botocore_version
 
         if "no_device" in device_mapping:
@@ -463,7 +462,7 @@ INSTANCE_TEMPLATE = """<item>
           <privateDnsName>{{ instance.private_dns }}</privateDnsName>
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <dnsName>{{ instance.public_dns }}</dnsName>
-          <reason/>
+          <reason>{{ instance._reason }}</reason>
           {% if instance.key_name is not none %}
              <keyName>{{ instance.key_name }}</keyName>
           {% endif %}

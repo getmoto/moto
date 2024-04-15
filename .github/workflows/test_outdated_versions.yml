@@ -13,10 +13,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        botocore: ["--upgrade boto3 botocore", "--upgrade boto3 botocore && pip install urllib3==2.2.1", "boto3==1.11.0 botocore==1.14.0"]
         python-version: [ "3.11" ]
-        responses-version: ["0.13.0", "0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
+        responses-version: ["0.15.0", "0.17.0", "0.19.0", "0.20.0" ]
         werkzeug-version: ["2.0.1", "2.1.1", "2.2.2"]
         openapi-spec-validator-version: ["0.5.0"]
+        cryptography-version: ["39.0.0"]
 
     steps:
     - name: Checkout repository
@@ -38,6 +40,8 @@ jobs:
         pip install flask==${{ matrix.werkzeug-version }}
         pip install werkzeug==${{ matrix.werkzeug-version }}
         pip install openapi-spec-validator==${{ matrix.openapi-spec-validator-version }}
+        pip install ${{ matrix.botocore }}
+        pip install cryptography==${{ matrix.cryptography-version }}
 
     - name: Run tests
       run: |
@@ -46,7 +50,7 @@ jobs:
     - name: Start MotoServer
       run: |
         python -m build
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.7-buster /moto/scripts/ci_moto_server.sh &
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.9-slim /moto/scripts/ci_moto_server.sh &
         python scripts/ci_wait_for_server.py
     - name: Test ServerMode/Coverage
       env:
@@ -57,14 +61,12 @@ jobs:
       if: always()
       run: |
         mkdir serverlogs
-        pwd
-        ls -la
         cp server_output.log serverlogs/server_output.log
         docker stop motoserver
     - name: Archive TF logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}
+        name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}-${{ matrix.botocore }}
         path: |
           serverlogs/*

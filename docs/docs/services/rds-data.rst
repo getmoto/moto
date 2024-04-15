@@ -12,17 +12,6 @@
 rds-data
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_rdsdata
-            def test_rdsdata_behaviour:
-                boto3.client("rds-data")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_execute_statement
@@ -58,7 +47,7 @@ rds-data
                 ],
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/rds-data/statement-results",
+                "http://motoapi.amazonaws.com/moto-api/static/rds-data/statement-results",
                 json=expected_results,
             )
             assert resp.status_code == 201

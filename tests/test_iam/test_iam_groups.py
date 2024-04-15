@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from unittest import SkipTest
 
 import boto3
 import pytest
@@ -7,7 +8,7 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
-from moto import mock_iam, settings
+from moto import mock_aws, settings
 from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
@@ -25,7 +26,7 @@ MOCK_POLICY = """
 """
 
 
-@mock_iam
+@mock_aws
 def test_create_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -36,7 +37,7 @@ def test_create_group():
     assert err["Message"] is None
 
 
-@mock_iam
+@mock_aws
 def test_get_group():
     conn = boto3.client("iam", region_name="us-east-1")
     created = conn.create_group(GroupName="my-group")["Group"]
@@ -56,7 +57,7 @@ def test_get_group():
     assert err["Message"] == "Group not-group not found"
 
 
-@mock_iam()
+@mock_aws()
 def test_get_group_current():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -78,7 +79,7 @@ def test_get_group_current():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_all_groups():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group1")
@@ -89,7 +90,7 @@ def test_get_all_groups():
     assert all([g["CreateDate"] for g in groups])
 
 
-@mock_iam
+@mock_aws
 def test_add_unknown_user_to_group():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -99,7 +100,7 @@ def test_add_unknown_user_to_group():
     assert err["Message"] == "The user with name my-user cannot be found."
 
 
-@mock_iam
+@mock_aws
 def test_add_user_to_unknown_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_user(UserName="my-user")
@@ -110,7 +111,7 @@ def test_add_user_to_unknown_group():
     assert err["Message"] == "Group my-group not found"
 
 
-@mock_iam
+@mock_aws
 def test_add_user_to_group():
     # Setup
     frozen_time = datetime(2023, 5, 20, 10, 20, 30, tzinfo=tzlocal())
@@ -142,7 +143,7 @@ def test_add_user_to_group():
     assert result["Users"][0]["PasswordLastUsed"] == frozen_time
 
 
-@mock_iam
+@mock_aws
 def test_remove_user_from_unknown_group():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
@@ -152,7 +153,7 @@ def test_remove_user_from_unknown_group():
     assert err["Message"] == "Group my-group not found"
 
 
-@mock_iam
+@mock_aws
 def test_remove_nonattached_user_from_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -164,7 +165,7 @@ def test_remove_nonattached_user_from_group():
     assert err["Message"] == "User my-user not in group my-group"
 
 
-@mock_iam
+@mock_aws
 def test_remove_user_from_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -173,7 +174,7 @@ def test_remove_user_from_group():
     conn.remove_user_from_group(GroupName="my-group", UserName="my-user")
 
 
-@mock_iam
+@mock_aws
 def test_add_user_should_be_idempotent():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -190,7 +191,7 @@ def test_add_user_should_be_idempotent():
     assert len(conn.list_groups_for_user(UserName="my-user")["Groups"]) == 0
 
 
-@mock_iam
+@mock_aws
 def test_get_groups_for_user():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group1")
@@ -204,7 +205,7 @@ def test_get_groups_for_user():
     assert len(groups) == 2
 
 
-@mock_iam
+@mock_aws
 def test_put_group_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -213,8 +214,10 @@ def test_put_group_policy():
     )
 
 
-@mock_iam
+@mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_attach_group_policies():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
     assert (
@@ -238,7 +241,7 @@ def test_attach_group_policies():
     )
 
 
-@mock_iam
+@mock_aws
 def test_get_group_policy():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -257,7 +260,7 @@ def test_get_group_policy():
     assert policy["PolicyDocument"] == json.loads(MOCK_POLICY)
 
 
-@mock_iam()
+@mock_aws()
 def test_list_group_policies():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -270,7 +273,7 @@ def test_list_group_policies():
     ]
 
 
-@mock_iam
+@mock_aws
 def test_delete_group():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -281,7 +284,7 @@ def test_delete_group():
     assert conn.list_groups()["Groups"] == []
 
 
-@mock_iam
+@mock_aws
 def test_delete_unknown_group():
     conn = boto3.client("iam", region_name="us-east-1")
     with pytest.raises(ClientError) as err:
@@ -293,7 +296,7 @@ def test_delete_unknown_group():
     )
 
 
-@mock_iam
+@mock_aws
 def test_update_group_name():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group")
@@ -313,7 +316,7 @@ def test_update_group_name():
     assert ":group/new-group" in result["Arn"]
 
 
-@mock_iam
+@mock_aws
 def test_update_group_name_that_has_a_path():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group", Path="/path")
@@ -325,7 +328,7 @@ def test_update_group_name_that_has_a_path():
     assert new["Path"] == "/path"
 
 
-@mock_iam
+@mock_aws
 def test_update_group_path():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="my-group", Path="/path")
@@ -339,7 +342,7 @@ def test_update_group_path():
     assert new["Path"] == "/new-path"
 
 
-@mock_iam
+@mock_aws
 def test_update_group_that_does_not_exist():
     conn = boto3.client("iam", region_name="us-east-1")
 
@@ -350,7 +353,7 @@ def test_update_group_that_does_not_exist():
     assert err["Message"] == "The group with name nonexisting cannot be found."
 
 
-@mock_iam
+@mock_aws
 def test_update_group_with_existing_name():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_group(GroupName="existing1")

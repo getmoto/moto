@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from moto.core.exceptions import RESTError
 
+from .notifications import S3NotificationEvent
+
 if TYPE_CHECKING:
     from moto.s3.models import FakeDeleteMarker
 
@@ -281,10 +283,13 @@ class InvalidNotificationDestination(S3ClientError):
 class InvalidNotificationEvent(S3ClientError):
     code = 400
 
-    def __init__(self) -> None:
+    def __init__(self, event_name: str) -> None:
         super().__init__(
             "InvalidArgument",
-            "The event is not supported for notifications",
+            (
+                f"The event '{event_name}' is not supported for notifications. "
+                f"Supported events are as follows: {S3NotificationEvent.events()}"
+            ),
         )
 
 
@@ -579,3 +584,23 @@ class HeadOnDeleteMarker(Exception):
 
     def __init__(self, marker: "FakeDeleteMarker"):
         self.marker = marker
+
+
+class DaysMustNotProvidedForSelectRequest(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "DaysMustNotProvidedForSelectRequest",
+            "`Days` must not be provided for select requests",
+        )
+
+
+class DaysMustProvidedExceptForSelectRequest(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "DaysMustProvidedExceptForSelectRequest",
+            "`Days` must be provided except for select requests",
+        )

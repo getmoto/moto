@@ -5,7 +5,8 @@ from os import getenv
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time
 from moto.ec2 import ec2_backends
@@ -98,9 +99,9 @@ class Cluster(BaseObject, CloudFormationModel):
         response_object["clusterArn"] = self.arn
         response_object["clusterName"] = self.name
         response_object["capacityProviders"] = self.capacity_providers
-        response_object[
-            "defaultCapacityProviderStrategy"
-        ] = self.default_capacity_provider_strategy
+        response_object["defaultCapacityProviderStrategy"] = (
+            self.default_capacity_provider_strategy
+        )
         del response_object["arn"], response_object["name"]
         return response_object
 
@@ -483,9 +484,9 @@ class CapacityProvider(BaseObject):
 
     def update(self, asg_details: Dict[str, Any]) -> None:
         if "managedTerminationProtection" in asg_details:
-            self.auto_scaling_group_provider[
-                "managedTerminationProtection"
-            ] = asg_details["managedTerminationProtection"]
+            self.auto_scaling_group_provider["managedTerminationProtection"] = (
+                asg_details["managedTerminationProtection"]
+            )
         if "managedScaling" in asg_details:
             scaling_props = [
                 "status",
@@ -496,9 +497,9 @@ class CapacityProvider(BaseObject):
             ]
             for prop in scaling_props:
                 if prop in asg_details["managedScaling"]:
-                    self.auto_scaling_group_provider["managedScaling"][
-                        prop
-                    ] = asg_details["managedScaling"][prop]
+                    self.auto_scaling_group_provider["managedScaling"][prop] = (
+                        asg_details["managedScaling"][prop]
+                    )
         self.auto_scaling_group_provider = self._prepare_asg_provider(
             self.auto_scaling_group_provider
         )
@@ -961,13 +962,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.services: Dict[str, Service] = {}
         self.container_instances: Dict[str, Dict[str, ContainerInstance]] = {}
 
-    @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ecs"
-        )
-
     def _get_cluster(self, name: str) -> Cluster:
         # short name or full ARN of the cluster
         cluster_name = name.split("/")[-1]
@@ -1170,15 +1164,15 @@ class EC2ContainerServiceBackend(BaseBackend):
         pid_mode: Optional[str] = None,
         ephemeral_storage: Optional[Dict[str, int]] = None,
     ) -> TaskDefinition:
-
         if requires_compatibilities and "FARGATE" in requires_compatibilities:
             # TODO need more validation for Fargate
             if pid_mode and pid_mode != "task":
                 raise EcsClientException(
                     f"Tasks using the Fargate launch type do not support pidMode '{pid_mode}'. The supported value for pidMode is 'task'."
                 )
-
-        self._validate_container_defs(memory, container_definitions)
+        self._validate_container_defs(
+            memory, container_definitions, requires_compatibilities
+        )
 
         if family in self.task_definitions:
             last_id = self._get_last_task_definition_revision_id(family)
@@ -1213,13 +1207,23 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_definition
 
     @staticmethod
-    def _validate_container_defs(memory: Optional[str], container_definitions: List[Dict[str, Any]]) -> None:  # type: ignore[misc]
+    def _validate_container_defs(  # type: ignore[misc]
+        memory: Optional[str],
+        container_definitions: List[Dict[str, Any]],
+        requires_compatibilities: Optional[List[str]],
+    ) -> None:
         # The capitalised keys are passed by Cloudformation
         for cd in container_definitions:
             if "name" not in cd and "Name" not in cd:
                 raise TaskDefinitionMissingPropertyError("name")
             if "image" not in cd and "Image" not in cd:
                 raise TaskDefinitionMissingPropertyError("image")
+            if (
+                requires_compatibilities
+                and "EC2" in requires_compatibilities
+                and ("memory" not in cd and "Memory" not in cd and not memory)
+            ):
+                raise TaskDefinitionMemoryError(cd["name"])
             if (
                 "memory" not in cd
                 and "Memory" not in cd
@@ -1352,7 +1356,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         return tasks
 
     @staticmethod
-    def _calculate_task_resource_requirements(task_definition: TaskDefinition) -> Dict[str, Any]:  # type: ignore[misc]
+    def _calculate_task_resource_requirements(  # type: ignore[misc]
+        task_definition: TaskDefinition,
+    ) -> Dict[str, Any]:
         resource_requirements: Dict[str, Any] = {
             "CPU": 0,
             "MEMORY": 0,
@@ -1394,7 +1400,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         return resource_requirements
 
     @staticmethod
-    def _can_be_placed(container_instance: ContainerInstance, task_resource_requirements: Dict[str, Any]) -> bool:  # type: ignore[misc]
+    def _can_be_placed(  # type: ignore[misc]
+        container_instance: ContainerInstance,
+        task_resource_requirements: Dict[str, Any],
+    ) -> bool:
         """
 
         :param container_instance: The container instance trying to be placed onto
@@ -1728,9 +1737,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         if not self.container_instances.get(cluster_name):
             self.container_instances[cluster_name] = {}
         container_instance_id = container_instance.container_instance_arn.split("/")[-1]
-        self.container_instances[cluster_name][
-            container_instance_id
-        ] = container_instance
+        self.container_instances[cluster_name][container_instance_id] = (
+            container_instance
+        )
         self.clusters[cluster_name].registered_container_instances_count += 1
         return container_instance
 
@@ -1853,9 +1862,9 @@ class EC2ContainerServiceBackend(BaseBackend):
         elif force and container_instance.running_tasks_count > 0:
             if not self.container_instances.get("orphaned"):
                 self.container_instances["orphaned"] = {}
-            self.container_instances["orphaned"][
-                container_instance_id
-            ] = container_instance
+            self.container_instances["orphaned"][container_instance_id] = (
+                container_instance
+            )
         del self.container_instances[cluster.name][container_instance_id]
         self._respond_to_cluster_state_update(cluster_str)
         return container_instance

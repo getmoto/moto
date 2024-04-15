@@ -1,7 +1,9 @@
 """DAXBackend class with methods for supported APIs."""
+
 from typing import Any, Dict, Iterable, List
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -60,9 +62,9 @@ class DaxEndpoint:
     def to_json(self, full: bool = False) -> Dict[str, Any]:
         dct: Dict[str, Any] = {"Port": self.port}
         if full:
-            dct[
-                "Address"
-            ] = f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
+            dct["Address"] = (
+                f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
+            )
             dct["URL"] = f"dax://{dct['Address']}"
         return dct
 
@@ -211,7 +213,7 @@ class DAXBackend(BaseBackend):
         self.clusters[cluster_name].delete()
         return self.clusters[cluster_name]
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(PAGINATION_MODEL)
     def describe_clusters(self, cluster_names: Iterable[str]) -> List[DaxCluster]:
         clusters = self.clusters
         if not cluster_names:

@@ -1,6 +1,6 @@
 import boto3
 
-from moto import mock_firehose
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 
@@ -9,7 +9,7 @@ from .test_firehose_destination_types import create_http_delivery_stream
 TEST_REGION = "us-west-1"
 
 
-@mock_firehose
+@mock_aws
 def test_create_http_stream():
     """Verify fields of a HTTP delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)
@@ -56,7 +56,7 @@ def test_create_http_stream():
     }
 
 
-@mock_firehose
+@mock_aws
 def test_update_s3_for_http_stream():
     """Verify fields of a HTTP delivery stream."""
     client = boto3.client("firehose", region_name=TEST_REGION)

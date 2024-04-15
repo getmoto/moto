@@ -1,10 +1,10 @@
 import json
 
 import moto.server as server
-from moto import mock_budgets
+from moto import mock_aws
 
 
-@mock_budgets
+@mock_aws
 def test_budgets_describe_budgets():
     backend = server.create_backend_app("budgets")
     test_client = backend.test_client()

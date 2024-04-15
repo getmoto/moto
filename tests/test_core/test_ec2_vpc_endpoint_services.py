@@ -3,14 +3,19 @@
 #
 # There are some issues with running these tests in parallel
 # Running them as part of 'moto/core' avoids that problem
+import sys
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2
+from moto import mock_aws
+from moto.utilities.distutils_version import LooseVersion
+
+boto3_version = sys.modules["botocore"].__version__
 
 
-@mock_ec2
+@mock_aws
 def test_describe_vpc_endpoint_services_bad_args() -> None:
     """Verify exceptions are raised for bad arguments."""
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -46,7 +51,17 @@ def test_describe_vpc_endpoint_services_bad_args() -> None:
     assert "The token 'foo' is invalid" in err["Message"]
 
 
-@mock_ec2
+@mock_aws
+def test_describe_vpc_endpoint_services_unimplemented_service() -> None:
+    """Verify exceptions are raised for bad arguments."""
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    service_name = "com.amazonaws.us-east-1.bedrock-agent-runtime"
+    resp = ec2.describe_vpc_endpoint_services(ServiceNames=[service_name])
+    assert resp["ServiceNames"] == [service_name]
+
+
+@mock_aws
 def test_describe_vpc_default_endpoint_services() -> None:
     """Test successfull calls as well as the next_token arg."""
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -70,8 +85,9 @@ def test_describe_vpc_default_endpoint_services() -> None:
     assert all_names[1] == partial_services["ServiceNames"][1]
     assert all_names[0] == partial_services["ServiceDetails"][0]["ServiceName"]
     assert all_names[1] == partial_services["ServiceDetails"][1]["ServiceName"]
-    assert partial_services["NextToken"] == (
-        all_services["ServiceDetails"][2]["ServiceId"]
+    assert (
+        partial_services["NextToken"]
+        == (all_services["ServiceDetails"][2]["ServiceId"])
     )
 
     # Use the next token to receive another service.
@@ -103,9 +119,11 @@ def test_describe_vpc_default_endpoint_services() -> None:
     assert details["ManagesVpcEndpoints"] is False
     assert details["Owner"] == "amazon"
     assert details["PrivateDnsName"] == "config.us-west-1.amazonaws.com"
-    assert details["PrivateDnsNames"] == [
-        {"PrivateDnsName": "config.us-west-1.amazonaws.com"}
-    ]
+    if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
+        # Attribute wasn't available in older botocore versions
+        assert details["PrivateDnsNames"] == [
+            {"PrivateDnsName": "config.us-west-1.amazonaws.com"}
+        ]
     assert details["PrivateDnsNameVerificationState"] == "verified"
     assert details["ServiceName"] == "com.amazonaws.us-west-1.config"
     assert details["ServiceType"] == [{"ServiceType": "Interface"}]

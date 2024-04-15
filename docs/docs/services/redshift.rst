@@ -12,17 +12,6 @@
 redshift
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_redshift
-            def test_redshift_behaviour:
-                boto3.client("redshift")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_reserved_node_exchange
@@ -124,6 +113,7 @@ redshift
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
 - [ ] get_resource_policy
+- [ ] list_recommendations
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
 - [X] modify_cluster

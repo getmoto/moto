@@ -2,6 +2,7 @@ import json
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
 
 from moto.awslambda.exceptions import (
+    GenericResourcNotFound,
     PreconditionFailedException,
     UnknownPolicyException,
 )
@@ -26,6 +27,8 @@ class Policy:
         return json.dumps(p)
 
     def get_policy(self) -> Dict[str, Any]:
+        if not self.statements:
+            raise GenericResourcNotFound()
         return {
             "Policy": {
                 "Version": "2012-10-17",

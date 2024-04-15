@@ -2,12 +2,12 @@ import json
 
 import boto3
 
-from moto import mock_ses, mock_sns, mock_sqs
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ses.models import SESFeedback
 
 
-@mock_ses
+@mock_aws
 def test_enable_disable_ses_sns_communication():
     conn = boto3.client("ses", region_name="us-east-1")
     conn.set_identity_notification_topic(
@@ -93,44 +93,34 @@ def __test_sns_feedback__(addr, expected_msg, raw_email=False):
         assert len(messages) == 0
 
 
-@mock_sqs
-@mock_sns
-@mock_ses
+@mock_aws
 def test_no_sns_feedback():
     __test_sns_feedback__("test", None)
 
 
-@mock_sqs
-@mock_sns
-@mock_ses
+@mock_aws
 def test_sns_feedback_bounce():
     __test_sns_feedback__(SESFeedback.BOUNCE_ADDR, SESFeedback.BOUNCE)
 
 
-@mock_sqs
-@mock_sns
-@mock_ses
+@mock_aws
 def test_sns_feedback_complaint():
     __test_sns_feedback__(SESFeedback.COMPLAINT_ADDR, SESFeedback.COMPLAINT)
 
 
-@mock_sqs
-@mock_sns
-@mock_ses
+@mock_aws
 def test_sns_feedback_delivery():
     __test_sns_feedback__(SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY)
 
 
-@mock_sqs
-@mock_sns
-@mock_ses
+@mock_aws
 def test_sns_feedback_delivery_raw_email():
     __test_sns_feedback__(
         SESFeedback.SUCCESS_ADDR, SESFeedback.DELIVERY, raw_email=True
     )
 
 
-@mock_ses
+@mock_aws
 def test_get_identity_notification_attributes_default_values():
     ses = boto3.client("ses", region_name="us-east-1")
     ses.verify_domain_identity(Domain="example.com")
@@ -151,7 +141,7 @@ def test_get_identity_notification_attributes_default_values():
     assert "DeliveryTopic" not in resp["test@example.com"]
 
 
-@mock_ses
+@mock_aws
 def test_set_identity_feedback_forwarding_enabled():
     ses = boto3.client("ses", region_name="us-east-1")
     ses.verify_domain_identity(Domain="example.com")

@@ -1,5 +1,4 @@
 import base64
-import copy
 import json
 import os
 import re
@@ -12,15 +11,12 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from jinja2 import Template
 
-from moto.core import (
-    DEFAULT_ACCOUNT_ID,
-    BackendDict,
-    BaseBackend,
-    BaseModel,
-    CloudFormationModel,
-)
+from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
+    get_partition_from_region,
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
     unix_time,
@@ -31,6 +27,7 @@ from moto.iam.policy_validation import (
     IAMTrustPolicyDocumentValidator,
 )
 from moto.moto_api._internal import mock_random as random
+from moto.settings import load_iam_aws_managed_policies
 from moto.utilities.utils import md5_hash
 
 from ..utilities.tagging_service import TaggingService
@@ -143,7 +140,6 @@ class VirtualMfaDevice:
 
 
 class Policy(CloudFormationModel):
-
     # Note: This class does not implement the CloudFormation support for AWS::IAM::Policy, as that CF resource
     #  is for creating *inline* policies.  That is done in class InlinePolicy.
 
@@ -453,7 +449,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
         return policy
 
     def __eq__(self, other: Any) -> bool:
-        return self.arn == other.arn  # type: ignore[no-any-return]
+        return self.arn == other.arn
 
     def __hash__(self) -> int:
         return self.arn.__hash__()
@@ -467,7 +463,9 @@ class AWSManagedPolicy(ManagedPolicy):
     """AWS-managed policy."""
 
     @classmethod
-    def from_data(cls, name: str, account_id: str, data: Dict[str, Any]) -> "AWSManagedPolicy":  # type: ignore[misc]
+    def from_data(  # type: ignore[misc]
+        cls, name: str, account_id: str, data: Dict[str, Any]
+    ) -> "AWSManagedPolicy":
         return cls(
             name,
             account_id=account_id,
@@ -746,7 +744,7 @@ class Role(CloudFormationModel):
 
         for role in backend.roles.values():
             if role.name == resource_name:
-                for arn in role.policies.keys():
+                for arn in list(role.policies.keys()):
                     role.delete_policy(arn)
         backend.delete_role(resource_name)
 
@@ -841,13 +839,15 @@ class Role(CloudFormationModel):
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
-        return attr in ["Arn"]
+        return attr in ["Arn", "RoleId"]
 
     def get_cfn_attribute(self, attribute_name: str) -> str:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "Arn":
             return self.arn
+        if attribute_name == "RoleId":
+            return self.id
         raise UnformattedGetAttTemplateException()
 
     def get_tags(self) -> List[Dict[str, str]]:
@@ -960,7 +960,9 @@ class InstanceProfile(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        iam_backends[account_id]["global"].delete_instance_profile(resource_name)
+        iam_backends[account_id]["global"].delete_instance_profile(
+            resource_name, ignore_attached_roles=True
+        )
 
     def delete_role(self, role_name: str) -> None:
         self.roles = [role for role in self.roles if role.name != role_name]
@@ -986,7 +988,7 @@ class InstanceProfile(CloudFormationModel):
 
     def to_embedded_config_dict(self) -> Dict[str, Any]:
         # Instance Profiles aren't a config item itself, but they are returned in IAM roles with
-        # a "config like" json structure It's also different than Role.to_config_dict()
+        # a "config like" json structure. It's also different than Role.to_config_dict()
         roles = []
         for role in self.roles:
             roles.append(
@@ -1016,7 +1018,7 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": f"arn:aws:iam::{self.account_id}:instance-profile/{role.name}",
+            "arn": f"arn:aws:iam::{self.account_id}:instance-profile/{role.name}",  # pylint: disable=W0631
             "createDate": str(self.create_date),
             "roles": roles,
         }
@@ -1275,8 +1277,11 @@ class Group(BaseModel):
 
 
 class User(CloudFormationModel):
-    def __init__(self, account_id: str, name: str, path: Optional[str] = None):
+    def __init__(
+        self, account_id: str, region_name: str, name: str, path: Optional[str] = None
+    ):
         self.account_id = account_id
+        self.region_name = region_name
         self.name = name
         self.id = random_resource_id()
         self.path = path if path else "/"
@@ -1295,7 +1300,8 @@ class User(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:user{self.path}{self.name}"
+        partition = get_partition_from_region(self.region_name)
+        return f"arn:{partition}:iam::{self.account_id}:user{self.path}{self.name}"
 
     @property
     def created_iso_8601(self) -> str:
@@ -1519,7 +1525,9 @@ class User(CloudFormationModel):
     ) -> "User":
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backends[account_id]["global"].create_user(resource_name, path)
+        user, _ = iam_backends[account_id]["global"].create_user(
+            region_name=region_name, user_name=resource_name, path=path
+        )
         return user
 
     @classmethod
@@ -1795,12 +1803,7 @@ def filter_items_with_path_prefix(
 
 
 class IAMBackend(BaseBackend):
-    def __init__(
-        self,
-        region_name: str,
-        account_id: str,
-        aws_policies: Optional[List[ManagedPolicy]] = None,
-    ):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name=region_name, account_id=account_id)
         self.instance_profiles: Dict[str, InstanceProfile] = {}
         self.roles: Dict[str, Role] = {}
@@ -1808,7 +1811,7 @@ class IAMBackend(BaseBackend):
         self.groups: Dict[str, Group] = {}
         self.users: Dict[str, User] = {}
         self.credential_report: Optional[bool] = None
-        self.aws_managed_policies = aws_policies or self._init_aws_policies()
+        self.aws_managed_policies = self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
         self.account_aliases: List[str] = []
         self.saml_providers: Dict[str, SAMLProvider] = {}
@@ -1825,6 +1828,8 @@ class IAMBackend(BaseBackend):
         self.initialize_service_roles()
 
     def _init_aws_policies(self) -> List[ManagedPolicy]:
+        if not load_iam_aws_managed_policies():
+            return []
         # AWS defines some of its own managed policies
         # we periodically import them via `make aws_managed_policies`
         aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
@@ -1834,15 +1839,7 @@ class IAMBackend(BaseBackend):
         ]
 
     def _init_managed_policies(self) -> Dict[str, ManagedPolicy]:
-        return dict((p.arn, copy.deepcopy(p)) for p in self.aws_managed_policies)
-
-    def reset(self) -> None:
-        region_name = self.region_name
-        account_id = self.account_id
-        # Do not reset these policies, as they take a long time to load
-        aws_policies = self.aws_managed_policies
-        self.__dict__ = {}
-        IAMBackend.__init__(self, region_name, account_id, aws_policies)
+        return dict((p.arn, p) for p in self.aws_managed_policies)
 
     def initialize_service_roles(self) -> None:
         pass
@@ -2378,9 +2375,11 @@ class IAMBackend(BaseBackend):
         self.instance_profiles[name] = instance_profile
         return instance_profile
 
-    def delete_instance_profile(self, name: str) -> None:
+    def delete_instance_profile(
+        self, name: str, ignore_attached_roles: bool = False
+    ) -> None:
         instance_profile = self.get_instance_profile(name)
-        if len(instance_profile.roles) > 0:
+        if len(instance_profile.roles) > 0 and not ignore_attached_roles:
             raise IAMConflictException(
                 code="DeleteConflict",
                 message="Cannot delete entity, must remove roles from instance profile first.",
@@ -2569,6 +2568,7 @@ class IAMBackend(BaseBackend):
 
     def create_user(
         self,
+        region_name: str,
         user_name: str,
         path: str = "/",
         tags: Optional[List[Dict[str, str]]] = None,
@@ -2578,7 +2578,7 @@ class IAMBackend(BaseBackend):
                 "EntityAlreadyExists", f"User {user_name} already exists"
             )
 
-        user = User(self.account_id, user_name, path)
+        user = User(self.account_id, region_name, user_name, path)
         self.tagger.tag_resource(user.arn, tags or [])
         self.users[user_name] = user
         return user, self.tagger.list_tags_for_resource(user.arn)

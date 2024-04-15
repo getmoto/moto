@@ -1,16 +1,17 @@
 """Unit tests specific to the tag-related ConfigService APIs.
 
- These APIs include:
-   list_tags_for_resource
-   tag_resource
-   untag_resource
+These APIs include:
+  list_tags_for_resource
+  tag_resource
+  untag_resource
 
 """
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
-from moto.config import mock_config
+from moto import mock_aws
 from moto.config.models import MAX_TAGS_IN_ARG
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
@@ -43,7 +44,7 @@ def config_aggregators_info(client):
     return config_aggs
 
 
-@mock_config
+@mock_aws
 def test_tag_resource():
     """Test the ConfigSource API tag_resource()."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -148,7 +149,7 @@ def test_tag_resource():
     assert tags == updated_rsp["Tags"]
 
 
-@mock_config
+@mock_aws
 def test_untag_resource():
     """Test the ConfigSource API untag_resource()."""
     client = boto3.client("config", region_name=TEST_REGION)
@@ -269,7 +270,7 @@ def test_untag_resource():
     assert tags == updated_rsp["Tags"]
 
 
-@mock_config
+@mock_aws
 def test_list_tags_for_resource():
     """Test the ConfigSource API list_tags_for_resource()."""
     client = boto3.client("config", region_name=TEST_REGION)

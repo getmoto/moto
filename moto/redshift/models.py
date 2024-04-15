@@ -5,7 +5,8 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from dateutil.tz import tzutc
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
 from moto.ec2.models.security_groups import SecurityGroup as EC2SecurityGroup
@@ -276,7 +277,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
             "MasterUserPassword": "****",
             "ClusterVersion": self.cluster_version,
             "VpcSecurityGroups": [
-                {"Status": "active", "VpcSecurityGroupId": group.id}  # type: ignore
+                {"Status": "active", "VpcSecurityGroupId": group.id}
                 for group in self.vpc_security_groups
             ],
             "ClusterSubnetGroupName": self.cluster_subnet_group_name,
@@ -328,9 +329,9 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
                 "EstimatedTimeToCompletionInSeconds": 123,
             }
         if self.cluster_snapshot_copy_status is not None:
-            json_response[
-                "ClusterSnapshotCopyStatus"
-            ] = self.cluster_snapshot_copy_status
+            json_response["ClusterSnapshotCopyStatus"] = (
+                self.cluster_snapshot_copy_status
+            )
         return json_response
 
 
@@ -593,17 +594,6 @@ class RedshiftBackend(BaseBackend):
             "subnetgroup": self.subnet_groups,  # type: ignore
         }
         self.snapshot_copy_grants: Dict[str, SnapshotCopyGrant] = {}
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "redshift-data", policy_supported=False
-        )
 
     def enable_snapshot_copy(self, **kwargs: Any) -> Cluster:
         cluster_identifier = kwargs["cluster_identifier"]

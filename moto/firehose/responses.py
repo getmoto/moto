@@ -1,4 +1,5 @@
 """Handles Firehose API requests, invokes method and returns response."""
+
 import json
 
 from moto.core.responses import BaseResponse

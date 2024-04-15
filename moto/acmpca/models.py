@@ -1,4 +1,5 @@
 """ACMPCABackend class with methods for supported APIs."""
+
 import base64
 import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -9,12 +10,13 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import Certificate, NameOID, load_pem_x509_certificate
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import ResourceNotFoundException
+from .exceptions import InvalidS3ObjectAclInCrlConfiguration, ResourceNotFoundException
 
 
 class CertificateAuthority(BaseModel):
@@ -130,13 +132,16 @@ class CertificateAuthority(BaseModel):
         if revocation_configuration is not None:
             self.revocation_configuration = revocation_configuration
             if "CrlConfiguration" in self.revocation_configuration:
-                if (
-                    "S3ObjectAcl"
-                    not in self.revocation_configuration["CrlConfiguration"]
-                ):
-                    self.revocation_configuration["CrlConfiguration"][
-                        "S3ObjectAcl"
-                    ] = "PUBLIC_READ"
+                acl = self.revocation_configuration["CrlConfiguration"].get(
+                    "S3ObjectAcl", None
+                )
+                if acl is None:
+                    self.revocation_configuration["CrlConfiguration"]["S3ObjectAcl"] = (
+                        "PUBLIC_READ"
+                    )
+                else:
+                    if acl not in ["PUBLIC_READ", "BUCKET_OWNER_FULL_CONTROL"]:
+                        raise InvalidS3ObjectAclInCrlConfiguration(acl)
 
     @property
     def certificate_bytes(self) -> bytes:
@@ -148,13 +153,19 @@ class CertificateAuthority(BaseModel):
     def not_valid_after(self) -> Optional[float]:
         if self.certificate is None:
             return None
-        return unix_time(self.certificate.not_valid_after)
+        try:
+            return unix_time(self.certificate.not_valid_after_utc.replace(tzinfo=None))
+        except AttributeError:
+            return unix_time(self.certificate.not_valid_after)
 
     @property
     def not_valid_before(self) -> Optional[float]:
         if self.certificate is None:
             return None
-        return unix_time(self.certificate.not_valid_before)
+        try:
+            return unix_time(self.certificate.not_valid_before_utc.replace(tzinfo=None))
+        except AttributeError:
+            return unix_time(self.certificate.not_valid_before)
 
     def import_certificate_authority_certificate(
         self, certificate: bytes, certificate_chain: Optional[bytes]

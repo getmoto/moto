@@ -3,9 +3,8 @@ from typing import Any, Dict, List
 
 
 def cfn_to_api_encryption(
-    bucket_encryption_properties: Dict[str, Any]
+    bucket_encryption_properties: Dict[str, Any],
 ) -> Dict[str, Any]:
-
     sse_algorithm = bucket_encryption_properties["ServerSideEncryptionConfiguration"][
         0
     ]["ServerSideEncryptionByDefault"]["SSEAlgorithm"]

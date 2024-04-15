@@ -206,9 +206,7 @@ def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, sub
     assert "SecurityGroupLimitExceeded" == resp["Error"]["Code"]
 
 
-def test_delete_file_system_mount_targets_attached(
-    efs, ec2, file_system, subnet
-):  # pylint: disable=unused-argument
+def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):  # pylint: disable=unused-argument
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
@@ -219,9 +217,7 @@ def test_delete_file_system_mount_targets_attached(
     assert "FileSystemInUse" == resp["Error"]["Code"]
 
 
-def test_describe_mount_targets_minimal_case(
-    efs, ec2, file_system, subnet
-):  # pylint: disable=unused-argument
+def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):  # pylint: disable=unused-argument
     create_resp = efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
@@ -242,9 +238,7 @@ def test_describe_mount_targets_minimal_case(
     assert mount_target == create_resp
 
 
-def test_describe_mount_targets__by_access_point_id(
-    efs, ec2, file_system, subnet
-):  # pylint: disable=unused-argument
+def test_describe_mount_targets__by_access_point_id(efs, ec2, file_system, subnet):  # pylint: disable=unused-argument
     create_resp = efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )

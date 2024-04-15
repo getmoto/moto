@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import jsondiff
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import merge_dicts
 from moto.iot.models import IoTBackend, iot_backends
 
@@ -43,7 +44,9 @@ class FakeShadow(BaseModel):
         )
 
     @classmethod
-    def create_from_previous_version(cls, previous_shadow: Optional["FakeShadow"], payload: Optional[Dict[str, Any]]) -> "FakeShadow":  # type: ignore[misc]
+    def create_from_previous_version(  # type: ignore[misc]
+        cls, previous_shadow: Optional["FakeShadow"], payload: Optional[Dict[str, Any]]
+    ) -> "FakeShadow":
         """
         set None to payload when you want to delete shadow
         """
@@ -150,7 +153,7 @@ class FakeShadow(BaseModel):
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.published_payloads: List[Tuple[str, str]] = list()
+        self.published_payloads: List[Tuple[str, bytes]] = list()
 
     @property
     def iot_backend(self) -> IoTBackend:
@@ -208,7 +211,7 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadows[shadow_name] = new_shadow
         return new_shadow
 
-    def publish(self, topic: str, payload: str) -> None:
+    def publish(self, topic: str, payload: bytes) -> None:
         self.published_payloads.append((topic, payload))
 
     def list_named_shadows_for_thing(self, thing_name: str) -> List[FakeShadow]:

@@ -12,17 +12,6 @@
 mediastore-data
 ===============
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_mediastoredata
-            def test_mediastoredata_behaviour:
-                boto3.client("mediastore-data")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] delete_object

@@ -12,7 +12,7 @@ from moto.core.utils import (
     camelcase_to_underscores,
     underscores_to_camelcase,
 )
-from moto.utilities.aws_headers import amz_crc32, amzn_request_id
+from moto.utilities.aws_headers import amz_crc32
 from moto.utilities.constants import JSON_TYPES
 
 from .constants import (
@@ -35,7 +35,7 @@ from .utils import (
 
 
 def jsonify_error(
-    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]
+    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]],
 ) -> Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]:
     """
     The decorator to convert an RESTError to JSON, if necessary
@@ -54,7 +54,6 @@ def jsonify_error(
 
 
 class SQSResponse(BaseResponse):
-
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
     def __init__(self) -> None:
@@ -134,7 +133,6 @@ class SQSResponse(BaseResponse):
         return visibility_timeout
 
     @amz_crc32  # crc last as request_id can edit XML
-    @amzn_request_id
     def call_action(self) -> TYPE_RESPONSE:
         status_code, headers, body = super().call_action()
         if status_code == 404:
@@ -309,7 +307,7 @@ class SQSResponse(BaseResponse):
     @jsonify_error
     def send_message(self) -> Union[str, TYPE_RESPONSE]:
         message = self._get_param("MessageBody")
-        delay_seconds = int(self._get_param("DelaySeconds", 0))
+        delay_seconds = self._get_param("DelaySeconds")
         message_group_id = self._get_param("MessageGroupId")
         message_dedupe_id = self._get_param("MessageDeduplicationId")
 
@@ -618,9 +616,9 @@ class SQSResponse(BaseResponse):
                         message.approximate_first_receive_timestamp
                     )
                 if attributes["message_deduplication_id"]:
-                    msg["Attributes"][
-                        "MessageDeduplicationId"
-                    ] = message.deduplication_id
+                    msg["Attributes"]["MessageDeduplicationId"] = (
+                        message.deduplication_id
+                    )
                 if attributes["message_group_id"] and message.group_id is not None:
                     msg["Attributes"]["MessageGroupId"] = message.group_id
                 if message.system_attributes and message.system_attributes.get(

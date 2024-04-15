@@ -1,12 +1,14 @@
-from collections import defaultdict
+import re
 from io import BytesIO
-from typing import Any, Callable, Dict, List, Optional, Pattern, Tuple, Union
+from typing import Any, Optional, Union
 
 from botocore.awsrequest import AWSResponse
 
-from moto.core.exceptions import HTTPException
-
-from .responses import TYPE_RESPONSE
+import moto.backend_index as backend_index
+from moto.core.base_backend import BackendDict
+from moto.core.common_types import TYPE_RESPONSE
+from moto.core.config import passthrough_service, passthrough_url
+from moto.core.utils import get_equivalent_url_in_aws_domain
 
 
 class MockRawResponse(BytesIO):
@@ -25,18 +27,6 @@ class MockRawResponse(BytesIO):
 class BotocoreStubber:
     def __init__(self) -> None:
         self.enabled = False
-        self.methods: Dict[
-            str, List[Tuple[Pattern[str], Callable[..., TYPE_RESPONSE]]]
-        ] = defaultdict(list)
-
-    def reset(self) -> None:
-        self.methods.clear()
-
-    def register_response(
-        self, method: str, pattern: Pattern[str], response: Callable[..., TYPE_RESPONSE]
-    ) -> None:
-        matchers = self.methods[method]
-        matchers.append((pattern, response))
 
     def __call__(
         self, event_name: str, request: Any, **kwargs: Any
@@ -44,34 +34,64 @@ class BotocoreStubber:
         if not self.enabled:
             return None
 
-        from moto.moto_api import recorder
+        response = self.process_request(request)
+        if response is not None:
+            status, headers, body = response
+            return AWSResponse(request.url, status, headers, MockRawResponse(body))  # type: ignore[arg-type]
+        else:
+            return response
 
-        response = None
-        response_callback = None
-        matchers = self.methods.get(request.method, [])
+    def process_request(self, request: Any) -> Optional[TYPE_RESPONSE]:
+        # Handle non-standard AWS endpoint hostnames from ISO regions or custom
+        # S3 endpoints.
+        parsed_url, _ = get_equivalent_url_in_aws_domain(request.url)
+        # Remove the querystring from the URL, as we'll never match on that
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
-        base_url = request.url.split("?", 1)[0]
-        for pattern, callback in matchers:
-            if pattern.match(base_url):
-                response_callback = callback
-                break
+        if passthrough_url(clean_url):
+            return None
 
-        if response_callback is not None:
-            for header, value in request.headers.items():
-                if isinstance(value, bytes):
-                    request.headers[header] = value.decode("utf-8")
-            try:
-                recorder._record_request(request)
+        for service, pattern in backend_index.backend_url_patterns:
+            if pattern.match(clean_url):
+                if passthrough_service(service):
+                    return None
 
-                status, headers, body = response_callback(
-                    request, request.url, request.headers
-                )
+                import moto.backends as backends
+                from moto.core import DEFAULT_ACCOUNT_ID
+                from moto.core.exceptions import HTTPException
 
-            except HTTPException as e:
-                status = e.code  # type: ignore[assignment]
-                headers = e.get_headers()  # type: ignore[assignment]
-                body = e.get_body()
-            raw_response = MockRawResponse(body)
-            response = AWSResponse(request.url, status, headers, raw_response)  # type: ignore[arg-type]
+                # TODO: cache this part - we only need backend.urls
+                backend_dict = backends.get_backend(service)  # type: ignore[call-overload]
 
-        return response
+                if isinstance(backend_dict, BackendDict):
+                    if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
+                        backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
+                    else:
+                        backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+                else:
+                    backend = backend_dict["global"]
+
+                for header, value in request.headers.items():
+                    if isinstance(value, bytes):
+                        request.headers[header] = value.decode("utf-8")
+
+                for url, method_to_execute in backend.urls.items():
+                    if re.compile(url).match(clean_url):
+                        from moto.moto_api import recorder
+
+                        try:
+                            recorder._record_request(request)
+                            status, headers, body = method_to_execute(
+                                request, request.url, request.headers
+                            )
+                        except HTTPException as e:
+                            status = e.code
+                            headers = e.get_headers()
+                            body = e.get_body()
+
+                        return status, headers, body
+
+        if re.compile(r"https?://.+\.amazonaws.com/.*").match(clean_url):
+            return 404, {}, "Not yet implemented"
+
+        return None

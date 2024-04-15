@@ -14,17 +14,6 @@ elasticache
 
 .. autoclass:: moto.elasticache.models.ElastiCacheBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_elasticache
-            def test_elasticache_behaviour:
-                boto3.client("elasticache")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_tags_to_resource
@@ -88,7 +77,7 @@ elasticache
 - [ ] increase_node_groups_in_global_replication_group
 - [ ] increase_replica_count
 - [ ] list_allowed_node_type_modifications
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] modify_cache_cluster
 - [ ] modify_cache_parameter_group
 - [ ] modify_cache_subnet_group

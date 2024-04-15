@@ -6,7 +6,8 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 import requests
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
@@ -280,9 +281,9 @@ class Subscription(BaseModel):
             else:
                 assert False
 
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
-            lambda_backends[self.account_id][region].send_sns_message(
+            get_backend(self.account_id, region).send_sns_message(
                 function_name, message, subject=subject, qualifier=qualifier
             )
 
@@ -408,15 +409,6 @@ class SNSBackend(BaseBackend):
             "+447700900907",
         ]
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "sns"
-        )
-
     def get_sms_attributes(self, filter_list: Set[str]) -> Dict[str, str]:
         if len(filter_list) > 0:
             return {k: v for k, v in self.sms_attributes.items() if k in filter_list}
@@ -523,6 +515,18 @@ class SNSBackend(BaseBackend):
         old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
         if old_subscription:
             return old_subscription
+
+        if protocol == "application":
+            try:
+                # Validate the endpoint exists, assuming it's a new subscription
+                # Existing subscriptions are still found if an endpoint is deleted, at least for a short period
+                self.get_endpoint(endpoint)
+            except SNSNotFoundError:
+                # Space between `arn{endpoint}` is lacking in AWS as well
+                raise SNSInvalidParameter(
+                    f"Invalid parameter: Endpoint Reason: Endpoint does not exist for endpoint arn{endpoint}"
+                )
+
         topic = self.get_topic(topic_arn)
         subscription = Subscription(self.account_id, topic, endpoint, protocol)
         attributes = {
@@ -723,7 +727,7 @@ class SNSBackend(BaseBackend):
         try:
             del self.platform_endpoints[arn]
         except KeyError:
-            raise SNSNotFoundError(f"Endpoint with arn {arn} not found")
+            pass  # idempotent operation
 
     def get_subscription_attributes(self, arn: str) -> Dict[str, Any]:
         subscription = self.subscriptions.get(arn)
@@ -732,8 +736,17 @@ class SNSBackend(BaseBackend):
             raise SNSNotFoundError(
                 "Subscription does not exist", template="wrapped_single_error"
             )
+        # AWS does not return the FilterPolicy scope if the FilterPolicy is not set
+        # if the FilterPolicy is set and not the FilterPolicyScope, it returns the default value
+        attributes = {**subscription.attributes}
+        if "FilterPolicyScope" in attributes and not attributes.get("FilterPolicy"):
+            attributes.pop("FilterPolicyScope", None)
+            attributes.pop("FilterPolicy", None)
 
-        return subscription.attributes
+        elif "FilterPolicy" in attributes and "FilterPolicyScope" not in attributes:
+            attributes["FilterPolicyScope"] = "MessageAttributes"
+
+        return attributes
 
     def set_subscription_attributes(self, arn: str, name: str, value: Any) -> None:
         if name not in [
@@ -753,15 +766,19 @@ class SNSBackend(BaseBackend):
         subscription = _subscription[0]
 
         if name == "FilterPolicy":
-            filter_policy = json.loads(value)
-            # we validate the filter policy differently depending on the scope
-            # we need to always set the scope first
-            filter_policy_scope = subscription.attributes.get("FilterPolicyScope")
-            self._validate_filter_policy(filter_policy, scope=filter_policy_scope)
-            subscription._filter_policy = filter_policy
-            subscription._filter_policy_matcher = FilterPolicyMatcher(
-                filter_policy, filter_policy_scope
-            )
+            if value:
+                filter_policy = json.loads(value)
+                # we validate the filter policy differently depending on the scope
+                # we need to always set the scope first
+                filter_policy_scope = subscription.attributes.get("FilterPolicyScope")
+                self._validate_filter_policy(filter_policy, scope=filter_policy_scope)
+                subscription._filter_policy = filter_policy
+                subscription._filter_policy_matcher = FilterPolicyMatcher(
+                    filter_policy, filter_policy_scope
+                )
+            else:
+                subscription._filter_policy = None
+                subscription._filter_policy_matcher = None
 
         subscription.attributes[name] = value
 
@@ -813,7 +830,11 @@ class SNSBackend(BaseBackend):
                             "Invalid parameter: Filter policy scope MessageAttributes does not support nested filter policy"
                         )
                 elif isinstance(_value, list):
-                    _rules.append(_value)
+                    if key == "$or":
+                        for val in _value:
+                            _rules.extend(aggregate_rules(val, depth=depth + 1))
+                    else:
+                        _rules.append(_value)
                     combinations = combinations * len(_value) * depth
                 else:
                     raise SNSInvalidParameter(
@@ -850,7 +871,7 @@ class SNSBackend(BaseBackend):
                 if isinstance(rule, dict):
                     keyword = list(rule.keys())[0]
                     attributes = list(rule.values())[0]
-                    if keyword == "anything-but":
+                    if keyword in ["anything-but", "equals-ignore-case"]:
                         continue
                     elif keyword == "exists":
                         if not isinstance(attributes, bool):
@@ -924,7 +945,7 @@ class SNSBackend(BaseBackend):
                             )
 
                         continue
-                    elif keyword == "prefix":
+                    elif keyword in ["prefix", "suffix"]:
                         continue
                     else:
                         raise SNSInvalidParameter(

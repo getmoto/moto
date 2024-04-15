@@ -83,7 +83,6 @@ class DHCPOptionsSetBackend:
         netbios_name_servers: Optional[List[str]] = None,
         netbios_node_type: Optional[str] = None,
     ) -> DHCPOptionsSet:
-
         NETBIOS_NODE_TYPES = [1, 2, 4, 8]
 
         for field_value in domain_name_servers, ntp_servers, netbios_name_servers:

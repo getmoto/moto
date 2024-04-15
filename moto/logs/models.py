@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.exceptions import (
     InvalidParameterException,
@@ -182,7 +183,6 @@ class LogStream(BaseModel):
         self.upload_sequence_token += 1
 
         for subscription_filter in self.log_group.subscription_filters.values():
-
             service = subscription_filter.destination_arn.split(":")[2]
             formatted_log_events = [
                 {
@@ -207,11 +207,10 @@ class LogStream(BaseModel):
         filter_name: str,
         log_events: List[Dict[str, Any]],
     ) -> None:
-
         if service == "lambda":
-            from moto.awslambda import lambda_backends  # due to circular dependency
+            from moto.awslambda.utils import get_backend
 
-            lambda_backends[self.account_id][self.region].send_log_event(
+            get_backend(self.account_id, self.region).send_log_event(
                 destination_arn,
                 filter_name,
                 self.log_group.name,
@@ -419,11 +418,13 @@ class LogGroup(CloudFormationModel):
             resource_name, tags, **properties
         )
 
+    def delete(self, account_id: str, region_name: str) -> None:
+        backend = logs_backends[account_id][region_name]
+        backend.delete_log_group(self.name)
+
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
-        return attr in [
-            "Arn",
-        ]
+        return attr in ["Arn"]
 
     def get_cfn_attribute(self, attribute_name: str) -> str:
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
@@ -764,15 +765,6 @@ class LogsBackend(BaseBackend):
         self.destinations: Dict[str, Destination] = dict()
         self.tagger = TaggingService()
         self.export_tasks: Dict[str, ExportTask] = dict()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "logs"
-        )
 
     def create_log_group(
         self, log_group_name: str, tags: Dict[str, str], **kwargs: Any
@@ -1146,10 +1138,10 @@ class LogsBackend(BaseBackend):
 
         service = destination_arn.split(":")[2]
         if service == "lambda":
-            from moto.awslambda import lambda_backends
+            from moto.awslambda.utils import get_backend
 
             try:
-                lambda_backends[self.account_id][self.region_name].get_function(
+                get_backend(self.account_id, self.region_name).get_function(
                     destination_arn
                 )
             # no specific permission check implemented
@@ -1207,7 +1199,6 @@ class LogsBackend(BaseBackend):
         end_time: int,
         query_string: str,
     ) -> str:
-
         for log_group_name in log_group_names:
             if log_group_name not in self.groups:
                 raise ResourceNotFoundException()
@@ -1273,7 +1264,7 @@ class LogsBackend(BaseBackend):
             value=b"Permission Check Successful",
         )
 
-        if fromTime <= unix_time_millis(datetime.now()) <= to:
+        if fromTime <= to:
             for stream_name in self.groups[logGroupName].streams.keys():
                 logs, _, _ = self.filter_log_events(
                     log_group_name=logGroupName,

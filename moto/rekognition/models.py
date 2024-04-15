@@ -3,7 +3,7 @@
 import string
 from typing import Any, Dict, List, Tuple
 
-from moto.core import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
 
 
@@ -48,7 +48,13 @@ class RekognitionBackend(BaseBackend):
 
     def compare_faces(
         self,
-    ) -> Tuple[List[Dict[str, Any]], str, str, List[Dict[str, Any]], Dict[str, Any],]:
+    ) -> Tuple[
+        List[Dict[str, Any]],
+        str,
+        str,
+        List[Dict[str, Any]],
+        Dict[str, Any],
+    ]:
         return (
             self._face_matches(),
             "ROTATE_90",

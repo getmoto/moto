@@ -1,7 +1,7 @@
 import os
 from functools import wraps
 
-from moto import mock_kms
+from moto import mock_aws
 
 
 def kms_aws_verified(func):
@@ -22,7 +22,7 @@ def kms_aws_verified(func):
         if allow_aws_request:
             return func()
         else:
-            with mock_kms():
+            with mock_aws():
                 return func()
 
     return pagination_wrapper

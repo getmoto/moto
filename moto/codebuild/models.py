@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from dateutil import parser
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 
@@ -24,9 +25,9 @@ class CodeBuildProjectMetadata(BaseModel):
         self.build_metadata: Dict[str, Any] = dict()
 
         self.build_metadata["id"] = build_id
-        self.build_metadata[
-            "arn"
-        ] = f"arn:aws:codebuild:{region_name}:{account_id}:build/{build_id}"
+        self.build_metadata["arn"] = (
+            f"arn:aws:codebuild:{region_name}:{account_id}:build/{build_id}"
+        )
 
         self.build_metadata["buildNumber"] = mock_random.randint(1, 100)
         self.build_metadata["startTime"] = current_date
@@ -85,9 +86,9 @@ class CodeBuildProjectMetadata(BaseModel):
         self.build_metadata["queuedTimeoutInMinutes"] = 480
         self.build_metadata["buildComplete"] = False
         self.build_metadata["initiator"] = "rootme"
-        self.build_metadata[
-            "encryptionKey"
-        ] = f"arn:aws:kms:{region_name}:{account_id}:alias/aws/s3"
+        self.build_metadata["encryptionKey"] = (
+            f"arn:aws:kms:{region_name}:{account_id}:alias/aws/s3"
+        )
 
 
 class CodeBuild(BaseModel):
@@ -105,21 +106,21 @@ class CodeBuild(BaseModel):
         self.project_metadata: Dict[str, Any] = dict()
 
         self.project_metadata["name"] = project_name
-        self.project_metadata[
-            "arn"
-        ] = f"arn:aws:codebuild:{region}:{account_id}:project/{project_name}"
-        self.project_metadata[
-            "encryptionKey"
-        ] = f"arn:aws:kms:{region}:{account_id}:alias/aws/s3"
-        self.project_metadata[
-            "serviceRole"
-        ] = f"arn:aws:iam::{account_id}:role/service-role/{serviceRole}"
+        self.project_metadata["arn"] = (
+            f"arn:aws:codebuild:{region}:{account_id}:project/{project_name}"
+        )
+        self.project_metadata["encryptionKey"] = (
+            f"arn:aws:kms:{region}:{account_id}:alias/aws/s3"
+        )
+        self.project_metadata["serviceRole"] = (
+            f"arn:aws:iam::{account_id}:role/service-role/{serviceRole}"
+        )
         self.project_metadata["lastModifiedDate"] = current_date
         self.project_metadata["created"] = current_date
         self.project_metadata["badge"] = dict()
-        self.project_metadata["badge"][
-            "badgeEnabled"
-        ] = False  # this false needs to be a json false not a python false
+        self.project_metadata["badge"]["badgeEnabled"] = (
+            False  # this false needs to be a json false not a python false
+        )
         self.project_metadata["environment"] = environment
         self.project_metadata["artifacts"] = artifacts
         self.project_metadata["source"] = project_source
@@ -165,7 +166,6 @@ class CodeBuildBackend(BaseBackend):
         return self.codebuild_projects[project_name].project_metadata
 
     def list_projects(self) -> List[str]:
-
         projects = []
 
         for project in self.codebuild_projects.keys():
@@ -179,7 +179,6 @@ class CodeBuildBackend(BaseBackend):
         source_version: Optional[str] = None,
         artifact_override: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-
         build_id = f"{project_name}:{mock_random.uuid4()}"
 
         # construct a new build
@@ -268,7 +267,6 @@ class CodeBuildBackend(BaseBackend):
         self.codebuild_projects.pop(project_name, None)
 
     def stop_build(self, build_id: str) -> Optional[Dict[str, Any]]:  # type: ignore[return]
-
         for metadata in self.build_metadata_history.values():
             for build in metadata:
                 if build["id"] == build_id:

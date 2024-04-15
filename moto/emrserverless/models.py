@@ -1,10 +1,12 @@
 """EMRServerlessBackend class with methods for supported APIs."""
+
 import inspect
 import re
 from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.emrcontainers.utils import get_partition, paginated_list
 
@@ -73,8 +75,14 @@ class FakeApplication(BaseModel):
         yield "applicationId", self.id
         yield "name", self.name
         yield "arn", self.arn
-        yield "autoStartConfig", self.auto_start_configuration,
-        yield "autoStopConfig", self.auto_stop_configuration,
+        yield (
+            "autoStartConfig",
+            self.auto_start_configuration,
+        )
+        yield (
+            "autoStopConfig",
+            self.auto_stop_configuration,
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -145,7 +153,6 @@ class EMRServerlessBackend(BaseBackend):
         auto_stop_configuration: str,
         network_configuration: str,
     ) -> FakeApplication:
-
         if application_type not in ["HIVE", "SPARK"]:
             raise ValidationException(f"Unsupported engine {application_type}")
 

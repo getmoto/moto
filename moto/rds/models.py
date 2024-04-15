@@ -8,7 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Un
 
 from jinja2 import Template
 
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
@@ -23,6 +24,9 @@ from .exceptions import (
     DBClusterToBeDeletedHasActiveMembers,
     DBInstanceNotFoundError,
     DBParameterGroupNotFoundError,
+    DBProxyAlreadyExistsFault,
+    DBProxyNotFoundFault,
+    DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundError,
@@ -38,6 +42,7 @@ from .exceptions import (
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
     InvalidParameterValue,
+    InvalidSubnet,
     OptionGroupNotFoundFaultError,
     RDSClientError,
     SnapshotQuotaExceededError,
@@ -146,7 +151,9 @@ class Cluster:
                     valid_engines=ClusterEngine.list_cluster_engines(),
                 )
             )
-        self.engine_version = kwargs.get("engine_version") or Cluster.default_engine_version(self.engine)  # type: ignore
+        self.engine_version = kwargs.get(
+            "engine_version"
+        ) or Cluster.default_engine_version(self.engine)
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
         self.kms_key_id = kwargs.get("kms_key_id")
@@ -164,7 +171,7 @@ class Cluster:
         self.allocated_storage = kwargs.get("allocated_storage")
         if self.allocated_storage is None:
             self.allocated_storage = Cluster.default_allocated_storage(
-                engine=self.engine, storage_type=self.storage_type  # type: ignore
+                engine=self.engine, storage_type=self.storage_type
             )
         self.master_username = kwargs.get("master_username")
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
@@ -608,7 +615,7 @@ class Database(CloudFormationModel):
         self.allocated_storage = kwargs.get("allocated_storage")
         if self.allocated_storage is None:
             self.allocated_storage = Database.default_allocated_storage(
-                engine=self.engine, storage_type=self.storage_type  # type: ignore
+                engine=self.engine, storage_type=self.storage_type
             )
         self.db_cluster_identifier: Optional[str] = kwargs.get("db_cluster_identifier")
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
@@ -616,7 +623,7 @@ class Database(CloudFormationModel):
         self.db_instance_class = kwargs.get("db_instance_class")
         self.port = kwargs.get("port")
         if self.port is None:
-            self.port = Database.default_port(self.engine)  # type: ignore
+            self.port = Database.default_port(self.engine)
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
         self.instance_create_time = iso_8601_datetime_with_milliseconds()
@@ -1570,11 +1577,128 @@ class SubnetGroup(CloudFormationModel):
         backend.delete_subnet_group(self.subnet_name)
 
 
+class DBProxy(BaseModel):
+    def __init__(
+        self,
+        db_proxy_name: str,
+        engine_family: str,
+        auth: List[Dict[str, str]],
+        role_arn: str,
+        vpc_subnet_ids: List[str],
+        region_name: str,
+        account_id: str,
+        vpc_security_group_ids: Optional[List[str]],
+        require_tls: Optional[bool] = False,
+        idle_client_timeout: Optional[int] = 1800,
+        debug_logging: Optional[bool] = False,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ):
+        self.db_proxy_name = db_proxy_name
+        self.engine_family = engine_family
+        if self.engine_family not in ["MYSQL", "POSTGRESQ", "SQLSERVER"]:
+            raise InvalidParameterValue("Provided EngineFamily is not valid.")
+        self.auth = auth
+        self.role_arn = role_arn
+        self.vpc_subnet_ids = vpc_subnet_ids
+        self.vpc_security_group_ids = vpc_security_group_ids
+        self.require_tls = require_tls
+        if idle_client_timeout is None:
+            self.idle_client_timeout = 1800
+        else:
+            if int(idle_client_timeout) < 1:
+                self.idle_client_timeout = 1
+            elif int(idle_client_timeout) > 28800:
+                self.idle_client_timeout = 28800
+            else:
+                self.idle_client_timeout = idle_client_timeout
+        self.debug_logging = debug_logging
+        self.created_date = iso_8601_datetime_with_milliseconds()
+        self.updated_date = iso_8601_datetime_with_milliseconds()
+        if tags is None:
+            self.tags = []
+        else:
+            self.tags = tags
+        self.region_name = region_name
+        self.account_id = account_id
+        self.db_proxy_arn = f"arn:aws:rds:{self.region_name}:{self.account_id}:db-proxy:{self.db_proxy_name}"
+        self.arn = self.db_proxy_arn
+        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
+        vpcs = []
+        for subnet in subnets:
+            vpcs.append(subnet.vpc_id)
+            if subnet.vpc_id != vpcs[0]:
+                raise InvalidSubnet(subnet_identifier=subnet.id)
+
+        self.vpc_id = ec2_backend.describe_subnets(subnet_ids=[self.vpc_subnet_ids[0]])[
+            0
+        ].vpc_id
+        self.status = "availible"
+        self.url_identifier = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = f"{self.db_proxy_name}.db-proxy-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
+
+    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        new_keys = [tag_set["Key"] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys: List[str]) -> None:
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
+
+    def to_xml(self) -> str:
+        template = Template(
+            """
+                <RequireTLS>{{ dbproxy.require_tls }}</RequireTLS>
+                <VpcSecurityGroupIds>
+                {% if dbproxy.VpcSecurityGroupIds %}
+                  {% for vpcsecuritygroupid in dbproxy.VpcSecurityGroupIds %}
+                    <member>{{ vpcsecuritygroupid }}</member>
+                  {% endfor %}
+                {% endif %}
+                </VpcSecurityGroupIds>
+                <Auth>
+                  {% for auth in dbproxy.auth %}
+                    <member>
+                        <UserName>{{ auth["UserName"] }}</UserName>
+                        <AuthScheme>{{ auth["AuthScheme"] }}</AuthScheme>
+                        <SecretArn>{{ auth["SecretArn"] }}</SecretArn>
+                        <IAMAuth>{{ auth["IAMAuth"] }}</IAMAuth>
+                        <ClientPasswordAuthType>{{ auth["ClientPasswordAuthType"] }}</ClientPasswordAuthType>
+                    </member>
+                  {% endfor %}
+                </Auth>
+                <EngineFamily>{{ dbproxy.engine_family }}</EngineFamily>
+                <UpdatedDate>{{ dbproxy.updated_date }}</UpdatedDate>
+                <DBProxyName>{{ dbproxy.db_proxy_name }}</DBProxyName>
+                <IdleClientTimeout>{{ dbproxy.idle_client_timeout }}</IdleClientTimeout>
+                <Endpoint>{{ dbproxy.endpoint }}</Endpoint>
+                <CreatedDate>{{ dbproxy.created_date }}</CreatedDate>
+                <RoleArn>{{ dbproxy.role_arn }}</RoleArn>
+                <DebugLogging>{{ dbproxy.debug_logging }}</DebugLogging>
+                <VpcId>{{ dbproxy.vpc_id }}</VpcId>
+                <DBProxyArn>{{ dbproxy.db_proxy_arn }}</DBProxyArn>
+                <VpcSubnetIds>
+                  {% for vpcsubnetid in dbproxy.vpc_subnet_ids %}
+                    <member>{{ vpcsubnetid }}</member>
+                  {% endfor %}
+                </VpcSubnetIds>
+                <Status>{{ dbproxy.status }}</Status>
+        """
+        )
+        return template.render(dbproxy=self)
+
+
 class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
-            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp):.*$"
+            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
         self.clusters: Dict[str, Cluster] = OrderedDict()
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
@@ -1589,6 +1713,7 @@ class RDSBackend(BaseBackend):
         self.security_groups: Dict[str, SecurityGroup] = {}
         self.subnet_groups: Dict[str, SubnetGroup] = {}
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
+        self.db_proxies: Dict[str, DBProxy] = OrderedDict()
 
     def reset(self) -> None:
         self.neptune.reset()
@@ -1610,17 +1735,6 @@ class RDSBackend(BaseBackend):
                 decode_orderable_db_instance(option) for option in decoded_options
             ]
         return self._db_cluster_options
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "rds"
-        ) + BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "rds-data"
-        )
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
         database_id = db_kwargs["db_instance_identifier"]
@@ -1657,14 +1771,18 @@ class RDSBackend(BaseBackend):
 
     def create_db_snapshot(
         self,
-        db_instance_identifier: str,
+        db_instance: Union[str, Database],
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> DatabaseSnapshot:
-        database = self.databases.get(db_instance_identifier)
-        if not database:
-            raise DBInstanceNotFoundError(db_instance_identifier)
+        if isinstance(db_instance, str):
+            database = self.databases.get(db_instance)
+            if not database:
+                raise DBInstanceNotFoundError(db_instance)
+        else:
+            database = db_instance
+
         if db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.database_snapshots) >= int(
@@ -1696,7 +1814,7 @@ class RDSBackend(BaseBackend):
         else:
             tags = self._merge_tags(source_snapshot.tags, tags)
         return self.create_db_snapshot(
-            db_instance_identifier=source_snapshot.database.db_instance_identifier,  # type: ignore
+            db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,
             tags=tags,
         )
@@ -1773,9 +1891,9 @@ class RDSBackend(BaseBackend):
         database = self.describe_db_instances(db_instance_identifier)[0]
         if "new_db_instance_identifier" in db_kwargs:
             del self.databases[db_instance_identifier]
-            db_instance_identifier = db_kwargs[
-                "db_instance_identifier"
-            ] = db_kwargs.pop("new_db_instance_identifier")
+            db_instance_identifier = db_kwargs["db_instance_identifier"] = (
+                db_kwargs.pop("new_db_instance_identifier")
+            )
             self.databases[db_instance_identifier] = database
         preferred_backup_window = db_kwargs.get("preferred_backup_window")
         preferred_maintenance_window = db_kwargs.get("preferred_maintenance_window")
@@ -1818,7 +1936,13 @@ class RDSBackend(BaseBackend):
         db_instance = self.describe_db_instances(
             db_instance_identifier=source_db_identifier
         )[0]
-        new_instance_props = copy.deepcopy(db_instance.__dict__)
+
+        # remove the db subnet group as it cannot be copied
+        # and is not used in the restored instance
+        source_dict = db_instance.__dict__
+        del source_dict["db_subnet_group"]
+
+        new_instance_props = copy.deepcopy(source_dict)
         if not db_instance.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2480,9 +2604,9 @@ class RDSBackend(BaseBackend):
             raise DBClusterSnapshotNotFoundError(snapshot_id)
 
         if snapshot_type == "snapshot":
-            snapshot: Union[
-                DatabaseSnapshot, ClusterSnapshot
-            ] = self.database_snapshots[snapshot_id]
+            snapshot: Union[DatabaseSnapshot, ClusterSnapshot] = (
+                self.database_snapshots[snapshot_id]
+            )
         else:
             snapshot = self.cluster_snapshots[snapshot_id]
 
@@ -2577,6 +2701,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].get_tags()
+            elif resource_type == "db-proxy":  # DB Proxy
+                if resource_name in self.db_proxies:
+                    return self.db_proxies[resource_name].get_tags()
         else:
             raise RDSClientError(
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
@@ -2619,12 +2746,17 @@ class RDSBackend(BaseBackend):
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     self.subnet_groups[resource_name].remove_tags(tag_keys)
+            elif resource_type == "db-proxy":  # DB Proxy
+                if resource_name in self.db_proxies:
+                    self.db_proxies[resource_name].remove_tags(tag_keys)
         else:
             raise RDSClientError(
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
             )
 
-    def add_tags_to_resource(self, arn: str, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:  # type: ignore[return]
+    def add_tags_to_resource(  # type: ignore[return]
+        self, arn: str, tags: List[Dict[str, str]]
+    ) -> List[Dict[str, str]]:
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
             resource_type = arn_breakdown[-2]
@@ -2660,6 +2792,9 @@ class RDSBackend(BaseBackend):
             elif resource_type == "subgrp":  # DB subnet group
                 if resource_name in self.subnet_groups:
                     return self.subnet_groups[resource_name].add_tags(tags)
+            elif resource_type == "db-proxy":  # DB Proxy
+                if resource_name in self.db_proxies:
+                    return self.db_proxies[resource_name].add_tags(tags)
         else:
             raise RDSClientError(
                 "InvalidParameterValue", f"Invalid resource name: {arn}"
@@ -2678,7 +2813,9 @@ class RDSBackend(BaseBackend):
             raise InvalidParameterCombination(str(e))
 
     @staticmethod
-    def _merge_tags(old_tags: List[Dict[str, Any]], new_tags: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def _merge_tags(  # type: ignore[misc]
+        old_tags: List[Dict[str, Any]], new_tags: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         tags_dict = dict()
         tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
         tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
@@ -2901,6 +3038,56 @@ class RDSBackend(BaseBackend):
             )
         return snapshot.attributes
 
+    def create_db_proxy(
+        self,
+        db_proxy_name: str,
+        engine_family: str,
+        auth: List[Dict[str, str]],
+        role_arn: str,
+        vpc_subnet_ids: List[str],
+        vpc_security_group_ids: Optional[List[str]],
+        require_tls: Optional[bool],
+        idle_client_timeout: Optional[int],
+        debug_logging: Optional[bool],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> DBProxy:
+        self._validate_db_identifier(db_proxy_name)
+        if db_proxy_name in self.db_proxies:
+            raise DBProxyAlreadyExistsFault(db_proxy_name)
+        if len(self.db_proxies) >= int(os.environ.get("MOTO_RDS_PROXY_LIMIT", "100")):
+            raise DBProxyQuotaExceededFault()
+        db_proxy = DBProxy(
+            db_proxy_name,
+            engine_family,
+            auth,
+            role_arn,
+            vpc_subnet_ids,
+            self.region_name,
+            self.account_id,
+            vpc_security_group_ids,
+            require_tls,
+            idle_client_timeout,
+            debug_logging,
+            tags,
+        )
+        self.db_proxies[db_proxy_name] = db_proxy
+        return db_proxy
+
+    def describe_db_proxies(
+        self,
+        db_proxy_name: Optional[str],
+        filters: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[DBProxy]:
+        """
+        The filters-argument is not yet supported
+        """
+        db_proxies = list(self.db_proxies.values())
+        if db_proxy_name and db_proxy_name in self.db_proxies.keys():
+            db_proxies = [self.db_proxies[db_proxy_name]]
+        if db_proxy_name and db_proxy_name not in self.db_proxies.keys():
+            raise DBProxyNotFoundFault(db_proxy_name)
+        return db_proxies
+
 
 class OptionGroup:
     def __init__(
@@ -2952,14 +3139,16 @@ class OptionGroup:
         return template.render(option_group=self)
 
     def remove_options(
-        self, options_to_remove: Any  # pylint: disable=unused-argument
+        self,
+        options_to_remove: Any,  # pylint: disable=unused-argument
     ) -> None:
         # TODO: Check for option in self.options and remove if exists. Raise
         # error otherwise
         return
 
     def add_options(
-        self, options_to_add: Any  # pylint: disable=unused-argument
+        self,
+        options_to_add: Any,  # pylint: disable=unused-argument
     ) -> None:
         # TODO: Validate option and add it to self.options. If invalid raise
         # error

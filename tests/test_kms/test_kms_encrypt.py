@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_kms
+from moto import mock_aws
 
 from . import kms_aws_verified
 from .test_kms_boto3 import PLAINTEXT_VECTORS, _get_encoded_value
@@ -43,7 +43,7 @@ def test_encrypt_key_with_large_content():
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
+@mock_aws
 def test_encrypt(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -61,7 +61,7 @@ def test_encrypt(plaintext):
     assert response["KeyId"] == key_arn
 
 
-@mock_kms
+@mock_aws
 def test_encrypt_using_alias_name():
     kms = boto3.client("kms", region_name="us-east-1")
     key_details = kms.create_key()
@@ -73,7 +73,7 @@ def test_encrypt_using_alias_name():
     kms.decrypt(CiphertextBlob=resp["CiphertextBlob"])
 
 
-@mock_kms
+@mock_aws
 def test_encrypt_using_alias_arn():
     kms = boto3.client("kms", region_name="us-east-1")
     key_details = kms.create_key()
@@ -86,7 +86,7 @@ def test_encrypt_using_alias_arn():
     kms.encrypt(KeyId=my_alias["AliasArn"], Plaintext="hello")
 
 
-@mock_kms
+@mock_aws
 def test_encrypt_using_key_arn():
     kms = boto3.client("kms", region_name="us-east-1")
     key_details = kms.create_key()
@@ -96,7 +96,7 @@ def test_encrypt_using_key_arn():
     kms.encrypt(KeyId=key_details["KeyMetadata"]["Arn"], Plaintext="hello")
 
 
-@mock_kms
+@mock_aws
 def test_re_encrypt_using_aliases():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -115,7 +115,7 @@ def test_re_encrypt_using_aliases():
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
+@mock_aws
 def test_decrypt(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -141,7 +141,7 @@ def test_decrypt(plaintext):
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
+@mock_aws
 def test_kms_encrypt(plaintext):
     client = boto3.client("kms", region_name="us-east-1")
     key = client.create_key(Description="key")
@@ -152,7 +152,7 @@ def test_kms_encrypt(plaintext):
 
 
 @pytest.mark.parametrize("plaintext", PLAINTEXT_VECTORS)
-@mock_kms
+@mock_aws
 def test_re_encrypt_decrypt(plaintext):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -198,7 +198,7 @@ def test_re_encrypt_decrypt(plaintext):
     assert decrypt_response_1["Plaintext"] == decrypt_response_2["Plaintext"]
 
 
-@mock_kms
+@mock_aws
 def test_re_encrypt_to_invalid_destination():
     client = boto3.client("kms", region_name="us-west-2")
 

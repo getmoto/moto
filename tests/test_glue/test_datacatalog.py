@@ -6,7 +6,7 @@ import pytest
 from botocore.client import ClientError
 from freezegun import freeze_time
 
-from moto import mock_glue, settings
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import helpers
@@ -14,7 +14,7 @@ from . import helpers
 FROZEN_CREATE_TIME = datetime(2015, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
-@mock_glue
+@mock_aws
 @freeze_time(FROZEN_CREATE_TIME)
 def test_create_database():
     client = boto3.client("glue", region_name="us-east-1")
@@ -40,7 +40,24 @@ def test_create_database():
     assert database.get("CatalogId") == database_catalog_id
 
 
-@mock_glue
+@mock_aws
+def test_create_database_with_tags():
+    client = boto3.client("glue", region_name="us-east-1")
+    database_name = "myspecialdatabase"
+    database_catalog_id = ACCOUNT_ID
+    database_input = helpers.create_database_input(database_name)
+    database_tags = {"key": "value"}
+    helpers.create_database(
+        client, database_name, database_input, database_catalog_id, tags=database_tags
+    )
+
+    response = client.get_tags(
+        ResourceArn=f"arn:aws:glue:us-east-1:{ACCOUNT_ID}:database/{database_name}"
+    )
+    assert response["Tags"] == database_tags
+
+
+@mock_aws
 def test_create_database_already_exists():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "cantcreatethisdatabasetwice"
@@ -52,7 +69,7 @@ def test_create_database_already_exists():
     assert exc.value.response["Error"]["Code"] == "AlreadyExistsException"
 
 
-@mock_glue
+@mock_aws
 def test_get_database_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "nosuchdatabase"
@@ -66,7 +83,7 @@ def test_get_database_not_exits():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_databases():
     client = boto3.client("glue", region_name="us-east-1")
     response = client.get_databases()
@@ -88,7 +105,7 @@ def test_get_databases():
     assert database_list[1]["CatalogId"] == ACCOUNT_ID
 
 
-@mock_glue
+@mock_aws
 def test_update_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "existingdatabase"
@@ -119,7 +136,7 @@ def test_update_database():
     assert database.get("LocationUri") == "s3://bucket/existingdatabase/"
 
 
-@mock_glue
+@mock_aws
 def test_update_unknown_database():
     client = boto3.client("glue", region_name="us-east-1")
 
@@ -130,7 +147,7 @@ def test_update_unknown_database():
     assert err["Message"] == "Database x not found."
 
 
-@mock_glue
+@mock_aws
 def test_delete_database():
     client = boto3.client("glue", region_name="us-east-1")
     database_name_1, database_name_2 = "firstdatabase", "seconddatabase"
@@ -146,7 +163,7 @@ def test_delete_database():
     assert [db["Name"] for db in database_list] == [database_name_2]
 
 
-@mock_glue
+@mock_aws
 def test_delete_unknown_database():
     client = boto3.client("glue", region_name="us-east-1")
 
@@ -157,7 +174,7 @@ def test_delete_unknown_database():
     assert err["Message"] == "Database x not found."
 
 
-@mock_glue
+@mock_aws
 @freeze_time(FROZEN_CREATE_TIME)
 def test_create_table():
     client = boto3.client("glue", region_name="us-east-1")
@@ -179,7 +196,7 @@ def test_create_table():
     assert table["PartitionKeys"] == table_input["PartitionKeys"]
 
 
-@mock_glue
+@mock_aws
 def test_create_table_already_exists():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -194,7 +211,7 @@ def test_create_table_already_exists():
     assert exc.value.response["Error"]["Code"] == "AlreadyExistsException"
 
 
-@mock_glue
+@mock_aws
 def test_get_tables():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -224,7 +241,7 @@ def test_get_tables():
         assert table["CatalogId"] == ACCOUNT_ID
 
 
-@mock_glue
+@mock_aws
 def test_get_tables_expression():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -302,7 +319,7 @@ def test_get_tables_expression():
     assert len(tables_star_expression6) == 2
 
 
-@mock_glue
+@mock_aws
 def test_get_table_versions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -366,7 +383,7 @@ def test_get_table_versions():
     assert table["VersionId"] == "3"
 
 
-@mock_glue
+@mock_aws
 def test_get_table_version_not_found():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -381,7 +398,7 @@ def test_get_table_version_not_found():
     assert exc.value.response["Error"]["Message"] == "Version not found."
 
 
-@mock_glue
+@mock_aws
 def test_get_table_version_invalid_input():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -395,7 +412,7 @@ def test_get_table_version_invalid_input():
     assert exc.value.response["Error"]["Code"] == "InvalidInputException"
 
 
-@mock_glue
+@mock_aws
 def test_delete_table_version():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -431,7 +448,7 @@ def test_delete_table_version():
     assert [v["VersionId"] for v in vers] == ["1", "3"]
 
 
-@mock_glue
+@mock_aws
 def test_get_table_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -444,7 +461,7 @@ def test_get_table_not_exits():
     assert exc.value.response["Error"]["Message"] == "Table myfirsttable not found."
 
 
-@mock_glue
+@mock_aws
 def test_get_table_when_database_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "nosuchdatabase"
@@ -458,7 +475,7 @@ def test_get_table_when_database_not_exits():
     )
 
 
-@mock_glue
+@mock_aws
 def test_delete_table():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -479,7 +496,7 @@ def test_delete_table():
     assert exc.value.response["Error"]["Message"] == "Table myspecialtable not found."
 
 
-@mock_glue
+@mock_aws
 def test_batch_delete_table():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -502,7 +519,7 @@ def test_batch_delete_table():
     assert exc.value.response["Error"]["Message"] == "Table myspecialtable not found."
 
 
-@mock_glue
+@mock_aws
 def test_get_partitions_empty():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -516,7 +533,7 @@ def test_get_partitions_empty():
     assert len(response["Partitions"]) == 0
 
 
-@mock_glue
+@mock_aws
 def test_create_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -550,7 +567,7 @@ def test_create_partition():
     assert partition["CreationTime"] < after
 
 
-@mock_glue
+@mock_aws
 def test_create_partition_already_exist():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -568,7 +585,7 @@ def test_create_partition_already_exist():
     assert exc.value.response["Error"]["Code"] == "AlreadyExistsException"
 
 
-@mock_glue
+@mock_aws
 def test_get_partition_not_found():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -585,7 +602,7 @@ def test_get_partition_not_found():
     assert "partition" in exc.value.response["Error"]["Message"]
 
 
-@mock_glue
+@mock_aws
 def test_batch_create_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -628,7 +645,7 @@ def test_batch_create_partition():
         assert partition["CreationTime"] < after
 
 
-@mock_glue
+@mock_aws
 def test_batch_create_partition_already_exist():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -655,7 +672,7 @@ def test_batch_create_partition_already_exist():
     assert response["Errors"][0]["ErrorDetail"]["ErrorCode"] == "AlreadyExistsException"
 
 
-@mock_glue
+@mock_aws
 def test_get_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -679,7 +696,7 @@ def test_get_partition():
     assert partition["Values"] == values[1]
 
 
-@mock_glue
+@mock_aws
 def test_batch_get_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -708,7 +725,7 @@ def test_batch_get_partition():
     assert partition["Values"] == values[1]
 
 
-@mock_glue
+@mock_aws
 def test_batch_get_partition_missing_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -740,7 +757,7 @@ def test_batch_get_partition_missing_partition():
     assert partitions[1]["Values"] == values[2]
 
 
-@mock_glue
+@mock_aws
 def test_update_partition_not_found_moving():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -762,7 +779,7 @@ def test_update_partition_not_found_moving():
     assert "partition" in exc.value.response["Error"]["Message"]
 
 
-@mock_glue
+@mock_aws
 def test_update_partition_not_found_change_in_place():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -781,7 +798,7 @@ def test_update_partition_not_found_change_in_place():
     assert "partition" in exc.value.response["Error"]["Message"]
 
 
-@mock_glue
+@mock_aws
 def test_update_partition_cannot_overwrite():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -803,7 +820,7 @@ def test_update_partition_cannot_overwrite():
     assert exc.value.response["Error"]["Code"] == "AlreadyExistsException"
 
 
-@mock_glue
+@mock_aws
 def test_update_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -834,7 +851,7 @@ def test_update_partition():
     ]
 
 
-@mock_glue
+@mock_aws
 def test_update_partition_move():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -872,7 +889,7 @@ def test_update_partition_move():
     ]
 
 
-@mock_glue
+@mock_aws
 def test_batch_update_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -929,7 +946,7 @@ def test_batch_update_partition():
         ]
 
 
-@mock_glue
+@mock_aws
 def test_batch_update_partition_missing_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -984,7 +1001,7 @@ def test_batch_update_partition_missing_partition():
     assert response["Errors"][0]["PartitionValueList"] == ["2020-10-10"]
 
 
-@mock_glue
+@mock_aws
 def test_delete_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -1007,7 +1024,7 @@ def test_delete_partition():
     assert partitions == []
 
 
-@mock_glue
+@mock_aws
 def test_delete_partition_bad_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -1024,7 +1041,7 @@ def test_delete_partition_bad_partition():
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
 
 
-@mock_glue
+@mock_aws
 def test_batch_delete_partition():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -1057,7 +1074,7 @@ def test_batch_delete_partition():
     assert "Errors" not in response
 
 
-@mock_glue
+@mock_aws
 def test_batch_delete_partition_with_bad_partitions():
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"
@@ -1098,7 +1115,7 @@ def test_batch_delete_partition_with_bad_partitions():
     assert ["2018-11-03"] in error_partitions
 
 
-@mock_glue
+@mock_aws
 @freeze_time(FROZEN_CREATE_TIME)
 def test_create_crawler_scheduled():
     client = boto3.client("glue", region_name="us-east-1")
@@ -1178,7 +1195,7 @@ def test_create_crawler_scheduled():
     assert "LastCrawl" not in crawler
 
 
-@mock_glue
+@mock_aws
 @freeze_time(FROZEN_CREATE_TIME)
 def test_create_crawler_unscheduled():
     client = boto3.client("glue", region_name="us-east-1")
@@ -1256,7 +1273,7 @@ def test_create_crawler_unscheduled():
     assert "LastCrawl" not in crawler
 
 
-@mock_glue
+@mock_aws
 def test_create_crawler_already_exists():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1268,7 +1285,7 @@ def test_create_crawler_already_exists():
     assert exc.value.response["Error"]["Code"] == "AlreadyExistsException"
 
 
-@mock_glue
+@mock_aws
 def test_get_crawler_not_exits():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1282,14 +1299,14 @@ def test_get_crawler_not_exits():
     )
 
 
-@mock_glue
+@mock_aws
 def test_get_crawlers_empty():
     client = boto3.client("glue", region_name="us-east-1")
     response = client.get_crawlers()
     assert len(response["Crawlers"]) == 0
 
 
-@mock_glue
+@mock_aws
 def test_get_crawlers_several_items():
     client = boto3.client("glue", region_name="us-east-1")
     name_1, name_2 = "my_crawler_name_1", "my_crawler_name_2"
@@ -1303,7 +1320,7 @@ def test_get_crawlers_several_items():
     assert crawlers[1].get("Name") == name_2
 
 
-@mock_glue
+@mock_aws
 def test_start_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1317,7 +1334,7 @@ def test_start_crawler():
     assert crawler.get("State") == "RUNNING"
 
 
-@mock_glue
+@mock_aws
 def test_start_crawler_should_raise_exception_if_already_running():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1330,7 +1347,7 @@ def test_start_crawler_should_raise_exception_if_already_running():
     assert exc.value.response["Error"]["Code"] == "CrawlerRunningException"
 
 
-@mock_glue
+@mock_aws
 def test_stop_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1345,7 +1362,7 @@ def test_stop_crawler():
     assert crawler.get("State") == "STOPPING"
 
 
-@mock_glue
+@mock_aws
 def test_stop_crawler_should_raise_exception_if_not_running():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1357,7 +1374,7 @@ def test_stop_crawler_should_raise_exception_if_not_running():
     assert exc.value.response["Error"]["Code"] == "CrawlerNotRunningException"
 
 
-@mock_glue
+@mock_aws
 def test_delete_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
@@ -1376,7 +1393,7 @@ def test_delete_crawler():
     )
 
 
-@mock_glue
+@mock_aws
 def test_delete_crawler_not_exists():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"

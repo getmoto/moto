@@ -8,7 +8,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_cloudformation, mock_iam, mock_lambda, mock_s3, mock_sqs
+from moto import mock_aws
 
 
 def random_stack_name():
@@ -72,9 +72,7 @@ event_source_mapping_template = Template(
 )
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_lambda_can_be_updated_by_cloudformation():
     s3 = boto3.client("s3", "us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -85,7 +83,7 @@ def test_lambda_can_be_updated_by_cloudformation():
     # Verify function has been created
     created_fn = lmbda.get_function(FunctionName=created_fn_name)
     assert created_fn["Configuration"]["Handler"] == "lambda_function.lambda_handler1"
-    assert created_fn["Configuration"]["Runtime"] == "python3.7"
+    assert created_fn["Configuration"]["Runtime"] == "python3.9"
     assert "/test1.zip" in created_fn["Code"]["Location"]
     # Update CF stack
     cf.update_stack(StackName=stack_name, TemplateBody=body2)
@@ -97,13 +95,11 @@ def test_lambda_can_be_updated_by_cloudformation():
         == created_fn["Configuration"]["FunctionArn"]
     )
     assert updated_fn["Configuration"]["Handler"] == "lambda_function.lambda_handler2"
-    assert updated_fn["Configuration"]["Runtime"] == "python3.8"
+    assert updated_fn["Configuration"]["Runtime"] == "python3.10"
     assert "/test2.zip" in updated_fn["Code"]["Location"]
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
+@mock_aws
 def test_lambda_can_be_deleted_by_cloudformation():
     s3 = boto3.client("s3", "us-east-1")
     cf = boto3.client("cloudformation", region_name="us-east-1")
@@ -118,10 +114,7 @@ def test_lambda_can_be_deleted_by_cloudformation():
     assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_create_from_cloudformation_json():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -156,10 +149,7 @@ def test_event_source_mapping_create_from_cloudformation_json():
     assert event_source["FunctionArn"] == created_fn_arn
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_delete_stack():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -195,10 +185,7 @@ def test_event_source_mapping_delete_stack():
     assert len(event_sources["EventSourceMappings"]) == 0
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_update_from_cloudformation_json():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -248,10 +235,7 @@ def test_event_source_mapping_update_from_cloudformation_json():
     assert updated_esm["BatchSize"] == 10
 
 
-@mock_cloudformation
-@mock_lambda
-@mock_s3
-@mock_sqs
+@mock_aws
 def test_event_source_mapping_delete_from_cloudformation_json():
     sqs = boto3.resource("sqs", region_name="us-east-1")
     s3 = boto3.client("s3", "us-east-1")
@@ -310,8 +294,8 @@ def create_stack(cf, s3):
     s3.create_bucket(Bucket=bucket_name)
     s3.put_object(Bucket=bucket_name, Key="test1.zip", Body=get_zip_file())
     s3.put_object(Bucket=bucket_name, Key="test2.zip", Body=get_zip_file())
-    body1 = get_template(bucket_name, "1", "python3.7")
-    body2 = get_template(bucket_name, "2", "python3.8")
+    body1 = get_template(bucket_name, "1", "python3.9")
+    body2 = get_template(bucket_name, "2", "python3.10")
     stack = cf.create_stack(StackName=stack_name, TemplateBody=body1)
     return body2, stack
 
@@ -334,15 +318,14 @@ def get_template(bucket_name, version, runtime):
 
 
 def get_role_arn():
-    with mock_iam():
-        iam = boto3.client("iam", region_name="us-west-2")
-        try:
-            iam.create_role(
-                RoleName="my-role",
-                AssumeRolePolicyDocument="some policy",
-                Path="/my-path/",
-            )
-        except ClientError:
-            pass  # Will fail second/third time - difficult to execute once with parallel tests
+    iam = boto3.client("iam", region_name="us-west-2")
+    try:
+        iam.create_role(
+            RoleName="my-role",
+            AssumeRolePolicyDocument="some policy",
+            Path="/my-path/",
+        )
+    except ClientError:
+        pass  # Will fail second/third time - difficult to execute once with parallel tests
 
-        return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+    return iam.get_role(RoleName="my-role")["Role"]["Arn"]

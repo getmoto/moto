@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from moto.core.responses import BaseResponse
 
@@ -79,7 +79,9 @@ class ApplicationAutoScalingResponse(BaseResponse):
                 self._get_param("TargetTrackingScalingPolicyConfiguration"),
             ),
         )
-        return json.dumps({"PolicyARN": policy.policy_arn, "Alarms": []})  # ToDo
+        return json.dumps(
+            {"PolicyARN": policy.policy_arn, "Alarms": _build_alarms(policy)}
+        )
 
     def describe_scaling_policies(self) -> str:
         (
@@ -205,6 +207,10 @@ def _build_target(t: FakeScalableTarget) -> Dict[str, Any]:
     }
 
 
+def _build_alarms(policy: FakeApplicationAutoscalingPolicy) -> List[Dict[str, str]]:
+    return [{"AlarmARN": a.alarm_arn, "AlarmName": a.name} for a in policy.alarms]
+
+
 def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
     response = {
         "PolicyARN": p.policy_arn,
@@ -214,13 +220,14 @@ def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
         "ScalableDimension": p.scalable_dimension,
         "PolicyType": p.policy_type,
         "CreationTime": p.creation_time,
+        "Alarms": _build_alarms(p),
     }
     if p.policy_type == "StepScaling":
         response["StepScalingPolicyConfiguration"] = p.step_scaling_policy_configuration
     elif p.policy_type == "TargetTrackingScaling":
-        response[
-            "TargetTrackingScalingPolicyConfiguration"
-        ] = p.target_tracking_scaling_policy_configuration
+        response["TargetTrackingScalingPolicyConfiguration"] = (
+            p.target_tracking_scaling_policy_configuration
+        )
     return response
 
 

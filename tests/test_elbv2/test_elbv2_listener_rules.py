@@ -2,7 +2,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_ec2, mock_elbv2
+from moto import mock_aws
 
 default_action = {
     "FixedResponseConfig": {"StatusCode": "200", "ContentType": "text/plain"},
@@ -55,7 +55,6 @@ def setup_listener(conn):
 
 
 def setup_target_group(boto_client):
-
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
 
@@ -69,8 +68,7 @@ def setup_target_group(boto_client):
     return target_group_arn
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "condition",
     [
@@ -136,8 +134,7 @@ def test_create_rule_condition(condition):
     assert len(response["TagDescriptions"]) == 1
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "create_condition,modify_condition",
     [
@@ -192,8 +189,7 @@ def test_modify_rule_condition(create_condition, modify_condition):
     assert modified_rule["Conditions"] == [modify_condition]
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "condition,expected_message",
     [
@@ -312,8 +308,7 @@ def test_create_rule_validate_condition(condition, expected_message):
     assert err["Message"] == expected_message
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_describe_unknown_rule():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -324,8 +319,7 @@ def test_describe_unknown_rule():
     assert err["Message"] == "One or more rules not found"
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 @pytest.mark.parametrize(
     "action",
     [
@@ -427,8 +421,7 @@ def test_create_rule_action(action):
     assert rule["Actions"][0] == action
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_rule_action_forward_config():
     conn = boto3.client("elbv2", region_name="us-east-1")
 
@@ -475,8 +468,7 @@ def test_create_rule_action_forward_config():
     assert rule["Actions"][0] == action
 
 
-@mock_elbv2
-@mock_ec2
+@mock_aws
 def test_create_rule_action_forward_target_group():
     conn = boto3.client("elbv2", region_name="us-east-1")
 

@@ -1,5 +1,9 @@
+import unittest
+
+import pytest
+
 import moto.server as server
-from moto import mock_wafv2
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
@@ -16,7 +20,13 @@ LIST_WEB_ACL_HEADERS = {
 }
 
 
-@mock_wafv2
+@pytest.fixture(scope="function", autouse=True)
+def skip_in_server_mode():
+    if settings.TEST_SERVER_MODE:
+        raise unittest.SkipTest("No point testing this in ServerMode")
+
+
+@mock_aws
 def test_create_web_acl():
     backend = server.create_backend_app("wafv2")
     test_client = backend.test_client()
@@ -58,7 +68,7 @@ def test_create_web_acl():
     )
 
 
-@mock_wafv2
+@mock_aws
 def test_list_web_ac_ls():
     backend = server.create_backend_app("wafv2")
     test_client = backend.test_client()

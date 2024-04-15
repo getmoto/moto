@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import boto3
 
-from moto import mock_glue, mock_lakeformation, mock_s3, mock_sts
+from moto import mock_aws
 
 
 def lakeformation_aws_verified(func):
@@ -13,16 +13,13 @@ def lakeformation_aws_verified(func):
     Can be run against AWS at any time by setting:
       MOTO_TEST_ALLOW_AWS_REQUEST=true
 
-    If this environment variable is not set, the function runs in a `mock_lakeformation`/`mock_sts`/`mock_s3` context.
+    If this environment variable is not set, the function runs in a `mock_aws` context.
 
     Note that LakeFormation is not enabled by default - visit the AWS Console to permit access to the user who executes these tests.
     """
 
     @wraps(func)
     def pagination_wrapper():
-        glue = boto3.client("glue", region_name="eu-west-2")
-        lf = boto3.client("lakeformation", region_name="eu-west-2")
-        s3 = boto3.client("s3", region_name="us-east-1")
         bucket_name = str(uuid4())
 
         allow_aws_request = (
@@ -30,13 +27,17 @@ def lakeformation_aws_verified(func):
         )
 
         if allow_aws_request:
-            resp = create_glue_infra_and_test(bucket_name, s3, glue, lf)
+            resp = create_glue_infra_and_test(bucket_name)
         else:
-            with mock_glue(), mock_lakeformation(), mock_s3(), mock_sts():
-                resp = create_glue_infra_and_test(bucket_name, s3, glue, lf)
+            with mock_aws():
+                resp = create_glue_infra_and_test(bucket_name)
         return resp
 
-    def create_glue_infra_and_test(bucket_name, s3, glue, lf):
+    def create_glue_infra_and_test(bucket_name):
+        glue = boto3.client("glue", region_name="eu-west-2")
+        lf = boto3.client("lakeformation", region_name="eu-west-2")
+        s3 = boto3.client("s3", region_name="us-east-1")
+
         s3.create_bucket(Bucket=bucket_name)
         s3.put_bucket_tagging(
             Bucket=bucket_name,

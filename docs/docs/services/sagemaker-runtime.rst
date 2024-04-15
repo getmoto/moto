@@ -14,17 +14,6 @@ sagemaker-runtime
 
 .. autoclass:: moto.sagemakerruntime.models.SageMakerRuntimeBackend
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_sagemakerruntime
-            def test_sagemakerruntime_behaviour:
-                boto3.client("sagemaker-runtime")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] invoke_endpoint
@@ -53,7 +42,7 @@ sagemaker-runtime
                 ],
             }
             requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/sagemaker/endpoint-results",
+                "http://motoapi.amazonaws.com/moto-api/static/sagemaker/endpoint-results",
                 json=expected_results,
             )
 
@@ -62,6 +51,6 @@ sagemaker-runtime
 
         
 
-- [ ] invoke_endpoint_async
+- [X] invoke_endpoint_async
 - [ ] invoke_endpoint_with_response_stream
 

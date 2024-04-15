@@ -11,7 +11,8 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from moto.core import BackendDict, BaseBackend, BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
@@ -57,6 +58,11 @@ class FakeThing(BaseModel):
     def matches(self, query_string: str) -> bool:
         if query_string == "*":
             return True
+        if query_string.startswith("thingTypeName:"):
+            if not self.thing_type:
+                return False
+            qs = query_string[14:].replace("*", ".*").replace("?", ".")
+            return re.search(f"^{qs}$", self.thing_type.thing_type_name) is not None
         if query_string.startswith("thingName:"):
             qs = query_string[10:].replace("*", ".*").replace("?", ".")
             return re.search(f"^{qs}$", self.thing_name) is not None
@@ -624,12 +630,12 @@ class IoTBackend(BaseBackend):
         self.ca_certificates: Dict[str, FakeCaCertificate] = OrderedDict()
         self.certificates: Dict[str, FakeCertificate] = OrderedDict()
         self.policies: Dict[str, FakePolicy] = OrderedDict()
-        self.principal_policies: Dict[
-            Tuple[str, str], Tuple[str, FakePolicy]
-        ] = OrderedDict()
-        self.principal_things: Dict[
-            Tuple[str, str], Tuple[str, FakeThing]
-        ] = OrderedDict()
+        self.principal_policies: Dict[Tuple[str, str], Tuple[str, FakePolicy]] = (
+            OrderedDict()
+        )
+        self.principal_things: Dict[Tuple[str, str], Tuple[str, FakeThing]] = (
+            OrderedDict()
+        )
         self.rules: Dict[str, FakeRule] = OrderedDict()
         self.endpoint: Optional[FakeEndpoint] = None
         self.domain_configurations: Dict[str, FakeDomainConfiguration] = OrderedDict()
@@ -1458,8 +1464,11 @@ class IoTBackend(BaseBackend):
             attributes = attribute_payload["attributes"]
             if attributes:
                 # might not exist yet, for example when the thing group was created without attributes
-                current_attribute_payload = thing_group.thing_group_properties.setdefault(
-                    "attributePayload", {"attributes": {}}  # type: ignore
+                current_attribute_payload = (
+                    thing_group.thing_group_properties.setdefault(
+                        "attributePayload",
+                        {"attributes": {}},  # type: ignore
+                    )
                 )
                 if not do_merge:
                     current_attribute_payload["attributes"] = attributes  # type: ignore
@@ -1468,9 +1477,9 @@ class IoTBackend(BaseBackend):
         elif attribute_payload is not None and "attributes" not in attribute_payload:
             thing_group.attributes = {}  # type: ignore
         if "thingGroupDescription" in thing_group_properties:
-            thing_group.thing_group_properties[
-                "thingGroupDescription"
-            ] = thing_group_properties["thingGroupDescription"]
+            thing_group.thing_group_properties["thingGroupDescription"] = (
+                thing_group_properties["thingGroupDescription"]
+            )
         thing_group.version = thing_group.version + 1
         return thing_group.version
 
@@ -1792,6 +1801,9 @@ class IoTBackend(BaseBackend):
         return self.rules[rule_name].to_get_dict()
 
     def create_topic_rule(self, rule_name: str, sql: str, **kwargs: Any) -> None:
+        if not re.match("^[a-zA-Z0-9_]+$", rule_name):
+            msg = f"1 validation error detected: Value '{rule_name}' at 'ruleName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_]+$"
+            raise InvalidRequestException(msg)
         if rule_name in self.rules:
             raise ResourceAlreadyExistsException(
                 "Rule with given name already exists", "", self.rules[rule_name].arn

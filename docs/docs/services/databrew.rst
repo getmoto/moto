@@ -12,17 +12,6 @@
 databrew
 ========
 
-|start-h3| Example usage |end-h3|
-
-.. sourcecode:: python
-
-            @mock_databrew
-            def test_databrew_behaviour:
-                boto3.client("databrew")
-                ...
-
-
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_delete_recipe_version

@@ -1,4 +1,5 @@
 """inspector2 base URL and path."""
+
 from .responses import Inspector2Response
 
 url_bases = [
@@ -24,6 +25,6 @@ url_paths = {
     "{0}/organizationconfiguration/describe$": Inspector2Response.dispatch,
     "{0}/organizationconfiguration/update$": Inspector2Response.dispatch,
     "{0}/tags/(?P<resource_arn>.+)$": Inspector2Response.method_dispatch(
-        Inspector2Response.tags  # type: ignore
+        Inspector2Response.tags
     ),
 }

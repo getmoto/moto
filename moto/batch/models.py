@@ -11,7 +11,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import dateutil.parser
 
 from moto import settings
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import EC2Backend, ec2_backends
@@ -767,9 +768,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 environment = kwargs["environment"]
                 environment["MOTO_HOST"] = settings.moto_server_host()
                 environment["MOTO_PORT"] = settings.moto_server_port()
-                environment[
-                    "MOTO_HTTP_ENDPOINT"
-                ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                environment["MOTO_HTTP_ENDPOINT"] = (
+                    f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                )
 
                 if network_name:
                     kwargs["network"] = network_name
@@ -1218,6 +1219,12 @@ class BatchBackend(BaseBackend):
                 f"A compute environment already exists with the name {compute_environment_name}"
             )
 
+        if not service_role:
+            raise ClientException(
+                f"Error executing request, Exception : ServiceRole is required.,"
+                f" RequestId: {mock_random.uuid4()}"
+            )
+
         # Look for IAM role
         try:
             self.iam_backend.get_role_by_arn(service_role)
@@ -1270,7 +1277,7 @@ class BatchBackend(BaseBackend):
             subnet_cycle = cycle(compute_resources["subnets"])
 
             for instance_type in needed_instance_types:
-                reservation = self.ec2_backend.add_instances(
+                reservation = self.ec2_backend.run_instances(
                     image_id="ami-03cf127a",  # Todo import AMIs
                     count=1,
                     user_data=None,

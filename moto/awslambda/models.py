@@ -17,13 +17,14 @@ from collections import defaultdict
 from datetime import datetime
 from gzip import GzipFile
 from sys import platform
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, TypedDict, Union
 
 import requests.exceptions
 
 from moto import settings
 from moto.awslambda.policy import Policy
-from moto.core import BackendDict, BaseBackend, BaseModel, CloudFormationModel
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import iso_8601_datetime_with_nanoseconds, unix_time_millis, utcnow
 from moto.dynamodb import dynamodb_backends
@@ -32,18 +33,19 @@ from moto.ecr.exceptions import ImageNotFoundException
 from moto.ecr.models import ecr_backends
 from moto.iam.exceptions import IAMNotFoundException
 from moto.iam.models import iam_backends
+from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.logs.models import logs_backends
 from moto.moto_api._internal import mock_random as random
 from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
-from moto.sqs import sqs_backends
+from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
 from moto.utilities.utils import load_resource_as_bytes
 
 from .exceptions import (
     ConflictException,
     CrossAccountNotAllowed,
-    FunctionUrlConfigNotFound,
+    GenericResourcNotFound,
     InvalidParameterValueException,
     InvalidRoleFormat,
     UnknownAliasException,
@@ -62,6 +64,11 @@ from .utils import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class LayerDataType(TypedDict):
+    Arn: str
+    CodeSize: int
 
 
 def zip2tar(zip_bytes: bytes) -> io.BytesIO:
@@ -144,7 +151,7 @@ class _DockerDataVolumeContext:
             try:
                 with zip2tar(self._lambda_func.code_bytes) as stream:
                     container.put_archive(settings.LAMBDA_DATA_DIR, stream)
-                if settings.test_proxy_mode():
+                if settings.is_test_proxy_mode():
                     ca_cert = load_resource_as_bytes(__name__, "../moto_proxy/ca.crt")
                     with file2tar(ca_cert, "ca.crt") as cert_stream:
                         container.put_archive(settings.LAMBDA_DATA_DIR, cert_stream)
@@ -176,7 +183,7 @@ class _DockerDataVolumeLayerContext:
 
     def __init__(self, lambda_func: "LambdaFunction"):
         self._lambda_func = lambda_func
-        self._layers: List[Dict[str, str]] = self._lambda_func.layers
+        self._layers: List[LayerDataType] = self._lambda_func.layers
         self._vol_ref: Optional[_VolumeRefCount] = None
 
     @property
@@ -623,9 +630,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.package_type = spec.get("PackageType", "Zip")
         self.publish = spec.get("Publish", False)  # this is ignored currently
         self.timeout = spec.get("Timeout", 3)
-        self.layers: List[Dict[str, str]] = self._get_layers_data(
-            spec.get("Layers", [])
-        )
+        self.layers: List[LayerDataType] = self._get_layers_data(spec.get("Layers", []))
         self.signing_profile_version_arn = spec.get("SigningProfileVersionArn")
         self.signing_job_arn = spec.get("SigningJobArn")
         self.code_signing_config_arn = spec.get("CodeSigningConfigArn")
@@ -720,7 +725,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     def __repr__(self) -> str:
         return json.dumps(self.get_configuration())
 
-    def _get_layers_data(self, layers_versions_arns: List[str]) -> List[Dict[str, str]]:
+    def _get_layers_data(self, layers_versions_arns: List[str]) -> List[LayerDataType]:
         backend = lambda_backends[self.account_id][self.region]
         layer_versions = [
             backend.layers_versions_by_arn(layer_version)
@@ -730,9 +735,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             raise UnknownLayerVersionException(layers_versions_arns)
         # The `if lv` part is not necessary - we know there are no None's, because of the `all()`-check earlier
         # But MyPy does not seem to understand this
-        # The `type: ignore` is because `code_size` is an int, and we're returning Dict[str, str]
-        # We should convert the return-type into a TypedDict the moment we drop Py3.7 support
-        return [{"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv]  # type: ignore
+        return [
+            {"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv
+        ]
 
     def get_code_signing_config(self) -> Dict[str, Any]:
         return {
@@ -965,7 +970,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             env_vars["MOTO_PORT"] = moto_port
             env_vars["MOTO_HTTP_ENDPOINT"] = f'{env_vars["MOTO_HOST"]}:{moto_port}'
 
-            if settings.test_proxy_mode():
+            if settings.is_test_proxy_mode():
                 env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
                 env_vars["AWS_CA_BUNDLE"] = "/var/task/ca.crt"
 
@@ -995,6 +1000,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         run_kwargs["extra_hosts"] = {
                             "host.docker.internal": "host-gateway"
                         }
+
+                    # Change entry point if requested
+                    if self.image_config.entry_point:
+                        run_kwargs["entrypoint"] = self.image_config.entry_point
 
                     # The requested image can be found in one of a few repos:
                     # - User-provided repo
@@ -1207,7 +1216,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def get_url_config(self) -> "FunctionUrlConfig":
         if not self.url_config:
-            raise FunctionUrlConfigNotFound()
+            raise GenericResourcNotFound()
         return self.url_config
 
     def update_url_config(self, config: Dict[str, Any]) -> "FunctionUrlConfig":
@@ -1254,7 +1263,7 @@ class EventSourceMapping(CloudFormationModel):
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
 
-        self.function_arn = spec["FunctionArn"]
+        self.function_arn: str = spec["FunctionArn"]
         self.uuid = str(random.uuid4())
         self.last_modified = time.mktime(utcnow().timetuple())
 
@@ -1310,9 +1319,10 @@ class EventSourceMapping(CloudFormationModel):
             "EventSourceArn": self.event_source_arn,
             "FunctionArn": self.function_arn,
             "LastModified": self.last_modified,
-            "LastProcessingResult": "",
+            "LastProcessingResult": None,
             "State": "Enabled" if self.enabled else "Disabled",
             "StateTransitionReason": "User initiated",
+            "StartingPosition": self.starting_position,
         }
 
     def delete(self, account_id: str, region_name: str) -> None:
@@ -1407,9 +1417,9 @@ class LambdaStorage(object):
     def __init__(self, region_name: str, account_id: str):
         # Format 'func_name' {'versions': []}
         self._functions: Dict[str, Any] = {}
-        self._arns: weakref.WeakValueDictionary[
-            str, LambdaFunction
-        ] = weakref.WeakValueDictionary()
+        self._arns: weakref.WeakValueDictionary[str, LambdaFunction] = (
+            weakref.WeakValueDictionary()
+        )
         self.region_name = region_name
         self.account_id = account_id
 
@@ -1747,9 +1757,9 @@ class LambdaStorage(object):
 class LayerStorage(object):
     def __init__(self) -> None:
         self._layers: Dict[str, Layer] = {}
-        self._arns: weakref.WeakValueDictionary[
-            str, LambdaFunction
-        ] = weakref.WeakValueDictionary()
+        self._arns: weakref.WeakValueDictionary[str, LambdaFunction] = (
+            weakref.WeakValueDictionary()
+        )
 
     def _find_layer_by_name_or_arn(self, name_or_arn: str) -> Layer:
         if name_or_arn in self._layers:
@@ -1804,7 +1814,9 @@ class LambdaBackend(BaseBackend):
     Implementation of the AWS Lambda endpoint.
     Invoking functions is supported - they will run inside a Docker container, emulating the real AWS behaviour as closely as possible.
 
-    It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer.
+    .. warning:: When invoking a function using the decorators, the created Docker container cannot reach Moto (or it's in-memory state). Any AWS SDK-requests within your Lambda will try to connect to AWS instead.
+
+    It is possible to connect from AWS Lambdas to other services, as long as you are running MotoProxy or the MotoServer in a Docker container.
 
     When running the MotoProxy, calls to other AWS services are automatically proxied.
 
@@ -1865,15 +1877,13 @@ class LambdaBackend(BaseBackend):
 
         MOTO_LAMBDA_DATA_DIR=/tmp/data
 
-    .. note:: When using the decorators, a Docker container cannot reach Moto, as the Docker-container loses all mock-context. Any boto3-invocations used within your Lambda will try to connect to AWS.
-
     _-_-_-_
 
     If you want to mock the Lambda-containers invocation without starting a Docker-container, use the simple decorator:
 
     .. sourcecode:: python
 
-        @mock_lambda_simple
+        @mock_aws(config={"lambda": {"use_docker": False}})
 
     """
 
@@ -1882,15 +1892,6 @@ class LambdaBackend(BaseBackend):
         self._lambdas = LambdaStorage(region_name=region_name, account_id=account_id)
         self._event_source_mappings: Dict[str, EventSourceMapping] = {}
         self._layers = LayerStorage()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "lambda"
-        )
 
     def create_alias(
         self,
@@ -2033,6 +2034,18 @@ class LambdaBackend(BaseBackend):
                 table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
+
+        kinesis_backend: KinesisBackend = kinesis_backends[self.account_id][
+            self.region_name
+        ]
+        for stream in kinesis_backend.streams.values():
+            if stream.arn == spec["EventSourceArn"]:
+                spec.update({"FunctionArn": func.function_arn})
+                esm = EventSourceMapping(spec)
+                self._event_source_mappings[esm.uuid] = esm
+                stream.lambda_event_source_mappings[esm.event_source_arn] = esm
+                return esm
+
         raise RESTError("ResourceNotFoundException", "Invalid EventSourceArn")
 
     def publish_layer_version(self, spec: Dict[str, Any]) -> LayerVersion:
@@ -2134,14 +2147,13 @@ class LambdaBackend(BaseBackend):
     def send_sqs_batch(self, function_arn: str, messages: Any, queue_arn: str) -> bool:
         success = True
         for message in messages:
-            func = self.get_function_by_arn(function_arn)
-            result = self._send_sqs_message(func, message, queue_arn)  # type: ignore[arg-type]
+            result = self._send_sqs_message(function_arn, message, queue_arn)
             if not result:
                 success = False
         return success
 
     def _send_sqs_message(
-        self, func: LambdaFunction, message: Any, queue_arn: str
+        self, function_arn: str, message: Any, queue_arn: str
     ) -> bool:
         event = {
             "Records": [
@@ -2174,8 +2186,48 @@ class LambdaBackend(BaseBackend):
 
         request_headers: Dict[str, Any] = {}
         response_headers: Dict[str, Any] = {}
-        func.invoke(json.dumps(event), request_headers, response_headers)
+        self.invoke(
+            function_name=function_arn,
+            qualifier=None,
+            body=json.dumps(event),
+            headers=request_headers,
+            response_headers=response_headers,
+        )
         return "x-amz-function-error" not in response_headers
+
+    def send_kinesis_message(
+        self,
+        function_name: str,
+        kinesis_stream: str,
+        kinesis_partition_key: str,
+        kinesis_sequence_number: str,
+        kinesis_data: str,
+        kinesis_shard_id: str,
+    ) -> None:
+        func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
+            function_name, qualifier=None
+        )
+        event = {
+            "Records": [
+                {
+                    "kinesis": {
+                        "kinesisSchemaVersion": "1.0",
+                        "partitionKey": kinesis_partition_key,
+                        "sequenceNumber": kinesis_sequence_number,
+                        "data": kinesis_data,
+                        "approximateArrivalTimestamp": round(time.time(), 3),
+                    },
+                    "eventSource": "aws:kinesis",
+                    "eventVersion": "1.0",
+                    "eventID": f"{kinesis_shard_id}:{kinesis_sequence_number}",
+                    "eventName": "aws:kinesis:record",
+                    "invokeIdentityArn": func.role,
+                    "awsRegion": self.region_name,
+                    "eventSourceARN": kinesis_stream,
+                }
+            ]
+        }
+        func.invoke(json.dumps(event), {}, {})
 
     def send_sns_message(
         self,
@@ -2277,13 +2329,13 @@ class LambdaBackend(BaseBackend):
         self, function_name: str, qualifier: str, raw: str
     ) -> Dict[str, Any]:
         fn = self.get_function(function_name, qualifier)
-        return fn.policy.add_statement(raw, qualifier)  # type: ignore[union-attr]
+        return fn.policy.add_statement(raw, qualifier)
 
     def remove_permission(
         self, function_name: str, sid: str, revision: str = ""
     ) -> None:
         fn = self.get_function(function_name)
-        fn.policy.del_statement(sid, revision)  # type: ignore[union-attr]
+        fn.policy.del_statement(sid, revision)
 
     def get_code_signing_config(self, function_name: str) -> Dict[str, Any]:
         fn = self.get_function(function_name)
@@ -2293,7 +2345,7 @@ class LambdaBackend(BaseBackend):
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name, qualifier
         )
-        return fn.policy.wire_format()  # type: ignore[union-attr]
+        return fn.policy.wire_format()
 
     def update_function_code(
         self, function_name: str, qualifier: str, body: Dict[str, Any]
@@ -2316,13 +2368,33 @@ class LambdaBackend(BaseBackend):
     def invoke(
         self,
         function_name: str,
-        qualifier: str,
+        qualifier: Optional[str],
         body: Any,
         headers: Any,
         response_headers: Any,
     ) -> Optional[Union[str, bytes]]:
         """
         Invoking a Function with PackageType=Image is not yet supported.
+
+        Invoking a Funcation against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `invoke` will take the first result from that queue.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/lambda-simple/response`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            expected_results = {"results": ["test", "test 2"], "region": "us-east-1"}
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/lambda-simple/response",
+                json=expected_results
+            )
+            assert resp.status_code == 201
+
+            client = boto3.client("lambda", region_name="us-east-1")
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test"
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test2"
         """
         fn = self.get_function(function_name, qualifier)
         payload = fn.invoke(body, headers, response_headers)

@@ -1,16 +1,17 @@
 """Unit tests for rekognition-supported APIs."""
+
 import random
 import string
 
 import boto3
 
-from moto import mock_rekognition
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_rekognition
+@mock_aws
 def test_start_face_search():
     client = boto3.client("rekognition", region_name="ap-southeast-1")
     collection_id = "collection_id"
@@ -27,7 +28,7 @@ def test_start_face_search():
     assert "JobId" in resp
 
 
-@mock_rekognition
+@mock_aws
 def test_start_text_detection():
     client = boto3.client("rekognition", region_name="ap-southeast-1")
     video = {
@@ -43,7 +44,7 @@ def test_start_text_detection():
     assert "JobId" in resp
 
 
-@mock_rekognition
+@mock_aws
 def test_compare_faces():
     client = boto3.client("rekognition", region_name="ap-southeast-1")
     sourceimage = {
@@ -61,7 +62,7 @@ def test_compare_faces():
     assert "FaceMatches" in resp
 
 
-@mock_rekognition
+@mock_aws
 def test_detect_labels():
     client = boto3.client("rekognition", region_name="ap-southeast-1")
 
@@ -73,7 +74,7 @@ def test_detect_labels():
     assert "Labels" in resp
 
 
-@mock_rekognition
+@mock_aws
 def test_detect_text():
     client = boto3.client("rekognition", region_name="ap-southeast-1")
 
@@ -85,7 +86,7 @@ def test_detect_text():
     assert "TextDetections" in resp
 
 
-@mock_rekognition
+@mock_aws
 def test_get_face_search():
     client = boto3.client("rekognition", region_name="us-east-2")
     job_id = "".join(
@@ -102,7 +103,7 @@ def test_get_face_search():
     )
 
 
-@mock_rekognition
+@mock_aws
 def test_get_text_detection():
     client = boto3.client("rekognition", region_name="us-east-2")
     job_id = "".join(
