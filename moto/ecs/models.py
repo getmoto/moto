@@ -703,7 +703,12 @@ class Service(BaseObject, CloudFormationModel):
             )
         else:
             return ecs_backend.update_service(
-                cluster_name, service_name, task_definition, desired_count
+                {
+                    "cluster": cluster_name,
+                    "service": service_name,
+                    "task_definition": task_definition,
+                    "desired_count": desired_count,
+                }
             )
 
     @classmethod
@@ -1677,25 +1682,18 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return result, failures
 
-    def update_service(
-        self,
-        # cluster_str: str,
-        # service_str: str,
-        # task_definition_str: str,
-        service_properties: Dict[str, Any]
-    ) -> Service:
-
-        cluster = self._get_cluster(service_properties["cluster"])
-
+    def update_service(self, service_properties: Dict[str, Any]) -> Service:
+        cluster_str = service_properties.pop("cluster", "default")
+        task_definition_str = service_properties.pop("task_definition", None)
+        cluster = self._get_cluster(cluster_str)
         service_name = service_properties.pop("service").split("/")[-1]
         cluster_service_pair = f"{cluster.name}:{service_name}"
+
         if cluster_service_pair in self.services:
             current_service = self.services[cluster_service_pair]
-
-            for k, v in service_properties.items():
-                if v is not None:
-                    current_service.__setattr__(k, v)
-            task_definition_str = service_properties.get("task_definition")
+            for prop_name, prop_val in service_properties.items():
+                if prop_val is not None:
+                    current_service.__setattr__(prop_name, prop_val)
             if task_definition_str:
                 self.describe_task_definition(task_definition_str)
                 current_service.task_definition = task_definition_str

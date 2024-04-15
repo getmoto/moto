@@ -3650,6 +3650,57 @@ def test_list_tasks_with_filters():
     assert len(resp["taskArns"]) == 1
 
 
+@mock_aws
+def test_remove_tg():
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster = "mock-cluster"
+    service = "mock-service"
+
+    # Create cluster
+    ecs_client.create_cluster(clusterName=cluster)
+
+    # Register mock service with load balancers
+    ecs_client.create_service(
+        cluster=cluster,
+        serviceName=service,
+        loadBalancers=[
+            {
+                "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-http",
+                "loadBalancerName": "mock-service1",
+                "containerName": "mock-container1",
+                "containerPort": 80,
+            },
+            {
+                "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-https",
+                "loadBalancerName": "mock-service2",
+                "containerName": "mock-container2",
+                "containerPort": 443,
+            },
+        ],
+    )
+
+    # Remove HTTP target group
+    ecs_client.update_service(
+        cluster="arn:aws:ecs:us-east-1:123456789012:cluster/" + cluster,
+        service=service,
+        loadBalancers=[
+            {
+                "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-https",
+                "loadBalancerName": "mock-service",
+                "containerName": "mock-container",
+                "containerPort": 443,
+            },
+        ],
+    )
+
+    # Verify load balancers after removal
+    response = ecs_client.describe_services(cluster=cluster, services=[service])
+    load_balancers = response["services"][0]["loadBalancers"]
+    assert len(load_balancers) == 1
+    assert load_balancers[0]["containerPort"] == 443
+    assert load_balancers[0]["loadBalancerName"] == "mock-service"
+
+
 def setup_ecs(client, ec2):
     """test helper"""
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
