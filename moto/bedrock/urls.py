@@ -1,4 +1,5 @@
 """bedrock base URL and path."""
+
 from .responses import BedrockResponse
 
 url_bases = [

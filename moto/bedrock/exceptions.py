@@ -1,4 +1,5 @@
 """Exceptions raised by the bedrock service."""
+
 from moto.core.exceptions import JsonRESTError
 
 # Bedrock.Client.exceptions.ResourceNotFoundException

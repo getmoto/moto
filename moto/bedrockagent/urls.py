@@ -1,4 +1,5 @@
 """bedrockagent base URL and path."""
+
 from .responses import AgentsforBedrockResponse
 
 url_bases = [
