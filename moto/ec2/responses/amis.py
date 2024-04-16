@@ -61,7 +61,7 @@ class AmisResponse(EC2BaseResponse):
 
         # only valid attributes as per
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_image_attribute.html
-        valid_atrributes_list = {
+        valid_attributes_list = {
             "description": "description",
             "kernel": "kernel_id",
             "ramdisk": "ramdisk",
@@ -75,7 +75,7 @@ class AmisResponse(EC2BaseResponse):
             "lastLaunchedTime": "lld",
             "imdsSupport": "imds",
         }
-        if attribute_name not in valid_atrributes_list:
+        if attribute_name not in valid_attributes_list:
             raise InvalidRequest
         elif attribute_name == "blockDeviceMapping":
             # replicate real aws behaviour and throw and error
@@ -86,11 +86,11 @@ class AmisResponse(EC2BaseResponse):
         launch_permissions = None
         if attribute_name == "launchPermission":
             launch_permissions = self.ec2_backend.describe_image_attribute(
-                ami_id, valid_atrributes_list[attribute_name]
+                ami_id, valid_attributes_list[attribute_name]
             )
         else:
             attribute_value = self.ec2_backend.describe_image_attribute(
-                ami_id, valid_atrributes_list[attribute_name]
+                ami_id, valid_attributes_list[attribute_name]
             )
 
         template = self.response_template(DESCRIBE_IMAGE_ATTRIBUTES_RESPONSE)

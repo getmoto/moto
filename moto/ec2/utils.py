@@ -431,6 +431,7 @@ filter_dict_attribute_mapping = {
     "subnet-id": "subnet_id",
     "dns-name": "public_dns",
     "key-name": "key_name",
+    "product-code": "product_codes",
 }
 
 
