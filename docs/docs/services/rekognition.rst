@@ -58,7 +58,6 @@ rekognition
         
 
 - [ ] get_label_detection
-- [ ] get_media_analysis_job
 - [ ] get_person_tracking
 - [ ] get_segment_detection
 - [X] get_text_detection
@@ -71,7 +70,6 @@ rekognition
 - [ ] list_dataset_entries
 - [ ] list_dataset_labels
 - [ ] list_faces
-- [ ] list_media_analysis_jobs
 - [ ] list_project_policies
 - [ ] list_stream_processors
 - [ ] list_tags_for_resource
@@ -87,7 +85,6 @@ rekognition
 - [ ] start_face_detection
 - [X] start_face_search
 - [ ] start_label_detection
-- [ ] start_media_analysis_job
 - [ ] start_person_tracking
 - [ ] start_project_version
 - [ ] start_segment_detection

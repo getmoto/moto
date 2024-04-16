@@ -31,7 +31,6 @@ wafv2
         The following parameters are not yet implemented: CustomResponseBodies, CaptchaConfig
         
 
-- [ ] delete_api_key
 - [ ] delete_firewall_manager_rule_groups
 - [ ] delete_ip_set
 - [ ] delete_logging_configuration

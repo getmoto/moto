@@ -61,9 +61,7 @@ emr
 - [ ] remove_managed_scaling_policy
 - [X] remove_tags
 - [X] run_job_flow
-- [ ] set_keep_job_flow_alive_when_no_steps
 - [X] set_termination_protection
-- [ ] set_unhealthy_node_replacement
 - [X] set_visible_to_all_users
 - [ ] start_notebook_execution
 - [ ] stop_notebook_execution

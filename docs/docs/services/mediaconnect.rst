@@ -29,7 +29,6 @@ mediaconnect
 - [ ] deregister_gateway_instance
 - [ ] describe_bridge
 - [X] describe_flow
-- [ ] describe_flow_source_metadata
 - [ ] describe_gateway
 - [ ] describe_gateway_instance
 - [ ] describe_offering

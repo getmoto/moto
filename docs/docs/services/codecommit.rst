@@ -91,6 +91,5 @@ codecommit
 - [ ] update_pull_request_status
 - [ ] update_pull_request_title
 - [ ] update_repository_description
-- [ ] update_repository_encryption_key
 - [ ] update_repository_name
 

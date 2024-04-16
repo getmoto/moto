@@ -18,7 +18,6 @@ workspaces
 
 - [ ] associate_connection_alias
 - [ ] associate_ip_groups
-- [ ] associate_workspace_application
 - [ ] authorize_ip_rules
 - [ ] copy_workspace_image
 - [ ] create_connect_client_add_in
@@ -37,24 +36,18 @@ workspaces
 - [ ] delete_tags
 - [ ] delete_workspace_bundle
 - [ ] delete_workspace_image
-- [ ] deploy_workspace_applications
 - [X] deregister_workspace_directory
   Deregister Workspace Directory with the matching ID.
 
 - [ ] describe_account
 - [ ] describe_account_modifications
-- [ ] describe_application_associations
-- [ ] describe_applications
-- [ ] describe_bundle_associations
 - [ ] describe_client_branding
 - [X] describe_client_properties
 - [ ] describe_connect_client_add_ins
 - [ ] describe_connection_alias_permissions
 - [ ] describe_connection_aliases
-- [ ] describe_image_associations
 - [ ] describe_ip_groups
 - [X] describe_tags
-- [ ] describe_workspace_associations
 - [ ] describe_workspace_bundles
 - [X] describe_workspace_directories
   Return info on all directories or directories with matching IDs.
@@ -66,7 +59,6 @@ workspaces
 - [ ] describe_workspaces_connection_status
 - [ ] disassociate_connection_alias
 - [ ] disassociate_ip_groups
-- [ ] disassociate_workspace_application
 - [ ] import_client_branding
 - [ ] import_workspace_image
 - [ ] list_available_management_cidr_ranges

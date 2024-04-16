@@ -21,16 +21,11 @@ lakeformation
 - [ ] cancel_transaction
 - [ ] commit_transaction
 - [ ] create_data_cells_filter
-- [ ] create_lake_formation_identity_center_configuration
-- [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
 - [ ] delete_data_cells_filter
-- [ ] delete_lake_formation_identity_center_configuration
-- [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
 - [ ] delete_objects_on_cancel
 - [X] deregister_resource
-- [ ] describe_lake_formation_identity_center_configuration
 - [X] describe_resource
 - [ ] describe_transaction
 - [ ] extend_transaction
@@ -52,7 +47,6 @@ lakeformation
         This currently just returns an empty list, as the corresponding Create is not yet implemented
         
 
-- [ ] list_lake_formation_opt_ins
 - [X] list_lf_tags
 - [X] list_permissions
   
@@ -71,7 +65,6 @@ lakeformation
 - [ ] start_query_planning
 - [ ] start_transaction
 - [ ] update_data_cells_filter
-- [ ] update_lake_formation_identity_center_configuration
 - [X] update_lf_tag
 - [ ] update_resource
 - [ ] update_table_objects

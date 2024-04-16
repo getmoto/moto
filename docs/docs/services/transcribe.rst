@@ -22,7 +22,6 @@ transcribe
 - [ ] delete_call_analytics_category
 - [ ] delete_call_analytics_job
 - [ ] delete_language_model
-- [ ] delete_medical_scribe_job
 - [X] delete_medical_transcription_job
 - [X] delete_medical_vocabulary
 - [X] delete_transcription_job
@@ -31,7 +30,6 @@ transcribe
 - [ ] describe_language_model
 - [ ] get_call_analytics_category
 - [ ] get_call_analytics_job
-- [ ] get_medical_scribe_job
 - [X] get_medical_transcription_job
 - [X] get_medical_vocabulary
 - [X] get_transcription_job
@@ -40,7 +38,6 @@ transcribe
 - [ ] list_call_analytics_categories
 - [ ] list_call_analytics_jobs
 - [ ] list_language_models
-- [ ] list_medical_scribe_jobs
 - [X] list_medical_transcription_jobs
 - [X] list_medical_vocabularies
 - [ ] list_tags_for_resource
@@ -48,7 +45,6 @@ transcribe
 - [X] list_vocabularies
 - [ ] list_vocabulary_filters
 - [ ] start_call_analytics_job
-- [ ] start_medical_scribe_job
 - [X] start_medical_transcription_job
 - [X] start_transcription_job
 - [ ] tag_resource
