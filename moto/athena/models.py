@@ -96,7 +96,7 @@ class Execution(BaseModel):
         self.start_time = time.time()
         self.status = "SUCCEEDED"
 
-        if "OutputLocation" in self.config:
+        if self.config is not None and "OutputLocation" in self.config:
             if not self.config["OutputLocation"].endswith("/"):
                 self.config["OutputLocation"] += "/"
             self.config["OutputLocation"] += f"{self.id}.csv"
