@@ -64,12 +64,12 @@ def main():
                 if region == "us-west-1" and location_type == "availability-zone":
                     zones = set([i["Location"] for i in instances])
                     if zones == {"us-west-1b", "us-west-1c"}:
-                        for i in instances:
-                            if i["Location"] == "us-west-1b":
-                                i["Location"] = "us-west-1a"
-                        for i in instances:
-                            if i["Location"] == "us-west-1c":
-                                i["Location"] = "us-west-1b"
+                        # for i in instances:
+                        #     if i["Location"] == "us-west-1b":
+                        #         i["Location"] = "us-west-1a"
+                        # for i in instances:
+                        #     if i["Location"] == "us-west-1c":
+                        #         i["Location"] = "us-west-1b"
 
                 print("Writing data to {0}".format(dest))
                 with open(dest, "w+") as open_file:
