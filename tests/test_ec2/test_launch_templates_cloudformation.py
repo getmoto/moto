@@ -15,7 +15,7 @@ def test_asg_with_latest_launch_template_version():
     autoscaling_client = boto3.client("autoscaling", region_name="us-west-1")
 
     subnet1 = ec2.create_subnet(
-        CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1a"
+        CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1c"
     )
 
     subnet2 = ec2.create_subnet(
@@ -133,7 +133,7 @@ def test_asg_with_default_launch_template_version():
     autoscaling_client = boto3.client("autoscaling", region_name="us-west-1")
 
     subnet1 = ec2.create_subnet(
-        CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1a"
+        CidrBlock="10.0.1.0/24", VpcId=vpc.id, AvailabilityZone="us-west-1c"
     )
 
     subnet2 = ec2.create_subnet(

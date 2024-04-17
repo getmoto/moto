@@ -10,7 +10,7 @@ def fake_endpoint_services():
     return [
         {
             "AcceptanceRequired": False,
-            "AvailabilityZones": ["us-west-1a", "us-west-1b"],
+            "AvailabilityZones": ["us-west-1b", "us-west-1c"],
             "BaseEndpointDnsNames": ["access-analyzer.us-west-1.vpce.amazonaws.com"],
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
@@ -27,7 +27,7 @@ def fake_endpoint_services():
         },
         {
             "AcceptanceRequired": False,
-            "AvailabilityZones": ["us-west-1a", "us-west-1b"],
+            "AvailabilityZones": ["us-west-1b", "us-west-1c"],
             "BaseEndpointDnsNames": ["config.us-west-1.vpce.amazonaws.com"],
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
@@ -42,7 +42,7 @@ def fake_endpoint_services():
         },
         {
             "AcceptanceRequired": True,
-            "AvailabilityZones": ["us-west-1a", "us-west-1b"],
+            "AvailabilityZones": ["us-west-1b", "us-west-1c"],
             "BaseEndpointDnsNames": ["s3.us-west-1.amazonaws.com"],
             "ManagesVpcEndpoints": True,
             "Owner": "amazon",
@@ -54,7 +54,7 @@ def fake_endpoint_services():
         },
         {
             "AcceptanceRequired": False,
-            "AvailabilityZones": ["us-west-1a", "us-west-1b"],
+            "AvailabilityZones": ["us-west-1b", "us-west-1c"],
             "BaseEndpointDnsNames": ["s3.us-west-1.vpce.amazonaws.com"],
             "ManagesVpcEndpoints": False,
             "Owner": "amazon",
@@ -73,7 +73,7 @@ def fake_endpoint_services():
 def validate_s3_service_endpoint_gateway(details):
     """Validate response contains appropriate s3 Gateway service details."""
     assert details["AcceptanceRequired"] is True
-    assert details["AvailabilityZones"] == ["us-west-1a", "us-west-1b"]
+    assert details["AvailabilityZones"] == ["us-west-1b", "us-west-1c"]
     assert details["BaseEndpointDnsNames"] == ["s3.us-west-1.amazonaws.com"]
     assert details["ManagesVpcEndpoints"] is True
     assert details["Owner"] == "amazon"
@@ -87,7 +87,7 @@ def validate_s3_service_endpoint_gateway(details):
 def validate_s3_service_endpoint_interface(details):
     """Validate response contains appropriate s3 Gateway service details."""
     assert details["AcceptanceRequired"] is False
-    assert details["AvailabilityZones"] == ["us-west-1a", "us-west-1b"]
+    assert details["AvailabilityZones"] == ["us-west-1b", "us-west-1c"]
     assert details["BaseEndpointDnsNames"] == ["s3.us-west-1.vpce.amazonaws.com"]
     assert details["ManagesVpcEndpoints"] is False
     assert details["Owner"] == "amazon"

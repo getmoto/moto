@@ -548,7 +548,7 @@ def test_create_fleet_api_response():
         },
         "Overrides": [
             {
-                "AvailabilityZone": "us-west-1a",
+                "AvailabilityZone": "us-west-1b",
                 "InstanceRequirements": {
                     "AcceleratorCount": {
                         "Max": 10,

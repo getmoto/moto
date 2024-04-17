@@ -9,7 +9,7 @@ from moto import mock_aws
 def test_allocate_hosts():
     client = boto3.client("ec2", "us-west-1")
     resp = client.allocate_hosts(
-        AvailabilityZone="us-west-1a",
+        AvailabilityZone="us-west-1b",
         InstanceType="a1.small",
         HostRecovery="off",
         AutoPlacement="on",
@@ -22,7 +22,7 @@ def test_allocate_hosts():
 def test_describe_hosts_with_instancefamily():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
-        AvailabilityZone="us-west-1a", InstanceFamily="c5", Quantity=1
+        AvailabilityZone="us-west-1b", InstanceFamily="c5", Quantity=1
     )["HostIds"]
 
     host = client.describe_hosts(HostIds=host_ids)["Hosts"][0]
@@ -69,7 +69,7 @@ def test_describe_hosts_with_tags():
     assert host["Tags"] == [{"Key": tagkey, "Value": "v1"}]
 
     client.allocate_hosts(
-        AvailabilityZone="us-west-1a", InstanceType="b1.large", Quantity=1
+        AvailabilityZone="us-west-1b", InstanceType="b1.large", Quantity=1
     )
     hosts = client.describe_hosts(Filters=[{"Name": "tag-key", "Values": [tagkey]}])[
         "Hosts"
@@ -81,7 +81,7 @@ def test_describe_hosts_with_tags():
 def test_describe_hosts_using_filters():
     client = boto3.client("ec2", "us-west-1")
     host_id1 = client.allocate_hosts(
-        AvailabilityZone="us-west-1a", InstanceType="b1.large", Quantity=1
+        AvailabilityZone="us-west-1c", InstanceType="b1.large", Quantity=1
     )["HostIds"][0]
     host_id2 = client.allocate_hosts(
         AvailabilityZone="us-west-1b", InstanceType="b1.large", Quantity=1
@@ -113,7 +113,7 @@ def test_describe_hosts_using_filters():
 def test_modify_hosts():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
-        AvailabilityZone="us-west-1a", InstanceFamily="c5", Quantity=1
+        AvailabilityZone="us-west-1b", InstanceFamily="c5", Quantity=1
     )["HostIds"]
 
     client.modify_hosts(
@@ -135,7 +135,7 @@ def test_modify_hosts():
 def test_release_hosts():
     client = boto3.client("ec2", "us-west-1")
     host_ids = client.allocate_hosts(
-        AvailabilityZone="us-west-1a",
+        AvailabilityZone="us-west-1b",
         InstanceType="a1.small",
         HostRecovery="off",
         AutoPlacement="on",
@@ -154,7 +154,7 @@ def test_release_hosts():
 def test_add_tags_to_dedicated_hosts():
     client = boto3.client("ec2", "us-west-1")
     resp = client.allocate_hosts(
-        AvailabilityZone="us-west-1a", InstanceType="a1.small", Quantity=1
+        AvailabilityZone="us-west-1b", InstanceType="a1.small", Quantity=1
     )
     host_id = resp["HostIds"][0]
 

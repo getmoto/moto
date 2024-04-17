@@ -171,7 +171,7 @@ def test_create_auto_scaling_from_template_version__latest():
             "LaunchTemplateName": launch_template_name,
             "Version": "$Latest",
         },
-        AvailabilityZones=["us-west-1a"],
+        AvailabilityZones=["us-west-1b"],
     )
 
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
@@ -205,7 +205,7 @@ def test_create_auto_scaling_from_template_version__default():
             "LaunchTemplateName": launch_template_name,
             "Version": "$Default",
         },
-        AvailabilityZones=["us-west-1a"],
+        AvailabilityZones=["us-west-1b"],
     )
 
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[
@@ -231,7 +231,7 @@ def test_create_auto_scaling_from_template_version__no_version():
         MinSize=1,
         MaxSize=1,
         LaunchTemplate={"LaunchTemplateName": launch_template_name},
-        AvailabilityZones=["us-west-1a"],
+        AvailabilityZones=["us-west-1b"],
     )
 
     response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=["name"])[

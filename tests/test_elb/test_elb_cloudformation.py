@@ -16,7 +16,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
                 "Properties": {
                     "Instances": [{"Ref": "Ec2Instance1"}],
                     "LoadBalancerName": "test-elb",
-                    "AvailabilityZones": ["us-west-1a"],
+                    "AvailabilityZones": ["us-west-1b"],
                     "Listeners": [
                         {
                             "InstancePort": "80",
@@ -45,7 +45,7 @@ def test_stack_elb_integration_with_attached_ec2_instances():
     ec2_instance = reservations["Instances"][0]
 
     assert load_balancer["Instances"][0]["InstanceId"] == ec2_instance["InstanceId"]
-    assert load_balancer["AvailabilityZones"] == ["us-west-1a"]
+    assert load_balancer["AvailabilityZones"] == ["us-west-1b"]
 
 
 @mock_aws
@@ -101,7 +101,7 @@ def test_stack_elb_integration_with_update():
                 "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
                 "Properties": {
                     "LoadBalancerName": "test-elb",
-                    "AvailabilityZones": ["us-west-1a"],
+                    "AvailabilityZones": ["us-west-1b"],
                     "Listeners": [
                         {
                             "InstancePort": "80",
@@ -135,7 +135,7 @@ def test_stack_elb_integration_with_update():
     # then
     elb = boto3.client("elb", region_name="us-west-1")
     load_balancer = elb.describe_load_balancers()["LoadBalancerDescriptions"][0]
-    assert load_balancer["AvailabilityZones"] == ["us-west-1a"]
+    assert load_balancer["AvailabilityZones"] == ["us-west-1b"]
     assert load_balancer["Policies"]["OtherPolicies"] == ["My-SSLNegotiation-Policy"]
 
     # when

@@ -89,8 +89,8 @@ def test_create_elb_using_subnetmapping():
 
     lb = conn.describe_load_balancers()["LoadBalancers"][0]
     assert len(lb["AvailabilityZones"]) == 2
-    assert {"ZoneName": "us-west-1a", "SubnetId": subnet1.id} in lb["AvailabilityZones"]
-    assert {"ZoneName": "us-west-1b", "SubnetId": subnet2.id} in lb["AvailabilityZones"]
+    assert {"ZoneName": "us-west-1b", "SubnetId": subnet1.id} in lb["AvailabilityZones"]
+    assert {"ZoneName": "us-west-1c", "SubnetId": subnet2.id} in lb["AvailabilityZones"]
 
 
 @mock_aws
