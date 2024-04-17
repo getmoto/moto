@@ -3650,55 +3650,82 @@ def test_list_tasks_with_filters():
     assert len(resp["taskArns"]) == 1
 
 
+@pytest.mark.parametrize(
+    "update_params",
+    [
+        {
+            "loadBalancers": [
+                {
+                    "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-http",
+                    "loadBalancerName": "mock-service1",
+                    "containerName": "mock-container1",
+                    "containerPort": 80,
+                }
+            ]
+        },
+        {
+            "serviceRegistries": [
+                {
+                    "registryArn": "string",
+                    "port": 123,
+                    "containerName": "string",
+                    "containerPort": 123,
+                },
+                {
+                    "registryArn": "string2",
+                    "port": 1234,
+                    "containerName": "string2",
+                    "containerPort": 1234,
+                },
+            ],
+        },
+        {
+            "placementStrategy": [
+                {"type": "random", "field": "string"},
+            ],
+        },
+        {
+            "deploymentConfiguration": {
+                "deploymentCircuitBreaker": {"enable": True, "rollback": True},
+                "maximumPercent": 10,
+                "minimumHealthyPercent": 1,
+                "alarms": {
+                    "alarmNames": [
+                        "string",
+                    ],
+                    "enable": True,
+                    "rollback": True,
+                },
+            },
+        },
+    ],
+)
 @mock_aws
-def test_remove_tg():
+def test_remove_tg(update_params):
+    # Setup
     ecs_client = boto3.client("ecs", region_name=ECS_REGION)
     cluster = "mock-cluster"
     service = "mock-service"
-
-    # Create cluster
     ecs_client.create_cluster(clusterName=cluster)
-
-    # Register mock service with load balancers
     ecs_client.create_service(
         cluster=cluster,
         serviceName=service,
-        loadBalancers=[
-            {
-                "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-http",
-                "loadBalancerName": "mock-service1",
-                "containerName": "mock-container1",
-                "containerPort": 80,
-            },
-            {
-                "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-https",
-                "loadBalancerName": "mock-service2",
-                "containerName": "mock-container2",
-                "containerPort": 443,
-            },
-        ],
     )
 
-    # Remove HTTP target group
+    # Execute
     ecs_client.update_service(
         cluster="arn:aws:ecs:us-east-1:123456789012:cluster/" + cluster,
         service=service,
-        loadBalancers=[
-            {
-                "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-https",
-                "loadBalancerName": "mock-service",
-                "containerName": "mock-container",
-                "containerPort": 443,
-            },
-        ],
+        **update_params,
     )
-
-    # Verify load balancers after removal
     response = ecs_client.describe_services(cluster=cluster, services=[service])
-    load_balancers = response["services"][0]["loadBalancers"]
-    assert len(load_balancers) == 1
-    assert load_balancers[0]["containerPort"] == 443
-    assert load_balancers[0]["loadBalancerName"] == "mock-service"
+    response_svc = response["services"][0]
+    property_key = next(iter(update_params))
+    property_val = next(iter(update_params.values()))
+
+    # Verify
+    assert len(response_svc[property_key]) == len(property_val)
+    assert response_svc[property_key] == update_params[property_key]
 
 
 def setup_ecs(client, ec2):
