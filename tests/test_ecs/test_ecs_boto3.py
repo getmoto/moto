@@ -3650,6 +3650,84 @@ def test_list_tasks_with_filters():
     assert len(resp["taskArns"]) == 1
 
 
+@pytest.mark.parametrize(
+    "update_params",
+    [
+        {
+            "loadBalancers": [
+                {
+                    "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-http",
+                    "loadBalancerName": "mock-service1",
+                    "containerName": "mock-container1",
+                    "containerPort": 80,
+                }
+            ]
+        },
+        {
+            "serviceRegistries": [
+                {
+                    "registryArn": "string",
+                    "port": 123,
+                    "containerName": "string",
+                    "containerPort": 123,
+                },
+                {
+                    "registryArn": "string2",
+                    "port": 1234,
+                    "containerName": "string2",
+                    "containerPort": 1234,
+                },
+            ],
+        },
+        {
+            "placementStrategy": [
+                {"type": "random", "field": "string"},
+            ],
+        },
+        {
+            "deploymentConfiguration": {
+                "deploymentCircuitBreaker": {"enable": True, "rollback": True},
+                "maximumPercent": 10,
+                "minimumHealthyPercent": 1,
+                "alarms": {
+                    "alarmNames": [
+                        "string",
+                    ],
+                    "enable": True,
+                    "rollback": True,
+                },
+            },
+        },
+    ],
+)
+@mock_aws
+def test_remove_tg(update_params):
+    # Setup
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster = "mock-cluster"
+    service = "mock-service"
+    ecs_client.create_cluster(clusterName=cluster)
+    ecs_client.create_service(
+        cluster=cluster,
+        serviceName=service,
+    )
+
+    # Execute
+    ecs_client.update_service(
+        cluster="arn:aws:ecs:us-east-1:123456789012:cluster/" + cluster,
+        service=service,
+        **update_params,
+    )
+    response = ecs_client.describe_services(cluster=cluster, services=[service])
+    response_svc = response["services"][0]
+    property_key = next(iter(update_params))
+    property_val = next(iter(update_params.values()))
+
+    # Verify
+    assert len(response_svc[property_key]) == len(property_val)
+    assert response_svc[property_key] == update_params[property_key]
+
+
 def setup_ecs(client, ec2):
     """test helper"""
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
