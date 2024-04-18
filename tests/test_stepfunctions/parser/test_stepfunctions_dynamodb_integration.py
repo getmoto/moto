@@ -102,6 +102,47 @@ def test_state_machine_calling_dynamodb_put(table_name=None, sleep_time=0):
 
 @aws_verified
 @pytest.mark.aws_verified
+def test_state_machine_calling_dynamodb_put_wait_for_task_token(
+    table_name=None, sleep_time=0
+):
+    dynamodb = boto3.client("dynamodb", "us-east-1")
+    exec_input = {
+        "TableName": table_name,
+        "Item": {"data": {"S": "HelloWorld"}, "id": {"S": "id1"}},
+    }
+
+    tmpl_name = "services/dynamodb_task_token"
+
+    def _verify_result(client, execution, execution_arn):
+        if execution["status"] == "RUNNING":
+            items = dynamodb.scan(TableName=table_name)["Items"]
+            if len(items) > 0:
+                assert len(items) == 1
+                assert {
+                    "id": {"S": "1"},
+                    "StepFunctionTaskToken": {"S": "$$.Task.Token"},
+                } in items
+                # Because the TaskToken is not returned, we can't signal to SFN to finish the execution
+                # So let's just stop the execution manually
+                client.stop_execution(
+                    executionArn=execution_arn,
+                    error="Bad Example - no TaskToken available to continue this execution",
+                )
+                return True
+
+        return False
+
+    verify_execution_result(
+        _verify_result,
+        expected_status=None,
+        tmpl_name=tmpl_name,
+        exec_input=json.dumps(exec_input),
+        sleep_time=sleep_time,
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
 def test_state_machine_calling_dynamodb_put_and_delete(table_name=None, sleep_time=0):
     dynamodb = boto3.client("dynamodb", "us-east-1")
     exec_input = {
