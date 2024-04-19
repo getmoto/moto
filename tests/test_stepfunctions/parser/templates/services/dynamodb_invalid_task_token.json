@@ -9,7 +9,7 @@
             "Key": {"id": {"S": "1"}},
             "UpdateExpression": "SET StepFunctionTaskToken = :taskToken",
             "ExpressionAttributeValues": {
-                ":taskToken": {"S.$": "$$.Task.Token"}
+                ":taskToken": {"S": "$$.Task.Token"}
             }
         },
         "End": true

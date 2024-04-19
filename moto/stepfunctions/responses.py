@@ -192,7 +192,8 @@ class StepFunctionResponse(BaseResponse):
 
     def send_task_failure(self) -> TYPE_RESPONSE:
         task_token = self._get_param("taskToken")
-        self.stepfunction_backend.send_task_failure(task_token)
+        error = self._get_param("error")
+        self.stepfunction_backend.send_task_failure(task_token, error=error)
         return 200, {}, "{}"
 
     def send_task_heartbeat(self) -> TYPE_RESPONSE:
@@ -202,8 +203,8 @@ class StepFunctionResponse(BaseResponse):
 
     def send_task_success(self) -> TYPE_RESPONSE:
         task_token = self._get_param("taskToken")
-        outcome = self._get_param("outcome")
-        self.stepfunction_backend.send_task_success(task_token, outcome)
+        output = self._get_param("output")
+        self.stepfunction_backend.send_task_success(task_token, output)
         return 200, {}, "{}"
 
     def list_map_runs(self) -> TYPE_RESPONSE:
