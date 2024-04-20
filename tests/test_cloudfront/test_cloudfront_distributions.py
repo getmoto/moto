@@ -716,7 +716,7 @@ def test_add_new_gateway_basic():
     config['CacheBehaviors']['Quantity'] = len(new_behaviors)
     config['CacheBehaviors']['Items'] = new_behaviors
 
-    cloudfront_client_mock.update_distribution(DistributionConfig=config, Id=distribution_id, IfMatch="1")
+    r = cloudfront_client_mock.update_distribution(DistributionConfig=config, Id=distribution_id, IfMatch="1")
 
     updated_dist = cloudfront_client_mock.get_distribution(Id=distribution_id)['Distribution']['DistributionConfig']
     print(updated_dist)

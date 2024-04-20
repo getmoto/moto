@@ -421,12 +421,12 @@ DIST_CONFIG_TEMPLATE = """
             <AllowedMethods>
               <Quantity>{{ behaviour.allowed_methods.quantity }}</Quantity>
               <Items>
-                {% for methods_list in behaviour.allowed_methods.MethodsList %}{{ Method }}{% endfor %}
+                {% for method in behaviour.allowed_methods %}{{ method }}{% endfor %}
               </Items>
               <CachedMethods>
-                <Quantity>{{ behaviour.allowed_methods.cached_methods.quantity }}</Quantity>
+                <Quantity>{{ behaviour.allowed_methods.cached_methods|length }}</Quantity>
                 <Items>
-                  {% for methods_list in behaviour.allowed_methods.cached_methods.MethodsList %}{{ Method }}{% endfor %}
+                  {% for method in behaviour.allowed_methods.cached_methods %}{{ method }}{% endfor %}
                 </Items>
               </CachedMethods>
             </AllowedMethods>
@@ -461,10 +461,10 @@ DIST_CONFIG_TEMPLATE = """
               <Cookies>
                 <Forward>{{ ItemSelection }}</Forward>
                 <WhitelistedNames>
-                  <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names.quantity }}</Quantity>
+                  <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names| length }}</Quantity>
                   <Items>
-                    {% for cookie_name_list  in behaviour.forwarded_values.cookies.whitelisted_names.CookieNameList %}
-                      <Name>{{ cookie_name_list.name }}</Name>
+                    {% for wl_name in behaviour.forwarded_values.cookies.whitelisted_names %}
+                      <Name>{{ wl_name }}</Name>
                     {% endfor %}
                   </Items>
                 </WhitelistedNames>

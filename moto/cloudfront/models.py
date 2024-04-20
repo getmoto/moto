@@ -51,6 +51,7 @@ class ForwardedValues:
             self.whitelisted_names = [self.whitelisted_names]
         self.headers: List[Any] = []
         self.query_string_cache_keys: List[Any] = []
+        self.cookies: List[dict[str, Any]] = config.get("Cookies") or []
 
 
 class DefaultCacheBehaviour:
@@ -156,7 +157,11 @@ class DistributionConfig:
         self.default_cache_behavior = DefaultCacheBehaviour(
             config["DefaultCacheBehavior"]
         )
-        self.cache_behaviors: List[Any] = config.get("CacheBehaviors", {}).get("Items") or []
+        self.cache_behaviors: List[Any] = []
+        if config.get("CacheBehaviors", {}).get("Items"):
+            for k, v in config.get("CacheBehaviors", {}).get("Items").items():
+                new_cb = DefaultCacheBehaviour(v)
+                self.cache_behaviors.append(new_cb)
         self.custom_error_responses: List[Any] = []
         self.logging = Logging(config.get("Logging") or {})
         self.enabled = config.get("Enabled") or False
