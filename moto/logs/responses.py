@@ -107,7 +107,7 @@ class LogsResponse(BaseResponse):
             "metricNamespace",
             "Maximum length of 255.",
             lambda x: x is None or len(x) <= 255,
-            pattern="[^:*$]*",
+            pattern="[0-9A-Za-z\\.\\-_/#:]*",
         )
         next_token = self._get_validated_param(
             "nextToken", "Minimum length of 1.", lambda x: x is None or 1 <= len(x)

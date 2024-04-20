@@ -185,6 +185,39 @@ def test_describe_metric_filters_multiple_happy():
     response = conn.describe_metric_filters(logGroupName="logGroupName1")
     assert response["metricFilters"][0]["filterName"] == "filterName1"
 
+    response = conn.describe_metric_filters(
+        metricName="metricName1", metricNamespace="metricNamespace1"
+    )
+    assert response["metricFilters"][0]["filterName"] == "filterName1"
+
+
+@mock_aws
+def test_put_and_describe_metric_filter_with_non_alphanumerics_in_namespace():
+    """
+    Should allow namespaces as described here:
+    https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#Namespace
+    """
+    conn = boto3.client("logs", "us-west-2")
+    namespace = "A.B-c_d/1#2:metricNamespace"
+    response = conn.put_metric_filter(
+        filterName="filterName",
+        filterPattern="filterPattern",
+        logGroupName="logGroupName",
+        metricTransformations=[
+            {
+                "metricName": "metricName",
+                "metricNamespace": namespace,
+                "metricValue": "metricValue",
+            },
+        ],
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    response = conn.describe_metric_filters(
+        metricName="metricName", metricNamespace=namespace
+    )
+    assert response["metricFilters"][0]["filterName"] == "filterName"
+
 
 @mock_aws
 def test_delete_metric_filter():
