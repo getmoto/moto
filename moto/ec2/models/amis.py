@@ -145,6 +145,10 @@ class Ami(TaggedEC2Resource):
             return self.owner_id
         elif filter_name == "owner-alias":
             return self.owner_alias
+        elif filter_name == "product-code":
+            return self.product_codes
+        elif filter_name == "product-code.type":
+            return "marketplace"  # devpay is not (yet?) supported
         else:
             return super().get_filter_value(filter_name, "DescribeImages")
 

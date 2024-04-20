@@ -483,6 +483,14 @@ def test_ami_filters():
     )["Images"]
     assert imageA.id in [ami["ImageId"] for ami in amis_by_nonpublic]
 
+    amis_by_product_code = ec2.describe_images(
+        Filters=[
+            {"Name": "product-code", "Values": ["code123"]},
+            {"Name": "product-code.type", "Values": ["marketplace"]},
+        ]
+    )["Images"]
+    assert "ami-0b301ce3ce3475r4f" in [ami["ImageId"] for ami in amis_by_product_code]
+
 
 @mock_aws
 def test_ami_filtering_via_tag():
