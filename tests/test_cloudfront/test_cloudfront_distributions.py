@@ -685,39 +685,84 @@ def test_get_distribution_config():
 
 @mock_aws
 def test_add_new_gateway_basic():
-
-    cloudfront_client_mock = boto3.client('cloudfront')
-
+    # Setup
+    cloudfront_client_mock = boto3.client("cloudfront")
     config = scaffold.example_distribution_config("ref")
+    distribution_id = cloudfront_client_mock.create_distribution(
+        DistributionConfig=config
+    )["Distribution"]["Id"]
+    existing_config = cloudfront_client_mock.get_distribution(Id=distribution_id)[
+        "Distribution"
+    ]["DistributionConfig"]
+    new_behaviors = [
+        {
+            "PathPattern": "bla/*",
+            "TargetOriginId": "test.invalid",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": {
+                "Quantity": 7,
+                "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
+                "CachedMethods": {"Quantity": 2, "Items": ["GET", "HEAD"]},
+            },
+            "SmoothStreaming": False,
+            "Compress": False,
+            "LambdaFunctionAssociations": {"Quantity": 0},
+            "FieldLevelEncryptionId": "",
+            "CachePolicyId": "4135ea2d-6df8-44a3-9df3-4b5a84be39ad",  # CachingDisabled
+            "OriginRequestPolicyId": "b689b0a8-53d0-40ab-baf2-68738e2966ac",  # AllViewerExceptHostHeader
+        }
+    ]
 
-    dist = cloudfront_client_mock.create_distribution(DistributionConfig=config)["Distribution"]["Id"]
-    distribution_id = dist
-    config = cloudfront_client_mock.get_distribution(Id=distribution_id)['Distribution']['DistributionConfig']
-    new_behaviors = [{
-        'PathPattern': "bla/*",
-        'TargetOriginId': "test.invalid",
-        'ViewerProtocolPolicy': 'redirect-to-https',
-        'AllowedMethods': {
-            'Quantity': 7,
-            'Items': ['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
-            'CachedMethods': {
-                'Quantity': 2,
-                'Items': ['GET', 'HEAD']
-            }
-        },
-        'SmoothStreaming': False,
-        'Compress': False,
-        'LambdaFunctionAssociations': {'Quantity': 0},
-        'FieldLevelEncryptionId': '',
-        'CachePolicyId': '4135ea2d-6df8-44a3-9df3-4b5a84be39ad',  # CachingDisabled
-        'OriginRequestPolicyId': 'b689b0a8-53d0-40ab-baf2-68738e2966ac'  # AllViewerExceptHostHeader
-    }]
+    new_config = existing_config
+    new_config["CacheBehaviors"]["Quantity"] = 1
+    new_config["CacheBehaviors"]["Items"] = new_behaviors
 
-    config['CacheBehaviors']['Quantity'] = len(new_behaviors)
-    config['CacheBehaviors']['Items'] = new_behaviors
+    # Execute
+    cloudfront_client_mock.update_distribution(
+        DistributionConfig=new_config, Id=distribution_id, IfMatch="1"
+    )
+    result = cloudfront_client_mock.get_distribution(Id=distribution_id)[
+        "Distribution"
+    ]["DistributionConfig"]
 
-    r = cloudfront_client_mock.update_distribution(DistributionConfig=config, Id=distribution_id, IfMatch="1")
-
-    updated_dist = cloudfront_client_mock.get_distribution(Id=distribution_id)['Distribution']['DistributionConfig']
-    print(updated_dist)
-    print(updated_dist['CacheBehaviors']) # returns zero
+    # Verify
+    assert result["CacheBehaviors"]["Quantity"] == 1
+    assert (
+        result["CacheBehaviors"]["Items"][0]["PathPattern"]
+        == new_behaviors[0]["PathPattern"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["TargetOriginId"]
+        == new_behaviors[0]["TargetOriginId"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["ViewerProtocolPolicy"]
+        == new_behaviors[0]["ViewerProtocolPolicy"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["AllowedMethods"]
+        == new_behaviors[0]["AllowedMethods"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["SmoothStreaming"]
+        == new_behaviors[0]["SmoothStreaming"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["Compress"] == new_behaviors[0]["Compress"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["LambdaFunctionAssociations"]["Quantity"]
+        == new_behaviors[0]["LambdaFunctionAssociations"]["Quantity"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["FieldLevelEncryptionId"]
+        == new_behaviors[0]["FieldLevelEncryptionId"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["CachePolicyId"]
+        == new_behaviors[0]["CachePolicyId"]
+    )
+    assert (
+        result["CacheBehaviors"]["Items"][0]["OriginRequestPolicyId"]
+        == new_behaviors[0]["OriginRequestPolicyId"]
+    )
