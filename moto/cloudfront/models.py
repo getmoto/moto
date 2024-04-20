@@ -156,7 +156,7 @@ class DistributionConfig:
         self.default_cache_behavior = DefaultCacheBehaviour(
             config["DefaultCacheBehavior"]
         )
-        self.cache_behaviors: List[Any] = []
+        self.cache_behaviors: List[Any] = config.get("CacheBehaviors", {}).get("Items") or []
         self.custom_error_responses: List[Any] = []
         self.logging = Logging(config.get("Logging") or {})
         self.enabled = config.get("Enabled") or False

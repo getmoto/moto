@@ -681,3 +681,43 @@ def test_get_distribution_config():
     }
 
     assert config["WebACLId"] == ""
+
+
+@mock_aws
+def test_add_new_gateway_basic():
+
+    cloudfront_client_mock = boto3.client('cloudfront')
+
+    config = scaffold.example_distribution_config("ref")
+
+    dist = cloudfront_client_mock.create_distribution(DistributionConfig=config)["Distribution"]["Id"]
+    distribution_id = dist
+    config = cloudfront_client_mock.get_distribution(Id=distribution_id)['Distribution']['DistributionConfig']
+    new_behaviors = [{
+        'PathPattern': "bla/*",
+        'TargetOriginId': "test.invalid",
+        'ViewerProtocolPolicy': 'redirect-to-https',
+        'AllowedMethods': {
+            'Quantity': 7,
+            'Items': ['GET', 'HEAD', 'OPTIONS', 'PUT', 'POST', 'PATCH', 'DELETE'],
+            'CachedMethods': {
+                'Quantity': 2,
+                'Items': ['GET', 'HEAD']
+            }
+        },
+        'SmoothStreaming': False,
+        'Compress': False,
+        'LambdaFunctionAssociations': {'Quantity': 0},
+        'FieldLevelEncryptionId': '',
+        'CachePolicyId': '4135ea2d-6df8-44a3-9df3-4b5a84be39ad',  # CachingDisabled
+        'OriginRequestPolicyId': 'b689b0a8-53d0-40ab-baf2-68738e2966ac'  # AllViewerExceptHostHeader
+    }]
+
+    config['CacheBehaviors']['Quantity'] = len(new_behaviors)
+    config['CacheBehaviors']['Items'] = new_behaviors
+
+    cloudfront_client_mock.update_distribution(DistributionConfig=config, Id=distribution_id, IfMatch="1")
+
+    updated_dist = cloudfront_client_mock.get_distribution(Id=distribution_id)['Distribution']['DistributionConfig']
+    print(updated_dist)
+    print(updated_dist['CacheBehaviors']) # returns zero
