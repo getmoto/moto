@@ -79,8 +79,6 @@ class DefaultCacheBehaviour:
         self.default_ttl = config.get("DefaultTTL") or 0
         self.max_ttl = config.get("MaxTTL") or 0
         self.realtime_log_config_arn = config.get("RealtimeLogConfigArn") or ""
-        self.cache_policy_id = config.get("CachePolicyId", None)
-        self.origin_request_policy_id = config.get("OriginRequestPolicyId", None)
 
 
 class CacheBehaviour(DefaultCacheBehaviour):
@@ -92,6 +90,8 @@ class CacheBehaviour(DefaultCacheBehaviour):
             methods.get("CachedMethods", {}).get("Items", {}).get("Method", [])
         )
         self.allowed_methods: List[str] = methods.get("Items", {}).get("Method", [])
+        self.cache_policy_id = config.get("CachePolicyId", "")
+        self.origin_request_policy_id = config.get("OriginRequestPolicyId", "")
 
 
 class Logging:
