@@ -407,6 +407,14 @@ class SageMakerResponse(BaseResponse):
     def create_trial_component(self) -> TYPE_RESPONSE:
         response = self.sagemaker_backend.create_trial_component(
             trial_component_name=self._get_param("TrialComponentName"),
+            start_time=self._get_param("StartTime"),
+            end_time=self._get_param("EndTime"),
+            display_name=self._get_param("DisplayName"),
+            parameters=self._get_param("Parameters"),
+            input_artifacts=self._get_param("InputArtifacts"),
+            output_artifacts=self._get_param("OutputArtifacts"),
+            metadata_properties=self._get_param("MetadataProperties"),
+            status=self._get_param("Status"),
             trial_name=self._get_param("TrialName"),
         )
         return 200, {}, json.dumps(response)
@@ -444,6 +452,22 @@ class SageMakerResponse(BaseResponse):
         trial_name = self._get_param("TrialName")
         response = self.sagemaker_backend.disassociate_trial_component(
             trial_name, trial_component_name
+        )
+        return 200, {}, json.dumps(response)
+
+    def update_trial_component(self) -> TYPE_RESPONSE:
+        response = self.sagemaker_backend.update_trial_component(
+            trial_component_name=self._get_param("TrialComponentName"),
+            status=self._get_param("Status"),
+            display_name=self._get_param("DisplayName"),
+            start_time=self._get_param("StartTime"),
+            end_time=self._get_param("EndTime"),
+            parameters=self._get_param("Parameters"),
+            parameters_to_remove=self._get_param("ParametersToRemove"),
+            input_artifacts=self._get_param("InputArtifacts"),
+            input_artifacts_to_remove=self._get_param("InputArtifactsToRemove"),
+            output_artifacts=self._get_param("OutputArtifacts"),
+            output_artifacts_to_remove=self._get_param("OutputArtifactsToRemove"),
         )
         return 200, {}, json.dumps(response)
 
