@@ -686,7 +686,7 @@ def test_get_distribution_config():
 @mock_aws
 def test_add_new_gateway_basic():
     # Setup
-    cloudfront_client_mock = boto3.client("cloudfront")
+    cloudfront_client_mock = boto3.client("cloudfront", region_name="us-east-1")
     config = scaffold.example_distribution_config("ref")
     distribution_id = cloudfront_client_mock.create_distribution(
         DistributionConfig=config
