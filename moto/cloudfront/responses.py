@@ -397,98 +397,100 @@ DIST_CONFIG_TEMPLATE = """
         {% if distribution.distribution_config.cache_behaviors %}
         <Items>
           {% for behaviour in distribution.distribution_config.cache_behaviors %}
-            <PathPattern>{{ behaviour.path_pattern }}</PathPattern>
-            <TargetOriginId>{{ behaviour.target_origin_id }}</TargetOriginId>
-            <TrustedSigners>
-              <Enabled>{{ behaviour.trusted_signers.enabled }}</Enabled>
-              <Quantity>{{ behaviour.trusted_signers.quantity }}</Quantity>
-              <Items>
-                {% for account_nr  in behaviour.trusted_signers %}
-                  <AwsAccountNumber>{{ account_nr }}</AwsAccountNumber>
-                {% endfor %}
-              </Items>
-            </TrustedSigners>
-            <TrustedKeyGroups>
-              <Enabled>{{ behaviour.trusted_key_groups.enabled }}</Enabled>
-              <Quantity>{{ behaviour.trusted_key_groups.quantity }}</Quantity>
-              <Items>
-                {% for trusted_key_group_id_list  in behaviour.trusted_key_groups.TrustedKeyGroupIdList %}
-                  <KeyGroup>{{ trusted_key_group_id_list.key_group }}</KeyGroup>
-                {% endfor %}
-              </Items>
-            </TrustedKeyGroups>
-            <ViewerProtocolPolicy>{{ ViewerProtocolPolicy }}</ViewerProtocolPolicy>
-            <AllowedMethods>
-              <Quantity>{{ behaviour.allowed_methods.quantity }}</Quantity>
-              <Items>
-                {% for methods_list in behaviour.allowed_methods.MethodsList %}{{ Method }}{% endfor %}
-              </Items>
-              <CachedMethods>
-                <Quantity>{{ behaviour.allowed_methods.cached_methods.quantity }}</Quantity>
-                <Items>
-                  {% for methods_list in behaviour.allowed_methods.cached_methods.MethodsList %}{{ Method }}{% endfor %}
-                </Items>
-              </CachedMethods>
-            </AllowedMethods>
-            <SmoothStreaming>{{ behaviour.smooth_streaming }}</SmoothStreaming>
-            <Compress>{{ behaviour.compress }}</Compress>
-            <LambdaFunctionAssociations>
-              <Quantity>{{ behaviour.lambda_function_associations.quantity }}</Quantity>
-              <Items>
-                {% for lambda_function_association_list in behaviour.lambda_function_associations.LambdaFunctionAssociationList %}
-                  <LambdaFunctionARN>{{ LambdaFunctionARN }}</LambdaFunctionARN>
-                  <EventType>{{ EventType }}</EventType>
-                  <IncludeBody>{{ lambda_function_association_list.include_body }}</IncludeBody>
-                {% endfor %}
-              </Items>
-            </LambdaFunctionAssociations>
-            <FunctionAssociations>
-              <Quantity>{{ behaviour.function_associations.quantity }}</Quantity>
-              <Items>
-                {% for function_association_list  in behaviour.function_associations.FunctionAssociationList %}
-                  <FunctionARN>{{ FunctionARN }}</FunctionARN>
-                  <EventType>{{ EventType }}</EventType>
-                {% endfor %}
-              </Items>
-            </FunctionAssociations>
-            <FieldLevelEncryptionId>{{ behaviour.field_level_encryption_id }}</FieldLevelEncryptionId>
-            <RealtimeLogConfigArn>{{ behaviour.realtime_log_config_arn }}</RealtimeLogConfigArn>
-            <CachePolicyId>{{ behaviour.cache_policy_id }}</CachePolicyId>
-            <OriginRequestPolicyId>{{ behaviour.origin_request_policy_id }}</OriginRequestPolicyId>
-            <ResponseHeadersPolicyId>{{ behaviour.response_headers_policy_id }}</ResponseHeadersPolicyId>
-            <ForwardedValues>
-              <QueryString>{{ behaviour.forwarded_values.query_string }}</QueryString>
-              <Cookies>
-                <Forward>{{ ItemSelection }}</Forward>
-                <WhitelistedNames>
-                  <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names.quantity }}</Quantity>
+            <CacheBehavior>
+                <PathPattern>{{ behaviour.path_pattern }}</PathPattern>
+                <TargetOriginId>{{ behaviour.target_origin_id }}</TargetOriginId>
+                <TrustedSigners>
+                  <Enabled>{{ behaviour.trusted_signers.enabled }}</Enabled>
+                  <Quantity>{{ behaviour.trusted_signers | length }}</Quantity>
                   <Items>
-                    {% for cookie_name_list  in behaviour.forwarded_values.cookies.whitelisted_names.CookieNameList %}
-                      <Name>{{ cookie_name_list.name }}</Name>
+                    {% for account_nr  in behaviour.trusted_signers %}
+                      <AwsAccountNumber>{{ account_nr }}</AwsAccountNumber>
                     {% endfor %}
                   </Items>
-                </WhitelistedNames>
-              </Cookies>
-              <Headers>
-                <Quantity>{{ behaviour.forwarded_values.headers.quantity }}</Quantity>
-                <Items>
-                  {% for header_list in behaviour.forwarded_values.headers.HeaderList %}
-                    <Name>{{ header_list.name }}</Name>
-                  {% endfor %}
-                </Items>
-              </Headers>
-              <QueryStringCacheKeys>
-                <Quantity>{{ behaviour.forwarded_values.query_string_cache_keys.quantity }}</Quantity>
-                <Items>
-                  {% for query_string_cache_keys_list in behaviour.forwarded_values.query_string_cache_keys.QueryStringCacheKeysList %}
-                    <Name>{{ query_string_cache_keys_list.name }}</Name>
-                  {% endfor %}
-                </Items>
-              </QueryStringCacheKeys>
-            </ForwardedValues>
-            <MinTTL>{{ behaviour.min_ttl }}</MinTTL>
-            <DefaultTTL>{{ behaviour.default_ttl }}</DefaultTTL>
-            <MaxTTL>{{ behaviour.max_ttl }}</MaxTTL>
+                </TrustedSigners>
+                <TrustedKeyGroups>
+                  <Enabled>{{ behaviour.trusted_key_groups.enabled }}</Enabled>
+                  <Quantity>{{ behaviour.trusted_key_groups | length }}</Quantity>
+                  <Items>
+                    {% for trusted_key_group_id_list  in behaviour.trusted_key_groups.TrustedKeyGroupIdList %}
+                      <KeyGroup>{{ trusted_key_group_id_list.key_group }}</KeyGroup>
+                    {% endfor %}
+                  </Items>
+                </TrustedKeyGroups>
+                <ViewerProtocolPolicy>{{ behaviour.viewer_protocol_policy }}</ViewerProtocolPolicy>
+                <AllowedMethods>
+                  <Quantity>{{ behaviour.allowed_methods | length }}</Quantity>
+                  <Items>
+                    {% for method in behaviour.allowed_methods %}<Method>{{ method }}</Method>{% endfor %}
+                  </Items>
+                  <CachedMethods>
+                    <Quantity>{{ behaviour.cached_methods|length }}</Quantity>
+                    <Items>
+                      {% for method in behaviour.cached_methods %}<Method>{{ method }}</Method>{% endfor %}
+                    </Items>
+                  </CachedMethods>
+                </AllowedMethods>
+                <SmoothStreaming>{{ behaviour.smooth_streaming }}</SmoothStreaming>
+                <Compress>{{ behaviour.compress }}</Compress>
+                <LambdaFunctionAssociations>
+                  <Quantity>{{ behaviour.lambda_function_associations | length }}</Quantity>
+                  <Items>
+                    {% for lambda_function_association_list in behaviour.lambda_function_associations.LambdaFunctionAssociationList %}
+                      <LambdaFunctionARN>{{ LambdaFunctionARN }}</LambdaFunctionARN>
+                      <EventType>{{ EventType }}</EventType>
+                      <IncludeBody>{{ lambda_function_association_list.include_body }}</IncludeBody>
+                    {% endfor %}
+                  </Items>
+                </LambdaFunctionAssociations>
+                <FunctionAssociations>
+                  <Quantity>{{ behaviour.function_associations | length }}</Quantity>
+                  <Items>
+                    {% for function_association_list  in behaviour.function_associations.FunctionAssociationList %}
+                      <FunctionARN>{{ FunctionARN }}</FunctionARN>
+                      <EventType>{{ EventType }}</EventType>
+                    {% endfor %}
+                  </Items>
+                </FunctionAssociations>
+                <FieldLevelEncryptionId>{{ behaviour.field_level_encryption_id }}</FieldLevelEncryptionId>
+                <RealtimeLogConfigArn>{{ behaviour.realtime_log_config_arn }}</RealtimeLogConfigArn>
+                <CachePolicyId>{{ behaviour.cache_policy_id }}</CachePolicyId>
+                <OriginRequestPolicyId>{{ behaviour.origin_request_policy_id }}</OriginRequestPolicyId>
+                <ResponseHeadersPolicyId>{{ behaviour.response_headers_policy_id }}</ResponseHeadersPolicyId>
+                <ForwardedValues>
+                  <QueryString>{{ behaviour.forwarded_values.query_string }}</QueryString>
+                  <Cookies>
+                    <Forward>{{ ItemSelection }}</Forward>
+                    <WhitelistedNames>
+                      <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names| length }}</Quantity>
+                      <Items>
+                        {% for wl_name in behaviour.forwarded_values.cookies.whitelisted_names %}
+                          <Name>{{ wl_name }}</Name>
+                        {% endfor %}
+                      </Items>
+                    </WhitelistedNames>
+                  </Cookies>
+                  <Headers>
+                    <Quantity>{{ behaviour.forwarded_values.headers | length }}</Quantity>
+                    <Items>
+                      {% for header_list in behaviour.forwarded_values.headers.HeaderList %}
+                        <Name>{{ header_list.name }}</Name>
+                      {% endfor %}
+                    </Items>
+                  </Headers>
+                  <QueryStringCacheKeys>
+                    <Quantity>{{ behaviour.forwarded_values.query_string_cache_keys | length }}</Quantity>
+                    <Items>
+                      {% for query_string_cache_keys_list in behaviour.forwarded_values.query_string_cache_keys.QueryStringCacheKeysList %}
+                        <Name>{{ query_string_cache_keys_list.name }}</Name>
+                      {% endfor %}
+                    </Items>
+                  </QueryStringCacheKeys>
+                </ForwardedValues>
+                <MinTTL>{{ behaviour.min_ttl }}</MinTTL>
+                <DefaultTTL>{{ behaviour.default_ttl }}</DefaultTTL>
+                <MaxTTL>{{ behaviour.max_ttl }}</MaxTTL>
+            </CacheBehavior>
           {% endfor %}
         </Items>
         {% endif %}
