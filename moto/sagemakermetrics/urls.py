@@ -1,4 +1,5 @@
 """sagemakermetrics base URL and path."""
+
 from .responses import SageMakerMetricsResponse
 
 url_bases = [
