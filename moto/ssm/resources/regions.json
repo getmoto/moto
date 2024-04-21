@@ -941,6 +941,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -2628,6 +2631,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -4872,6 +4878,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -7446,6 +7455,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -9381,6 +9393,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -11415,6 +11430,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -13153,6 +13171,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -15154,6 +15175,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -17848,6 +17872,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -19913,6 +19940,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -23077,6 +23107,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -24954,6 +24987,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sts": {
                 "Value": "sts",
                 "endpoint": {
@@ -25925,6 +25967,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -27297,6 +27342,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -29346,6 +29394,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -32995,6 +33046,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -34883,6 +34937,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -38329,6 +38386,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -41060,6 +41120,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -43262,6 +43325,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -46288,6 +46354,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -47846,6 +47915,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -49653,6 +49725,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -52338,6 +52413,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -55248,6 +55326,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -57235,6 +57316,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -57592,6 +57676,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58811,6 +58904,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -60651,6 +60747,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -63267,6 +63366,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
