@@ -51,7 +51,7 @@ class ForwardedValues:
             self.whitelisted_names = [self.whitelisted_names]
         self.headers: List[Any] = []
         self.query_string_cache_keys: List[Any] = []
-        self.cookies: List[dict[str, Any]] = config.get("Cookies") or []
+        self.cookies: List[Dict[str, Any]] = config.get("Cookies") or []
 
 
 class DefaultCacheBehaviour:
