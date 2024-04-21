@@ -638,7 +638,7 @@ class StepFunctionBackend(BaseBackend):
         except StateMachineDoesNotExist:
             raise ResourceNotFound(resource_arn)
 
-    def send_task_failure(self, task_token: str) -> None:
+    def send_task_failure(self, task_token: str, error: Optional[str] = None) -> None:
         pass
 
     def send_task_heartbeat(self, task_token: str) -> None:

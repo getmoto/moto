@@ -8,6 +8,7 @@ CAMEL_CASE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 
 KEY_BLACKLIST = ["SupportedLoadBalancerTypes"]
 
+
 def camel_case_to_snake_case(name: str):
     return CAMEL_CASE_PATTERN.sub("_", name).lower()
 

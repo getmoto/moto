@@ -54,8 +54,12 @@ def main():
                     instances.extend(offerings["InstanceTypeOfferings"])
                     next_token = offerings.get("NextToken", None)
                 for i in instances:
-                    del i["LocationType"]  # This can be reproduced, no need to persist it
-                instances = sorted(instances, key=lambda i: (i['Location'], i["InstanceType"]))
+                    del i[
+                        "LocationType"
+                    ]  # This can be reproduced, no need to persist it
+                instances = sorted(
+                    instances, key=lambda i: (i["Location"], i["InstanceType"])
+                )
 
                 # Ensure we use the correct US-west availability zones
                 # There are only two - for some accounts they are called us-west-1b and us-west-1c

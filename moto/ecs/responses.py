@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import camelcase_to_underscores
 
 from .models import EC2ContainerServiceBackend, ecs_backends
 
@@ -306,13 +307,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps(resp)
 
     def update_service(self) -> str:
-        cluster_str = self._get_param("cluster", "default")
-        service_name = self._get_param("service")
-        task_definition = self._get_param("taskDefinition")
-        desired_count = self._get_int_param("desiredCount")
-        service = self.ecs_backend.update_service(
-            cluster_str, service_name, task_definition, desired_count
-        )
+        service_properties = json.loads(self.body)
+        parsed_props = {}
+        for k, v in service_properties.items():
+            parsed_props[camelcase_to_underscores(k)] = v
+
+        service = self.ecs_backend.update_service(parsed_props)
         return json.dumps({"service": service.response_object})
 
     def delete_service(self) -> str:

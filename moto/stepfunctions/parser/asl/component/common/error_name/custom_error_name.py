@@ -13,7 +13,7 @@ class CustomErrorName(ErrorName):
     _ILLEGAL_PREFIX: Final[str] = "States."
 
     def __init__(self, error_name: str):
-        if error_name.startswith(CustomErrorName._ILLEGAL_PREFIX):
+        if error_name and error_name.startswith(CustomErrorName._ILLEGAL_PREFIX):
             raise ValueError(
                 f"Custom Error Names MUST NOT begin with the prefix 'States.', got '{error_name}'."
             )

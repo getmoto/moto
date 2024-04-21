@@ -108,6 +108,19 @@ def test_start_query_execution():
 
 
 @mock_aws
+def test_start_query_execution_without_result_configuration():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    response = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    assert "QueryExecutionId" in response
+
+
+@mock_aws
 def test_start_query_validate_workgroup():
     client = boto3.client("athena", region_name="us-east-1")
 
