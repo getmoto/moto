@@ -239,6 +239,11 @@ class ElasticAddressBackend:
 
         return matches
 
+    def describe_addresses_attribute(
+        self, allocation_ids: Optional[List[str]] = None
+    ) -> List[ElasticAddress]:
+        return self.describe_addresses(allocation_ids)
+
     def disassociate_address(
         self, address: Optional[str] = None, association_id: Optional[str] = None
     ) -> None:

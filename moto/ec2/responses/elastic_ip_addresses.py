@@ -82,6 +82,13 @@ class ElasticIPAddresses(EC2BaseResponse):
         template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
         return template.render(addresses=addresses)
 
+    def describe_addresses_attribute(self) -> str:
+        self.error_on_dryrun()
+        allocation_ids = self._get_multi_param("AllocationId")
+        addresses = self.ec2_backend.describe_addresses_attribute(allocation_ids)
+        template = self.response_template(DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE)
+        return template.render(addresses=addresses)
+
     def disassociate_address(self) -> str:
         if (
             "PublicIp" not in self.querystring
@@ -179,6 +186,26 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
     {% endfor %}
   </addressesSet>
 </DescribeAddressesResponse>"""
+
+DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE = """<DescribeAddressesAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <addressSet>
+    {% for address in addresses %}
+        <item>
+          <publicIp>{{ address.public_ip }}</publicIp>
+          {% if address.allocation_id %}
+            <allocationId>{{ address.allocation_id }}</allocationId>
+          {% endif %}
+          {% if address.ptrRecord %}
+            <ptrRecord>{{ address.ptrRecord }}</ptrRecord>
+          {% endif %}
+          {% if address.ptrRecordUpdate %}
+            <ptrRecordUpdate>{{ address.ptrRecordUpdate }}</ptrRecordUpdate>
+          {% endif %}
+        </item>
+    {% endfor %}
+  </addressSet>
+</DescribeAddressesAttributeResponse>"""
 
 DISASSOCIATE_ADDRESS_RESPONSE = """<DisassociateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
