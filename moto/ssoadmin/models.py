@@ -520,8 +520,8 @@ class SSOAdminBackend(BaseBackend):
         )
 
     def describe_account_assignment_creation_status(
-        self, account_assignment_creation_request_id, instance_arn
-    ):
+        self, account_assignment_creation_request_id: str, instance_arn: str
+    ) -> Dict[str, Any]:
         for account in self.account_assignments:
             if account.request_id == account_assignment_creation_request_id:
                 return account.to_json(
@@ -531,8 +531,8 @@ class SSOAdminBackend(BaseBackend):
         raise ResourceNotFoundException
 
     def describe_account_assignment_deletion_status(
-        self, account_assignment_deletion_request_id, instance_arn
-    ):
+        self, account_assignment_deletion_request_id: str, instance_arn: str
+    ) -> Dict[str, Any]:
         for account in self.deleted_account_assignments:
             if account.request_id == account_assignment_deletion_request_id:
                 return account.to_json(

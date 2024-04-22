@@ -298,7 +298,7 @@ class SSOAdminResponse(BaseResponse):
         )
         return json.dumps({})
 
-    def describe_account_assignment_creation_status(self):
+    def describe_account_assignment_creation_status(self) -> str:
         account_assignment_creation_request_id = self._get_param(
             "AccountAssignmentCreationRequestId"
         )
@@ -312,7 +312,7 @@ class SSOAdminResponse(BaseResponse):
             dict(AccountAssignmentCreationStatus=account_assignment_creation_status)
         )
 
-    def describe_account_assignment_deletion_status(self):
+    def describe_account_assignment_deletion_status(self) -> str:
         account_assignment_deletion_request_id = self._get_param(
             "AccountAssignmentDeletionRequestId"
         )
