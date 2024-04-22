@@ -9,13 +9,14 @@ from moto.core.utils import aws_api_matches
 
 from ..exceptions import (
     InvalidCIDRSubnetError,
+    InvalidGroupIdMalformedError,
     InvalidPermissionDuplicateError,
     InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
-    RulesPerSecurityGroupLimitExceededError, InvalidGroupIdMalformedError,
+    RulesPerSecurityGroupLimitExceededError,
 )
 from ..utils import (
     is_tag_filter,

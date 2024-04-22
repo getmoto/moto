@@ -638,7 +638,7 @@ def is_valid_ipv6_cidr(cird: str) -> bool:
     return cidr_pattern_re.match(cird) is not None
 
 
-def is_valid_security_group_id(sg_id:str) -> bool:
+def is_valid_security_group_id(sg_id: str) -> bool:
     security_group_id_pattern = r"^sg-[a-f0-9]{8,17}$"
     compiled_re = re.compile(security_group_id_pattern)
     return compiled_re.match(sg_id) is not None

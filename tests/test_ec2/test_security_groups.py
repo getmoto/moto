@@ -1944,48 +1944,37 @@ def test_revoke_security_group_ingress():
 
 @mock_aws()
 def test_invalid_security_group_id_in_rules_search():
-    ec2 = boto3.client('ec2')
+    ec2 = boto3.client("ec2")
 
-    vpc = ec2.create_vpc(CidrBlock='10.0.0.0/16')
-    vpc_id = vpc['Vpc']['VpcId']
-    group_name = 'test-group'
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    group_name = "test-group"
 
     response = ec2.create_security_group(
-        Description='Inventing a security group',
-        GroupName=group_name,
-        VpcId=vpc_id
+        Description="Inventing a security group", GroupName=group_name, VpcId=vpc_id
     )
-    group_id = response['GroupId']
+    group_id = response["GroupId"]
 
     ec2.authorize_security_group_ingress(
         GroupId=group_id,
         IpPermissions=[
             {
-                'FromPort': 1234,
-                'IpProtocol': 'tcp',
-                'IpRanges': [
-                    {
-                        'CidrIp': '12.34.56.78/32',
-                        'Description': 'fakeip'
-                    }
-                ],
-                'ToPort': 1234
+                "FromPort": 1234,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "12.34.56.78/32", "Description": "fakeip"}],
+                "ToPort": 1234,
             }
-        ]
+        ],
     )
 
     try:
         response = ec2.describe_security_group_rules(
-            Filters=[
-                {
-                    'Name': 'group-id',
-                    'Values': ['foobar']
-                }
-            ],
-            DryRun=False
+            Filters=[{"Name": "group-id", "Values": ["foobar"]}], DryRun=False
         )
-        assert len(response['SecurityGroupRules']) == 0, "Expected an empty list for a non-existent group"
+        assert (
+            len(response["SecurityGroupRules"]) == 0
+        ), "Expected an empty list for a non-existent group"
     except ClientError as e:
-        error = e.response['Error']
-        assert 'InvalidGroupId.Malformed' == error["Code"]
-        assert "The security group ID 'foobar' is malformed" in error['Message']
+        error = e.response["Error"]
+        assert "InvalidGroupId.Malformed" == error["Code"]
+        assert "The security group ID 'foobar' is malformed" in error["Message"]
