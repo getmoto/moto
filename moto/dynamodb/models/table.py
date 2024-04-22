@@ -243,6 +243,7 @@ class Table(CloudFormationModel):
         streams: Optional[Dict[str, Any]] = None,
         sse_specification: Optional[Dict[str, Any]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
+        deletion_protection_enabled: Optional[bool] = False,
     ):
         self.name = table_name
         self.account_id = account_id
@@ -306,6 +307,7 @@ class Table(CloudFormationModel):
             self.sse_specification["KMSMasterKeyId"] = self._get_default_encryption_key(
                 account_id, region
             )
+        self.deletion_protection_enabled = deletion_protection_enabled
 
     def _get_default_encryption_key(self, account_id: str, region: str) -> str:
         from moto.kms import kms_backends
@@ -443,6 +445,7 @@ class Table(CloudFormationModel):
                     index.describe() for index in self.global_indexes
                 ],
                 "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
+                "DeletionProtectionEnabled": self.deletion_protection_enabled,
             }
         }
         if self.latest_stream_label:
