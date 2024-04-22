@@ -51,6 +51,7 @@ class ForwardedValues:
             self.whitelisted_names = [self.whitelisted_names]
         self.headers: List[Any] = []
         self.query_string_cache_keys: List[Any] = []
+        self.cookies: List[Dict[str, Any]] = config.get("Cookies") or []
 
 
 class DefaultCacheBehaviour:
@@ -78,6 +79,19 @@ class DefaultCacheBehaviour:
         self.default_ttl = config.get("DefaultTTL") or 0
         self.max_ttl = config.get("MaxTTL") or 0
         self.realtime_log_config_arn = config.get("RealtimeLogConfigArn") or ""
+
+
+class CacheBehaviour(DefaultCacheBehaviour):
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__(config)
+        self.path_pattern: str = config.get("PathPattern", "")
+        methods = config.get("AllowedMethods", {})
+        self.cached_methods: List[str] = (
+            methods.get("CachedMethods", {}).get("Items", {}).get("Method", [])
+        )
+        self.allowed_methods: List[str] = methods.get("Items", {}).get("Method", [])
+        self.cache_policy_id = config.get("CachePolicyId", "")
+        self.origin_request_policy_id = config.get("OriginRequestPolicyId", "")
 
 
 class Logging:
@@ -157,6 +171,9 @@ class DistributionConfig:
             config["DefaultCacheBehavior"]
         )
         self.cache_behaviors: List[Any] = []
+        if config.get("CacheBehaviors", {}).get("Items"):
+            for _, v in config.get("CacheBehaviors", {}).get("Items").items():
+                self.cache_behaviors.append(CacheBehaviour(v))
         self.custom_error_responses: List[Any] = []
         self.logging = Logging(config.get("Logging") or {})
         self.enabled = config.get("Enabled") or False
