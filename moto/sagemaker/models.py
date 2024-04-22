@@ -3795,7 +3795,7 @@ class FakeTrialComponent(BaseObject):
             metrics_response_object = {
                 "MetricName": metrics_name,
                 "SourceArn": self.trial_component_arn,
-                "TimeStamp": datetime.fromtimestamp(timestamp_int).strftime(
+                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=tzutc()).strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
                 "Max": max(metrics_steps_values),

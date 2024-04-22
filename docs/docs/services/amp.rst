@@ -23,6 +23,7 @@ amp
         The ClientToken-parameter is not yet implemented
         
 
+- [ ] create_scraper
 - [X] create_workspace
   
         The ClientToken-parameter is not yet implemented
@@ -35,6 +36,7 @@ amp
         The ClientToken-parameter is not yet implemented
         
 
+- [ ] delete_scraper
 - [X] delete_workspace
   
         The ClientToken-parameter is not yet implemented
@@ -43,8 +45,11 @@ amp
 - [ ] describe_alert_manager_definition
 - [X] describe_logging_configuration
 - [X] describe_rule_groups_namespace
+- [ ] describe_scraper
 - [X] describe_workspace
+- [ ] get_default_scraper_configuration
 - [X] list_rule_groups_namespaces
+- [ ] list_scrapers
 - [X] list_tags_for_resource
 - [X] list_workspaces
 - [ ] put_alert_manager_definition

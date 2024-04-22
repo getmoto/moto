@@ -28,6 +28,8 @@ cloudtrail
 - [ ] deregister_organization_delegated_admin
 - [ ] describe_query
 - [X] describe_trails
+- [ ] disable_federation
+- [ ] enable_federation
 - [ ] get_channel
 - [ ] get_event_data_store
 - [X] get_event_selectors
@@ -41,6 +43,7 @@ cloudtrail
 - [ ] list_event_data_stores
 - [ ] list_import_failures
 - [ ] list_imports
+- [ ] list_insights_metric_data
 - [ ] list_public_keys
 - [ ] list_queries
 - [X] list_tags

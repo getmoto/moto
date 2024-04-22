@@ -17,7 +17,7 @@ def test_batch_put_metrics():
     )
 
     client = boto3.client("sagemaker-metrics", region_name="eu-west-1")
-    given_datetime = datetime.datetime(2024, 4, 21, 19, 33, 3)
+    given_datetime = datetime.datetime(2024, 4, 21, 0, 0, 0)
     resp = client.batch_put_metrics(
         TrialComponentName=trial_component_name,
         MetricData=[
@@ -41,9 +41,7 @@ def test_batch_put_metrics():
         describe_after_metrics["Metrics"][0]["SourceArn"]
         == "arn:aws:sagemaker:eu-west-1:123456789012:experiment-trial-component/some-trial-component-name"
     )
-    assert describe_after_metrics["Metrics"][0]["TimeStamp"] == datetime.datetime(
-        2024, 4, 21, 21, 33, 3
-    )
+    assert describe_after_metrics["Metrics"][0]["TimeStamp"] == given_datetime
     assert describe_after_metrics["Metrics"][0]["Max"] == 123.0
     assert describe_after_metrics["Metrics"][0]["Min"] == 123.0
     assert describe_after_metrics["Metrics"][0]["Last"] == 123.0

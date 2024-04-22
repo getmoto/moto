@@ -25,6 +25,7 @@ sagemaker
 - [ ] create_artifact
 - [ ] create_auto_ml_job
 - [ ] create_auto_ml_job_v2
+- [ ] create_cluster
 - [ ] create_code_repository
 - [ ] create_compilation_job
 - [ ] create_context
@@ -44,6 +45,7 @@ sagemaker
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
+- [ ] create_inference_component
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
@@ -78,7 +80,9 @@ sagemaker
 - [ ] delete_app_image_config
 - [ ] delete_artifact
 - [ ] delete_association
+- [ ] delete_cluster
 - [ ] delete_code_repository
+- [ ] delete_compilation_job
 - [ ] delete_context
 - [ ] delete_data_quality_job_definition
 - [ ] delete_device_fleet
@@ -93,8 +97,10 @@ sagemaker
 - [ ] delete_hub
 - [ ] delete_hub_content
 - [ ] delete_human_task_ui
+- [ ] delete_hyper_parameter_tuning_job
 - [ ] delete_image
 - [ ] delete_image_version
+- [ ] delete_inference_component
 - [ ] delete_inference_experiment
 - [X] delete_model
 - [ ] delete_model_bias_job_definition
@@ -125,6 +131,8 @@ sagemaker
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
 - [ ] describe_auto_ml_job_v2
+- [ ] describe_cluster
+- [ ] describe_cluster_node
 - [ ] describe_code_repository
 - [ ] describe_compilation_job
 - [ ] describe_context
@@ -146,6 +154,7 @@ sagemaker
 - [ ] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
+- [ ] describe_inference_component
 - [ ] describe_inference_experiment
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
@@ -195,6 +204,8 @@ sagemaker
 - [ ] list_associations
 - [ ] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
+- [ ] list_cluster_nodes
+- [ ] list_clusters
 - [ ] list_code_repositories
 - [ ] list_compilation_jobs
 - [ ] list_contexts
@@ -216,6 +227,7 @@ sagemaker
 - [ ] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
+- [ ] list_inference_components
 - [ ] list_inference_experiments
 - [ ] list_inference_recommendations_job_steps
 - [ ] list_inference_recommendations_jobs
@@ -293,6 +305,8 @@ sagemaker
 - [ ] update_action
 - [ ] update_app_image_config
 - [ ] update_artifact
+- [ ] update_cluster
+- [ ] update_cluster_software
 - [ ] update_code_repository
 - [ ] update_context
 - [ ] update_device_fleet
@@ -306,6 +320,8 @@ sagemaker
 - [ ] update_hub
 - [ ] update_image
 - [ ] update_image_version
+- [ ] update_inference_component
+- [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
 - [ ] update_model_card
 - [X] update_model_package
@@ -319,7 +335,7 @@ sagemaker
 - [ ] update_space
 - [ ] update_training_job
 - [ ] update_trial
-- [ ] update_trial_component
+- [X] update_trial_component
 - [ ] update_user_profile
 - [ ] update_workforce
 - [ ] update_workteam

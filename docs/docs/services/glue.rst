@@ -26,6 +26,7 @@ glue
 - [ ] batch_get_dev_endpoints
 - [X] batch_get_jobs
 - [X] batch_get_partition
+- [ ] batch_get_table_optimizer
 - [X] batch_get_triggers
 - [ ] batch_get_workflows
 - [ ] batch_stop_job_run
@@ -57,6 +58,7 @@ glue
 - [ ] create_security_configuration
 - [X] create_session
 - [X] create_table
+- [ ] create_table_optimizer
 - [X] create_trigger
 - [ ] create_user_defined_function
 - [ ] create_workflow
@@ -81,6 +83,7 @@ glue
 - [ ] delete_security_configuration
 - [X] delete_session
 - [X] delete_table
+- [ ] delete_table_optimizer
 - [X] delete_table_version
 - [X] delete_trigger
 - [ ] delete_user_defined_function
@@ -93,6 +96,8 @@ glue
 - [ ] get_classifiers
 - [ ] get_column_statistics_for_partition
 - [ ] get_column_statistics_for_table
+- [ ] get_column_statistics_task_run
+- [ ] get_column_statistics_task_runs
 - [ ] get_connection
 - [ ] get_connections
 - [X] get_crawler
@@ -147,6 +152,7 @@ glue
 - [X] get_session
 - [ ] get_statement
 - [X] get_table
+- [ ] get_table_optimizer
 - [X] get_table_version
 - [X] get_table_versions
 - [X] get_tables
@@ -164,6 +170,7 @@ glue
 - [ ] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
+- [ ] list_column_statistics_task_runs
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
@@ -179,6 +186,7 @@ glue
 - [ ] list_schemas
 - [X] list_sessions
 - [ ] list_statements
+- [ ] list_table_optimizer_runs
 - [X] list_triggers
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
@@ -193,6 +201,7 @@ glue
 - [ ] run_statement
 - [ ] search_tables
 - [ ] start_blueprint_run
+- [ ] start_column_statistics_task_run
 - [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_data_quality_rule_recommendation_run
@@ -204,6 +213,7 @@ glue
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
 - [ ] start_workflow_run
+- [ ] stop_column_statistics_task_run
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
@@ -233,6 +243,7 @@ glue
 
 - [ ] update_source_control_from_job
 - [X] update_table
+- [ ] update_table_optimizer
 - [ ] update_trigger
 - [ ] update_user_defined_function
 - [ ] update_workflow

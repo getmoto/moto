@@ -36,6 +36,7 @@ redshift
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
+- [ ] create_redshift_idc_application
 - [ ] create_scheduled_action
 - [X] create_snapshot_copy_grant
 - [ ] create_snapshot_schedule
@@ -54,6 +55,8 @@ redshift
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
 - [ ] delete_partner
+- [ ] delete_redshift_idc_application
+- [ ] delete_resource_policy
 - [ ] delete_scheduled_action
 - [X] delete_snapshot_copy_grant
 - [ ] delete_snapshot_schedule
@@ -82,10 +85,12 @@ redshift
 - [ ] describe_events
 - [ ] describe_hsm_client_certificates
 - [ ] describe_hsm_configurations
+- [ ] describe_inbound_integrations
 - [ ] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
+- [ ] describe_redshift_idc_applications
 - [ ] describe_reserved_node_exchange_status
 - [ ] describe_reserved_node_offerings
 - [ ] describe_reserved_nodes
@@ -102,10 +107,13 @@ redshift
 - [ ] disassociate_data_share_consumer
 - [ ] enable_logging
 - [X] enable_snapshot_copy
+- [ ] failover_primary_compute
 - [X] get_cluster_credentials
 - [ ] get_cluster_credentials_with_iam
 - [ ] get_reserved_node_exchange_configuration_options
 - [ ] get_reserved_node_exchange_offerings
+- [ ] get_resource_policy
+- [ ] list_recommendations
 - [ ] modify_aqua_configuration
 - [ ] modify_authentication_profile
 - [X] modify_cluster
@@ -119,12 +127,14 @@ redshift
 - [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
+- [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period
 - [ ] modify_snapshot_schedule
 - [ ] modify_usage_limit
 - [X] pause_cluster
 - [ ] purchase_reserved_node_offering
+- [ ] put_resource_policy
 - [ ] reboot_cluster
 - [ ] reject_data_share
 - [ ] reset_cluster_parameter_group
