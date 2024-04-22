@@ -15,12 +15,13 @@ from ..exceptions import (
     InvalidSecurityGroupNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
-    RulesPerSecurityGroupLimitExceededError,
+    RulesPerSecurityGroupLimitExceededError, InvalidGroupIdMalformedError,
 )
 from ..utils import (
     is_tag_filter,
     is_valid_cidr,
     is_valid_ipv6_cidr,
+    is_valid_security_group_id,
     random_security_group_id,
     random_security_group_rule_id,
     tag_filter_matches,
@@ -607,6 +608,10 @@ class SecurityGroupBackend:
             return results
 
         if filters and "group-id" in filters:
+            for group_id in filters["group-id"]:
+                if not is_valid_security_group_id(group_id):
+                    raise InvalidGroupIdMalformedError(group_id)
+
             matches = self.describe_security_groups(
                 group_ids=group_ids, filters=filters
             )
