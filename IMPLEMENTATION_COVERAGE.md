@@ -735,7 +735,7 @@
 
 ## ce
 <details>
-<summary>20% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] create_anomaly_monitor
 - [ ] create_anomaly_subscription
@@ -764,11 +764,13 @@
 - [ ] get_savings_plans_utilization_details
 - [ ] get_tags
 - [ ] get_usage_forecast
+- [ ] list_cost_allocation_tag_backfill_history
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
 - [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
+- [ ] start_cost_allocation_tag_backfill
 - [ ] start_savings_plans_purchase_recommendation_generation
 - [X] tag_resource
 - [X] untag_resource
@@ -838,6 +840,7 @@
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
 - [X] list_stack_resources
+- [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results
 - [X] list_stack_set_operations
 - [X] list_stack_sets
@@ -1949,7 +1952,7 @@
 
 ## dynamodb
 <details>
-<summary>59% implemented</summary>
+<summary>56% implemented</summary>
 
 - [X] batch_execute_statement
 - [X] batch_get_item
@@ -1959,6 +1962,7 @@
 - [X] create_table
 - [X] delete_backup
 - [X] delete_item
+- [ ] delete_resource_policy
 - [X] delete_table
 - [X] describe_backup
 - [X] describe_continuous_backups
@@ -1979,6 +1983,7 @@
 - [X] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
+- [ ] get_resource_policy
 - [ ] import_table
 - [X] list_backups
 - [ ] list_contributor_insights
@@ -1988,6 +1993,7 @@
 - [X] list_tables
 - [X] list_tags_of_resource
 - [X] put_item
+- [ ] put_resource_policy
 - [X] query
 - [X] restore_table_from_backup
 - [X] restore_table_to_point_in_time
@@ -2255,7 +2261,7 @@
 - [ ] describe_account_attributes
 - [ ] describe_address_transfers
 - [X] describe_addresses
-- [ ] describe_addresses_attribute
+- [X] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
 - [ ] describe_aws_network_performance_metric_subscriptions
@@ -2325,6 +2331,7 @@
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
 - [ ] describe_locked_snapshots
+- [ ] describe_mac_hosts
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -2415,6 +2422,7 @@
 - [ ] disable_image
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
+- [ ] disable_image_deregistration_protection
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
 - [ ] disable_snapshot_block_public_access
@@ -2445,6 +2453,7 @@
 - [ ] enable_image
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
+- [ ] enable_image_deregistration_protection
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
@@ -2472,6 +2481,7 @@
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
+- [ ] get_instance_metadata_defaults
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
@@ -2533,6 +2543,7 @@
 - [ ] modify_instance_event_start_time
 - [ ] modify_instance_event_window
 - [ ] modify_instance_maintenance_options
+- [ ] modify_instance_metadata_defaults
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam
@@ -4514,7 +4525,7 @@
 
 ## kms
 <details>
-<summary>60% implemented</summary>
+<summary>57% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -4548,6 +4559,7 @@
 - [ ] list_aliases
 - [X] list_grants
 - [ ] list_key_policies
+- [ ] list_key_rotations
 - [X] list_keys
 - [X] list_resource_tags
 - [X] list_retirable_grants
@@ -4556,6 +4568,7 @@
 - [X] replicate_key
 - [X] retire_grant
 - [X] revoke_grant
+- [ ] rotate_key_on_demand
 - [X] schedule_key_deletion
 - [X] sign
 - [X] tag_resource
@@ -4872,7 +4885,7 @@
 
 ## medialive
 <details>
-<summary>18% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] accept_input_device_transfer
 - [ ] batch_delete
@@ -4882,19 +4895,29 @@
 - [ ] cancel_input_device_transfer
 - [ ] claim_device
 - [X] create_channel
+- [ ] create_cloud_watch_alarm_template
+- [ ] create_cloud_watch_alarm_template_group
+- [ ] create_event_bridge_rule_template
+- [ ] create_event_bridge_rule_template_group
 - [X] create_input
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program
 - [ ] create_partner_input
+- [ ] create_signal_map
 - [ ] create_tags
 - [X] delete_channel
+- [ ] delete_cloud_watch_alarm_template
+- [ ] delete_cloud_watch_alarm_template_group
+- [ ] delete_event_bridge_rule_template
+- [ ] delete_event_bridge_rule_template_group
 - [X] delete_input
 - [ ] delete_input_security_group
 - [ ] delete_multiplex
 - [ ] delete_multiplex_program
 - [ ] delete_reservation
 - [ ] delete_schedule
+- [ ] delete_signal_map
 - [ ] delete_tags
 - [ ] describe_account_configuration
 - [X] describe_channel
@@ -4908,7 +4931,16 @@
 - [ ] describe_reservation
 - [ ] describe_schedule
 - [ ] describe_thumbnails
+- [ ] get_cloud_watch_alarm_template
+- [ ] get_cloud_watch_alarm_template_group
+- [ ] get_event_bridge_rule_template
+- [ ] get_event_bridge_rule_template_group
+- [ ] get_signal_map
 - [X] list_channels
+- [ ] list_cloud_watch_alarm_template_groups
+- [ ] list_cloud_watch_alarm_templates
+- [ ] list_event_bridge_rule_template_groups
+- [ ] list_event_bridge_rule_templates
 - [ ] list_input_device_transfers
 - [ ] list_input_devices
 - [ ] list_input_security_groups
@@ -4917,15 +4949,19 @@
 - [ ] list_multiplexes
 - [ ] list_offerings
 - [ ] list_reservations
+- [ ] list_signal_maps
 - [ ] list_tags_for_resource
 - [ ] purchase_offering
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer
 - [ ] restart_channel_pipelines
 - [X] start_channel
+- [ ] start_delete_monitor_deployment
 - [ ] start_input_device
 - [ ] start_input_device_maintenance_window
+- [ ] start_monitor_deployment
 - [ ] start_multiplex
+- [ ] start_update_signal_map
 - [X] stop_channel
 - [ ] stop_input_device
 - [ ] stop_multiplex
@@ -4933,6 +4969,10 @@
 - [ ] update_account_configuration
 - [X] update_channel
 - [ ] update_channel_class
+- [ ] update_cloud_watch_alarm_template
+- [ ] update_cloud_watch_alarm_template_group
+- [ ] update_event_bridge_rule_template
+- [ ] update_event_bridge_rule_template_group
 - [X] update_input
 - [ ] update_input_device
 - [ ] update_input_security_group
@@ -5330,11 +5370,11 @@
 
 ## panorama
 <details>
-<summary>14% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] create_application_instance
 - [ ] create_job_for_devices
-- [ ] create_node_from_template_job
+- [X] create_node_from_template_job
 - [ ] create_package
 - [ ] create_package_import_job
 - [X] delete_device
@@ -5345,7 +5385,7 @@
 - [X] describe_device
 - [ ] describe_device_job
 - [ ] describe_node
-- [ ] describe_node_from_template_job
+- [X] describe_node_from_template_job
 - [ ] describe_package
 - [ ] describe_package_import_job
 - [ ] describe_package_version
@@ -5355,7 +5395,7 @@
 - [X] list_devices
 - [ ] list_devices_jobs
 - [ ] list_node_from_template_jobs
-- [ ] list_nodes
+- [X] list_nodes
 - [ ] list_package_import_jobs
 - [ ] list_packages
 - [ ] list_tags_for_resource
@@ -5803,7 +5843,7 @@
 
 ## rds
 <details>
-<summary>39% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -5931,6 +5971,7 @@
 - [X] modify_db_subnet_group
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
+- [ ] modify_integration
 - [X] modify_option_group
 - [ ] modify_tenant_database
 - [X] promote_read_replica
@@ -6137,7 +6178,7 @@
 
 ## rekognition
 <details>
-<summary>9% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] associate_faces
 - [X] compare_faces
@@ -7092,7 +7133,7 @@
 - [ ] update_space
 - [ ] update_training_job
 - [ ] update_trial
-- [ ] update_trial_component
+- [X] update_trial_component
 - [ ] update_user_profile
 - [ ] update_workforce
 - [ ] update_workteam
@@ -8017,13 +8058,15 @@
 
 ## workspaces
 <details>
-<summary>20% implemented</summary>
+<summary>18% implemented</summary>
 
+- [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
 - [ ] associate_ip_groups
 - [ ] associate_workspace_application
 - [ ] authorize_ip_rules
 - [ ] copy_workspace_image
+- [ ] create_account_link_invitation
 - [ ] create_connect_client_add_in
 - [ ] create_connection_alias
 - [ ] create_ip_group
@@ -8033,6 +8076,7 @@
 - [ ] create_workspace_bundle
 - [X] create_workspace_image
 - [X] create_workspaces
+- [ ] delete_account_link_invitation
 - [ ] delete_client_branding
 - [ ] delete_connect_client_add_in
 - [ ] delete_connection_alias
@@ -8066,8 +8110,10 @@
 - [ ] disassociate_connection_alias
 - [ ] disassociate_ip_groups
 - [ ] disassociate_workspace_application
+- [ ] get_account_link
 - [ ] import_client_branding
 - [ ] import_workspace_image
+- [ ] list_account_links
 - [ ] list_available_management_cidr_ranges
 - [ ] migrate_workspace
 - [ ] modify_account
@@ -8082,6 +8128,7 @@
 - [ ] reboot_workspaces
 - [ ] rebuild_workspaces
 - [X] register_workspace_directory
+- [ ] reject_account_link_invitation
 - [ ] restore_workspace
 - [ ] revoke_ip_rules
 - [ ] start_workspaces
@@ -8146,6 +8193,7 @@
 - cloudtrail-data
 - codeartifact
 - codecatalyst
+- codeconnections
 - codedeploy
 - codeguru-reviewer
 - codeguru-security
@@ -8161,12 +8209,14 @@
 - connectcampaigns
 - connectcases
 - connectparticipant
+- controlcatalog
 - controltower
 - cost-optimization-hub
 - cur
 - customer-profiles
 - dataexchange
 - datazone
+- deadline
 - detective
 - devicefarm
 - devops-guru
@@ -8203,7 +8253,6 @@
 - inspector-scan
 - internetmonitor
 - iot-jobs-data
-- iot-roborunner
 - iot1click-devices
 - iot1click-projects
 - iotanalytics
@@ -8303,6 +8352,7 @@
 - route53-recovery-cluster
 - route53-recovery-control-config
 - route53-recovery-readiness
+- route53profiles
 - rum
 - s3outposts
 - sagemaker-a2i-runtime
@@ -8332,6 +8382,7 @@
 - supplychain
 - support-app
 - synthetics
+- timestream-influxdb
 - timestream-query
 - tnb
 - transfer

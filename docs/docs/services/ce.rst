@@ -98,11 +98,13 @@ ce
 - [ ] get_savings_plans_utilization_details
 - [ ] get_tags
 - [ ] get_usage_forecast
+- [ ] list_cost_allocation_tag_backfill_history
 - [ ] list_cost_allocation_tags
 - [ ] list_cost_category_definitions
 - [ ] list_savings_plans_purchase_recommendation_generation
 - [X] list_tags_for_resource
 - [ ] provide_anomaly_feedback
+- [ ] start_cost_allocation_tag_backfill
 - [ ] start_savings_plans_purchase_recommendation_generation
 - [X] tag_resource
 - [X] untag_resource

@@ -1,5 +1,6 @@
 import base64
 import json
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
@@ -8,7 +9,12 @@ from dateutil.tz import tzutc
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
+from moto.panorama.utils import (
+    arn_formatter,
+    deep_convert_datetime_to_isoformat,
+    generate_package_id,
+    hash_device_name,
+)
 from moto.utilities.paginator import paginate
 
 from .exceptions import (
@@ -21,6 +27,12 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 123,
         "unique_attribute": "device_id",
+    },
+    "list_nodes": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 123,
+        "unique_attribute": "package_id",
     },
 }
 
@@ -91,9 +103,7 @@ class Device(BaseObject):
         self.certificates = base64.b64encode("certificate".encode("utf-8")).decode(
             "utf-8"
         )
-        self.arn = (
-            f"arn:aws:panorama:{self.region_name}:{self.account_id}:device/{self.name}"
-        )
+        self.arn = arn_formatter("device", self.name, self.account_id, self.region_name)
         self.device_id = f"device-{hash_device_name(name)}"
         self.iot_thing_name = ""
 
@@ -221,10 +231,95 @@ class Device(BaseObject):
         return {"DeviceId": self.device_id}
 
 
+class Package(BaseObject):
+    def __init__(
+        self,
+        category: str,
+        description: str,
+        name: str,
+        account_id: str,
+        region_name: str,
+        package_name: str,
+        package_version: str,
+    ):
+        self.category = category
+        self.description = description
+        self.name = name
+        now = datetime.now(tzutc())
+        self.created_time = now
+        self.last_updated_time = now
+        self.package_name = package_name
+        self.patch_version = generate_package_id(self.package_name)
+        self.package_version = package_version
+        self.output_package_name = f"{self.package_name}-{self.package_version}-{self.patch_version[:8]}-{self.name}"
+        self.owner_account = account_id
+        self.package_id = f"package-{hash_device_name(package_name)}"
+        self.package_arn = arn_formatter(
+            "package", self.package_id, account_id, region_name
+        )
+
+    def response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        response_object = deep_convert_datetime_to_isoformat(response_object)
+        return response_object
+
+    def response_listed(self) -> Dict[str, Any]:
+        package_response = self.response_object()
+        return package_response
+
+
+class Node(BaseObject):
+    def __init__(
+        self,
+        job_id: str,
+        job_tags: List[Dict[str, Union[str, Dict[str, str]]]],
+        node_description: str,
+        node_name: str,
+        output_package_name: str,
+        output_package_version: str,
+        template_parameters: Dict[str, str],
+        template_type: str,
+    ) -> None:
+        self.job_id = job_id
+        now = datetime.now(tzutc())
+        self.created_time = now
+        self.last_updated_time = now
+        self.job_tags = job_tags
+        self.node_description = node_name
+        self.status = "PENDING"
+        self.node_name = node_name
+        self.output_package_name = output_package_name
+        self.output_package_version = output_package_version
+        self.template_parameters = self.protect_secrets(template_parameters)
+        self.template_type = template_type
+
+    def response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        response_object = deep_convert_datetime_to_isoformat(response_object)
+        return response_object
+
+    def response_created(self) -> Dict[str, str]:
+        return {"JobId": self.job_id}
+
+    def response_described(self) -> Dict[str, Any]:
+        return self.response_object()
+
+    @staticmethod
+    def protect_secrets(template_parameters: Dict[str, str]) -> Dict[str, str]:
+        for key in template_parameters.keys():
+            if key.lower() == "password":
+                template_parameters[key] = "SAVED_AS_SECRET"
+            if key.lower() == "username":
+                template_parameters[key] = "SAVED_AS_SECRET"
+        return template_parameters
+
+
 class PanoramaBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.devices_memory: Dict[str, Device] = {}
+        self.node_from_template_memory: Dict[str, Node] = {}
+        self.nodes_memory: Dict[str, Package] = {}
 
     def provision_device(
         self,
@@ -290,6 +385,54 @@ class PanoramaBackend(BaseBackend):
 
     def delete_device(self, device_id: str) -> Device:
         return self.devices_memory.pop(device_id)
+
+    def create_node_from_template_job(
+        self,
+        job_tags: List[Dict[str, Union[str, Dict[str, str]]]],
+        node_description: str,
+        node_name: str,
+        output_package_name: str,
+        output_package_version: str,
+        template_parameters: Dict[str, str],
+        template_type: str,
+    ) -> Node:
+        job_id = str(uuid.uuid4()).lower()
+        self.node_from_template_memory[job_id] = Node(
+            job_id=job_id,
+            job_tags=job_tags,
+            node_description=node_description,
+            node_name=node_name,
+            output_package_name=output_package_name,
+            output_package_version=output_package_version,
+            template_parameters=template_parameters,
+            template_type=template_type,
+        )
+        if template_type == "RTSP_CAMERA_STREAM":
+            package = Package(
+                category="MEDIA_SOURCE",
+                description=node_description,
+                name=node_name,
+                account_id=self.account_id,
+                region_name=self.region_name,
+                package_name=output_package_name,
+                package_version=output_package_version,
+            )
+            self.nodes_memory[package.package_id] = package
+
+        return self.node_from_template_memory[job_id]
+
+    def describe_node_from_template_job(self, job_id: str) -> Node:
+        return self.node_from_template_memory[job_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_nodes(self, category: str) -> List[Package]:
+        category_nodes = list(
+            filter(
+                lambda x: x.category == category,
+                self.nodes_memory.values(),
+            )
+        )
+        return category_nodes
 
 
 panorama_backends = BackendDict(
