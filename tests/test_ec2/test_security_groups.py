@@ -1944,7 +1944,7 @@ def test_revoke_security_group_ingress():
 
 @mock_aws()
 def test_invalid_security_group_id_in_rules_search():
-    ec2 = boto3.client("ec2")
+    ec2 = boto3.client("ec2", region_name=REGION)
 
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     vpc_id = vpc["Vpc"]["VpcId"]
