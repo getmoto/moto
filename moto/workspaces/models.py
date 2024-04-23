@@ -141,7 +141,13 @@ class WorkSpaceDirectory(BaseModel):
         self.dns_ip_addresses = directory.dns_ip_addrs
         self.customer_username = "Administrator"
         self.iam_rold_id = f"arn:aws:iam::{account_id}:role/workspaces_DefaultRole"
-        self.directory_type = directory.directory_type
+        dir_type = directory.directory_type
+        if dir_type == "ADConnector":
+            self.directory_type = "AD_CONNECTOR"
+        elif dir_type == "SimpleAD":
+            self.directory_type = "SIMPLE_AD"
+        else:
+            self.directory_type = dir_type
         self.workspace_security_group_id = security_group_id
         self.state = "REGISTERED"
         # Default values for workspace_creation_properties
@@ -456,9 +462,9 @@ class WorkSpacesBackend(BaseBackend):
             tenancy=tenancy,
             tags=tags,
         )
-        self.workspace_directories[workspace_directory.directory_id] = (
-            workspace_directory
-        )
+        self.workspace_directories[
+            workspace_directory.directory_id
+        ] = workspace_directory
 
     def describe_workspace_directories(
         self, directory_ids: Optional[List[str]] = None
