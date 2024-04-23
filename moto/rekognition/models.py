@@ -76,6 +76,9 @@ class RekognitionBackend(BaseBackend):
             "3.0",
         )
 
+    def detect_custom_labels(self) -> Tuple[List[Dict[str, Any]]]:
+        return (self._detect_custom_labels_detections(),)
+
     # private
 
     def _job_id(self) -> str:
@@ -753,6 +756,22 @@ class RekognitionBackend(BaseBackend):
                 "ParentId": 3,
                 "Type": "WORD",
             },
+        ]
+
+    def _detect_custom_labels_detections(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "Name": "MyLogo",
+                "Confidence": 77.7729721069336,
+                "Geometry": {
+                    "BoundingBox": {
+                        "Width": 0.198987677693367,
+                        "Height": 0.31296101212501526,
+                        "Left": 0.07924537360668182,
+                        "Top": 0.4037395715713501,
+                    }
+                },
+            }
         ]
 
 

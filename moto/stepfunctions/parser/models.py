@@ -106,7 +106,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         raise InvalidToken()
 
     def send_task_success(
-        self, task_token: TaskToken, outcome: SensitiveData
+        self, task_token: TaskToken, outcome: str
     ) -> SendTaskSuccessOutput:
         outcome = CallbackOutcomeSuccess(callback_id=task_token, output=outcome)
         running_executions = self._get_executions(ExecutionStatus.RUNNING)

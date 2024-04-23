@@ -2176,13 +2176,31 @@ class SageMakerModelBackend(BaseBackend):
         ]
 
     def create_trial_component(
-        self, trial_component_name: str, trial_name: str
+        self,
+        trial_component_name: str,
+        trial_name: str,
+        status: Dict[str, str],
+        start_time: Optional[datetime],
+        end_time: Optional[datetime],
+        display_name: Optional[str],
+        parameters: Optional[Dict[str, Dict[str, Union[str, float]]]],
+        input_artifacts: Optional[Dict[str, Dict[str, str]]],
+        output_artifacts: Optional[Dict[str, Dict[str, str]]],
+        metadata_properties: Optional[Dict[str, str]],
     ) -> Dict[str, Any]:
         trial_component = FakeTrialComponent(
             account_id=self.account_id,
             region_name=self.region_name,
+            display_name=display_name,
+            start_time=start_time,
+            end_time=end_time,
+            parameters=parameters,
+            input_artifacts=input_artifacts,
+            output_artifacts=output_artifacts,
+            metadata_properties=metadata_properties,
             trial_component_name=trial_component_name,
             trial_name=trial_name,
+            status=status,
             tags=[],
         )
         self.trial_components[trial_component_name] = trial_component
@@ -2262,6 +2280,62 @@ class SageMakerModelBackend(BaseBackend):
         return {
             "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial-component/{trial_component_name}",
             "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}",
+        }
+
+    def update_trial_component(
+        self,
+        trial_component_name: str,
+        status: Optional[Dict[str, str]],
+        display_name: Optional[str],
+        start_time: Optional[datetime],
+        end_time: Optional[datetime],
+        parameters: Optional[Dict[str, Dict[str, Union[str, float]]]],
+        parameters_to_remove: Optional[List[str]],
+        input_artifacts: Optional[Dict[str, Dict[str, str]]],
+        input_artifacts_to_remove: Optional[List[str]],
+        output_artifacts: Optional[Dict[str, Dict[str, str]]],
+        output_artifacts_to_remove: Optional[List[str]],
+    ) -> Dict[str, str]:
+        try:
+            trial_component = self.trial_components[trial_component_name]
+        except KeyError:
+            arn = FakeTrialComponent.arn_formatter(
+                trial_component_name, self.account_id, self.region_name
+            )
+            raise ValidationError(message=f"Could not find trial component '{arn}'")
+
+        if status:
+            trial_component.status = status
+        if display_name:
+            trial_component.display_name = display_name
+        if start_time:
+            trial_component.start_time = start_time
+        if end_time:
+            trial_component.end_time = end_time
+        if parameters:
+            trial_component.parameters = parameters
+        if input_artifacts:
+            trial_component.input_artifacts = input_artifacts
+        if output_artifacts:
+            trial_component.output_artifacts = output_artifacts
+
+        trial_component.last_modified_time = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        for parameter_to_remove in parameters_to_remove or []:
+            trial_component.parameters.pop(parameter_to_remove)
+
+        for input_artifact_to_remove in input_artifacts_to_remove or []:
+            trial_component.input_artifacts.pop(input_artifact_to_remove)
+
+        for output_artifact_to_remove in output_artifacts_to_remove or []:
+            trial_component.output_artifacts.pop(output_artifact_to_remove)
+
+        return {
+            "TrialComponentArn": FakeTrialComponent.arn_formatter(
+                trial_component_name, self.account_id, self.region_name
+            )
         }
 
     def create_notebook_instance(
@@ -3650,17 +3724,39 @@ class FakeTrialComponent(BaseObject):
         account_id: str,
         region_name: str,
         trial_component_name: str,
+        display_name: Optional[str],
+        start_time: Optional[datetime],
+        end_time: Optional[datetime],
+        parameters: Optional[Dict[str, Dict[str, Union[str, float]]]],
+        input_artifacts: Optional[Dict[str, Dict[str, str]]],
+        output_artifacts: Optional[Dict[str, Dict[str, str]]],
+        metadata_properties: Optional[Dict[str, str]],
+        status: Optional[Dict[str, str]],
         trial_name: Optional[str],
         tags: List[Dict[str, str]],
     ):
         self.trial_component_name = trial_component_name
+        self.display_name = (
+            display_name if display_name is not None else trial_component_name
+        )
         self.trial_component_arn = FakeTrialComponent.arn_formatter(
             trial_component_name, account_id, region_name
         )
+        self.status = status
         self.tags = tags
         self.trial_name = trial_name
+        self.start_time = start_time
+        self.end_time = end_time
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = self.last_modified_time = now_string
+        self.created_by: Dict[str, Union[Dict[str, str], str]] = {}
+        self.last_modified_by: Dict[str, Union[Dict[str, str], str]] = {}
+        self.parameters = parameters if parameters is not None else {}
+        self.input_artifacts = input_artifacts if input_artifacts is not None else {}
+        self.output_artifacts = output_artifacts if output_artifacts is not None else {}
+        self.metadata_properties = metadata_properties
+        self.metrics: List[Dict[str, Union[float, datetime, str]]] = []
+        self.sources: List[Dict[str, str]] = []
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]

@@ -941,6 +941,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -1243,6 +1246,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -1317,6 +1329,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "s3outposts": {
                 "Value": "s3outposts",
@@ -2616,6 +2631,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -2894,6 +2912,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -2959,6 +2986,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "s3outposts": {
                 "Value": "s3outposts",
@@ -4848,6 +4878,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -7422,6 +7455,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -9357,6 +9393,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -11391,6 +11430,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -12690,6 +12732,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "compute-optimizer": {
                 "Value": "compute-optimizer",
                 "endpoint": {
@@ -13111,6 +13171,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -13323,6 +13386,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -13379,6 +13451,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -13677,6 +13752,9 @@
             "local-zones": {
               "apse1-bkk1-az1": {
                 "Value": "apse1-bkk1-az1"
+              },
+              "apse1-mnl1-az1": {
+                "Value": "apse1-mnl1-az1"
               }
             },
             "longName": {
@@ -13973,15 +14051,6 @@
               },
               "bedrock": {
                 "Value": "bedrock"
-              },
-              "budgets": {
-                "Value": "budgets",
-                "endpoint": {
-                  "Value": "budgets.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "chatbot": {
                 "Value": "chatbot"
@@ -15106,6 +15175,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -16611,6 +16683,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock"
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -17797,6 +17872,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -19862,6 +19940,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -20148,6 +20229,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "s3outposts": {
                 "Value": "s3outposts",
@@ -21392,6 +21476,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -21448,6 +21541,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -23011,6 +23107,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -24540,6 +24639,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -24685,6 +24793,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24870,6 +24987,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sts": {
                 "Value": "sts",
                 "endpoint": {
@@ -24917,6 +25043,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -25832,6 +25967,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -27204,6 +27342,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -29048,15 +29189,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iot-roborunner": {
-                "Value": "iot-roborunner",
-                "endpoint": {
-                  "Value": "iotroborunner.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iot1click-projects": {
                 "Value": "iot1click-projects",
                 "endpoint": {
@@ -29262,6 +29394,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -31457,6 +31592,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -31510,6 +31654,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -32899,6 +33046,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -34787,6 +34937,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -35026,6 +35179,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -35100,6 +35262,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "s3outposts": {
                 "Value": "s3outposts",
@@ -35697,6 +35862,24 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36329,6 +36512,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -36385,6 +36577,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -38191,6 +38386,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -40922,6 +41120,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -43124,6 +43325,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -44969,6 +45173,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -45022,6 +45235,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "s3outposts": {
                 "Value": "s3outposts",
@@ -45267,6 +45483,15 @@
                 "Value": "verified-access",
                 "endpoint": {
                   "Value": "ec2.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46129,6 +46354,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -46368,6 +46596,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -46424,6 +46661,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "sagemaker": {
                 "Value": "sagemaker",
@@ -47675,6 +47915,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -48027,6 +48270,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "s3control": {
+                "Value": "s3control"
               },
               "s3outposts": {
                 "Value": "s3outposts",
@@ -49479,6 +49725,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -50430,14 +50679,29 @@
               "Value": "US-VA"
             },
             "local-zones": {
+              "use1-atl2-az1": {
+                "Value": "use1-atl2-az1"
+              },
               "use1-bos1-az1": {
                 "Value": "use1-bos1-az1"
+              },
+              "use1-chi2-az1": {
+                "Value": "use1-chi2-az1"
+              },
+              "use1-dfw2-az1": {
+                "Value": "use1-dfw2-az1"
+              },
+              "use1-iah2-az1": {
+                "Value": "use1-iah2-az1"
               },
               "use1-lim1-az1": {
                 "Value": "use1-lim1-az1"
               },
               "use1-mci1-az1": {
                 "Value": "use1-mci1-az1"
+              },
+              "use1-mia2-az1": {
+                "Value": "use1-mia2-az1"
               },
               "use1-msp1-az1": {
                 "Value": "use1-msp1-az1"
@@ -51917,15 +52181,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iot-roborunner": {
-                "Value": "iot-roborunner",
-                "endpoint": {
-                  "Value": "iotroborunner.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iot1click-projects": {
                 "Value": "iot1click-projects",
                 "endpoint": {
@@ -52158,6 +52413,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -55068,6 +55326,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -57055,6 +57316,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -57417,6 +57681,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "signer": {
                 "Value": "signer",
                 "endpoint": {
@@ -57577,6 +57850,15 @@
                 "Value": "verified-access",
                 "endpoint": {
                   "Value": "ec2.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58622,6 +58904,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -59273,6 +59558,15 @@
                 "Value": "verified-access",
                 "endpoint": {
                   "Value": "ec2.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60453,6 +60747,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {
@@ -63069,6 +63366,9 @@
                 "Value": "launch-wizard",
                 "endpoint": {
                   "Value": "launchwizard.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "launchwizard": {

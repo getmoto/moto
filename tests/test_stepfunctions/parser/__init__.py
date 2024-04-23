@@ -76,7 +76,7 @@ def verify_execution_result(
     )
     for _ in range(10):
         execution = client.describe_execution(executionArn=execution_arn)
-        if execution["status"] == expected_status:
+        if expected_status is None or execution["status"] == expected_status:
             result = _verify_result(client, execution, execution_arn)
             if result is not False:
                 client.delete_state_machine(stateMachineArn=state_machine_arn)
