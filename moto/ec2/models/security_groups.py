@@ -616,10 +616,6 @@ class SecurityGroupBackend:
             matches = self.describe_security_groups(
                 group_ids=group_ids, filters=filters
             )
-            if not matches:
-                raise InvalidSecurityGroupNotFoundError(
-                    "No security groups found matching the filters provided."
-                )
             for group in matches:
                 results.extend(group.ingress_rules)
                 results.extend(group.egress_rules)

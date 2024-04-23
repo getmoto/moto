@@ -1955,26 +1955,23 @@ def test_invalid_security_group_id_in_rules_search():
     )
     group_id = response["GroupId"]
 
-    ec2.authorize_security_group_ingress(
-        GroupId=group_id,
-        IpPermissions=[
-            {
-                "FromPort": 1234,
-                "IpProtocol": "tcp",
-                "IpRanges": [{"CidrIp": "12.34.56.78/32", "Description": "fakeip"}],
-                "ToPort": 1234,
-            }
-        ],
-    )
-
-    try:
-        response = ec2.describe_security_group_rules(
-            Filters=[{"Name": "group-id", "Values": ["foobar"]}], DryRun=False
+    # assert error with invalid sg id
+    with pytest.raises(ClientError) as e:
+        ec2.describe_security_group_rules(
+            Filters=[{"Name": "group-id", "Values": ["foobar"]}]
         )
-        assert (
-            len(response["SecurityGroupRules"]) == 0
-        ), "Expected an empty list for a non-existent group"
-    except ClientError as e:
-        error = e.response["Error"]
-        assert "InvalidGroupId.Malformed" == error["Code"]
-        assert "The security group ID 'foobar' is malformed" in error["Message"]
+    error = e.value.response["Error"]
+    assert "InvalidGroupId.Malformed" == error["Code"]
+    assert "The security group ID 'foobar' is malformed" in error["Message"]
+
+    # assert with non-existent sg
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": ["sg-005216b55886f0fdc"]}]
+    )
+    assert len(response["SecurityGroupRules"]) == 0
+
+    # assert with no rules
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [group_id]}]
+    )
+    assert len(response["SecurityGroupRules"]) == 1
