@@ -7,7 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
-    # "0/.*$": AgentsforBedrockResponse.dispatch,
     "{0}/.*$": AgentsforBedrockResponse.dispatch,
-    # "0/.*$": AgentsforBedrockResponse.dispatch,
 }

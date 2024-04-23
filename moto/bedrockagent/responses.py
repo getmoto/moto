@@ -17,12 +17,7 @@ class AgentsforBedrockResponse(BaseResponse):
     @property
     def bedrockagent_backend(self) -> AgentsforBedrockBackend:
         """Return backend instance specific for this region."""
-        # TODO
-        # bedrockagent_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return bedrockagent_backends[self.current_account][self.region]
-
-    # add methods from here
 
     def create_agent(self) -> str:
         params = json.loads(self.body)
@@ -59,14 +54,14 @@ class AgentsforBedrockResponse(BaseResponse):
         params = json.loads(self.body)
         max_results = params.get("maxResults")
         next_token = params.get("nextToken")
-        next_token, agents = self.bedrockagent_backend.list_agents(
+        max_results = int(max_results) if max_results else None
+        agents, next_token = self.bedrockagent_backend.list_agents(
             max_results=max_results,
             next_token=next_token,
         )
-        # summaries = [agent.dict_summary() for agent in agents]
         return json.dumps(
             {
-                "agentSummaries": agents,  # [agent.dict_summary() for agent in agents],
+                "agentSummaries": agents,
                 "nextToken": next_token,
             }
         )
@@ -104,7 +99,8 @@ class AgentsforBedrockResponse(BaseResponse):
         params = json.loads(self.body)
         max_results = params.get("maxResults")
         next_token = params.get("nextToken")
-        next_token, knowledge_bases = self.bedrockagent_backend.list_knowledge_bases(
+        max_results = int(max_results) if max_results else None
+        knowledge_bases, next_token = self.bedrockagent_backend.list_knowledge_bases(
             max_results=max_results,
             next_token=next_token,
         )
@@ -128,8 +124,6 @@ class AgentsforBedrockResponse(BaseResponse):
         )
 
     def get_knowledge_base(self) -> str:
-        # params = json.loads(self.body)
-        # knowledge_base_id = params.get("knowledgeBaseId")
         knowledge_base_id = self.path.split("/")[-1]
         knowledge_base = self.bedrockagent_backend.get_knowledge_base(
             knowledge_base_id=knowledge_base_id
@@ -157,6 +151,3 @@ class AgentsforBedrockResponse(BaseResponse):
             resource_arn=resource_arn
         )
         return json.dumps(dict(tags=tags))
-
-
-# add templates from here

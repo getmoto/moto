@@ -1,6 +1,6 @@
 """AgentsforBedrockBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.bedrockagent.exceptions import (
     ConflictException,
@@ -11,6 +11,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 
@@ -159,16 +160,31 @@ class KnowledgeBase(BaseModel):
 class AgentsforBedrockBackend(BaseBackend):
     """Implementation of AgentsforBedrock APIs."""
 
+    PAGINATION_MODEL = {
+        "list_agents": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "agentId",
+        },
+        "list_knowledge_bases": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "knowledgeBaseId",
+        },
+    }
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.Agents: Dict[str, Agent] = {}
-        self.KnowledgeBases: Dict[str, KnowledgeBase] = {}
+        self.agents: Dict[str, Agent] = {}
+        self.knowledge_bases: Dict[str, KnowledgeBase] = {}
         self.tagger = TaggingService()
 
     def _list_arns(self) -> List[str]:
-        return [agent.agent_arn for agent in self.Agents.values()] + [
+        return [agent.agent_arn for agent in self.agents.values()] + [
             knowledge_base.knowledge_base_arn
-            for knowledge_base in self.KnowledgeBases.values()
+            for knowledge_base in self.knowledge_bases.values()
         ]
 
     def create_agent(
@@ -197,58 +213,34 @@ class AgentsforBedrockBackend(BaseBackend):
             customer_encryption_key_arn,
             prompt_override_configuration,
         )
-        self.Agents[agent.agent_id] = agent
+        self.agents[agent.agent_id] = agent
         if tags:
             self.tag_resource(agent.agent_arn, tags)
         return agent
 
     def get_agent(self, agent_id: str) -> Agent:
-        if agent_id not in self.Agents:
+        if agent_id not in self.agents:
             raise ResourceNotFoundException(f"Agent {agent_id} not found")
-        return self.Agents[agent_id]
+        return self.agents[agent_id]
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_agents(
         self, max_results: Optional[int], next_token: Optional[str]
-    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
-        if next_token:
-            try:
-                starting_index = int(next_token)
-                if starting_index > len(self.Agents):
-                    raise ValueError  # invalid next_token
-            except ValueError:
-                raise ValidationException('Invalid pagination token because "{0}".')
-        else:
-            starting_index = 0
-
-        if max_results:
-            end_index = max_results + starting_index
-            agents_fetched: Iterable[Agent] = list(self.Agents.values())[
-                starting_index:end_index
-            ]
-            if end_index >= len(self.Agents):
-                next_index = None
-            else:
-                next_index = end_index
-        else:
-            agents_fetched = list(self.Agents.values())[starting_index:]
-            next_index = None
-
-        agent_summaries = [agent.dict_summary() for agent in agents_fetched]
-
-        index = str(next_index) if next_index is not None else None
-        return index, agent_summaries
+    ) -> List[Any]:
+        agent_summaries = [agent.dict_summary() for agent in self.agents.values()]
+        return agent_summaries
 
     def delete_agent(
         self, agent_id: str, skip_resource_in_use_check: Optional[bool]
     ) -> Tuple[str, str]:
-        if agent_id in self.Agents:
+        if agent_id in self.agents:
             if (
                 skip_resource_in_use_check
-                or self.Agents[agent_id].agent_status == "PREPARED"
+                or self.agents[agent_id].agent_status == "PREPARED"
             ):
-                self.Agents[agent_id].agent_status = "DELETING"
-                agent_status = self.Agents[agent_id].agent_status
-                del self.Agents[agent_id]
+                self.agents[agent_id].agent_status = "DELETING"
+                agent_status = self.agents[agent_id].agent_status
+                del self.agents[agent_id]
             else:
                 raise ConflictException(f"Agent {agent_id} is in use")
         else:
@@ -275,51 +267,26 @@ class AgentsforBedrockBackend(BaseBackend):
             client_token,
             description,
         )
-        self.KnowledgeBases[knowledge_base.knowledge_base_id] = knowledge_base
+        self.knowledge_bases[knowledge_base.knowledge_base_id] = knowledge_base
         if tags:
             self.tag_resource(knowledge_base.knowledge_base_arn, tags)
         return knowledge_base
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_knowledge_bases(
         self, max_results: Optional[int], next_token: Optional[str]
-    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
-        if next_token:
-            try:
-                starting_index = int(next_token)
-                if starting_index > len(self.KnowledgeBases):
-                    raise ValueError  # invalid next_token
-            except ValueError:
-                raise ValidationException('Invalid pagination token because "{0}".')
-        else:
-            starting_index = 0
-
-        if max_results:
-            end_index = max_results + starting_index
-            knowledge_bases_fetched: Iterable[KnowledgeBase] = list(
-                self.KnowledgeBases.values()
-            )[starting_index:end_index]
-            if end_index >= len(self.KnowledgeBases):
-                next_index = None
-            else:
-                next_index = end_index
-        else:
-            knowledge_bases_fetched = list(self.KnowledgeBases.values())[
-                starting_index:
-            ]
-            next_index = None
-
+    ) -> List[Any]:
         knowledge_base_summaries = [
-            knowledge_base.dict_summary() for knowledge_base in knowledge_bases_fetched
+            knowledge_base.dict_summary()
+            for knowledge_base in self.knowledge_bases.values()
         ]
-
-        index = str(next_index) if next_index is not None else None
-        return index, knowledge_base_summaries
+        return knowledge_base_summaries
 
     def delete_knowledge_base(self, knowledge_base_id: str) -> Tuple[str, str]:
-        if knowledge_base_id in self.KnowledgeBases:
-            self.KnowledgeBases[knowledge_base_id].status = "DELETING"
-            knowledge_base_status = self.KnowledgeBases[knowledge_base_id].status
-            del self.KnowledgeBases[knowledge_base_id]
+        if knowledge_base_id in self.knowledge_bases:
+            self.knowledge_bases[knowledge_base_id].status = "DELETING"
+            knowledge_base_status = self.knowledge_bases[knowledge_base_id].status
+            del self.knowledge_bases[knowledge_base_id]
         else:
             raise ResourceNotFoundException(
                 f"Knowledge base {knowledge_base_id} not found"
@@ -327,11 +294,11 @@ class AgentsforBedrockBackend(BaseBackend):
         return knowledge_base_id, knowledge_base_status
 
     def get_knowledge_base(self, knowledge_base_id: str) -> KnowledgeBase:
-        if knowledge_base_id not in self.KnowledgeBases:
+        if knowledge_base_id not in self.knowledge_bases:
             raise ResourceNotFoundException(
                 f"Knowledge base {knowledge_base_id} not found"
             )
-        return self.KnowledgeBases[knowledge_base_id]
+        return self.knowledge_bases[knowledge_base_id]
 
     def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
         if resource_arn not in self._list_arns():

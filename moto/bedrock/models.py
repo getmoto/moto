@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from moto.bedrock.exceptions import (
     ResourceInUseException,
@@ -12,6 +12,7 @@ from moto.bedrock.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 
@@ -176,7 +177,7 @@ class CustomModel(BaseModel):
         return {k: v for k, v in dct.items() if v}
 
 
-class ModelInvocationLoggingConfiguration(BaseModel):
+class model_invocation_logging_configuration(BaseModel):
     def __init__(self, logging_config: Dict[str, Any]) -> None:
         self.logging_config = logging_config
 
@@ -184,18 +185,33 @@ class ModelInvocationLoggingConfiguration(BaseModel):
 class BedrockBackend(BaseBackend):
     """Implementation of Bedrock APIs."""
 
+    PAGINATION_MODEL = {
+        "list_model_customization_jobs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "jobArn",
+        },
+        "list_custom_models": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "modelArn",
+        },
+    }
+
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.ModelCustomizationJobs: Dict[str, ModelCustomizationJob] = {}
-        self.CustomModels: Dict[str, CustomModel] = {}
-        self.ModelInvocationLoggingConfiguration: Optional[
-            ModelInvocationLoggingConfiguration
+        self.model_customization_jobs: Dict[str, ModelCustomizationJob] = {}
+        self.custom_models: Dict[str, CustomModel] = {}
+        self.model_invocation_logging_configuration: Optional[
+            model_invocation_logging_configuration
         ] = None
         self.tagger = TaggingService()
 
     def _list_arns(self) -> List[str]:
-        return [job.job_arn for job in self.ModelCustomizationJobs.values()] + [
-            model.model_arn for model in self.CustomModels.values()
+        return [job.job_arn for job in self.model_customization_jobs.values()] + [
+            model.model_arn for model in self.custom_models.values()
         ]
 
     def create_model_customization_job(
@@ -215,11 +231,11 @@ class BedrockBackend(BaseBackend):
         validation_data_config: Optional[Dict[str, Any]],
         vpc_config: Optional[Dict[str, Any]],
     ) -> str:
-        if job_name in self.ModelCustomizationJobs.keys():
+        if job_name in self.model_customization_jobs.keys():
             raise ResourceInUseException(
                 f"Model customization job {job_name} already exists"
             )
-        if custom_model_name in self.CustomModels.keys():
+        if custom_model_name in self.custom_models.keys():
             raise ResourceInUseException(
                 f"Custom model {custom_model_name} already exists"
             )
@@ -241,7 +257,7 @@ class BedrockBackend(BaseBackend):
             validation_data_config,
             vpc_config,
         )
-        self.ModelCustomizationJobs[job_name] = model_customization_job
+        self.model_customization_jobs[job_name] = model_customization_job
         if job_tags:
             self.tag_resource(model_customization_job.job_arn, job_tags)
         # Create associated custom model
@@ -262,28 +278,29 @@ class BedrockBackend(BaseBackend):
             model_customization_job.validation_data_config,
             model_customization_job.validation_metrics,
         )
-        self.CustomModels[custom_model_name] = custom_model
+        self.custom_models[custom_model_name] = custom_model
         if custom_model_tags:
             self.tag_resource(custom_model.model_arn, custom_model_tags)
         return model_customization_job.job_arn
 
     def get_model_customization_job(self, job_identifier: str) -> ModelCustomizationJob:
-        if job_identifier not in self.ModelCustomizationJobs:
+        if job_identifier not in self.model_customization_jobs:
             raise ResourceNotFoundException(
                 f"Model customization job {job_identifier} not found"
             )
         else:
-            return self.ModelCustomizationJobs[job_identifier]
+            return self.model_customization_jobs[job_identifier]
 
     def stop_model_customization_job(self, job_identifier: str) -> None:
-        if job_identifier in self.ModelCustomizationJobs:
-            self.ModelCustomizationJobs[job_identifier].status = "Stopped"
+        if job_identifier in self.model_customization_jobs:
+            self.model_customization_jobs[job_identifier].status = "Stopped"
         else:
             raise ResourceNotFoundException(
                 f"Model customization job {job_identifier} not found"
             )
         return
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_model_customization_jobs(
         self,
         creation_time_after: Optional[datetime],
@@ -294,53 +311,38 @@ class BedrockBackend(BaseBackend):
         next_token: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
-        if next_token:
-            try:
-                starting_index = int(next_token)
-                if starting_index > len(self.ModelCustomizationJobs):
-                    raise ValueError  # invalid next_token
-            except ValueError:
-                raise ValidationException('Invalid pagination token because "{0}".')
-        else:
-            starting_index = 0
-
-        if max_results:
-            end_index = int(max_results) + starting_index
-            customization_jobs_fetched: Iterable[ModelCustomizationJob] = list(
-                self.ModelCustomizationJobs.values()
-            )[starting_index:end_index]
-            if end_index >= len(self.ModelCustomizationJobs):
-                next_index = None
-            else:
-                next_index = end_index
-        else:
-            customization_jobs_fetched = list(self.ModelCustomizationJobs.values())[
-                starting_index:
-            ]
-            next_index = None
+    ) -> List[Any]:
+        customization_jobs_fetched = list(self.model_customization_jobs.values())
 
         if name_contains is not None:
-            customization_jobs_fetched = filter(
-                lambda x: name_contains in x.job_name,
-                customization_jobs_fetched,
+            customization_jobs_fetched = list(
+                filter(
+                    lambda x: name_contains in x.job_name,
+                    customization_jobs_fetched,
+                )
             )
 
         if creation_time_after is not None:
-            customization_jobs_fetched = filter(
-                lambda x: x.creation_time > str(creation_time_after),
-                customization_jobs_fetched,
+            customization_jobs_fetched = list(
+                filter(
+                    lambda x: x.creation_time > str(creation_time_after),
+                    customization_jobs_fetched,
+                )
             )
 
         if creation_time_before is not None:
-            customization_jobs_fetched = filter(
-                lambda x: x.creation_time < str(creation_time_before),
-                customization_jobs_fetched,
+            customization_jobs_fetched = list(
+                filter(
+                    lambda x: x.creation_time < str(creation_time_before),
+                    customization_jobs_fetched,
+                )
             )
         if status_equals is not None:
-            customization_jobs_fetched = filter(
-                lambda x: x.status == status_equals,
-                customization_jobs_fetched,
+            customization_jobs_fetched = list(
+                filter(
+                    lambda x: x.status == status_equals,
+                    customization_jobs_fetched,
+                )
             )
 
         if sort_by is not None:
@@ -376,46 +378,46 @@ class BedrockBackend(BaseBackend):
                     "customizationType": model.customization_type,
                 }
             )
-        index = str(next_index) if next_index is not None else None
-        return index, model_customization_job_summaries
+        return model_customization_job_summaries
 
     def get_model_invocation_logging_configuration(self) -> Optional[Dict[str, Any]]:
-        if self.ModelInvocationLoggingConfiguration:
-            return self.ModelInvocationLoggingConfiguration.logging_config
+        if self.model_invocation_logging_configuration:
+            return self.model_invocation_logging_configuration.logging_config
         else:
             return {}
 
     def put_model_invocation_logging_configuration(
         self, logging_config: Dict[str, Any]
     ) -> None:
-        invocation_logging = ModelInvocationLoggingConfiguration(logging_config)
-        self.ModelInvocationLoggingConfiguration = invocation_logging
+        invocation_logging = model_invocation_logging_configuration(logging_config)
+        self.model_invocation_logging_configuration = invocation_logging
         return
 
     def get_custom_model(self, model_identifier: str) -> CustomModel:
         if model_identifier[:3] == "arn":
-            for model in self.CustomModels.values():
+            for model in self.custom_models.values():
                 if model.model_arn == model_identifier:
                     return model
             raise ResourceNotFoundException(
                 f"Custom model {model_identifier} not found"
             )
-        elif model_identifier in self.CustomModels:
-            return self.CustomModels[model_identifier]
+        elif model_identifier in self.custom_models:
+            return self.custom_models[model_identifier]
         else:
             raise ResourceNotFoundException(
                 f"Custom model {model_identifier} not found"
             )
 
     def delete_custom_model(self, model_identifier: str) -> None:
-        if model_identifier in self.CustomModels:
-            del self.CustomModels[model_identifier]
+        if model_identifier in self.custom_models:
+            del self.custom_models[model_identifier]
         else:
             raise ResourceNotFoundException(
                 f"Custom model {model_identifier} not found"
             )
         return
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_custom_models(
         self,
         creation_time_before: Optional[datetime],
@@ -427,54 +429,41 @@ class BedrockBackend(BaseBackend):
         next_token: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+    ) -> List[Any]:
         """
         The foundation_model_arn_equals-argument is not yet supported
         """
-        if next_token:
-            try:
-                starting_index = int(next_token)
-                if starting_index > len(self.CustomModels):
-                    raise ValueError  # invalid next_token
-            except ValueError:
-                raise ValidationException('Invalid pagination token because "{0}".')
-        else:
-            starting_index = 0
-
-        if max_results:
-            end_index = int(max_results) + starting_index
-            custom_models_fetched: Iterable[CustomModel] = list(
-                self.CustomModels.values()
-            )[starting_index:end_index]
-            if end_index >= len(self.CustomModels):
-                next_index = None
-            else:
-                next_index = end_index
-        else:
-            custom_models_fetched = list(self.CustomModels.values())[starting_index:]
-            next_index = None
+        custom_models_fetched = list(self.custom_models.values())
 
         if name_contains is not None:
-            custom_models_fetched = filter(
-                lambda x: name_contains in x.job_name,
-                custom_models_fetched,
+            custom_models_fetched = list(
+                filter(
+                    lambda x: name_contains in x.job_name,
+                    custom_models_fetched,
+                )
             )
 
         if creation_time_after is not None:
-            custom_models_fetched = filter(
-                lambda x: x.creation_time > str(creation_time_after),
-                custom_models_fetched,
+            custom_models_fetched = list(
+                filter(
+                    lambda x: x.creation_time > str(creation_time_after),
+                    custom_models_fetched,
+                )
             )
 
         if creation_time_before is not None:
-            custom_models_fetched = filter(
-                lambda x: x.creation_time < str(creation_time_before),
-                custom_models_fetched,
+            custom_models_fetched = list(
+                filter(
+                    lambda x: x.creation_time < str(creation_time_before),
+                    custom_models_fetched,
+                )
             )
         if base_model_arn_equals is not None:
-            custom_models_fetched = filter(
-                lambda x: x.base_model_arn == base_model_arn_equals,
-                custom_models_fetched,
+            custom_models_fetched = list(
+                filter(
+                    lambda x: x.base_model_arn == base_model_arn_equals,
+                    custom_models_fetched,
+                )
             )
 
         if sort_by is not None:
@@ -506,8 +495,7 @@ class BedrockBackend(BaseBackend):
                     "customizationType": model.customization_type,
                 }
             )
-        index = str(next_index) if next_index is not None else None
-        return index, model_summaries
+        return model_summaries
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         if resource_arn not in self._list_arns():
@@ -538,8 +526,8 @@ class BedrockBackend(BaseBackend):
         return fixed_tags
 
     def delete_model_invocation_logging_configuration(self) -> None:
-        if self.ModelInvocationLoggingConfiguration:
-            self.ModelInvocationLoggingConfiguration.logging_config = {}
+        if self.model_invocation_logging_configuration:
+            self.model_invocation_logging_configuration.logging_config = {}
         return
 
 

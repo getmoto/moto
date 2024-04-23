@@ -334,7 +334,6 @@ def test_list_model_customization_jobs():
         hyperParameters={"learning_rate": "0.01"},
     )
     resp = client.list_model_customization_jobs()
-
     assert len(resp["modelCustomizationJobSummaries"]) == 2
     assert (
         resp["modelCustomizationJobSummaries"][0]["jobArn"]
@@ -616,62 +615,6 @@ def test_stop_model_customization_job_not_found():
 
 
 @mock_aws
-def test_list_model_customization_jobs_token():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client.create_model_customization_job(
-        jobName="testjob",
-        customModelName="testmodel1",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob2",
-        customModelName="testmodel2",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    resp = client.list_model_customization_jobs(nextToken="1")
-
-    assert len(resp["modelCustomizationJobSummaries"]) == 1
-    assert (
-        resp["modelCustomizationJobSummaries"][0]["jobArn"]
-        == "arn:aws:bedrock:us-east-1:123456789012:model-customization-job/testjob2"
-    )
-
-
-@mock_aws
-def test_list_model_customization_jobs_bad_token():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client.create_model_customization_job(
-        jobName="testjob",
-        customModelName="testmodel1",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob2",
-        customModelName="testmodel2",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    with pytest.raises(ClientError) as ex:
-        client.list_model_customization_jobs(nextToken="3")
-    assert ex.value.response["Error"]["Code"] == "ValidationException"
-
-
-@mock_aws
 def test_list_model_customization_jobs_max_results():
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     client.create_model_customization_job(
@@ -697,44 +640,6 @@ def test_list_model_customization_jobs_max_results():
     assert (
         resp["modelCustomizationJobSummaries"][0]["jobArn"]
         == "arn:aws:bedrock:us-east-1:123456789012:model-customization-job/testjob"
-    )
-
-
-@mock_aws
-def test_list_model_customization_jobs_max_results_starting_index():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client.create_model_customization_job(
-        jobName="testjob",
-        customModelName="testmodel1",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob2",
-        customModelName="testmodel2",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob3",
-        customModelName="testmodel3",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    resp = client.list_model_customization_jobs(nextToken="2", maxResults=4)
-    assert len(resp["modelCustomizationJobSummaries"]) == 1
-    assert (
-        resp["modelCustomizationJobSummaries"][0]["jobArn"]
-        == "arn:aws:bedrock:us-east-1:123456789012:model-customization-job/testjob3"
     )
 
 
@@ -1062,62 +967,6 @@ def test_get_model_invocation_logging_configuration_empty():
 
 
 @mock_aws
-def test_list_custom_models_token():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client.create_model_customization_job(
-        jobName="testjob",
-        customModelName="testmodel1",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob2",
-        customModelName="testmodel2",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    resp = client.list_custom_models(nextToken="1")
-
-    assert len(resp["modelSummaries"]) == 1
-    assert (
-        resp["modelSummaries"][0]["modelArn"]
-        == "arn:aws:bedrock:us-east-1:123456789012:custom-model/testmodel2"
-    )
-
-
-@mock_aws
-def test_list_custom_models_bad_token():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client.create_model_customization_job(
-        jobName="testjob",
-        customModelName="testmodel1",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob2",
-        customModelName="testmodel2",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    with pytest.raises(ClientError) as ex:
-        client.list_custom_models(nextToken="3")
-    assert ex.value.response["Error"]["Code"] == "ValidationException"
-
-
-@mock_aws
 def test_list_custom_models_max_results():
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     client.create_model_customization_job(
@@ -1143,44 +992,6 @@ def test_list_custom_models_max_results():
     assert (
         resp["modelSummaries"][0]["modelArn"]
         == "arn:aws:bedrock:us-east-1:123456789012:custom-model/testmodel"
-    )
-
-
-@mock_aws
-def test_list_custom_models_max_results_starting_index():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client.create_model_customization_job(
-        jobName="testjob",
-        customModelName="testmodel",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob2",
-        customModelName="testmodel2",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    client.create_model_customization_job(
-        jobName="testjob3",
-        customModelName="testmodel3",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    resp = client.list_custom_models(nextToken="2", maxResults=4)
-    assert len(resp["modelSummaries"]) == 1
-    assert (
-        resp["modelSummaries"][0]["modelArn"]
-        == "arn:aws:bedrock:us-east-1:123456789012:custom-model/testmodel3"
     )
 
 

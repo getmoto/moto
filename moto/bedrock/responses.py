@@ -120,7 +120,9 @@ class BedrockResponse(BaseResponse):
         next_token = params.get("nextToken")
         sort_by = params.get("sortBy")
         sort_order = params.get("sortOrder")
-        next_token, model_summaries = self.bedrock_backend.list_custom_models(
+
+        max_results = int(max_results) if max_results else None
+        model_summaries, next_token = self.bedrock_backend.list_custom_models(
             creation_time_before=creation_time_before,
             creation_time_after=creation_time_after,
             name_contains=name_contains,
@@ -143,9 +145,11 @@ class BedrockResponse(BaseResponse):
         next_token = params.get("nextToken")
         sort_by = params.get("sortBy")
         sort_order = params.get("sortOrder")
+
+        max_results = int(max_results) if max_results else None
         (
-            next_token,
             model_customization_job_summaries,
+            next_token,
         ) = self.bedrock_backend.list_model_customization_jobs(
             creation_time_after=creation_time_after,
             creation_time_before=creation_time_before,
