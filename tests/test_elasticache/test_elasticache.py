@@ -305,8 +305,6 @@ def test_describe_all_cache_clusters():
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     cache_clusters = resp["CacheClusters"]
-    # account for the default cluster created moto/elasticache/models.py line 148
-    del cache_clusters[0]
 
     for i, cache_cluster in enumerate(cache_clusters):
         if cache_cluster["CacheClusterId"] == f"test-cache-cluster-{i}":
