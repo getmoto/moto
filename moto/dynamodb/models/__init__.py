@@ -72,8 +72,10 @@ class DynamoDBBackend(BaseBackend):
     def delete_table(self, name: str) -> Table:
         if name not in self.tables:
             raise ResourceNotFoundException
-        if self.tables.get(name).deletion_protection_enabled:
-            raise DeletionProtectedException(name)
+        table_for_deletion = self.tables.get(name)
+        if isinstance(table_for_deletion, Table):
+            if table_for_deletion.deletion_protection_enabled:
+                raise DeletionProtectedException(name)
         return self.tables.pop(name)
 
     def describe_endpoints(self) -> List[Dict[str, Union[int, str]]]:
