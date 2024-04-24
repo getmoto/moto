@@ -873,7 +873,7 @@
 
 ## budgets
 <details>
-<summary>26% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] create_budget
 - [ ] create_budget_action
@@ -894,9 +894,6 @@
 - [X] describe_notifications_for_budget
 - [ ] describe_subscribers_for_notification
 - [ ] execute_budget_action
-- [ ] list_tags_for_resource
-- [ ] tag_resource
-- [ ] untag_resource
 - [ ] update_budget
 - [ ] update_budget_action
 - [ ] update_notification
@@ -1435,7 +1432,6 @@
 - [ ] put_webhook
 - [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
-- [ ] rollback_stage
 - [ ] start_pipeline_execution
 - [ ] stop_pipeline_execution
 - [X] tag_resource
@@ -2743,7 +2739,6 @@
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
-- [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
@@ -3460,12 +3455,11 @@
 
 ## emr-containers
 <details>
-<summary>34% implemented</summary>
+<summary>40% implemented</summary>
 
 - [X] cancel_job_run
 - [ ] create_job_template
 - [ ] create_managed_endpoint
-- [ ] create_security_configuration
 - [X] create_virtual_cluster
 - [ ] delete_job_template
 - [ ] delete_managed_endpoint
@@ -3473,13 +3467,11 @@
 - [X] describe_job_run
 - [ ] describe_job_template
 - [ ] describe_managed_endpoint
-- [ ] describe_security_configuration
 - [X] describe_virtual_cluster
 - [ ] get_managed_endpoint_session_credentials
 - [X] list_job_runs
 - [ ] list_job_templates
 - [ ] list_managed_endpoints
-- [ ] list_security_configurations
 - [ ] list_tags_for_resource
 - [X] list_virtual_clusters
 - [X] start_job_run
@@ -5948,9 +5940,9 @@
 
 ## panorama
 <details>
-<summary>23% implemented</summary>
+<summary>32% implemented</summary>
 
-- [ ] create_application_instance
+- [X] create_application_instance
 - [ ] create_job_for_devices
 - [X] create_node_from_template_job
 - [ ] create_package
@@ -5958,7 +5950,7 @@
 - [X] delete_device
 - [ ] delete_package
 - [ ] deregister_package_version
-- [ ] describe_application_instance
+- [X] describe_application_instance
 - [ ] describe_application_instance_details
 - [X] describe_device
 - [ ] describe_device_job
@@ -5969,7 +5961,7 @@
 - [ ] describe_package_version
 - [ ] list_application_instance_dependencies
 - [ ] list_application_instance_node_instances
-- [ ] list_application_instances
+- [X] list_application_instances
 - [X] list_devices
 - [ ] list_devices_jobs
 - [ ] list_node_from_template_jobs
@@ -5993,7 +5985,6 @@
 - [ ] create_batch_inference_job
 - [ ] create_batch_segment_job
 - [ ] create_campaign
-- [ ] create_data_deletion_job
 - [ ] create_dataset
 - [ ] create_dataset_export_job
 - [ ] create_dataset_group
@@ -6018,7 +6009,6 @@
 - [ ] describe_batch_inference_job
 - [ ] describe_batch_segment_job
 - [ ] describe_campaign
-- [ ] describe_data_deletion_job
 - [ ] describe_dataset
 - [ ] describe_dataset_export_job
 - [ ] describe_dataset_group
@@ -6036,7 +6026,6 @@
 - [ ] list_batch_inference_jobs
 - [ ] list_batch_segment_jobs
 - [ ] list_campaigns
-- [ ] list_data_deletion_jobs
 - [ ] list_dataset_export_jobs
 - [ ] list_dataset_groups
 - [ ] list_dataset_import_jobs
@@ -6405,7 +6394,6 @@
 - [ ] update_q_personalization_configuration
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
-- [ ] update_spice_capacity_configuration
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions
@@ -6911,7 +6899,6 @@
 - [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
-- [ ] list_app_assessment_resource_drifts
 - [X] list_app_assessments
 - [ ] list_app_component_compliances
 - [ ] list_app_component_recommendations
@@ -8294,7 +8281,6 @@
 - [ ] describe_instance_patch_states
 - [ ] describe_instance_patch_states_for_patch_group
 - [ ] describe_instance_patches
-- [ ] describe_instance_properties
 - [ ] describe_inventory_deletions
 - [ ] describe_maintenance_window_execution_task_invocations
 - [ ] describe_maintenance_window_execution_tasks
@@ -8472,7 +8458,7 @@
 
 ## stepfunctions
 <details>
-<summary>54% implemented</summary>
+<summary>55% implemented</summary>
 
 - [ ] create_activity
 - [X] create_state_machine
@@ -8510,7 +8496,6 @@
 - [X] update_map_run
 - [X] update_state_machine
 - [ ] update_state_machine_alias
-- [ ] validate_state_machine_definition
 </details>
 
 ## sts

@@ -12,7 +12,8 @@ from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.panorama.utils import (
     arn_formatter,
     deep_convert_datetime_to_isoformat,
-    hash_name, generate_package_id,
+    generate_package_id,
+    hash_name,
 )
 from moto.utilities.paginator import paginate
 
@@ -348,7 +349,6 @@ class ApplicationInstance(BaseObject):
         return response_object
 
 
-
 class Node(BaseObject):
     def __init__(
         self,
@@ -573,16 +573,15 @@ class PanoramaBackend(BaseBackend):
         device_id: Optional[str],
         status_filter: Optional[str],
     ) -> List[ApplicationInstance]:
-        filtered_application_instances = self.application_instances_memory.values()
-        if device_id:
-            filtered_application_instances = filter(
-                lambda x: x.default_runtime_context_device == device_id,
-                filtered_application_instances,
-            )
-        if status_filter:
-            filtered_application_instances = filter(
-                lambda x: x.status == status_filter, filtered_application_instances
-            )
+        filtered_application_instances = filter(
+            lambda x: x.status == status_filter if status_filter else True,
+            filter(
+                lambda x: x.default_runtime_context_device == device_id
+                if device_id
+                else True,
+                self.application_instances_memory.values(),
+            ),
+        )
         return list(filtered_application_instances)
 
 
