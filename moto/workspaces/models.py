@@ -58,7 +58,8 @@ class Workspace(BaseModel):
         self.modification_states: List[
             Dict[str, str]
         ] = []  # modify_workspace_properties
-        self.related_workspaces: List[Dict[str, str]] = []  # create_standy_workspace
+        # create_standy_workspace
+        self.related_workspaces: List[Dict[str, str]] = []
         self.data_replication_settings: Dict[str, Any] = {}
         # The properties of the standby WorkSpace related to related_workspaces
         self.standby_workspaces_properties: List[Dict[str, Any]] = []
@@ -134,9 +135,11 @@ class WorkSpaceDirectory(BaseModel):
         self.launch_time = directory.launch_time
         self.registration_code = registration_code
         if directory.directory_type == "ADConnector":
-            dir_subnet_ids = directory.connect_settings["SubnetIds"]  # type: ignore[index]
+            # type: ignore[index]
+            dir_subnet_ids = directory.connect_settings["SubnetIds"]
         else:
-            dir_subnet_ids = directory.vpc_settings["SubnetIds"]  # type: ignore[index]
+            # type: ignore[index]
+            dir_subnet_ids = directory.vpc_settings["SubnetIds"]
         self.subnet_ids = subnet_ids or dir_subnet_ids
         self.dns_ip_addresses = directory.dns_ip_addrs
         self.customer_username = "Administrator"
