@@ -269,6 +269,20 @@ def test_send_task_failure_invalid_token(table_name=None, sleep_time=0):
                     "in the request is invalid."
                 )
 
+                # Execute
+                with pytest.raises(ClientError) as exc:
+                    client.send_task_success(taskToken="bad_token", error="test error")
+
+                # Verify
+                assert (
+                    exc.value.response["Error"]["Code"] == "UnrecognizedClientException"
+                )
+                assert (
+                    exc.value.response["Error"]["Message"]
+                    == "The security token included "
+                    "in the request is invalid."
+                )
+
     verify_execution_result(
         _verify_result,
         expected_status=None,
