@@ -52,12 +52,14 @@ def filter_resources(
         for attrs in attr_pairs:
             values = filters.get(attrs[0]) or None
             if values:
-                instance = getattr(resource, attrs[1])
-                if (len(attrs) <= 2 and instance not in values) or (
-                    len(attrs) == 3 and instance.get(attrs[2]) not in values
-                ):
-                    result.remove(resource)
-                    break
+                instances = getattr(resource, attrs[1])
+                if not isinstance(instances, list):
+                    instances = [instances]
+                for instance in instances:
+                    if (len(attrs) <= 2 and instance not in values) or (
+                        len(attrs) == 3 and instance.get(attrs[2]) not in values
+                    ):
+                        result.remove(resource)
     return result
 
 
