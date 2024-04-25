@@ -29,7 +29,7 @@ def include_consumed_capacity(
     Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]],
 ]:
     def _inner(
-        f: Callable[..., Union[str, TYPE_RESPONSE]],
+        f: Callable[["DynamoHandler"], str],
     ) -> Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]]:
         @wraps(f)
         def _wrapper(

@@ -108,7 +108,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_CONNECT(self) -> None:
         address = self.path.split(":")
-        port = int(address[1]) or 443  # type: ignore
+        port = int(address[1]) or 443
         if address[0] in moto_api_backend.proxy_hosts_to_passthrough:
             self.connect_relay((address[0], port))
             return
@@ -159,7 +159,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             boundary = self.headers["Content-Type"].split("boundary=")[-1]
             req_body, form_data = get_body_from_form_data(req_body, boundary)  # type: ignore
             for key, val in form_data.items():
-                self.headers[key] = [val]  # type: ignore[assignment]
+                self.headers[key] = [val]
         else:
             form_data = {}
 
