@@ -439,8 +439,11 @@ def test_get_event_source_mapping():
     assert mapping["UUID"] == response["UUID"]
     assert mapping["FunctionArn"] == func["FunctionArn"]
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         conn.get_event_source_mapping(UUID="1")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."
 
 
 @mock_aws
@@ -516,5 +519,8 @@ def test_delete_event_source_mapping():
     response = conn.delete_event_source_mapping(UUID=response["UUID"])
 
     assert response["State"] == "Deleting"
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         conn.get_event_source_mapping(UUID=response["UUID"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."

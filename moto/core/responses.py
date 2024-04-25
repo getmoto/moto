@@ -54,6 +54,8 @@ T = TypeVar("T")
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
 
+boto3_service_name = {"awslambda": "lambda"}
+
 
 def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
     decoded: Dict[str, Any] = OrderedDict()
@@ -515,9 +517,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
         """
 
-        # service response class should have 'SERVICE_NAME' class member,
-        # if you want to get action from method and url
-        conn = boto3.client(self.service_name, region_name=self.region)
+        service_name = boto3_service_name.get(self.service_name) or self.service_name  # type: ignore
+        conn = boto3.client(service_name, region_name=self.region)
 
         # make cache if it does not exist yet
         if not hasattr(self, "method_urls"):
