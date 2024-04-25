@@ -47,7 +47,7 @@ class EachBlockProcessor(BlockProcessor):
                     _processor = get_processor(self.tokenizer)(
                         self.template,
                         template_data,  # type: ignore
-                        self.tokenizer,  # type: ignore
+                        self.tokenizer,
                     )
                     # If we've reached the end, we should stop processing
                     # Our parent will continue with whatever comes after {{/each}}

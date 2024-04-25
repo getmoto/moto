@@ -106,4 +106,4 @@ url_paths = {
 }
 
 # Also manages the APIGatewayV2
-url_paths.update(url_paths_v2)
+url_paths.update(url_paths_v2)  # type: ignore[arg-type]
