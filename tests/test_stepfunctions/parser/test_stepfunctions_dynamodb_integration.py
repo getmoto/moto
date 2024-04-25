@@ -271,7 +271,9 @@ def test_send_task_failure_invalid_token(table_name=None, sleep_time=0):
 
                 # Execute
                 with pytest.raises(ClientError) as exc:
-                    client.send_task_success(taskToken="bad_token", error="test error")
+                    client.send_task_success(
+                        taskToken="bad_token", output="test output"
+                    )
 
                 # Verify
                 assert (
