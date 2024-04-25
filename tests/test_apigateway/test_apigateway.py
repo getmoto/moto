@@ -5,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -857,16 +857,14 @@ def test_update_authorizer_configuration():
 
     # TODO: implement mult-update tests
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.update_authorizer(
             restApiId=api_id,
             authorizerId=authorizer_id,
-            patchOperations=[
-                {"op": "add", "path": "/notasetting", "value": "eu-west-1"}
-            ],
+            patchOperations=[{"op": "add", "path": "/notasetting", "value": "v"}],
         )
-    if settings.TEST_DECORATOR_MODE:
-        assert 'Patch operation "add" not implemented' in str(exc.value)
+    err = exc.value.response["Error"]
+    assert err["Message"] == 'Patch operation "add" not implemented'
 
 
 @mock_aws
