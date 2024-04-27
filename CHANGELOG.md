@@ -1,6 +1,63 @@
 Moto Changelog
 ==============
 
+5.0.6
+-----
+Docker Digest for 5.0.6: <autopopulateddigest>
+
+    New Services:
+        * Bedrock:
+            * create_model_customization_job()
+            * delete_custom_model()
+            * delete_model_invocation_logging_configuration()
+            * get_custom_model()
+            * get_model_customization_job()
+            * get_model_invocation_logging_configuration()
+            * list_custom_models()
+            * list_model_customization_jobs()
+            * list_tags_for_resource()
+            * put_model_invocation_logging_configuration()
+            * stop_model_customization_job()
+            * tag_resource()
+            * untag_resource()
+
+        * BedrockAgent:
+            * create_agent()
+            * create_knowledge_base()
+            * delete_agent()
+            * delete_knowledge_base()
+            * get_agent()
+            * get_knowledge_base()
+            * list_agents()
+            * list_knowledge_bases()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * EC2:
+            * describe_addresses_attributes()
+
+        * Rekognition:
+            * detect_custom_labels()
+
+        * Sagemaker:
+            * update_trial_component()
+
+    Miscellaneous:
+        * CloudFront: update_distribution() now supports the CacheBehaviours-parameter
+        * DynamoDB: query() now acts correctly when paginating GSI tables without range keys
+        * EC2: RouteTables can now have multiple propagations
+        * EC2: describe_instances() now now filter by product-code and product-code.type
+        * EC2: describe_security_group_rules() now validates the format of the incoming security group id's
+        * ECS: update_service() now supports the loadBalancers-parameter
+        * Logs: describe_metric_filter() now has the correct validation for metricNamespaces
+        * IOT: search_index() now supports thingTypeName
+        * SFN: send_task_failure()/send_task_success() now work correctly when using the Parser
+        * SNS: subscribe() now throws an exception if the endpoint doesn't exist
+        * SQS: Improved queue name validation
+
+
 5.0.5
 -----
 Docker Digest for 5.0.5: _sha256:b95cf0d65557475f29e7256938028eef352e23acafe8e07c071cd58b67c44708_

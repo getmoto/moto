@@ -23,7 +23,7 @@ def test_create_model_customization_job():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
+
     resp = client.create_model_customization_job(
         jobName="testjob",
         customModelName="testmodel",
@@ -99,7 +99,6 @@ def test_put_model_invocation_logging_configuration():
             "bucketName": "testconfigbucket",
         },
     }
-    # pytest.set_trace()
     client.put_model_invocation_logging_configuration(loggingConfig=logging_config)
     response = client.get_model_invocation_logging_configuration()
     assert response["loggingConfig"]["cloudWatchConfig"]["logGroupName"] == "Test"
@@ -154,7 +153,7 @@ def test_untag_resource():
             {"key": "testkey2", "value": "testvalue2"},
         ],
     )
-    resp = client.untag_resource(resourceARN=job_arn["jobArn"], tagKeys=["testkey"])
+    client.untag_resource(resourceARN=job_arn["jobArn"], tagKeys=["testkey"])
     resp = client.list_tags_for_resource(resourceARN=job_arn["jobArn"])
 
     assert resp["tags"][0]["key"] == "testkey2"
@@ -163,8 +162,6 @@ def test_untag_resource():
 
 @mock_aws
 def test_untag_resource_custom_model():
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
@@ -426,7 +423,6 @@ def test_create_model_customization_job_bad_training_data_config():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
     with pytest.raises(ClientError) as ex:
         client.create_model_customization_job(
             jobName="testjob",
@@ -447,7 +443,6 @@ def test_create_model_customization_job_bad_validation_data_config():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
     with pytest.raises(ClientError) as ex:
         client.create_model_customization_job(
             jobName="testjob",
@@ -471,7 +466,6 @@ def test_create_model_customization_job_bad_output_data_config():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
     with pytest.raises(ClientError) as ex:
         client.create_model_customization_job(
             jobName="testjob",
@@ -493,7 +487,6 @@ def test_create_model_customization_job_duplicate_job_name():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
     client.create_model_customization_job(
         jobName="testjob",
         customModelName="testmodel",
@@ -525,7 +518,6 @@ def test_create_model_customization_job_duplicate_model_name():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
     client.create_model_customization_job(
         jobName="testjob1",
         customModelName="testmodel",
@@ -557,7 +549,6 @@ def test_create_model_customization_job_tags():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION)
     s3_client.create_bucket(Bucket="training_bucket")
     s3_client.create_bucket(Bucket="output_bucket")
-    # pytest.set_trace()
     resp = client.create_model_customization_job(
         jobName="testjob1",
         customModelName="testmodel",
@@ -879,38 +870,7 @@ def test_list_model_customization_jobs_descending_sort():
 
 @mock_aws
 def test_list_model_customization_jobs_bad_sort_order():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
-    with freeze_time("2022-01-01 12:00:00"):
-        client.create_model_customization_job(
-            jobName="testjob",
-            customModelName="testmodel1",
-            roleArn="testrole",
-            baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-            trainingDataConfig={"s3Uri": "s3://training_bucket"},
-            outputDataConfig={"s3Uri": "s3://output_bucket"},
-            hyperParameters={"learning_rate": "0.01"},
-        )
-    client.create_model_customization_job(
-        jobName="testjob3",
-        customModelName="testmodel3",
-        roleArn="testrole",
-        baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-        trainingDataConfig={"s3Uri": "s3://training_bucket"},
-        outputDataConfig={"s3Uri": "s3://output_bucket"},
-        hyperParameters={"learning_rate": "0.01"},
-    )
-    with freeze_time("2023-01-01 12:00:00"):
-        client.create_model_customization_job(
-            jobName="testjob2",
-            customModelName="testmodel2",
-            roleArn="testrole",
-            baseModelIdentifier="anthropic.claude-3-sonnet-20240229-v1:0",
-            trainingDataConfig={"s3Uri": "s3://training_bucket"},
-            outputDataConfig={"s3Uri": "s3://output_bucket"},
-            hyperParameters={"learning_rate": "0.01"},
-        )
     with pytest.raises(ClientError) as ex:
         client.list_model_customization_jobs(
             sortBy="CreationTime", sortOrder="decending"
