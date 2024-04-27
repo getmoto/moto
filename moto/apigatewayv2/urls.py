@@ -26,15 +26,9 @@ url_paths = {
     "{0}/v2/apis/(?P<api_id>[^/]+)/routes/(?P<route_id>[^/]+)/requestparameters/(?P<request_parameter>[^/]+)$": ApiGatewayV2Response.dispatch,
     "{0}/v2/apis/(?P<api_id>[^/]+)/stages$": ApiGatewayV2Response.dispatch,
     "{0}/v2/apis/(?P<api_id>[^/]+)/stages/(?P<stage_name>[^/]+)$": ApiGatewayV2Response.dispatch,
-    "{0}/v2/tags/(?P<resource_arn>[^/]+)$": ApiGatewayV2Response.method_dispatch(
-        ApiGatewayV2Response.tags
-    ),
-    "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/apis/(?P<resource_arn_pt2>[^/]+)$": ApiGatewayV2Response.method_dispatch(
-        ApiGatewayV2Response.tags
-    ),
-    "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/vpclinks/(?P<resource_arn_pt2>[^/]+)$": ApiGatewayV2Response.method_dispatch(
-        ApiGatewayV2Response.tags
-    ),
+    "{0}/v2/tags/(?P<resource_arn>[^/]+)$": ApiGatewayV2Response.dispatch,
+    "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/apis/(?P<resource_arn_pt2>[^/]+)$": ApiGatewayV2Response.dispatch,
+    "{0}/v2/tags/(?P<resource_arn_pt1>[^/]+)/vpclinks/(?P<resource_arn_pt2>[^/]+)$": ApiGatewayV2Response.dispatch,
     "{0}/v2/vpclinks$": ApiGatewayV2Response.dispatch,
     "{0}/v2/vpclinks/(?P<vpc_link_id>[^/]+)$": ApiGatewayV2Response.dispatch,
     "{0}/v2/domainnames$": ApiGatewayV2Response.dispatch,

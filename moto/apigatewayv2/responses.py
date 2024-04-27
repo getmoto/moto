@@ -1,7 +1,6 @@
 """Handles incoming apigatewayv2 requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -20,16 +19,6 @@ class ApiGatewayV2Response(BaseResponse):
     def apigatewayv2_backend(self) -> ApiGatewayV2Backend:
         """Return backend instance specific for this region."""
         return apigatewayv2_backends[self.current_account][self.region]
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-
-        if self.method == "POST":
-            return self.tag_resource()
-        if self.method == "GET":
-            return self.get_tags()
-        if self.method == "DELETE":
-            return self.untag_resource()
 
     def create_api(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)

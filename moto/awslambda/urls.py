@@ -16,9 +16,7 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<resource_arn>.+)/invocations/?$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/invoke-async$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/invoke-async/$": LambdaResponse.dispatch,
-    r"{0}/(?P<api_version>[^/]+)/tags/(?P<resource_arn>.+)": LambdaResponse.method_dispatch(
-        LambdaResponse.tag
-    ),
+    r"{0}/(?P<api_version>[^/]+)/tags/(?P<resource_arn>.+)": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/policy/(?P<statement_id>[\w_-]+)$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/policy/?$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/configuration/?$": LambdaResponse.dispatch,

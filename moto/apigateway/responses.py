@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Dict, List
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -413,25 +413,25 @@ class APIGatewayResponse(BaseResponse):
         )
         return json.dumps(stage_response.to_json())
 
-    def restapis_stages_tags(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Dict[str, str]
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
+    def tag_resource(self) -> str:
         url_path_parts = unquote(self.path.split("/tags/")[1]).split("/")
         function_id = url_path_parts[-3]
         stage_name = url_path_parts[-1]
-        if self.method == "PUT":
-            tags = self._get_param("tags")
-            if tags:
-                stage = self.backend.get_stage(function_id, stage_name)
-                stage.tags = merge_multiple_dicts(stage.tags or {}, tags)
-            return 200, {}, json.dumps({"item": tags})
-        if self.method == "DELETE":
+        tags = self._get_param("tags")
+        if tags:
             stage = self.backend.get_stage(function_id, stage_name)
-            for tag in (stage.tags or {}).copy():
-                if tag in (self.querystring.get("tagKeys") or {}):
-                    stage.tags.pop(tag, None)  # type: ignore[union-attr]
-            return 200, {}, json.dumps({"item": ""})
+            stage.tags = merge_multiple_dicts(stage.tags or {}, tags)
+        return json.dumps({"item": tags})
+
+    def untag_resource(self) -> str:
+        url_path_parts = unquote(self.path.split("/tags/")[1]).split("/")
+        function_id = url_path_parts[-3]
+        stage_name = url_path_parts[-1]
+        stage = self.backend.get_stage(function_id, stage_name)
+        for tag in (stage.tags or {}).copy():
+            if tag in (self.querystring.get("tagKeys") or {}):
+                stage.tags.pop(tag, None)  # type: ignore[union-attr]
+        return json.dumps({"item": ""})
 
     def get_export(self) -> TYPE_RESPONSE:
         url_path_parts = self.path.split("/")
