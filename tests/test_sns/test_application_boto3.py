@@ -139,7 +139,43 @@ def test_create_platform_endpoint():
 
 @pytest.mark.aws_verified
 @sns_aws_verified
-def test_create_duplicate_platform_endpoint(api_key=None):
+def test_create_duplicate_default_platform_endpoint(api_key=None):
+    conn = boto3.client("sns", region_name="us-east-1")
+    platform_name = str(uuid4())[0:6]
+    app_arn = None
+    try:
+        platform_application = conn.create_platform_application(
+            Name=platform_name,
+            Platform="GCM",
+            Attributes={"PlatformCredential": api_key},
+        )
+        app_arn = platform_application["PlatformApplicationArn"]
+
+        # Create duplicate endpoints
+        arn1 = conn.create_platform_endpoint(
+            PlatformApplicationArn=app_arn, Token="token"
+        )["EndpointArn"]
+        arn2 = conn.create_platform_endpoint(
+            PlatformApplicationArn=app_arn, Token="token"
+        )["EndpointArn"]
+
+        # Create another duplicate endpoint, just specify the default value
+        arn3 = conn.create_platform_endpoint(
+            PlatformApplicationArn=app_arn,
+            Token="token",
+            Attributes={"Enabled": "true"},
+        )["EndpointArn"]
+
+        assert arn1 == arn2
+        assert arn2 == arn3
+    finally:
+        if app_arn is not None:
+            conn.delete_platform_application(PlatformApplicationArn=app_arn)
+
+
+@pytest.mark.aws_verified
+@sns_aws_verified
+def test_create_duplicate_platform_endpoint_with_attrs(api_key=None):
     identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
     account_id = identity["Account"]
 
