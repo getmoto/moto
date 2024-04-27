@@ -491,7 +491,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         def _convert(elem: str, is_last: bool) -> str:
             if not re.match("^{.*}$", elem):
-                return elem
+                return elem.replace("$", r"\$")
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
