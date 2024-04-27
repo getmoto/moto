@@ -50,3 +50,5 @@ jobs:
       with:
         fail_ci_if_error: false
         flags: unittests
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
