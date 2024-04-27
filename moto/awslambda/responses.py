@@ -23,17 +23,6 @@ class LambdaResponse(BaseResponse):
     def backend(self) -> LambdaBackend:
         return get_backend(self.current_account, self.region)
 
-    def tag(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self._list_tags()
-        elif request.method == "POST":
-            return self._tag_resource()
-        elif request.method == "DELETE":
-            return self._untag_resource()
-        else:
-            raise ValueError(f"Cannot handle {request.method} request")
-
     def add_permission(self) -> str:
         function_name = unquote(self.path.split("/")[-2])
         qualifier = self.querystring.get("Qualifier", [None])[0]
@@ -280,19 +269,19 @@ class LambdaResponse(BaseResponse):
         else:
             return self.default_region
 
-    def _list_tags(self) -> TYPE_RESPONSE:
+    def list_tags(self) -> str:
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
         tags = self.backend.list_tags(function_arn)
-        return 200, {}, json.dumps({"Tags": tags})
+        return json.dumps({"Tags": tags})
 
-    def _tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> str:
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
 
         self.backend.tag_resource(function_arn, self.json_body["Tags"])
-        return 200, {}, "{}"
+        return "{}"
 
-    def _untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> TYPE_RESPONSE:
         function_arn = unquote(self.path.rsplit("/", 1)[-1])
         tag_keys = self.querystring["tagKeys"]
 
