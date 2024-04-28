@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.6
 -----
-Docker Digest for 5.0.6: <autopopulateddigest>
+Docker Digest for 5.0.6: _sha256:da919d3c1db07b378c413ed00a6c1c3e32ce1943a13671658c4db0f55dd49e42_
 
     New Services:
         * Bedrock:
