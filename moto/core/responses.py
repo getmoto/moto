@@ -54,6 +54,8 @@ T = TypeVar("T")
 
 ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
 
+boto3_service_name = {"awslambda": "lambda"}
+
 
 def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
     decoded: Dict[str, Any] = OrderedDict()
@@ -397,6 +399,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.path = self.parsed_url.path
         if self.is_werkzeug_request and "RAW_URI" in request.environ:
             self.raw_path = urlparse(request.environ.get("RAW_URI")).path
+            if self.raw_path and not self.raw_path.startswith("/"):
+                self.raw_path = f"/{self.raw_path}"
         else:
             self.raw_path = self.path
 
@@ -489,7 +493,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         def _convert(elem: str, is_last: bool) -> str:
             if not re.match("^{.*}$", elem):
-                return elem
+                # URL-parts sometimes contain a $
+                # Like Greengrass: /../deployments/$reset
+                # We don't want to our regex to think this marks an end-of-line, so let's escape it
+                return elem.replace("$", r"\$")
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
@@ -515,9 +522,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
         """
 
-        # service response class should have 'SERVICE_NAME' class member,
-        # if you want to get action from method and url
-        conn = boto3.client(self.service_name, region_name=self.region)
+        service_name = boto3_service_name.get(self.service_name) or self.service_name  # type: ignore
+        conn = boto3.client(service_name, region_name=self.region)
 
         # make cache if it does not exist yet
         if not hasattr(self, "method_urls"):
@@ -548,7 +554,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if match:
             return match.split(".")[-1]
         # get action from method and uri
-        return self._get_action_from_method_and_request_uri(self.method, self.path)
+        return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers

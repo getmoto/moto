@@ -92,11 +92,13 @@ jobs:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_decoratormode.yml
+    secrets: inherit
 
   testserver:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_servermode.yml
+    secrets: inherit
 
   testproxy:
     needs: [lint]

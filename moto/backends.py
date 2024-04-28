@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from moto.autoscaling.models import AutoScalingBackend
     from moto.awslambda.models import LambdaBackend
     from moto.batch.models import BatchBackend
+    from moto.bedrock.models import BedrockBackend
+    from moto.bedrockagent.models import AgentsforBedrockBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
     from moto.cloudformation.models import CloudFormationBackend
@@ -182,6 +184,8 @@ SERVICE_NAMES = Union[
     "Literal['athena']",
     "Literal['autoscaling']",
     "Literal['batch']",
+    "Literal['bedrock']",
+    "Literal['bedrock-agent']",
     "Literal['budgets']",
     "Literal['ce']",
     "Literal['cloudformation']",
@@ -343,6 +347,12 @@ def get_backend(
 ) -> "BackendDict[AutoScalingBackend]": ...
 @overload
 def get_backend(name: "Literal['batch']") -> "BackendDict[BatchBackend]": ...
+@overload
+def get_backend(name: "Literal['bedrock']") -> "BackendDict[BedrockBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['bedrock-agent']",
+) -> "BackendDict[AgentsforBedrockBackend]": ...
 @overload
 def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ...
 @overload

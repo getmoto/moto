@@ -961,7 +961,7 @@ class Route53Domain(BaseModel):
         admin_contact: Route53DomainsContactDetail,
         registrant_contact: Route53DomainsContactDetail,
         tech_contact: Route53DomainsContactDetail,
-        nameservers: Optional[List[Dict[str, Any]]] = None,  # type: ignore[type-arg]
+        nameservers: Optional[List[Dict[str, Any]]] = None,
         auto_renew: bool = True,
         admin_privacy: bool = True,
         registrant_privacy: bool = True,
@@ -1019,7 +1019,7 @@ class Route53Domain(BaseModel):
         return cls(
             domain_name=domain_name,
             nameservers=nameservers,  # type: ignore[arg-type]
-            auto_renew=auto_renew,  # type: ignore[arg-type]
+            auto_renew=auto_renew,
             admin_contact=admin_contact,
             registrant_contact=registrant_contact,
             tech_contact=tech_contact,
@@ -1029,14 +1029,14 @@ class Route53Domain(BaseModel):
             registrar_name=registrar_name,
             whois_server=whois_server,
             registrar_url=registrar_url,
-            abuse_contact_email=abuse_contact_email,  # type: ignore[arg-type]
+            abuse_contact_email=abuse_contact_email,
             abuse_contact_phone=abuse_contact_phone,  # type: ignore[arg-type]
             registry_domain_id=registry_domain_id,  # type: ignore[arg-type]
-            creation_date=creation_date,  # type: ignore[arg-type]
+            creation_date=creation_date,
             updated_date=updated_date,
             expiration_date=expiration_date,
             reseller=reseller,  # type: ignore[arg-type]
-            status_list=status_list,  # type: ignore[arg-type]
+            status_list=status_list,
             dns_sec_keys=dns_sec_keys,  # type: ignore[arg-type]
             extra_params=extra_params,  # type: ignore[arg-type]
         )

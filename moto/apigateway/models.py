@@ -604,7 +604,9 @@ class Authorizer(BaseModel):
             elif "/type" in op["path"]:
                 self.type = op["value"]
             else:
-                raise Exception(f'Patch operation "{op["op"]}" not implemented')
+                raise BadRequestException(
+                    f'Patch operation "{op["op"]}" not implemented'
+                )
         return self
 
 

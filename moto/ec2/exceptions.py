@@ -499,6 +499,14 @@ class InvalidInternetGatewayIdError(EC2ClientError):
         )
 
 
+class InvalidGroupIdMalformedError(EC2ClientError):
+    def __init__(self, group_id: str):
+        super().__init__(
+            "InvalidGroupId.Malformed",
+            f"The security group ID '{group_id}' is malformed",
+        )
+
+
 class GatewayNotAttachedError(EC2ClientError):
     def __init__(self, internet_gateway_id: str, vpc_id: str):
         super().__init__(

@@ -739,7 +739,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             {"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv
         ]
 
-    def get_code_signing_config(self) -> Dict[str, Any]:
+    def get_function_code_signing_config(self) -> Dict[str, Any]:
         return {
             "CodeSigningConfigArn": self.code_signing_config_arn,
             "FunctionName": self.function_name,
@@ -1408,7 +1408,7 @@ class LambdaVersion(CloudFormationModel):
     ) -> "LambdaVersion":
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
-        func = lambda_backends[account_id][region_name].publish_function(function_name)
+        func = lambda_backends[account_id][region_name].publish_version(function_name)
         spec = {"Version": func.version}  # type: ignore[union-attr]
         return LambdaVersion(spec)
 
@@ -1662,7 +1662,7 @@ class LambdaStorage(object):
             self._functions[fn.function_name] = {"latest": fn, "versions": []}
         self._arns[fn.function_arn] = fn
 
-    def publish_function(
+    def publish_version(
         self, name_or_arn: str, description: str = ""
     ) -> Optional[LambdaFunction]:
         function = self.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
@@ -1944,7 +1944,7 @@ class LambdaBackend(BaseBackend):
         self._lambdas.put_function(fn)
 
         if spec.get("Publish"):
-            ver = self.publish_function(function_name)
+            ver = self.publish_version(function_name)
             fn = copy.deepcopy(
                 fn
             )  # We don't want to change the actual version - just the return value
@@ -2068,16 +2068,16 @@ class LambdaBackend(BaseBackend):
     def get_layer_version(self, layer_name: str, layer_version: str) -> LayerVersion:
         return self._layers.get_layer_version(layer_name, layer_version)
 
-    def get_layer_versions(self, layer_name: str) -> Iterable[LayerVersion]:
+    def list_layer_versions(self, layer_name: str) -> Iterable[LayerVersion]:
         return self._layers.get_layer_versions(layer_name)
 
     def layers_versions_by_arn(self, layer_version_arn: str) -> Optional[LayerVersion]:
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
-    def publish_function(
+    def publish_version(
         self, function_name: str, description: str = ""
     ) -> Optional[LambdaFunction]:
-        return self._lambdas.publish_function(function_name, description)
+        return self._lambdas.publish_version(function_name, description)
 
     def get_function(
         self, function_name_or_arn: str, qualifier: Optional[str] = None
@@ -2337,9 +2337,9 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         fn.policy.del_statement(sid, revision)
 
-    def get_code_signing_config(self, function_name: str) -> Dict[str, Any]:
+    def get_function_code_signing_config(self, function_name: str) -> Dict[str, Any]:
         fn = self.get_function(function_name)
-        return fn.get_code_signing_config()
+        return fn.get_function_code_signing_config()
 
     def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
@@ -2354,7 +2354,7 @@ class LambdaBackend(BaseBackend):
         fn.update_function_code(body)
 
         if body.get("Publish", False):
-            fn = self.publish_function(function_name)  # type: ignore[assignment]
+            fn = self.publish_version(function_name)  # type: ignore[assignment]
 
         return fn.update_function_code(body)
 
