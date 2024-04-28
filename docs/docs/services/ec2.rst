@@ -242,7 +242,7 @@ ec2
 - [ ] describe_account_attributes
 - [ ] describe_address_transfers
 - [X] describe_addresses
-- [ ] describe_addresses_attribute
+- [X] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
   

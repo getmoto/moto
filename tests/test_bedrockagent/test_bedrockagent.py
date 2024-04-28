@@ -15,7 +15,6 @@ DEFAULT_REGION = "us-east-1"
 @mock_aws
 def test_create_agent():
     client = boto3.client("bedrock-agent", region_name=DEFAULT_REGION)
-    # pytest.set_trace()
 
     resp = client.create_agent(
         agentName="agent_name",

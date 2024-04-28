@@ -48,10 +48,10 @@ lambda
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [X] get_alias
-- [X] get_code_signing_config
+- [ ] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
-- [ ] get_function_code_signing_config
+- [X] get_function_code_signing_config
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [X] get_function_event_invoke_config
@@ -100,13 +100,13 @@ lambda
 - [ ] list_function_url_configs
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
-- [ ] list_layer_versions
+- [X] list_layer_versions
 - [X] list_layers
 - [ ] list_provisioned_concurrency_configs
 - [X] list_tags
 - [X] list_versions_by_function
 - [X] publish_layer_version
-- [ ] publish_version
+- [X] publish_version
 - [ ] put_function_code_signing_config
 - [X] put_function_concurrency
   Establish concurrency limit/reservations for a function

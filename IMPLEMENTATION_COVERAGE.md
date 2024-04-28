@@ -704,6 +704,78 @@
 - [X] update_scheduling_policy
 </details>
 
+## bedrock
+<details>
+<summary>65% implemented</summary>
+
+- [X] create_model_customization_job
+- [ ] create_provisioned_model_throughput
+- [X] delete_custom_model
+- [X] delete_model_invocation_logging_configuration
+- [ ] delete_provisioned_model_throughput
+- [X] get_custom_model
+- [ ] get_foundation_model
+- [X] get_model_customization_job
+- [X] get_model_invocation_logging_configuration
+- [ ] get_provisioned_model_throughput
+- [X] list_custom_models
+- [ ] list_foundation_models
+- [X] list_model_customization_jobs
+- [ ] list_provisioned_model_throughputs
+- [X] list_tags_for_resource
+- [X] put_model_invocation_logging_configuration
+- [X] stop_model_customization_job
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_provisioned_model_throughput
+</details>
+
+## bedrock-agent
+<details>
+<summary>27% implemented</summary>
+
+- [ ] associate_agent_knowledge_base
+- [X] create_agent
+- [ ] create_agent_action_group
+- [ ] create_agent_alias
+- [ ] create_data_source
+- [X] create_knowledge_base
+- [X] delete_agent
+- [ ] delete_agent_action_group
+- [ ] delete_agent_alias
+- [ ] delete_agent_version
+- [ ] delete_data_source
+- [X] delete_knowledge_base
+- [ ] disassociate_agent_knowledge_base
+- [X] get_agent
+- [ ] get_agent_action_group
+- [ ] get_agent_alias
+- [ ] get_agent_knowledge_base
+- [ ] get_agent_version
+- [ ] get_data_source
+- [ ] get_ingestion_job
+- [X] get_knowledge_base
+- [ ] list_agent_action_groups
+- [ ] list_agent_aliases
+- [ ] list_agent_knowledge_bases
+- [ ] list_agent_versions
+- [X] list_agents
+- [ ] list_data_sources
+- [ ] list_ingestion_jobs
+- [X] list_knowledge_bases
+- [X] list_tags_for_resource
+- [ ] prepare_agent
+- [ ] start_ingestion_job
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_agent
+- [ ] update_agent_action_group
+- [ ] update_agent_alias
+- [ ] update_agent_knowledge_base
+- [ ] update_data_source
+- [ ] update_knowledge_base
+</details>
+
 ## budgets
 <details>
 <summary>30% implemented</summary>
@@ -2255,7 +2327,7 @@
 - [ ] describe_account_attributes
 - [ ] describe_address_transfers
 - [X] describe_addresses
-- [ ] describe_addresses_attribute
+- [X] describe_addresses_attribute
 - [ ] describe_aggregate_id_format
 - [X] describe_availability_zones
 - [ ] describe_aws_network_performance_metric_subscriptions
@@ -4630,7 +4702,7 @@
 
 ## lambda
 <details>
-<summary>62% implemented</summary>
+<summary>65% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4651,10 +4723,10 @@
 - [ ] delete_provisioned_concurrency_config
 - [ ] get_account_settings
 - [X] get_alias
-- [X] get_code_signing_config
+- [ ] get_code_signing_config
 - [X] get_event_source_mapping
 - [X] get_function
-- [ ] get_function_code_signing_config
+- [X] get_function_code_signing_config
 - [X] get_function_concurrency
 - [ ] get_function_configuration
 - [X] get_function_event_invoke_config
@@ -4675,13 +4747,13 @@
 - [ ] list_function_url_configs
 - [X] list_functions
 - [ ] list_functions_by_code_signing_config
-- [ ] list_layer_versions
+- [X] list_layer_versions
 - [X] list_layers
 - [ ] list_provisioned_concurrency_configs
 - [X] list_tags
 - [X] list_versions_by_function
 - [X] publish_layer_version
-- [ ] publish_version
+- [X] publish_version
 - [ ] put_function_code_signing_config
 - [X] put_function_concurrency
 - [X] put_function_event_invoke_config
@@ -6137,7 +6209,7 @@
 
 ## rekognition
 <details>
-<summary>9% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] associate_faces
 - [X] compare_faces
@@ -7092,7 +7164,7 @@
 - [ ] update_space
 - [ ] update_training_job
 - [ ] update_trial
-- [ ] update_trial_component
+- [X] update_trial_component
 - [ ] update_user_profile
 - [ ] update_workforce
 - [ ] update_workteam
@@ -8120,8 +8192,6 @@
 - backup-gateway
 - backupstorage
 - bcm-data-exports
-- bedrock
-- bedrock-agent
 - bedrock-agent-runtime
 - bedrock-runtime
 - billingconductor
