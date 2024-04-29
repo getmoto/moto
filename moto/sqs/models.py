@@ -891,7 +891,7 @@ class SQSBackend(BaseBackend):
         if message_attributes:
             message.message_attributes = message_attributes
 
-        if delay_seconds > MAXIMUM_MESSAGE_DELAY:  # type: ignore
+        if delay_seconds > MAXIMUM_MESSAGE_DELAY:
             msg = (
                 f"Value {delay_seconds} for parameter DelaySeconds is invalid. "
                 "Reason: DelaySeconds must be >= 0 and <= 900."

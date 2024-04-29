@@ -1,7 +1,6 @@
 import json
 
 from moto.core.responses import BaseResponse
-from moto.moto_api._internal import mock_random
 
 from .models import SSOAdminBackend, ssoadmin_backends
 
@@ -34,7 +33,6 @@ class SSOAdminResponse(BaseResponse):
             principal_id=principal_id,
         )
         summary["Status"] = "SUCCEEDED"
-        summary["RequestId"] = str(mock_random.uuid4())
         return json.dumps({"AccountAssignmentCreationStatus": summary})
 
     def delete_account_assignment(self) -> str:
@@ -54,7 +52,6 @@ class SSOAdminResponse(BaseResponse):
             principal_id=principal_id,
         )
         summary["Status"] = "SUCCEEDED"
-        summary["RequestId"] = str(mock_random.uuid4())
         return json.dumps({"AccountAssignmentDeletionStatus": summary})
 
     def list_account_assignments(self) -> str:
@@ -300,3 +297,31 @@ class SSOAdminResponse(BaseResponse):
             customer_managed_policy_reference=customer_managed_policy_reference,
         )
         return json.dumps({})
+
+    def describe_account_assignment_creation_status(self) -> str:
+        account_assignment_creation_request_id = self._get_param(
+            "AccountAssignmentCreationRequestId"
+        )
+        instance_arn = self._get_param("InstanceArn")
+        account_assignment_creation_status = self.ssoadmin_backend.describe_account_assignment_creation_status(
+            account_assignment_creation_request_id=account_assignment_creation_request_id,
+            instance_arn=instance_arn,
+        )
+        account_assignment_creation_status["Status"] = "SUCCEEDED"
+        return json.dumps(
+            dict(AccountAssignmentCreationStatus=account_assignment_creation_status)
+        )
+
+    def describe_account_assignment_deletion_status(self) -> str:
+        account_assignment_deletion_request_id = self._get_param(
+            "AccountAssignmentDeletionRequestId"
+        )
+        instance_arn = self._get_param("InstanceArn")
+        account_assignment_deletion_status = self.ssoadmin_backend.describe_account_assignment_deletion_status(
+            account_assignment_deletion_request_id=account_assignment_deletion_request_id,
+            instance_arn=instance_arn,
+        )
+        account_assignment_deletion_status["Status"] = "SUCCEEDED"
+        return json.dumps(
+            dict(AccountAssignmentDeletionStatus=account_assignment_deletion_status)
+        )

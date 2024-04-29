@@ -56,6 +56,8 @@ jobs:
       with:
         fail_ci_if_error: false
         flags: servertests
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
     - name: "Stop MotoServer"
       if: always()
       run: |

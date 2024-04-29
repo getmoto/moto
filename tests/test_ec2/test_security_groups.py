@@ -304,6 +304,13 @@ def test_authorize_ip_range_and_revoke():
         {"CidrIp": "123.123.123.123/32"}
     ]
 
+    # Bad group must produce error
+    with pytest.raises(ClientError) as ex:
+        client.revoke_security_group_egress(GroupId="badcompany")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
+
     # Wrong Cidr should throw error
     with pytest.raises(ClientError) as ex:
         wrong_permissions = copy.deepcopy(egress_permissions)
@@ -376,6 +383,13 @@ def test_authorize_other_group_and_revoke():
         wrong_permissions = copy.deepcopy(permissions)
         wrong_permissions[0]["UserIdGroupPairs"][0]["GroupId"] = "unknown"
         security_group.revoke_ingress(IpPermissions=wrong_permissions)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
+
+    # Bad group must produce error
+    with pytest.raises(ClientError) as ex:
+        client.revoke_security_group_ingress(GroupId="badcompany")
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert "RequestId" in ex.value.response["ResponseMetadata"]
     assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
@@ -1940,3 +1954,38 @@ def test_revoke_security_group_ingress():
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
     assert len(ingress_rules) == 1
+
+
+@mock_aws()
+def test_invalid_security_group_id_in_rules_search():
+    ec2 = boto3.client("ec2", region_name=REGION)
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    group_name = "test-group"
+
+    response = ec2.create_security_group(
+        Description="Inventing a security group", GroupName=group_name, VpcId=vpc_id
+    )
+    group_id = response["GroupId"]
+
+    # assert error with invalid sg id
+    with pytest.raises(ClientError) as e:
+        ec2.describe_security_group_rules(
+            Filters=[{"Name": "group-id", "Values": ["foobar"]}]
+        )
+    error = e.value.response["Error"]
+    assert "InvalidGroupId.Malformed" == error["Code"]
+    assert "The security group ID 'foobar' is malformed" in error["Message"]
+
+    # assert with non-existent sg
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": ["sg-005216b55886f0fdc"]}]
+    )
+    assert len(response["SecurityGroupRules"]) == 0
+
+    # assert with no rules
+    response = ec2.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [group_id]}]
+    )
+    assert len(response["SecurityGroupRules"]) == 1

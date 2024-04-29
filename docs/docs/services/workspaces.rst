@@ -16,11 +16,13 @@ workspaces
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
 - [ ] associate_ip_groups
 - [ ] associate_workspace_application
 - [ ] authorize_ip_rules
 - [ ] copy_workspace_image
+- [ ] create_account_link_invitation
 - [ ] create_connect_client_add_in
 - [ ] create_connection_alias
 - [ ] create_ip_group
@@ -30,6 +32,7 @@ workspaces
 - [ ] create_workspace_bundle
 - [X] create_workspace_image
 - [X] create_workspaces
+- [ ] delete_account_link_invitation
 - [ ] delete_client_branding
 - [ ] delete_connect_client_add_in
 - [ ] delete_connection_alias
@@ -67,8 +70,10 @@ workspaces
 - [ ] disassociate_connection_alias
 - [ ] disassociate_ip_groups
 - [ ] disassociate_workspace_application
+- [ ] get_account_link
 - [ ] import_client_branding
 - [ ] import_workspace_image
+- [ ] list_account_links
 - [ ] list_available_management_cidr_ranges
 - [ ] migrate_workspace
 - [ ] modify_account
@@ -83,6 +88,7 @@ workspaces
 - [ ] reboot_workspaces
 - [ ] rebuild_workspaces
 - [X] register_workspace_directory
+- [ ] reject_account_link_invitation
 - [ ] restore_workspace
 - [ ] revoke_ip_rules
 - [ ] start_workspaces

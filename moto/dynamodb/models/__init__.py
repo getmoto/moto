@@ -10,6 +10,7 @@ from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
     BackupNotFoundException,
     ConditionalCheckFailed,
+    DeletionProtectedException,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
     MockValidationException,
@@ -71,6 +72,10 @@ class DynamoDBBackend(BaseBackend):
     def delete_table(self, name: str) -> Table:
         if name not in self.tables:
             raise ResourceNotFoundException
+        table_for_deletion = self.tables.get(name)
+        if isinstance(table_for_deletion, Table):
+            if table_for_deletion.deletion_protection_enabled:
+                raise DeletionProtectedException(name)
         return self.tables.pop(name)
 
     def describe_endpoints(self) -> List[Dict[str, Union[int, str]]]:
@@ -137,6 +142,7 @@ class DynamoDBBackend(BaseBackend):
         throughput: Dict[str, Any],
         billing_mode: str,
         stream_spec: Dict[str, Any],
+        deletion_protection_enabled: bool,
     ) -> Table:
         table = self.get_table(name)
         if attr_definitions:
@@ -149,6 +155,10 @@ class DynamoDBBackend(BaseBackend):
             table = self.update_table_billing_mode(name, billing_mode)
         if stream_spec:
             table = self.update_table_streams(name, stream_spec)
+        if deletion_protection_enabled:
+            table = self.update_table_deletion_protection_enabled(
+                name, deletion_protection_enabled
+            )
         return table
 
     def update_table_throughput(self, name: str, throughput: Dict[str, int]) -> Table:
@@ -159,6 +169,13 @@ class DynamoDBBackend(BaseBackend):
     def update_table_billing_mode(self, name: str, billing_mode: str) -> Table:
         table = self.tables[name]
         table.billing_mode = billing_mode
+        return table
+
+    def update_table_deletion_protection_enabled(
+        self, name: str, deletion_protection_enabled: bool
+    ) -> Table:
+        table = self.tables[name]
+        table.deletion_protection_enabled = deletion_protection_enabled
         return table
 
     def update_table_streams(

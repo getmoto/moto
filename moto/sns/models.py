@@ -679,7 +679,7 @@ class SNSBackend(BaseBackend):
             if token == endpoint.token:
                 same_user_data = custom_user_data == endpoint.custom_user_data
                 same_attrs = (
-                    attributes.get("Enabled", "").lower()
+                    attributes.get("Enabled", "true").lower()
                     == endpoint.attributes["Enabled"]
                 )
 

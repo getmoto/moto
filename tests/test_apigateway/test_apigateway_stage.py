@@ -493,3 +493,36 @@ def test_non_existent_stage():
         client.get_stage(restApiId=api_id, stageName="xxx")
     err = exc.value.response["Error"]
     assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_stage_tags():
+    client = boto3.client("apigateway", region_name="us-west-2")
+    stage_name = "staging"
+    response = client.create_rest_api(name="my_api", description="this is my api")
+    api_id = response["id"]
+
+    create_method_integration(client, api_id)
+    response = client.create_deployment(restApiId=api_id, stageName=stage_name)
+    deployment_id = response["id"]
+
+    new_stage_name = "current"
+    response = client.create_stage(
+        restApiId=api_id,
+        stageName=new_stage_name,
+        deploymentId=deployment_id,
+        tags={"k": "v"},
+    )
+    assert response["tags"] == {"k": "v"}
+
+    stage_arn = (
+        f"arn:aws:apigateway:us-east-1::/restapis/{api_id}/stages/{new_stage_name}"
+    )
+    client.tag_resource(resourceArn=stage_arn, tags={"k2": "v2"})
+
+    stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
+    assert stage["tags"] == {"k": "v", "k2": "v2"}
+
+    client.untag_resource(resourceArn=stage_arn, tagKeys=["k"])
+    stage = client.get_stage(restApiId=api_id, stageName=new_stage_name)
+    assert stage["tags"] == {"k2": "v2"}
