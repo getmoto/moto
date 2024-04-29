@@ -151,6 +151,8 @@ class DomainDispatcherApplication:
         elif service == "sagemaker":
             if environ["PATH_INFO"].endswith("invocations"):
                 host = f"runtime.{service}.{region}.amazonaws.com"
+            elif environ["PATH_INFO"].endswith("BatchPutMetrics"):
+                host = f"metrics.{service}.{region}.amazonaws.com"
             else:
                 host = f"api.{service}.{region}.amazonaws.com"
         elif service == "timestream":

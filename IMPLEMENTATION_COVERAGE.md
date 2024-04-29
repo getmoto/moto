@@ -7211,6 +7211,13 @@
 - [ ] update_workteam
 </details>
 
+## sagemaker-metrics
+<details>
+<summary>100% implemented</summary>
+
+- [X] batch_put_metrics
+</details>
+
 ## sagemaker-runtime
 <details>
 <summary>66% implemented</summary>
@@ -8429,7 +8436,6 @@
 - sagemaker-edge
 - sagemaker-featurestore-runtime
 - sagemaker-geospatial
-- sagemaker-metrics
 - savingsplans
 - schemas
 - securityhub

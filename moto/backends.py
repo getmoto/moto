@@ -116,6 +116,7 @@ if TYPE_CHECKING:
     from moto.s3.models import S3Backend
     from moto.s3control.models import S3ControlBackend
     from moto.sagemaker.models import SageMakerModelBackend
+    from moto.sagemakermetrics.models import SageMakerMetricsBackend
     from moto.sagemakerruntime.models import SageMakerRuntimeBackend
     from moto.scheduler.models import EventBridgeSchedulerBackend
     from moto.sdb.models import SimpleDBBackend
@@ -279,6 +280,7 @@ SERVICE_NAMES = Union[
     "Literal['s3bucket_path']",
     "Literal['s3control']",
     "Literal['sagemaker']",
+    "Literal['sagemaker-metrics']",
     "Literal['sagemaker-runtime']",
     "Literal['scheduler']",
     "Literal['sdb']",
@@ -613,6 +615,10 @@ def get_backend(name: "Literal['s3control']") -> "BackendDict[S3ControlBackend]"
 def get_backend(
     name: "Literal['sagemaker']",
 ) -> "BackendDict[SageMakerModelBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['sagemaker-metrics']",
+) -> "BackendDict[SageMakerMetricsBackend]": ...
 @overload
 def get_backend(
     name: "Literal['sagemaker-runtime']",

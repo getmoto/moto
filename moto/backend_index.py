@@ -159,6 +159,10 @@ backend_url_patterns = [
     ),
     ("sagemaker", re.compile("https?://api\\.sagemaker\\.(.+)\\.amazonaws.com")),
     (
+        "sagemakermetrics",
+        re.compile("https?://metrics.sagemaker\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
         "sagemakerruntime",
         re.compile("https?://runtime\\.sagemaker\\.(.+)\\.amazonaws\\.com"),
     ),
