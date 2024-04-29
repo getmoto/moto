@@ -302,6 +302,7 @@ class DynamoHandler(BaseResponse):
         streams = body.get("StreamSpecification")
         # Get any tags
         tags = body.get("Tags", [])
+        deletion_protection_enabled = body.get("DeletionProtectionEnabled", False)
 
         table = self.dynamodb_backend.create_table(
             table_name,
@@ -314,6 +315,7 @@ class DynamoHandler(BaseResponse):
             billing_mode=billing_mode,
             sse_specification=sse_spec,
             tags=tags,
+            deletion_protection_enabled=deletion_protection_enabled,
         )
         return dynamo_json_dump(table.describe())
 
@@ -431,6 +433,7 @@ class DynamoHandler(BaseResponse):
         throughput = self.body.get("ProvisionedThroughput", None)
         billing_mode = self.body.get("BillingMode", None)
         stream_spec = self.body.get("StreamSpecification", None)
+        deletion_protection_enabled = self.body.get("DeletionProtectionEnabled")
         table = self.dynamodb_backend.update_table(
             name=name,
             attr_definitions=attr_definitions,
@@ -438,6 +441,7 @@ class DynamoHandler(BaseResponse):
             throughput=throughput,
             billing_mode=billing_mode,
             stream_spec=stream_spec,
+            deletion_protection_enabled=deletion_protection_enabled,
         )
         return dynamo_json_dump(table.describe())
 
