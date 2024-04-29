@@ -304,6 +304,13 @@ def test_authorize_ip_range_and_revoke():
         {"CidrIp": "123.123.123.123/32"}
     ]
 
+    # Bad group must produce error
+    with pytest.raises(ClientError) as ex:
+        client.revoke_security_group_egress(GroupId="badcompany")
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
+
     # Wrong Cidr should throw error
     with pytest.raises(ClientError) as ex:
         wrong_permissions = copy.deepcopy(egress_permissions)
@@ -376,6 +383,13 @@ def test_authorize_other_group_and_revoke():
         wrong_permissions = copy.deepcopy(permissions)
         wrong_permissions[0]["UserIdGroupPairs"][0]["GroupId"] = "unknown"
         security_group.revoke_ingress(IpPermissions=wrong_permissions)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in ex.value.response["ResponseMetadata"]
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
+
+    # Bad group must produce error
+    with pytest.raises(ClientError) as ex:
+        client.revoke_security_group_ingress(GroupId="badcompany")
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert "RequestId" in ex.value.response["ResponseMetadata"]
     assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
