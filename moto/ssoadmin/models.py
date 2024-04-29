@@ -38,7 +38,9 @@ class AccountAssignment(BaseModel):
         self.principal_id = principal_id
         self.created_date = unix_time()
 
-    def to_json(self, include_creation_date: bool = False) -> Dict[str, Any]:
+    def to_json(
+        self, include_creation_date: bool = False, include_request_id: bool = False
+    ) -> Dict[str, Any]:
         summary: Dict[str, Any] = {
             "TargetId": self.target_id,
             "TargetType": self.target_type,
@@ -48,6 +50,8 @@ class AccountAssignment(BaseModel):
         }
         if include_creation_date:
             summary["CreatedDate"] = self.created_date
+        if include_request_id:
+            summary["RequestId"] = self.request_id
         return summary
 
 
@@ -126,6 +130,7 @@ class SSOAdminBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.account_assignments: List[AccountAssignment] = list()
+        self.deleted_account_assignments: List[AccountAssignment] = list()
         self.permission_sets: List[PermissionSet] = list()
         self.aws_managed_policies: Optional[Dict[str, Any]] = None
 
@@ -147,7 +152,7 @@ class SSOAdminBackend(BaseBackend):
             principal_id,
         )
         self.account_assignments.append(assignment)
-        return assignment.to_json()
+        return assignment.to_json(include_creation_date=True, include_request_id=True)
 
     def delete_account_assignment(
         self,
@@ -166,8 +171,9 @@ class SSOAdminBackend(BaseBackend):
             principal_type,
             principal_id,
         )
+        self.deleted_account_assignments.append(account)
         self.account_assignments.remove(account)
-        return account.to_json(include_creation_date=True)
+        return account.to_json(include_creation_date=True, include_request_id=True)
 
     def _find_account(
         self,
@@ -512,6 +518,28 @@ class SSOAdminBackend(BaseBackend):
             permission_set_arn=permission_set_arn,
             customer_managed_policy_reference=customer_managed_policy_reference,
         )
+
+    def describe_account_assignment_creation_status(
+        self, account_assignment_creation_request_id: str, instance_arn: str
+    ) -> Dict[str, Any]:
+        for account in self.account_assignments:
+            if account.request_id == account_assignment_creation_request_id:
+                return account.to_json(
+                    include_creation_date=True, include_request_id=True
+                )
+
+        raise ResourceNotFoundException
+
+    def describe_account_assignment_deletion_status(
+        self, account_assignment_deletion_request_id: str, instance_arn: str
+    ) -> Dict[str, Any]:
+        for account in self.deleted_account_assignments:
+            if account.request_id == account_assignment_deletion_request_id:
+                return account.to_json(
+                    include_creation_date=True, include_request_id=True
+                )
+
+        raise ResourceNotFoundException
 
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")
