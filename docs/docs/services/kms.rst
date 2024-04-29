@@ -57,6 +57,7 @@ kms
 - [ ] list_aliases
 - [X] list_grants
 - [ ] list_key_policies
+- [ ] list_key_rotations
 - [X] list_keys
 - [X] list_resource_tags
 - [X] list_retirable_grants
@@ -65,6 +66,7 @@ kms
 - [X] replicate_key
 - [X] retire_grant
 - [X] revoke_grant
+- [ ] rotate_key_on_demand
 - [X] schedule_key_deletion
 - [X] sign
   

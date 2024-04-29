@@ -8,4 +8,7 @@ url_paths = {
     "{0}/$": PanoramaResponse.dispatch,
     "{0}/devices$": PanoramaResponse.dispatch,
     "{0}/devices/(?P<DeviceId>[^/]+)$": PanoramaResponse.dispatch,
+    "{0}/packages/template-job$": PanoramaResponse.dispatch,
+    "{0}/packages/template-job/(?P<JobId>[^/]+)$": PanoramaResponse.dispatch,
+    "{0}/nodes$": PanoramaResponse.dispatch,
 }

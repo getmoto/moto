@@ -93,6 +93,7 @@ cloudformation
         
 
 - [X] list_stack_resources
+- [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results
 - [X] list_stack_set_operations
 - [X] list_stack_sets
