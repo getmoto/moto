@@ -86,13 +86,19 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
 
 class Execution(BaseModel):
     def __init__(
-        self, query: str, context: str, config: Dict[str, Any], workgroup: WorkGroup
+        self,
+        query: str,
+        context: str,
+        config: Dict[str, Any],
+        workgroup: WorkGroup,
+        execution_parameters: Optional[List[str]],
     ):
         self.id = str(mock_random.uuid4())
         self.query = query
         self.context = context
         self.config = config
         self.workgroup = workgroup
+        self.execution_parameters = execution_parameters
         self.start_time = time.time()
         self.status = "SUCCEEDED"
 
@@ -210,10 +216,19 @@ class AthenaBackend(BaseBackend):
         }
 
     def start_query_execution(
-        self, query: str, context: str, config: Dict[str, Any], workgroup: WorkGroup
+        self,
+        query: str,
+        context: str,
+        config: Dict[str, Any],
+        workgroup: WorkGroup,
+        execution_parameters: Optional[List[str]],
     ) -> str:
         execution = Execution(
-            query=query, context=context, config=config, workgroup=workgroup
+            query=query,
+            context=context,
+            config=config,
+            workgroup=workgroup,
+            execution_parameters=execution_parameters,
         )
         self.executions[execution.id] = execution
         return execution.id

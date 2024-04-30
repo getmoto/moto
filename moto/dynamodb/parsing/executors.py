@@ -155,7 +155,11 @@ class DeleteExecutor(NodeExecutor):
                 DDBTypeConversion.get_human_type(string_set_to_remove.type),
             )
 
-        string_set = self.get_item_at_end_of_path(item)
+        try:
+            string_set = self.get_item_at_end_of_path(item)
+        except ProvidedKeyDoesNotExist:
+            # Deleting a non-empty key, or from a non-empty set, is not a problem
+            return
         assert isinstance(string_set, DynamoType)
         if string_set.type != string_set_to_remove.type:
             raise IncorrectDataType()

@@ -54,6 +54,23 @@ def test_update_table_throughput():
 
 
 @mock_aws
+def test_update_table_deletion_protection_enabled():
+    conn = boto3.resource("dynamodb", region_name="us-west-2")
+    table = conn.create_table(
+        TableName="messages",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+        DeletionProtectionEnabled=False,
+    )
+    assert not table.deletion_protection_enabled
+
+    table.update(DeletionProtectionEnabled=True)
+
+    assert table.deletion_protection_enabled
+
+
+@mock_aws
 def test_update_table__enable_stream():
     conn = boto3.client("dynamodb", region_name="us-east-1")
 

@@ -1389,3 +1389,31 @@ def test_cannot_scan_gsi_with_consistent_read():
         "Code": "ValidationException",
         "Message": "Consistent reads are not supported on global secondary indexes",
     }
+
+
+@mock_aws
+def test_delete_table():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    client.create_table(
+        TableName="test1",
+        AttributeDefinitions=[
+            {"AttributeName": "client", "AttributeType": "S"},
+            {"AttributeName": "app", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "client", "KeyType": "HASH"},
+            {"AttributeName": "app", "KeyType": "RANGE"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
+        DeletionProtectionEnabled=True,
+    )
+
+    with pytest.raises(ClientError) as err:
+        client.delete_table(TableName="test1")
+    assert err.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        err.value.response["Error"]["Message"]
+        == "1 validation error detected: Table 'test1' can't be deleted while DeletionProtectionEnabled is set to True"
+    )

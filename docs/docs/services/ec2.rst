@@ -325,6 +325,7 @@ ec2
 - [ ] describe_local_gateway_virtual_interfaces
 - [ ] describe_local_gateways
 - [ ] describe_locked_snapshots
+- [ ] describe_mac_hosts
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -434,6 +435,7 @@ ec2
 - [ ] disable_image
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
+- [ ] disable_image_deregistration_protection
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_serial_console_access
 - [ ] disable_snapshot_block_public_access
@@ -464,6 +466,7 @@ ec2
 - [ ] enable_image
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
+- [ ] enable_image_deregistration_protection
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_serial_console_access
@@ -491,6 +494,7 @@ ec2
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
+- [ ] get_instance_metadata_defaults
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
@@ -552,6 +556,7 @@ ec2
 - [ ] modify_instance_event_start_time
 - [ ] modify_instance_event_window
 - [ ] modify_instance_maintenance_options
+- [ ] modify_instance_metadata_defaults
 - [ ] modify_instance_metadata_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam

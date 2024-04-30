@@ -21,45 +21,6 @@ class CloudFrontResponse(BaseResponse):
     def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account]["global"]
 
-    def distributions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_distribution()
-        if request.method == "GET":
-            return self.list_distributions()
-
-    def invalidation(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_invalidation()
-        if request.method == "GET":
-            return self.list_invalidations()
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-
-    def origin_access_controls(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_origin_access_control()
-        if request.method == "GET":
-            return self.list_origin_access_controls()
-
-    def origin_access_control(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_origin_access_control()
-        if request.method == "PUT":
-            return self.update_origin_access_control()
-        if request.method == "DELETE":
-            return self.delete_origin_access_control()
-
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
         if "DistributionConfigWithTags" in params:
@@ -86,45 +47,41 @@ class CloudFrontResponse(BaseResponse):
         response = template.render(distributions=distributions)
         return 200, {}, response
 
-    def individual_distribution(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        distribution_id = full_url.split("/")[-1]
-        if request.method == "DELETE":
-            if_match = self._get_param("If-Match")
-            self.backend.delete_distribution(distribution_id, if_match)
-            return 204, {}, ""
-        if request.method == "GET":
-            dist, etag = self.backend.get_distribution(distribution_id)
-            template = self.response_template(GET_DISTRIBUTION_TEMPLATE)
-            response = template.render(distribution=dist, xmlns=XMLNS)
-            return 200, {"ETag": etag}, response
+    def delete_distribution(self) -> TYPE_RESPONSE:
+        distribution_id = self.path.split("/")[-1]
+        if_match = self._get_param("If-Match")
+        self.backend.delete_distribution(distribution_id, if_match)
+        return 204, {"status": 204}, ""
 
-    def update_distribution(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        dist_id = full_url.split("/")[-2]
-        if request.method == "GET":
-            distribution_config, etag = self.backend.get_distribution_config(dist_id)
-            template = self.response_template(GET_DISTRIBUTION_CONFIG_TEMPLATE)
-            response = template.render(distribution=distribution_config, xmlns=XMLNS)
-            return 200, {"ETag": etag}, response
-        if request.method == "PUT":
-            params = self._get_xml_body()
-            dist_config = params.get("DistributionConfig")
-            if_match = headers["If-Match"]
+    def get_distribution(self) -> TYPE_RESPONSE:
+        distribution_id = self.path.split("/")[-1]
+        dist, etag = self.backend.get_distribution(distribution_id)
+        template = self.response_template(GET_DISTRIBUTION_TEMPLATE)
+        response = template.render(distribution=dist, xmlns=XMLNS)
+        return 200, {"ETag": etag}, response
 
-            dist, location, e_tag = self.backend.update_distribution(
-                dist_config=dist_config,  # type: ignore[arg-type]
-                _id=dist_id,
-                if_match=if_match,
-            )
-            template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
-            response = template.render(distribution=dist, xmlns=XMLNS)
-            headers = {"ETag": e_tag, "Location": location}
-            return 200, headers, response
+    def get_distribution_config(self) -> TYPE_RESPONSE:
+        dist_id = self.path.split("/")[-2]
+        distribution_config, etag = self.backend.get_distribution_config(dist_id)
+        template = self.response_template(GET_DISTRIBUTION_CONFIG_TEMPLATE)
+        response = template.render(distribution=distribution_config, xmlns=XMLNS)
+        return 200, {"ETag": etag}, response
+
+    def update_distribution(self) -> TYPE_RESPONSE:
+        dist_id = self.path.split("/")[-2]
+        params = self._get_xml_body()
+        dist_config = params.get("DistributionConfig")
+        if_match = self.headers["If-Match"]
+
+        dist, location, e_tag = self.backend.update_distribution(
+            dist_config=dist_config,  # type: ignore[arg-type]
+            _id=dist_id,
+            if_match=if_match,
+        )
+        template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
+        response = template.render(distribution=dist, xmlns=XMLNS)
+        headers = {"ETag": e_tag, "Location": location}
+        return 200, headers, response
 
     def create_invalidation(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]

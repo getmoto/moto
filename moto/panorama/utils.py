@@ -19,3 +19,16 @@ def hash_device_name(name: str) -> str:
     digest = hashlib.md5(name.encode("utf-8")).digest()
     token = base64.b64encode(digest)
     return token.decode("utf-8")
+
+
+def generate_package_id(name: str) -> str:
+    digest = hashlib.md5(name.encode("utf-8")).digest()
+    token = base64.b64encode(digest).decode("utf-8")
+    # make token only containing alphanumeric characters
+    token = "".join(char for char in token if char.isalnum())
+    token = token * (64 // len(token) + 1)
+    return token[:64].lower()
+
+
+def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:
+    return f"arn:aws:panorama:{region_name}:{account_id}:{_type}/{_id}"

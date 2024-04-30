@@ -381,3 +381,9 @@ class UnknownKeyType(MockValidationException):
     def __init__(self, key_type: str, position: str):
         msg = f"1 validation error detected: Value '{key_type}' at '{position}' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
         super().__init__(msg)
+
+
+class DeletionProtectedException(MockValidationException):
+    def __init__(self, table_name: str):
+        msg = f"1 validation error detected: Table '{table_name}' can't be deleted while DeletionProtectionEnabled is set to True"
+        super().__init__(msg)
