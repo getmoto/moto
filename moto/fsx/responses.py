@@ -2,6 +2,7 @@
 import json
 
 from moto.core.responses import BaseResponse
+
 from .models import fsx_backends
 
 
@@ -20,7 +21,7 @@ class FSxResponse(BaseResponse):
         return fsx_backends[self.current_account][self.region]
 
     def create_file_system(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         client_request_token = params.get("ClientRequestToken")
         file_system_type = params.get("FileSystemType")
         storage_capacity = params.get("StorageCapacity")
@@ -50,11 +51,11 @@ class FSxResponse(BaseResponse):
             open_zfs_configuration=open_zfs_configuration,
         )
 
-        return json.dumps(dict(fileSystem=file_system.to_dict()))
+        return json.dumps(dict(FileSystem=file_system.to_dict()))
 
     
     def describe_file_systems(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         file_system_ids = params.get("FileSystemIds")
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")
@@ -64,6 +65,34 @@ class FSxResponse(BaseResponse):
             next_token=next_token,
         )
 
-        return json.dumps(dict(fileSystem=file_systems))
+        return json.dumps(dict(FileSystems=file_systems))
 
+    
+    def delete_file_system(self):
+        params = json.loads(self.body)
+        file_system_id = params.get("FileSystemId")
+        client_request_token = params.get("ClientRequestToken")
+        windows_configuration = params.get("WindowsConfiguration")
+        lustre_configuration = params.get("LustreConfiguration")
+        open_zfs_configuration = params.get("OpenZFSConfiguration")
+        file_system_id, lifecycle, windows_response, lustre_response, open_zfs_response = self.fsx_backend.delete_file_system(
+            file_system_id=file_system_id,
+            client_request_token=client_request_token,
+            windows_configuration=windows_configuration,
+            lustre_configuration=lustre_configuration,
+            open_zfs_configuration=open_zfs_configuration,
+        )
+
+        return json.dumps(dict(FileSystemId=file_system_id, Lifecycle=lifecycle, WindowsResponse=windows_response, LustreResponse=lustre_response, OpenZfsResponse=open_zfs_response))
 # add templates from here
+    
+    def tag_resource(self):
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceARN")
+        tags = params.get("Tags")
+        self.fsx_backend.tag_resource(
+            resource_arn=resource_arn,
+            tags=tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
