@@ -19,9 +19,6 @@ class FSxResponse(BaseResponse):
         # Please modify moto/backends.py to add the appropriate type annotations for this service
         return fsx_backends[self.current_account][self.region]
 
-    # add methods from here
-
-    
     def create_file_system(self):
         params = self._get_params()
         client_request_token = params.get("ClientRequestToken")
@@ -52,7 +49,21 @@ class FSxResponse(BaseResponse):
             file_system_type_version=file_system_type_version,
             open_zfs_configuration=open_zfs_configuration,
         )
-        # TODO: adjust response
-        return json.dumps(dict(fileSystem=file_system))
+
+        return json.dumps(dict(fileSystem=file_system.to_dict()))
+
+    
+    def describe_file_systems(self):
+        params = self._get_params()
+        file_system_ids = params.get("FileSystemIds")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        file_systems, next_token = self.fsx_backend.describe_file_systems(
+            file_system_ids=file_system_ids,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return json.dumps(dict(fileSystem=file_systems))
 
 # add templates from here

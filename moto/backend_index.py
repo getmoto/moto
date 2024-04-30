@@ -80,6 +80,7 @@ backend_url_patterns = [
     ("events", re.compile("https?://events\\.(.+)\\.amazonaws\\.com")),
     ("firehose", re.compile("https?://firehose\\.(.+)\\.amazonaws\\.com")),
     ("forecast", re.compile("https?://forecast\\.(.+)\\.amazonaws\\.com")),
+    ("fsx", re.compile("https?://fsx\\.(.+)\\.amazonaws\\.com")),
     ("glacier", re.compile("https?://glacier\\.(.+)\\.amazonaws.com")),
     ("glue", re.compile("https?://glue\\.(.+)\\.amazonaws\\.com")),
     ("greengrass", re.compile("https?://greengrass\\.(.+)\\.amazonaws.com")),
