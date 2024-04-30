@@ -46,10 +46,15 @@ class AthenaResponse(BaseResponse):
         context = self._get_param("QueryExecutionContext")
         config = self._get_param("ResultConfiguration")
         workgroup = self._get_param("WorkGroup")
+        execution_parameters = self._get_param("ExecutionParameters")
         if workgroup and not self.athena_backend.get_work_group(workgroup):
             return self.error("WorkGroup does not exist", 400)
         q_exec_id = self.athena_backend.start_query_execution(
-            query=query, context=context, config=config, workgroup=workgroup
+            query=query,
+            context=context,
+            config=config,
+            workgroup=workgroup,
+            execution_parameters=execution_parameters,
         )
         return json.dumps({"QueryExecutionId": q_exec_id})
 
@@ -82,6 +87,10 @@ class AthenaResponse(BaseResponse):
                 "WorkGroup": execution.workgroup,
             }
         }
+        if execution.execution_parameters is not None:
+            result["QueryExecution"]["ExecutionParameters"] = (
+                execution.execution_parameters
+            )
         return json.dumps(result)
 
     def get_query_results(self) -> str:
