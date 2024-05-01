@@ -268,7 +268,7 @@ Here is an example:
         assert len(result["Buckets"]) == 1
 
     def test_bucket_creation(create_bucket1, create_bucket2):
-        buckets = boto3.client("s3").list_buckets()["Buckets"]
+        result = boto3.client("s3").list_buckets()
         assert len(result["Buckets"]) == 2
 
 
