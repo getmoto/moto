@@ -116,9 +116,7 @@ class S3ControlBackend(BaseBackend):
             raise AccessPointNotFound(name)
         return self.access_points[account_id][name]
 
-    def create_access_point_policy(
-        self, account_id: str, name: str, policy: str
-    ) -> None:
+    def put_access_point_policy(self, account_id: str, name: str, policy: str) -> None:
         access_point = self.get_access_point(account_id, name)
         access_point.set_policy(policy)
 
