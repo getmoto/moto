@@ -8,7 +8,7 @@ from moto import mock_aws
 @mock_aws
 def test_create_node_from_template_job() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "us-east-1")
 
     # When
     response = panorama_client.create_node_from_template_job(
@@ -36,7 +36,7 @@ def test_create_node_from_template_job() -> None:
 @mock_aws
 def test_describe_node_from_template_job() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "us-east-1")
 
     # When
     response = panorama_client.create_node_from_template_job(
@@ -85,7 +85,7 @@ def test_describe_node_from_template_job() -> None:
 @mock_aws
 def test_list_nodes() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "us-east-1")
     panorama_client.create_node_from_template_job(
         JobTags=[
             {"ResourceType": "PACKAGE", "Tags": {"key": "value"}},
