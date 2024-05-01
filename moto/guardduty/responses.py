@@ -1,8 +1,6 @@
 import json
-from typing import Any
 from urllib.parse import unquote
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import GuardDutyBackend, guardduty_backends
@@ -16,39 +14,7 @@ class GuardDutyResponse(BaseResponse):
     def guardduty_backend(self) -> GuardDutyBackend:
         return guardduty_backends[self.current_account][self.region]
 
-    def filter(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_filter()
-        elif request.method == "DELETE":
-            return self.delete_filter()
-        elif request.method == "POST":
-            return self.update_filter()
-
-    def filters(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_filter()
-
-    def detectors(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_detector()
-        elif request.method == "GET":
-            return self.list_detectors()
-        else:
-            return 404, {}, ""
-
-    def detector(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_detector()
-        elif request.method == "DELETE":
-            return self.delete_detector()
-        elif request.method == "POST":
-            return self.update_detector()
-
-    def create_filter(self) -> TYPE_RESPONSE:
+    def create_filter(self) -> str:
         detector_id = self.path.split("/")[-2]
         name = self._get_param("name")
         action = self._get_param("action")
@@ -59,9 +25,9 @@ class GuardDutyResponse(BaseResponse):
         self.guardduty_backend.create_filter(
             detector_id, name, action, description, finding_criteria, rank
         )
-        return 200, {}, json.dumps({"name": name})
+        return json.dumps({"name": name})
 
-    def create_detector(self) -> TYPE_RESPONSE:
+    def create_detector(self) -> str:
         enable = self._get_param("enable")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
         data_sources = self._get_param("dataSources")
@@ -71,70 +37,54 @@ class GuardDutyResponse(BaseResponse):
             enable, finding_publishing_frequency, data_sources, tags
         )
 
-        return 200, {}, json.dumps(dict(detectorId=detector_id))
+        return json.dumps(dict(detectorId=detector_id))
 
-    def delete_detector(self) -> TYPE_RESPONSE:
+    def delete_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
 
         self.guardduty_backend.delete_detector(detector_id)
-        return 200, {}, "{}"
+        return "{}"
 
-    def delete_filter(self) -> TYPE_RESPONSE:
+    def delete_filter(self) -> str:
         detector_id = self.path.split("/")[-3]
         filter_name = unquote(self.path.split("/")[-1])
 
         self.guardduty_backend.delete_filter(detector_id, filter_name)
-        return 200, {}, "{}"
+        return "{}"
 
-    def enable_organization_admin_account(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
+    def enable_organization_admin_account(self) -> str:
         admin_account = self._get_param("adminAccountId")
         self.guardduty_backend.enable_organization_admin_account(admin_account)
 
-        return 200, {}, "{}"
+        return "{}"
 
-    def list_organization_admin_accounts(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
+    def list_organization_admin_accounts(self) -> str:
         account_ids = self.guardduty_backend.list_organization_admin_accounts()
+        accounts = [
+            {"adminAccountId": a, "adminStatus": "ENABLED"} for a in account_ids
+        ]
 
-        return (
-            200,
-            {},
-            json.dumps(
-                {
-                    "adminAccounts": [
-                        {"adminAccountId": account_id, "adminStatus": "ENABLED"}
-                        for account_id in account_ids
-                    ]
-                }
-            ),
-        )
+        return json.dumps({"adminAccounts": accounts})
 
-    def list_detectors(self) -> TYPE_RESPONSE:
+    def list_detectors(self) -> str:
         detector_ids = self.guardduty_backend.list_detectors()
 
-        return 200, {}, json.dumps({"detectorIds": detector_ids})
+        return json.dumps({"detectorIds": detector_ids})
 
-    def get_detector(self) -> TYPE_RESPONSE:
+    def get_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
 
         detector = self.guardduty_backend.get_detector(detector_id)
-        return 200, {}, json.dumps(detector.to_json())
+        return json.dumps(detector.to_json())
 
-    def get_filter(self) -> TYPE_RESPONSE:
+    def get_filter(self) -> str:
         detector_id = self.path.split("/")[-3]
         filter_name = unquote(self.path.split("/")[-1])
 
         _filter = self.guardduty_backend.get_filter(detector_id, filter_name)
-        return 200, {}, json.dumps(_filter.to_json())
+        return json.dumps(_filter.to_json())
 
-    def update_detector(self) -> TYPE_RESPONSE:
+    def update_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
         enable = self._get_param("enable")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
@@ -143,9 +93,9 @@ class GuardDutyResponse(BaseResponse):
         self.guardduty_backend.update_detector(
             detector_id, enable, finding_publishing_frequency, data_sources
         )
-        return 200, {}, "{}"
+        return "{}"
 
-    def update_filter(self) -> TYPE_RESPONSE:
+    def update_filter(self) -> str:
         detector_id = self.path.split("/")[-3]
         filter_name = unquote(self.path.split("/")[-1])
         action = self._get_param("action")
@@ -161,4 +111,4 @@ class GuardDutyResponse(BaseResponse):
             finding_criteria=finding_criteria,
             rank=rank,
         )
-        return 200, {}, json.dumps({"name": filter_name})
+        return json.dumps({"name": filter_name})
