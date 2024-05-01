@@ -548,7 +548,7 @@ GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.
                 <Rejects>{{ statistics["Rejects"] }}</Rejects>
                 <Bounces>{{ statistics["Bounces"] }}</Bounces>
                 <Complaints>{{ statistics["Complaints"] }}</Complaints>
-                <Timestamp>{{ statistics["Timestamp"].isoformat() }}</Timestamp>
+                <Timestamp>{{ statistics["Timestamp"].strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
             </member>
         {% endfor %}
       </SendDataPoints>
