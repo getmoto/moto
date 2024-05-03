@@ -4803,3 +4803,39 @@ def test_delete_service_linked_role():
     err = ex.value.response["Error"]
     assert err["Code"] == "NoSuchEntity"
     assert "not found" in err["Message"]
+
+
+@mock_aws
+def test_tag_instance_profile():
+    client = boto3.client("iam", region_name="eu-central-1")
+
+    name = "test-ip"
+    tags = [{"Key": "MyKey", "Value": "myValue"}]
+
+    client.create_instance_profile(InstanceProfileName=name)
+    client.tag_instance_profile(InstanceProfileName=name, Tags=tags)
+    ip = client.get_instance_profile(InstanceProfileName=name)
+
+    assert ip["InstanceProfile"]["Tags"] == tags
+
+    # add another tag
+    addTags = [{"Key": "MyKey2", "Value": "myValue2"}]
+    client.tag_instance_profile(InstanceProfileName=name, Tags=addTags)
+    ip = client.get_instance_profile(InstanceProfileName=name)
+
+    assert ip["InstanceProfile"]["Tags"] == tags + addTags
+
+
+@mock_aws
+def test_untag_instance_profile():
+    client = boto3.client("iam", region_name="eu-central-1")
+
+    name = "test-ip"
+    tags = [{"Key": "MyKey", "Value": "myValue"}]
+    unTags = ["MyKey"]
+
+    client.create_instance_profile(InstanceProfileName=name, Tags=tags)
+    client.untag_instance_profile(InstanceProfileName=name, TagKeys=unTags)
+    ip = client.get_instance_profile(InstanceProfileName=name)
+
+    assert ip["InstanceProfile"]["Tags"] == []

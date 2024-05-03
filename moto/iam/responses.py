@@ -1128,6 +1128,28 @@ class IamResponse(BaseResponse):
         )
         return template.render()
 
+    def tag_instance_profile(self) -> str:
+        instance_profile_name = self._get_param("InstanceProfileName")
+        tags = self._get_multi_param("Tags.member")
+
+        self.backend.tag_instance_profile(
+            instance_profile_name=instance_profile_name,
+            tags=tags,
+        )
+        template = self.response_template(TAG_INSTANCE_PROFILE_TEMPLATE)
+        return template.render()
+
+    def untag_instance_profile(self) -> str:
+        instance_profile_name = self._get_param("InstanceProfileName")
+        tags = self._get_multi_param("TagKeys.member")
+
+        self.backend.untag_instance_profile(
+            instance_profile_name=instance_profile_name,
+            tagKeys=tags,
+        )
+        template = self.response_template(UNTAG_INSTANCE_PROFILE_TEMPLATE)
+        return template.render()
+
 
 LIST_ENTITIES_FOR_POLICY_TEMPLATE = """<ListEntitiesForPolicyResponse>
  <ListEntitiesForPolicyResult>
@@ -2774,3 +2796,17 @@ UNTAG_USER_TEMPLATE = """<UntagUserResponse xmlns="https://iam.amazonaws.com/doc
     <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
   </ResponseMetadata>
 </UntagUserResponse>"""
+
+TAG_INSTANCE_PROFILE_TEMPLATE = """<TagInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</TagInstanceProfileResponse>
+"""
+
+UNTAG_INSTANCE_PROFILE_TEMPLATE = """<UntagInstanceProfileResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
+  <ResponseMetadata>
+    <RequestId>EXAMPLE8-90ab-cdef-fedc-ba987EXAMPLE</RequestId>
+  </ResponseMetadata>
+</UntagInstanceProfileResponse>
+"""
