@@ -79,6 +79,54 @@ class FakeWebACL(BaseModel):
         }
 
 
+class FakeIPSet(BaseModel):
+    """
+    https://docs.aws.amazon.com/waf/latest/APIReference/API_IPSet.html
+    """
+
+    def __init__(
+            self,
+            arn: str,
+            ip_set_id: str,
+            ip_address_version: str,
+            addresses: list[str],
+            name: str,
+            description: str,
+            scope: str,
+    ):
+        self.name = name
+        self.ip_set_id = ip_set_id
+        self.arn = arn
+        self.addresses = addresses
+        self.description = description
+        self.ip_address_version = ip_address_version
+        self.scope = scope
+
+        self.lock_token = str(mock_random.uuid4())[0:6]
+
+    def update(
+            self,
+            description: Optional[str],
+            addresses: list[str]
+    ) -> None:
+        if description is not None:
+            self.description = description
+        self.addresses = addresses
+
+        self.lock_token = str(mock_random.uuid4())[0:6]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Id": self.ip_set_id,
+            "ARN": self.arn,
+            "Description": self.description,
+            "IPAddressVersion": self.ip_address_version,
+            "Addresses": self.addresses,
+            "LockToken": self.lock_token
+        }
+
+
 class WAFV2Backend(BaseBackend):
     """
     https://docs.aws.amazon.com/waf/latest/APIReference/API_Operations_AWS_WAFV2.html
@@ -87,6 +135,7 @@ class WAFV2Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.wacls: Dict[str, FakeWebACL] = OrderedDict()
+        self.ip_sets: Dict[str, FakeIPSet] = OrderedDict()
         self.tagging_service = TaggingService()
         # TODO: self.load_balancers = OrderedDict()
 
@@ -209,6 +258,57 @@ class WAFV2Backend(BaseBackend):
         acl = self.get_web_acl(name, _id)
         acl.update(default_action, rules, description, visibility_config)
         return acl.lock_token
+
+
+    def create_ip_set(
+            self,
+            name: str,
+            scope: str,
+            description: str,
+            ip_address_version: str,
+            addresses: List[Dict[str, Any]],
+            tags: List[Dict[str, str]],
+    ) -> FakeIPSet:
+        ip_set_id = str(mock_random.uuid4())
+        arn = f"arn:aws:wafv2:{self.region_name}:{self.account_id}:global/ipset/{name}/{ip_set_id}"
+
+        if arn in self.wacls:
+            raise Exception("Duplicated ip set")  # TODO define correct exception
+
+        new_ip_set = FakeIPSet(
+            arn,
+            ip_set_id,
+            ip_address_version,
+            addresses,
+            name,
+            description,
+            scope,
+        )
+        self.ip_sets[arn] = new_ip_set
+        self.tag_resource(arn, tags)
+        return new_ip_set
+
+    def delete_ip_set(self, name: str, scope: str, _id: str, lock_token: str):
+        arn = f"arn:aws:wafv2:{self.region_name}:{self.account_id}:global/ipset/{name}/{_id}"
+        if arn not in self.ip_sets:
+            raise Exception("Non existent ip set")  # TODO define correct exception
+
+        if lock_token != self.ip_sets[arn].lock_token:
+            raise Exception("Invalid lock token")  # TODO define correct exception
+
+        self.ip_sets.pop(arn)
+
+    def list_ip_sets(self, scope: str) -> list[FakeIPSet]:
+        ip_sets = [ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope]
+        return ip_sets
+
+    def get_ip_set(self, name: str, scope: str, _id: str, ):
+        arn = f"arn:aws:wafv2:{self.region_name}:{self.account_id}:global/ipset/{name}/{_id}"
+        if arn not in self.ip_sets:
+            raise Exception("Non existent ip set")  # TODO define correct exception
+
+        return self.ip_sets[arn]
+
 
 
 wafv2_backends = BackendDict(

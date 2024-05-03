@@ -197,3 +197,92 @@ def test_update_web_acl():
         "CloudWatchMetricsEnabled": True,
         "MetricName": "updated",
     }
+
+
+# @mock_aws
+def test_ip_set_crud():
+    client = boto3.client("wafv2", region_name="us-east-1")
+
+    create_response = client.create_ip_set(
+        Name='test-ip-set',
+        Scope='CLOUDFRONT',
+        Description='Test IP set',
+        IPAddressVersion='IPV4',
+        Addresses=[
+            '192.168.0.1/32',
+            '10.0.0.0/8'
+        ],
+        Tags=[
+            {
+                'Key': 'Environment',
+                'Value': 'Test'
+            }
+        ]
+    )
+
+    assert "Summary" in create_response
+    summary = create_response["Summary"]
+
+    assert summary["Id"]
+    assert summary["LockToken"]
+    assert summary["ARN"]
+    assert summary["Name"] == 'test-ip-set'
+    assert "Test IP set" in summary["Description"]
+
+    get_response = client.get_ip_set(
+        Name=summary["Name"],
+        Scope="CLOUDFRONT",
+        Id=summary["Id"]
+    )
+    assert "IPSet" in get_response
+    assert "LockToken" in get_response
+
+    ip_set = get_response["IPSet"]
+    assert ip_set["IPAddressVersion"] == "IPV4"
+
+    update_response = client.update_ip_set(
+        Name="test-ip-set",
+        Scope='CLOUDFRONT',
+        Id=summary["Id"],
+        Description='Updated test IP set',
+        Addresses=[
+            '192.168.1.0/24',
+            '10.0.0.0/8'
+        ],
+        LockToken=get_response["LockToken"]
+    )
+
+    assert "NextLockToken" in update_response
+
+    get_response = client.get_ip_set(
+        Name=summary["Name"],
+        Scope="CLOUDFRONT",
+        Id=summary["Id"]
+    )
+
+    updated_ip_set = get_response["IPSet"]
+    assert updated_ip_set["Description"] == "Updated test IP set"
+    assert get_response["LockToken"] == update_response["NextLockToken"]
+    assert all(addr in [ '192.168.1.0/24', '10.0.0.0/8' ] for addr in updated_ip_set["Addresses"])
+
+    list_response = client.list_ip_sets(Scope="CLOUDFRONT")
+    assert len(list_response["IPSets"]) == 1
+
+    assert all([key in list_response["IPSets"][0] for key in ["ARN", "Description", "Id", "LockToken", "Name"]])
+    assert "NextMarker" in list_response
+
+    client.delete_ip_set(
+        Name=summary["Name"],
+        Scope="CLOUDFRONT",
+        Id=summary["Id"],
+        LockToken=get_response["LockToken"]
+    )
+
+    with pytest.raises(ClientError) as e:
+        client.get_ip_set(
+            Name=summary["Name"],
+            Scope="CLOUDFRONT",
+            Id=summary["Id"]
+        )
+    e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
+    e.value.response["Error"]["Message"]== "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
