@@ -135,11 +135,9 @@ class WorkSpaceDirectory(BaseModel):
         self.launch_time = directory.launch_time
         self.registration_code = registration_code
         if directory.directory_type == "ADConnector":
-            # type: ignore[index]
-            dir_subnet_ids = directory.connect_settings["SubnetIds"]
+            dir_subnet_ids = directory.connect_settings["SubnetIds"]  # type: ignore[index]
         else:
-            # type: ignore[index]
-            dir_subnet_ids = directory.vpc_settings["SubnetIds"]
+            dir_subnet_ids = directory.vpc_settings["SubnetIds"]  # type: ignore[index]
         self.subnet_ids = subnet_ids or dir_subnet_ids
         self.dns_ip_addresses = directory.dns_ip_addrs
         self.customer_username = "Administrator"
@@ -465,9 +463,9 @@ class WorkSpacesBackend(BaseBackend):
             tenancy=tenancy,
             tags=tags,
         )
-        self.workspace_directories[
-            workspace_directory.directory_id
-        ] = workspace_directory
+        self.workspace_directories[workspace_directory.directory_id] = (
+            workspace_directory
+        )
 
     def describe_workspace_directories(
         self, directory_ids: Optional[List[str]] = None
