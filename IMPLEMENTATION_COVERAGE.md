@@ -706,27 +706,37 @@
 
 ## bedrock
 <details>
-<summary>65% implemented</summary>
+<summary>43% implemented</summary>
 
+- [ ] create_evaluation_job
+- [ ] create_guardrail
+- [ ] create_guardrail_version
 - [X] create_model_customization_job
 - [ ] create_provisioned_model_throughput
 - [X] delete_custom_model
+- [ ] delete_guardrail
 - [X] delete_model_invocation_logging_configuration
 - [ ] delete_provisioned_model_throughput
 - [X] get_custom_model
+- [ ] get_evaluation_job
 - [ ] get_foundation_model
+- [ ] get_guardrail
 - [X] get_model_customization_job
 - [X] get_model_invocation_logging_configuration
 - [ ] get_provisioned_model_throughput
 - [X] list_custom_models
+- [ ] list_evaluation_jobs
 - [ ] list_foundation_models
+- [ ] list_guardrails
 - [X] list_model_customization_jobs
 - [ ] list_provisioned_model_throughputs
 - [X] list_tags_for_resource
 - [X] put_model_invocation_logging_configuration
+- [ ] stop_evaluation_job
 - [X] stop_model_customization_job
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_guardrail
 - [ ] update_provisioned_model_throughput
 </details>
 
@@ -1334,6 +1344,7 @@
 - [ ] put_webhook
 - [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
+- [ ] rollback_stage
 - [ ] start_pipeline_execution
 - [ ] stop_pipeline_execution
 - [X] tag_resource
@@ -2554,6 +2565,7 @@
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
+- [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
@@ -3257,11 +3269,12 @@
 
 ## emr-containers
 <details>
-<summary>40% implemented</summary>
+<summary>34% implemented</summary>
 
 - [X] cancel_job_run
 - [ ] create_job_template
 - [ ] create_managed_endpoint
+- [ ] create_security_configuration
 - [X] create_virtual_cluster
 - [ ] delete_job_template
 - [ ] delete_managed_endpoint
@@ -3269,11 +3282,13 @@
 - [X] describe_job_run
 - [ ] describe_job_template
 - [ ] describe_managed_endpoint
+- [ ] describe_security_configuration
 - [X] describe_virtual_cluster
 - [ ] get_managed_endpoint_session_credentials
 - [X] list_job_runs
 - [ ] list_job_templates
 - [ ] list_managed_endpoints
+- [ ] list_security_configurations
 - [ ] list_tags_for_resource
 - [X] list_virtual_clusters
 - [X] start_job_run
@@ -3283,19 +3298,19 @@
 
 ## emr-serverless
 <details>
-<summary>46% implemented</summary>
+<summary>73% implemented</summary>
 
-- [ ] cancel_job_run
+- [X] cancel_job_run
 - [X] create_application
 - [X] delete_application
 - [X] get_application
 - [ ] get_dashboard_for_job_run
-- [ ] get_job_run
+- [X] get_job_run
 - [X] list_applications
-- [ ] list_job_runs
+- [X] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
-- [ ] start_job_run
+- [X] start_job_run
 - [X] stop_application
 - [ ] tag_resource
 - [ ] untag_resource
@@ -5487,6 +5502,7 @@
 - [ ] create_batch_inference_job
 - [ ] create_batch_segment_job
 - [ ] create_campaign
+- [ ] create_data_deletion_job
 - [ ] create_dataset
 - [ ] create_dataset_export_job
 - [ ] create_dataset_group
@@ -5511,6 +5527,7 @@
 - [ ] describe_batch_inference_job
 - [ ] describe_batch_segment_job
 - [ ] describe_campaign
+- [ ] describe_data_deletion_job
 - [ ] describe_dataset
 - [ ] describe_dataset_export_job
 - [ ] describe_dataset_group
@@ -5528,6 +5545,7 @@
 - [ ] list_batch_inference_jobs
 - [ ] list_batch_segment_jobs
 - [ ] list_campaigns
+- [ ] list_data_deletion_jobs
 - [ ] list_dataset_export_jobs
 - [ ] list_dataset_groups
 - [ ] list_dataset_import_jobs
@@ -5860,6 +5878,7 @@
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
+- [ ] update_spice_capacity_configuration
 - [ ] update_template
 - [ ] update_template_alias
 - [ ] update_template_permissions
@@ -6789,7 +6808,7 @@
 
 ## s3control
 <details>
-<summary>9% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] associate_access_grants_identity_center
 - [ ] create_access_grant
@@ -6864,7 +6883,7 @@
 - [ ] list_tags_for_resource
 - [ ] put_access_grants_instance_resource_policy
 - [ ] put_access_point_configuration_for_object_lambda
-- [ ] put_access_point_policy
+- [X] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
@@ -7674,6 +7693,7 @@
 - [ ] describe_instance_patch_states
 - [ ] describe_instance_patch_states_for_patch_group
 - [ ] describe_instance_patches
+- [ ] describe_instance_properties
 - [ ] describe_inventory_deletions
 - [ ] describe_maintenance_window_execution_task_invocations
 - [ ] describe_maintenance_window_execution_tasks
@@ -7772,7 +7792,7 @@
 
 ## sso-admin
 <details>
-<summary>24% implemented</summary>
+<summary>27% implemented</summary>
 
 - [X] attach_customer_managed_policy_reference_to_permission_set
 - [X] attach_managed_policy_to_permission_set
@@ -7795,8 +7815,8 @@
 - [X] delete_permission_set
 - [ ] delete_permissions_boundary_from_permission_set
 - [ ] delete_trusted_token_issuer
-- [ ] describe_account_assignment_creation_status
-- [ ] describe_account_assignment_deletion_status
+- [X] describe_account_assignment_creation_status
+- [X] describe_account_assignment_deletion_status
 - [ ] describe_application
 - [ ] describe_application_assignment
 - [ ] describe_application_provider
@@ -7851,7 +7871,7 @@
 
 ## stepfunctions
 <details>
-<summary>55% implemented</summary>
+<summary>54% implemented</summary>
 
 - [ ] create_activity
 - [X] create_state_machine
@@ -7889,6 +7909,7 @@
 - [X] update_map_run
 - [X] update_state_machine
 - [ ] update_state_machine_alias
+- [ ] validate_state_machine_definition
 </details>
 
 ## sts
