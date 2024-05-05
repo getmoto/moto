@@ -19,7 +19,6 @@ from .utils import (
 )
 
 APPLICATION_ARN_TEMPLATE = "arn:{partition}:emr-serverless:{region}:{account_id}:/applications/{application_id}"
-
 JOB_RUN_ARN_TEMPLATE = "arn:{partition}:emr-serverless:{region}:{account_id}:/applications/{application_id}/jobruns/{job_run_id}"
 
 # Defaults used for creating an EMR Serverless application

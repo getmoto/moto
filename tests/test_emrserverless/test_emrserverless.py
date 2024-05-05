@@ -232,7 +232,7 @@ class TestGetApplication:
         response = {
             "applicationId": application_id,
             "name": "test-emr-serverless-application",
-            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{application_id}",
+            "arn": f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
             "state": "STARTED",
@@ -341,7 +341,7 @@ class TestListApplication:
             "id": self.application_ids[0],
             "name": "test-emr-serverless-application-STARTED",
             "arn": (
-                f"arn:aws:emr-containers:us-east-1:123456789012"
+                f"arn:aws:emr-serverless:us-east-1:123456789012"
                 f":/applications/{self.application_ids[0]}"
             ),
             "releaseLabel": "emr-6.6.0",
@@ -456,7 +456,7 @@ class TestUpdateApplication:
         response = {
             "applicationId": application_id,
             "name": "test-emr-serverless-application-STOPPED",
-            "arn": f"arn:aws:emr-containers:us-east-1:123456789012:/applications/{application_id}",
+            "arn": f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
             "state": "STOPPED",
