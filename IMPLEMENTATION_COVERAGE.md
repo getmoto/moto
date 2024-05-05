@@ -2024,7 +2024,7 @@
 
 ## dynamodb
 <details>
-<summary>56% implemented</summary>
+<summary>59% implemented</summary>
 
 - [X] batch_execute_statement
 - [X] batch_get_item
@@ -2043,7 +2043,7 @@
 - [ ] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
-- [ ] describe_import
+- [X] describe_import
 - [ ] describe_kinesis_streaming_destination
 - [ ] describe_limits
 - [X] describe_table
@@ -2056,7 +2056,7 @@
 - [ ] export_table_to_point_in_time
 - [X] get_item
 - [ ] get_resource_policy
-- [ ] import_table
+- [X] import_table
 - [X] list_backups
 - [ ] list_contributor_insights
 - [ ] list_exports
