@@ -128,10 +128,12 @@ class EMRServerlessResponse(BaseResponse):
         )
         response = {"application": application}
         return 200, {}, json.dumps(response)
-    
+
     def start_job_run(self) -> TYPE_RESPONSE:
         # params = self._get_params()
-        application_id = self._get_param("applicationId") #params["application_id"] #.get()
+        application_id = self._get_param(
+            "applicationId"
+        )  # params["application_id"] #.get()
         client_token = self._get_param("clientToken")
         execution_role_arn = self._get_param("executionRoleArn")
         job_driver = self._get_param("jobDriver")
@@ -150,25 +152,24 @@ class EMRServerlessResponse(BaseResponse):
             name=name,
         )
         # TODO: adjust response
-        return json.dumps({
-            "applicationId": job_run.application_id, 
-            "jobRunId": job_run.id, 
-            "arn": job_run.arn
-        })
-    
+        return json.dumps(
+            {
+                "applicationId": job_run.application_id,
+                "jobRunId": job_run.id,
+                "arn": job_run.arn,
+            }
+        )
+
     def get_job_run(self):
         params = self._get_params()
         application_id = self._get_param("applicationId")
         job_run_id = self._get_param("jobRunId")
         job_run = self.emrserverless_backend.get_job_run(
-            application_id=application_id,
-            job_run_id=job_run_id
+            application_id=application_id, job_run_id=job_run_id
         )
         # TODO: adjust response
-        return json.dumps({
-            'jobRun': job_run.to_dict("get")
-        })
-    
+        return json.dumps({"jobRun": job_run.to_dict("get")})
+
     def cancel_job_run(self):
         application_id = self._get_param("applicationId")
         job_run_id = self._get_param("jobRunId")
@@ -176,9 +177,9 @@ class EMRServerlessResponse(BaseResponse):
             application_id=application_id,
             job_run_id=job_run_id,
         )
-        
+
         return json.dumps(dict(applicationId=application_id, jobRunId=job_run_id))
-    
+
     def list_job_runs(self):
         application_id = self._get_param("applicationId")
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
@@ -194,7 +195,4 @@ class EMRServerlessResponse(BaseResponse):
             created_at_before=created_at_before,
             states=states,
         )
-        return json.dumps({
-            "jobRuns": job_runs,
-            "nextToken": next_token
-        })
+        return json.dumps({"jobRuns": job_runs, "nextToken": next_token})

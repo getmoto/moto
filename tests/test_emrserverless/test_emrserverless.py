@@ -72,7 +72,6 @@ def fixture_application_factory(client):
 
 @pytest.fixture(scope="function", name="job_run_factory")
 def fixture_job_run_factory(client, application_factory):
-
     job_run_lookup: dict[str, list[str]] = {}
     for application_id in application_factory:
         job_run_ids = []
@@ -84,9 +83,9 @@ def fixture_job_run_factory(client, application_factory):
                 "sparkSubmit": {
                     "entryPoint": "test.jar",
                     "entryPointArguments": ["-h"],
-                    "sparkSubmitParameters": "--num-executors 1"
+                    "sparkSubmitParameters": "--num-executors 1",
                 }
-            }
+            },
         )
 
         job_run_ids.append(resp["jobRunId"])
@@ -99,18 +98,18 @@ def fixture_job_run_factory(client, application_factory):
                 "sparkSubmit": {
                     "entryPoint": "test.jar",
                     "entryPointArguments": ["-h"],
-                    "sparkSubmitParameters": "--num-executors 1"
+                    "sparkSubmitParameters": "--num-executors 1",
                 }
             },
             configurationOverrides={
                 "monitoringConfiguration": {
-                    "s3MonitoringConfiguration": {"logUri": "s3://DOC-EXAMPLE-BUCKET/logs"}
+                    "s3MonitoringConfiguration": {
+                        "logUri": "s3://DOC-EXAMPLE-BUCKET/logs"
+                    }
                 }
             },
-            tags={
-                "tag1": "tag1_val"
-            },
-            executionTimeoutMinutes=1
+            tags={"tag1": "tag1_val"},
+            executionTimeoutMinutes=1,
         )
 
         job_run_ids.append(resp["jobRunId"])
@@ -615,25 +614,27 @@ class TestStartJobRun:
                     "sparkSubmit": {
                         "entryPoint": "test.jar",
                         "entryPointArguments": ["-h"],
-                        "sparkSubmitParameters": "--num-executors 1"
+                        "sparkSubmitParameters": "--num-executors 1",
                     }
                 },
                 configurationOverrides={
                     "monitoringConfiguration": {
-                        "s3MonitoringConfiguration": {"logUri": "s3://DOC-EXAMPLE-BUCKET/logs"}
+                        "s3MonitoringConfiguration": {
+                            "logUri": "s3://DOC-EXAMPLE-BUCKET/logs"
+                        }
                     }
                 },
-                tags={
-                    "tag1": "tag1_val"
-                },
+                tags={"tag1": "tag1_val"},
                 executionTimeoutMinutes=1,
-                name="Test Job Run"
+                name="Test Job Run",
             )
 
             assert isinstance(resp, dict)
             assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
             assert resp["applicationId"] == application_id
-            assert resp["arn"].startswith(f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}/jobruns/")
+            assert resp["arn"].startswith(
+                f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}/jobruns/"
+            )
             assert re.match(r"[a-z,0-9]{16}", resp["jobRunId"])
 
     def test_job_not_belongs_to_other_application(self):
@@ -642,20 +643,14 @@ class TestStartJobRun:
         for run_id in app_2_job_run_ids:
             # Use application 1 ID and job run from application 2
             with pytest.raises(ClientError) as exc:
-                resp = self.client.get_job_run(
-                    applicationId=app_1_id,
-                    jobRunId=run_id
-                )
+                resp = self.client.get_job_run(applicationId=app_1_id, jobRunId=run_id)
             err = exc.value.response["Error"]
             assert err["Code"] == "ResourceNotFoundException"
 
     def test_get_job_run(self):
         for app_id, run_ids in self.job_run_lookup.items():
             for run_id in run_ids:
-                resp = self.client.get_job_run(
-                    applicationId=app_id,
-                    jobRunId=run_id
-                )
+                resp = self.client.get_job_run(applicationId=app_id, jobRunId=run_id)
                 assert resp is not None
                 assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
                 assert resp["jobRun"]["applicationId"] == app_id
@@ -673,10 +668,7 @@ class TestStartJobRun:
     def test_cancel_job_run(self):
         for app_id, run_ids in self.job_run_lookup.items():
             for run_id in run_ids:
-                resp = self.client.cancel_job_run(
-                    applicationId=app_id,
-                    jobRunId=run_id
-                )
+                resp = self.client.cancel_job_run(applicationId=app_id, jobRunId=run_id)
                 assert resp is not None
                 assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
                 assert resp["applicationId"] == app_id
@@ -691,9 +683,9 @@ class TestStartJobRun:
                     "sparkSubmit": {
                         "entryPoint": "test.jar",
                         "entryPointArguments": ["-h"],
-                        "sparkSubmitParameters": "--num-executors 1"
+                        "sparkSubmitParameters": "--num-executors 1",
                     }
-                }
+                },
             )
 
             err = exc.value.response["Error"]

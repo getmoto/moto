@@ -148,7 +148,7 @@ class FakeJobRun(BaseModel):
         tags: dict[str, str] | None,
         network_configuration: dict[str, list[str]] | None,
         execution_timeout_minutes: int | None,
-        name: str | None
+        name: str | None,
     ):
         self.name = name
         self.application_id = application_id
@@ -210,7 +210,6 @@ class FakeJobRun(BaseModel):
     #     yield "totalResourceUtilization", self.billed_resource_utilization
 
     def to_dict(self, caller_methods_type: str) -> Dict[str, Any]:
-
         if caller_methods_type in ["get", "update"]:
             response = {
                 "applicationId": self.application_id,
@@ -370,24 +369,24 @@ class EMRServerlessBackend(BaseBackend):
             self.applications[application_id].maximum_capacity = maximum_capacity
 
         if auto_start_configuration:
-            self.applications[application_id].auto_start_configuration = (
-                auto_start_configuration
-            )
+            self.applications[
+                application_id
+            ].auto_start_configuration = auto_start_configuration
 
         if auto_stop_configuration:
-            self.applications[application_id].auto_stop_configuration = (
-                auto_stop_configuration
-            )
+            self.applications[
+                application_id
+            ].auto_stop_configuration = auto_stop_configuration
 
         if network_configuration:
-            self.applications[application_id].network_configuration = (
-                network_configuration
-            )
+            self.applications[
+                application_id
+            ].network_configuration = network_configuration
 
-        self.applications[application_id].updated_at = (
-            iso_8601_datetime_without_milliseconds(
-                datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
-            )
+        self.applications[
+            application_id
+        ].updated_at = iso_8601_datetime_without_milliseconds(
+            datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         )
 
         return self.applications[application_id].to_dict()
@@ -450,9 +449,9 @@ class EMRServerlessBackend(BaseBackend):
         job_run_ids = [job_run.id for job_run in self.job_runs[application_id]]
         if job_run_id not in job_run_ids:
             raise ResourceNotFoundException(job_run_id, "JobRun")
-        
+
         self.job_runs[application_id][job_run_ids.index(job_run_id)].state = "CANCELLED"
-        
+
         return application_id, job_run_id
 
     def list_job_runs(
@@ -462,24 +461,31 @@ class EMRServerlessBackend(BaseBackend):
         max_results: Optional[int],
         created_at_after: Optional[datetime],
         created_at_before: Optional[datetime],
-        states: Optional[List[str]]
-    )-> Tuple[List[Dict[str, Any]], Optional[str]]:
+        states: Optional[List[str]],
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         if application_id not in self.job_runs.keys():
             raise ResourceNotFoundException(application_id, "Application")
         job_runs = self.job_runs[application_id]
         if states:
             job_runs = [job_run for job_run in job_runs if job_run.state in states]
         if created_at_after:
-            job_runs = [job_run for job_run in job_runs if job_run.created_at > created_at_after]
+            job_runs = [
+                job_run for job_run in job_runs if job_run.created_at > created_at_after
+            ]
         if created_at_before:
-            job_runs = [job_run for job_run in job_runs if job_run.created_at < created_at_before]
+            job_runs = [
+                job_run
+                for job_run in job_runs
+                if job_run.created_at < created_at_before
+            ]
 
         job_runs = [job_run.to_dict("list") for job_run in job_runs]
 
         if max_results is None:
             max_results = 50
-        
+
         sort_key = "createdAt"
         return paginated_list(job_runs, sort_key, max_results, next_token)
+
 
 emrserverless_backends = BackendDict(EMRServerlessBackend, "emr-serverless")
