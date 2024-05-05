@@ -6,9 +6,9 @@ from moto.core.exceptions import JsonRESTError
 class ResourceNotFoundException(JsonRESTError):
     code = 400
 
-    def __init__(self, resource: str):
+    def __init__(self, resource: str, resource_type: str = "Application"):
         super().__init__(
-            "ResourceNotFoundException", f"Application {resource} does not exist"
+            "ResourceNotFoundException", f"{resource_type} {resource} does not exist"
         )
 
 
