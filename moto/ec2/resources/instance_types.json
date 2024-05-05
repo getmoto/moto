@@ -12878,18 +12878,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -13327,18 +13327,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -47838,18 +47838,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -48335,18 +48335,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -49006,18 +49006,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -49455,18 +49455,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -69880,18 +69880,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -70377,18 +70377,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -71048,18 +71048,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
@@ -71497,18 +71497,18 @@
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
    "MaximumNetworkCards": 2,
-   "MaximumNetworkInterfaces": 14,
+   "MaximumNetworkInterfaces": 16,
    "NetworkCards": [
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
     },
     {
      "BaselineBandwidthInGbps": 200.0,
-     "MaximumNetworkInterfaces": 7,
+     "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "Up to 170 Gigabit",
      "PeakBandwidthInGbps": 200.0
