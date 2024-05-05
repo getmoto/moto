@@ -370,11 +370,6 @@ class EMRContainersBackend(BaseBackend):
             raise ResourceNotFoundException(f"Job run {job_id} doesn't exist.")
 
         return self.jobs[job_id].to_dict()
-    
-    def start_job_run(self, application_id, client_token, execution_role_arn, job_driver, configuration_overrides, tags, execution_timeout_minutes, name):
-        # implement here
-        return application_id, job_run_id, arn
-    
 
 
 emrcontainers_backends = BackendDict(EMRContainersBackend, "emr-containers")

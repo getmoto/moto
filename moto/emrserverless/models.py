@@ -423,7 +423,7 @@ class EMRServerlessBackend(BaseBackend):
             self.job_runs[application_id] = []
         self.job_runs[application_id].append(job_run)
 
-        return job_run  # application_id, job_run.id, job_run.arn
+        return job_run
 
     def get_job_run(self, application_id, job_run_id) -> FakeJobRun:
         if application_id not in self.job_runs.keys():

@@ -11,21 +11,21 @@ DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""
 
 """
-These are the available methos:
+These are the available methods:
     can_paginate()
-    cancel_job_run()
+    cancel_job_run() -> DONE
     close()
     create_application() -> DONE
     delete_application() -> DONE
     get_application() -> DONE
-    get_job_run()
+    get_job_run() -> DONE
     get_paginator()
     get_waiter()
     list_applications() -> DONE
-    list_job_runs()
+    list_job_runs() -> DONE
     list_tags_for_resource()
     start_application() -> DONE
-    start_job_run()
+    start_job_run() -> DONE
     stop_application() -> DONE
     tag_resource()
     untag_resource()
