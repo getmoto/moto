@@ -35,7 +35,7 @@ dynamodb
 - [ ] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
-- [ ] describe_import
+- [X] describe_import
 - [ ] describe_kinesis_streaming_destination
 - [ ] describe_limits
 - [X] describe_table
@@ -58,7 +58,13 @@ dynamodb
 - [ ] export_table_to_point_in_time
 - [X] get_item
 - [ ] get_resource_policy
-- [ ] import_table
+- [X] import_table
+  
+        Only InputFormat=DYNAMODB_JSON is supported so far.
+        InputCompressionType=ZSTD is not supported.
+        Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupArn
+        
+
 - [X] list_backups
 - [ ] list_contributor_insights
 - [ ] list_exports

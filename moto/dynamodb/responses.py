@@ -1182,3 +1182,43 @@ class DynamoHandler(BaseResponse):
         stmts = self.body.get("Statements", [])
         items = self.dynamodb_backend.batch_execute_statement(stmts)
         return dynamo_json_dump({"Responses": items})
+
+    def import_table(self) -> str:
+        params = self.body
+        s3_source = params.get("S3BucketSource")
+        input_format = params.get("InputFormat") or "DYNAMODB_JSON"
+        compression_type = params.get("InputCompressionType") or "NONE"
+        table_parameters = params.get("TableCreationParameters")
+        table_name = table_parameters["TableName"]
+        table_attrs = table_parameters["AttributeDefinitions"]
+        table_schema = table_parameters["KeySchema"]
+        table_billing = table_parameters.get("BillingMode")
+        table_throughput = table_parameters.get("ProvisionedThroughput")
+        global_indexes = table_parameters.get("GlobalSecondaryIndexes")
+
+        self._validate_table_creation(
+            billing_mode=table_billing,
+            throughput=table_throughput,
+            key_schema=table_schema,
+            global_indexes=global_indexes,
+            local_secondary_indexes=None,
+            attr=table_attrs,
+        )
+
+        import_table = self.dynamodb_backend.import_table(
+            s3_source=s3_source,
+            input_format=input_format,
+            compression_type=compression_type,
+            table_name=table_name,
+            billing_mode=table_billing or "PROVISIONED",
+            throughput=table_throughput,
+            key_schema=table_schema,
+            global_indexes=global_indexes,
+            attrs=table_attrs,
+        )
+        return json.dumps({"ImportTableDescription": import_table.response()})
+
+    def describe_import(self) -> str:
+        import_arn = self.body["ImportArn"]
+        import_table = self.dynamodb_backend.describe_import(import_arn)
+        return json.dumps({"ImportTableDescription": import_table.response()})

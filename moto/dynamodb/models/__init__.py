@@ -33,6 +33,7 @@ from moto.dynamodb.models.table import (
     RestoredTable,
     Table,
 )
+from moto.dynamodb.models.table_import import TableImport
 from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
@@ -44,6 +45,7 @@ class DynamoDBBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.tables: Dict[str, Table] = OrderedDict()
         self.backups: Dict[str, Backup] = OrderedDict()
+        self.table_imports: Dict[str, TableImport] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -933,6 +935,42 @@ class DynamoDBBackend(BaseBackend):
             except Exception as e:
                 responses[idx] = {"Error": {"Code": e.name, "Message": e.message}}  # type: ignore
         return responses
+
+    def import_table(
+        self,
+        s3_source: Dict[str, str],
+        input_format: Optional[str],
+        compression_type: Optional[str],
+        table_name: str,
+        billing_mode: str,
+        throughput: Optional[Dict[str, int]],
+        key_schema: List[Dict[str, str]],
+        global_indexes: Optional[List[Dict[str, Any]]],
+        attrs: List[Dict[str, str]],
+    ) -> TableImport:
+        """
+        Only InputFormat=DYNAMODB_JSON is supported so far.
+        InputCompressionType=ZSTD is not supported.
+        Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupArn
+        """
+        table_import = TableImport(
+            account_id=self.account_id,
+            s3_source=s3_source,
+            region_name=self.region_name,
+            table_name=table_name,
+            billing_mode=billing_mode,
+            throughput=throughput,
+            key_schema=key_schema,
+            global_indexes=global_indexes,
+            attrs=attrs,
+            compression_type=compression_type,
+        )
+        self.table_imports[table_import.arn] = table_import
+        table_import.start()
+        return table_import
+
+    def describe_import(self, import_arn: str) -> TableImport:
+        return self.table_imports[import_arn]
 
 
 dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")
