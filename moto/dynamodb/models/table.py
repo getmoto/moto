@@ -386,14 +386,22 @@ class Table(CloudFormationModel):
             params["schema"] = properties["KeySchema"]
         if "AttributeDefinitions" in properties:
             params["attr"] = properties["AttributeDefinitions"]
-        if "GlobalSecondaryIndexes" in properties:
-            params["global_indexes"] = properties["GlobalSecondaryIndexes"]
-        if "ProvisionedThroughput" in properties:
-            params["throughput"] = properties["ProvisionedThroughput"]
-        if "LocalSecondaryIndexes" in properties:
-            params["indexes"] = properties["LocalSecondaryIndexes"]
-        if "StreamSpecification" in properties:
-            params["streams"] = properties["StreamSpecification"]
+        params["global_indexes"] = properties.get("GlobalSecondaryIndexes", [])
+        params["throughput"] = properties.get("ProvisionedThroughput")
+        params["indexes"] = properties.get("LocalSecondaryIndexes", [])
+        params["streams"] = properties.get("StreamSpecification")
+        params["tags"] = properties.get("Tags")
+        params["deletion_protection_enabled"] = properties.get(
+            "DeletionProtectionEnabled", False
+        )
+        params["sse_specification"] = properties.get("SSESpecification")
+
+        billing_mode = (
+            "PAY_PER_REQUEST"
+            if properties.get("BillingMode") == "PAY_PER_REQUEST"
+            else "PROVISIONED"
+        )
+        params["billing_mode"] = billing_mode
 
         table = dynamodb_backends[account_id][region_name].create_table(
             name=resource_name, **params

@@ -60,11 +60,36 @@ class DynamoDBBackend(BaseBackend):
             base_endpoint_dns_names=[f"dynamodb.{service_region}.amazonaws.com"],
         )
 
-    def create_table(self, name: str, **params: Any) -> Table:
+    def create_table(
+        self,
+        name: str,
+        schema: List[Dict[str, str]],
+        throughput: Optional[Dict[str, int]],
+        attr: List[Dict[str, str]],
+        global_indexes: Optional[List[Dict[str, Any]]],
+        indexes: Optional[List[Dict[str, Any]]],
+        streams: Optional[Dict[str, Any]],
+        billing_mode: str,
+        sse_specification: Optional[Dict[str, Any]],
+        tags: List[Dict[str, str]],
+        deletion_protection_enabled: bool,
+    ) -> Table:
         if name in self.tables:
             raise ResourceInUseException(f"Table already exists: {name}")
         table = Table(
-            name, account_id=self.account_id, region=self.region_name, **params
+            name,
+            account_id=self.account_id,
+            region=self.region_name,
+            schema=schema,
+            throughput=throughput,
+            attr=attr,
+            global_indexes=global_indexes,
+            indexes=indexes,
+            streams=streams,
+            billing_mode=billing_mode,
+            sse_specification=sse_specification,
+            tags=tags,
+            deletion_protection_enabled=deletion_protection_enabled,
         )
         self.tables[name] = table
         return table
