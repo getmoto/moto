@@ -8,8 +8,12 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import WAFNonexistentItemException, WAFV2DuplicateItemException, WAFOptimisticLockException
-from .utils import make_arn_for_wacl, make_arn_for_ip_set
+from .exceptions import (
+    WAFNonexistentItemException,
+    WAFOptimisticLockException,
+    WAFV2DuplicateItemException,
+)
+from .utils import make_arn_for_ip_set, make_arn_for_wacl
 
 if TYPE_CHECKING:
     from moto.apigateway.models import Stage
@@ -85,14 +89,14 @@ class FakeIPSet(BaseModel):
     """
 
     def __init__(
-            self,
-            arn: str,
-            ip_set_id: str,
-            ip_address_version: str,
-            addresses: list[str],
-            name: str,
-            description: str,
-            scope: str,
+        self,
+        arn: str,
+        ip_set_id: str,
+        ip_address_version: str,
+        addresses: list[str],
+        name: str,
+        description: str,
+        scope: str,
     ):
         self.name = name
         self.ip_set_id = ip_set_id
@@ -104,11 +108,7 @@ class FakeIPSet(BaseModel):
 
         self.lock_token = str(mock_random.uuid4())[0:6]
 
-    def update(
-            self,
-            description: Optional[str],
-            addresses: list[str]
-    ) -> None:
+    def update(self, description: Optional[str], addresses: list[str]) -> None:
         if description is not None:
             self.description = description
         self.addresses = addresses
@@ -123,7 +123,7 @@ class FakeIPSet(BaseModel):
             "Description": self.description,
             "IPAddressVersion": self.ip_address_version,
             "Addresses": self.addresses,
-            "LockToken": self.lock_token
+            "LockToken": self.lock_token,
         }
 
 
@@ -260,21 +260,21 @@ class WAFV2Backend(BaseBackend):
         return acl.lock_token
 
     def create_ip_set(
-            self,
-            name: str,
-            scope: str,
-            description: str,
-            ip_address_version: str,
-            addresses: List[Dict[str, Any]],
-            tags: List[Dict[str, str]],
+        self,
+        name: str,
+        scope: str,
+        description: str,
+        ip_address_version: str,
+        addresses: List[Dict[str, Any]],
+        tags: List[Dict[str, str]],
     ) -> FakeIPSet:
         ip_set_id = str(mock_random.uuid4())
         arn = make_arn_for_ip_set(
-                name=name,
-                account_id=self.account_id,
-                region_name=self.region_name,
-                _id = ip_set_id,
-                scope=scope,
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=ip_set_id,
+            scope=scope,
         )
 
         new_ip_set = FakeIPSet(
@@ -308,7 +308,9 @@ class WAFV2Backend(BaseBackend):
         self.ip_sets.pop(arn)
 
     def list_ip_sets(self, scope: str) -> list[FakeIPSet]:
-        ip_sets = [ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope]
+        ip_sets = [
+            ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope
+        ]
         return ip_sets
 
     def get_ip_set(self, name: str, scope: str, _id: str) -> FakeIPSet:
@@ -324,7 +326,15 @@ class WAFV2Backend(BaseBackend):
 
         return self.ip_sets[arn]
 
-    def update_ip_set(self, name: str, scope: str, _id: str, description: Optional[str], addresses: list[str], lock_token: str) -> FakeIPSet:
+    def update_ip_set(
+        self,
+        name: str,
+        scope: str,
+        _id: str,
+        description: Optional[str],
+        addresses: list[str],
+        lock_token: str,
+    ) -> FakeIPSet:
         arn = make_arn_for_ip_set(
             name=name,
             account_id=self.account_id,

@@ -6,13 +6,13 @@ def make_arn_for_wacl(
 
 
 def make_arn_for_ip_set(
-        name: str, account_id: str, region_name: str, _id: str, scope: str
+    name: str, account_id: str, region_name: str, _id: str, scope: str
 ) -> str:
     return make_arn(name, account_id, region_name, _id, scope, "ipset")
 
 
 def make_arn(
-        name: str, account_id: str, region_name: str, _id: str, scope: str, resource: str
+    name: str, account_id: str, region_name: str, _id: str, scope: str, resource: str
 ) -> str:
     if scope == "REGIONAL":
         scope = "regional"
