@@ -10,7 +10,12 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.emrcontainers.utils import get_partition, paginated_list
 
-from .exceptions import ResourceNotFoundException, ValidationException
+from .exceptions import (
+    ResourceNotFoundException,
+    ValidationException,
+    AccessDeniedException,
+    ParamValidationError,
+)
 from .utils import (
     default_auto_start_configuration,
     default_auto_stop_configuration,
@@ -402,6 +407,13 @@ class EMRServerlessBackend(BaseBackend):
         execution_timeout_minutes,
         name,
     ) -> FakeJobRun:
+        role_account_id = execution_role_arn.split(":")[4]
+        if role_account_id != self.account_id:
+            raise AccessDeniedException("Cross-account pass role is not allowed.")
+
+        if execution_timeout_minutes and execution_timeout_minutes < 5:
+            raise ValidationException("RunTimeout must be at least 5 minutes.")
+
         application_resp = self.get_application(application_id)
         job_run = FakeJobRun(
             application_id=application_id,

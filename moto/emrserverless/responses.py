@@ -139,7 +139,7 @@ class EMRServerlessResponse(BaseResponse):
         job_driver = self._get_param("jobDriver")
         configuration_overrides = self._get_param("configurationOverrides")
         tags = self._get_param("tags")
-        execution_timeout_minutes = self._get_param("executionTimeoutMinutes")
+        execution_timeout_minutes = self._get_int_param("executionTimeoutMinutes")
         name = self._get_param("name")
         job_run = self.emrserverless_backend.start_job_run(
             application_id=application_id,

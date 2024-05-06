@@ -78,7 +78,7 @@ def fixture_job_run_factory(client, application_factory):
         resp = client.start_job_run(
             name="Test Job Run 1",
             applicationId=application_id,
-            executionRoleArn="arn:aws:iam::012345678901:role/emr-serverless-role",
+            executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
             jobDriver={
                 "sparkSubmit": {
                     "entryPoint": "test.jar",
@@ -93,7 +93,7 @@ def fixture_job_run_factory(client, application_factory):
         resp = client.start_job_run(
             name="Test Job Run 2",
             applicationId=application_id,
-            executionRoleArn="arn:aws:iam::012345678901:role/emr-serverless-role",
+            executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
             jobDriver={
                 "sparkSubmit": {
                     "entryPoint": "test.jar",
@@ -109,7 +109,7 @@ def fixture_job_run_factory(client, application_factory):
                 }
             },
             tags={"tag1": "tag1_val"},
-            executionTimeoutMinutes=1,
+            executionTimeoutMinutes=5,
         )
 
         job_run_ids.append(resp["jobRunId"])
@@ -132,7 +132,7 @@ class TestCreateApplication:
         assert resp["name"] == "test-emr-serverless-application"
         assert re.match(r"[a-z,0-9]{16}", resp["applicationId"])
         assert resp["arn"] == (
-            f"arn:aws:emr-serverless:us-east-1:{ACCOUNT_ID}"
+            f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}"
             f":/applications/{resp['applicationId']}"
         )
 
@@ -232,7 +232,7 @@ class TestGetApplication:
         response = {
             "applicationId": application_id,
             "name": "test-emr-serverless-application",
-            "arn": f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}",
+            "arn": f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}:/applications/{application_id}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
             "state": "STARTED",
@@ -341,7 +341,7 @@ class TestListApplication:
             "id": self.application_ids[0],
             "name": "test-emr-serverless-application-STARTED",
             "arn": (
-                f"arn:aws:emr-serverless:us-east-1:123456789012"
+                f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}"
                 f":/applications/{self.application_ids[0]}"
             ),
             "releaseLabel": "emr-6.6.0",
@@ -456,7 +456,7 @@ class TestUpdateApplication:
         response = {
             "applicationId": application_id,
             "name": "test-emr-serverless-application-STOPPED",
-            "arn": f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}",
+            "arn": f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}:/applications/{application_id}",
             "releaseLabel": "emr-6.6.0",
             "type": "Spark",
             "state": "STOPPED",
@@ -609,7 +609,7 @@ class TestStartJobRun:
         for application_id in self.application_ids:
             resp = self.client.start_job_run(
                 applicationId=application_id,
-                executionRoleArn="arn:aws:iam::012345678901:role/emr-serverless-role",
+                executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
                 jobDriver={
                     "sparkSubmit": {
                         "entryPoint": "test.jar",
@@ -625,7 +625,7 @@ class TestStartJobRun:
                     }
                 },
                 tags={"tag1": "tag1_val"},
-                executionTimeoutMinutes=1,
+                executionTimeoutMinutes=10,
                 name="Test Job Run",
             )
 
@@ -633,7 +633,7 @@ class TestStartJobRun:
             assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
             assert resp["applicationId"] == application_id
             assert resp["arn"].startswith(
-                f"arn:aws:emr-serverless:us-east-1:123456789012:/applications/{application_id}/jobruns/"
+                f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}:/applications/{application_id}/jobruns/"
             )
             assert re.match(r"[a-z,0-9]{16}", resp["jobRunId"])
 
@@ -678,7 +678,7 @@ class TestStartJobRun:
         with pytest.raises(ClientError) as exc:
             self.client.start_job_run(
                 applicationId="fake_application_id",
-                executionRoleArn="arn:aws:iam::012345678901:role/emr-serverless-role",
+                executionRoleArn="arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
                 jobDriver={
                     "sparkSubmit": {
                         "entryPoint": "test.jar",
@@ -691,3 +691,39 @@ class TestStartJobRun:
             err = exc.value.response["Error"]
             assert err["Code"] == "ResourceNotFoundException"
             assert err["Message"] == "Application fake_application_id does not exist"
+
+    def test_cross_account_role(self):
+        with pytest.raises(ClientError) as exc:
+            different_account_id = "999999999999"
+            self.client.start_job_run(
+                applicationId=self.application_ids[0],
+                executionRoleArn=f"arn:aws:iam::{different_account_id}:role/emr-serverless-role",
+                jobDriver={
+                    "sparkSubmit": {
+                        "entryPoint": "test.jar",
+                        "entryPointArguments": ["-h"],
+                        "sparkSubmitParameters": "--num-executors 1",
+                    }
+                },
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "AccessDeniedException"
+        assert err["Message"] == "Cross-account pass role is not allowed."
+
+    def test_run_timeout(self):
+        with pytest.raises(ClientError) as exc:
+            self.client.start_job_run(
+                applicationId=self.application_ids[0],
+                executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
+                jobDriver={
+                    "sparkSubmit": {
+                        "entryPoint": "test.jar",
+                        "entryPointArguments": ["-h"],
+                        "sparkSubmitParameters": "--num-executors 1",
+                    }
+                },
+                executionTimeoutMinutes=4,
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert err["Message"] == "RunTimeout must be at least 5 minutes."

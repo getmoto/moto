@@ -17,3 +17,17 @@ class ValidationException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
+
+
+class AccessDeniedException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("AccessDeniedException", message)
+
+
+class ParamValidationError(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ParamValidationError", message)
