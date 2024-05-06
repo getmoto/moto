@@ -8,8 +8,8 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import WAFNonexistentItemException, WAFV2DuplicateItemException
-from .utils import make_arn_for_wacl
+from .exceptions import WAFNonexistentItemException, WAFV2DuplicateItemException, WAFOptimisticLockException
+from .utils import make_arn_for_wacl, make_arn_for_ip_set
 
 if TYPE_CHECKING:
     from moto.apigateway.models import Stage
@@ -259,7 +259,6 @@ class WAFV2Backend(BaseBackend):
         acl.update(default_action, rules, description, visibility_config)
         return acl.lock_token
 
-
     def create_ip_set(
             self,
             name: str,
@@ -270,10 +269,13 @@ class WAFV2Backend(BaseBackend):
             tags: List[Dict[str, str]],
     ) -> FakeIPSet:
         ip_set_id = str(mock_random.uuid4())
-        arn = f"arn:aws:wafv2:{self.region_name}:{self.account_id}:global/ipset/{name}/{ip_set_id}"
-
-        if arn in self.wacls:
-            raise Exception("Duplicated ip set")  # TODO define correct exception
+        arn = make_arn_for_ip_set(
+                name=name,
+                account_id=self.account_id,
+                region_name=self.region_name,
+                _id = ip_set_id,
+                scope=scope,
+        )
 
         new_ip_set = FakeIPSet(
             arn,
@@ -289,12 +291,19 @@ class WAFV2Backend(BaseBackend):
         return new_ip_set
 
     def delete_ip_set(self, name: str, scope: str, _id: str, lock_token: str):
-        arn = f"arn:aws:wafv2:{self.region_name}:{self.account_id}:global/ipset/{name}/{_id}"
+        arn = make_arn_for_ip_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=_id,
+            scope=scope,
+        )
+
         if arn not in self.ip_sets:
-            raise Exception("Non existent ip set")  # TODO define correct exception
+            raise WAFNonexistentItemException()
 
         if lock_token != self.ip_sets[arn].lock_token:
-            raise Exception("Invalid lock token")  # TODO define correct exception
+            raise WAFOptimisticLockException()
 
         self.ip_sets.pop(arn)
 
@@ -302,13 +311,37 @@ class WAFV2Backend(BaseBackend):
         ip_sets = [ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope]
         return ip_sets
 
-    def get_ip_set(self, name: str, scope: str, _id: str, ):
-        arn = f"arn:aws:wafv2:{self.region_name}:{self.account_id}:global/ipset/{name}/{_id}"
+    def get_ip_set(self, name: str, scope: str, _id: str) -> FakeIPSet:
+        arn = make_arn_for_ip_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=_id,
+            scope=scope,
+        )
         if arn not in self.ip_sets:
-            raise Exception("Non existent ip set")  # TODO define correct exception
+            raise WAFNonexistentItemException()
 
         return self.ip_sets[arn]
 
+    def update_ip_set(self, name: str, scope: str, _id: str, description: Optional[str], addresses: list[str], lock_token: str) -> FakeIPSet:
+        arn = make_arn_for_ip_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=_id,
+            scope=scope,
+        )
+
+        if not (ip_set := self.ip_sets.get(arn)):
+            raise WAFNonexistentItemException()
+
+        if ip_set.lock_token != lock_token:
+            raise WAFNonexistentItemException()
+
+        ip_set.update(description, addresses)
+
+        return ip_set
 
 
 wafv2_backends = BackendDict(

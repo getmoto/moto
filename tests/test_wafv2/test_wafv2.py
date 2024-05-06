@@ -198,8 +198,7 @@ def test_update_web_acl():
         "MetricName": "updated",
     }
 
-
-# @mock_aws
+@mock_aws
 def test_ip_set_crud():
     client = boto3.client("wafv2", region_name="us-east-1")
 
@@ -240,6 +239,19 @@ def test_ip_set_crud():
     ip_set = get_response["IPSet"]
     assert ip_set["IPAddressVersion"] == "IPV4"
 
+    with pytest.raises(ClientError) as e:
+        client.update_ip_set(
+            Name="test-ip-set",
+            Scope='CLOUDFRONT',
+            Id=summary["Id"],
+            Addresses=[
+                '10.0.0.0/8'
+            ],
+            LockToken="aaaaaaaaaaaaaaaaaa"  # invalid lock token
+        )
+    e.value.response["Error"]["Code"] == "WAFOptimisticLockException"
+    e.value.response["Error"]["Message"]== "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes."
+
     update_response = client.update_ip_set(
         Name="test-ip-set",
         Scope='CLOUDFRONT',
@@ -254,16 +266,16 @@ def test_ip_set_crud():
 
     assert "NextLockToken" in update_response
 
-    get_response = client.get_ip_set(
+    updated_get_response = client.get_ip_set(
         Name=summary["Name"],
         Scope="CLOUDFRONT",
         Id=summary["Id"]
     )
 
-    updated_ip_set = get_response["IPSet"]
+    updated_ip_set = updated_get_response["IPSet"]
     assert updated_ip_set["Description"] == "Updated test IP set"
-    assert get_response["LockToken"] == update_response["NextLockToken"]
-    assert all(addr in [ '192.168.1.0/24', '10.0.0.0/8' ] for addr in updated_ip_set["Addresses"])
+    assert updated_get_response["LockToken"] == update_response["NextLockToken"]
+    assert all(addr in ['192.168.1.0/24', '10.0.0.0/8'] for addr in updated_ip_set["Addresses"])
 
     list_response = client.list_ip_sets(Scope="CLOUDFRONT")
     assert len(list_response["IPSets"]) == 1
@@ -275,7 +287,7 @@ def test_ip_set_crud():
         Name=summary["Name"],
         Scope="CLOUDFRONT",
         Id=summary["Id"],
-        LockToken=get_response["LockToken"]
+        LockToken=updated_get_response["LockToken"]
     )
 
     with pytest.raises(ClientError) as e:

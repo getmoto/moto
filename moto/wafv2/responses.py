@@ -4,6 +4,7 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import GLOBAL_REGION, WAFV2Backend, wafv2_backends
+from ..moto_api._internal import mock_random
 
 
 class WAFV2Response(BaseResponse):
@@ -139,6 +140,105 @@ class WAFV2Response(BaseResponse):
             name, _id, default_action, rules, description, visibility_config
         )
         return 200, {}, json.dumps({"NextLockToken": lock_token})
+
+    def create_ip_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+
+        name = body.get("Name")
+        scope = body.get("Scope")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        description = body.get("Description")
+        ip_address_version = body.get("IPAddressVersion")
+        addresses = body.get("Addresses")
+        tags = body.get("Tags")
+
+        ip_set = self.wafv2_backend.create_ip_set(
+            name, scope, description, ip_address_version, addresses, tags
+        )
+        return 200, {}, json.dumps({"Summary":{
+            "Name": ip_set.name,
+            "Id": ip_set.ip_set_id, "Description": ip_set.description, "LockToken": ip_set.lock_token , "ARN": ip_set.arn
+        }})
+
+    def delete_ip_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+
+        name = body.get("Name")
+        scope = body.get("Scope")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        _id = body.get("Id")
+        lock_token = body.get("LockToken")
+
+        self.wafv2_backend.delete_ip_set(
+            name, scope, _id, lock_token
+        )
+
+        return 200, {}, "{}"
+
+    def list_ip_sets(self) -> TYPE_RESPONSE:
+        scope = self._get_param("Scope")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        ip_sets = self.wafv2_backend.list_ip_sets(scope)
+
+        formatted_ip_sets = [
+            {
+                'Name': ip_set.name,
+                'Id': ip_set.ip_set_id,
+                'Description': ip_set.description,
+                'LockToken': ip_set.lock_token,
+                'ARN': ip_set.arn
+            } for ip_set in ip_sets
+        ]
+
+        return 200, {}, json.dumps({
+            "NextMarker": str(mock_random.uuid4()),
+            "IPSets": formatted_ip_sets
+        })
+
+    def get_ip_set(self) -> TYPE_RESPONSE:
+        scope = self._get_param("Scope")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        ip_set = self.wafv2_backend.get_ip_set(
+            name=self._get_param("Name"),
+            scope=scope,
+            _id=self._get_param("Id")
+        )
+
+        dict_ip = ip_set.to_dict()
+        lock_token = dict_ip.pop("LockToken")
+        return 200, {}, json.dumps({
+           "IPSet": dict_ip,
+           "LockToken": lock_token
+        })
+
+    def update_ip_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        description = body.get("Description")
+        addresses = body.get("Addresses")
+        lock_token = body.get("LockToken")
+        updated_ip_set = self.wafv2_backend.update_ip_set(
+            name, scope, _id, description, addresses, lock_token
+        )
+
+        return 200, {}, json.dumps({
+            "NextLockToken": updated_ip_set.lock_token
+        })
 
 
 # notes about region and scope

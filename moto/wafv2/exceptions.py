@@ -19,3 +19,11 @@ class WAFNonexistentItemException(WAFv2ClientError):
             "WAFNonexistentItemException",
             "AWS WAF couldn’t perform the operation because your resource doesn’t exist.",
         )
+
+
+class WAFOptimisticLockException(WAFv2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "WAFOptimisticLockException",
+            "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes.",
+        )
