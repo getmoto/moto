@@ -70,53 +70,104 @@ def fixture_application_factory(client):
     yield application_list
 
 
+@pytest.fixture(scope="function", name="available_application")
+def fixture_available_application(client):
+    resp = client.create_application(
+        name="test-emr-serverless-application",
+        type="SPARK",
+        releaseLabel=DEFAULT_RELEASE_LABEL,
+    )
+
+    yield resp["applicationId"]
+
+
 @pytest.fixture(scope="function", name="job_run_factory")
-def fixture_job_run_factory(client, application_factory):
-    job_run_lookup: dict[str, list[str]] = {}
-    for application_id in application_factory:
-        job_run_ids = []
-        resp = client.start_job_run(
-            name="Test Job Run 1",
-            applicationId=application_id,
-            executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
-            jobDriver={
-                "sparkSubmit": {
-                    "entryPoint": "test.jar",
-                    "entryPointArguments": ["-h"],
-                    "sparkSubmitParameters": "--num-executors 1",
-                }
-            },
-        )
+def fixture_job_run_factory(client):
+    app_1_resp = client.create_application(
+        name="test-emr-serverless-application-1",
+        type="SPARK",
+        releaseLabel=DEFAULT_RELEASE_LABEL,
+    )
+    app_1_id = app_1_resp["applicationId"]
 
-        job_run_ids.append(resp["jobRunId"])
+    job_1_resp = client.start_job_run(
+        name="Test Job Run 1",
+        applicationId=app_1_id,
+        executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
+        jobDriver={
+            "sparkSubmit": {
+                "entryPoint": "test.jar",
+                "entryPointArguments": ["-h"],
+                "sparkSubmitParameters": "--num-executors 1",
+            }
+        },
+    )
 
-        resp = client.start_job_run(
-            name="Test Job Run 2",
-            applicationId=application_id,
-            executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
-            jobDriver={
-                "sparkSubmit": {
-                    "entryPoint": "test.jar",
-                    "entryPointArguments": ["-h"],
-                    "sparkSubmitParameters": "--num-executors 1",
-                }
-            },
-            configurationOverrides={
-                "monitoringConfiguration": {
-                    "s3MonitoringConfiguration": {
-                        "logUri": "s3://DOC-EXAMPLE-BUCKET/logs"
-                    }
-                }
-            },
-            tags={"tag1": "tag1_val"},
-            executionTimeoutMinutes=5,
-        )
+    job_2_resp = client.start_job_run(
+        name="Test Job Run 2",
+        applicationId=app_1_id,
+        executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
+        jobDriver={
+            "sparkSubmit": {
+                "entryPoint": "test.jar",
+                "entryPointArguments": ["-h"],
+                "sparkSubmitParameters": "--num-executors 1",
+            }
+        },
+        configurationOverrides={
+            "monitoringConfiguration": {
+                "s3MonitoringConfiguration": {"logUri": "s3://DOC-EXAMPLE-BUCKET/logs"}
+            }
+        },
+        tags={"tag1": "tag1_val"},
+        executionTimeoutMinutes=5,
+    )
 
-        job_run_ids.append(resp["jobRunId"])
+    app_2_resp = client.create_application(
+        name="test-emr-serverless-application-2",
+        type="SPARK",
+        releaseLabel=DEFAULT_RELEASE_LABEL,
+        tags={"tag1": "tag1_val"},
+    )
+    app_2_id = app_2_resp["applicationId"]
 
-        job_run_lookup[application_id] = job_run_ids
+    job_3_resp = client.start_job_run(
+        name="Test Job Run 3",
+        applicationId=app_2_id,
+        executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
+        jobDriver={
+            "sparkSubmit": {
+                "entryPoint": "test.jar",
+                "entryPointArguments": ["-h"],
+                "sparkSubmitParameters": "--num-executors 1",
+            }
+        },
+    )
 
-    yield job_run_lookup
+    job_4_resp = client.start_job_run(
+        name="Test Job Run 4",
+        applicationId=app_2_id,
+        executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
+        jobDriver={
+            "sparkSubmit": {
+                "entryPoint": "test.jar",
+                "entryPointArguments": ["-h"],
+                "sparkSubmitParameters": "--num-executors 1",
+            }
+        },
+        configurationOverrides={
+            "monitoringConfiguration": {
+                "s3MonitoringConfiguration": {"logUri": "s3://DOC-EXAMPLE-BUCKET/logs"}
+            }
+        },
+        tags={"tag1": "tag1_val"},
+        executionTimeoutMinutes=5,
+    )
+
+    yield {
+        app_1_id: [job_1_resp["jobRunId"], job_2_resp["jobRunId"]],
+        app_2_id: [job_3_resp["jobRunId"], job_4_resp["jobRunId"]],
+    }
 
 
 class TestCreateApplication:
@@ -598,44 +649,47 @@ class TestUpdateApplication:
         assert err["Message"] == "Application fake_application_id does not exist"
 
 
-class TestStartJobRun:
+class TestJobRun:
     @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, application_factory, job_run_factory):
+    def _setup_environment(
+        self, client, application_factory, available_application, job_run_factory
+    ):
         self.client = client
         self.application_ids: list[str] = application_factory
         self.job_run_lookup: dict[str, list[dict]] = job_run_factory
+        self.available_application: str = available_application
 
     def test_start_job_run(self):
-        for application_id in self.application_ids:
-            resp = self.client.start_job_run(
-                applicationId=application_id,
-                executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
-                jobDriver={
-                    "sparkSubmit": {
-                        "entryPoint": "test.jar",
-                        "entryPointArguments": ["-h"],
-                        "sparkSubmitParameters": "--num-executors 1",
+        application_id = self.available_application
+        resp = self.client.start_job_run(
+            applicationId=application_id,
+            executionRoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/emr-serverless-role",
+            jobDriver={
+                "sparkSubmit": {
+                    "entryPoint": "test.jar",
+                    "entryPointArguments": ["-h"],
+                    "sparkSubmitParameters": "--num-executors 1",
+                }
+            },
+            configurationOverrides={
+                "monitoringConfiguration": {
+                    "s3MonitoringConfiguration": {
+                        "logUri": "s3://DOC-EXAMPLE-BUCKET/logs"
                     }
-                },
-                configurationOverrides={
-                    "monitoringConfiguration": {
-                        "s3MonitoringConfiguration": {
-                            "logUri": "s3://DOC-EXAMPLE-BUCKET/logs"
-                        }
-                    }
-                },
-                tags={"tag1": "tag1_val"},
-                executionTimeoutMinutes=10,
-                name="Test Job Run",
-            )
+                }
+            },
+            tags={"tag1": "tag1_val"},
+            executionTimeoutMinutes=10,
+            name="Test Job Run",
+        )
 
-            assert isinstance(resp, dict)
-            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-            assert resp["applicationId"] == application_id
-            assert resp["arn"].startswith(
-                f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}:/applications/{application_id}/jobruns/"
-            )
-            assert re.match(r"[a-z,0-9]{16}", resp["jobRunId"])
+        assert isinstance(resp, dict)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+        assert resp["applicationId"] == application_id
+        assert resp["arn"].startswith(
+            f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}:/applications/{application_id}/jobruns/"
+        )
+        assert re.match(r"[a-z,0-9]{16}", resp["jobRunId"])
 
     def test_job_not_belongs_to_other_application(self):
         app_1_id, app_2_id, *_ = self.job_run_lookup.keys()
