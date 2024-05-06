@@ -151,25 +151,28 @@ class EMRServerlessResponse(BaseResponse):
             execution_timeout_minutes=execution_timeout_minutes,
             name=name,
         )
-        # TODO: adjust response
-        return json.dumps(
-            {
-                "applicationId": job_run.application_id,
-                "jobRunId": job_run.id,
-                "arn": job_run.arn,
-            }
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "applicationId": job_run.application_id,
+                    "jobRunId": job_run.id,
+                    "arn": job_run.arn,
+                }
+            ),
         )
 
-    def get_job_run(self):
+    def get_job_run(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
         job_run_id = self._get_param("jobRunId")
         job_run = self.emrserverless_backend.get_job_run(
             application_id=application_id, job_run_id=job_run_id
         )
         # TODO: adjust response
-        return json.dumps({"jobRun": job_run.to_dict("get")})
+        return 200, {}, json.dumps({"jobRun": job_run.to_dict("get")})
 
-    def cancel_job_run(self):
+    def cancel_job_run(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
         job_run_id = self._get_param("jobRunId")
         application_id, job_run_id = self.emrserverless_backend.cancel_job_run(
@@ -177,9 +180,13 @@ class EMRServerlessResponse(BaseResponse):
             job_run_id=job_run_id,
         )
 
-        return json.dumps(dict(applicationId=application_id, jobRunId=job_run_id))
+        return (
+            200,
+            {},
+            json.dumps(dict(applicationId=application_id, jobRunId=job_run_id)),
+        )
 
-    def list_job_runs(self):
+    def list_job_runs(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")
         next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
         max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
@@ -194,4 +201,4 @@ class EMRServerlessResponse(BaseResponse):
             created_at_before=created_at_before,
             states=states,
         )
-        return json.dumps({"jobRuns": job_runs, "nextToken": next_token})
+        return 200, {}, json.dumps({"jobRuns": job_runs, "nextToken": next_token})

@@ -3,7 +3,7 @@
 import inspect
 import re
 from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -147,12 +147,12 @@ class FakeJobRun(BaseModel):
         region_name: str,
         release_label: str,
         application_type: str,
-        job_driver: dict | None,
-        configuration_overrides: dict | None,
-        tags: Dict[str, str] | None,
-        network_configuration: Dict[str, List[str]] | None,
-        execution_timeout_minutes: int | None,
-        name: str | None,
+        job_driver: Optional[Dict[str, Dict[str, Union[str, List[str]]]]],
+        configuration_overrides: Optional[Dict[str, Union[List[Any], Dict[str, Any]]]],
+        tags: Optional[Dict[str, str]],
+        network_configuration: Optional[Dict[str, List[str]]],
+        execution_timeout_minutes: Optional[int],
+        name: Optional[str],
     ):
         self.name = name
         self.application_id = application_id
@@ -182,10 +182,10 @@ class FakeJobRun(BaseModel):
 
         self.created_by: Optional[str] = None
 
-        self.created_at = iso_8601_datetime_without_milliseconds(
+        self.created_at: str = iso_8601_datetime_without_milliseconds(
             datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         )
-        self.updated_at = self.created_at
+        self.updated_at: str = self.created_at
 
         self.total_execution_duration_seconds: int = 0
         self.billed_resource_utilization: Dict[str, float] = {
@@ -379,14 +379,14 @@ class EMRServerlessBackend(BaseBackend):
 
     def start_job_run(
         self,
-        application_id,
-        client_token,
-        execution_role_arn,
-        job_driver,
-        configuration_overrides,
-        tags,
-        execution_timeout_minutes,
-        name,
+        application_id: str,
+        client_token: str,
+        execution_role_arn: str,
+        job_driver: Optional[Dict[str, Dict[str, Union[str, List[str]]]]],
+        configuration_overrides: Optional[Dict[str, Union[List[Any], Dict[str, Any]]]],
+        tags: Optional[Dict[str, str]],
+        execution_timeout_minutes: Optional[int],
+        name: Optional[str],
     ) -> FakeJobRun:
         role_account_id = execution_role_arn.split(":")[4]
         if role_account_id != self.account_id:
@@ -423,7 +423,7 @@ class EMRServerlessBackend(BaseBackend):
 
         return job_run
 
-    def get_job_run(self, application_id, job_run_id) -> FakeJobRun:
+    def get_job_run(self, application_id: str, job_run_id: str) -> FakeJobRun:
         if application_id not in self.job_runs.keys():
             raise ResourceNotFoundException(application_id, "Application")
         job_run_ids = [job_run.id for job_run in self.job_runs[application_id]]
@@ -440,7 +440,7 @@ class EMRServerlessBackend(BaseBackend):
 
         return job_run
 
-    def cancel_job_run(self, application_id, job_run_id):
+    def cancel_job_run(self, application_id: str, job_run_id: str) -> Tuple[str, str]:
         # implement here
         if application_id not in self.job_runs.keys():
             raise ResourceNotFoundException(application_id, "Application")
@@ -468,22 +468,24 @@ class EMRServerlessBackend(BaseBackend):
             job_runs = [job_run for job_run in job_runs if job_run.state in states]
         if created_at_after:
             job_runs = [
-                job_run for job_run in job_runs if job_run.created_at > created_at_after
+                job_run
+                for job_run in job_runs
+                if datetime.fromisoformat(job_run.created_at) > created_at_after
             ]
         if created_at_before:
             job_runs = [
                 job_run
                 for job_run in job_runs
-                if job_run.created_at < created_at_before
+                if datetime.fromisoformat(job_run.created_at) < created_at_before
             ]
 
-        job_runs = [job_run.to_dict("list") for job_run in job_runs]
+        job_run_dicts = [job_run.to_dict("list") for job_run in job_runs]
 
         if max_results is None:
             max_results = 50
 
         sort_key = "createdAt"
-        return paginated_list(job_runs, sort_key, max_results, next_token)
+        return paginated_list(job_run_dicts, sort_key, max_results, next_token)
 
 
 emrserverless_backends = BackendDict(EMRServerlessBackend, "emr-serverless")
