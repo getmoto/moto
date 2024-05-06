@@ -149,8 +149,8 @@ class FakeJobRun(BaseModel):
         application_type: str,
         job_driver: dict | None,
         configuration_overrides: dict | None,
-        tags: dict[str, str] | None,
-        network_configuration: dict[str, list[str]] | None,
+        tags: Dict[str, str] | None,
+        network_configuration: Dict[str, List[str]] | None,
         execution_timeout_minutes: int | None,
         name: str | None,
     ):
@@ -188,7 +188,7 @@ class FakeJobRun(BaseModel):
         self.updated_at = self.created_at
 
         self.total_execution_duration_seconds: int = 0
-        self.billed_resource_utilization: dict[str, float] = {
+        self.billed_resource_utilization: Dict[str, float] = {
             "vCPUHour": 0.0,
             "memoryGBHour": 0.0,
             "storageGBHour": 0.0,
@@ -246,7 +246,7 @@ class EMRServerlessBackend(BaseBackend):
         self.region_name = region_name
         self.partition = get_partition(region_name)
         self.applications: Dict[str, FakeApplication] = dict()
-        self.job_runs: Dict[str, list[FakeJobRun]] = (
+        self.job_runs: Dict[str, List[FakeJobRun]] = (
             dict()
         )  # {application_id: [job_run1, job_run2]}
 
