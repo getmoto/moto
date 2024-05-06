@@ -161,7 +161,6 @@ class EMRServerlessResponse(BaseResponse):
         )
 
     def get_job_run(self):
-        params = self._get_params()
         application_id = self._get_param("applicationId")
         job_run_id = self._get_param("jobRunId")
         job_run = self.emrserverless_backend.get_job_run(

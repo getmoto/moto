@@ -643,7 +643,7 @@ class TestStartJobRun:
         for run_id in app_2_job_run_ids:
             # Use application 1 ID and job run from application 2
             with pytest.raises(ClientError) as exc:
-                resp = self.client.get_job_run(applicationId=app_1_id, jobRunId=run_id)
+                _ = self.client.get_job_run(applicationId=app_1_id, jobRunId=run_id)
             err = exc.value.response["Error"]
             assert err["Code"] == "ResourceNotFoundException"
 

@@ -11,9 +11,9 @@ from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.emrcontainers.utils import get_partition, paginated_list
 
 from .exceptions import (
+    AccessDeniedException,
     ResourceNotFoundException,
     ValidationException,
-    AccessDeniedException,
 )
 from .utils import (
     default_auto_start_configuration,
@@ -411,7 +411,7 @@ class EMRServerlessBackend(BaseBackend):
             execution_timeout_minutes=execution_timeout_minutes,
             name=name,
         )
-        
+
         if application_resp["state"] == "TERMINATED":
             raise ValidationException(
                 f"Application {application_id} is terminated. Cannot start job run."
