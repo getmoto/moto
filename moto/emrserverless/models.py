@@ -14,7 +14,6 @@ from .exceptions import (
     ResourceNotFoundException,
     ValidationException,
     AccessDeniedException,
-    ParamValidationError,
 )
 from .utils import (
     default_auto_start_configuration,
@@ -197,24 +196,8 @@ class FakeJobRun(BaseModel):
 
         self.tags = tags
 
-    # def __iter__(self) -> Iterator[Tuple[str, Any]]:
-    #     yield "applicationId", self.application_id
-    #     yield "jobRunId", self.id
-    #     yield "name", self.name
-    #     yield "arn", self.arn
-    #     yield "createdBy", self.created_by
-    #     yield "createdAt", self.created_at
-    #     yield "updatedAt", self.updated_at
-    #     yield "executionRole", self.execution_role_arn
-    #     yield "state", self.state
-    #     yield "stateDetails", self.state_details
-    #     yield "releaseLabel", self.release_label
-    #     yield "configurationOverrides", self.configuration_overrides
-    #     yield "jobDriver", self.job_driver
-    #     yield "tags", self.tags
-    #     yield "totalResourceUtilization", self.billed_resource_utilization
-
     def to_dict(self, caller_methods_type: str) -> Dict[str, Any]:
+        # The response structure is different for get/update and list
         if caller_methods_type in ["get", "update"]:
             response = {
                 "applicationId": self.application_id,
@@ -252,8 +235,6 @@ class FakeJobRun(BaseModel):
                 "type": self.application_type,
             }
 
-        # if self.network_configuration:
-        #     response.update({"networkConfiguration": self.network_configuration})
         return response
 
 
@@ -430,7 +411,12 @@ class EMRServerlessBackend(BaseBackend):
             execution_timeout_minutes=execution_timeout_minutes,
             name=name,
         )
-        # TODO validate app is active
+        
+        if application_resp["state"] == "TERMINATED":
+            raise ValidationException(
+                f"Application {application_id} is terminated. Cannot start job run."
+            )
+
         if application_id not in self.job_runs:
             self.job_runs[application_id] = []
         self.job_runs[application_id].append(job_run)
