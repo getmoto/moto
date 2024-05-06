@@ -2291,10 +2291,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> FakeKey:
         if key is None:
             raise MissingKey(key=key_name)
-        
+
         # get bucket for eventbridge notification
         bucket = self.get_bucket(key.bucket_name)
-        
+
         tags_input = self.tagger.convert_dict_to_tags_input(tags)
         # Validation custom to S3
         if tags:
