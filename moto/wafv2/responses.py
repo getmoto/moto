@@ -250,7 +250,9 @@ class WAFV2Response(BaseResponse):
         body = json.loads(self.body)
         logging_configuration_parameter = body["LoggingConfiguration"]
         resource_arn = logging_configuration_parameter["ResourceArn"]
-        log_destination_configs = logging_configuration_parameter["LogDestinationConfigs"]
+        log_destination_configs = logging_configuration_parameter[
+            "LogDestinationConfigs"
+        ]
         redacted_fields = logging_configuration_parameter.get("RedactedFields")
         managed_by_firewall_manager = logging_configuration_parameter.get(
             "ManagedByFirewallManager"
@@ -263,13 +265,39 @@ class WAFV2Response(BaseResponse):
             managed_by_firewall_manager,
             logging_filter,
         )
-        return 200, {}, json.dumps({ "LoggingConfiguration":{k: v for k, v in logging_configuration.to_dict().items() if v is not None}})
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "LoggingConfiguration": {
+                        k: v
+                        for k, v in logging_configuration.to_dict().items()
+                        if v is not None
+                    }
+                }
+            ),
+        )
 
     def get_logging_configuration(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         resource_arn = body["ResourceArn"]
-        logging_configuration = self.wafv2_backend.get_logging_configuration(resource_arn)
-        return 200, {}, json.dumps({ "LoggingConfiguration":{k: v for k, v in logging_configuration.to_dict().items() if v is not None}})
+        logging_configuration = self.wafv2_backend.get_logging_configuration(
+            resource_arn
+        )
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "LoggingConfiguration": {
+                        k: v
+                        for k, v in logging_configuration.to_dict().items()
+                        if v is not None
+                    }
+                }
+            ),
+        )
 
     def list_logging_configurations(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
@@ -277,7 +305,8 @@ class WAFV2Response(BaseResponse):
         log_configs = self.wafv2_backend.list_logging_configurations(scope)
 
         formatted = [
-            {k: v for k, v in config.to_dict().items() if v is not None} for config in log_configs
+            {k: v for k, v in config.to_dict().items() if v is not None}
+            for config in log_configs
         ]
         return 500, {}, json.dumps({"LoggingConfigurations": formatted})
 
@@ -286,6 +315,7 @@ class WAFV2Response(BaseResponse):
         resource_arn = body["ResourceArn"]
         self.wafv2_backend.delete_logging_configuration(resource_arn)
         return 200, {}, "{}"
+
 
 # notes about region and scope
 # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)

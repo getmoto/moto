@@ -310,16 +310,14 @@ def test_logging_configuration_crud():
     # Create log groups
     logs_client = boto3.client("logs", region_name="us-east-1")
     logs_client.create_log_group(logGroupName="aws-waf-logs-test")
-    log_group = logs_client.describe_log_groups(
-        logGroupNamePrefix="aws-waf-logs-test"
-    )["logGroups"][0]
+    log_group = logs_client.describe_log_groups(logGroupNamePrefix="aws-waf-logs-test")[
+        "logGroups"
+    ][0]
 
     create_response = wafv2_client.put_logging_configuration(
         LoggingConfiguration={
             "ResourceArn": web_acl_arn,
-            "LogDestinationConfigs": [
-                log_group["arn"]
-            ],
+            "LogDestinationConfigs": [log_group["arn"]],
         }
     )
 

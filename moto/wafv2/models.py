@@ -126,8 +126,16 @@ class FakeIPSet(BaseModel):
             "LockToken": self.lock_token,
         }
 
+
 class FakeLoggingConfiguration:
-    def __init__(self, arn, log_destination_configs: list[str], redacted_fields: Optional[dict[str,any]], managed_gy_firewall_manager: Optional[bool], logging_filter: Optional[dict]):
+    def __init__(
+        self,
+        arn,
+        log_destination_configs: list[str],
+        redacted_fields: Optional[dict[str, any]],
+        managed_gy_firewall_manager: Optional[bool],
+        logging_filter: Optional[dict],
+    ):
         self.arn = arn
         self.log_destination_configs = log_destination_configs
         self.redacted_fields = redacted_fields
@@ -140,7 +148,7 @@ class FakeLoggingConfiguration:
             "LogDestinationConfigs": self.log_destination_configs,
             "RedactedFields": self.redacted_fields,
             "ManagedByFirewallManager": self.managed_by_firewall_manager,
-            "LoggingFilter": self.logging_filter
+            "LoggingFilter": self.logging_filter,
         }
 
 
@@ -371,8 +379,21 @@ class WAFV2Backend(BaseBackend):
 
         return ip_set
 
-    def put_logging_configuration(self, arn: str, log_destination_configs: list[str], redacted_fields: list[dict[str,any]], managed_gy_firewall_manager: bool, logging_filter: dict) -> FakeLoggingConfiguration:
-        logging_configuration = FakeLoggingConfiguration(arn, log_destination_configs, redacted_fields, managed_gy_firewall_manager, logging_filter)
+    def put_logging_configuration(
+        self,
+        arn: str,
+        log_destination_configs: list[str],
+        redacted_fields: list[dict[str, any]],
+        managed_gy_firewall_manager: bool,
+        logging_filter: dict,
+    ) -> FakeLoggingConfiguration:
+        logging_configuration = FakeLoggingConfiguration(
+            arn,
+            log_destination_configs,
+            redacted_fields,
+            managed_gy_firewall_manager,
+            logging_filter,
+        )
         self.logging_configurations[arn] = logging_configuration
         return logging_configuration
 
@@ -390,11 +411,13 @@ class WAFV2Backend(BaseBackend):
         if scope == "CLOUDFRONT":
             scope = "global"
         else:
-            scope  = self.region_name
+            scope = self.region_name
 
-
-        return [logging_configuration for arn, logging_configuration in self.logging_configurations.items() if f":{scope}:" in arn]
-
+        return [
+            logging_configuration
+            for arn, logging_configuration in self.logging_configurations.items()
+            if f":{scope}:" in arn
+        ]
 
 
 wafv2_backends = BackendDict(
