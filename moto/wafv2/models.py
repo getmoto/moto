@@ -126,6 +126,23 @@ class FakeIPSet(BaseModel):
             "LockToken": self.lock_token,
         }
 
+class FakeLoggingConfiguration:
+    def __init__(self, arn, log_destination_configs: list[str], redacted_fields: Optional[dict[str,any]], managed_gy_firewall_manager: Optional[bool], logging_filter: Optional[dict]):
+        self.arn = arn
+        self.log_destination_configs = log_destination_configs
+        self.redacted_fields = redacted_fields
+        self.managed_by_firewall_manager = managed_gy_firewall_manager or False
+        self.logging_filter = logging_filter
+
+    def to_dict(self):
+        return {
+            "ResourceArn": self.arn,
+            "LogDestinationConfigs": self.log_destination_configs,
+            "RedactedFields": self.redacted_fields,
+            "ManagedByFirewallManager": self.managed_by_firewall_manager,
+            "LoggingFilter": self.logging_filter
+        }
+
 
 class WAFV2Backend(BaseBackend):
     """
@@ -136,6 +153,7 @@ class WAFV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.wacls: Dict[str, FakeWebACL] = OrderedDict()
         self.ip_sets: Dict[str, FakeIPSet] = OrderedDict()
+        self.logging_configurations: Dict[str, FakeLoggingConfiguration] = OrderedDict()
         self.tagging_service = TaggingService()
         # TODO: self.load_balancers = OrderedDict()
 
@@ -347,11 +365,36 @@ class WAFV2Backend(BaseBackend):
             raise WAFNonexistentItemException()
 
         if ip_set.lock_token != lock_token:
-            raise WAFNonexistentItemException()
+            raise WAFOptimisticLockException()
 
         ip_set.update(description, addresses)
 
         return ip_set
+
+    def put_logging_configuration(self, arn: str, log_destination_configs: list[str], redacted_fields: list[dict[str,any]], managed_gy_firewall_manager: bool, logging_filter: dict) -> FakeLoggingConfiguration:
+        logging_configuration = FakeLoggingConfiguration(arn, log_destination_configs, redacted_fields, managed_gy_firewall_manager, logging_filter)
+        self.logging_configurations[arn] = logging_configuration
+        return logging_configuration
+
+    def delete_logging_configuration(self, arn: str) -> None:
+        if not self.logging_configurations.get(arn):
+            raise WAFNonexistentItemException()
+        self.logging_configurations.pop(arn)
+
+    def get_logging_configuration(self, arn: str) -> FakeLoggingConfiguration:
+        if not (logging_configuration := self.logging_configurations.get(arn)):
+            raise WAFNonexistentItemException()
+        return logging_configuration
+
+    def list_logging_configurations(self, scope: str) -> list[FakeLoggingConfiguration]:
+        if scope == "CLOUDFRONT":
+            scope = "global"
+        else:
+            scope  = self.region_name
+
+
+        return [logging_configuration for arn, logging_configuration in self.logging_configurations.items() if f":{scope}:" in arn]
+
 
 
 wafv2_backends = BackendDict(
