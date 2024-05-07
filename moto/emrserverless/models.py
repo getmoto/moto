@@ -27,7 +27,7 @@ JOB_RUN_ARN_TEMPLATE = "arn:{partition}:emr-serverless:{region}:{account_id}:/ap
 
 # Defaults used for creating an EMR Serverless application
 APPLICATION_STATUS = "STARTED"
-JOB_STATUS = "RUNNING"
+JOB_STATUS = "SUCCESS"
 
 
 class FakeApplication(BaseModel):
