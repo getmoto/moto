@@ -63,8 +63,8 @@ class NetworkAclBackend:
 
     def delete_network_acl(self, network_acl_id: str) -> "NetworkAcl":
         if any(
-                network_acl.id == network_acl_id and len(network_acl.associations) > 0
-                for network_acl in self.network_acls.values()
+            network_acl.id == network_acl_id and len(network_acl.associations) > 0
+            for network_acl in self.network_acls.values()
         ):
             raise DependencyViolationError(
                 f"The network ACL '{network_acl_id}' has dependencies and cannot be deleted."
