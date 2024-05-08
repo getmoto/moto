@@ -93,7 +93,7 @@ class FakeIPSet(BaseModel):
         arn: str,
         ip_set_id: str,
         ip_address_version: str,
-        addresses: list[str],
+        addresses: List[str],
         name: str,
         description: str,
         scope: str,
@@ -108,7 +108,7 @@ class FakeIPSet(BaseModel):
 
         self.lock_token = str(mock_random.uuid4())[0:6]
 
-    def update(self, description: Optional[str], addresses: list[str]) -> None:
+    def update(self, description: Optional[str], addresses: List[str]) -> None:
         if description is not None:
             self.description = description
         self.addresses = addresses
@@ -131,8 +131,8 @@ class FakeLoggingConfiguration:
     def __init__(
         self,
         arn,
-        log_destination_configs: list[str],
-        redacted_fields: Optional[Dict[str, any]],
+        log_destination_configs: List[str],
+        redacted_fields: Optional[Dict[str, Any]],
         managed_gy_firewall_manager: Optional[bool],
         logging_filter: Optional[Dict],
     ):
@@ -333,7 +333,7 @@ class WAFV2Backend(BaseBackend):
 
         self.ip_sets.pop(arn)
 
-    def list_ip_sets(self, scope: str) -> list[FakeIPSet]:
+    def list_ip_sets(self, scope: str) -> List[FakeIPSet]:
         ip_sets = [
             ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope
         ]
@@ -358,7 +358,7 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         _id: str,
         description: Optional[str],
-        addresses: list[str],
+        addresses: List[str],
         lock_token: str,
     ) -> FakeIPSet:
         arn = make_arn_for_ip_set(
@@ -382,10 +382,10 @@ class WAFV2Backend(BaseBackend):
     def put_logging_configuration(
         self,
         arn: str,
-        log_destination_configs: list[str],
-        redacted_fields: list[Dict[str, any]],
+        log_destination_configs: List[str],
+        redacted_fields: List[Dict[str, Any]],
         managed_gy_firewall_manager: bool,
-        logging_filter: Dict[str, any],
+        logging_filter: Dict[str, Any],
     ) -> FakeLoggingConfiguration:
         logging_configuration = FakeLoggingConfiguration(
             arn,
@@ -407,7 +407,7 @@ class WAFV2Backend(BaseBackend):
             raise WAFNonexistentItemException()
         return logging_configuration
 
-    def list_logging_configurations(self, scope: str) -> list[FakeLoggingConfiguration]:
+    def list_logging_configurations(self, scope: str) -> List[FakeLoggingConfiguration]:
         if scope == "CLOUDFRONT":
             scope = "global"
         else:
