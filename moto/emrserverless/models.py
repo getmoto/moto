@@ -470,15 +470,15 @@ class EMRServerlessBackend(BaseBackend):
             job_runs = [
                 job_run
                 for job_run in job_runs
-                if datetime.fromisoformat(job_run.created_at)
-                > datetime.fromisoformat(created_at_after)
+                if datetime.strptime(job_run.created_at, "%Y-%m-%dT%H:%M:%SZ")
+                > datetime.strptime(created_at_after, "%Y-%m-%dT%H:%M:%SZ")
             ]
         if created_at_before:
             job_runs = [
                 job_run
                 for job_run in job_runs
-                if datetime.fromisoformat(job_run.created_at)
-                < datetime.fromisoformat(created_at_before)
+                if datetime.strptime(job_run.created_at, "%Y-%m-%dT%H:%M:%SZ")
+                < datetime.strptime(created_at_before, "%Y-%m-%dT%H:%M:%SZ")
             ]
 
         job_run_dicts = [job_run.to_dict("list") for job_run in job_runs]
