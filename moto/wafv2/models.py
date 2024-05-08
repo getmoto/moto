@@ -130,11 +130,11 @@ class FakeIPSet(BaseModel):
 class FakeLoggingConfiguration:
     def __init__(
         self,
-        arn,
+        arn: str,
         log_destination_configs: List[str],
         redacted_fields: Optional[Dict[str, Any]],
         managed_gy_firewall_manager: Optional[bool],
-        logging_filter: Optional[Dict],
+        logging_filter: Optional[Dict[str, Any]]
     ):
         self.arn = arn
         self.log_destination_configs = log_destination_configs
@@ -291,7 +291,7 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         description: str,
         ip_address_version: str,
-        addresses: List[Dict[str, Any]],
+        addresses: List[str],
         tags: List[Dict[str, str]],
     ) -> FakeIPSet:
         ip_set_id = str(mock_random.uuid4())
@@ -316,7 +316,7 @@ class WAFV2Backend(BaseBackend):
         self.tag_resource(arn, tags)
         return new_ip_set
 
-    def delete_ip_set(self, name: str, scope: str, _id: str, lock_token: str):
+    def delete_ip_set(self, name: str, scope: str, _id: str, lock_token: str) -> None:
         arn = make_arn_for_ip_set(
             name=name,
             account_id=self.account_id,
@@ -383,7 +383,7 @@ class WAFV2Backend(BaseBackend):
         self,
         arn: str,
         log_destination_configs: List[str],
-        redacted_fields: List[Dict[str, Any]],
+        redacted_fields: Optional[Dict[str, Any]],
         managed_gy_firewall_manager: bool,
         logging_filter: Dict[str, Any],
     ) -> FakeLoggingConfiguration:
