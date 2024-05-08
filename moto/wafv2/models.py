@@ -134,7 +134,7 @@ class FakeLoggingConfiguration:
         log_destination_configs: List[str],
         redacted_fields: Optional[Dict[str, Any]],
         managed_gy_firewall_manager: Optional[bool],
-        logging_filter: Optional[Dict[str, Any]]
+        logging_filter: Optional[Dict[str, Any]],
     ):
         self.arn = arn
         self.log_destination_configs = log_destination_configs
