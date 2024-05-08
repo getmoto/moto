@@ -308,7 +308,7 @@ class WAFV2Response(BaseResponse):
             {k: v for k, v in config.to_dict().items() if v is not None}
             for config in log_configs
         ]
-        return 500, {}, json.dumps({"LoggingConfigurations": formatted})
+        return 200, {}, json.dumps({"LoggingConfigurations": formatted})
 
     def delete_logging_configuration(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)

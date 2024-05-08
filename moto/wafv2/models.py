@@ -132,9 +132,9 @@ class FakeLoggingConfiguration:
         self,
         arn,
         log_destination_configs: list[str],
-        redacted_fields: Optional[dict[str, any]],
+        redacted_fields: Optional[Dict[str, any]],
         managed_gy_firewall_manager: Optional[bool],
-        logging_filter: Optional[dict],
+        logging_filter: Optional[Dict],
     ):
         self.arn = arn
         self.log_destination_configs = log_destination_configs
@@ -142,7 +142,7 @@ class FakeLoggingConfiguration:
         self.managed_by_firewall_manager = managed_gy_firewall_manager or False
         self.logging_filter = logging_filter
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "ResourceArn": self.arn,
             "LogDestinationConfigs": self.log_destination_configs,
@@ -383,9 +383,9 @@ class WAFV2Backend(BaseBackend):
         self,
         arn: str,
         log_destination_configs: list[str],
-        redacted_fields: list[dict[str, any]],
+        redacted_fields: list[Dict[str, any]],
         managed_gy_firewall_manager: bool,
-        logging_filter: dict,
+        logging_filter: Dict[str, any],
     ) -> FakeLoggingConfiguration:
         logging_configuration = FakeLoggingConfiguration(
             arn,
