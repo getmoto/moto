@@ -920,6 +920,47 @@ def test_describe_route_tables_with_nat_gateway():
 
 
 @mock_aws
+def test_describe_route_tables_filter_with_nat_gateway_id():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="192.168.0.0/23")["Vpc"]["VpcId"]
+    az = ec2.describe_availability_zones()["AvailabilityZones"][0]["ZoneName"]
+    sn_id = ec2.create_subnet(
+        AvailabilityZone=az, CidrBlock="192.168.0.0/24", VpcId=vpc_id
+    )["Subnet"]["SubnetId"]
+    route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    ec2.associate_route_table(SubnetId=sn_id, RouteTableId=route_table_id)
+    alloc_id = ec2.allocate_address(Domain="vpc")["AllocationId"]
+    nat_gw_id = ec2.create_nat_gateway(SubnetId=sn_id, AllocationId=alloc_id)[
+        "NatGateway"
+    ]["NatGatewayId"]
+
+    route_tables_by_nat_gateway_id = ec2.describe_route_tables(
+        Filters=[{"Name": "route.nat-gateway-id", "Values": [nat_gw_id]}]
+    )["RouteTables"]
+    assert len(route_tables_by_nat_gateway_id) == 0
+
+    ec2.create_route(
+        DestinationCidrBlock="0.0.0.0/0",
+        NatGatewayId=nat_gw_id,
+        RouteTableId=route_table_id,
+    )
+
+    route_tables_by_nat_gateway_id = ec2.describe_route_tables(
+        Filters=[{"Name": "route.nat-gateway-id", "Values": [nat_gw_id]}]
+    )["RouteTables"][0]
+    nat_gw_routes = [
+        route
+        for route in route_tables_by_nat_gateway_id["Routes"]
+        if route["DestinationCidrBlock"] == "0.0.0.0/0"
+    ]
+
+    assert len(nat_gw_routes) == 1
+    assert nat_gw_routes[0]["DestinationCidrBlock"] == "0.0.0.0/0"
+    assert nat_gw_routes[0]["NatGatewayId"] == nat_gw_id
+    assert nat_gw_routes[0]["State"] == "active"
+
+
+@mock_aws
 def test_create_vpc_end_point():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
