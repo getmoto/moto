@@ -422,6 +422,94 @@ def test_describe_network_acls():
 
 
 @mock_aws
+def test_describe_network_acls_associations_by_subnet():
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    all_acls = ec2_client.describe_network_acls(
+        Filters=[{"Name": "vpc-id", "Values": [vpc_id]}]
+    )["NetworkAcls"]
+    subnet_1_id = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")[
+        "Subnet"
+    ]["SubnetId"]
+    subnet_2_id = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.2.0/24")[
+        "Subnet"
+    ]["SubnetId"]
+    subnet_3_id = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.3.0/24")[
+        "Subnet"
+    ]["SubnetId"]
+    default_acl_id = next(acl["NetworkAclId"] for acl in all_acls if acl["IsDefault"])
+    custom_acl_id = ec2_client.create_network_acl(VpcId=vpc_id)["NetworkAcl"][
+        "NetworkAclId"
+    ]
+
+    # Subnets should be associated with the default ACL by default
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_1_id, default_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_3_id, default_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_2_id, default_acl_id)
+
+    associate_subnet_to_acl(ec2_client, subnet_1_id, custom_acl_id)
+    associate_subnet_to_acl(ec2_client, subnet_3_id, custom_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_1_id, custom_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_3_id, custom_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_2_id, default_acl_id)
+
+    # Re-associate Subnet 1 with the default ACL to test re-association
+    associate_subnet_to_acl(ec2_client, subnet_1_id, default_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_1_id, default_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_2_id, default_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_3_id, custom_acl_id)
+
+    # Attempting to associate a non-existent ACL with a subnet should raise an error
+    with pytest.raises(ClientError):
+        associate_subnet_to_acl(ec2_client, subnet_1_id, "non-existent-acl")
+
+    # Attempting to delete a custom network ACL should fail if it has any subnets associated
+    with pytest.raises(ClientError) as exc:
+        ec2_client.delete_network_acl(NetworkAclId=custom_acl_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DependencyViolation"
+    assert (
+        err["Message"]
+        == f"The network ACL '{custom_acl_id}' has dependencies and cannot be deleted."
+    )
+
+    # Re-associate Subnet 3 with the default ACL to test deletion of custom ACL
+    associate_subnet_to_acl(ec2_client, subnet_3_id, default_acl_id)
+    ec2_client.delete_network_acl(NetworkAclId=custom_acl_id)
+    assert_subnet_is_associated_to_acl(ec2_client, subnet_3_id, default_acl_id)
+
+
+def associate_subnet_to_acl(ec2_client, subnet_id: str, acl_id: str):
+    assoc_id = get_subnet_acl_association_id(ec2_client, subnet_id)
+    ec2_client.replace_network_acl_association(
+        NetworkAclId=acl_id, AssociationId=assoc_id
+    )
+
+
+def get_subnet_acl_association_id(ec2_client, subnet_id: str):
+    network_acls_description = ec2_client.describe_network_acls(
+        Filters=[{"Name": "association.subnet-id", "Values": [subnet_id]}]
+    )
+    associations = network_acls_description["NetworkAcls"][0]["Associations"]
+    return next(
+        assoc["NetworkAclAssociationId"]
+        for assoc in associations
+        if assoc["SubnetId"] == subnet_id
+    )
+
+
+def assert_subnet_is_associated_to_acl(ec2_client, subnet_id: str, acl_id: str):
+    network_acl_description = ec2_client.describe_network_acls(
+        Filters=[{"Name": "association.subnet-id", "Values": [subnet_id]}]
+    )
+    acls_subnet = network_acl_description["NetworkAcls"]
+    # There should be only one ACL associated with the subnet at any given time
+    assert len(acls_subnet) == 1
+    assert acls_subnet[0]["NetworkAclId"] == acl_id
+
+
+@mock_aws
 def test_create_network_acl_with_tags():
     conn = boto3.client("ec2", region_name="us-west-2")
 
