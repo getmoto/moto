@@ -649,7 +649,7 @@ class TestUpdateApplication:
         assert err["Message"] == "Application fake_application_id does not exist"
 
 
-class TestJobRun:
+class TestStartJobRun:
     @pytest.fixture(autouse=True)
     def _setup_environment(
         self, client, application_factory, available_application, job_run_factory
@@ -690,43 +690,6 @@ class TestJobRun:
             f"arn:aws:emr-serverless:{DEFAULT_REGION}:{ACCOUNT_ID}:/applications/{application_id}/jobruns/"
         )
         assert re.match(r"[a-z,0-9]{16}", resp["jobRunId"])
-
-    def test_job_not_belongs_to_other_application(self):
-        app_1_id, app_2_id, *_ = self.job_run_lookup.keys()
-        app_2_job_run_ids = self.job_run_lookup[app_2_id]
-        for run_id in app_2_job_run_ids:
-            # Use application 1 ID and job run from application 2
-            with pytest.raises(ClientError) as exc:
-                _ = self.client.get_job_run(applicationId=app_1_id, jobRunId=run_id)
-            err = exc.value.response["Error"]
-            assert err["Code"] == "ResourceNotFoundException"
-
-    def test_get_job_run(self):
-        for app_id, run_ids in self.job_run_lookup.items():
-            for run_id in run_ids:
-                resp = self.client.get_job_run(applicationId=app_id, jobRunId=run_id)
-                assert resp is not None
-                assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-                assert resp["jobRun"]["applicationId"] == app_id
-                assert resp["jobRun"]["jobRunId"] == run_id
-
-    def test_list_job_runs(self):
-        for app_id, run_ids in self.job_run_lookup.items():
-            resp = self.client.list_job_runs(applicationId=app_id)
-            assert resp is not None
-            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-            assert len(resp["jobRuns"]) == len(run_ids)
-            assert all(run["applicationId"] == app_id for run in resp["jobRuns"])
-            assert all(run["id"] in run_ids for run in resp["jobRuns"])
-
-    def test_cancel_job_run(self):
-        for app_id, run_ids in self.job_run_lookup.items():
-            for run_id in run_ids:
-                resp = self.client.cancel_job_run(applicationId=app_id, jobRunId=run_id)
-                assert resp is not None
-                assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-                assert resp["applicationId"] == app_id
-                assert resp["jobRunId"] == run_id
 
     def test_invalid_application_id(self):
         with pytest.raises(ClientError) as exc:
@@ -781,3 +744,161 @@ class TestJobRun:
         err = exc.value.response["Error"]
         assert err["Code"] == "ValidationException"
         assert err["Message"] == "RunTimeout must be at least 5 minutes."
+
+
+class TestGetJobRun:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(
+        self, client, application_factory, available_application, job_run_factory
+    ):
+        self.client = client
+        self.application_ids: list[str] = application_factory
+        self.job_run_lookup: dict[str, list[dict]] = job_run_factory
+        self.available_application: str = available_application
+
+    def test_job_not_belongs_to_other_application(self):
+        app_1_id, app_2_id, *_ = self.job_run_lookup.keys()
+        app_2_job_run_ids = self.job_run_lookup[app_2_id]
+        for run_id in app_2_job_run_ids:
+            # Use application 1 ID and job run from application 2
+            with pytest.raises(ClientError) as exc:
+                _ = self.client.get_job_run(applicationId=app_1_id, jobRunId=run_id)
+            err = exc.value.response["Error"]
+            assert err["Code"] == "ResourceNotFoundException"
+
+    def test_get_job_run(self):
+        for app_id, run_ids in self.job_run_lookup.items():
+            for run_id in run_ids:
+                resp = self.client.get_job_run(applicationId=app_id, jobRunId=run_id)
+                assert resp is not None
+                assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+                assert resp["jobRun"]["applicationId"] == app_id
+                assert resp["jobRun"]["jobRunId"] == run_id
+
+    def test_invalid_application_id(self):
+        for _, run_ids in self.job_run_lookup.items():
+            fake_app_id = "fakeapp"
+            for run_id in run_ids:
+                with pytest.raises(ClientError) as exc:
+                    self.client.get_job_run(applicationId=fake_app_id, jobRunId=run_id)
+                err = exc.value.response["Error"]
+                assert err["Code"] == "ResourceNotFoundException"
+
+    def test_invalid_job_run_id(self):
+        for app_id, _ in self.job_run_lookup.items():
+            job_run_id = "fakejobrun"
+            with pytest.raises(ClientError) as exc:
+                self.client.get_job_run(applicationId=app_id, jobRunId=job_run_id)
+            err = exc.value.response["Error"]
+            assert err["Code"] == "ResourceNotFoundException"
+
+
+class TestListJobRun:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(
+        self, client, application_factory, available_application, job_run_factory
+    ):
+        self.client = client
+        self.application_ids: list[str] = application_factory
+        self.job_run_lookup: dict[str, list[dict]] = job_run_factory
+        self.available_application: str = available_application
+
+    def test_list_job_runs(self):
+        for app_id, run_ids in self.job_run_lookup.items():
+            resp = self.client.list_job_runs(applicationId=app_id)
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+            assert len(resp["jobRuns"]) == len(run_ids)
+            assert all(run["applicationId"] == app_id for run in resp["jobRuns"])
+            assert all(run["id"] in run_ids for run in resp["jobRuns"])
+
+    def test_invalid_application_id(self):
+        fake_app_id = "fakeapp"
+        with pytest.raises(ClientError) as exc:
+            self.client.list_job_runs(applicationId=fake_app_id)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"
+
+    def test_application_states(self):
+        for app_id, run_ids in self.job_run_lookup.items():
+            resp = self.client.list_job_runs(applicationId=app_id, states=["COMPLETED"])
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+            assert all(run["applicationId"] == app_id for run in resp["jobRuns"])
+            assert all(
+                run["id"] in run_ids
+                for run in resp["jobRuns"]
+                if run["state"] == "COMPLETED"
+            )
+
+    def test_created_filters(self):
+        for app_id, _ in self.job_run_lookup.items():
+            resp = self.client.list_job_runs(
+                applicationId=app_id,
+                createdAtAfter=datetime(2024, 1, 1),
+                createdAtBefore=datetime(2024, 1, 2),
+            )
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+            assert len(resp["jobRuns"]) == 0
+
+    def test_created_after(self):
+        for app_id, run_ids in self.job_run_lookup.items():
+            resp = self.client.list_job_runs(
+                applicationId=app_id, createdAtAfter=datetime(2024, 1, 1)
+            )
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+            assert len(resp["jobRuns"]) == len(run_ids)
+
+    def test_max_results(self):
+        for app_id, _ in self.job_run_lookup.items():
+            resp = self.client.list_job_runs(applicationId=app_id, maxResults=1)
+            assert resp is not None
+            assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+            assert len(resp["jobRuns"]) == 1
+
+    def test_invalid_job_run_id(self):
+        for app_id, _ in self.job_run_lookup.items():
+            job_run_id = "fakejobrun"
+            with pytest.raises(ClientError) as exc:
+                self.client.cancel_job_run(applicationId=app_id, jobRunId=job_run_id)
+            err = exc.value.response["Error"]
+            assert err["Code"] == "ResourceNotFoundException"
+
+
+class TestCancelJobRun:
+    @pytest.fixture(autouse=True)
+    def _setup_environment(
+        self, client, application_factory, available_application, job_run_factory
+    ):
+        self.client = client
+        self.application_ids: list[str] = application_factory
+        self.job_run_lookup: dict[str, list[dict]] = job_run_factory
+        self.available_application: str = available_application
+
+    def test_cancel_job_run(self):
+        for app_id, run_ids in self.job_run_lookup.items():
+            for run_id in run_ids:
+                resp = self.client.cancel_job_run(applicationId=app_id, jobRunId=run_id)
+                assert resp is not None
+                assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+                assert resp["applicationId"] == app_id
+                assert resp["jobRunId"] == run_id
+
+    def test_invalid_application_id(self):
+        for _, run_ids in self.job_run_lookup.items():
+            fake_app_id = "fakeapp"
+            for run_id in run_ids:
+                with pytest.raises(ClientError) as exc:
+                    self.client.get_job_run(applicationId=fake_app_id, jobRunId=run_id)
+                err = exc.value.response["Error"]
+                assert err["Code"] == "ResourceNotFoundException"
+
+    def test_invalid_job_run_id(self):
+        for app_id, _ in self.job_run_lookup.items():
+            job_run_id = "fakejobrun"
+            with pytest.raises(ClientError) as exc:
+                self.client.cancel_job_run(applicationId=app_id, jobRunId=job_run_id)
+            err = exc.value.response["Error"]
+            assert err["Code"] == "ResourceNotFoundException"

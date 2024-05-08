@@ -455,10 +455,10 @@ class EMRServerlessBackend(BaseBackend):
     def list_job_runs(
         self,
         application_id: str,
+        max_results: int,
         next_token: Optional[str],
-        max_results: Optional[int],
-        created_at_after: Optional[datetime],
-        created_at_before: Optional[datetime],
+        created_at_after: Optional[str],
+        created_at_before: Optional[str],
         states: Optional[List[str]],
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         if application_id not in self.job_runs.keys():
@@ -470,19 +470,18 @@ class EMRServerlessBackend(BaseBackend):
             job_runs = [
                 job_run
                 for job_run in job_runs
-                if datetime.fromisoformat(job_run.created_at) > created_at_after
+                if datetime.fromisoformat(job_run.created_at)
+                > datetime.fromisoformat(created_at_after)
             ]
         if created_at_before:
             job_runs = [
                 job_run
                 for job_run in job_runs
-                if datetime.fromisoformat(job_run.created_at) < created_at_before
+                if datetime.fromisoformat(job_run.created_at)
+                < datetime.fromisoformat(created_at_before)
             ]
 
         job_run_dicts = [job_run.to_dict("list") for job_run in job_runs]
-
-        if max_results is None:
-            max_results = 50
 
         sort_key = "createdAt"
         return paginated_list(job_run_dicts, sort_key, max_results, next_token)
