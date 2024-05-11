@@ -3320,6 +3320,22 @@ class IAMBackend(BaseBackend):
         """
         return True
 
+    def tag_instance_profile(
+        self, instance_profile_name: str, tags: List[Dict[str, str]] = []
+    ) -> None:
+        profile = self.get_instance_profile(profile_name=instance_profile_name)
+
+        for value in tags:
+            profile.tags[value["Key"]] = value["Value"]
+
+    def untag_instance_profile(
+        self, instance_profile_name: str, tagKeys: List[str] = []
+    ) -> None:
+        profile = self.get_instance_profile(profile_name=instance_profile_name)
+
+        for value in tagKeys:
+            del profile.tags[value]
+
 
 iam_backends = BackendDict(
     IAMBackend, "iam", use_boto3_regions=False, additional_regions=["global"]
