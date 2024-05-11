@@ -495,6 +495,7 @@ ec2
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
+- [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history

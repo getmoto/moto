@@ -47,6 +47,7 @@ codepipeline
 - [ ] put_webhook
 - [ ] register_webhook_with_third_party
 - [ ] retry_stage_execution
+- [ ] rollback_stage
 - [ ] start_pipeline_execution
 - [ ] stop_pipeline_execution
 - [X] tag_resource
