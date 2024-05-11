@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Type, Union
 from moto.dynamodb.exceptions import (
     IncorrectDataType,
     IncorrectOperandType,
+    MockValidationException,
     ProvidedKeyDoesNotExist,
 )
 from moto.dynamodb.models.dynamo_type import (
@@ -226,6 +227,10 @@ class AddExecutor(NodeExecutor):
         value_to_add = self.get_action_value()
         if isinstance(value_to_add, DynamoType):
             if value_to_add.is_set():
+                if len(value_to_add.value) == 0:
+                    raise MockValidationException(
+                        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+                    )
                 try:
                     current_string_set = self.get_item_at_end_of_path(item)
                 except ProvidedKeyDoesNotExist:
