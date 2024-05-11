@@ -100,18 +100,15 @@ class TableImport(Thread):
             max_keys=None,
         )
 
-        from py_partiql_parser._internal.json_parser import JsonParser
-
-        parser = JsonParser()
+        from py_partiql_parser import JsonParser
 
         for key in keys:
             if self.compression_type == "GZIP":
                 content = gzip_decompress(key.value).decode("utf-8")
             else:
                 content = key.value.decode("utf-8")
-            result = parser.parse(original=content)
-            if not isinstance(result, list):
-                result = [result]
+            result = JsonParser.parse(original=content)
+
             for json_object in result:
                 try:
                     self.processed_count += 1
