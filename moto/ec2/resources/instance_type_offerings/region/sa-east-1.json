@@ -660,6 +660,22 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "m1.large",
   "Location": "sa-east-1"
  },

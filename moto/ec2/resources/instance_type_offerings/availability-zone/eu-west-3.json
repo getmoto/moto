@@ -1908,6 +1908,22 @@
   "Location": "eu-west-3b"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "eu-west-3b"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "eu-west-3b"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "eu-west-3b"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "eu-west-3b"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "eu-west-3b"
  },
@@ -3373,6 +3389,22 @@
  },
  {
   "InstanceType": "inf1.xlarge",
+  "Location": "eu-west-3c"
+ },
+ {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "eu-west-3c"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "eu-west-3c"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "eu-west-3c"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
   "Location": "eu-west-3c"
  },
  {

@@ -920,6 +920,22 @@
   "Location": "ap-southeast-1a"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "ap-southeast-1a"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "ap-southeast-1a"
  },
