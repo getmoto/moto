@@ -1,6 +1,58 @@
 Moto Changelog
 ==============
 
+5.0.7
+-----
+Docker Digest for 5.0.7: <autopopulateddigest>
+
+    New Services:
+        * Sagemaker Metrics:
+            * batch_put_metrics()
+
+    New Methods:
+        * DynamoDB:
+            * describe_import()
+            * import_table()
+
+        * EMR Serverless:
+            * cancel_job_run()
+            * get_job_run()
+            * list_job_runs()
+            * start_job_run()
+
+        * IAM:
+            * tag_instance_profile()
+            * untag_instance_profile()
+
+        * Panorama:
+            * create_node_from_template_job()
+            * describe_node_from_template_job()
+            * list_nodes()
+
+        * SSO-Admin:
+            * describe_account_assignment_creation_status()
+            * describe_account_assignment_deletion_status()
+
+        * WAFv2:
+            * create_ip_set()
+            * delete_ip_set()
+            * list_ip_sets()
+            * get_ip_set()
+            * update_ip_set()
+            * put_logging_configuration()
+            * get_logging_configuration()
+            * list_logging_configurations()
+            * delete_logging_configuration()
+
+    Miscellaneous:
+        * Athena: start_query_execution() now supports the ExecutionParameters-parameter
+        * DynamoDB: Tables now support DeleteProtection
+        * DynamoDB: update_item() no longer throws an error when deleting an item from an empty set
+        * DynamoDB: update_item() no throws an error when adding an empty set
+        * EC2: delete_network_acl() now throws an error when the ACL still has associations attached to it
+        * EC2: describe_route_tables() now supports the `route.nat-gateway-id` filter
+        * EC2: revoke_security_group_ingress/_egress() now throw an error when an unknown Security Group is passed
+
 5.0.6
 -----
 Docker Digest for 5.0.6: _sha256:da919d3c1db07b378c413ed00a6c1c3e32ce1943a13671658c4db0f55dd49e42_
