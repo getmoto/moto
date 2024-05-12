@@ -3824,6 +3824,22 @@
   "Location": "sa-east-1c"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
   "InstanceType": "m3.2xlarge",
   "Location": "sa-east-1c"
  },

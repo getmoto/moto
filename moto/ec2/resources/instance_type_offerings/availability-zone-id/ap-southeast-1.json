@@ -3508,6 +3508,22 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "apse1-az2"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "apse1-az2"
  },

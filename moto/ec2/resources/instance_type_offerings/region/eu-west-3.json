@@ -532,6 +532,22 @@
   "Location": "eu-west-3"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "eu-west-3"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "eu-west-3"
  },
