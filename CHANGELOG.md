@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.7
 -----
-Docker Digest for 5.0.7: <autopopulateddigest>
+Docker Digest for 5.0.7: _sha256:81ac52ff74b0bf0f4957ee4260e6a7e75d66c9e5d040ed4f721a5500b873c88a_
 
     New Services:
         * Sagemaker Metrics:
