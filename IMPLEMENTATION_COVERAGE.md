@@ -788,7 +788,7 @@
 
 ## budgets
 <details>
-<summary>30% implemented</summary>
+<summary>26% implemented</summary>
 
 - [X] create_budget
 - [ ] create_budget_action
@@ -809,6 +809,9 @@
 - [X] describe_notifications_for_budget
 - [ ] describe_subscribers_for_notification
 - [ ] execute_budget_action
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
 - [ ] update_budget
 - [ ] update_budget_action
 - [ ] update_notification
@@ -3956,7 +3959,7 @@
 
 ## iam
 <details>
-<summary>73% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -6350,7 +6353,7 @@
 
 ## resiliencehub
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] add_draft_app_version_resource_mappings
 - [ ] batch_update_recommendation_status
@@ -6378,6 +6381,7 @@
 - [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
+- [ ] list_app_assessment_resource_drifts
 - [X] list_app_assessments
 - [ ] list_app_component_compliances
 - [ ] list_app_component_recommendations
@@ -8098,19 +8102,19 @@
 
 ## wafv2
 <details>
-<summary>22% implemented</summary>
+<summary>38% implemented</summary>
 
 - [X] associate_web_acl
 - [ ] check_capacity
 - [ ] create_api_key
-- [ ] create_ip_set
+- [X] create_ip_set
 - [ ] create_regex_pattern_set
 - [ ] create_rule_group
 - [X] create_web_acl
 - [ ] delete_api_key
 - [ ] delete_firewall_manager_rule_groups
-- [ ] delete_ip_set
-- [ ] delete_logging_configuration
+- [X] delete_ip_set
+- [X] delete_logging_configuration
 - [ ] delete_permission_policy
 - [ ] delete_regex_pattern_set
 - [ ] delete_rule_group
@@ -8121,8 +8125,8 @@
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
 - [ ] get_decrypted_api_key
-- [ ] get_ip_set
-- [ ] get_logging_configuration
+- [X] get_ip_set
+- [X] get_logging_configuration
 - [ ] get_managed_rule_set
 - [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
@@ -8135,8 +8139,8 @@
 - [ ] list_api_keys
 - [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
-- [ ] list_ip_sets
-- [ ] list_logging_configurations
+- [X] list_ip_sets
+- [X] list_logging_configurations
 - [ ] list_managed_rule_sets
 - [ ] list_mobile_sdk_releases
 - [ ] list_regex_pattern_sets
@@ -8144,12 +8148,12 @@
 - [X] list_rule_groups
 - [X] list_tags_for_resource
 - [X] list_web_acls
-- [ ] put_logging_configuration
+- [X] put_logging_configuration
 - [ ] put_managed_rule_set_versions
 - [ ] put_permission_policy
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_ip_set
+- [X] update_ip_set
 - [ ] update_managed_rule_set_version_expiry_date
 - [ ] update_regex_pattern_set
 - [ ] update_rule_group
