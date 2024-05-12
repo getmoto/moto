@@ -148,6 +148,7 @@ rds
 - [X] modify_db_subnet_group
 - [ ] modify_event_subscription
 - [ ] modify_global_cluster
+- [ ] modify_integration
 - [X] modify_option_group
 - [ ] modify_tenant_database
 - [X] promote_read_replica

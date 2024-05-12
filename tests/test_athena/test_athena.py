@@ -175,6 +175,22 @@ def test_get_query_execution(location):
 
 
 @mock_aws
+def test_get_query_execution_with_execution_parameters():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    exex_id = client.start_query_execution(
+        QueryString="SELECT stuff",
+        QueryExecutionContext={"Database": "database"},
+        ResultConfiguration={"OutputLocation": "s3://bucket-name/prefix/"},
+        ExecutionParameters=["param1", "param2"],
+    )["QueryExecutionId"]
+
+    details = client.get_query_execution(QueryExecutionId=exex_id)["QueryExecution"]
+    assert details["QueryExecutionId"] == exex_id
+    assert details["ExecutionParameters"] == ["param1", "param2"]
+
+
+@mock_aws
 def test_stop_query_execution():
     client = boto3.client("athena", region_name="us-east-1")
 

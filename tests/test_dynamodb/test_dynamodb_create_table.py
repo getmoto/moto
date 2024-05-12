@@ -50,6 +50,7 @@ def test_create_table_standard():
         {"AttributeName": "subject", "KeyType": "RANGE"},
     ]
     assert actual["ItemCount"] == 0
+    assert not actual["DeletionProtectionEnabled"]
 
 
 @mock_aws
@@ -231,6 +232,22 @@ def test_create_table_with_tags():
         ResourceArn=resp["TableDescription"]["TableArn"]
     )
     assert resp["Tags"] == [{"Key": "tk", "Value": "tv"}]
+
+
+@mock_aws
+def test_create_table_with_deletion_protection_enabled():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    client.create_table(
+        TableName="test-deletion_protection",
+        KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        DeletionProtectionEnabled=True,
+    )
+
+    actual = client.describe_table(TableName="test-deletion_protection")["Table"]
+    assert actual["DeletionProtectionEnabled"]
 
 
 @mock_aws

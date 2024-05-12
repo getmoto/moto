@@ -583,3 +583,75 @@ def test_list_permission_sets_pagination():
     )
     for page in page_iterator:
         assert len(page["PermissionSets"]) <= 5
+
+
+@mock_aws
+def test_describe_account_assignment_creation_status():
+    client = boto3.client("sso-admin", region_name="eu-west-1")
+
+    # Test that we can get the account assignment info for existing ones
+    request_id = client.create_account_assignment(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+        PrincipalType="USER",
+        PrincipalId="some-id",
+        TargetType="AWS_ACCOUNT",
+        TargetId="123123123123",
+    )["AccountAssignmentCreationStatus"]["RequestId"]
+
+    resp = client.describe_account_assignment_creation_status(
+        AccountAssignmentCreationRequestId=request_id,
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+    )
+    assert resp["AccountAssignmentCreationStatus"]["Status"] == "SUCCEEDED"
+    assert resp["AccountAssignmentCreationStatus"]["PrincipalId"] == "some-id"
+
+    # Test that non-existent ones raise an exception
+    with pytest.raises(ClientError) as exc:
+        client.describe_account_assignment_creation_status(
+            AccountAssignmentCreationRequestId="non-existent-create-account-assignment-id",
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_describe_account_assignment_deletion_status():
+    client = boto3.client("sso-admin", region_name="eu-west-1")
+
+    # Create & delete an account assignment
+    client.create_account_assignment(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+        PrincipalType="USER",
+        PrincipalId="some-id",
+        TargetType="AWS_ACCOUNT",
+        TargetId="123123123123",
+    )
+
+    request_id = client.delete_account_assignment(
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        PermissionSetArn="arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo",
+        PrincipalType="USER",
+        PrincipalId="some-id",
+        TargetType="AWS_ACCOUNT",
+        TargetId="123123123123",
+    )["AccountAssignmentDeletionStatus"]["RequestId"]
+
+    # Test that we can get the account assignment info for existing ones
+    resp = client.describe_account_assignment_deletion_status(
+        AccountAssignmentDeletionRequestId=request_id,
+        InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+    )
+    assert resp["AccountAssignmentDeletionStatus"]["Status"] == "SUCCEEDED"
+    assert resp["AccountAssignmentDeletionStatus"]["PrincipalId"] == "some-id"
+
+    # Test that non-existent ones raise an exception
+    with pytest.raises(ClientError) as exc:
+        client.describe_account_assignment_deletion_status(
+            AccountAssignmentDeletionRequestId="non-existent-create-account-assignment-id",
+            InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"

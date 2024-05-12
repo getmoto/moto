@@ -1,6 +1,115 @@
 Moto Changelog
 ==============
 
+5.0.7
+-----
+Docker Digest for 5.0.7: _sha256:81ac52ff74b0bf0f4957ee4260e6a7e75d66c9e5d040ed4f721a5500b873c88a_
+
+    New Services:
+        * Sagemaker Metrics:
+            * batch_put_metrics()
+
+    New Methods:
+        * DynamoDB:
+            * describe_import()
+            * import_table()
+
+        * EMR Serverless:
+            * cancel_job_run()
+            * get_job_run()
+            * list_job_runs()
+            * start_job_run()
+
+        * IAM:
+            * tag_instance_profile()
+            * untag_instance_profile()
+
+        * Panorama:
+            * create_node_from_template_job()
+            * describe_node_from_template_job()
+            * list_nodes()
+
+        * SSO-Admin:
+            * describe_account_assignment_creation_status()
+            * describe_account_assignment_deletion_status()
+
+        * WAFv2:
+            * create_ip_set()
+            * delete_ip_set()
+            * list_ip_sets()
+            * get_ip_set()
+            * update_ip_set()
+            * put_logging_configuration()
+            * get_logging_configuration()
+            * list_logging_configurations()
+            * delete_logging_configuration()
+
+    Miscellaneous:
+        * Athena: start_query_execution() now supports the ExecutionParameters-parameter
+        * DynamoDB: Tables now support DeleteProtection
+        * DynamoDB: update_item() no longer throws an error when deleting an item from an empty set
+        * DynamoDB: update_item() no throws an error when adding an empty set
+        * EC2: delete_network_acl() now throws an error when the ACL still has associations attached to it
+        * EC2: describe_route_tables() now supports the `route.nat-gateway-id` filter
+        * EC2: revoke_security_group_ingress/_egress() now throw an error when an unknown Security Group is passed
+
+5.0.6
+-----
+Docker Digest for 5.0.6: _sha256:da919d3c1db07b378c413ed00a6c1c3e32ce1943a13671658c4db0f55dd49e42_
+
+    New Services:
+        * Bedrock:
+            * create_model_customization_job()
+            * delete_custom_model()
+            * delete_model_invocation_logging_configuration()
+            * get_custom_model()
+            * get_model_customization_job()
+            * get_model_invocation_logging_configuration()
+            * list_custom_models()
+            * list_model_customization_jobs()
+            * list_tags_for_resource()
+            * put_model_invocation_logging_configuration()
+            * stop_model_customization_job()
+            * tag_resource()
+            * untag_resource()
+
+        * BedrockAgent:
+            * create_agent()
+            * create_knowledge_base()
+            * delete_agent()
+            * delete_knowledge_base()
+            * get_agent()
+            * get_knowledge_base()
+            * list_agents()
+            * list_knowledge_bases()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * EC2:
+            * describe_addresses_attributes()
+
+        * Rekognition:
+            * detect_custom_labels()
+
+        * Sagemaker:
+            * update_trial_component()
+
+    Miscellaneous:
+        * CloudFront: update_distribution() now supports the CacheBehaviours-parameter
+        * DynamoDB: query() now acts correctly when paginating GSI tables without range keys
+        * EC2: RouteTables can now have multiple propagations
+        * EC2: describe_instances() now now filter by product-code and product-code.type
+        * EC2: describe_security_group_rules() now validates the format of the incoming security group id's
+        * ECS: update_service() now supports the loadBalancers-parameter
+        * Logs: describe_metric_filter() now has the correct validation for metricNamespaces
+        * IOT: search_index() now supports thingTypeName
+        * SFN: send_task_failure()/send_task_success() now work correctly when using the Parser
+        * SNS: subscribe() now throws an exception if the endpoint doesn't exist
+        * SQS: Improved queue name validation
+
+
 5.0.5
 -----
 Docker Digest for 5.0.5: _sha256:b95cf0d65557475f29e7256938028eef352e23acafe8e07c071cd58b67c44708_

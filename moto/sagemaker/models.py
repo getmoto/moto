@@ -73,6 +73,9 @@ PAGINATION_MODEL = {
     },
 }
 
+METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
+METRIC_STEP_TYPE = Dict[int, METRIC_INFO_TYPE]
+
 
 class BaseObject(BaseModel):
     def camelCase(self, key: str) -> str:
@@ -3755,15 +3758,55 @@ class FakeTrialComponent(BaseObject):
         self.input_artifacts = input_artifacts if input_artifacts is not None else {}
         self.output_artifacts = output_artifacts if output_artifacts is not None else {}
         self.metadata_properties = metadata_properties
-        self.metrics: List[Dict[str, Union[float, datetime, str]]] = []
+        self.metrics: Dict[str, Dict[str, Union[str, int, METRIC_STEP_TYPE]]] = {}
         self.sources: List[Dict[str, str]] = []
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
+        response_object["Metrics"] = self.gen_metrics_response_object()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+
+    def gen_metrics_response_object(
+        self,
+    ) -> List[Dict[str, Union[str, int, float, datetime]]]:
+        metrics_names = self.metrics.keys()
+        metrics_response_objects = []
+        for metrics_name in metrics_names:
+            metrics_steps: METRIC_STEP_TYPE = cast(
+                METRIC_STEP_TYPE, self.metrics[metrics_name]["Values"]
+            )
+            max_step = max(list(metrics_steps.keys()))
+            metrics_steps_values: List[float] = list(
+                map(
+                    lambda metric: cast(float, metric["Value"]),
+                    list(metrics_steps.values()),
+                )
+            )
+            count = len(metrics_steps_values)
+            mean = sum(metrics_steps_values) / count
+            std = (
+                sum(map(lambda value: (value - mean) ** 2, metrics_steps_values))
+                / count
+            ) ** 0.5
+            timestamp_int: int = cast(int, self.metrics[metrics_name]["Timestamp"])
+            metrics_response_object = {
+                "MetricName": metrics_name,
+                "SourceArn": self.trial_component_arn,
+                "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=tzutc()).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
+                "Max": max(metrics_steps_values),
+                "Min": min(metrics_steps_values),
+                "Last": metrics_steps[max_step]["Value"],
+                "Count": count,
+                "Avg": mean,
+                "StdDev": std,
+            }
+            metrics_response_objects.append(metrics_response_object)
+        return metrics_response_objects
 
     @property
     def response_create(self) -> Dict[str, str]:

@@ -197,3 +197,150 @@ def test_update_web_acl():
         "CloudWatchMetricsEnabled": True,
         "MetricName": "updated",
     }
+
+
+@mock_aws
+def test_ip_set_crud():
+    client = boto3.client("wafv2", region_name="us-east-1")
+
+    create_response = client.create_ip_set(
+        Name="test-ip-set",
+        Scope="CLOUDFRONT",
+        Description="Test IP set",
+        IPAddressVersion="IPV4",
+        Addresses=["192.168.0.1/32", "10.0.0.0/8"],
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+
+    assert "Summary" in create_response
+    summary = create_response["Summary"]
+
+    assert summary["Id"]
+    assert summary["LockToken"]
+    assert summary["ARN"]
+    assert summary["Name"] == "test-ip-set"
+    assert "Test IP set" in summary["Description"]
+
+    get_response = client.get_ip_set(
+        Name=summary["Name"], Scope="CLOUDFRONT", Id=summary["Id"]
+    )
+    assert "IPSet" in get_response
+    assert "LockToken" in get_response
+
+    ip_set = get_response["IPSet"]
+    assert ip_set["IPAddressVersion"] == "IPV4"
+
+    with pytest.raises(ClientError) as e:
+        client.update_ip_set(
+            Name="test-ip-set",
+            Scope="CLOUDFRONT",
+            Id=summary["Id"],
+            Addresses=["10.0.0.0/8"],
+            LockToken="aaaaaaaaaaaaaaaaaa",  # invalid lock token
+        )
+    e.value.response["Error"]["Code"] == "WAFOptimisticLockException"
+    e.value.response["Error"][
+        "Message"
+    ] == "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes."
+
+    update_response = client.update_ip_set(
+        Name="test-ip-set",
+        Scope="CLOUDFRONT",
+        Id=summary["Id"],
+        Description="Updated test IP set",
+        Addresses=["192.168.1.0/24", "10.0.0.0/8"],
+        LockToken=get_response["LockToken"],
+    )
+
+    assert "NextLockToken" in update_response
+
+    updated_get_response = client.get_ip_set(
+        Name=summary["Name"], Scope="CLOUDFRONT", Id=summary["Id"]
+    )
+
+    updated_ip_set = updated_get_response["IPSet"]
+    assert updated_ip_set["Description"] == "Updated test IP set"
+    assert updated_get_response["LockToken"] == update_response["NextLockToken"]
+    assert all(
+        addr in ["192.168.1.0/24", "10.0.0.0/8"] for addr in updated_ip_set["Addresses"]
+    )
+
+    list_response = client.list_ip_sets(Scope="CLOUDFRONT")
+    assert len(list_response["IPSets"]) == 1
+
+    assert all(
+        [
+            key in list_response["IPSets"][0]
+            for key in ["ARN", "Description", "Id", "LockToken", "Name"]
+        ]
+    )
+    assert "NextMarker" in list_response
+
+    client.delete_ip_set(
+        Name=summary["Name"],
+        Scope="CLOUDFRONT",
+        Id=summary["Id"],
+        LockToken=updated_get_response["LockToken"],
+    )
+
+    with pytest.raises(ClientError) as e:
+        client.get_ip_set(Name=summary["Name"], Scope="CLOUDFRONT", Id=summary["Id"])
+    e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
+    e.value.response["Error"][
+        "Message"
+    ] == "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
+
+
+@mock_aws
+def test_logging_configuration_crud():
+    wafv2_client = boto3.client("wafv2", region_name="us-east-1")
+    create_web_acl_response = wafv2_client.create_web_acl(
+        Name="TestWebACL",
+        Scope="REGIONAL",
+        DefaultAction={"Allow": {}},
+        VisibilityConfig={
+            "SampledRequestsEnabled": True,
+            "CloudWatchMetricsEnabled": True,
+            "MetricName": "TestWebACLMetric",
+        },
+        Rules=[],
+    )
+    web_acl_arn = create_web_acl_response["Summary"]["ARN"]
+
+    # Create log groups
+    logs_client = boto3.client("logs", region_name="us-east-1")
+    logs_client.create_log_group(logGroupName="aws-waf-logs-test")
+    log_group = logs_client.describe_log_groups(logGroupNamePrefix="aws-waf-logs-test")[
+        "logGroups"
+    ][0]
+
+    create_response = wafv2_client.put_logging_configuration(
+        LoggingConfiguration={
+            "ResourceArn": web_acl_arn,
+            "LogDestinationConfigs": [log_group["arn"]],
+        }
+    )
+
+    assert "LoggingConfiguration" in create_response
+    logging_configuration = create_response["LoggingConfiguration"]
+    assert logging_configuration["ResourceArn"]
+
+    get_response = wafv2_client.get_logging_configuration(
+        ResourceArn=logging_configuration["ResourceArn"]
+    )
+    assert "LoggingConfiguration" in get_response
+
+    list_response = wafv2_client.list_logging_configurations(
+        Scope="REGIONAL",
+    )
+    assert len(list_response["LoggingConfigurations"]) > 0
+
+    wafv2_client.delete_logging_configuration(
+        ResourceArn=logging_configuration["ResourceArn"],
+    )
+
+    with pytest.raises(ClientError) as e:
+        wafv2_client.get_logging_configuration(
+            ResourceArn=logging_configuration["ResourceArn"]
+        )
+    e.value.response["Error"]["Code"] == "WAFNonexistentItemException"

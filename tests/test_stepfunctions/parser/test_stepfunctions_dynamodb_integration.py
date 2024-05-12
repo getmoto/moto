@@ -6,6 +6,7 @@ from uuid import uuid4
 import boto3
 import pytest
 import requests
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -237,6 +238,57 @@ def test_state_machine_calling_dynamodb_put_and_delete(table_name=None, sleep_ti
         _verify_result,
         expected_status,
         tmpl_name,
+        exec_input=json.dumps(exec_input),
+        sleep_time=sleep_time,
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_send_task_failure_invalid_token(table_name=None, sleep_time=0):
+    dynamodb = boto3.client("dynamodb", "us-east-1")
+    exec_input = {"TableName": table_name, "Item": {"id": {"S": "id1"}}}
+
+    tmpl_name = "services/dynamodb_task_token"
+
+    def _verify_result(client, execution, execution_arn):
+        if execution["status"] == "RUNNING":
+            items = dynamodb.scan(TableName=table_name)["Items"]
+            if len(items) > 0:
+                # Execute
+                with pytest.raises(ClientError) as exc:
+                    client.send_task_failure(taskToken="bad_token", error="test error")
+
+                # Verify
+                assert (
+                    exc.value.response["Error"]["Code"] == "UnrecognizedClientException"
+                )
+                assert (
+                    exc.value.response["Error"]["Message"]
+                    == "The security token included "
+                    "in the request is invalid."
+                )
+
+                # Execute
+                with pytest.raises(ClientError) as exc:
+                    client.send_task_success(
+                        taskToken="bad_token", output="test output"
+                    )
+
+                # Verify
+                assert (
+                    exc.value.response["Error"]["Code"] == "UnrecognizedClientException"
+                )
+                assert (
+                    exc.value.response["Error"]["Message"]
+                    == "The security token included "
+                    "in the request is invalid."
+                )
+
+    verify_execution_result(
+        _verify_result,
+        expected_status=None,
+        tmpl_name=tmpl_name,
         exec_input=json.dumps(exec_input),
         sleep_time=sleep_time,
     )

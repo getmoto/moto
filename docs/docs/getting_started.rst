@@ -255,11 +255,11 @@ Here is an example:
 
     @pytest.fixture
     def create_bucket1(aws):
-        boto3.client("s3").create_bucket(Bucket="b1")
+        boto3.client("s3").create_bucket(Bucket="bb1")
 
     @pytest.fixture
     def create_bucket2(aws):
-        boto3.client("s3").create_bucket(Bucket="b2")
+        boto3.client("s3").create_bucket(Bucket="bb2")
 
     def test_s3_directly(aws):
         s3.create_bucket(Bucket="somebucket")
@@ -268,7 +268,7 @@ Here is an example:
         assert len(result["Buckets"]) == 1
 
     def test_bucket_creation(create_bucket1, create_bucket2):
-        buckets = boto3.client("s3").list_buckets()["Buckets"]
+        result = boto3.client("s3").list_buckets()
         assert len(result["Buckets"]) == 2
 
 

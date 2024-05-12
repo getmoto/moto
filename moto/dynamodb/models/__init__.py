@@ -10,6 +10,7 @@ from moto.dynamodb.comparisons import get_expected, get_filter_expression
 from moto.dynamodb.exceptions import (
     BackupNotFoundException,
     ConditionalCheckFailed,
+    DeletionProtectedException,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
     MockValidationException,
@@ -32,6 +33,7 @@ from moto.dynamodb.models.table import (
     RestoredTable,
     Table,
 )
+from moto.dynamodb.models.table_import import TableImport
 from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
@@ -43,6 +45,7 @@ class DynamoDBBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.tables: Dict[str, Table] = OrderedDict()
         self.backups: Dict[str, Backup] = OrderedDict()
+        self.table_imports: Dict[str, TableImport] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -59,11 +62,36 @@ class DynamoDBBackend(BaseBackend):
             base_endpoint_dns_names=[f"dynamodb.{service_region}.amazonaws.com"],
         )
 
-    def create_table(self, name: str, **params: Any) -> Table:
+    def create_table(
+        self,
+        name: str,
+        schema: List[Dict[str, str]],
+        throughput: Optional[Dict[str, int]],
+        attr: List[Dict[str, str]],
+        global_indexes: Optional[List[Dict[str, Any]]],
+        indexes: Optional[List[Dict[str, Any]]],
+        streams: Optional[Dict[str, Any]],
+        billing_mode: str,
+        sse_specification: Optional[Dict[str, Any]],
+        tags: List[Dict[str, str]],
+        deletion_protection_enabled: bool,
+    ) -> Table:
         if name in self.tables:
             raise ResourceInUseException(f"Table already exists: {name}")
         table = Table(
-            name, account_id=self.account_id, region=self.region_name, **params
+            name,
+            account_id=self.account_id,
+            region=self.region_name,
+            schema=schema,
+            throughput=throughput,
+            attr=attr,
+            global_indexes=global_indexes,
+            indexes=indexes,
+            streams=streams,
+            billing_mode=billing_mode,
+            sse_specification=sse_specification,
+            tags=tags,
+            deletion_protection_enabled=deletion_protection_enabled,
         )
         self.tables[name] = table
         return table
@@ -71,6 +99,10 @@ class DynamoDBBackend(BaseBackend):
     def delete_table(self, name: str) -> Table:
         if name not in self.tables:
             raise ResourceNotFoundException
+        table_for_deletion = self.tables.get(name)
+        if isinstance(table_for_deletion, Table):
+            if table_for_deletion.deletion_protection_enabled:
+                raise DeletionProtectedException(name)
         return self.tables.pop(name)
 
     def describe_endpoints(self) -> List[Dict[str, Union[int, str]]]:
@@ -137,6 +169,7 @@ class DynamoDBBackend(BaseBackend):
         throughput: Dict[str, Any],
         billing_mode: str,
         stream_spec: Dict[str, Any],
+        deletion_protection_enabled: bool,
     ) -> Table:
         table = self.get_table(name)
         if attr_definitions:
@@ -149,6 +182,10 @@ class DynamoDBBackend(BaseBackend):
             table = self.update_table_billing_mode(name, billing_mode)
         if stream_spec:
             table = self.update_table_streams(name, stream_spec)
+        if deletion_protection_enabled:
+            table = self.update_table_deletion_protection_enabled(
+                name, deletion_protection_enabled
+            )
         return table
 
     def update_table_throughput(self, name: str, throughput: Dict[str, int]) -> Table:
@@ -159,6 +196,13 @@ class DynamoDBBackend(BaseBackend):
     def update_table_billing_mode(self, name: str, billing_mode: str) -> Table:
         table = self.tables[name]
         table.billing_mode = billing_mode
+        return table
+
+    def update_table_deletion_protection_enabled(
+        self, name: str, deletion_protection_enabled: bool
+    ) -> Table:
+        table = self.tables[name]
+        table.deletion_protection_enabled = deletion_protection_enabled
         return table
 
     def update_table_streams(
@@ -891,6 +935,42 @@ class DynamoDBBackend(BaseBackend):
             except Exception as e:
                 responses[idx] = {"Error": {"Code": e.name, "Message": e.message}}  # type: ignore
         return responses
+
+    def import_table(
+        self,
+        s3_source: Dict[str, str],
+        input_format: Optional[str],
+        compression_type: Optional[str],
+        table_name: str,
+        billing_mode: str,
+        throughput: Optional[Dict[str, int]],
+        key_schema: List[Dict[str, str]],
+        global_indexes: Optional[List[Dict[str, Any]]],
+        attrs: List[Dict[str, str]],
+    ) -> TableImport:
+        """
+        Only InputFormat=DYNAMODB_JSON is supported so far.
+        InputCompressionType=ZSTD is not supported.
+        Other parameters that are not supported: InputFormatOptions, CloudWatchLogGroupArn
+        """
+        table_import = TableImport(
+            account_id=self.account_id,
+            s3_source=s3_source,
+            region_name=self.region_name,
+            table_name=table_name,
+            billing_mode=billing_mode,
+            throughput=throughput,
+            key_schema=key_schema,
+            global_indexes=global_indexes,
+            attrs=attrs,
+            compression_type=compression_type,
+        )
+        self.table_imports[table_import.arn] = table_import
+        table_import.start()
+        return table_import
+
+    def describe_import(self, import_arn: str) -> TableImport:
+        return self.table_imports[import_arn]
 
 
 dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")

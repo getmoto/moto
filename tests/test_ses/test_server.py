@@ -22,4 +22,4 @@ def test_ses_get_send_statistics():
     # Timestamps must be in ISO 8601 format
     groups = re.search("<Timestamp>(.*)</Timestamp>", res.data.decode("utf-8"))
     timestamp = groups.groups()[0]
-    datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f")
+    datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")

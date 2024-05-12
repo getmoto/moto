@@ -29,7 +29,7 @@ def include_consumed_capacity(
     Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]],
 ]:
     def _inner(
-        f: Callable[..., Union[str, TYPE_RESPONSE]],
+        f: Callable[["DynamoHandler"], str],
     ) -> Callable[["DynamoHandler"], Union[str, TYPE_RESPONSE]]:
         @wraps(f)
         def _wrapper(
@@ -210,27 +210,66 @@ class DynamoHandler(BaseResponse):
 
     def create_table(self) -> str:
         body = self.body
-        # get the table name
         table_name = body["TableName"]
         # check billing mode and get the throughput
         if "BillingMode" in body.keys() and body["BillingMode"] == "PAY_PER_REQUEST":
-            if "ProvisionedThroughput" in body.keys():
-                raise MockValidationException(
-                    "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST"
-                )
-            throughput = None
             billing_mode = "PAY_PER_REQUEST"
-        else:  # Provisioned (default billing mode)
-            throughput = body.get("ProvisionedThroughput")
-            if throughput is None:
-                raise MockValidationException(
-                    "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED"
-                )
-            billing_mode = "PROVISIONED"
-        # getting ServerSideEncryption details
+        else:
+            billing_mode = "PROVISIONED"  # Default
+        throughput = body.get("ProvisionedThroughput")
         sse_spec = body.get("SSESpecification")
-        # getting the schema
         key_schema = body["KeySchema"]
+        attr = body["AttributeDefinitions"]
+        global_indexes = body.get("GlobalSecondaryIndexes")
+        local_secondary_indexes = body.get("LocalSecondaryIndexes")
+        streams = body.get("StreamSpecification")
+        tags = body.get("Tags", [])
+        deletion_protection_enabled = body.get("DeletionProtectionEnabled", False)
+
+        self._validate_table_creation(
+            billing_mode=billing_mode,
+            throughput=throughput,
+            key_schema=key_schema,
+            global_indexes=global_indexes,
+            local_secondary_indexes=local_secondary_indexes,
+            attr=attr,
+        )
+
+        table = self.dynamodb_backend.create_table(
+            table_name,
+            schema=key_schema,
+            throughput=throughput,
+            attr=attr,
+            global_indexes=global_indexes or [],
+            indexes=local_secondary_indexes or [],
+            streams=streams,
+            billing_mode=billing_mode,
+            sse_specification=sse_spec,
+            tags=tags,
+            deletion_protection_enabled=deletion_protection_enabled,
+        )
+        return dynamo_json_dump(table.describe())
+
+    def _validate_table_creation(
+        self,
+        billing_mode: str,
+        throughput: Optional[Dict[str, Any]],
+        key_schema: List[Dict[str, str]],
+        global_indexes: Optional[List[Dict[str, Any]]],
+        local_secondary_indexes: Optional[List[Dict[str, Any]]],
+        attr: List[Dict[str, str]],
+    ) -> None:
+        # Validate Throughput
+        if billing_mode == "PAY_PER_REQUEST" and throughput:
+            raise MockValidationException(
+                "ProvisionedThroughput cannot be specified when BillingMode is PAY_PER_REQUEST"
+            )
+        if billing_mode == "PROVISIONED" and throughput is None:
+            raise MockValidationException(
+                "One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED"
+            )
+
+        # Validate KeySchema
         for idx, _key in enumerate(key_schema, start=1):
             key_type = _key["KeyType"]
             if key_type not in ["HASH", "RANGE"]:
@@ -245,77 +284,50 @@ class DynamoHandler(BaseResponse):
             provided_keys = ", ".join(key_elements)
             err = f"1 validation error detected: Value '[{provided_keys}]' at 'keySchema' failed to satisfy constraint: Member must have length less than or equal to 2"
             raise MockValidationException(err)
-        # getting attribute definition
-        attr = body["AttributeDefinitions"]
 
-        # getting/validating the indexes
-        global_indexes = body.get("GlobalSecondaryIndexes")
+        # Validate Global Indexes
         if global_indexes == []:
             raise MockValidationException(
                 "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty"
             )
-        global_indexes = global_indexes or []
-        for idx, g_idx in enumerate(global_indexes, start=1):
+        for idx, g_idx in enumerate(global_indexes or [], start=1):
             for idx2, _key in enumerate(g_idx["KeySchema"], start=1):
                 key_type = _key["KeyType"]
                 if key_type not in ["HASH", "RANGE"]:
                     position = f"globalSecondaryIndexes.{idx}.member.keySchema.{idx2}.member.keyType"
                     raise UnknownKeyType(key_type=key_type, position=position)
 
-        local_secondary_indexes = body.get("LocalSecondaryIndexes")
+        # Validate Local Indexes
         if local_secondary_indexes == []:
             raise MockValidationException(
                 "One or more parameter values were invalid: List of LocalSecondaryIndexes is empty"
             )
-        local_secondary_indexes = local_secondary_indexes or []
-        for idx, g_idx in enumerate(local_secondary_indexes, start=1):
+        for idx, g_idx in enumerate(local_secondary_indexes or [], start=1):
             for idx2, _key in enumerate(g_idx["KeySchema"], start=1):
                 key_type = _key["KeyType"]
                 if key_type not in ["HASH", "RANGE"]:
                     position = f"localSecondaryIndexes.{idx}.member.keySchema.{idx2}.member.keyType"
                     raise UnknownKeyType(key_type=key_type, position=position)
 
-        # Verify AttributeDefinitions list all
+        # Validate Attributes
         expected_attrs = []
         expected_attrs.extend([key["AttributeName"] for key in key_schema])
-        expected_attrs.extend(
-            schema["AttributeName"]
-            for schema in itertools.chain(
-                *list(idx["KeySchema"] for idx in local_secondary_indexes)
-            )
+        local_key_schemas = itertools.chain(
+            *list(idx["KeySchema"] for idx in (local_secondary_indexes or []))
         )
-        expected_attrs.extend(
-            schema["AttributeName"]
-            for schema in itertools.chain(
-                *list(idx["KeySchema"] for idx in global_indexes)
-            )
+        expected_attrs.extend(schema["AttributeName"] for schema in local_key_schemas)
+
+        global_key_schemas = itertools.chain(
+            *list(idx["KeySchema"] for idx in (global_indexes or []))
         )
+        expected_attrs.extend(schema["AttributeName"] for schema in global_key_schemas)
         expected_attrs = list(set(expected_attrs))
         expected_attrs.sort()
         actual_attrs = [item["AttributeName"] for item in attr]
         actual_attrs.sort()
+        has_index = global_indexes is not None or local_secondary_indexes is not None
         if actual_attrs != expected_attrs:
-            self._throw_attr_error(
-                actual_attrs, expected_attrs, global_indexes or local_secondary_indexes
-            )
-        # get the stream specification
-        streams = body.get("StreamSpecification")
-        # Get any tags
-        tags = body.get("Tags", [])
-
-        table = self.dynamodb_backend.create_table(
-            table_name,
-            schema=key_schema,
-            throughput=throughput,
-            attr=attr,
-            global_indexes=global_indexes,
-            indexes=local_secondary_indexes,
-            streams=streams,
-            billing_mode=billing_mode,
-            sse_specification=sse_spec,
-            tags=tags,
-        )
-        return dynamo_json_dump(table.describe())
+            self._throw_attr_error(actual_attrs, expected_attrs, has_index)
 
     def _throw_attr_error(
         self, actual_attrs: List[str], expected_attrs: List[str], indexes: bool
@@ -431,6 +443,7 @@ class DynamoHandler(BaseResponse):
         throughput = self.body.get("ProvisionedThroughput", None)
         billing_mode = self.body.get("BillingMode", None)
         stream_spec = self.body.get("StreamSpecification", None)
+        deletion_protection_enabled = self.body.get("DeletionProtectionEnabled")
         table = self.dynamodb_backend.update_table(
             name=name,
             attr_definitions=attr_definitions,
@@ -438,6 +451,7 @@ class DynamoHandler(BaseResponse):
             throughput=throughput,
             billing_mode=billing_mode,
             stream_spec=stream_spec,
+            deletion_protection_enabled=deletion_protection_enabled,
         )
         return dynamo_json_dump(table.describe())
 
@@ -1168,3 +1182,43 @@ class DynamoHandler(BaseResponse):
         stmts = self.body.get("Statements", [])
         items = self.dynamodb_backend.batch_execute_statement(stmts)
         return dynamo_json_dump({"Responses": items})
+
+    def import_table(self) -> str:
+        params = self.body
+        s3_source = params.get("S3BucketSource")
+        input_format = params.get("InputFormat") or "DYNAMODB_JSON"
+        compression_type = params.get("InputCompressionType") or "NONE"
+        table_parameters = params.get("TableCreationParameters")
+        table_name = table_parameters["TableName"]
+        table_attrs = table_parameters["AttributeDefinitions"]
+        table_schema = table_parameters["KeySchema"]
+        table_billing = table_parameters.get("BillingMode")
+        table_throughput = table_parameters.get("ProvisionedThroughput")
+        global_indexes = table_parameters.get("GlobalSecondaryIndexes")
+
+        self._validate_table_creation(
+            billing_mode=table_billing,
+            throughput=table_throughput,
+            key_schema=table_schema,
+            global_indexes=global_indexes,
+            local_secondary_indexes=None,
+            attr=table_attrs,
+        )
+
+        import_table = self.dynamodb_backend.import_table(
+            s3_source=s3_source,
+            input_format=input_format,
+            compression_type=compression_type,
+            table_name=table_name,
+            billing_mode=table_billing or "PROVISIONED",
+            throughput=table_throughput,
+            key_schema=table_schema,
+            global_indexes=global_indexes,
+            attrs=table_attrs,
+        )
+        return json.dumps({"ImportTableDescription": import_table.response()})
+
+    def describe_import(self) -> str:
+        import_arn = self.body["ImportArn"]
+        import_table = self.dynamodb_backend.describe_import(import_arn)
+        return json.dumps({"ImportTableDescription": import_table.response()})

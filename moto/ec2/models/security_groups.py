@@ -9,6 +9,7 @@ from moto.core.utils import aws_api_matches
 
 from ..exceptions import (
     InvalidCIDRSubnetError,
+    InvalidGroupIdMalformedError,
     InvalidPermissionDuplicateError,
     InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
@@ -21,6 +22,7 @@ from ..utils import (
     is_tag_filter,
     is_valid_cidr,
     is_valid_ipv6_cidr,
+    is_valid_security_group_id,
     random_security_group_id,
     random_security_group_rule_id,
     tag_filter_matches,
@@ -607,13 +609,13 @@ class SecurityGroupBackend:
             return results
 
         if filters and "group-id" in filters:
+            for group_id in filters["group-id"]:
+                if not is_valid_security_group_id(group_id):
+                    raise InvalidGroupIdMalformedError(group_id)
+
             matches = self.describe_security_groups(
                 group_ids=group_ids, filters=filters
             )
-            if not matches:
-                raise InvalidSecurityGroupNotFoundError(
-                    "No security groups found matching the filters provided."
-                )
             for group in matches:
                 results.extend(group.ingress_rules)
                 results.extend(group.egress_rules)
@@ -810,6 +812,9 @@ class SecurityGroupBackend:
             group_name_or_id, vpc_id
         )  # type: ignore[assignment]
 
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
+
         if security_rule_ids:
             group.ingress_rules = [
                 rule for rule in group.ingress_rules if rule.id not in security_rule_ids
@@ -980,6 +985,9 @@ class SecurityGroupBackend:
         group: SecurityGroup = self.get_security_group_by_name_or_id(
             group_name_or_id, vpc_id
         )  # type: ignore[assignment]
+
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_name_or_id)
 
         if security_rule_ids:
             group.egress_rules = [

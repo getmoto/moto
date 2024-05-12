@@ -3824,6 +3824,22 @@
   "Location": "sae1-az3"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "sae1-az3"
+ },
+ {
   "InstanceType": "m3.2xlarge",
   "Location": "sae1-az3"
  },

@@ -10451,6 +10451,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock"
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -13443,6 +13446,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "s3": {
                 "Value": "s3",
                 "endpoint": {
@@ -14051,6 +14063,15 @@
               },
               "bedrock": {
                 "Value": "bedrock"
+              },
+              "budgets": {
+                "Value": "budgets",
+                "endpoint": {
+                  "Value": "budgets.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chatbot": {
                 "Value": "chatbot"
@@ -21533,6 +21554,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "s3": {
                 "Value": "s3",
                 "endpoint": {
@@ -24411,6 +24441,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -24598,6 +24637,69 @@
                 "Value": "firehose",
                 "endpoint": {
                   "Value": "firehose.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fms": {
+                "Value": "fms",
+                "endpoint": {
+                  "Value": "fms.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx": {
+                "Value": "fsx",
+                "endpoint": {
+                  "Value": "fsx.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25032,6 +25134,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transitgateway": {
                 "Value": "transitgateway",
                 "endpoint": {
@@ -25060,6 +25171,15 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27380,6 +27500,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "marketplace-entitlement": {
+                "Value": "marketplace-entitlement",
+                "endpoint": {
+                  "Value": "entitlement-marketplace.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mcs": {
                 "Value": "mcs",
                 "endpoint": {
@@ -27392,7 +27521,7 @@
               "mediaconvert": {
                 "Value": "mediaconvert",
                 "endpoint": {
-                  "Value": "subscribe.mediaconvert.cn-northwest-1.amazonaws.com.cn"
+                  "Value": "mediaconvert.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31641,6 +31770,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36131,6 +36269,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "fis": {
+                "Value": "fis",
+                "endpoint": {
+                  "Value": "fis.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fms": {
                 "Value": "fms",
                 "endpoint": {
@@ -36564,6 +36711,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37190,6 +37346,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock": {
+                "Value": "bedrock"
               },
               "budgets": {
                 "Value": "budgets",
@@ -45065,6 +45224,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -45363,6 +45531,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "snowball": {
+                "Value": "snowball",
+                "endpoint": {
+                  "Value": "snowball.il-central-1.amazonaws.com"
                 }
               },
               "snowcone": {
@@ -46648,6 +46822,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53066,6 +53249,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "qbusiness": {
+                "Value": "qbusiness",
+                "endpoint": {
+                  "Value": "qbusiness.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "qldb": {
                 "Value": "qldb",
                 "endpoint": {
@@ -53506,9 +53698,6 @@
               },
               "snowcone": {
                 "Value": "snowcone"
-              },
-              "snowmobile": {
-                "Value": "snowmobile"
               },
               "sns": {
                 "Value": "sns",
@@ -56186,9 +56375,6 @@
               "snowcone": {
                 "Value": "snowcone"
               },
-              "snowmobile": {
-                "Value": "snowmobile"
-              },
               "sns": {
                 "Value": "sns",
                 "endpoint": {
@@ -57342,6 +57528,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -57713,9 +57908,6 @@
                 "endpoint": {
                   "Value": "snowball.us-gov-east-1.amazonaws.com"
                 }
-              },
-              "snowmobile": {
-                "Value": "snowmobile"
               },
               "sns": {
                 "Value": "sns",
@@ -58957,6 +59149,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -59400,9 +59601,6 @@
                 "endpoint": {
                   "Value": "snowball.us-gov-west-1.amazonaws.com"
                 }
-              },
-              "snowmobile": {
-                "Value": "snowmobile"
               },
               "sns": {
                 "Value": "sns",
@@ -61454,9 +61652,6 @@
               "snowcone": {
                 "Value": "snowcone"
               },
-              "snowmobile": {
-                "Value": "snowmobile"
-              },
               "sns": {
                 "Value": "sns",
                 "endpoint": {
@@ -61721,6 +61916,9 @@
             "local-zones": {
               "usw2-den1-az1": {
                 "Value": "usw2-den1-az1"
+              },
+              "usw2-hnl1-az1": {
+                "Value": "usw2-hnl1-az1"
               },
               "usw2-las1-az1": {
                 "Value": "usw2-las1-az1"
@@ -63929,6 +64127,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "qbusiness": {
+                "Value": "qbusiness",
+                "endpoint": {
+                  "Value": "qbusiness.us-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "qldb": {
                 "Value": "qldb",
                 "endpoint": {
@@ -64390,9 +64597,6 @@
               },
               "snowcone": {
                 "Value": "snowcone"
-              },
-              "snowmobile": {
-                "Value": "snowmobile"
               },
               "sns": {
                 "Value": "sns",

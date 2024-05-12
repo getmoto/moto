@@ -3,6 +3,7 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
+from ..moto_api._internal import mock_random
 from .models import GLOBAL_REGION, WAFV2Backend, wafv2_backends
 
 
@@ -139,6 +140,181 @@ class WAFV2Response(BaseResponse):
             name, _id, default_action, rules, description, visibility_config
         )
         return 200, {}, json.dumps({"NextLockToken": lock_token})
+
+    def create_ip_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+
+        name = body.get("Name")
+        scope = body.get("Scope")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        description = body.get("Description")
+        ip_address_version = body.get("IPAddressVersion")
+        addresses = body.get("Addresses")
+        tags = body.get("Tags")
+
+        ip_set = self.wafv2_backend.create_ip_set(
+            name, scope, description, ip_address_version, addresses, tags
+        )
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "Summary": {
+                        "Name": ip_set.name,
+                        "Id": ip_set.ip_set_id,
+                        "Description": ip_set.description,
+                        "LockToken": ip_set.lock_token,
+                        "ARN": ip_set.arn,
+                    }
+                }
+            ),
+        )
+
+    def delete_ip_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+
+        name = body.get("Name")
+        scope = body.get("Scope")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        _id = body.get("Id")
+        lock_token = body.get("LockToken")
+
+        self.wafv2_backend.delete_ip_set(name, scope, _id, lock_token)
+
+        return 200, {}, "{}"
+
+    def list_ip_sets(self) -> TYPE_RESPONSE:
+        scope = self._get_param("Scope")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        ip_sets = self.wafv2_backend.list_ip_sets(scope)
+
+        formatted_ip_sets = [
+            {
+                "Name": ip_set.name,
+                "Id": ip_set.ip_set_id,
+                "Description": ip_set.description,
+                "LockToken": ip_set.lock_token,
+                "ARN": ip_set.arn,
+            }
+            for ip_set in ip_sets
+        ]
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {"NextMarker": str(mock_random.uuid4()), "IPSets": formatted_ip_sets}
+            ),
+        )
+
+    def get_ip_set(self) -> TYPE_RESPONSE:
+        scope = self._get_param("Scope")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        ip_set = self.wafv2_backend.get_ip_set(
+            name=self._get_param("Name"), scope=scope, _id=self._get_param("Id")
+        )
+
+        dict_ip = ip_set.to_dict()
+        lock_token = dict_ip.pop("LockToken")
+        return 200, {}, json.dumps({"IPSet": dict_ip, "LockToken": lock_token})
+
+    def update_ip_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        description = body.get("Description")
+        addresses = body.get("Addresses")
+        lock_token = body.get("LockToken")
+        updated_ip_set = self.wafv2_backend.update_ip_set(
+            name, scope, _id, description, addresses, lock_token
+        )
+
+        return 200, {}, json.dumps({"NextLockToken": updated_ip_set.lock_token})
+
+    def put_logging_configuration(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        logging_configuration_parameter = body["LoggingConfiguration"]
+        resource_arn = logging_configuration_parameter["ResourceArn"]
+        log_destination_configs = logging_configuration_parameter[
+            "LogDestinationConfigs"
+        ]
+        redacted_fields = logging_configuration_parameter.get("RedactedFields")
+        managed_by_firewall_manager = logging_configuration_parameter.get(
+            "ManagedByFirewallManager"
+        )
+        logging_filter = logging_configuration_parameter.get("LoggingFilter")
+        logging_configuration = self.wafv2_backend.put_logging_configuration(
+            resource_arn,
+            log_destination_configs,
+            redacted_fields,
+            managed_by_firewall_manager,
+            logging_filter,
+        )
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "LoggingConfiguration": {
+                        k: v
+                        for k, v in logging_configuration.to_dict().items()
+                        if v is not None
+                    }
+                }
+            ),
+        )
+
+    def get_logging_configuration(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        resource_arn = body["ResourceArn"]
+        logging_configuration = self.wafv2_backend.get_logging_configuration(
+            resource_arn
+        )
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "LoggingConfiguration": {
+                        k: v
+                        for k, v in logging_configuration.to_dict().items()
+                        if v is not None
+                    }
+                }
+            ),
+        )
+
+    def list_logging_configurations(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope")
+        log_configs = self.wafv2_backend.list_logging_configurations(scope)
+
+        formatted = [
+            {k: v for k, v in config.to_dict().items() if v is not None}
+            for config in log_configs
+        ]
+        return 200, {}, json.dumps({"LoggingConfigurations": formatted})
+
+    def delete_logging_configuration(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        resource_arn = body["ResourceArn"]
+        self.wafv2_backend.delete_logging_configuration(resource_arn)
+        return 200, {}, "{}"
 
 
 # notes about region and scope

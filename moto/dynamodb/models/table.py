@@ -243,6 +243,7 @@ class Table(CloudFormationModel):
         streams: Optional[Dict[str, Any]] = None,
         sse_specification: Optional[Dict[str, Any]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
+        deletion_protection_enabled: Optional[bool] = False,
     ):
         self.name = table_name
         self.account_id = account_id
@@ -306,6 +307,7 @@ class Table(CloudFormationModel):
             self.sse_specification["KMSMasterKeyId"] = self._get_default_encryption_key(
                 account_id, region
             )
+        self.deletion_protection_enabled = deletion_protection_enabled
 
     def _get_default_encryption_key(self, account_id: str, region: str) -> str:
         from moto.kms import kms_backends
@@ -384,14 +386,22 @@ class Table(CloudFormationModel):
             params["schema"] = properties["KeySchema"]
         if "AttributeDefinitions" in properties:
             params["attr"] = properties["AttributeDefinitions"]
-        if "GlobalSecondaryIndexes" in properties:
-            params["global_indexes"] = properties["GlobalSecondaryIndexes"]
-        if "ProvisionedThroughput" in properties:
-            params["throughput"] = properties["ProvisionedThroughput"]
-        if "LocalSecondaryIndexes" in properties:
-            params["indexes"] = properties["LocalSecondaryIndexes"]
-        if "StreamSpecification" in properties:
-            params["streams"] = properties["StreamSpecification"]
+        params["global_indexes"] = properties.get("GlobalSecondaryIndexes", [])
+        params["throughput"] = properties.get("ProvisionedThroughput")
+        params["indexes"] = properties.get("LocalSecondaryIndexes", [])
+        params["streams"] = properties.get("StreamSpecification")
+        params["tags"] = properties.get("Tags")
+        params["deletion_protection_enabled"] = properties.get(
+            "DeletionProtectionEnabled", False
+        )
+        params["sse_specification"] = properties.get("SSESpecification")
+
+        billing_mode = (
+            "PAY_PER_REQUEST"
+            if properties.get("BillingMode") == "PAY_PER_REQUEST"
+            else "PROVISIONED"
+        )
+        params["billing_mode"] = billing_mode
 
         table = dynamodb_backends[account_id][region_name].create_table(
             name=resource_name, **params
@@ -443,6 +453,7 @@ class Table(CloudFormationModel):
                     index.describe() for index in self.global_indexes
                 ],
                 "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
+                "DeletionProtectionEnabled": self.deletion_protection_enabled,
             }
         }
         if self.latest_stream_label:
