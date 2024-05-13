@@ -81,7 +81,7 @@ def test_put_object_notification_ObjectCreated_PUT():
     s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
 
     events = _get_send_events()
-    assert len(events) == 1
+    assert len(events) == 2
     event_message = json.loads(events[0]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
@@ -138,7 +138,7 @@ def test_copy_object_notification():
     )
 
     events = _get_send_events()
-    assert len(events) == 2  # [PutObject event, CopyObject event]
+    assert len(events) == 3  # [PutObject, ObjectTagging, CopyObject]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
@@ -188,7 +188,7 @@ def test_complete_multipart_upload_notification():
     )
 
     events = _get_send_events()
-    assert len(events) == 2  # [PutObject event, CompleteMultipartUpload event]
+    assert len(events) == 3  # [PutObject, ObjectTagging, CompleteMultipartUpload]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
@@ -212,8 +212,8 @@ def test_delete_object_notification():
     s3_client.delete_object(Bucket=bucket_name, Key="keyname")
 
     events = _get_send_events()
-    assert len(events) == 2
-    event_message = json.loads(events[1]["message"])
+    assert len(events) == 3  # [PutObject, ObjectTagging, DeleteObect]
+    event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Deleted"
     assert event_message["source"] == "aws.s3"
     assert event_message["account"] == ACCOUNT_ID
@@ -235,18 +235,60 @@ def test_restore_key_notifications():
 
     events = _get_send_events()
     event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
-    assert event_names == ["ObjectCreated", "ObjectRestore"]
+    assert event_names == ["ObjectCreated", "ObjectTagging", "ObjectRestore"]
 
     # Finish the Object Restoration - restore Completes immediately by default
     key.load()
 
     events = _get_send_events()
     event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
-    assert event_names == ["ObjectCreated", "ObjectRestore", "ObjectRestore"]
+    assert event_names == [
+        "ObjectCreated",
+        "ObjectTagging",
+        "ObjectRestore",
+        "ObjectRestore",
+    ]
 
     # Sanity check - loading the Key does not mean the Restore-event is fired every time
     key.load()
 
     events = _get_send_events()
     event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
-    assert event_names == ["ObjectCreated", "ObjectRestore", "ObjectRestore"]
+    assert event_names == [
+        "ObjectCreated",
+        "ObjectTagging",
+        "ObjectRestore",
+        "ObjectRestore",
+    ]
+
+
+@mock_aws
+def test_put_object_tagging_notification():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+    # Put Object
+    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+
+    # Put Object Tagging
+    s3_client.put_object_tagging(
+        Bucket=bucket_name,
+        Key="keyname",
+        Tagging={
+            "TagSet": [
+                {"Key": "item1", "Value": "foo"},
+                {"Key": "item2", "Value": "bar"},
+            ]
+        },
+    )
+
+    events = _get_send_events()
+    assert len(events) == 3
+    event_message = json.loads(events[2]["message"])
+    assert event_message["detail-type"] == "Object Tags Added"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["reason"] == "ObjectTagging"
