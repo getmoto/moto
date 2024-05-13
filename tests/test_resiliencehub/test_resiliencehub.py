@@ -2,9 +2,10 @@ from uuid import uuid4
 
 import boto3
 import pytest
+import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -209,6 +210,44 @@ def test_list_apps():
 def test_list_app_assessments():
     client = boto3.client("resiliencehub", region_name="ap-southeast-1")
     assert client.list_app_assessments()["assessmentSummaries"] == []
+    assert client.list_app_assessments(appArn="asdf")["assessmentSummaries"] == []
+
+    # Setup
+    base_url = (
+        settings.test_server_mode_endpoint()
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+    # Configure results for the first two requests
+    summary1 = {"appArn": "app_arn1", "appVersion": "some version"}
+    summary2 = {"appArn": "app_arn2", "assessmentName": "assessment 2"}
+    results = {
+        "results": [[summary1, summary2], [summary2]],
+        "region": "ap-southeast-1",
+    }
+    resp = requests.post(
+        f"{base_url}/moto-api/static/resilience-hub-assessments/response",
+        json=results,
+    )
+    assert resp.status_code == 201
+
+    # First response
+    assert client.list_app_assessments()["assessmentSummaries"] == [summary1, summary2]
+
+    # Stays the same on subsequent invocations
+    assert client.list_app_assessments()["assessmentSummaries"] == [summary1, summary2]
+
+    # Second response with different args
+    assert client.list_app_assessments(appArn="asdf")["assessmentSummaries"] == [
+        summary2
+    ]
+
+    # Third response returns an empty response, because nothing else is configured
+    assert client.list_app_assessments(appArn="diff")["assessmentSummaries"] == []
+
+    # First response in different region also returns nothing, because we only configured this in ap-southeast
+    us_client = boto3.client("resiliencehub", region_name="us-east-1")
+    assert us_client.list_app_assessments()["assessmentSummaries"] == []
 
 
 @mock_aws
