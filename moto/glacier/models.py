@@ -190,7 +190,7 @@ class GlacierBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.vaults: Dict[str, Vault] = {}
 
-    def get_vault(self, vault_name: str) -> Vault:
+    def describe_vault(self, vault_name: str) -> Vault:
         if vault_name not in self.vaults:
             raise JsonRESTError(error_type="VaultNotFound", message="Vault not found")
         return self.vaults[vault_name]
@@ -207,31 +207,35 @@ class GlacierBackend(BaseBackend):
     def initiate_job(
         self, vault_name: str, job_type: str, tier: str, archive_id: Optional[str]
     ) -> str:
-        vault = self.get_vault(vault_name)
+        vault = self.describe_vault(vault_name)
         job_id = vault.initiate_job(job_type, tier, archive_id)
         return job_id
 
     def describe_job(self, vault_name: str, archive_id: str) -> Optional[Job]:
-        vault = self.get_vault(vault_name)
+        vault = self.describe_vault(vault_name)
         return vault.describe_job(archive_id)
 
     def list_jobs(self, vault_name: str) -> List[Job]:
-        vault = self.get_vault(vault_name)
+        vault = self.describe_vault(vault_name)
         return vault.list_jobs()
 
     def get_job_output(
         self, vault_name: str, job_id: str
     ) -> Union[str, Dict[str, Any], None]:
-        vault = self.get_vault(vault_name)
+        vault = self.describe_vault(vault_name)
         if vault.job_ready(job_id):
             return vault.get_job_output(job_id)
         else:
             return None
 
+    def delete_archive(self, vault_name: str, archive_id: str) -> None:
+        vault = self.describe_vault(vault_name)
+        vault.delete_archive(archive_id)
+
     def upload_archive(
         self, vault_name: str, body: bytes, description: str
     ) -> Dict[str, Any]:
-        vault = self.get_vault(vault_name)
+        vault = self.describe_vault(vault_name)
         return vault.create_archive(body, description)
 
 
