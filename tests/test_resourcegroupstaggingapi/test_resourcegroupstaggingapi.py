@@ -704,6 +704,9 @@ def test_get_resources_lambda():
     resp = rtapi.get_resources(ResourceTypeFilters=["lambda"])
     assert_response(resp, [circle_arn, rectangle_arn])
 
+    resp = rtapi.get_resources(ResourceTypeFilters=["lambda:function"])
+    assert_response(resp, [circle_arn, rectangle_arn])
+
     resp = rtapi.get_resources(TagFilters=[{"Key": "Color", "Values": ["green"]}])
     assert_response(resp, [circle_arn, rectangle_arn])
 
