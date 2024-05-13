@@ -2294,7 +2294,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         # get bucket for eventbridge notification
         # we can assume that the key has its bucket
-        bucket = self.get_bucket(key.bucket_name) # type: ignore
+        bucket = self.get_bucket(key.bucket_name)  # type: ignore
 
         tags_input = self.tagger.convert_dict_to_tags_input(tags)
         # Validation custom to S3
