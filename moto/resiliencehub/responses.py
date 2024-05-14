@@ -97,7 +97,23 @@ class ResilienceHubResponse(BaseResponse):
         )
 
     def list_app_assessments(self) -> str:
-        summaries = self.resiliencehub_backend.list_app_assessments()
+        supported_params = [
+            "appArn",
+            "assessmentName",
+            "assessmentStatus",
+            "complianceStatus",
+            "invoker",
+            "maxResults",
+            "nextToken",
+            "reverseOrder",
+        ]
+        provided_params = [p for p in self.querystring.keys() if p in supported_params]
+        request_identifier = json.dumps(
+            {key: self.querystring[key] for key in sorted(provided_params)}
+        )
+        summaries = self.resiliencehub_backend.list_app_assessments(
+            request_identifier=request_identifier,
+        )
         return json.dumps(dict(assessmentSummaries=summaries))
 
     def describe_app(self) -> str:

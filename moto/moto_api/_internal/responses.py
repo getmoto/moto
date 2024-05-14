@@ -197,6 +197,24 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_resilience_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            moto_api_backend.set_resilience_result(
+                result=result, account_id=account_id, region=region
+            )
+        return 201, {}, ""
+
     def set_sagemaker_result(
         self,
         request: Any,

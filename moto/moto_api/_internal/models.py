@@ -62,6 +62,14 @@ class MotoAPIBackend(BaseBackend):
         backend = lambda_simple_backends[account_id][region]
         backend.lambda_simple_results_queue.append(result)
 
+    def set_resilience_result(
+        self, result: List[Dict[str, Any]], account_id: str, region: str
+    ) -> None:
+        from moto.resiliencehub.models import resiliencehub_backends
+
+        backend = resiliencehub_backends[account_id][region]
+        backend.app_assessments_queue.append(result)
+
     def set_sagemaker_result(
         self,
         body: str,
