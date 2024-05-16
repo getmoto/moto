@@ -13,11 +13,7 @@ from tests import EXAMPLE_AMI_ID
 
 @mock_aws
 def test_elastic_network_interfaces():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     with pytest.raises(ClientError) as ex:
         ec2.create_network_interface(SubnetId=subnet.id, DryRun=True)
@@ -79,11 +75,7 @@ def test_elastic_network_interfaces_subnet_validation():
 
 @mock_aws
 def test_elastic_network_interfaces_with_private_ip():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
     eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
@@ -104,11 +96,7 @@ def test_elastic_network_interfaces_with_private_ip():
 
 @mock_aws
 def test_elastic_network_interfaces_with_groups():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     sec_group1 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
     sec_group2 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
@@ -140,11 +128,7 @@ def test_elastic_network_interfaces_with_groups():
 @mock_aws
 def test_elastic_network_interfaces_without_group():
     # ENI should use the default SecurityGroup if not provided
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     my_eni = subnet.create_network_interface()
 
@@ -158,11 +142,7 @@ def test_elastic_network_interfaces_without_group():
 
 @mock_aws
 def test_elastic_network_interfaces_modify_attribute():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
     sec_group1 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
     sec_group2 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
     eni_id = subnet.create_network_interface(Groups=[sec_group1.id]).id
@@ -198,11 +178,7 @@ def test_elastic_network_interfaces_modify_attribute():
 
 @mock_aws
 def test_elastic_network_interfaces_filtering():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     sec_group1 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
     sec_group2 = ec2.create_security_group(GroupName=str(uuid4()), Description="n/a")
@@ -267,13 +243,7 @@ def test_elastic_network_interfaces_filtering():
 
 @mock_aws
 def test_elastic_network_interfaces_get_by_tag_name():
-    ec2 = boto3.resource("ec2", region_name="us-west-2")
-    ec2_client = boto3.client("ec2", region_name="us-west-2")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     eni1 = ec2.create_network_interface(
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
@@ -292,7 +262,7 @@ def test_elastic_network_interfaces_get_by_tag_name():
     eni1.create_tags(Tags=[{"Key": "Name", "Value": tag_value}])
 
     # The status of the new interface should be 'available'
-    waiter = ec2_client.get_waiter("network_interface_available")
+    waiter = client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
     filters = [{"Name": "tag:Name", "Values": [tag_value]}]
@@ -377,20 +347,14 @@ def test_elastic_network_interfaces_get_by_private_ip():
 
 @mock_aws
 def test_elastic_network_interfaces_get_by_vpc_id():
-    ec2 = boto3.resource("ec2", region_name="us-west-2")
-    ec2_client = boto3.client("ec2", region_name="us-west-2")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     eni1 = ec2.create_network_interface(
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
     )
 
     # The status of the new interface should be 'available'
-    waiter = ec2_client.get_waiter("network_interface_available")
+    waiter = client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
     filters = [{"Name": "vpc-id", "Values": [subnet.vpc_id]}]
@@ -734,11 +698,7 @@ def test_elastic_network_interfaces_auto_create_securitygroup():
 
 @mock_aws
 def test_assign_private_ip_addresses__by_address():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     primary_ip = "54.0.0.1"
     secondary_ip = "80.0.0.1"
@@ -780,11 +740,7 @@ def test_assign_private_ip_addresses__by_address():
 
 @mock_aws
 def test_assign_private_ip_addresses__with_secondary_count():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
     eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
@@ -809,11 +765,7 @@ def test_assign_private_ip_addresses__with_secondary_count():
 
 @mock_aws
 def test_unassign_private_ip_addresses():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
     eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
@@ -844,11 +796,7 @@ def test_unassign_private_ip_addresses():
 
 @mock_aws
 def test_unassign_private_ip_addresses__multiple():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
     eni = ec2.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
@@ -885,11 +833,7 @@ def test_unassign_private_ip_addresses__multiple():
 
 @mock_aws
 def test_assign_ipv6_addresses__by_address():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
     ipv6_2 = random_private_ip("2001:db8::/101", ipv6=True)
@@ -915,13 +859,7 @@ def test_assign_ipv6_addresses__by_address():
 
 @mock_aws
 def test_assign_ipv6_addresses__by_count():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
     eni = ec2.create_network_interface(
@@ -938,13 +876,7 @@ def test_assign_ipv6_addresses__by_count():
 
 @mock_aws
 def test_assign_ipv6_addresses__by_address_and_count():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
     ipv6_2 = random_private_ip("2001:db8::/101", ipv6=True)
@@ -968,13 +900,7 @@ def test_assign_ipv6_addresses__by_address_and_count():
 
 @mock_aws
 def test_unassign_ipv6_addresses():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     ipv6_orig = random_private_ip("2001:db8::/101", ipv6=True)
     ipv6_2 = random_private_ip("2001:db8::/101", ipv6=True)
@@ -998,11 +924,7 @@ def test_unassign_ipv6_addresses():
 
 @mock_aws
 def test_elastic_network_interfaces_describe_attachment():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    client = boto3.client("ec2", "us-east-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
+    ec2, client, vpc, subnet = setup_vpc(boto3)
     eni_id = subnet.create_network_interface(Description="A network interface").id
     instance_id = client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)[
         "Instances"
@@ -1049,3 +971,34 @@ def test_elastic_network_interfaces_describe_attachment():
         NetworkInterfaceId=eni_id, Attribute="sourceDestCheck"
     ).get("SourceDestCheck")
     assert my_eni_source_dest_check["Value"] is True
+
+
+@mock_aws
+def test_eni_detachment():
+    # Setup
+    ec2, client, vpc, subnet = setup_vpc(boto3)
+    client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)
+
+    # Execute
+    enis = client.describe_network_interfaces()
+    with pytest.raises(ClientError) as ex:
+        client.detach_network_interface(
+            AttachmentId=enis['NetworkInterfaces'][0]['Attachment']['AttachmentId']
+        )
+
+    # Verify
+    assert ex.value.response["Error"]["Code"] == "OperationNotPermitted"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The network interface at device index 0 and networkCard index 0 cannot be detached."
+    )
+
+
+def setup_vpc(boto3):
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", "us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64")
+    return ec2, client, vpc, subnet

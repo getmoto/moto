@@ -22,7 +22,7 @@ from ..exceptions import (
     InvalidVpcEndPointIdError,
     InvalidVPCIdError,
     InvalidVPCRangeError,
-    OperationNotPermitted,
+    VPCCidrBlockAssociationError,
     UnsupportedTenancy,
 )
 from ..utils import (
@@ -675,7 +675,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         if self.cidr_block == self.cidr_block_association_set.get(
             association_id, {}
         ).get("cidr_block"):
-            raise OperationNotPermitted(association_id)
+            raise VPCCidrBlockAssociationError(association_id)
 
         entry = response = self.cidr_block_association_set.get(association_id, {})
         if entry:
