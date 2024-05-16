@@ -81,7 +81,7 @@ def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
     return decoded
 
 
-@functools.cache
+@functools.lru_cache(maxsize=None)
 def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]]:
     method_urls: Dict[str, Dict[str, str]] = defaultdict(dict)
     service_name = boto3_service_name.get(service_name) or service_name  # type: ignore
