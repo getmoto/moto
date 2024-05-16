@@ -368,20 +368,14 @@ def test_elastic_network_interfaces_get_by_vpc_id():
 
 @mock_aws
 def test_elastic_network_interfaces_get_by_subnet_id():
-    ec2 = boto3.resource("ec2", region_name="us-west-2")
-    ec2_client = boto3.client("ec2", region_name="us-west-2")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     eni1 = ec2.create_network_interface(
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5"
     )
 
     # The status of the new interface should be 'available'
-    waiter = ec2_client.get_waiter("network_interface_available")
+    waiter = client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
     filters = [{"Name": "subnet-id", "Values": [subnet.id]}]
@@ -395,13 +389,7 @@ def test_elastic_network_interfaces_get_by_subnet_id():
 
 @mock_aws
 def test_elastic_network_interfaces_get_by_description():
-    ec2 = boto3.resource("ec2", region_name="us-west-2")
-    ec2_client = boto3.client("ec2", region_name="us-west-2")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     desc = str(uuid4())
     eni1 = ec2.create_network_interface(
@@ -409,7 +397,7 @@ def test_elastic_network_interfaces_get_by_description():
     )
 
     # The status of the new interface should be 'available'
-    waiter = ec2_client.get_waiter("network_interface_available")
+    waiter = client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
     filters = [{"Name": "description", "Values": [eni1.description]}]
@@ -608,13 +596,7 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
 
 @mock_aws
 def test_elastic_network_interfaces_filter_by_tag():
-    ec2 = boto3.resource("ec2", region_name="us-west-2")
-    ec2_client = boto3.client("ec2", region_name="us-west-2")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     dev_env = f"dev-{str(uuid4())[0:4]}"
     prod_env = f"prod-{str(uuid4())[0:4]}"
@@ -644,27 +626,27 @@ def test_elastic_network_interfaces_filter_by_tag():
     )
 
     for eni in [eni_dev, eni_prod]:
-        waiter = ec2_client.get_waiter("network_interface_available")
+        waiter = client.get_waiter("network_interface_available")
         waiter.wait(NetworkInterfaceIds=[eni.id])
 
-    resp = ec2_client.describe_network_interfaces(
+    resp = client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": ["staging"]}]
     )
     assert len(resp["NetworkInterfaces"]) == 0
 
-    resp = ec2_client.describe_network_interfaces(
+    resp = client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": [dev_env]}]
     )
     assert len(resp["NetworkInterfaces"]) == 1
     assert resp["NetworkInterfaces"][0]["Description"] == "dev interface"
 
-    resp = ec2_client.describe_network_interfaces(
+    resp = client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": [prod_env]}]
     )
     assert len(resp["NetworkInterfaces"]) == 1
     assert resp["NetworkInterfaces"][0]["Description"] == "prod interface"
 
-    resp = ec2_client.describe_network_interfaces(
+    resp = client.describe_network_interfaces(
         Filters=[{"Name": "tag:environment", "Values": [dev_env, prod_env]}]
     )
     assert len(resp["NetworkInterfaces"]) == 2
@@ -672,23 +654,17 @@ def test_elastic_network_interfaces_filter_by_tag():
 
 @mock_aws
 def test_elastic_network_interfaces_auto_create_securitygroup():
-    ec2 = boto3.resource("ec2", region_name="us-west-2")
-    ec2_client = boto3.client("ec2", region_name="us-west-2")
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(
-        VpcId=vpc.id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-west-2a"
-    )
+    ec2, client, vpc, subnet = setup_vpc(boto3)
 
     eni1 = ec2.create_network_interface(
         SubnetId=subnet.id, PrivateIpAddress="10.0.10.5", Groups=["testgroup"]
     )
 
     # The status of the new interface should be 'available'
-    waiter = ec2_client.get_waiter("network_interface_available")
+    waiter = client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
-    sgs = ec2_client.describe_security_groups()["SecurityGroups"]
+    sgs = client.describe_security_groups()["SecurityGroups"]
     found_sg = [sg for sg in sgs if sg["GroupId"] == "testgroup"]
     assert len(found_sg) == 1
 
