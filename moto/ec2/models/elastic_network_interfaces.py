@@ -2,7 +2,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from moto.core.common_models import CloudFormationModel
 
-from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError, LastEniDetachError
+from ..exceptions import (
+    InvalidNetworkAttachmentIdError,
+    InvalidNetworkInterfaceIdError,
+    LastEniDetachError,
+)
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
 

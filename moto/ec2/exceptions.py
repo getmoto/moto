@@ -590,15 +590,14 @@ class VPCCidrBlockAssociationError(EC2ClientError):
 
 class OperationNotPermitted(EC2ClientError):
     def __init__(self, message: str):
-        super().__init__(
-            "OperationNotPermitted",
-            message
-        )
+        super().__init__("OperationNotPermitted", message)
 
 
 class LastEniDetachError(OperationNotPermitted):
     def __init__(self):
-        super().__init__("The network interface at device index 0 and networkCard index 0 cannot be detached.")
+        super().__init__(
+            "The network interface at device index 0 and networkCard index 0 cannot be detached."
+        )
 
 
 class InvalidAvailabilityZoneError(EC2ClientError):

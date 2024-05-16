@@ -78,7 +78,9 @@ def test_elastic_network_interfaces_with_private_ip():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
-    eni = ec2resource.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+    eni = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress=private_ip
+    )
 
     all_enis = ec2client.describe_network_interfaces()["NetworkInterfaces"]
     assert eni.id in [eni["NetworkInterfaceId"] for eni in all_enis]
@@ -98,8 +100,12 @@ def test_elastic_network_interfaces_with_private_ip():
 def test_elastic_network_interfaces_with_groups():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
 
-    sec_group1 = ec2resource.create_security_group(GroupName=str(uuid4()), Description="n/a")
-    sec_group2 = ec2resource.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    sec_group1 = ec2resource.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
+    sec_group2 = ec2resource.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
     my_eni = subnet.create_network_interface(Groups=[sec_group1.id, sec_group2.id])
 
     all_enis = ec2client.describe_network_interfaces()["NetworkInterfaces"]
@@ -143,8 +149,12 @@ def test_elastic_network_interfaces_without_group():
 @mock_aws
 def test_elastic_network_interfaces_modify_attribute():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
-    sec_group1 = ec2resource.create_security_group(GroupName=str(uuid4()), Description="n/a")
-    sec_group2 = ec2resource.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    sec_group1 = ec2resource.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
+    sec_group2 = ec2resource.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
     eni_id = subnet.create_network_interface(Groups=[sec_group1.id]).id
 
     my_eni = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
@@ -180,8 +190,12 @@ def test_elastic_network_interfaces_modify_attribute():
 def test_elastic_network_interfaces_filtering():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
 
-    sec_group1 = ec2resource.create_security_group(GroupName=str(uuid4()), Description="n/a")
-    sec_group2 = ec2resource.create_security_group(GroupName=str(uuid4()), Description="n/a")
+    sec_group1 = ec2resource.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
+    sec_group2 = ec2resource.create_security_group(
+        GroupName=str(uuid4()), Description="n/a"
+    )
 
     eni1 = subnet.create_network_interface(Groups=[sec_group1.id, sec_group2.id])
     eni2 = subnet.create_network_interface(Groups=[sec_group1.id])
@@ -315,7 +329,9 @@ def test_elastic_network_interfaces_get_by_availability_zone():
 def test_elastic_network_interfaces_get_by_private_ip():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
     random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
-    eni1 = ec2resource.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=random_ip)
+    eni1 = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress=random_ip
+    )
 
     # The status of the new interface should be 'available'
     waiter = ec2client.get_waiter("network_interface_available")
@@ -468,7 +484,6 @@ def test_elastic_network_interfaces_get_by_attachment_instance_owner_id():
 def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
     random_ip = ".".join(map(str, (random.randint(0, 99) for _ in range(4))))
-
 
     sg = ec2client.create_security_group(Description="test", GroupName=str(uuid4()))
     sg_id = sg["GroupId"]
@@ -653,7 +668,9 @@ def test_assign_private_ip_addresses__by_address():
 
     primary_ip = "54.0.0.1"
     secondary_ip = "80.0.0.1"
-    eni = ec2resource.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=primary_ip)
+    eni = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress=primary_ip
+    )
 
     resp = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     resp_eni = resp["NetworkInterfaces"][0]
@@ -694,7 +711,9 @@ def test_assign_private_ip_addresses__with_secondary_count():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
-    eni = ec2resource.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+    eni = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress=private_ip
+    )
 
     ec2client.assign_private_ip_addresses(
         NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=2
@@ -719,7 +738,9 @@ def test_unassign_private_ip_addresses():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
-    eni = ec2resource.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+    eni = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress=private_ip
+    )
 
     ec2client.assign_private_ip_addresses(
         NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=2
@@ -750,7 +771,9 @@ def test_unassign_private_ip_addresses__multiple():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
 
     private_ip = "54.0.0.1"
-    eni = ec2resource.create_network_interface(SubnetId=subnet.id, PrivateIpAddress=private_ip)
+    eni = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress=private_ip
+    )
 
     ec2client.assign_private_ip_addresses(
         NetworkInterfaceId=eni.id, SecondaryPrivateIpAddressCount=5
@@ -877,9 +900,9 @@ def test_unassign_ipv6_addresses():
 def test_elastic_network_interfaces_describe_attachment():
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
     eni_id = subnet.create_network_interface(Description="A network interface").id
-    instance_id = ec2client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)[
-        "Instances"
-    ][0]["InstanceId"]
+    instance_id = ec2client.run_instances(
+        ImageId="ami-12c6146b", MinCount=1, MaxCount=1
+    )["Instances"][0]["InstanceId"]
 
     ec2client.attach_network_interface(
         NetworkInterfaceId=eni_id, InstanceId=instance_id, DeviceIndex=1
@@ -934,7 +957,7 @@ def test_eni_detachment():
     enis = ec2client.describe_network_interfaces()
     with pytest.raises(ClientError) as ex:
         ec2client.detach_network_interface(
-            AttachmentId=enis['NetworkInterfaces'][0]['Attachment']['AttachmentId']
+            AttachmentId=enis["NetworkInterfaces"][0]["Attachment"]["AttachmentId"]
         )
 
     # Verify
@@ -946,10 +969,12 @@ def test_eni_detachment():
     )
 
 
-def setup_vpc(boto3):
+def setup_vpc(boto3):  # pylint: disable=W0621
     ec2resource = boto3.resource("ec2", region_name="us-east-1")
     ec2client = boto3.client("ec2", "us-east-1")
 
     vpc = ec2resource.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2resource.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64")
+    subnet = ec2resource.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
+    )
     return ec2resource, ec2client, vpc, subnet

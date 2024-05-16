@@ -22,8 +22,8 @@ from ..exceptions import (
     InvalidVpcEndPointIdError,
     InvalidVPCIdError,
     InvalidVPCRangeError,
-    VPCCidrBlockAssociationError,
     UnsupportedTenancy,
+    VPCCidrBlockAssociationError,
 )
 from ..utils import (
     create_dns_entries,
