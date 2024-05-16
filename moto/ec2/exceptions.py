@@ -594,7 +594,7 @@ class OperationNotPermitted(EC2ClientError):
 
 
 class LastEniDetachError(OperationNotPermitted):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             "The network interface at device index 0 and networkCard index 0 cannot be detached."
         )
