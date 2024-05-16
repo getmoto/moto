@@ -11,6 +11,7 @@ from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ValidationException
 from .utils import (
@@ -84,7 +85,9 @@ class Key(CloudFormationModel):
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
         self.private_key = generate_private_key(self.key_spec)
-        self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
+        self.arn = (
+            f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
+        )
 
         self.grants: Dict[str, Grant] = dict()
 

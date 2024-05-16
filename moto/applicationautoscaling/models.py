@@ -7,6 +7,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.ecs import ecs_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 from .exceptions import AWSValidationException
 
@@ -463,7 +464,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.policy_name = policy_name
         self.policy_type = policy_type
         self._guid = mock_random.uuid4()
-        self.policy_arn = f"arn:aws:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
+        self.policy_arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
         self.alarms: List["FakeAlarm"] = []
 
@@ -638,7 +639,7 @@ class FakeScheduledAction(BaseModel):
         account_id: str,
         region: str,
     ) -> None:
-        self.arn = f"arn:aws:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
+        self.arn = f"arn:{get_partition(region)}:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
         self.timezone = timezone

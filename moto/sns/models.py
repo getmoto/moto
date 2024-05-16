@@ -16,6 +16,7 @@ from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
 from moto.sqs.exceptions import MissingParameter
 from moto.utilities.arns import parse_arn
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     BatchEntryIdsNotDistinct,
@@ -325,7 +326,7 @@ class PlatformApplication(BaseModel):
         self.name = name
         self.platform = platform
         self.attributes = attributes
-        self.arn = f"arn:aws:sns:{region}:{account_id}:app/{platform}/{name}"
+        self.arn = f"arn:{get_partition(region)}:sns:{region}:{account_id}:app/{platform}/{name}"
 
 
 class PlatformEndpoint(BaseModel):
@@ -344,7 +345,7 @@ class PlatformEndpoint(BaseModel):
         self.token = token
         self.attributes = attributes
         self.id = mock_random.uuid4()
-        self.arn = f"arn:aws:sns:{region}:{account_id}:endpoint/{self.application.platform}/{self.application.name}/{self.id}"
+        self.arn = f"arn:{get_partition(region)}:sns:{region}:{account_id}:endpoint/{self.application.platform}/{self.application.name}/{self.id}"
         self.messages: Dict[str, str] = OrderedDict()
         self.__fixup_attributes()
 

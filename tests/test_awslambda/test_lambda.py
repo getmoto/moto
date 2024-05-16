@@ -45,6 +45,30 @@ def test_lambda_regions(region):
     resp = client.list_functions()
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
+    function_name = "moto_test_" + str(uuid4())[0:6]
+    function = client.create_function(
+        FunctionName=function_name,
+        Runtime=PYTHON_VERSION,
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_test_zip_file1()},
+    )
+    if region == "us-west-2":
+        assert (
+            function["FunctionArn"]
+            == f"arn:aws:lambda:{region}:{ACCOUNT_ID}:function:{function_name}"
+        )
+    if region == "cn-northwest-1":
+        assert (
+            function["FunctionArn"]
+            == f"arn:aws-cn:lambda:{region}:{ACCOUNT_ID}:function:{function_name}"
+        )
+    if region == "us-isob-east-1":
+        assert (
+            function["FunctionArn"]
+            == f"arn:aws-iso-b:lambda:{region}:{ACCOUNT_ID}:function:{function_name}"
+        )
+
 
 @pytest.mark.aws_verified
 @lambda_aws_verified

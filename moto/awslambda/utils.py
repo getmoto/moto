@@ -2,6 +2,8 @@ from collections import namedtuple
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable
 
+from moto.utilities.utils import get_partition
+
 if TYPE_CHECKING:
     from .models import LambdaBackend
 
@@ -10,7 +12,9 @@ LAYER_ARN = namedtuple("LAYER_ARN", ["region", "account", "layer_name", "version
 
 
 def make_arn(resource_type: str, region: str, account: str, name: str) -> str:
-    return f"arn:aws:lambda:{region}:{account}:{resource_type}:{name}"
+    return (
+        f"arn:{get_partition(region)}:lambda:{region}:{account}:{resource_type}:{name}"
+    )
 
 
 make_function_arn = partial(make_arn, "function")

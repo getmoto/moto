@@ -8,6 +8,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import BadRequestException, GraphqlAPINotFound, GraphQLSchemaException
 
@@ -155,7 +156,7 @@ class GraphqlAPI(BaseModel):
         self.user_pool_config = user_pool_config
         self.xray_enabled = xray_enabled
 
-        self.arn = f"arn:aws:appsync:{self.region}:{account_id}:apis/{self.api_id}"
+        self.arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
         self.graphql_schema: Optional[GraphqlSchema] = None
 
         self.api_keys: Dict[str, GraphqlAPIKey] = dict()

@@ -31,6 +31,7 @@ from moto.route53.exceptions import (
     ResourceRecordAlreadyExists,
 )
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .utils import PAGINATION_MODEL
 
@@ -866,7 +867,9 @@ class Route53Backend(BaseBackend):
 
     @staticmethod
     def _validate_arn(region: str, arn: str) -> None:
-        match = re.match(rf"arn:aws:logs:{region}:\d{{12}}:log-group:.+", arn)
+        match = re.match(
+            rf"arn:{get_partition(region)}:logs:{region}:\d{{12}}:log-group:.+", arn
+        )
         if not arn or not match:
             raise InvalidCloudWatchArn()
 

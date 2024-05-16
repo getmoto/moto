@@ -10,6 +10,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.utilities.utils import get_partition
 
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
@@ -126,7 +127,7 @@ class GlueBackend(BaseBackend):
             database_name, database_input, catalog_id=self.account_id
         )
         self.databases[database_name] = database
-        resource_arn = f"arn:aws:glue:{self.region_name}:{self.account_id}:database/{database_name}"
+        resource_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:database/{database_name}"
         self.tag_resource(resource_arn, tags)
         return database
 
@@ -1213,7 +1214,7 @@ class FakeCrawler(BaseModel):
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
-        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -1347,9 +1348,7 @@ class FakeJob:
         self.source_control_details = source_control_details
         self.created_on = utcnow()
         self.last_modified_on = utcnow()
-        self.arn = (
-            f"arn:aws:glue:{backend.region_name}:{backend.account_id}:job/{self.name}"
-        )
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -1476,7 +1475,7 @@ class FakeRegistry(BaseModel):
         self.created_time = utcnow()
         self.updated_time = utcnow()
         self.status = "AVAILABLE"
-        self.registry_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:registry/{self.name}"
+        self.registry_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:registry/{self.name}"
         self.schemas: Dict[str, FakeSchema] = OrderedDict()
 
     def as_dict(self) -> Dict[str, Any]:
@@ -1500,9 +1499,9 @@ class FakeSchema(BaseModel):
         description: Optional[str] = None,
     ):
         self.registry_name = registry_name
-        self.registry_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:registry/{self.registry_name}"
+        self.registry_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:registry/{self.registry_name}"
         self.schema_name = schema_name
-        self.schema_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
         self.description = description
         self.data_format = data_format
         self.compatibility = compatibility
@@ -1554,7 +1553,7 @@ class FakeSchemaVersion(BaseModel):
     ):
         self.registry_name = registry_name
         self.schema_name = schema_name
-        self.schema_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
         self.schema_definition = schema_definition
         self.schema_version_status = AVAILABLE_STATUS
         self.version_number = version_number
@@ -1631,7 +1630,7 @@ class FakeSession(BaseModel):
         self.request_origin = request_origin
         self.creation_time = utcnow()
         self.last_updated = self.creation_time
-        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:session/{self.session_id}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:session/{self.session_id}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
         self.state = "READY"
@@ -1689,7 +1688,7 @@ class FakeTrigger(BaseModel):
         else:
             self.state = "CREATED"
         self.event_batching_condition = event_batching_condition
-        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 

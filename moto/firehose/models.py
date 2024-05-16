@@ -37,6 +37,7 @@ from moto.firehose.exceptions import (
 from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
 
@@ -160,7 +161,7 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods,too-m
                 del self.destinations[0][destination_name][old]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:{get_partition(region)}:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs

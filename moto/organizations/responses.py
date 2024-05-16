@@ -26,7 +26,9 @@ class OrganizationsResponse(BaseResponse):
 
     def create_organization(self) -> str:
         return json.dumps(
-            self.organizations_backend.create_organization(**self.request_params)
+            self.organizations_backend.create_organization(
+                region=self.region, **self.request_params
+            )
         )
 
     def describe_organization(self) -> str:

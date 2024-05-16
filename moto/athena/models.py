@@ -6,6 +6,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 
 class TaggableResourceMixin:
@@ -22,7 +23,7 @@ class TaggableResourceMixin:
         self.region = region_name
         self.resource_name = resource_name
         self.tags = tags or []
-        self.arn = f"arn:aws:athena:{region_name}:{account_id}:{resource_name}"
+        self.arn = f"arn:{get_partition(region_name)}:athena:{region_name}:{account_id}:{resource_name}"
 
     def create_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         new_keys = [tag_set["Key"] for tag_set in tags]

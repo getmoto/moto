@@ -14,7 +14,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from .exceptions import (
     ConsumerNotFound,
@@ -51,7 +51,7 @@ class Consumer(BaseModel):
         self.created = unix_time()
         self.stream_arn = stream_arn
         stream_name = stream_arn.split("/")[-1]
-        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
+        self.consumer_arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
 
     def to_json(self, include_stream_arn: bool = False) -> Dict[str, Any]:
         resp = {
@@ -207,7 +207,7 @@ class Stream(CloudFormationModel):
         )
         self.region = region_name
         self.account_id = account_id
-        self.arn = f"arn:aws:kinesis:{region_name}:{account_id}:stream/{stream_name}"
+        self.arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}"
         self.shards: Dict[str, Shard] = {}
         self.tags: Dict[str, str] = {}
         self.status = "ACTIVE"

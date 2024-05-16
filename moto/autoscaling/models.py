@@ -18,6 +18,7 @@ from moto.packages.boto.ec2.blockdevicemapping import (
     BlockDeviceMapping,
     BlockDeviceType,
 )
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AutoscalingClientError,
@@ -112,7 +113,7 @@ class FakeScalingPolicy(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:autoscaling:{self.autoscaling_backend.region_name}:{self.autoscaling_backend.account_id}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
+        return f"arn:{get_partition(self.autoscaling_backend.region_name)}:autoscaling:{self.autoscaling_backend.region_name}:{self.autoscaling_backend.account_id}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
 
     def execute(self) -> None:
         if self.adjustment_type == "ExactCapacity":
@@ -174,7 +175,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self.metadata_options = metadata_options
         self.classic_link_vpc_id = classic_link_vpc_id
         self.classic_link_vpc_security_groups = classic_link_vpc_security_groups
-        self.arn = f"arn:aws:autoscaling:{region_name}:{account_id}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
+        self.arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
 
     @classmethod
     def create_from_instance(
@@ -502,7 +503,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:autoscaling:{self.region}:{self.account_id}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
+        return f"arn:{get_partition(self.region)}:autoscaling:{self.region}:{self.account_id}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
 
     def active_instances(self) -> List[InstanceState]:
         return [x for x in self.instance_states if x.lifecycle_state == "InService"]

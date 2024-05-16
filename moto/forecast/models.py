@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     InvalidInputException,
@@ -38,7 +39,7 @@ class DatasetGroup:
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.modified_date = self.creation_date
 
-        self.arn = f"arn:aws:forecast:{region_name}:{account_id}:dataset-group/{dataset_group_name}"
+        self.arn = f"arn:{get_partition(region_name)}:forecast:{region_name}:{account_id}:dataset-group/{dataset_group_name}"
         self.dataset_arns = dataset_arns if dataset_arns else []
         self.dataset_group_name = dataset_group_name
         self.domain = domain

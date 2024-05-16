@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 from .exceptions import DomainNotFound
 
@@ -49,7 +50,7 @@ class Domain(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:es:{self.region_name}:domain/{self.domain_id}"
+        return f"arn:{get_partition(self.region_name)}:es:{self.region_name}:domain/{self.domain_id}"
 
     def to_json(self) -> Dict[str, Any]:
         return {

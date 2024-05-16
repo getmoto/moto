@@ -10,6 +10,7 @@ from moto.emr.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
+from moto.utilities.utils import get_partition
 
 from .utils import (
     CamelToUnderscoresWalker,
@@ -322,7 +323,7 @@ class FakeCluster(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:elasticmapreduce:{self.emr_backend.region_name}:{self.emr_backend.account_id}:cluster/{self.id}"
+        return f"arn:{get_partition(self.emr_backend.region_name)}:elasticmapreduce:{self.emr_backend.region_name}:{self.emr_backend.account_id}:cluster/{self.id}"
 
     @property
     def instance_groups(self) -> List[FakeInstanceGroup]:

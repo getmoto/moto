@@ -20,7 +20,7 @@ from moto.core.utils import (
     unix_time_millis,
 )
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from .constants import MAXIMUM_VISIBILITY_TIMEOUT
 from .exceptions import (
@@ -278,7 +278,7 @@ class Queue(CloudFormationModel):
 
         now = unix_time()
         self.created_timestamp = now
-        self.queue_arn = f"arn:aws:sqs:{region}:{account_id}:{name}"
+        self.queue_arn = f"arn:{get_partition(region)}:sqs:{region}:{account_id}:{name}"
         self.dead_letter_queue: Optional["Queue"] = None
         self.fifo_queue = False
 

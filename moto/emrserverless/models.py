@@ -8,7 +8,8 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from moto.emrcontainers.utils import get_partition, paginated_list
+from moto.emrcontainers.utils import paginated_list
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AccessDeniedException,

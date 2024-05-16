@@ -33,6 +33,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .utils import _BASE_EVENT_MESSAGE, PAGINATION_MODEL, EventMessageType
 
@@ -74,7 +75,7 @@ class Rule(CloudFormationModel):
             "" if self.event_bus_name == "default" else f"{self.event_bus_name}/"
         )
 
-        return f"arn:aws:events:{self.region_name}:{self.account_id}:rule/{event_bus_name}{self.name}"
+        return f"arn:{get_partition(self.region_name)}:events:{self.region_name}:{self.account_id}:rule/{event_bus_name}{self.name}"
 
     @property
     def physical_resource_id(self) -> str:
@@ -342,7 +343,7 @@ class EventBus(CloudFormationModel):
         self.account_id = account_id
         self.region = region_name
         self.name = name
-        self.arn = f"arn:aws:events:{self.region}:{account_id}:event-bus/{name}"
+        self.arn = f"arn:{get_partition(self.region)}:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
 
         self._statements: Dict[str, EventBusPolicyStatement] = {}
@@ -554,7 +555,7 @@ class Archive(CloudFormationModel):
         self.event_pattern = EventPattern.load(event_pattern)
         self.retention = retention if retention else 0
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:archive/{name}"
         self.creation_time = unix_time()
         self.state = "ENABLED"
         self.uuid = str(random.uuid4())
@@ -702,7 +703,7 @@ class Replay(BaseModel):
         self.event_end_time = end_time
         self.destination = destination
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:replay/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
         self.start_time = unix_time()
         self.end_time: Optional[float] = None
@@ -766,7 +767,7 @@ class Connection(BaseModel):
         self.creation_time = unix_time()
         self.state = "AUTHORIZED"
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
 
     def describe_short(self) -> Dict[str, Any]:
         """
@@ -843,7 +844,7 @@ class Destination(BaseModel):
         self.creation_time = unix_time()
         self.http_method = http_method
         self.state = "ACTIVE"
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
 
     def describe(self) -> Dict[str, Any]:
         return {
@@ -975,7 +976,7 @@ class EventPatternParser:
 class PartnerEventSource(BaseModel):
     def __init__(self, region: str, name: str):
         self.name = name
-        self.arn = f"arn:aws:events:{region}::event-source/aws.partner/{name}"
+        self.arn = f"arn:{get_partition(region)}:events:{region}::event-source/aws.partner/{name}"
         self.created_on = unix_time()
         self.accounts: List[str] = []
         self.state = "ACTIVE"
@@ -1621,7 +1622,7 @@ class EventsBackend(BaseBackend):
             [
                 {
                     "Id": rule.name,
-                    "Arn": f"arn:aws:events:{self.region_name}:::",
+                    "Arn": f"arn:{get_partition(self.region_name)}:events:{self.region_name}:::",
                     "InputTransformer": {
                         "InputPathsMap": {},
                         "InputTemplate": json.dumps(
