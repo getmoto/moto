@@ -948,6 +948,7 @@ def test_elastic_network_interfaces_describe_attachment():
 
 
 @mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE)
 def test_eni_detachment():
     # Setup
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
