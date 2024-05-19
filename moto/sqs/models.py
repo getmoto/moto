@@ -20,7 +20,7 @@ from moto.core.utils import (
     unix_time_millis,
 )
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from .constants import MAXIMUM_VISIBILITY_TIMEOUT
 from .exceptions import (
@@ -278,7 +278,7 @@ class Queue(CloudFormationModel):
 
         now = unix_time()
         self.created_timestamp = now
-        self.queue_arn = f"arn:aws:sqs:{region}:{account_id}:{name}"
+        self.queue_arn = f"arn:{get_partition(region)}:sqs:{region}:{account_id}:{name}"
         self.dead_letter_queue: Optional["Queue"] = None
         self.fifo_queue = False
 
@@ -1155,7 +1155,12 @@ class SQSBackend(BaseBackend):
         return queues
 
     def add_permission(
-        self, queue_name: str, actions: List[str], account_ids: List[str], label: str
+        self,
+        region_name: str,
+        queue_name: str,
+        actions: List[str],
+        account_ids: List[str],
+        label: str,
     ) -> None:
         queue = self.get_queue(queue_name)
 
@@ -1195,7 +1200,10 @@ class SQSBackend(BaseBackend):
                 f"Value {label} for parameter Label is invalid. Reason: Already exists."
             )
 
-        principals = [f"arn:aws:iam::{account_id}:root" for account_id in account_ids]
+        principals = [
+            f"arn:{get_partition(region_name)}:iam::{account_id}:root"
+            for account_id in account_ids
+        ]
         actions = [f"SQS:{action}" for action in actions]
 
         statement = {

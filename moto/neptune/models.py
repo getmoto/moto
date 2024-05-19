@@ -8,7 +8,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import get_partition, load_resource
 
 from .exceptions import DBClusterNotFoundError
 
@@ -17,6 +17,7 @@ class GlobalCluster(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         global_cluster_identifier: str,
         engine: Optional[str],
         engine_version: Optional[str],
@@ -25,9 +26,7 @@ class GlobalCluster(BaseModel):
     ):
         self.global_cluster_identifier = global_cluster_identifier
         self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
-        self.global_cluster_arn = (
-            f"arn:aws:rds::{account_id}:global-cluster:{global_cluster_identifier}"
-        )
+        self.global_cluster_arn = f"arn:{get_partition(region_name)}:rds::{account_id}:global-cluster:{global_cluster_identifier}"
         self.engine = engine or "neptune"
         self.engine_version = engine_version or "1.2.0.0"
         self.storage_encrypted = (
@@ -111,7 +110,7 @@ class DBCluster(BaseModel):
 
     @property
     def db_cluster_arn(self) -> str:
-        return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
@@ -298,6 +297,7 @@ class NeptuneBackend(BaseBackend):
     ) -> GlobalCluster:
         cluster = GlobalCluster(
             account_id=self.account_id,
+            region_name=self.region_name,
             global_cluster_identifier=global_cluster_identifier,
             engine=engine,
             engine_version=engine_version,

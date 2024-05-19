@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import BadRequestException
 
@@ -12,6 +13,7 @@ class FakeResourceGroup(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         name: str,
         resource_query: Dict[str, str],
         description: Optional[str] = None,
@@ -30,7 +32,7 @@ class FakeResourceGroup(BaseModel):
         if self._validate_tags(value=tags):
             self._tags = tags
         self._raise_errors()
-        self.arn = f"arn:aws:resource-groups:us-west-1:{account_id}:{name}"
+        self.arn = f"arn:{get_partition(region_name)}:resource-groups:us-west-1:{account_id}:{name}"
         self.configuration = configuration
 
     @staticmethod
@@ -311,6 +313,7 @@ class ResourceGroupsBackend(BaseBackend):
         tags = tags or {}
         group = FakeResourceGroup(
             account_id=self.account_id,
+            region_name=self.region_name,
             name=name,
             resource_query=resource_query,
             description=description,

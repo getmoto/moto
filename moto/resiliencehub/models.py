@@ -6,6 +6,7 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import AppNotFound, AppVersionNotFound, ResiliencyPolicyNotFound
 
@@ -51,7 +52,7 @@ class App(BaseModel):
         policy_arn: str,
     ):
         self.backend = backend
-        self.arn = f"arn:aws:resiliencehub:{backend.region_name}:{backend.account_id}:app/{mock_random.uuid4()}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:resiliencehub:{backend.region_name}:{backend.account_id}:app/{mock_random.uuid4()}"
         self.assessment_schedule = assessment_schedule or "Disabled"
         self.compliance_status = "NotAssessed"
         self.description = description
@@ -154,7 +155,7 @@ class Policy(BaseModel):
         policy_description: str,
         tier: str,
     ):
-        self.arn = f"arn:aws:resiliencehub:{backend.region_name}:{backend.account_id}:resiliency-policy/{mock_random.uuid4()}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:resiliencehub:{backend.region_name}:{backend.account_id}:resiliency-policy/{mock_random.uuid4()}"
         self.backend = backend
         self.data_location_constraint = data_location_constraint
         self.creation_time = unix_time()

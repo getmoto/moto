@@ -7,6 +7,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import (
     DistributionAlreadyExists,
@@ -208,16 +209,14 @@ class Distribution(BaseModel, ManagedState):
         )
         return resource_id
 
-    def __init__(self, account_id: str, config: Dict[str, Any]):
+    def __init__(self, account_id: str, region_name: str, config: Dict[str, Any]):
         # Configured ManagedState
         super().__init__(
             "cloudfront::distribution", transitions=[("InProgress", "Deployed")]
         )
         # Configure internal properties
         self.distribution_id = Distribution.random_id()
-        self.arn = (
-            f"arn:aws:cloudfront:{account_id}:distribution/{self.distribution_id}"
-        )
+        self.arn = f"arn:{get_partition(region_name)}:cloudfront:{account_id}:distribution/{self.distribution_id}"
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
         self.active_trusted_key_groups = ActiveTrustedKeyGroups()
@@ -305,7 +304,7 @@ class CloudFrontBackend(BaseBackend):
     def create_distribution_with_tags(
         self, distribution_config: Dict[str, Any], tags: List[Dict[str, str]]
     ) -> Tuple[Distribution, str, str]:
-        dist = Distribution(self.account_id, distribution_config)
+        dist = Distribution(self.account_id, self.region_name, distribution_config)
         caller_reference = dist.distribution_config.caller_reference
         existing_dist = self._distribution_with_caller_reference(caller_reference)
         if existing_dist is not None:
@@ -436,5 +435,5 @@ cloudfront_backends = BackendDict(
     CloudFrontBackend,
     "cloudfront",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

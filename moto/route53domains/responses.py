@@ -12,7 +12,7 @@ class Route53DomainsResponse(BaseResponse):
 
     @property
     def route53domains_backend(self) -> Route53DomainsBackend:
-        return route53domains_backends[self.current_account]["global"]
+        return route53domains_backends[self.current_account][self.partition]
 
     def register_domain(self) -> str:
         domain_name = self._get_param("DomainName")

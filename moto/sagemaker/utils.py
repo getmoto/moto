@@ -3,6 +3,7 @@ import typing
 from typing import Any, Dict
 
 from moto.s3.models import s3_backends
+from moto.utilities.utils import get_partition
 
 from .exceptions import ValidationError
 
@@ -39,9 +40,9 @@ def get_pipeline_execution_from_arn(
 
 
 def load_pipeline_definition_from_s3(
-    pipeline_definition_s3_location: Dict[str, Any], account_id: str
+    pipeline_definition_s3_location: Dict[str, Any], account_id: str, partition: str
 ) -> Dict[str, Any]:
-    s3_backend = s3_backends[account_id]["global"]
+    s3_backend = s3_backends[account_id][partition]
     result = s3_backend.get_object(
         bucket_name=pipeline_definition_s3_location["Bucket"],
         key_name=pipeline_definition_s3_location["ObjectKey"],
@@ -50,7 +51,7 @@ def load_pipeline_definition_from_s3(
 
 
 def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:
-    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
+    return f"arn:{get_partition(region_name)}:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
 def validate_model_approval_status(model_approval_status: typing.Optional[str]) -> None:

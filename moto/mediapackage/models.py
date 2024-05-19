@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import ClientError
 
@@ -72,7 +73,7 @@ class MediaPackageBackend(BaseBackend):
     def create_channel(
         self, description: str, channel_id: str, tags: Dict[str, str]
     ) -> Channel:
-        arn = f"arn:aws:mediapackage:channel:{channel_id}"
+        arn = f"arn:{get_partition(self.region_name)}:mediapackage:channel:{channel_id}"
         channel = Channel(
             arn=arn,
             description=description,
@@ -117,7 +118,7 @@ class MediaPackageBackend(BaseBackend):
         time_delay_seconds: int,
         whitelist: List[str],
     ) -> OriginEndpoint:
-        arn = f"arn:aws:mediapackage:origin_endpoint:{endpoint_id}"
+        arn = f"arn:{get_partition(self.region_name)}:mediapackage:origin_endpoint:{endpoint_id}"
         url = f"https://origin-endpoint.mediapackage.{self.region_name}.amazonaws.com/{endpoint_id}"
         origin_endpoint = OriginEndpoint(
             arn=arn,

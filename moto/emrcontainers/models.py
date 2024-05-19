@@ -7,10 +7,11 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.utilities.utils import get_partition
 
 from ..config.exceptions import ValidationException
 from .exceptions import ResourceNotFoundException
-from .utils import get_partition, paginated_list, random_cluster_id, random_job_id
+from .utils import paginated_list, random_cluster_id, random_job_id
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/virtualclusters/{virtual_cluster_id}"
 

@@ -13,6 +13,7 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class Agent(BaseModel):
@@ -46,7 +47,7 @@ class Agent(BaseModel):
         self.prepared_at = unix_time()
         self.agent_status = "PREPARED"
         self.agent_id = self.agent_name + str(mock_random.uuid4())[:8]
-        self.agent_arn = f"arn:aws:bedrock:{self.region_name}:{self.account_id}:agent/{self.agent_id}"
+        self.agent_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:agent/{self.agent_id}"
         self.agent_version = "1.0"
         self.failure_reasons: List[str] = []
         self.recommended_actions = ["action"]
@@ -124,7 +125,7 @@ class KnowledgeBase(BaseModel):
         self.region_name = region_name
         self.account_id = account_id
         self.knowledge_base_id = self.name + str(mock_random.uuid4())[:8]
-        self.knowledge_base_arn = f"arn:aws:bedrock:{self.region_name}:{self.account_id}:knowledge-base/{self.knowledge_base_id}"
+        self.knowledge_base_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:knowledge-base/{self.knowledge_base_id}"
         self.created_at = unix_time()
         self.updated_at = unix_time()
         self.status = "Active"

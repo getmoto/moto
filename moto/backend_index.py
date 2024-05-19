@@ -27,6 +27,7 @@ backend_url_patterns = [
     ("ce", re.compile("https?://ce\\.(.+)\\.amazonaws\\.com")),
     ("cloudformation", re.compile("https?://cloudformation\\.(.+)\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.amazonaws\\.com")),
+    ("cloudfront", re.compile("https?://cloudfront\\.(.+)\\.amazonaws\\.com")),
     ("cloudtrail", re.compile("https?://cloudtrail\\.(.+)\\.amazonaws\\.com")),
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
     ("codebuild", re.compile("https?://codebuild\\.(.+)\\.amazonaws\\.com")),

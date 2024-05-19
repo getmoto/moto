@@ -1,25 +1,27 @@
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from moto.utilities.utils import get_partition
+
 from .exceptions import ValidationError
 
 
 def make_arn_for_compute_env(account_id: str, name: str, region_name: str) -> str:
-    return f"arn:aws:batch:{region_name}:{account_id}:compute-environment/{name}"
+    return f"arn:{get_partition(region_name)}:batch:{region_name}:{account_id}:compute-environment/{name}"
 
 
 def make_arn_for_job_queue(account_id: str, name: str, region_name: str) -> str:
-    return f"arn:aws:batch:{region_name}:{account_id}:job-queue/{name}"
+    return f"arn:{get_partition(region_name)}:batch:{region_name}:{account_id}:job-queue/{name}"
 
 
 def make_arn_for_job(account_id: str, job_id: str, region_name: str) -> str:
-    return f"arn:aws:batch:{region_name}:{account_id}:job/{job_id}"
+    return f"arn:{get_partition(region_name)}:batch:{region_name}:{account_id}:job/{job_id}"
 
 
 def make_arn_for_task_def(
     account_id: str, name: str, revision: int, region_name: str
 ) -> str:
-    return f"arn:aws:batch:{region_name}:{account_id}:job-definition/{name}:{revision}"
+    return f"arn:{get_partition(region_name)}:batch:{region_name}:{account_id}:job-definition/{name}:{revision}"
 
 
 def lowercase_first_key(some_dict: Dict[str, Any]) -> Dict[str, Any]:

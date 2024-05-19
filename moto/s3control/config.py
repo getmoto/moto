@@ -14,6 +14,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
     def list_config_service_resources(
         self,
         account_id: str,
+        partition: str,
         resource_ids: Optional[List[str]],
         resource_name: Optional[str],
         limit: int,
@@ -36,12 +37,12 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
         if resource_ids:
             for resource_id in resource_ids:
                 if account_id == resource_id:
-                    pab = self.backends[account_id]["global"].public_access_block
+                    pab = self.backends[account_id][partition].public_access_block
                     break
 
         # Otherwise, just grab the one from the backend:
         if not resource_ids:
-            pab = self.backends[account_id]["global"].public_access_block
+            pab = self.backends[account_id][partition].public_access_block
 
         # If it's not present, then return nothing
         if not pab:
@@ -97,13 +98,14 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
     def get_config_resource(
         self,
         account_id: str,
+        partition: str,
         resource_id: str,
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         # Do we even have this defined?
-        backend = self.backends[account_id]["global"]
+        backend = self.backends[account_id][partition]
         if not backend.public_access_block:
             return None
 

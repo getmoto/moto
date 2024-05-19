@@ -3,6 +3,28 @@ import json
 import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
 
+DEFAULT_PARTITION = "aws"
+REGION_PREFIX_TO_PARTITION = {
+    # (region prefix, aws partition)
+    "cn-": "aws-cn",
+    "us-gov-": "aws-us-gov",
+    "us-iso-": "aws-iso",
+    "us-isob-": "aws-iso-b",
+}
+PARTITION_NAMES = list(REGION_PREFIX_TO_PARTITION.values()) + [DEFAULT_PARTITION]
+ARN_PARTITION_REGEX = r"^arn:(" + "|".join(sorted(PARTITION_NAMES)) + ")"
+
+
+def get_partition(region: str) -> str:
+    if not region:
+        return DEFAULT_PARTITION
+    if region in PARTITION_NAMES:
+        return region
+    for prefix in REGION_PREFIX_TO_PARTITION:
+        if region.startswith(prefix):
+            return REGION_PREFIX_TO_PARTITION[prefix]
+    return DEFAULT_PARTITION
+
 
 def str2bool(v: Any) -> Optional[bool]:
     if v in ("yes", True, "true", "True", "TRUE", "t", "1"):

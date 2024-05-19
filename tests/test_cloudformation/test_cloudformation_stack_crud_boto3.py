@@ -487,9 +487,17 @@ def test_stop_stack_set_operation():
 
 
 @mock_aws
-def test_describe_stack_set_operation():
-    cf = boto3.client("cloudformation", region_name=REGION_NAME)
-    cf.create_stack_set(StackSetName="name", TemplateBody=dummy_template_json)
+@pytest.mark.parametrize(
+    "region,partition", [(REGION_NAME, "aws"), ("cn-north-1", "aws-cn")]
+)
+@pytest.mark.parametrize("include_role", [True, False])
+def test_describe_stack_set_operation(region, partition, include_role):
+    cf = boto3.client("cloudformation", region_name=region)
+    kwargs = (
+        {"AdministrationRoleARN": "arn:my_role_with_long_name"} if include_role else {}
+    )
+    cf.create_stack_set(StackSetName="name", TemplateBody=dummy_template_json, **kwargs)
+
     operation_id = cf.create_stack_instances(
         StackSetName="name",
         Accounts=[ACCOUNT_ID],
@@ -497,12 +505,20 @@ def test_describe_stack_set_operation():
     )["OperationId"]
 
     cf.stop_stack_set_operation(StackSetName="name", OperationId=operation_id)
-    response = cf.describe_stack_set_operation(
+    stack_set_op = cf.describe_stack_set_operation(
         StackSetName="name", OperationId=operation_id
-    )
+    )["StackSetOperation"]
 
-    assert response["StackSetOperation"]["Status"] == "STOPPED"
-    assert response["StackSetOperation"]["Action"] == "CREATE"
+    if include_role:
+        assert stack_set_op["AdministrationRoleARN"] == "arn:my_role_with_long_name"
+    else:
+        assert (
+            stack_set_op["AdministrationRoleARN"]
+            == f"arn:{partition}:iam::123456789012:role/AWSCloudFormationStackSetAdministrationRole"
+        )
+    assert stack_set_op["Status"] == "STOPPED"
+    assert stack_set_op["Action"] == "CREATE"
+
     with pytest.raises(ClientError) as exp:
         cf.describe_stack_set_operation(
             StackSetName="name", OperationId="non_existing_operation"
@@ -849,6 +865,21 @@ def test_create_stack_set():
     assert stack_set["TemplateBody"] == dummy_template_json
     assert stack_set["AdministrationRoleARN"] == "admin/role/arn:asdfasdfadsf"
     assert stack_set["Description"] == "desc"
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "region,partition", [(REGION_NAME, "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_stack_set__without_admin_role(region, partition):
+    cf = boto3.client("cloudformation", region_name=region)
+    cf.create_stack_set(StackSetName="teststackset", TemplateBody=dummy_template_json)
+
+    stack_set = cf.describe_stack_set(StackSetName="teststackset")["StackSet"]
+    assert (
+        stack_set["AdministrationRoleARN"]
+        == f"arn:{partition}:iam::{ACCOUNT_ID}:role/AWSCloudFormationStackSetAdministrationRole"
+    )
 
 
 @mock_aws

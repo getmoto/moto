@@ -51,8 +51,9 @@ class IamInstanceProfileAssociationBackend:
 
         instance_profile = filter_iam_instance_profiles(
             self.account_id,  # type: ignore[attr-defined]
-            iam_instance_profile_arn,
-            iam_instance_profile_name,
+            partition=self.partition,  # type: ignore[attr-defined]
+            iam_instance_profile_arn=iam_instance_profile_arn,
+            iam_instance_profile_name=iam_instance_profile_name,
         )
 
         if instance_id in self.iam_instance_profile_associations.keys():
@@ -128,8 +129,9 @@ class IamInstanceProfileAssociationBackend:
     ) -> IamInstanceProfileAssociation:
         instance_profile = filter_iam_instance_profiles(
             self.account_id,  # type: ignore[attr-defined]
-            iam_instance_profile_arn,
-            iam_instance_profile_name,
+            partition=self.partition,  # type: ignore[attr-defined]
+            iam_instance_profile_arn=iam_instance_profile_arn,
+            iam_instance_profile_name=iam_instance_profile_name,
         )
 
         iam_instance_profile_association = None

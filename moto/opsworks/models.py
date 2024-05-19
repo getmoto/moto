@@ -5,6 +5,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFoundException, ValidationException
 
@@ -362,7 +363,7 @@ class Stack(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:opsworks:{self.region}:{self.account_number}:stack/{self.id}"
+        return f"arn:{get_partition(self.region)}:opsworks:{self.region}:{self.account_number}:stack/{self.id}"
 
     def to_dict(self) -> Dict[str, Any]:
         response = {

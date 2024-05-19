@@ -6,6 +6,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ScheduleExists, ScheduleGroupNotFound, ScheduleNotFound
 
@@ -30,9 +31,7 @@ class Schedule(BaseModel):
         self.name = name
         self.group_name = group_name
         self.description = description
-        self.arn = (
-            f"arn:aws:scheduler:{region}:{account_id}:schedule/{group_name}/{name}"
-        )
+        self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule/{group_name}/{name}"
         self.schedule_expression = schedule_expression
         self.schedule_expression_timezone = schedule_expression_timezone
         self.flexible_time_window = flexible_time_window
@@ -100,7 +99,7 @@ class Schedule(BaseModel):
 class ScheduleGroup(BaseModel):
     def __init__(self, region: str, account_id: str, name: str):
         self.name = name
-        self.arn = f"arn:aws:scheduler:{region}:{account_id}:schedule-group/{name}"
+        self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule-group/{name}"
         self.schedules: Dict[str, Schedule] = dict()
         self.created_on = None if self.name == "default" else unix_time()
         self.last_modified = None if self.name == "default" else unix_time()

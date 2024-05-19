@@ -17,6 +17,7 @@ from moto.core.utils import (
 from moto.moto_api._internal import mock_random
 from moto.organizations.models import OrganizationsBackend, organizations_backends
 from moto.sns.models import sns_backends
+from moto.utilities.utils import get_partition
 
 from .custom_model import CustomModel
 from .exceptions import StackSetNotEmpty, StackSetNotFoundException, ValidationError
@@ -54,12 +55,19 @@ class FakeStackSet(BaseModel):
         self.description = description
         self.parameters = parameters
         self.tags = tags
-        self.admin_role = admin_role
-        self.admin_role_arn = f"arn:aws:iam::{account_id}:role/{self.admin_role}"
+        self.admin_role = (
+            admin_role
+            or f"arn:{get_partition(region)}:iam::{account_id}:role/AWSCloudFormationStackSetAdministrationRole"
+        )
         self.execution_role = execution_role or "AWSCloudFormationStackSetExecutionRole"
         self.status = "ACTIVE"
         self.instances = FakeStackInstances(
-            account_id, template, parameters, self.id, self.name
+            account_id=account_id,
+            region=region,
+            template=template,
+            parameters=parameters,
+            stackset_id=self.id,
+            stackset_name=self.name,
         )
         self.stack_instances = self.instances.stack_instances
         self.operations: List[Dict[str, Any]] = []
@@ -281,12 +289,14 @@ class FakeStackInstances(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region: str,
         template: str,
         parameters: Dict[str, str],
         stackset_id: str,
         stackset_name: str,
     ):
         self.account_id = account_id
+        self.partition = get_partition(region)
         self.template = template
         self.parameters = parameters or {}
         self.stackset_id = stackset_id
@@ -296,7 +306,7 @@ class FakeStackInstances(BaseModel):
 
     @property
     def org_backend(self) -> OrganizationsBackend:
-        return organizations_backends[self.account_id]["global"]
+        return organizations_backends[self.account_id][self.partition]
 
     def create_instances(
         self,
@@ -565,7 +575,11 @@ class FakeStack(CloudFormationModel):
         ]
         properties = cloudformation_json["Properties"]
 
-        template_body = get_stack_from_s3_url(properties["TemplateURL"], account_id)
+        template_body = get_stack_from_s3_url(
+            properties["TemplateURL"],
+            account_id=account_id,
+            partition=get_partition(region_name),
+        )
         parameters = properties.get("Parameters", {})
 
         return cf_backend.create_stack(

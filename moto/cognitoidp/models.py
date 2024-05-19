@@ -15,7 +15,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from ..settings import get_cognito_idp_user_pool_id_strategy
 from .exceptions import (
@@ -396,7 +396,7 @@ class CognitoIdpUserPool(BaseModel):
             get_cognito_idp_user_pool_id_strategy(), region, name, extended_config
         )
         self.id = f"{self.region}_{user_pool_id}"[: self.MAX_ID_LENGTH]
-        self.arn = f"arn:aws:cognito-idp:{self.region}:{account_id}:userpool/{self.id}"
+        self.arn = f"arn:{get_partition(region)}:cognito-idp:{region}:{account_id}:userpool/{self.id}"
 
         self.name = name
         self.status = None
