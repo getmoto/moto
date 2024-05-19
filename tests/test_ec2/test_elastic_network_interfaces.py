@@ -951,14 +951,14 @@ def test_elastic_network_interfaces_describe_attachment():
 def test_eni_detachment():
     # Setup
     ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
-    ec2client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)
+    resp = ec2client.run_instances(ImageId="ami-12c6146b", MinCount=1, MaxCount=1)[
+        "Instances"
+    ][0]
 
     # Execute
-    enis = ec2client.describe_network_interfaces()
+    eni_id = resp["NetworkInterfaces"][0]["Attachment"]["AttachmentId"]
     with pytest.raises(ClientError) as ex:
-        ec2client.detach_network_interface(
-            AttachmentId=enis["NetworkInterfaces"][0]["Attachment"]["AttachmentId"]
-        )
+        ec2client.detach_network_interface(AttachmentId=eni_id)
 
     # Verify
     assert ex.value.response["Error"]["Code"] == "OperationNotPermitted"

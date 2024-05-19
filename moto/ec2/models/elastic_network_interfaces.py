@@ -335,10 +335,10 @@ class NetworkInterfaceBackend:
     def detach_network_interface(self, attachment_id: str) -> None:
         for eni in self.enis.values():
             if eni.attachment_id == attachment_id:
+                if eni.instance and len(eni.instance.nics) == 1:
+                    raise LastEniDetachError
                 eni.instance.detach_eni(eni)  # type: ignore
                 return
-            if len(eni.instance.nics) == 1:
-                raise LastEniDetachError
         raise InvalidNetworkAttachmentIdError(attachment_id)
 
     def modify_network_interface_attribute(
