@@ -1,4 +1,5 @@
 """FSxBackend class with methods for supported APIs."""
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -9,18 +10,18 @@ from moto.utilities.tagging_service import TaggingService
 
 class FileSystem(BaseModel):
     def __init__(
-            self,
-            file_system_type: str,
-            storage_capacity: int,
-            storage_type: str,
-            subnet_ids: List[str],
-            security_group_ids: List[str],
-            tags: Optional[List[Dict[str, str]]],
-            kms_key_id: Optional[str],
-            windows_configuration: Optional[Dict[str, Any]],
-            lustre_configuration: Optional[Dict[str, Any]],
-            ontap_configuration: Optional[Dict[str, Any]],
-            open_zfs_configuration: Optional[Dict[str, Any]]
+        self,
+        file_system_type: str,
+        storage_capacity: int,
+        storage_type: str,
+        subnet_ids: List[str],
+        security_group_ids: List[str],
+        tags: Optional[List[Dict[str, str]]],
+        kms_key_id: Optional[str],
+        windows_configuration: Optional[Dict[str, Any]],
+        lustre_configuration: Optional[Dict[str, Any]],
+        ontap_configuration: Optional[Dict[str, Any]],
+        open_zfs_configuration: Optional[Dict[str, Any]],
     ):
         self.file_system_id = f"fs-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.file_system_type = file_system_type
@@ -28,13 +29,16 @@ class FileSystem(BaseModel):
         self.storage_type = storage_type
         self.subnet_ids = subnet_ids
         self.security_group_ids = security_group_ids
-        self.tags = tags
+        self.dns_name = f"{self.file_system_id}.fsx.region-name.amazonaws.com"
         self.kms_key_id = kms_key_id
+        self.resource_arn = (
+            f"arn:aws:fsx:region-name:account-id:file-system/{self.file_system_id}"
+        )
+        self.tags = tags
         self.windows_configuration = windows_configuration
         self.lustre_configuration = lustre_configuration
         self.ontap_configuration = ontap_configuration
         self.open_zfs_configuration = open_zfs_configuration
-    
 
     def to_dict(self) -> Dict[str, Any]:
         dct = {
@@ -45,13 +49,16 @@ class FileSystem(BaseModel):
             "SubnetIds": self.subnet_ids,
             "SecurityGroupIds": self.security_group_ids,
             "Tags": self.tags,
+            "DNSName": self.dns_name,
             "KmsKeyId": self.kms_key_id,
+            "ResourceARN": self.resource_arn,
             "WindowsConfiguration": self.windows_configuration,
             "LustreConfiguration": self.lustre_configuration,
             "OntapConfiguration": self.ontap_configuration,
             "OpenZFSConfiguration": self.open_zfs_configuration,
         }
         return {k: v for k, v in dct.items() if v}
+
 
 class FSxBackend(BaseBackend):
     """Implementation of FSx APIs."""
@@ -75,9 +82,8 @@ class FSxBackend(BaseBackend):
         lustre_configuration: Optional[Dict[str, Any]],
         ontap_configuration: Optional[Dict[str, Any]],
         file_system_type_version: Optional[str],
-        open_zfs_configuration: Optional[Dict[str, Any]]
+        open_zfs_configuration: Optional[Dict[str, Any]],
     ) -> FileSystem:
-
         file_system = FileSystem(
             file_system_type=file_system_type,
             storage_capacity=storage_capacity,
@@ -97,7 +103,7 @@ class FSxBackend(BaseBackend):
         self.file_systems[file_system_id] = file_system
         self.tags.tag_resource(file_system_id, tags)
         return file_system
-    
+
     def describe_file_systems(self, file_system_ids, max_results, next_token):
         # implement here
         file_systems_fetched = list(self.file_systems.values())
@@ -106,14 +112,19 @@ class FSxBackend(BaseBackend):
             file_systems.append(file_system.to_dict())
         next_token = None
         return file_systems, next_token
-    
-    def delete_file_system(self, file_system_id, client_request_token, windows_configuration, lustre_configuration, open_zfs_configuration):
-        
-        response_template = {"FinalBackUpId": "",
-                             "FinalBackUpTags": []}
-        
+
+    def delete_file_system(
+        self,
+        file_system_id,
+        client_request_token,
+        windows_configuration,
+        lustre_configuration,
+        open_zfs_configuration,
+    ):
+        response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
+
         file_system_type = self.file_systems[file_system_id].file_system_type
-        
+
         lifecycle = "DELETING"
         self.file_systems.pop(file_system_id)
 
@@ -128,12 +139,21 @@ class FSxBackend(BaseBackend):
         elif file_system_type == "OPEN_ZFS":
             open_zfs_response = response_template
 
-         
-        return file_system_id, lifecycle, windows_response, lustre_response, open_zfs_response
-    
+        return (
+            file_system_id,
+            lifecycle,
+            windows_response,
+            lustre_response,
+            open_zfs_response,
+        )
+
     def tag_resource(self, resource_arn, tags):
-        # implement here
-        return 
-    
+        fs = next(
+            self.file_systems[x]
+            for x in self.file_systems
+            if self.file_systems[x].resource_arn == resource_arn
+        )
+        fs.tags.update(tags)
+
 
 fsx_backends = BackendDict(FSxBackend, "fsx")

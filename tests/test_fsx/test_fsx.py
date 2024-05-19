@@ -1,4 +1,5 @@
 """Unit tests for fsx-supported APIs."""
+
 import time
 
 import boto3
@@ -13,10 +14,12 @@ TEST_REGION_NAME = "us-east-1"
 FAKE_SUBNET_ID = "subnet-012345678"
 FAKE_SECURITY_GROUP_IDS = ["sg-0123456789abcdef0", "sg-0123456789abcdef1"]
 
+
 @pytest.fixture(name="client")
 def fixture_fsx_client():
     with mock_aws():
         yield boto3.client("fsx", region_name=TEST_REGION_NAME)
+
 
 def test_create_filesystem(client):
     resp = client.create_file_system(
@@ -24,14 +27,13 @@ def test_create_filesystem(client):
         StorageCapacity=1200,
         StorageType="SSD",
         SubnetIds=[FAKE_SUBNET_ID],
-        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
     file_system = resp["FileSystem"]
 
     assert file_system["FileSystemId"].startswith("fs-moto")
     assert file_system["FileSystemType"] == "LUSTRE"
-    #assert len(file_system["SecurityGroupIds"]) == len(FAKE_SECURITY_GROUP_IDS)
 
 
 @mock_aws
@@ -43,7 +45,7 @@ def test_describe_filesystems():
         StorageCapacity=1200,
         StorageType="SSD",
         SubnetIds=[FAKE_SUBNET_ID],
-        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
     time.sleep(1)
@@ -54,7 +56,7 @@ def test_describe_filesystems():
         StorageCapacity=1200,
         StorageType="SSD",
         SubnetIds=[FAKE_SUBNET_ID],
-        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
     time.sleep(1)
@@ -66,6 +68,7 @@ def test_describe_filesystems():
     assert file_systems[0]["FileSystemType"] == "LUSTRE"
     assert file_systems[1]["FileSystemType"] == "WINDOWS"
 
+
 @mock_aws
 def test_delete_file_system():
     client = boto3.client("fsx", region_name=TEST_REGION_NAME)
@@ -75,7 +78,7 @@ def test_delete_file_system():
         StorageCapacity=1200,
         StorageType="SSD",
         SubnetIds=[FAKE_SUBNET_ID],
-        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
     assert fs["FileSystem"]["FileSystemId"].startswith("fs-moto")
@@ -85,10 +88,25 @@ def test_delete_file_system():
     assert resp["Lifecycle"] == "DELETING"
     assert resp["LustreResponse"] is not None
 
-    
-@pytest.mark.skip("NotYetImplemented")
-def test_tag_resource():
-    client = boto3.client("fsx", region_name="us-east-2")
-    resp = client.tag_resource()
 
-    raise Exception("NotYetImplemented")
+def test_tag_resource(client):
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    file_system_id = fs["FileSystem"]["FileSystemId"]
+
+    resp = client.describe_file_systems(FileSystemIds=[file_system_id])
+    resource_arn = resp["FileSystems"][0]["ResourceARN"]
+    tags = [
+        {"Key": "Moto", "Value": "Hello"},
+        {"Key": "Environment", "Value": "Dev"},
+    ]
+
+    client.tag_resource(ResourceARN=resource_arn, Tags=tags)
+
+    resp = client.describe_file_systems(FileSystemIds=[file_system_id])
+    assert resp["FileSystems"][0]["Tags"] == tags

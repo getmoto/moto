@@ -1,4 +1,5 @@
 """fsx base URL and path."""
+
 from .responses import FSxResponse
 
 url_bases = [

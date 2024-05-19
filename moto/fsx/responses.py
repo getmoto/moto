@@ -1,4 +1,5 @@
 """Handles incoming fsx requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.responses import BaseResponse
@@ -15,9 +16,6 @@ class FSxResponse(BaseResponse):
     @property
     def fsx_backend(self):
         """Return backend instance specific for this region."""
-        # TODO
-        # fsx_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return fsx_backends[self.current_account][self.region]
 
     def create_file_system(self):
@@ -53,7 +51,6 @@ class FSxResponse(BaseResponse):
 
         return json.dumps(dict(FileSystem=file_system.to_dict()))
 
-    
     def describe_file_systems(self):
         params = json.loads(self.body)
         file_system_ids = params.get("FileSystemIds")
@@ -67,7 +64,6 @@ class FSxResponse(BaseResponse):
 
         return json.dumps(dict(FileSystems=file_systems))
 
-    
     def delete_file_system(self):
         params = json.loads(self.body)
         file_system_id = params.get("FileSystemId")
@@ -75,7 +71,13 @@ class FSxResponse(BaseResponse):
         windows_configuration = params.get("WindowsConfiguration")
         lustre_configuration = params.get("LustreConfiguration")
         open_zfs_configuration = params.get("OpenZFSConfiguration")
-        file_system_id, lifecycle, windows_response, lustre_response, open_zfs_response = self.fsx_backend.delete_file_system(
+        (
+            file_system_id,
+            lifecycle,
+            windows_response,
+            lustre_response,
+            open_zfs_response,
+        ) = self.fsx_backend.delete_file_system(
             file_system_id=file_system_id,
             client_request_token=client_request_token,
             windows_configuration=windows_configuration,
@@ -83,9 +85,18 @@ class FSxResponse(BaseResponse):
             open_zfs_configuration=open_zfs_configuration,
         )
 
-        return json.dumps(dict(FileSystemId=file_system_id, Lifecycle=lifecycle, WindowsResponse=windows_response, LustreResponse=lustre_response, OpenZfsResponse=open_zfs_response))
-# add templates from here
-    
+        return json.dumps(
+            dict(
+                FileSystemId=file_system_id,
+                Lifecycle=lifecycle,
+                WindowsResponse=windows_response,
+                LustreResponse=lustre_response,
+                OpenZfsResponse=open_zfs_response,
+            )
+        )
+
+    # add templates from here
+
     def tag_resource(self):
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
