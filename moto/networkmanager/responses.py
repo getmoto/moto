@@ -23,7 +23,7 @@ class NetworkManagerResponse(BaseResponse):
 
     # add methods from here
 
-    def create_global_network(self):
+    def create_global_network(self) -> str:
         params = json.loads(self.body)
         description = params.get("Description")
         tags = params.get("Tags")
@@ -32,6 +32,22 @@ class NetworkManagerResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(dict(GlobalNetwork=global_network.to_dict()))
+
+    def create_core_network(self):
+        params = json.loads(self.body)
+        global_network_id = params.get("GlobalNetworkId")
+        description = params.get("Description")
+        tags = params.get("Tags")
+        policy_document = params.get("PolicyDocument")
+        client_token = params.get("ClientToken")
+        core_network = self.networkmanager_backend.create_core_network(
+            global_network_id=global_network_id,
+            description=description,
+            tags=tags,
+            policy_document=policy_document,
+            client_token=client_token,
+        )
+        return json.dumps(dict(CoreNetwork=core_network.to_dict()))
 
 
 # add templates from here
