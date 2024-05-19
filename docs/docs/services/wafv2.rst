@@ -23,7 +23,7 @@ wafv2
 
 - [ ] check_capacity
 - [ ] create_api_key
-- [ ] create_ip_set
+- [X] create_ip_set
 - [ ] create_regex_pattern_set
 - [ ] create_rule_group
 - [X] create_web_acl
@@ -33,8 +33,8 @@ wafv2
 
 - [ ] delete_api_key
 - [ ] delete_firewall_manager_rule_groups
-- [ ] delete_ip_set
-- [ ] delete_logging_configuration
+- [X] delete_ip_set
+- [X] delete_logging_configuration
 - [ ] delete_permission_policy
 - [ ] delete_regex_pattern_set
 - [ ] delete_rule_group
@@ -49,8 +49,8 @@ wafv2
 - [X] disassociate_web_acl
 - [ ] generate_mobile_sdk_release_url
 - [ ] get_decrypted_api_key
-- [ ] get_ip_set
-- [ ] get_logging_configuration
+- [X] get_ip_set
+- [X] get_logging_configuration
 - [ ] get_managed_rule_set
 - [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
@@ -63,8 +63,8 @@ wafv2
 - [ ] list_api_keys
 - [ ] list_available_managed_rule_group_versions
 - [ ] list_available_managed_rule_groups
-- [ ] list_ip_sets
-- [ ] list_logging_configurations
+- [X] list_ip_sets
+- [X] list_logging_configurations
 - [ ] list_managed_rule_sets
 - [ ] list_mobile_sdk_releases
 - [ ] list_regex_pattern_sets
@@ -76,12 +76,12 @@ wafv2
         
 
 - [X] list_web_acls
-- [ ] put_logging_configuration
+- [X] put_logging_configuration
 - [ ] put_managed_rule_set_versions
 - [ ] put_permission_policy
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_ip_set
+- [X] update_ip_set
 - [ ] update_managed_rule_set_version_expiry_date
 - [ ] update_regex_pattern_set
 - [ ] update_rule_group

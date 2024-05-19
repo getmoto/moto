@@ -81,6 +81,21 @@ def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
     return decoded
 
 
+@functools.lru_cache(maxsize=None)
+def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]]:
+    method_urls: Dict[str, Dict[str, str]] = defaultdict(dict)
+    service_name = boto3_service_name.get(service_name) or service_name  # type: ignore
+    conn = boto3.client(service_name, region_name=region)
+    op_names = conn._service_model.operation_names
+    for op_name in op_names:
+        op_model = conn._service_model.operation_model(op_name)
+        _method = op_model.http["method"]
+        uri_regexp = BaseResponse.uri_to_regexp(op_model.http["requestUri"])
+        method_urls[_method][uri_regexp] = op_model.name
+
+    return method_urls
+
+
 class DynamicDictLoader(DictLoader):
     def update(self, mapping: Dict[str, str]) -> None:
         self.mapping.update(mapping)  # type: ignore[attr-defined]
@@ -481,7 +496,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.setup_class(request, full_url, headers)
         return self.call_action()
 
-    def uri_to_regexp(self, uri: str) -> str:
+    @staticmethod
+    def uri_to_regexp(uri: str) -> str:
         """converts uri w/ placeholder to regexp
           '/cars/{carName}/drivers/{DriverName}'
         -> '^/cars/.*/drivers/[^/]*$'
@@ -521,22 +537,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         You can refer to example from link below
         https://github.com/boto/botocore/blob/develop/botocore/data/iot/2015-05-28/service-2.json
         """
-
-        service_name = boto3_service_name.get(self.service_name) or self.service_name  # type: ignore
-        conn = boto3.client(service_name, region_name=self.region)
-
-        # make cache if it does not exist yet
-        if not hasattr(self, "method_urls"):
-            self.method_urls: Dict[str, Dict[str, str]] = defaultdict(
-                lambda: defaultdict(str)
-            )
-            op_names = conn._service_model.operation_names
-            for op_name in op_names:
-                op_model = conn._service_model.operation_model(op_name)
-                _method = op_model.http["method"]
-                uri_regexp = self.uri_to_regexp(op_model.http["requestUri"])
-                self.method_urls[_method][uri_regexp] = op_model.name
-        regexp_and_names = self.method_urls[method]
+        methods_url = _get_method_urls(self.service_name, self.region)
+        regexp_and_names = methods_url[method]
         for regexp, name in regexp_and_names.items():
             match = re.match(regexp, request_uri)
             self.uri_match = match

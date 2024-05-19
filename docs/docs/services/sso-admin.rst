@@ -37,8 +37,8 @@ sso-admin
 - [X] delete_permission_set
 - [ ] delete_permissions_boundary_from_permission_set
 - [ ] delete_trusted_token_issuer
-- [ ] describe_account_assignment_creation_status
-- [ ] describe_account_assignment_deletion_status
+- [X] describe_account_assignment_creation_status
+- [X] describe_account_assignment_deletion_status
 - [ ] describe_application
 - [ ] describe_application_assignment
 - [ ] describe_application_provider

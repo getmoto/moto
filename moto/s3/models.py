@@ -2291,6 +2291,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> FakeKey:
         if key is None:
             raise MissingKey(key=key_name)
+
+        # get bucket for eventbridge notification
+        # we can assume that the key has its bucket
+        bucket = self.get_bucket(key.bucket_name)  # type: ignore
+
         tags_input = self.tagger.convert_dict_to_tags_input(tags)
         # Validation custom to S3
         if tags:
@@ -2304,6 +2309,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(key.arn, tags_input)
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_TAGGING_PUT_EVENT,
+            bucket,
+            key,
+        )
         return key
 
     def get_bucket_tagging(self, bucket_name: str) -> Dict[str, List[Dict[str, str]]]:

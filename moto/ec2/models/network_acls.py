@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from ..exceptions import (
+    DependencyViolationError,
     InvalidNetworkAclIdError,
     InvalidRouteTableIdError,
     NetworkAclEntryAlreadyExistsError,
@@ -61,6 +62,14 @@ class NetworkAclBackend:
             )
 
     def delete_network_acl(self, network_acl_id: str) -> "NetworkAcl":
+        if any(
+            network_acl.id == network_acl_id and len(network_acl.associations) > 0
+            for network_acl in self.network_acls.values()
+        ):
+            raise DependencyViolationError(
+                f"The network ACL '{network_acl_id}' has dependencies and cannot be deleted."
+            )
+
         deleted = self.network_acls.pop(network_acl_id, None)
         if not deleted:
             raise InvalidNetworkAclIdError(network_acl_id)

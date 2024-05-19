@@ -477,6 +477,9 @@ class FakeRecipe(BaseModel):
         del self.versions[self.latest_working.version]
         self.versions[self.latest_published.version] = self.latest_published
         self.latest_working.version = self.latest_published.version + 0.1
+
+        if self.latest_published.published_date:
+            self.latest_working.created_time = self.latest_published.published_date
         self.versions[self.latest_working.version] = self.latest_working
 
     def update(

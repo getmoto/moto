@@ -613,7 +613,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # VPC VPN Connection
 
         # Lambda Instance
-        if not resource_type_filters or "lambda" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "lambda" in resource_type_filters
+            or "lambda:function" in resource_type_filters
+        ):
             for f in self.lambda_backend.list_functions():
                 tags = format_tags(f.tags)
                 if not tags or not tag_filter(tags):

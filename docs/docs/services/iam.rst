@@ -164,7 +164,7 @@ iam
 - [ ] set_security_token_service_preferences
 - [ ] simulate_custom_policy
 - [ ] simulate_principal_policy
-- [ ] tag_instance_profile
+- [X] tag_instance_profile
 - [ ] tag_mfa_device
 - [X] tag_open_id_connect_provider
 - [X] tag_policy
@@ -172,7 +172,7 @@ iam
 - [ ] tag_saml_provider
 - [ ] tag_server_certificate
 - [X] tag_user
-- [ ] untag_instance_profile
+- [X] untag_instance_profile
 - [ ] untag_mfa_device
 - [X] untag_open_id_connect_provider
 - [X] untag_policy

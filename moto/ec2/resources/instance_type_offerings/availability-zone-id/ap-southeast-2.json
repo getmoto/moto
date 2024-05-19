@@ -900,6 +900,22 @@
   "Location": "apse2-az1"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "apse2-az1"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "apse2-az1"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "apse2-az1"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "apse2-az1"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "apse2-az1"
  },
@@ -5613,6 +5629,22 @@
  },
  {
   "InstanceType": "inf1.xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
   "Location": "apse2-az3"
  },
  {

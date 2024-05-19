@@ -622,6 +622,18 @@
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Configuration changes"
     },
+    "CLOUDTRAIL_ALL_READ_S3_DATA_EVENT_CHECK": {
+      "AWS Region": "All supported AWS regions except China (Beijing) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
+    },
+    "CLOUDTRAIL_ALL_WRITE_S3_DATA_EVENT_CHECK": {
+      "AWS Region": "All supported AWS regions except China (Beijing) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
+    },
     "CLOUDTRAIL_S3_DATAEVENTS_ENABLED": {
       "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
@@ -2562,6 +2574,18 @@
       "Resource Types": "AWS::Events::Endpoint",
       "Trigger type": "Configuration changes"
     },
+    "GUARDDUTY_EKS_PROTECTION_AUDIT_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::GuardDuty::Detector",
+      "Trigger type": "Periodic"
+    },
+    "GUARDDUTY_EKS_PROTECTION_RUNTIME_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::GuardDuty::Detector",
+      "Trigger type": "Periodic"
+    },
     "GUARDDUTY_ENABLED_CENTRALIZED": {
       "AWS Region": "All supported AWS regions except Middle East (Bahrain), Israel (Tel Aviv), Canada West (Calgary) Region",
       "Parameters": [
@@ -2571,6 +2595,18 @@
           "Type": "String"
         }
       ],
+      "Trigger type": "Periodic"
+    },
+    "GUARDDUTY_LAMBDA_PROTECTION_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::GuardDuty::Detector",
+      "Trigger type": "Periodic"
+    },
+    "GUARDDUTY_MALWARE_PROTECTION_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::GuardDuty::Detector",
       "Trigger type": "Periodic"
     },
     "GUARDDUTY_NON_ARCHIVED_FINDINGS": {
@@ -2595,6 +2631,18 @@
           "Type": "int"
         }
       ],
+      "Trigger type": "Periodic"
+    },
+    "GUARDDUTY_RDS_PROTECTION_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::GuardDuty::Detector",
+      "Trigger type": "Periodic"
+    },
+    "GUARDDUTY_S3_PROTECTION_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::GuardDuty::Detector",
       "Trigger type": "Periodic"
     },
     "IAM_CUSTOMER_POLICY_BLOCKED_KMS_ACTIONS": {
@@ -2767,6 +2815,12 @@
       "Parameters": [],
       "Trigger type": "Periodic"
     },
+    "IAM_SERVER_CERTIFICATE_EXPIRATION_CHECK": {
+      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::IAM::ServerCertificate",
+      "Trigger type": "Periodic"
+    },
     "IAM_USER_GROUP_MEMBERSHIP_CHECK": {
       "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
       "Parameters": [
@@ -2809,6 +2863,30 @@
       "Parameters": [],
       "Resource Types": "AWS::EC2::SecurityGroup",
       "Trigger type": "Configuration changes and Periodic"
+    },
+    "INSPECTOR_EC2_SCAN_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
+    },
+    "INSPECTOR_ECR_SCAN_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
+    },
+    "INSPECTOR_LAMBDA_CODE_SCAN_ENABLED": {
+      "AWS Region": "Only available in Europe (Stockholm), US East (Ohio), Europe (Ireland), Europe (Frankfurt), US East (N. Virginia), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
+    },
+    "INSPECTOR_LAMBDA_STANDARD_SCAN_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Europe (Spain), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
     },
     "INSTANCES_IN_VPC": {
       "AWS Region": "All supported AWS regions",
@@ -3670,6 +3748,12 @@
       "Resource Types": "AWS::Redshift::Cluster, AWS::Redshift::ClusterParameterGroup",
       "Trigger type": "Configuration changes"
     },
+    "REDSHIFT_UNRESTRICTED_PORT_ACCESS": {
+      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::Redshift::Cluster",
+      "Trigger type": "Periodic"
+    },
     "REQUIRED_TAGS": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -3891,7 +3975,7 @@
       "Trigger type": "Configuration changes"
     },
     "S3_BUCKET_CROSS_REGION_REPLICATION_ENABLED": {
-      "AWS Region": "All supported AWS regions except China (Beijing), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::S3::Bucket",
       "Trigger type": "Configuration changes"
@@ -4606,6 +4690,33 @@
       ],
       "Resource Types": "AWS::EC2::SecurityGroup",
       "Trigger type": "Configuration changes and Periodic"
+    },
+    "VPC_SG_PORT_RESTRICTION_CHECK": {
+      "AWS Region": "All supported AWS regions except China (Beijing) Region",
+      "Parameters": [
+        {
+          "Name": "restrictPorts",
+          "Optional": true,
+          "Type": "CSV"
+        },
+        {
+          "Name": "protocolType",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "excludeExternalSecurityGroups",
+          "Optional": true,
+          "Type": "boolean"
+        },
+        {
+          "Name": "ipType",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EC2::SecurityGroup",
+      "Trigger type": "Periodic"
     },
     "VPC_VPN_2_TUNNELS_UP": {
       "AWS Region": "All supported AWS regions except Middle East (Bahrain), China (Beijing), Asia Pacific (Osaka), Israel (Tel Aviv), China (Ningxia) Region",

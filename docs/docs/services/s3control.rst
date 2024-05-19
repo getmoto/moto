@@ -91,7 +91,7 @@ s3control
 - [ ] list_tags_for_resource
 - [ ] put_access_grants_instance_resource_policy
 - [ ] put_access_point_configuration_for_object_lambda
-- [ ] put_access_point_policy
+- [X] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy

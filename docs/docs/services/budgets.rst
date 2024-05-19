@@ -43,6 +43,9 @@ budgets
 
 - [ ] describe_subscribers_for_notification
 - [ ] execute_budget_action
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
 - [ ] update_budget
 - [ ] update_budget_action
 - [ ] update_notification

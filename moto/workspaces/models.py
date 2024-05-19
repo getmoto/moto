@@ -58,7 +58,8 @@ class Workspace(BaseModel):
         self.modification_states: List[
             Dict[str, str]
         ] = []  # modify_workspace_properties
-        self.related_workspaces: List[Dict[str, str]] = []  # create_standy_workspace
+        # create_standy_workspace
+        self.related_workspaces: List[Dict[str, str]] = []
         self.data_replication_settings: Dict[str, Any] = {}
         # The properties of the standby WorkSpace related to related_workspaces
         self.standby_workspaces_properties: List[Dict[str, Any]] = []
@@ -141,7 +142,13 @@ class WorkSpaceDirectory(BaseModel):
         self.dns_ip_addresses = directory.dns_ip_addrs
         self.customer_username = "Administrator"
         self.iam_rold_id = f"arn:aws:iam::{account_id}:role/workspaces_DefaultRole"
-        self.directory_type = directory.directory_type
+        dir_type = directory.directory_type
+        if dir_type == "ADConnector":
+            self.directory_type = "AD_CONNECTOR"
+        elif dir_type == "SimpleAD":
+            self.directory_type = "SIMPLE_AD"
+        else:
+            self.directory_type = dir_type
         self.workspace_security_group_id = security_group_id
         self.state = "REGISTERED"
         # Default values for workspace_creation_properties

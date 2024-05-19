@@ -11,21 +11,21 @@ DEFAULT_MAX_RESULTS = 100
 DEFAULT_NEXT_TOKEN = ""
 
 """
-These are the available methos:
+These are the available methods:
     can_paginate()
-    cancel_job_run()
+    cancel_job_run() -> DONE
     close()
     create_application() -> DONE
     delete_application() -> DONE
     get_application() -> DONE
-    get_job_run()
+    get_job_run() -> DONE
     get_paginator()
     get_waiter()
     list_applications() -> DONE
-    list_job_runs()
+    list_job_runs() -> DONE
     list_tags_for_resource()
     start_application() -> DONE
-    start_job_run()
+    start_job_run() -> DONE
     stop_application() -> DONE
     tag_resource()
     untag_resource()
@@ -128,3 +128,77 @@ class EMRServerlessResponse(BaseResponse):
         )
         response = {"application": application}
         return 200, {}, json.dumps(response)
+
+    def start_job_run(self) -> TYPE_RESPONSE:
+        # params = self._get_params()
+        application_id = self._get_param(
+            "applicationId"
+        )  # params["application_id"] #.get()
+        client_token = self._get_param("clientToken")
+        execution_role_arn = self._get_param("executionRoleArn")
+        job_driver = self._get_param("jobDriver")
+        configuration_overrides = self._get_param("configurationOverrides")
+        tags = self._get_param("tags")
+        execution_timeout_minutes = self._get_int_param("executionTimeoutMinutes")
+        name = self._get_param("name")
+        job_run = self.emrserverless_backend.start_job_run(
+            application_id=application_id,
+            client_token=client_token,
+            execution_role_arn=execution_role_arn,
+            job_driver=job_driver,
+            configuration_overrides=configuration_overrides,
+            tags=tags,
+            execution_timeout_minutes=execution_timeout_minutes,
+            name=name,
+        )
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "applicationId": job_run.application_id,
+                    "jobRunId": job_run.id,
+                    "arn": job_run.arn,
+                }
+            ),
+        )
+
+    def get_job_run(self) -> TYPE_RESPONSE:
+        application_id = self._get_param("applicationId")
+        job_run_id = self._get_param("jobRunId")
+        job_run = self.emrserverless_backend.get_job_run(
+            application_id=application_id, job_run_id=job_run_id
+        )
+        # TODO: adjust response
+        return 200, {}, json.dumps({"jobRun": job_run.to_dict("get")})
+
+    def cancel_job_run(self) -> TYPE_RESPONSE:
+        application_id = self._get_param("applicationId")
+        job_run_id = self._get_param("jobRunId")
+        application_id, job_run_id = self.emrserverless_backend.cancel_job_run(
+            application_id=application_id,
+            job_run_id=job_run_id,
+        )
+
+        return (
+            200,
+            {},
+            json.dumps(dict(applicationId=application_id, jobRunId=job_run_id)),
+        )
+
+    def list_job_runs(self) -> TYPE_RESPONSE:
+        application_id = self._get_param("applicationId")
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        created_at_after = self._get_param("createdAtAfter")
+        created_at_before = self._get_param("createdAtBefore")
+        states = self.querystring.get("states", [])
+        job_runs, next_token = self.emrserverless_backend.list_job_runs(
+            application_id=application_id,
+            next_token=next_token,
+            max_results=max_results,
+            created_at_after=created_at_after,
+            created_at_before=created_at_before,
+            states=states,
+        )
+        return 200, {}, json.dumps({"jobRuns": job_runs, "nextToken": next_token})
