@@ -333,12 +333,12 @@ class NetworkInterfaceBackend:
         return instance.attach_eni(eni, device_index)
 
     def detach_network_interface(self, attachment_id: str) -> None:
-        if len(self.enis) == 1:
-            raise LastEniDetachError
         for eni in self.enis.values():
             if eni.attachment_id == attachment_id:
                 eni.instance.detach_eni(eni)  # type: ignore
                 return
+            if len(eni.instance.nics) == 1:
+                raise LastEniDetachError
         raise InvalidNetworkAttachmentIdError(attachment_id)
 
     def modify_network_interface_attribute(
