@@ -6,6 +6,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.ivs.exceptions import ResourceNotFoundException
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 
 class IVSBackend(BaseBackend):
@@ -36,9 +37,7 @@ class IVSBackend(BaseBackend):
         channel_type: str,
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         channel_id = mock_random.get_random_string(12)
-        channel_arn = (
-            f"arn:aws:ivs:{self.region_name}:{self.account_id}:channel/{channel_id}"
-        )
+        channel_arn = f"arn:{get_partition(self.region_name)}:ivs:{self.region_name}:{self.account_id}:channel/{channel_id}"
         channel = {
             "arn": channel_arn,
             "authorized": authorized,
@@ -54,7 +53,7 @@ class IVSBackend(BaseBackend):
         }
         self.channels.append(channel)
         stream_key_id = mock_random.get_random_string(12)
-        stream_key_arn = f"arn:aws:ivs:{self.region_name}:{self.account_id}:stream-key/{stream_key_id}"
+        stream_key_arn = f"arn:{get_partition(self.region_name)}:ivs:{self.region_name}:{self.account_id}:stream-key/{stream_key_id}"
         stream_key = {
             "arn": stream_key_arn,
             "channelArn": channel_arn,

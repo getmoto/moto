@@ -40,7 +40,7 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
 from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
-from moto.utilities.utils import load_resource_as_bytes
+from moto.utilities.utils import get_partition, load_resource_as_bytes
 
 from .exceptions import (
     ConflictException,
@@ -529,9 +529,7 @@ class LambdaAlias(BaseModel):
         description: str,
         routing_config: str,
     ):
-        self.arn = (
-            f"arn:aws:lambda:{region}:{account_id}:function:{function_name}:{name}"
-        )
+        self.arn = f"arn:{get_partition(region)}:lambda:{region}:{account_id}:function:{function_name}:{name}"
         self.name = name
         self.function_version = function_version
         self.description = description
@@ -1451,7 +1449,7 @@ class LambdaStorage(object):
         if name in aliases:
             return aliases[name]
 
-        arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+        arn = f"arn:{get_partition(self.region_name)}:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
         raise UnknownAliasException(arn)
 
     def put_alias(
@@ -1467,7 +1465,7 @@ class LambdaStorage(object):
         )
         aliases = self._get_function_aliases(function_name)
         if name in aliases:
-            arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+            arn = f"arn:{get_partition(self.region_name)}:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
             raise ConflictException(f"Alias already exists: {arn}")
 
         alias = LambdaAlias(

@@ -4,6 +4,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFound
 
@@ -37,7 +38,7 @@ class TimestreamTable(BaseModel):
             ]
         }
         self.records: List[Dict[str, Any]] = []
-        self.arn = f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.db_name}/table/{self.name}"
+        self.arn = f"arn:{get_partition(self.region_name)}:timestream:{self.region_name}:{account_id}:database/{self.db_name}/table/{self.name}"
 
     def update(
         self,
@@ -74,11 +75,10 @@ class TimestreamDatabase(BaseModel):
         self.region_name = region_name
         self.name = database_name
         self.kms_key_id = (
-            kms_key_id or f"arn:aws:kms:{region_name}:{account_id}:key/default_key"
+            kms_key_id
+            or f"arn:{get_partition(region_name)}:kms:{region_name}:{account_id}:key/default_key"
         )
-        self.arn = (
-            f"arn:aws:timestream:{self.region_name}:{account_id}:database/{self.name}"
-        )
+        self.arn = f"arn:{get_partition(self.region_name)}:timestream:{self.region_name}:{account_id}:database/{self.name}"
         self.created_on = unix_time()
         self.updated_on = unix_time()
         self.tables: Dict[str, TimestreamTable] = dict()

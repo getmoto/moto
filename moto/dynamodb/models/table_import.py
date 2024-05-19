@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from uuid import uuid4
 
 from moto.core.utils import gzip_decompress
+from moto.utilities.utils import get_partition
 
 if TYPE_CHECKING:
     from moto.dynamodb.models import DynamoDBBackend
@@ -25,7 +26,7 @@ class TableImport(Thread):
         compression_type: Optional[str],
     ):
         super().__init__()
-        self.arn = f"arn:aws:dynamodb:{region_name}:{account_id}:table/{table_name}/import/{str(uuid4()).replace('-', '')}"
+        self.arn = f"arn:{get_partition(region_name)}:dynamodb:{region_name}:{account_id}:table/{table_name}/import/{str(uuid4()).replace('-', '')}"
         self.status = "IN_PROGRESS"
         self.account_id = account_id
         self.s3_source = s3_source
@@ -42,9 +43,7 @@ class TableImport(Thread):
         self.failure_code: Optional[str] = None
         self.failure_message: Optional[str] = None
         self.table: Optional["Table"] = None
-        self.table_arn = (
-            f"arn:aws:dynamodb:{self.region_name}:{self.account_id}:table/{table_name}"
-        )
+        self.table_arn = f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{table_name}"
 
         self.processed_count = 0
         self.processed_bytes = 0

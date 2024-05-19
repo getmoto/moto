@@ -2,6 +2,7 @@ import re
 import string
 
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 
 def random_password(
@@ -63,9 +64,7 @@ def random_password(
 
 def secret_arn(account_id: str, region: str, secret_id: str) -> str:
     id_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
-    return (
-        f"arn:aws:secretsmanager:{region}:{account_id}:secret:{secret_id}-{id_string}"
-    )
+    return f"arn:{get_partition(region)}:secretsmanager:{region}:{account_id}:secret:{secret_id}-{id_string}"
 
 
 def get_secret_name_from_partial_arn(partial_arn: str) -> str:

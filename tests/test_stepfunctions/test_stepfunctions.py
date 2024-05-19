@@ -851,6 +851,25 @@ def test_stepfunction_regions(test_region):
     resp = client.list_state_machines()
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
+    response = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    if test_region == "us-west-2":
+        assert (
+            response["stateMachineArn"]
+            == f"arn:aws:states:{test_region}:{ACCOUNT_ID}:stateMachine:name"
+        )
+    if test_region == "cn-northwest-1":
+        assert (
+            response["stateMachineArn"]
+            == f"arn:aws-cn:states:{test_region}:{ACCOUNT_ID}:stateMachine:name"
+        )
+    if test_region == "us-isob-east-1":
+        assert (
+            response["stateMachineArn"]
+            == f"arn:aws-iso-b:states:{test_region}:{ACCOUNT_ID}:stateMachine:name"
+        )
+
 
 @mock_aws
 @mock.patch.dict(os.environ, {"SF_EXECUTION_HISTORY_TYPE": "FAILURE"})

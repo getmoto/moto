@@ -14,7 +14,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.neptune.models import NeptuneBackend, neptune_backends
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import get_partition, load_resource
 
 from .exceptions import (
     DBClusterNotFoundError,
@@ -160,7 +160,7 @@ class Cluster:
         self.network_type = kwargs.get("network_type") or "IPV4"
         self.status = "active"
         self.account_id = kwargs.get("account_id")
-        self.region_name = kwargs.get("region")
+        self.region_name = kwargs["region"]
         self.cluster_create_time = iso_8601_datetime_with_milliseconds()
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
@@ -259,7 +259,7 @@ class Cluster:
 
     @property
     def db_cluster_arn(self) -> str:
-        return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
 
     @property
     def master_user_password(self) -> str:
@@ -510,7 +510,7 @@ class ClusterSnapshot(BaseModel):
 
     @property
     def snapshot_arn(self) -> str:
-        return f"arn:aws:rds:{self.cluster.region_name}:{self.cluster.account_id}:cluster-snapshot:{self.snapshot_id}"
+        return f"arn:{get_partition(self.cluster.region_name)}:rds:{self.cluster.region_name}:{self.cluster.account_id}:cluster-snapshot:{self.snapshot_id}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -699,7 +699,7 @@ class Database(CloudFormationModel):
 
     @property
     def db_instance_arn(self) -> str:
-        return f"arn:aws:rds:{self.region_name}:{self.account_id}:db:{self.db_instance_identifier}"
+        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:db:{self.db_instance_identifier}"
 
     @property
     def physical_resource_id(self) -> Optional[str]:
@@ -1148,7 +1148,7 @@ class DatabaseSnapshot(BaseModel):
 
     @property
     def snapshot_arn(self) -> str:
-        return f"arn:aws:rds:{self.database.region_name}:{self.database.account_id}:snapshot:{self.snapshot_id}"
+        return f"arn:{get_partition(self.database.region_name)}:rds:{self.database.region_name}:{self.database.account_id}:snapshot:{self.snapshot_id}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -1281,7 +1281,7 @@ class EventSubscription(BaseModel):
 
     @property
     def es_arn(self) -> str:
-        return f"arn:aws:rds:{self.region_name}:{self.customer_aws_id}:es:{self.subscription_name}"
+        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.customer_aws_id}:es:{self.subscription_name}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -1476,7 +1476,7 @@ class SubnetGroup(CloudFormationModel):
 
     @property
     def sg_arn(self) -> str:
-        return f"arn:aws:rds:{self.region}:{self.account_id}:subgrp:{self.subnet_name}"
+        return f"arn:{get_partition(self.region)}:rds:{self.region}:{self.account_id}:subgrp:{self.subnet_name}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -1620,7 +1620,7 @@ class DBProxy(BaseModel):
             self.tags = tags
         self.region_name = region_name
         self.account_id = account_id
-        self.db_proxy_arn = f"arn:aws:rds:{self.region_name}:{self.account_id}:db-proxy:{self.db_proxy_name}"
+        self.db_proxy_arn = f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:db-proxy:{self.db_proxy_name}"
         self.arn = self.db_proxy_arn
         ec2_backend = ec2_backends[self.account_id][self.region_name]
         subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
@@ -3107,7 +3107,7 @@ class OptionGroup:
         self.options: Dict[str, Any] = {}
         self.vpcId = "null"
         self.tags: List[Dict[str, str]] = []
-        self.arn = f"arn:aws:rds:{region}:{account_id}:og:{name}"
+        self.arn = f"arn:{get_partition(region)}:rds:{region}:{account_id}:og:{name}"
 
     def to_json(self) -> str:
         template = Template(
@@ -3182,7 +3182,7 @@ class DBParameterGroup(CloudFormationModel):
         self.family = family
         self.tags = tags
         self.parameters: Dict[str, Any] = defaultdict(dict)
-        self.arn = f"arn:aws:rds:{region}:{account_id}:pg:{name}"
+        self.arn = f"arn:{get_partition(region)}:rds:{region}:{account_id}:pg:{name}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -3266,7 +3266,7 @@ class DBClusterParameterGroup(CloudFormationModel):
         self.description = description
         self.family = family
         self.parameters: Dict[str, Any] = defaultdict(dict)
-        self.arn = f"arn:aws:rds:{region}:{account_id}:cpg:{name}"
+        self.arn = f"arn:{get_partition(region)}:rds:{region}:{account_id}:cpg:{name}"
 
     def to_xml(self) -> str:
         template = Template(

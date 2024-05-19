@@ -13,6 +13,7 @@ from moto.ram.exceptions import (
     OperationNotPermittedException,
     UnknownResourceException,
 )
+from moto.utilities.utils import get_partition
 
 
 def random_resource_id(size: int) -> str:
@@ -43,9 +44,7 @@ class ResourceShare(BaseModel):
         self.region = region
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
-        self.arn = (
-            f"arn:aws:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
-        )
+        self.arn = f"arn:{get_partition(self.region)}:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
         self.creation_time = utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = utcnow()

@@ -6,18 +6,19 @@ from urllib.parse import urlparse
 import yaml
 
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 
 def generate_stack_id(stack_name: str, region: str, account: str) -> str:
     random_id = random.uuid4()
-    return f"arn:aws:cloudformation:{region}:{account}:stack/{stack_name}/{random_id}"
+    return f"arn:{get_partition(region)}:cloudformation:{region}:{account}:stack/{stack_name}/{random_id}"
 
 
 def generate_changeset_id(
     changeset_name: str, region_name: str, account_id: str
 ) -> str:
     random_id = random.uuid4()
-    return f"arn:aws:cloudformation:{region_name}:{account_id}:changeSet/{changeset_name}/{random_id}"
+    return f"arn:{get_partition(region_name)}:cloudformation:{region_name}:{account_id}:changeSet/{changeset_name}/{random_id}"
 
 
 def generate_stackset_id(stackset_name: str) -> str:
@@ -26,7 +27,7 @@ def generate_stackset_id(stackset_name: str) -> str:
 
 
 def generate_stackset_arn(stackset_id: str, region_name: str, account_id: str) -> str:
-    return f"arn:aws:cloudformation:{region_name}:{account_id}:stackset/{stackset_id}"
+    return f"arn:{get_partition(region_name)}:cloudformation:{region_name}:{account_id}:stackset/{stackset_id}"
 
 
 def random_suffix() -> str:

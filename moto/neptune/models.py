@@ -8,7 +8,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import get_partition, load_resource
 
 from .exceptions import DBClusterNotFoundError
 
@@ -111,7 +111,7 @@ class DBCluster(BaseModel):
 
     @property
     def db_cluster_arn(self) -> str:
-        return f"arn:aws:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags

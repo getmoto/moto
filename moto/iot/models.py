@@ -16,6 +16,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     CertificateStateException,
@@ -48,7 +49,7 @@ class FakeThing(BaseModel):
         self.thing_name = thing_name
         self.thing_type = thing_type
         self.attributes = attributes
-        self.arn = f"arn:aws:iot:{region_name}:{account_id}:thing/{thing_name}"
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:thing/{thing_name}"
         self.version = 1
         # TODO: we need to handle "version"?
 
@@ -112,7 +113,7 @@ class FakeThingType(BaseModel):
         self.thing_type_id = str(random.uuid4())  # I don't know the rule of id
         t = time.time()
         self.metadata = {"deprecated": False, "creationDate": int(t * 1000) / 1000.0}
-        self.arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:thingtype/{thing_type_name}"
+        self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:thingtype/{thing_type_name}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -168,7 +169,7 @@ class FakeThingGroup(BaseModel):
                         }
                     ]
                 )
-        self.arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:thinggroup/{thing_group_name}"
+        self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:thinggroup/{thing_group_name}"
         self.things: Dict[str, FakeThing] = OrderedDict()
 
     def to_dict(self) -> Dict[str, Any]:
@@ -194,7 +195,7 @@ class FakeCertificate(BaseModel):
         m = hashlib.sha256()
         m.update(certificate_pem.encode("utf-8"))
         self.certificate_id = m.hexdigest()
-        self.arn = f"arn:aws:iot:{region_name}:{account_id}:cert/{self.certificate_id}"
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:cert/{self.certificate_id}"
         self.certificate_pem = certificate_pem
         self.status = status
 
@@ -267,7 +268,7 @@ class FakePolicy(BaseModel):
     ):
         self.name = name
         self.document = document
-        self.arn = f"arn:aws:iot:{region_name}:{account_id}:policy/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:policy/{name}"
         self.default_version_id = default_version_id
         self.versions = [
             FakePolicyVersion(self.name, document, True, account_id, region_name)
@@ -305,7 +306,7 @@ class FakePolicyVersion:
         version_id: int = 1,
     ):
         self.name = policy_name
-        self.arn = f"arn:aws:iot:{region_name}:{account_id}:policy/{policy_name}"
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:policy/{policy_name}"
         self.document = document or {}
         self.is_default = is_default
         self._version_id = version_id
@@ -369,7 +370,7 @@ class FakeJob(BaseModel):
         self.account_id = account_id
         self.region_name = region_name
         self.job_id = job_id
-        self.job_arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:job/{job_id}"
+        self.job_arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:job/{job_id}"
         self.targets = targets
         self.document_source = document_source
         self.document = document
@@ -539,7 +540,7 @@ class FakeRule(BaseModel):
         self.error_action = error_action or {}
         self.sql = sql
         self.aws_iot_sql_version = aws_iot_sql_version or "2016-03-23"
-        self.arn = f"arn:aws:iot:{self.region_name}:{self.account_id}:rule/{rule_name}"
+        self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:rule/{rule_name}"
 
     def to_get_dict(self) -> Dict[str, Any]:
         return {
@@ -585,7 +586,7 @@ class FakeDomainConfiguration(BaseModel):
                 f"operation: Service type {service_type} not recognized."
             )
         self.domain_configuration_name = domain_configuration_name
-        self.domain_configuration_arn = f"arn:aws:iot:{region_name}:{account_id}:domainconfiguration/{domain_configuration_name}/{random.get_random_string(length=5)}"
+        self.domain_configuration_arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:domainconfiguration/{domain_configuration_name}/{random.get_random_string(length=5)}"
         self.domain_name = domain_name
         self.server_certificates = []
         if server_certificate_arns:

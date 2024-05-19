@@ -3,6 +3,7 @@ import typing
 from typing import Any, Dict
 
 from moto.s3.models import s3_backends
+from moto.utilities.utils import get_partition
 
 from .exceptions import ValidationError
 
@@ -50,7 +51,7 @@ def load_pipeline_definition_from_s3(
 
 
 def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:
-    return f"arn:aws:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
+    return f"arn:{get_partition(region_name)}:sagemaker:{region_name}:{account_id}:{_type}/{_id}"
 
 
 def validate_model_approval_status(model_approval_status: typing.Optional[str]) -> None:

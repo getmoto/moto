@@ -4,6 +4,21 @@ import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
 
 
+def get_partition(region: str) -> str:
+    valid_matches = [
+        # (region prefix, aws partition)
+        ("cn-", "aws-cn"),
+        ("us-gov-", "aws-us-gov"),
+        ("us-iso-", "aws-iso"),
+        ("us-isob-", "aws-iso-b"),
+    ]
+
+    for prefix, partition in valid_matches:
+        if region.startswith(prefix):
+            return partition
+    return "aws"
+
+
 def str2bool(v: Any) -> Optional[bool]:
     if v in ("yes", True, "true", "True", "TRUE", "t", "1"):
         return True

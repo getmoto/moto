@@ -36,7 +36,7 @@ def test_make_random_policy_id():
     assert re.match(utils.POLICY_ID_REGEX, policy_id)
 
 
-def validate_organization(response):
+def validate_organization(response, partition="aws"):
     org = response["Organization"]
     assert sorted(org.keys()) == [
         "Arn",
@@ -50,10 +50,14 @@ def validate_organization(response):
     assert re.match(utils.ORG_ID_REGEX, org["Id"])
     assert org["MasterAccountId"] == DEFAULT_ACCOUNT_ID
     assert org["MasterAccountArn"] == (
-        utils.MASTER_ACCOUNT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"])
+        utils.MASTER_ACCOUNT_ARN_FORMAT.format(
+            partition, org["MasterAccountId"], org["Id"]
+        )
     )
     assert org["Arn"] == (
-        utils.ORGANIZATION_ARN_FORMAT.format(org["MasterAccountId"], org["Id"])
+        utils.ORGANIZATION_ARN_FORMAT.format(
+            partition, org["MasterAccountId"], org["Id"]
+        )
     )
     assert org["MasterAccountEmail"] == utils.MASTER_ACCOUNT_EMAIL
     assert org["FeatureSet"] in ["ALL", "CONSOLIDATED_BILLING"]
@@ -68,7 +72,9 @@ def validate_roots(org, response):
     root = response["Roots"][0]
     assert re.match(utils.ROOT_ID_REGEX, root["Id"])
     assert root["Arn"] == (
-        utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root["Id"])
+        utils.ROOT_ARN_FORMAT.format(
+            "aws", org["MasterAccountId"], org["Id"], root["Id"]
+        )
     )
     assert isinstance(root["Name"], str)
     assert root["PolicyTypes"] == []
@@ -79,7 +85,7 @@ def validate_organizational_unit(org, response):
     ou = response["OrganizationalUnit"]
     assert re.match(utils.OU_ID_REGEX, ou["Id"])
     assert ou["Arn"] == (
-        utils.OU_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], ou["Id"])
+        utils.OU_ARN_FORMAT.format("aws", org["MasterAccountId"], org["Id"], ou["Id"])
     )
     assert isinstance(ou["Name"], str)
 
@@ -97,7 +103,7 @@ def validate_account(org, account):
     assert re.match(utils.ACCOUNT_ID_REGEX, account["Id"])
     assert account["Arn"] == (
         utils.ACCOUNT_ARN_FORMAT.format(
-            org["MasterAccountId"], org["Id"], account["Id"]
+            "aws", org["MasterAccountId"], org["Id"], account["Id"]
         )
     )
     assert re.match(utils.EMAIL_REGEX, account["Email"])
@@ -128,7 +134,9 @@ def validate_policy_summary(org, summary):
     assert isinstance(summary, dict)
     assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
     assert summary["Arn"] == (
-        utils.SCP_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], summary["Id"])
+        utils.SCP_ARN_FORMAT.format(
+            "aws", org["MasterAccountId"], org["Id"], summary["Id"]
+        )
     )
     assert isinstance(summary["Name"], str)
     assert isinstance(summary["Description"], str)
