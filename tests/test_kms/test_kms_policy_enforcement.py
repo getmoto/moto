@@ -122,7 +122,7 @@ class TestKMSPolicyValidator:
         with mock.patch.object(rsa, "generate_private_key", return_value=""):
             return Key(
                 account_id=None,
-                region=None,
+                region="us-east-1",
                 description=None,
                 key_spec=None,
                 key_usage=None,

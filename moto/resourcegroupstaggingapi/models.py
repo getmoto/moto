@@ -24,6 +24,7 @@ from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
@@ -376,7 +377,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}",
                     "Tags": tags,
                 }
 
@@ -421,7 +422,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         ):
             if not resource_type_filters or "glue" in resource_type_filters:
                 arns_starting_with = [
-                    f"arn:aws:glue:{self.region_name}:{self.account_id}:"
+                    f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:"
                 ]
             else:
                 arns_starting_with = []
@@ -429,7 +430,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if resource_type.startswith("glue:"):
                         glue_type = resource_type.split(":")[-1]
                         arns_starting_with.append(
-                            f"arn:aws:glue:{self.region_name}:{self.account_id}:{glue_type}"
+                            f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:{glue_type}"
                         )
             for glue_arn in self.glue_backend.tagger.tags.keys():
                 if any(glue_arn.startswith(arn) for arn in arns_starting_with):
@@ -535,7 +536,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
                     "Tags": tags,
                 }
 
@@ -551,7 +552,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
                     "Tags": tags,
                 }
 
@@ -567,7 +568,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
                     "Tags": tags,
                 }
 
@@ -583,7 +584,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
                     "Tags": tags,
                 }
 

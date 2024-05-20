@@ -2,7 +2,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from moto.core.common_models import CloudFormationModel
 
-from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
+from ..exceptions import (
+    InvalidNetworkAttachmentIdError,
+    InvalidNetworkInterfaceIdError,
+    LastEniDetachError,
+)
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
 
@@ -331,6 +335,8 @@ class NetworkInterfaceBackend:
     def detach_network_interface(self, attachment_id: str) -> None:
         for eni in self.enis.values():
             if eni.attachment_id == attachment_id:
+                if eni.instance and len(eni.instance.nics) == 1:
+                    raise LastEniDetachError
                 eni.instance.detach_eni(eni)  # type: ignore
                 return
         raise InvalidNetworkAttachmentIdError(attachment_id)

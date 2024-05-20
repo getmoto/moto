@@ -304,6 +304,26 @@
   "Location": "eu-west-3"
  },
  {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "eu-west-3"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "eu-west-3"
  },

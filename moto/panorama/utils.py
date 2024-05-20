@@ -3,6 +3,8 @@ import hashlib
 from datetime import datetime
 from typing import Any
 
+from moto.utilities.utils import get_partition
+
 
 def deep_convert_datetime_to_isoformat(obj: Any) -> Any:
     if isinstance(obj, datetime):
@@ -31,4 +33,4 @@ def generate_package_id(name: str) -> str:
 
 
 def arn_formatter(_type: str, _id: str, account_id: str, region_name: str) -> str:
-    return f"arn:aws:panorama:{region_name}:{account_id}:{_type}/{_id}"
+    return f"arn:{get_partition(region_name)}:panorama:{region_name}:{account_id}:{_type}/{_id}"

@@ -27,6 +27,7 @@ from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ClientException, InvalidParameterValueException, ValidationError
 from .utils import (
@@ -977,7 +978,7 @@ class SchedulingPolicy(BaseModel):
         tags: Dict[str, str],
     ):
         self.name = name
-        self.arn = f"arn:aws:batch:{region}:{account_id}:scheduling-policy/{name}"
+        self.arn = f"arn:{get_partition(region)}:batch:{region}:{account_id}:scheduling-policy/{name}"
         self.fairshare_policy = {
             "computeReservation": fairshare_policy.get("computeReservation") or 0,
             "shareDecaySeconds": fairshare_policy.get("shareDecaySeconds") or 0,

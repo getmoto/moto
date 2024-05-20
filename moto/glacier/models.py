@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.exceptions import JsonRESTError
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from .utils import get_job_id
 
@@ -100,7 +100,7 @@ class Vault(BaseModel):
         self.region = region
         self.archives: Dict[str, Dict[str, Any]] = {}
         self.jobs: Dict[str, Job] = {}
-        self.arn = f"arn:aws:glacier:{region}:{account_id}:vaults/{vault_name}"
+        self.arn = f"arn:{get_partition(region)}:glacier:{region}:{account_id}:vaults/{vault_name}"
 
     def to_dict(self) -> Dict[str, Any]:
         archives_size = 0

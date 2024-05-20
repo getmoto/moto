@@ -6,6 +6,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ConflictingDomainExists,
@@ -35,7 +36,7 @@ class Namespace(BaseModel):
         vpc: Optional[str] = None,
     ):
         self.id = f"ns-{random_id(20)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:namespace/{self.id}"
+        self.arn = f"arn:{get_partition(region)}:servicediscovery:{region}:{account_id}:namespace/{self.id}"
         self.name = name
         self.type = ns_type
         self.creator_request_id = creator_request_id
@@ -78,7 +79,7 @@ class Service(BaseModel):
         service_type: str,
     ):
         self.id = f"srv-{random_id(8)}"
-        self.arn = f"arn:aws:servicediscovery:{region}:{account_id}:service/{self.id}"
+        self.arn = f"arn:{get_partition(region)}:servicediscovery:{region}:{account_id}:service/{self.id}"
         self.name = name
         self.namespace_id = namespace_id
         self.description = description

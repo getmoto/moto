@@ -16,7 +16,6 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import (
-    get_partition_from_region,
     iso_8601_datetime_with_milliseconds,
     iso_8601_datetime_without_milliseconds,
     unix_time,
@@ -28,7 +27,7 @@ from moto.iam.policy_validation import (
 )
 from moto.moto_api._internal import mock_random as random
 from moto.settings import load_iam_aws_managed_policies
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from ..utilities.tagging_service import TaggingService
 from .aws_managed_policies import aws_managed_policies_data
@@ -1300,7 +1299,7 @@ class User(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        partition = get_partition_from_region(self.region_name)
+        partition = get_partition(self.region_name)
         return f"arn:{partition}:iam::{self.account_id}:user{self.path}{self.name}"
 
     @property

@@ -11,6 +11,7 @@ from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ExecutionAlreadyExists,
@@ -494,13 +495,13 @@ class StepFunctionBackend(BaseBackend):
         "\u009f",
     ]
     accepted_role_arn_format = re.compile(
-        "arn:aws:iam::(?P<account_id>[0-9]{12}):role/.+"
+        r"arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):iam::(?P<account_id>[0-9]{12}):role/.+"
     )
     accepted_mchn_arn_format = re.compile(
-        "arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+"
+        r"arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+"
     )
     accepted_exec_arn_format = re.compile(
-        "arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
+        r"arn:(aws|aws-cn|aws-us-gov|aws-iso|aws-iso-b):states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
     )
 
     def __init__(self, region_name: str, account_id: str):
@@ -517,7 +518,7 @@ class StepFunctionBackend(BaseBackend):
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
-        arn = f"arn:aws:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
+        arn = f"arn:{get_partition(self.region_name)}:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:

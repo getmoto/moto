@@ -9,6 +9,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ClusterNotFoundFault
 from .utils import PAGINATION_MODEL
@@ -90,7 +91,9 @@ class DaxCluster(BaseModel, ManagedState):
         # Set internal properties
         self.name = name
         self.description = description
-        self.arn = f"arn:aws:dax:{region}:{account_id}:cache/{self.name}"
+        self.arn = (
+            f"arn:{get_partition(region)}:dax:{region}:{account_id}:cache/{self.name}"
+        )
         self.node_type = node_type
         self.replication_factor = replication_factor
         self.cluster_hex = random.get_random_hex(6)

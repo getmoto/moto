@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterable, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     InvalidResourceStateFault,
@@ -119,7 +120,7 @@ class FakeReplicationTask(BaseModel):
         self.table_mappings = table_mappings
         self.replication_task_settings = replication_task_settings
 
-        self.arn = f"arn:aws:dms:{region_name}:{account_id}:task:{self.id}"
+        self.arn = f"arn:{get_partition(region_name)}:dms:{region_name}:{account_id}:task:{self.id}"
         self.status = "creating"
 
         self.creation_date = utcnow()

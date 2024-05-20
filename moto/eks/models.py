@@ -4,6 +4,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     InvalidParameterException,
@@ -11,7 +12,7 @@ from .exceptions import (
     ResourceInUseException,
     ResourceNotFoundException,
 )
-from .utils import get_partition, validate_role_arn
+from .utils import validate_role_arn
 
 # String Templates
 CLUSTER_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:cluster/{name}"
