@@ -60,6 +60,7 @@ from moto.sqs import models as sqs_models  # noqa  # pylint: disable=all
 from moto.ssm import models as ssm_models  # noqa  # pylint: disable=all
 from moto.ssm import ssm_backends
 from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
+from moto.utilities.utils import get_partition
 
 # End ugly list of imports
 from .exceptions import (
@@ -608,7 +609,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                 if name == "AWS::Include":
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
-                    key = s3_backends[self._account_id]["global"].get_object(
+                    key = s3_backends[self._account_id][
+                        get_partition(self._region_name)
+                    ].get_object(
                         bucket_name,  # type: ignore[arg-type]
                         name,
                     )

@@ -19,7 +19,7 @@ class CloudFrontResponse(BaseResponse):
 
     @property
     def backend(self) -> CloudFrontBackend:
-        return cloudfront_backends[self.current_account]["global"]
+        return cloudfront_backends[self.current_account][self.partition]
 
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()

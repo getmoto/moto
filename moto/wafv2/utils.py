@@ -1,3 +1,6 @@
+from moto.utilities.utils import PARTITION_NAMES
+
+
 def make_arn_for_wacl(
     name: str, account_id: str, region_name: str, wacl_id: str, scope: str
 ) -> str:
@@ -24,5 +27,8 @@ def make_arn(
         scope = "regional"
     elif scope == "CLOUDFRONT":
         scope = "global"
+
+    if region_name in PARTITION_NAMES:
+        region_name = "global"
 
     return f"arn:aws:wafv2:{region_name}:{account_id}:{scope}/{resource}/{name}/{_id}"

@@ -53,7 +53,9 @@ class CloudFormationResponse(BaseResponse):
         return cls.dispatch(request=request, full_url=full_url, headers=headers)
 
     def _get_stack_from_s3_url(self, template_url: str) -> str:
-        return get_stack_from_s3_url(template_url, account_id=self.current_account)
+        return get_stack_from_s3_url(
+            template_url, account_id=self.current_account, partition=self.partition
+        )
 
     def _get_params_from_list(
         self, parameters_list: List[Dict[str, Any]]

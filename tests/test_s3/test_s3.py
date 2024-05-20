@@ -45,7 +45,9 @@ class MyModel:
 @mock_aws
 def test_keys_are_pickleable():
     """Keys must be pickleable due to boto3 implementation details."""
-    key = s3model.FakeKey("name", b"data!", account_id=DEFAULT_ACCOUNT_ID)
+    key = s3model.FakeKey(
+        "name", b"data!", account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert key.value == b"data!"
 
     pickled = pickle.dumps(key)

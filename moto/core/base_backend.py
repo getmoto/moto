@@ -19,6 +19,7 @@ from uuid import uuid4
 from boto3 import Session
 
 from moto.settings import allow_unknown_region, enable_iso_regions
+from moto.utilities.utils import get_partition
 
 from .model_instances import model_data
 from .responses import TYPE_RESPONSE
@@ -54,6 +55,7 @@ class BaseBackend:
     def __init__(self, region_name: str, account_id: str):
         self.region_name = region_name
         self.account_id = account_id
+        self.partition = get_partition(region_name)
 
     def reset(self) -> None:
         region_name = self.region_name
@@ -261,6 +263,8 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
             region_specific_backend.reset()
 
     def __contains__(self, region: str) -> bool:  # type: ignore[override]
+        if region == "global":
+            region = "aws"
         return region in self.regions or region in self.keys()
 
     def __delitem__(self, key: str) -> None:
@@ -276,6 +280,13 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         super().__setitem__(key, value)
 
     def __getitem__(self, region_name: str) -> SERVICE_BACKEND:
+        # Some services, like S3, used to be truly global - meaning one Backend serving all
+        # Now that we support partitions (AWS, AWS-CN, AWS-GOV, etc), there will be one backend per partition
+        # Because the concept of 'region' doesn't exist in a global service, we use the partition name to keep the backends separate
+        # We used to use the term 'global' in lieu of a region name, and users may still use this
+        # It should resolve to 'aws', to ensure consistency
+        if region_name == "global":
+            region_name = "aws"
         if region_name in self.keys():
             return super().__getitem__(region_name)
         # Create the backend for a specific region

@@ -44,7 +44,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def s3_backend(self) -> S3Backend:
-        return s3_backends[self.account_id]["global"]
+        return s3_backends[self.account_id][self.partition]
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]

@@ -104,6 +104,7 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
     def list_config_service_resources(
         self,
         account_id: str,
+        partition: str,
         resource_ids: Optional[List[str]],
         resource_name: Optional[str],
         limit: int,
@@ -164,6 +165,7 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
     def get_config_resource(
         self,
         account_id: str,
+        partition: str,
         resource_id: str,
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
@@ -200,5 +202,5 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
 class CloudWatchMetricProvider:
     @staticmethod
     @abstractmethod
-    def get_cloudwatch_metrics(account_id: str) -> Any:  # type: ignore[misc]
+    def get_cloudwatch_metrics(account_id: str, region: str) -> Any:  # type: ignore[misc]
         pass

@@ -12,7 +12,7 @@ class TokenResponse(BaseResponse):
 
     @property
     def backend(self) -> STSBackend:
-        return sts_backends[self.current_account]["global"]
+        return sts_backends[self.current_account][self.partition]
 
     def _determine_resource(self) -> str:
         if "AssumeRole" in self.querystring.get("Action", []):

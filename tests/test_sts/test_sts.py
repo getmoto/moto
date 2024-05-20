@@ -694,7 +694,7 @@ def test_get_caller_identity_with_assumed_role_credentials(region, partition):
 
     identity = boto3.client(
         "sts",
-        region_name="us-east-1",
+        region_name=region,
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     ).get_caller_identity()

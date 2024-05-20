@@ -335,7 +335,11 @@ def test_verify_key_can_be_copied_after_disposing():
     # This test verifies the copy-operation succeeds, it will just not
     # have any data.
     key = s3model.FakeKey(
-        name="test", bucket_name="bucket", value="sth", account_id=DEFAULT_ACCOUNT_ID
+        name="test",
+        bucket_name="bucket",
+        value="sth",
+        account_id=DEFAULT_ACCOUNT_ID,
+        region_name="us-east-1",
     )
     assert not key._value_buffer.closed
     key.dispose()

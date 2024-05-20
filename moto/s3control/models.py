@@ -11,6 +11,7 @@ from moto.s3.exceptions import (
     WrongPublicAccessBlockAccountIdError,
 )
 from moto.s3.models import PublicAccessBlock
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import AccessPointNotFound, AccessPointPolicyNotFound
 
@@ -142,5 +143,5 @@ s3control_backends = BackendDict(
     S3ControlBackend,
     "s3control",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )
