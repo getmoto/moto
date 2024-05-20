@@ -1,9 +1,12 @@
 """NetworkManagerBackend class with methods for supported APIs."""
 
-from typing import Dict, List, Optional
+import random
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.ec2.utils import HEX_CHARS
 from moto.utilities.tagging_service import TaggingService
 
 
@@ -13,9 +16,11 @@ class GlobalNetwork(BaseModel):
     ):
         self.description = description
         self.tags = tags
-        self.global_network_id = "global-network-1"
-        self.global_network_arn = "arn:aws:networkmanager:us-west-2:123456789012:global-network/global-network-1"
-        self.created_at = "2021-07-15T12:34:56Z"
+        self.global_network_id = "global-network-" + "".join(
+            random.choice(HEX_CHARS) for _ in range(18)
+        )
+        self.global_network_arn = f"arn:aws:networkmanager:123456789012:global-network/{self.global_network_id}"
+        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
 
     def to_dict(self):
@@ -43,11 +48,14 @@ class CoreNetwork(BaseModel):
         self.tags = tags
         self.policy_document = policy_document
         self.client_token = client_token
-        self.core_network_id = "core-network-1"
-        self.core_network_arn = (
-            "arn:aws:networkmanager:us-west-2:123456789012:core-network/core-network-1"
+        self.core_network_id = "core-network-" + "".join(
+            random.choice(HEX_CHARS) for _ in range(18)
         )
-        self.created_at = "2021-07-15T12:34:56Z"
+        self.core_network_arn = (
+            f"arn:aws:networkmanager:123456789012:core-network/{self.core_network_id}"
+        )
+
+        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
 
     def to_dict(self):
@@ -101,6 +109,33 @@ class NetworkManagerBackend(BaseBackend):
         cnw_id = core_network.core_network_id
         self.tags.tag_resource(cnw_id, tags)
         self.core_networks[cnw_id] = core_network
+        return core_network
+
+    def delete_core_network(self, core_network_id) -> CoreNetwork:
+        # Check if core network exists
+        if core_network_id not in self.core_networks:
+            raise Exception("Resource not found")
+        core_network = self.core_networks.pop(core_network_id)
+        core_network.state = "DELETING"
+        return core_network
+
+    def tag_resource(self, resource_arn, tags):
+        # implement here
+        return
+
+    def untag_resource(self, resource_arn, tag_keys):
+        # implement here
+        return
+
+    def list_core_networks(
+        self, max_results, next_token
+    ) -> Tuple[List[CoreNetwork], str]:
+        return list(self.core_networks.values()), next_token
+
+    def get_core_network(self, core_network_id) -> CoreNetwork:
+        if core_network_id not in self.core_networks:
+            raise Exception("Resource not found")
+        core_network = self.core_networks[core_network_id]
         return core_network
 
 
