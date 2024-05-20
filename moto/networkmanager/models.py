@@ -2,24 +2,28 @@
 
 import random
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.ec2.utils import HEX_CHARS
-from moto.utilities.tagging_service import TaggingService
+
+from .exceptions import ResourceNotFound, ValidationError
 
 
 class GlobalNetwork(BaseModel):
     def __init__(
-        self, description: Optional[str], tags: Optional[List[Dict[str, str]]]
+        self,
+        account_id: str,
+        description: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
     ):
         self.description = description
-        self.tags = tags
+        self.tags = tags or []
         self.global_network_id = "global-network-" + "".join(
             random.choice(HEX_CHARS) for _ in range(18)
         )
-        self.global_network_arn = f"arn:aws:networkmanager:123456789012:global-network/{self.global_network_id}"
+        self.global_network_arn = f"arn:aws:networkmanager:{account_id}:global-network/{self.global_network_id}"
         self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
 
@@ -37,6 +41,7 @@ class GlobalNetwork(BaseModel):
 class CoreNetwork(BaseModel):
     def __init__(
         self,
+        account_id: str,
         global_network_id: str,
         description: Optional[str],
         tags: Optional[List[Dict[str, str]]],
@@ -45,14 +50,14 @@ class CoreNetwork(BaseModel):
     ):
         self.global_network_id = global_network_id
         self.description = description
-        self.tags = tags
+        self.tags = tags or []
         self.policy_document = policy_document
         self.client_token = client_token
         self.core_network_id = "core-network-" + "".join(
             random.choice(HEX_CHARS) for _ in range(18)
         )
         self.core_network_arn = (
-            f"arn:aws:networkmanager:123456789012:core-network/{self.core_network_id}"
+            f"arn:aws:networkmanager:{account_id}:core-network/{self.core_network_id}"
         )
 
         self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -78,17 +83,21 @@ class NetworkManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.global_networks: Dict[str, GlobalNetwork] = {}
         self.core_networks: Dict[str, CoreNetwork] = {}
-        self.tags: TaggingService = TaggingService()
 
     # add methods from here
 
     def create_global_network(
-        self, description: Optional[str], tags: Optional[List[Dict[str, str]]]
+        self,
+        description: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
     ) -> GlobalNetwork:
-        global_network = GlobalNetwork(description, tags)
+        global_network = GlobalNetwork(
+            description=description,
+            tags=tags,
+            account_id=self.account_id,
+        )
         gnw_id = global_network.global_network_id
         self.global_networks[gnw_id] = global_network
-        self.tags.tag_resource(gnw_id, tags)
         return global_network
 
     def create_core_network(
@@ -104,28 +113,32 @@ class NetworkManagerBackend(BaseBackend):
             raise Exception("Resource not found")
 
         core_network = CoreNetwork(
-            global_network_id, description, tags, policy_document, client_token
+            global_network_id=global_network_id,
+            description=description,
+            tags=tags,
+            policy_document=policy_document,
+            client_token=client_token,
+            account_id=self.account_id,
         )
         cnw_id = core_network.core_network_id
-        self.tags.tag_resource(cnw_id, tags)
         self.core_networks[cnw_id] = core_network
         return core_network
 
     def delete_core_network(self, core_network_id) -> CoreNetwork:
         # Check if core network exists
         if core_network_id not in self.core_networks:
-            raise Exception("Resource not found")
+            raise ResourceNotFound
         core_network = self.core_networks.pop(core_network_id)
         core_network.state = "DELETING"
         return core_network
 
-    def tag_resource(self, resource_arn, tags):
-        # implement here
-        return
+    def tag_resource(self, resource_arn, tags) -> None:
+        resource = self._get_resource_from_arn(resource_arn)
+        resource.tags.extend(tags)
 
-    def untag_resource(self, resource_arn, tag_keys):
-        # implement here
-        return
+    def untag_resource(self, resource_arn, tag_keys) -> None:
+        resource = self._get_resource_from_arn(resource_arn)
+        resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     def list_core_networks(
         self, max_results, next_token
@@ -134,10 +147,37 @@ class NetworkManagerBackend(BaseBackend):
 
     def get_core_network(self, core_network_id) -> CoreNetwork:
         if core_network_id not in self.core_networks:
-            raise Exception("Resource not found")
+            raise ResourceNotFound
         core_network = self.core_networks[core_network_id]
         return core_network
 
+    def _get_resource_from_arn(self, arn: str) -> Any:
+        resources = {
+            "core-network": self.core_networks,
+            "global-network": self.global_networks,
+        }
+        target_resource, target_name = arn.split(":")[-1].split("/")
+        try:
+            resource = resources.get(target_resource).get(target_name)  # type: ignore
+        except KeyError:
+            message = f"Could not find {target_resource} with name {target_name}"
+            raise ValidationError(message=message)
+        return resource
+
+    def describe_global_networks(self,
+        global_network_ids:List[str],
+        max_results: int,
+        next_token: str,) -> Tuple[List[GlobalNetwork], str]:
+        global_networks = []
+        if not global_network_ids:
+            global_networks = list(self.global_networks.values())
+        else:
+            for id in global_network_ids:
+                if id in self.global_networks:
+                    global_network = self.global_networks[id]
+                    global_networks.append(global_network)
+        return global_networks, next_token
+    
 
 networkmanager_backends = BackendDict(
     NetworkManagerBackend,

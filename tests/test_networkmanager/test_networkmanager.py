@@ -1,7 +1,7 @@
 """Unit tests for networkmanager-supported APIs."""
 
-import boto3
 import pytest
+import boto3
 
 from moto import mock_aws
 
@@ -75,21 +75,51 @@ def test_delete_core_network():
 
 
 @mock_aws
-@pytest.mark.skip(reason="NotYetImplemented")
 def test_tag_resource():
     client = boto3.client("networkmanager")
-    resp = client.tag_resource()
+    gn_id = create_global_network(client)
+    cn = client.create_core_network(GlobalNetworkId=gn_id)["CoreNetwork"]
 
-    raise Exception("NotYetImplemented")
+    # Check tagging core-network
+    resp = client.tag_resource(
+        ResourceArn=cn["CoreNetworkArn"],
+        Tags=[{"Key": "Test", "Value": "TestValue-Core"}],
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    updated_cn = client.get_core_network(CoreNetworkId=cn["CoreNetworkId"])[
+        "CoreNetwork"
+    ]
+    assert updated_cn["Tags"] == [{"Key": "Test", "Value": "TestValue-Core"}]
+
+    # Check tagging global-network
+    gn_arn = client.describe_global_networks()["GlobalNetworks"][0]["GlobalNetworkArn"]
+    resp = client.tag_resource(ResourceArn=gn_arn, Tags=[{"Key": "Test", "Value": "TestValue-Global"}])
+    assert resp['ResponseMetadata']['HTTPStatusCode'] == 200
+    updated_gn = client.describe_global_networks(GlobalNetworkIds=[gn_id])["GlobalNetworks"][0]
+    assert len(updated_gn["Tags"]) == 2
+    assert updated_gn["Tags"] == [{"Key": "Name", "Value": "TestNetwork"}, {"Key": "Test", "Value": "TestValue-Global"}]
 
 
 @mock_aws
-@pytest.mark.skip(reason="NotYetImplemented")
 def test_untag_resource():
     client = boto3.client("networkmanager")
-    resp = client.untag_resource()
+    gn_id = create_global_network(client)
+    cn = client.create_core_network(
+        GlobalNetworkId=gn_id,
+        Tags=[
+            {"Key": "Name", "Value": "TestNetwork"},
+            {"Key": "DeleteMe", "Value": "DeleteThisTag!"},
+        ],
+    )["CoreNetwork"]
 
-    raise Exception("NotYetImplemented")
+    # Check untagging core-network
+    resp = client.untag_resource(ResourceArn=cn["CoreNetworkArn"], TagKeys=["DeleteMe"])
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    updated_cn = client.get_core_network(CoreNetworkId=cn["CoreNetworkId"])[
+        "CoreNetwork"
+    ]
+    assert len(updated_cn["Tags"]) == 1
+    assert updated_cn["Tags"] == [{"Key": "Name", "Value": "TestNetwork"}]
 
 
 @mock_aws
@@ -101,7 +131,6 @@ def test_list_core_networks():
         client.create_core_network(GlobalNetworkId=gn_id)
 
     resp = client.list_core_networks()
-    pytest.set_trace()
     assert len(resp["CoreNetworks"]) == NUM_CORE_NETWORKS
 
 
@@ -123,3 +152,25 @@ def test_get_core_network():
     assert resp["CoreNetwork"]["CoreNetworkId"] == cn_id
     assert resp["CoreNetwork"]["Description"] == "Test core network"
     assert len(resp["CoreNetwork"]["Tags"]) == 1
+
+
+@mock_aws
+def test_describe_global_networks():
+    NUM_NETWORKS = 3
+    client = boto3.client("networkmanager")
+    global_ids = []
+    for i in range(NUM_NETWORKS):
+        global_id = client.create_global_network(
+           Description=f"Test global network #{i}",
+           Tags=[
+               {"Key": "Name", "Value": f"TestNetwork-{i}"},
+           ],
+        )['GlobalNetwork']['GlobalNetworkId']
+        global_ids.append(global_id)
+    resp = client.describe_global_networks()
+    assert len(resp["GlobalNetworks"]) == NUM_NETWORKS
+
+    # Check each global network by ID
+    for g_id in global_ids:
+        gn = client.describe_global_networks(GlobalNetworkIds=[g_id])["GlobalNetworks"][0]
+        assert gn["GlobalNetworkId"] == g_id
