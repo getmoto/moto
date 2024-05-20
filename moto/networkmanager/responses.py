@@ -58,38 +58,38 @@ class NetworkManagerResponse(BaseResponse):
 
     def tag_resource(self):
         params = json.loads(self.body)
-        resource_arn = params.get("ResourceArn")
         tags = params.get("Tags")
+        resource_arn = self.uri_match.groups()[0]
+        resource_arn = resource_arn.replace("%3A", ":").replace("%2F", "/")
+
         self.networkmanager_backend.tag_resource(
             resource_arn=resource_arn,
             tags=tags,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return 200, {}, json.dumps({})
 
     # add templates from here
 
     def untag_resource(self):
-        params = json.loads(self.body)
-        resource_arn = params.get("ResourceArn")
-        tag_keys = params.get("TagKeys")
+        params = self._get_params()
+        tag_keys = params.get("tagKeys")
+        resource_arn = self.uri_match.groups()[0]
+        resource_arn = resource_arn.replace("%3A", ":").replace("%2F", "/")
         self.networkmanager_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return 200, {}, json.dumps({})
 
     def list_core_networks(self):
         params = self._get_params()
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
         core_networks, next_token = self.networkmanager_backend.list_core_networks(
             max_results=max_results,
             next_token=next_token,
         )
         list_core_networks = [core_network.to_dict() for core_network in core_networks]
-        # TODO: adjust response
         return json.dumps(dict(CoreNetworks=list_core_networks, nextToken=next_token))
 
     def get_core_network(self):
@@ -98,3 +98,22 @@ class NetworkManagerResponse(BaseResponse):
             core_network_id=core_network_id,
         )
         return json.dumps(dict(CoreNetwork=core_network.to_dict()))
+
+    def describe_global_networks(self):
+        params = self._get_params()
+        global_network_ids = params.get("globalNetworkIds")
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
+        global_networks, next_token = (
+            self.networkmanager_backend.describe_global_networks(
+                global_network_ids=global_network_ids,
+                max_results=max_results,
+                next_token=next_token,
+            )
+        )
+        list_global_networks = [
+            global_network.to_dict() for global_network in global_networks
+        ]
+        return json.dumps(
+            dict(GlobalNetworks=list_global_networks, nextToken=next_token)
+        )
