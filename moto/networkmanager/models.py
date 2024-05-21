@@ -27,7 +27,7 @@ class GlobalNetwork(BaseModel):
         self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "GlobalNetworkId": self.global_network_id,
             "GlobalNetworkArn": self.global_network_arn,
@@ -63,7 +63,7 @@ class CoreNetwork(BaseModel):
         self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "CoreNetworkId": self.core_network_id,
             "CoreNetworkArn": self.core_network_arn,
@@ -79,7 +79,7 @@ class CoreNetwork(BaseModel):
 class NetworkManagerBackend(BaseBackend):
     """Implementation of NetworkManager APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name, account_id) -> None:
         super().__init__(region_name, account_id)
         self.global_networks: Dict[str, GlobalNetwork] = {}
         self.core_networks: Dict[str, CoreNetwork] = {}
@@ -110,7 +110,7 @@ class NetworkManagerBackend(BaseBackend):
     ) -> CoreNetwork:
         # check if global network exists
         if global_network_id not in self.global_networks:
-            raise ResourceNotFound
+            raise ResourceNotFound("Resource not found.")
 
         core_network = CoreNetwork(
             global_network_id=global_network_id,
@@ -124,28 +124,28 @@ class NetworkManagerBackend(BaseBackend):
         self.core_networks[cnw_id] = core_network
         return core_network
 
-    def delete_core_network(self, core_network_id) -> CoreNetwork:
+    def delete_core_network(self, core_network_id: str) -> CoreNetwork:
         # Check if core network exists
         if core_network_id not in self.core_networks:
-            raise ResourceNotFound
+            raise ResourceNotFound("Resource not found.")
         core_network = self.core_networks.pop(core_network_id)
         core_network.state = "DELETING"
         return core_network
 
-    def tag_resource(self, resource_arn, tags) -> None:
+    def tag_resource(self, resource_arn:str, tags:List[Dict[str,Any]]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags.extend(tags)
 
-    def untag_resource(self, resource_arn, tag_keys) -> None:
+    def untag_resource(self, resource_arn:str, tag_keys: List[str]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     def list_core_networks(
-        self, max_results, next_token
+        self, max_results:int, next_token:str
     ) -> Tuple[List[CoreNetwork], str]:
         return list(self.core_networks.values()), next_token
 
-    def get_core_network(self, core_network_id) -> CoreNetwork:
+    def get_core_network(self, core_network_id:str) -> CoreNetwork:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound
         core_network = self.core_networks[core_network_id]

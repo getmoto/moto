@@ -2,6 +2,7 @@
 
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import NetworkManagerBackend, networkmanager_backends
@@ -10,7 +11,7 @@ from .models import NetworkManagerBackend, networkmanager_backends
 class NetworkManagerResponse(BaseResponse):
     """Handler for NetworkManager requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="networkmanager")
 
     @property
@@ -33,7 +34,7 @@ class NetworkManagerResponse(BaseResponse):
         )
         return json.dumps(dict(GlobalNetwork=global_network.to_dict()))
 
-    def create_core_network(self):
+    def create_core_network(self) -> str:
         params = json.loads(self.body)
         global_network_id = params.get("GlobalNetworkId")
         description = params.get("Description")
@@ -49,14 +50,14 @@ class NetworkManagerResponse(BaseResponse):
         )
         return json.dumps(dict(CoreNetwork=core_network.to_dict()))
 
-    def delete_core_network(self):
+    def delete_core_network(self) -> str:
         core_network_id = self.uri_match.groups()[0]
         core_network = self.networkmanager_backend.delete_core_network(
             core_network_id=core_network_id,
         )
         return json.dumps(dict(CoreNetwork=core_network.to_dict()))
 
-    def tag_resource(self):
+    def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         tags = params.get("Tags")
         resource_arn = self.uri_match.groups()[0]
@@ -68,9 +69,7 @@ class NetworkManagerResponse(BaseResponse):
         )
         return 200, {}, json.dumps({})
 
-    # add templates from here
-
-    def untag_resource(self):
+    def untag_resource(self) -> TYPE_RESPONSE:
         params = self._get_params()
         tag_keys = params.get("tagKeys")
         resource_arn = self.uri_match.groups()[0]
@@ -81,7 +80,7 @@ class NetworkManagerResponse(BaseResponse):
         )
         return 200, {}, json.dumps({})
 
-    def list_core_networks(self):
+    def list_core_networks(self) -> str:
         params = self._get_params()
         max_results = params.get("maxResults")
         next_token = params.get("nextToken")
@@ -92,14 +91,14 @@ class NetworkManagerResponse(BaseResponse):
         list_core_networks = [core_network.to_dict() for core_network in core_networks]
         return json.dumps(dict(CoreNetworks=list_core_networks, nextToken=next_token))
 
-    def get_core_network(self):
+    def get_core_network(self) -> str:
         core_network_id = self.uri_match.groups()[0]
         core_network = self.networkmanager_backend.get_core_network(
             core_network_id=core_network_id,
         )
         return json.dumps(dict(CoreNetwork=core_network.to_dict()))
 
-    def describe_global_networks(self):
+    def describe_global_networks(self) -> str:
         params = self._get_params()
         global_network_ids = params.get("globalNetworkIds")
         max_results = params.get("maxResults")
