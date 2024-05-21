@@ -1,6 +1,5 @@
 """Unit tests for networkmanager-supported APIs."""
 
-import pytest
 import boto3
 
 from moto import mock_aws
@@ -93,11 +92,18 @@ def test_tag_resource():
 
     # Check tagging global-network
     gn_arn = client.describe_global_networks()["GlobalNetworks"][0]["GlobalNetworkArn"]
-    resp = client.tag_resource(ResourceArn=gn_arn, Tags=[{"Key": "Test", "Value": "TestValue-Global"}])
-    assert resp['ResponseMetadata']['HTTPStatusCode'] == 200
-    updated_gn = client.describe_global_networks(GlobalNetworkIds=[gn_id])["GlobalNetworks"][0]
+    resp = client.tag_resource(
+        ResourceArn=gn_arn, Tags=[{"Key": "Test", "Value": "TestValue-Global"}]
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    updated_gn = client.describe_global_networks(GlobalNetworkIds=[gn_id])[
+        "GlobalNetworks"
+    ][0]
     assert len(updated_gn["Tags"]) == 2
-    assert updated_gn["Tags"] == [{"Key": "Name", "Value": "TestNetwork"}, {"Key": "Test", "Value": "TestValue-Global"}]
+    assert updated_gn["Tags"] == [
+        {"Key": "Name", "Value": "TestNetwork"},
+        {"Key": "Test", "Value": "TestValue-Global"},
+    ]
 
 
 @mock_aws
@@ -161,16 +167,18 @@ def test_describe_global_networks():
     global_ids = []
     for i in range(NUM_NETWORKS):
         global_id = client.create_global_network(
-           Description=f"Test global network #{i}",
-           Tags=[
-               {"Key": "Name", "Value": f"TestNetwork-{i}"},
-           ],
-        )['GlobalNetwork']['GlobalNetworkId']
+            Description=f"Test global network #{i}",
+            Tags=[
+                {"Key": "Name", "Value": f"TestNetwork-{i}"},
+            ],
+        )["GlobalNetwork"]["GlobalNetworkId"]
         global_ids.append(global_id)
     resp = client.describe_global_networks()
     assert len(resp["GlobalNetworks"]) == NUM_NETWORKS
 
     # Check each global network by ID
     for g_id in global_ids:
-        gn = client.describe_global_networks(GlobalNetworkIds=[g_id])["GlobalNetworks"][0]
+        gn = client.describe_global_networks(GlobalNetworkIds=[g_id])["GlobalNetworks"][
+            0
+        ]
         assert gn["GlobalNetworkId"] == g_id

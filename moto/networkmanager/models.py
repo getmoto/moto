@@ -110,7 +110,7 @@ class NetworkManagerBackend(BaseBackend):
     ) -> CoreNetwork:
         # check if global network exists
         if global_network_id not in self.global_networks:
-            raise Exception("Resource not found")
+            raise ResourceNotFound
 
         core_network = CoreNetwork(
             global_network_id=global_network_id,
@@ -164,20 +164,26 @@ class NetworkManagerBackend(BaseBackend):
             raise ValidationError(message=message)
         return resource
 
-    def describe_global_networks(self,
-        global_network_ids:List[str],
+    def describe_global_networks(
+        self,
+        global_network_ids: List[str],
         max_results: int,
-        next_token: str,) -> Tuple[List[GlobalNetwork], str]:
-        global_networks = []
+        next_token: str,
+    ) -> Tuple[List[GlobalNetwork], str]:
+        queried_global_networks = []
         if not global_network_ids:
-            global_networks = list(self.global_networks.values())
+            queried_global_networks = list(self.global_networks.values())
+        elif isinstance(global_network_ids, str):
+            if global_network_ids not in self.global_networks:
+                raise ResourceNotFound
+            queried_global_networks.append(self.global_networks[global_network_ids])
         else:
             for id in global_network_ids:
                 if id in self.global_networks:
                     global_network = self.global_networks[id]
-                    global_networks.append(global_network)
-        return global_networks, next_token
-    
+                    queried_global_networks.append(global_network)
+        return queried_global_networks, next_token
+
 
 networkmanager_backends = BackendDict(
     NetworkManagerBackend,

@@ -83,8 +83,8 @@ class NetworkManagerResponse(BaseResponse):
 
     def list_core_networks(self):
         params = self._get_params()
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
         core_networks, next_token = self.networkmanager_backend.list_core_networks(
             max_results=max_results,
             next_token=next_token,
@@ -98,16 +98,22 @@ class NetworkManagerResponse(BaseResponse):
             core_network_id=core_network_id,
         )
         return json.dumps(dict(CoreNetwork=core_network.to_dict()))
-    
+
     def describe_global_networks(self):
         params = self._get_params()
-        global_network_ids = params.get("GlobalNetworkIds")
-        max_results = params.get("MaxResults")
-        next_token = params.get("NextToken")
-        global_networks, next_token = self.networkmanager_backend.describe_global_networks(
-            global_network_ids=global_network_ids,
-            max_results=max_results,
-            next_token=next_token,
+        global_network_ids = params.get("globalNetworkIds")
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
+        global_networks, next_token = (
+            self.networkmanager_backend.describe_global_networks(
+                global_network_ids=global_network_ids,
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
-        list_global_networks = [global_network.to_dict() for global_network in global_networks]
-        return json.dumps(dict(GlobalNetworks=list_global_networks, nextToken=next_token))
+        list_global_networks = [
+            global_network.to_dict() for global_network in global_networks
+        ]
+        return json.dumps(
+            dict(GlobalNetworks=list_global_networks, nextToken=next_token)
+        )
