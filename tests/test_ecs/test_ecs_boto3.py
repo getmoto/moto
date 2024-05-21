@@ -1233,6 +1233,8 @@ def test_update_service():
         desiredCount=0,
     )
     assert response["service"]["desiredCount"] == 0
+    assert response["service"]["runningCount"] == 0
+    assert response["service"]["pendingCount"] == 0
     assert response["service"]["schedulingStrategy"] == "REPLICA"
 
     # Verify we can pass the ARNs of the cluster and service
@@ -1243,6 +1245,8 @@ def test_update_service():
         desiredCount=1,
     )
     assert response["service"]["desiredCount"] == 1
+    assert response["service"]["runningCount"] == 1
+    assert response["service"]["pendingCount"] == 0
 
 
 @mock_aws

@@ -1693,6 +1693,9 @@ class EC2ContainerServiceBackend(BaseBackend):
             for prop_name, prop_val in service_properties.items():
                 if prop_val is not None:
                     current_service.__setattr__(prop_name, prop_val)
+                    if prop_name == "desired_count":
+                        current_service.__setattr__("running_count", prop_val)
+                        current_service.__setattr__("pending_count", 0)
             if task_definition_str:
                 self.describe_task_definition(task_definition_str)
                 current_service.task_definition = task_definition_str
