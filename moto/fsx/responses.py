@@ -2,23 +2,24 @@
 
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .models import fsx_backends
+from .models import FSxBackend, fsx_backends
 
 
 class FSxResponse(BaseResponse):
     """Handler for FSx requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="fsx")
 
     @property
-    def fsx_backend(self):
+    def fsx_backend(self) -> FSxBackend:
         """Return backend instance specific for this region."""
         return fsx_backends[self.current_account][self.region]
 
-    def create_file_system(self):
+    def create_file_system(self) -> str:
         params = json.loads(self.body)
         client_request_token = params.get("ClientRequestToken")
         file_system_type = params.get("FileSystemType")
@@ -51,7 +52,7 @@ class FSxResponse(BaseResponse):
 
         return json.dumps(dict(FileSystem=file_system.to_dict()))
 
-    def describe_file_systems(self):
+    def describe_file_systems(self) -> str:
         params = json.loads(self.body)
         file_system_ids = params.get("FileSystemIds")
         max_results = params.get("MaxResults")
@@ -64,7 +65,7 @@ class FSxResponse(BaseResponse):
 
         return json.dumps(dict(FileSystems=file_systems))
 
-    def delete_file_system(self):
+    def delete_file_system(self) -> str:
         params = json.loads(self.body)
         file_system_id = params.get("FileSystemId")
         client_request_token = params.get("ClientRequestToken")
@@ -95,9 +96,7 @@ class FSxResponse(BaseResponse):
             )
         )
 
-    # add templates from here
-
-    def tag_resource(self):
+    def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = params.get("Tags")
@@ -105,5 +104,4 @@ class FSxResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return 200, {}, json.dumps({})

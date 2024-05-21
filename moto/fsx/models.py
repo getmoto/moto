@@ -1,7 +1,7 @@
 """FSxBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -34,7 +34,7 @@ class FileSystem(BaseModel):
         self.resource_arn = (
             f"arn:aws:fsx:region-name:account-id:file-system/{self.file_system_id}"
         )
-        self.tags = tags
+        self.tags = tags or []
         self.windows_configuration = windows_configuration
         self.lustre_configuration = lustre_configuration
         self.ontap_configuration = ontap_configuration
@@ -66,7 +66,7 @@ class FSxBackend(BaseBackend):
     def __init__(self, region_name, account_id) -> None:
         super().__init__(region_name, account_id)
         self.file_systems: Dict[str, FileSystem] = {}
-        self.tags: TaggingService = TaggingService()
+        self.tagger: TaggingService = TaggingService()
 
     def create_file_system(
         self,
@@ -101,10 +101,10 @@ class FSxBackend(BaseBackend):
         file_system_id = file_system.file_system_id
 
         self.file_systems[file_system_id] = file_system
-        self.tags.tag_resource(file_system_id, tags)
+        self.tagger.tag_resource(file_system.resource_arn, tags)
         return file_system
 
-    def describe_file_systems(self, file_system_ids, max_results, next_token):
+    def describe_file_systems(self, file_system_ids, max_results, next_token) -> Tuple[List[Dict],str]:
         # implement here
         file_systems_fetched = list(self.file_systems.values())
         file_systems = []
@@ -120,7 +120,7 @@ class FSxBackend(BaseBackend):
         windows_configuration,
         lustre_configuration,
         open_zfs_configuration,
-    ):
+    ) -> Tuple[str, str, Dict, Dict, Dict]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
         file_system_type = self.file_systems[file_system_id].file_system_type
@@ -147,13 +147,19 @@ class FSxBackend(BaseBackend):
             open_zfs_response,
         )
 
-    def tag_resource(self, resource_arn, tags):
-        fs = next(
-            self.file_systems[x]
-            for x in self.file_systems
-            if self.file_systems[x].resource_arn == resource_arn
-        )
-        fs.tags.update(tags)
+    def tag_resource(self, resource_arn, tags) -> None:
+        resource = self._get_resource_from_arn(resource_arn)
+        resource.tags.extend(tags)
+
+
+    def _get_resource_from_arn(self, arn: str) -> Any:
+        target_resource, target_name = arn.split(":")[-1].split("/")
+        try:
+            resource = self.file_systems.get(target_name)  # type: ignore
+        except KeyError:
+            message = f"Could not find {target_resource} with name {target_name}"
+            raise ValueError(message)
+        return resource
 
 
 fsx_backends = BackendDict(FSxBackend, "fsx")
