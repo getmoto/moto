@@ -11,7 +11,7 @@ class BudgetsResponse(BaseResponse):
 
     @property
     def backend(self) -> BudgetsBackend:
-        return budgets_backends[self.current_account]["global"]
+        return budgets_backends[self.current_account][self.partition]
 
     def create_budget(self) -> str:
         account_id = self._get_param("AccountId")

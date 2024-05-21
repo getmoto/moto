@@ -49,7 +49,7 @@ def test_lambda_regions(region):
     function = client.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
+        Role=get_role_name(region),
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": get_test_zip_file1()},
     )

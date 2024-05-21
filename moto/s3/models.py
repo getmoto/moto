@@ -62,7 +62,7 @@ from moto.s3.exceptions import (
     ObjectLockConfigurationNotFoundError,
 )
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import LowercaseDict, md5_hash
+from moto.utilities.utils import PARTITION_NAMES, LowercaseDict, get_partition, md5_hash
 
 from ..events.notifications import send_notification as events_send_notification
 from ..settings import (
@@ -111,6 +111,7 @@ class FakeKey(BaseModel, ManagedState):
         name: str,
         value: bytes,
         account_id: str,
+        region_name: str,
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
@@ -136,6 +137,8 @@ class FakeKey(BaseModel, ManagedState):
         )
         self.name = name
         self.account_id = account_id
+        self.region_name = region_name
+        self.partition = get_partition(region_name)
         self.last_modified = utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.website_redirect_location: Optional[str] = None
@@ -208,7 +211,7 @@ class FakeKey(BaseModel, ManagedState):
         previous = self._status
         new_status = super().status
         if previous != "RESTORED" and new_status == "RESTORED":
-            s3_backend = s3_backends[self.account_id]["global"]
+            s3_backend = s3_backends[self.account_id][self.partition]
             bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
             notifications.send_event(
                 self.account_id,
@@ -240,7 +243,7 @@ class FakeKey(BaseModel, ManagedState):
 
     def restore(self, days: int) -> None:
         self._expiry = utcnow() + datetime.timedelta(days)
-        s3_backend = s3_backends[self.account_id]["global"]
+        s3_backend = s3_backends[self.account_id][self.partition]
         bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
         notifications.send_event(
             self.account_id,
@@ -321,9 +324,9 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
-        tags = s3_backends[self.account_id]["global"].tagger.get_tag_dict_for_resource(
-            self.arn
-        )
+
+        backend = s3_backends[self.account_id][self.partition]
+        tags = backend.tagger.get_tag_dict_for_resource(self.arn)
         if tags:
             res["x-amz-tagging-count"] = str(len(tags.keys()))
 
@@ -414,6 +417,7 @@ class FakeMultipart(BaseModel):
         key_name: str,
         metadata: CaseInsensitiveDict,  # type: ignore
         account_id: str,
+        region_name: str,
         storage: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         acl: Optional["FakeAcl"] = None,
@@ -423,6 +427,7 @@ class FakeMultipart(BaseModel):
         self.key_name = key_name
         self.metadata = metadata
         self.account_id = account_id
+        self.region_name = region_name
         self.storage = storage
         self.tags = tags
         self.acl = acl
@@ -484,6 +489,7 @@ class FakeMultipart(BaseModel):
             part_id,  # type: ignore
             value,
             account_id=self.account_id,
+            region_name=self.region_name,
             encryption=self.sse_encryption,
             kms_key_id=self.kms_key_id,
         )
@@ -1458,15 +1464,15 @@ class FakeBucket(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeBucket":
-        bucket = s3_backends[account_id]["global"].create_bucket(
-            resource_name, region_name
-        )
+        partition = get_partition(region_name)
+        backend = s3_backends[account_id][partition]
+        bucket = backend.create_bucket(resource_name, region_name)
 
         properties = cloudformation_json.get("Properties", {})
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backends[account_id]["global"].put_bucket_encryption(
+            backend.put_bucket_encryption(
                 bucket_name=resource_name, encryption=bucket_encryption
             )
 
@@ -1504,7 +1510,9 @@ class FakeBucket(CloudFormationModel):
                 bucket_encryption = cfn_to_api_encryption(
                     properties["BucketEncryption"]
                 )
-                s3_backends[account_id]["global"].put_bucket_encryption(
+                s3_backends[account_id][
+                    get_partition(region_name)
+                ].put_bucket_encryption(
                     bucket_name=original_resource.name, encryption=bucket_encryption
                 )
             return original_resource
@@ -1517,7 +1525,7 @@ class FakeBucket(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        s3_backends[account_id]["global"].delete_bucket(resource_name)
+        s3_backends[account_id][get_partition(region_name)].delete_bucket(resource_name)
 
     def to_config_dict(self) -> Dict[str, Any]:
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1525,6 +1533,7 @@ class FakeBucket(CloudFormationModel):
         Note: The following features are not implemented and will need to be if you care about them:
         - Bucket Accelerate Configuration
         """
+        backend = s3_backends[self.account_id][get_partition(self.region_name)]
         config_dict: Dict[str, Any] = {
             "version": "1.3",
             "configurationItemCaptureTime": str(self.creation_date),
@@ -1540,9 +1549,7 @@ class FakeBucket(CloudFormationModel):
             "resourceCreationTime": str(self.creation_date),
             "relatedEvents": [],
             "relationships": [],
-            "tags": s3_backends[self.account_id][
-                "global"
-            ].tagger.get_tag_dict_for_resource(self.arn),
+            "tags": backend.tagger.get_tag_dict_for_resource(self.arn),
             "configuration": {
                 "name": self.name,
                 "owner": {"id": OWNER},
@@ -1758,9 +1765,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
 
     @classmethod
-    def get_cloudwatch_metrics(cls, account_id: str) -> List[MetricDatum]:
+    def get_cloudwatch_metrics(cls, account_id: str, region: str) -> List[MetricDatum]:
         metrics = []
-        for name, bucket in s3_backends[account_id]["global"].buckets.items():
+        for name, bucket in s3_backends[account_id][
+            get_partition(region)
+        ].buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1833,7 +1842,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             if not s3_allow_crossdomain_access():
                 raise AccessDeniedByLock
             account_id = s3_backends.bucket_accounts[bucket_name]
-            return s3_backends[account_id]["global"].get_bucket(bucket_name)
+            return s3_backends[account_id][get_partition(self.region_name)].get_bucket(
+                bucket_name
+            )
 
         raise MissingBucket(bucket=bucket_name)
 
@@ -2115,6 +2126,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket_name=bucket_name,
             value=value,
             account_id=self.account_id,
+            region_name=self.region_name,
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
@@ -2463,6 +2475,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             key_name,
             metadata,
             account_id=self.account_id,
+            region_name=self.region_name,
             storage=storage_type,
             tags=tags,
             acl=acl,
@@ -2988,5 +3001,8 @@ class S3BackendDict(BackendDict[S3Backend]):
 
 
 s3_backends = S3BackendDict(
-    S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
+    S3Backend,
+    service_name="s3",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )

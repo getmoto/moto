@@ -23,7 +23,7 @@ from moto.organizations.exceptions import (
     TargetNotFoundException,
 )
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .utils import PAGINATION_MODEL
 
@@ -958,5 +958,5 @@ organizations_backends = BackendDict(
     OrganizationsBackend,
     "organizations",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

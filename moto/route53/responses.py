@@ -34,7 +34,7 @@ class Route53(BaseResponse):
 
     @property
     def backend(self) -> Route53Backend:
-        return route53_backends[self.current_account]["global"]
+        return route53_backends[self.current_account][self.partition]
 
     def create_hosted_zone(self) -> TYPE_RESPONSE:
         vpcid = None

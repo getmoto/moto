@@ -3,19 +3,22 @@ import json
 import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
 
+REGION_PREFIX_TO_PARTITION = {
+    # (region prefix, aws partition)
+    "cn-": "aws-cn",
+    "us-gov-": "aws-us-gov",
+    "us-iso-": "aws-iso",
+    "us-isob-": "aws-iso-b",
+}
+PARTITION_NAMES = list(REGION_PREFIX_TO_PARTITION.values()) + ["aws"]
+
 
 def get_partition(region: str) -> str:
-    valid_matches = [
-        # (region prefix, aws partition)
-        ("cn-", "aws-cn"),
-        ("us-gov-", "aws-us-gov"),
-        ("us-iso-", "aws-iso"),
-        ("us-isob-", "aws-iso-b"),
-    ]
-
-    for prefix, partition in valid_matches:
+    if region in PARTITION_NAMES:
+        return region
+    for prefix in REGION_PREFIX_TO_PARTITION:
         if region.startswith(prefix):
-            return partition
+            return REGION_PREFIX_TO_PARTITION[prefix]
     return "aws"
 
 

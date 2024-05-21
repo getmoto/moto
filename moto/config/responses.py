@@ -118,12 +118,11 @@ class ConfigResponse(BaseResponse):
 
     def list_discovered_resources(self) -> str:
         schema = self.config_backend.list_discovered_resources(
-            self._get_param("resourceType"),
-            self.region,
-            self._get_param("resourceIds"),
-            self._get_param("resourceName"),
-            self._get_param("limit"),
-            self._get_param("nextToken"),
+            resource_type=self._get_param("resourceType"),
+            resource_ids=self._get_param("resourceIds"),
+            resource_name=self._get_param("resourceName"),
+            limit=self._get_param("limit"),
+            next_token=self._get_param("nextToken"),
         )
         return json.dumps(schema)
 

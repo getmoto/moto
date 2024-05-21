@@ -40,9 +40,9 @@ def get_pipeline_execution_from_arn(
 
 
 def load_pipeline_definition_from_s3(
-    pipeline_definition_s3_location: Dict[str, Any], account_id: str
+    pipeline_definition_s3_location: Dict[str, Any], account_id: str, partition: str
 ) -> Dict[str, Any]:
-    s3_backend = s3_backends[account_id]["global"]
+    s3_backend = s3_backends[account_id][partition]
     result = s3_backend.get_object(
         bucket_name=pipeline_definition_s3_location["Bucket"],
         key_name=pipeline_definition_s3_location["ObjectKey"],

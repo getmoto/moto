@@ -79,7 +79,7 @@ class CodePipelineBackend(BaseBackend):
 
     @property
     def iam_backend(self) -> IAMBackend:
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
     def create_pipeline(
         self, pipeline: Dict[str, Any], tags: List[Dict[str, str]]
