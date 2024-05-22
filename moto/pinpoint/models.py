@@ -6,16 +6,15 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ApplicationNotFound, EventStreamNotFound
 
 
 class App(BaseModel):
-    def __init__(self, account_id: str, name: str):
+    def __init__(self, account_id: str, region_name: str, name: str):
         self.application_id = str(mock_random.uuid4()).replace("-", "")
-        self.arn = (
-            f"arn:aws:mobiletargeting:us-east-1:{account_id}:apps/{self.application_id}"
-        )
+        self.arn = f"arn:{get_partition(region_name)}:mobiletargeting:us-east-1:{account_id}:apps/{self.application_id}"
         self.name = name
         self.created = unix_time()
         self.settings = AppSettings()
@@ -95,7 +94,7 @@ class PinpointBackend(BaseBackend):
         self.tagger = TaggingService()
 
     def create_app(self, name: str, tags: Dict[str, str]) -> App:
-        app = App(self.account_id, name)
+        app = App(self.account_id, self.region_name, name)
         self.apps[app.application_id] = app
         tag_list = self.tagger.convert_dict_to_tags_input(tags)
         self.tagger.tag_resource(app.arn, tag_list)

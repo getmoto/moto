@@ -4,6 +4,7 @@ from .responses import CloudFrontResponse
 
 url_bases = [
     r"https?://cloudfront\.amazonaws\.com",
+    r"https?://cloudfront\.(.+)\.amazonaws\.com",
 ]
 url_paths = {
     "{0}/2020-05-31/distribution$": CloudFrontResponse.dispatch,

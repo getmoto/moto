@@ -40,7 +40,11 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
 from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
-from moto.utilities.utils import get_partition, load_resource_as_bytes
+from moto.utilities.utils import (
+    ARN_PARTITION_REGEX,
+    get_partition,
+    load_resource_as_bytes,
+)
 
 from .exceptions import (
     ConflictException,
@@ -1606,7 +1610,7 @@ class LambdaStorage(object):
         :raises: InvalidParameterValue if qualifier is provided
         """
 
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             [_, name, qualifier] = self.split_function_arn(name_or_arn)
 
             if qualifier is not None:
@@ -1625,7 +1629,7 @@ class LambdaStorage(object):
         :raises: UnknownFunctionException if function not found
         """
 
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             [_, name, qualifier_in_arn] = self.split_function_arn(name_or_arn)
             return self.get_function_by_name_with_qualifier(
                 name, qualifier_in_arn or qualifier
@@ -1636,7 +1640,7 @@ class LambdaStorage(object):
     def construct_unknown_function_exception(
         self, name_or_arn: str, qualifier: Optional[str] = None
     ) -> UnknownFunctionException:
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             arn = name_or_arn
         else:
             # name_or_arn is a function name with optional qualifier <func_name>[:<qualifier>]
@@ -1696,7 +1700,7 @@ class LambdaStorage(object):
 
     def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             # Extract from ARN
             if ":" in name_or_arn.split(":function:")[-1]:
                 qualifier = name_or_arn.split(":")[-1]

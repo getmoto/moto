@@ -95,7 +95,9 @@ class IAMUserAccessKey:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:user/{self._owner_user_name}"
+        return (
+            f"arn:{self.partition}:iam::{self.account_id}:user/{self._owner_user_name}"
+        )
 
     def create_credentials(self) -> Credentials:
         return Credentials(self._access_key_id, self._secret_access_key)
@@ -162,7 +164,7 @@ class AssumedRoleAccessKey:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:sts::{self.account_id}:assumed-role/{self._owner_role_name}/{self._session_name}"
+        return f"arn:{self.partition}:sts::{self.account_id}:assumed-role/{self._owner_role_name}/{self._session_name}"
 
     def create_credentials(self) -> Credentials:
         return Credentials(
