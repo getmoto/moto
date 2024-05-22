@@ -449,7 +449,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self._id = str(random.uuid4())
         self.region = self.autoscaling_backend.region_name
         self.account_id = self.autoscaling_backend.account_id
-        self.service_linked_role = f"arn:aws:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+        partition = get_partition(self.region)
+        self.service_linked_role = f"arn:{partition}:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
 
         self.vpc_zone_identifier: Optional[str] = None
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)

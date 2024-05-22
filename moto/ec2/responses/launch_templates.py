@@ -87,7 +87,7 @@ class LaunchTemplates(EC2BaseResponse):
             "launchTemplate",
             {
                 "createTime": version.create_time,
-                "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                 "defaultVersionNumber": template.default_version_number,
                 "latestVersionNumber": version.number,
                 "launchTemplateId": template.id,
@@ -120,7 +120,7 @@ class LaunchTemplates(EC2BaseResponse):
             "launchTemplateVersion",
             {
                 "createTime": version.create_time,
-                "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                 "defaultVersion": template.is_default(version),
                 "launchTemplateData": version.data,
                 "launchTemplateId": template.id,
@@ -214,7 +214,7 @@ class LaunchTemplates(EC2BaseResponse):
                 "item",
                 {
                     "createTime": version.create_time,
-                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                    "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                     "defaultVersion": True,
                     "launchTemplateData": version.data,
                     "launchTemplateId": template.id,
@@ -251,7 +251,7 @@ class LaunchTemplates(EC2BaseResponse):
                 "item",
                 {
                     "createTime": template.create_time,
-                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                    "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                     "defaultVersionNumber": template.default_version_number,
                     "latestVersionNumber": template.latest_version_number,
                     "launchTemplateId": template.id,

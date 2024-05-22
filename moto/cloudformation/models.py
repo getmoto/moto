@@ -55,8 +55,10 @@ class FakeStackSet(BaseModel):
         self.description = description
         self.parameters = parameters
         self.tags = tags
-        self.admin_role = admin_role
-        self.admin_role_arn = f"arn:aws:iam::{account_id}:role/{self.admin_role}"
+        self.admin_role = (
+            admin_role
+            or f"arn:{get_partition(region)}:iam::{account_id}:role/AWSCloudFormationStackSetAdministrationRole"
+        )
         self.execution_role = execution_role or "AWSCloudFormationStackSetExecutionRole"
         self.status = "ACTIVE"
         self.instances = FakeStackInstances(

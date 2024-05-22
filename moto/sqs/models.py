@@ -1155,7 +1155,12 @@ class SQSBackend(BaseBackend):
         return queues
 
     def add_permission(
-        self, queue_name: str, actions: List[str], account_ids: List[str], label: str
+        self,
+        region_name: str,
+        queue_name: str,
+        actions: List[str],
+        account_ids: List[str],
+        label: str,
     ) -> None:
         queue = self.get_queue(queue_name)
 
@@ -1195,7 +1200,10 @@ class SQSBackend(BaseBackend):
                 f"Value {label} for parameter Label is invalid. Reason: Already exists."
             )
 
-        principals = [f"arn:aws:iam::{account_id}:root" for account_id in account_ids]
+        principals = [
+            f"arn:{get_partition(region_name)}:iam::{account_id}:root"
+            for account_id in account_ids
+        ]
         actions = [f"SQS:{action}" for action in actions]
 
         statement = {

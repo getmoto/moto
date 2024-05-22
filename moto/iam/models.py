@@ -27,7 +27,12 @@ from moto.iam.policy_validation import (
 )
 from moto.moto_api._internal import mock_random as random
 from moto.settings import load_iam_aws_managed_policies
-from moto.utilities.utils import PARTITION_NAMES, get_partition, md5_hash
+from moto.utilities.utils import (
+    ARN_PARTITION_REGEX,
+    PARTITION_NAMES,
+    get_partition,
+    md5_hash,
+)
 
 from ..utilities.tagging_service import TaggingService
 from .aws_managed_policies import aws_managed_policies_data
@@ -116,8 +121,10 @@ class MFADevice:
 
 
 class VirtualMfaDevice:
-    def __init__(self, account_id: str, device_name: str):
-        self.serial_number = f"arn:aws:iam::{account_id}:mfa{device_name}"
+    def __init__(self, account_id: str, region_name: str, device_name: str):
+        self.serial_number = (
+            f"arn:{get_partition(region_name)}:iam::{account_id}:mfa{device_name}"
+        )
 
         random_base32_string = "".join(
             random.choice(string.ascii_uppercase + "234567") for _ in range(64)
@@ -209,21 +216,27 @@ class Policy(CloudFormationModel):
 
 class SAMLProvider(BaseModel):
     def __init__(
-        self, account_id: str, name: str, saml_metadata_document: Optional[str] = None
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        saml_metadata_document: Optional[str] = None,
     ):
         self.account_id = account_id
+        self.region_name = region_name
         self.name = name
         self.saml_metadata_document = saml_metadata_document
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:saml-provider/{self.name}"
+        return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:saml-provider/{self.name}"
 
 
 class OpenIDConnectProvider(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         url: str,
         thumbprint_list: List[str],
         client_id_list: List[str],
@@ -233,6 +246,7 @@ class OpenIDConnectProvider(BaseModel):
         self._validate(url, thumbprint_list, client_id_list)
 
         self.account_id = account_id
+        self.region_name = region_name
         parsed_url = parse.urlparse(url)
         self.url = parsed_url.netloc + parsed_url.path
         self.thumbprint_list = thumbprint_list
@@ -242,7 +256,7 @@ class OpenIDConnectProvider(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:oidc-provider/{self.url}"
+        return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:oidc-provider/{self.url}"
 
     @property
     def created_iso_8601(self) -> str:
@@ -354,7 +368,9 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:policy{self.path}{self.name}"
+        return (
+            f"arn:{self.partition}:iam::{self.account_id}:policy{self.path}{self.name}"
+        )
 
     def to_config_dict(self) -> Dict[str, Any]:
         return {
@@ -362,7 +378,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "configurationItemCaptureTime": str(self.create_date),
             "configurationItemStatus": "OK",
             "configurationStateId": str(int(unix_time())),
-            "arn": f"arn:aws:iam::{self.account_id}:policy/{self.name}",
+            "arn": f"arn:{self.partition}:iam::{self.account_id}:policy/{self.name}",
             "resourceType": "AWS::IAM::Policy",
             "resourceId": self.id,
             "resourceName": self.name,
@@ -373,7 +389,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             "configuration": {
                 "policyName": self.name,
                 "policyId": self.id,
-                "arn": f"arn:aws:iam::{self.account_id}:policy/{self.name}",
+                "arn": f"arn:{self.partition}:iam::{self.account_id}:policy/{self.name}",
                 "path": self.path,
                 "defaultVersionId": self.default_version_id,
                 "attachmentCount": self.attachment_count,
@@ -483,7 +499,7 @@ class AWSManagedPolicy(ManagedPolicy):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::aws:policy{self.path}{self.name}"
+        return f"arn:{self.partition}:iam::aws:policy{self.path}{self.name}"
 
 
 class InlinePolicy(CloudFormationModel):
@@ -764,8 +780,8 @@ class Role(CloudFormationModel):
     @property
     def arn(self) -> str:
         if self._linked_service:
-            return f"arn:aws:iam::{self.account_id}:role/aws-service-role/{self._linked_service}/{self.name}"
-        return f"arn:aws:iam::{self.account_id}:role{self.path}{self.name}"
+            return f"arn:{self.partition}:iam::{self.account_id}:role/aws-service-role/{self._linked_service}/{self.name}"
+        return f"arn:{self.partition}:iam::{self.account_id}:role{self.path}{self.name}"
 
     def to_config_dict(self) -> Dict[str, Any]:
         _managed_policies = []
@@ -797,7 +813,7 @@ class Role(CloudFormationModel):
             "configurationItemCaptureTime": str(self.create_date),
             "configurationItemStatus": "ResourceDiscovered",
             "configurationStateId": str(int(unix_time())),
-            "arn": f"arn:aws:iam::{self.account_id}:role/{self.name}",
+            "arn": f"arn:{self.partition}:iam::{self.account_id}:role/{self.name}",
             "resourceType": "AWS::IAM::Role",
             "resourceId": self.name,
             "resourceName": self.name,
@@ -811,7 +827,7 @@ class Role(CloudFormationModel):
                 "path": self.path,
                 "roleName": self.name,
                 "roleId": self.id,
-                "arn": f"arn:aws:iam::{self.account_id}:role/{self.name}",
+                "arn": f"arn:{self.partition}:iam::{self.account_id}:role/{self.name}",
                 "assumeRolePolicyDocument": parse.quote(
                     self.assume_role_policy_document
                 )
@@ -919,6 +935,7 @@ class InstanceProfile(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         instance_profile_id: str,
         name: str,
         path: str,
@@ -927,6 +944,7 @@ class InstanceProfile(CloudFormationModel):
     ):
         self.id = instance_profile_id
         self.account_id = account_id
+        self.partition = get_partition(region_name)
         self.name = name
         self.path = path or "/"
         self.roles = roles if roles else []
@@ -983,7 +1001,7 @@ class InstanceProfile(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:instance-profile{self.path}{self.name}"
+        return f"arn:{self.partition}:iam::{self.account_id}:instance-profile{self.path}{self.name}"
 
     @property
     def physical_resource_id(self) -> str:
@@ -1010,7 +1028,7 @@ class InstanceProfile(CloudFormationModel):
                     "path": role.path,
                     "roleName": role.name,
                     "roleId": role.id,
-                    "arn": f"arn:aws:iam::{self.account_id}:role/{role.name}",
+                    "arn": f"arn:{self.partition}:iam::{self.account_id}:role/{role.name}",
                     "createDate": str(role.create_date),
                     "assumeRolePolicyDocument": parse.quote(
                         role.assume_role_policy_document
@@ -1032,7 +1050,7 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": f"arn:aws:iam::{self.account_id}:instance-profile/{role.name}",  # pylint: disable=W0631
+            "arn": f"arn:{self.partition}:iam::{self.account_id}:instance-profile/{role.name}",  # pylint: disable=W0631
             "createDate": str(self.create_date),
             "roles": roles,
         }
@@ -1042,6 +1060,7 @@ class Certificate(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         cert_name: str,
         cert_body: str,
         private_key: str,
@@ -1049,6 +1068,7 @@ class Certificate(BaseModel):
         path: Optional[str] = None,
     ):
         self.account_id = account_id
+        self.partition = get_partition(region_name)
         self.cert_name = cert_name
         if cert_body:
             cert_body = cert_body.rstrip()
@@ -1063,7 +1083,7 @@ class Certificate(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:server-certificate{self.path}{self.cert_name}"
+        return f"arn:{self.partition}:iam::{self.account_id}:server-certificate{self.path}{self.cert_name}"
 
 
 class SigningCertificate(BaseModel):
@@ -1235,8 +1255,9 @@ class SshPublicKey(BaseModel):
 
 
 class Group(BaseModel):
-    def __init__(self, account_id: str, name: str, path: str = "/"):
+    def __init__(self, account_id: str, region_name: str, name: str, path: str = "/"):
         self.account_id = account_id
+        self.partition = get_partition(region_name)
         self.name = name
         self.id = random_resource_id()
         self.path = path
@@ -1264,10 +1285,10 @@ class Group(BaseModel):
     @property
     def arn(self) -> str:
         if self.path == "/":
-            return f"arn:aws:iam::{self.account_id}:group/{self.name}"
+            return f"arn:{self.partition}:iam::{self.account_id}:group/{self.name}"
         else:
             # The path must by definition end and start with a forward slash. So we don't have to add more slashes to the ARN
-            return f"arn:aws:iam::{self.account_id}:group{self.path}{self.name}"
+            return f"arn:{self.partition}:iam::{self.account_id}:group{self.path}{self.name}"
 
     def get_policy(self, policy_name: str) -> Dict[str, str]:
         try:
@@ -1782,7 +1803,7 @@ class AccountSummary(BaseModel):
         customer_policies = [
             policy
             for policy in self._iam_backend.managed_policies
-            if not policy.startswith("arn:aws:iam::aws:policy")
+            if not re.match(ARN_PARTITION_REGEX + ":iam::aws:policy", policy)
         ]
         return len(customer_policies)
 
@@ -1834,7 +1855,9 @@ class IAMBackend(BaseBackend):
         self.account_aliases: List[str] = []
         self.saml_providers: Dict[str, SAMLProvider] = {}
         self.open_id_providers: Dict[str, OpenIDConnectProvider] = {}
-        self.policy_arn_regex = re.compile(r"^arn:aws:iam::(aws|[0-9]*):policy/.*$")
+        self.policy_arn_regex = re.compile(
+            ARN_PARTITION_REGEX + r":iam::(aws|[0-9]*):policy/.*$"
+        )
         self.virtual_mfa_devices: Dict[str, VirtualMfaDevice] = {}
         self.account_password_policy: Optional[AccountPasswordPolicy] = None
         self.account_summary = AccountSummary(self)
@@ -2390,7 +2413,13 @@ class IAMBackend(BaseBackend):
 
         roles = [self.get_role(role_name) for role_name in role_names]
         instance_profile = InstanceProfile(
-            self.account_id, instance_profile_id, name, path, roles, tags
+            account_id=self.account_id,
+            region_name=self.region_name,
+            instance_profile_id=instance_profile_id,
+            name=name,
+            path=path,
+            roles=roles,
+            tags=tags,
         )
         self.instance_profiles[name] = instance_profile
         return instance_profile
@@ -2466,7 +2495,13 @@ class IAMBackend(BaseBackend):
     ) -> Certificate:
         certificate_id = random_resource_id()
         cert = Certificate(
-            self.account_id, cert_name, cert_body, private_key, cert_chain, path
+            account_id=self.account_id,
+            region_name=self.region_name,
+            cert_name=cert_name,
+            cert_body=cert_body,
+            private_key=private_key,
+            cert_chain=cert_chain,
+            path=path,
         )
         self.certificates[certificate_id] = cert
         return cert
@@ -2504,7 +2539,7 @@ class IAMBackend(BaseBackend):
         if group_name in self.groups:
             raise IAMConflictException(f"Group {group_name} already exists")
 
-        group = Group(self.account_id, group_name, path)
+        group = Group(self.account_id, self.region_name, group_name, path)
         self.groups[group_name] = group
         return group
 
@@ -2959,7 +2994,11 @@ class IAMBackend(BaseBackend):
                 "Member must have length less than or equal to 512"
             )
 
-        device = VirtualMfaDevice(self.account_id, path + device_name)
+        device = VirtualMfaDevice(
+            self.account_id,
+            region_name=self.region_name,
+            device_name=path + device_name,
+        )
 
         if device.serial_number in self.virtual_mfa_devices:
             raise EntityAlreadyExists(
@@ -3075,7 +3114,12 @@ class IAMBackend(BaseBackend):
     def create_saml_provider(
         self, name: str, saml_metadata_document: str
     ) -> SAMLProvider:
-        saml_provider = SAMLProvider(self.account_id, name, saml_metadata_document)
+        saml_provider = SAMLProvider(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            saml_metadata_document=saml_metadata_document,
+        )
         self.saml_providers[name] = saml_provider
         return saml_provider
 
@@ -3120,7 +3164,12 @@ class IAMBackend(BaseBackend):
     ) -> OpenIDConnectProvider:
         clean_tags = self._tag_verification(tags)
         open_id_provider = OpenIDConnectProvider(
-            self.account_id, url, thumbprint_list, client_id_list, clean_tags
+            account_id=self.account_id,
+            region_name=self.region_name,
+            url=url,
+            thumbprint_list=thumbprint_list,
+            client_id_list=client_id_list,
+            tags=clean_tags,
         )
 
         if open_id_provider.arn in self.open_id_providers:

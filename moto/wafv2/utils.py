@@ -1,4 +1,4 @@
-from moto.utilities.utils import PARTITION_NAMES
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 
 def make_arn_for_wacl(
@@ -30,5 +30,8 @@ def make_arn(
 
     if region_name in PARTITION_NAMES:
         region_name = "global"
+    partition = (
+        region_name if region_name in PARTITION_NAMES else get_partition(region_name)
+    )
 
-    return f"arn:aws:wafv2:{region_name}:{account_id}:{scope}/{resource}/{name}/{_id}"
+    return f"arn:{partition}:wafv2:{region_name}:{account_id}:{scope}/{resource}/{name}/{_id}"

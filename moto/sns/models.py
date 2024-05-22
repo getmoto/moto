@@ -959,6 +959,7 @@ class SNSBackend(BaseBackend):
 
     def add_permission(
         self,
+        region_name: str,
         topic_arn: str,
         label: str,
         aws_account_ids: List[str],
@@ -982,7 +983,8 @@ class SNSBackend(BaseBackend):
             raise SNSInvalidParameter("Policy statement action out of service scope!")
 
         principals = [
-            f"arn:aws:iam::{account_id}:root" for account_id in aws_account_ids
+            f"arn:{get_partition(region_name)}:iam::{account_id}:root"
+            for account_id in aws_account_ids
         ]
         actions = [f"SNS:{action_name}" for action_name in action_names]
 

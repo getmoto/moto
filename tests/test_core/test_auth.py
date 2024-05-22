@@ -25,9 +25,12 @@ def create_user_with_access_key(user_name: str = "test-user") -> Dict[str, str]:
 
 @mock_aws
 def create_user_with_access_key_and_inline_policy(  # type: ignore[misc]
-    user_name: str, policy_document: Dict[str, Any], policy_name: str = "policy1"
+    user_name: str,
+    policy_document: Dict[str, Any],
+    policy_name: str = "policy1",
+    region_name: str = "us-east-1",
 ) -> Dict[str, str]:
-    client = boto3.client("iam", region_name="us-east-1")
+    client = boto3.client("iam", region_name=region_name)
     client.create_user(UserName=user_name)
     client.put_user_policy(
         UserName=user_name,
@@ -822,7 +825,10 @@ def test_s3_invalid_token_with_temporary_credentials() -> None:
 
 @set_initial_no_auth_action_count(3)
 @mock_aws
-def test_allow_bucket_access_using_resource_arn() -> None:
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_allow_bucket_access_using_resource_arn(region: str, partition: str) -> None:
     user_name = "test-user"
     policy_doc = {
         "Version": "2012-10-17",
@@ -830,21 +836,25 @@ def test_allow_bucket_access_using_resource_arn() -> None:
             {
                 "Action": ["s3:*"],
                 "Effect": "Allow",
-                "Resource": "arn:aws:s3:::my_bucket",
+                "Resource": f"arn:{partition}:s3:::my_bucket",
                 "Sid": "BucketLevelGrants",
             },
         ],
     }
-    access_key = create_user_with_access_key_and_inline_policy(user_name, policy_doc)
+    access_key = create_user_with_access_key_and_inline_policy(
+        user_name, policy_doc, region_name=region
+    )
 
     s3_client = boto3.client(
         "s3",
-        region_name="us-east-1",
+        region_name=region,
         aws_access_key_id=access_key["AccessKeyId"],
         aws_secret_access_key=access_key["SecretAccessKey"],
     )
 
-    s3_client.create_bucket(Bucket="my_bucket")
+    s3_client.create_bucket(
+        Bucket="my_bucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
     with pytest.raises(ClientError):
         s3_client.create_bucket(Bucket="my_bucket2")
 

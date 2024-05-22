@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 import boto3
@@ -6,6 +7,7 @@ import boto3
 from moto.core.common_models import ConfigQueryModel
 from moto.core.exceptions import InvalidNextTokenException
 from moto.iam.models import IAMBackend, iam_backends
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 
 class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
@@ -190,7 +192,9 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
         # custom configuration recorders, we'll just behave as default.
         policy_list = list(
             filter(
-                lambda policy: not policy.arn.startswith("arn:aws:iam::aws"),
+                lambda policy: not re.match(
+                    ARN_PARTITION_REGEX + ":iam::aws", policy.arn
+                ),
                 policy_list,
             )
         )

@@ -114,7 +114,7 @@ class CodeBuild(BaseModel):
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:alias/aws/s3"
         )
         self.project_metadata["serviceRole"] = (
-            f"arn:aws:iam::{account_id}:role/service-role/{serviceRole}"
+            f"arn:{get_partition(region)}:iam::{account_id}:role/service-role/{serviceRole}"
         )
         self.project_metadata["lastModifiedDate"] = current_date
         self.project_metadata["created"] = current_date

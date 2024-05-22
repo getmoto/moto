@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import re
 import string
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
@@ -11,7 +12,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import (
     AWSValidationException,
@@ -2254,7 +2255,7 @@ class SageMakerModelBackend(BaseBackend):
             self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
             raise ResourceNotFound(
-                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}' does not exist."
+                message=f"Trial 'arn:{get_partition(self.region_name)}:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}' does not exist."
             )
 
         if trial_component_name in self.trial_components.keys():
@@ -3450,7 +3451,7 @@ class SageMakerModelBackend(BaseBackend):
             )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
-            if model_package_group_name.startswith("arn:aws"):
+            if re.match(ARN_PARTITION_REGEX, model_package_group_name):
                 model_package_group_name = model_package_group_name.split("/")[-1]
         model_package_summary_list = list(
             filter(

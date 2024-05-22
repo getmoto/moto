@@ -213,7 +213,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     tags
                 ):  # Skip if no tags, or invalid filter
                     continue
-                yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": tags}
+                yield {"ResourceARN": bucket.arn, "Tags": tags}
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
@@ -267,7 +267,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::image/{ami.id}",
+                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::image/{ami.id}",
                     "Tags": tags,
                 }
 
@@ -285,7 +285,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         # Skip if no tags, or invalid filter
                         continue
                     yield {
-                        "ResourceARN": f"arn:aws:ec2:{self.region_name}::instance/{instance.id}",
+                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::instance/{instance.id}",
                         "Tags": tags,
                     }
 
@@ -302,7 +302,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::network-interface/{eni.id}",
+                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::network-interface/{eni.id}",
                     "Tags": tags,
                 }
 
@@ -322,7 +322,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         # Skip if no tags, or invalid filter
                         continue
                     yield {
-                        "ResourceARN": f"arn:aws:ec2:{self.region_name}::security-group/{sg.id}",
+                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::security-group/{sg.id}",
                         "Tags": tags,
                     }
 
@@ -339,7 +339,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::snapshot/{snapshot.id}",
+                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::snapshot/{snapshot.id}",
                     "Tags": tags,
                 }
 
@@ -359,7 +359,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::volume/{volume.id}",
+                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::volume/{volume.id}",
                     "Tags": tags,
                 }
 
@@ -601,7 +601,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
+                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
                     "Tags": tags,
                 }
         # VPC Customer Gateway
@@ -940,18 +940,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ErrorMessage": "Service not yet supported",
         }
         for arn in resource_arns:
-            if arn.startswith("arn:aws:rds:") or arn.startswith("arn:aws:snapshot:"):
+            if arn.startswith(
+                f"arn:{get_partition(self.region_name)}:rds:"
+            ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith("arn:aws:workspaces:"):
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces:"):
                 resource_id = arn.split("/")[-1]
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith("arn:aws:logs:"):
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
-            elif arn.startswith("arn:aws:dynamodb"):
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:dynamodb"):
                 self.dynamodb_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )

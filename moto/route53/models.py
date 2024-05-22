@@ -457,13 +457,14 @@ class FakeZone(CloudFormationModel):
 
 
 class RecordSetGroup(CloudFormationModel):
-    def __init__(self, hosted_zone_id: str, record_sets: List[str]):
+    def __init__(self, region_name: str, hosted_zone_id: str, record_sets: List[str]):
+        self.region_name = region_name
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
 
     @property
     def physical_resource_id(self) -> str:
-        return f"arn:aws:route53:::hostedzone/{self.hosted_zone_id}"
+        return f"arn:{get_partition(self.region_name)}:route53:::hostedzone/{self.hosted_zone_id}"
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -494,7 +495,7 @@ class RecordSetGroup(CloudFormationModel):
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
 
-        return RecordSetGroup(hosted_zone.id, record_sets)
+        return RecordSetGroup(region_name, hosted_zone.id, record_sets)
 
 
 class QueryLoggingConfig(BaseModel):
