@@ -7,6 +7,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import (
     WAFNonexistentItemException,
@@ -421,5 +422,5 @@ class WAFV2Backend(BaseBackend):
 
 
 wafv2_backends = BackendDict(
-    WAFV2Backend, "waf-regional", additional_regions=["global"]
+    WAFV2Backend, "waf-regional", additional_regions=PARTITION_NAMES
 )

@@ -7,6 +7,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import (
     DistributionAlreadyExists,
@@ -436,5 +437,5 @@ cloudfront_backends = BackendDict(
     CloudFrontBackend,
     "cloudfront",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

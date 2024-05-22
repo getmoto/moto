@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.utilities.utils import get_partition
 
 from ..exceptions import (
     CidrLimitExceeded,
@@ -1034,8 +1035,9 @@ class VPCBackend:
                     if service:
                         DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service)
 
-                if "global" in account_backend:
-                    service = account_backend["global"].default_vpc_endpoint_service(
+                partition = get_partition(region)
+                if partition in account_backend:
+                    service = account_backend[partition].default_vpc_endpoint_service(
                         region, zones
                     )
                     if service:

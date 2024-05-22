@@ -83,7 +83,10 @@ def test_send_event_bridge_message():
     logs_client.create_log_group(logGroupName=log_group_name)
     mocked_bucket = FakeBucket(str(uuid4()), ACCOUNT_ID, REGION_NAME)
     mocked_key = FakeKey(
-        "test-key", bytes("test content", encoding="utf-8"), ACCOUNT_ID
+        "test-key",
+        bytes("test content", encoding="utf-8"),
+        ACCOUNT_ID,
+        region_name=REGION_NAME,
     )
 
     # do nothing if event target does not exists.

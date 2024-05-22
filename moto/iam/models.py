@@ -27,7 +27,7 @@ from moto.iam.policy_validation import (
 )
 from moto.moto_api._internal import mock_random as random
 from moto.settings import load_iam_aws_managed_policies
-from moto.utilities.utils import get_partition, md5_hash
+from moto.utilities.utils import PARTITION_NAMES, get_partition, md5_hash
 
 from ..utilities.tagging_service import TaggingService
 from .aws_managed_policies import aws_managed_policies_data
@@ -68,23 +68,25 @@ SERVICE_NAME_CONVERSION = {
 def get_account_id_from(access_key: str) -> str:
     # wrapped in a list() to avoid thread pooling problems (issue #5881)
     for account_id, account in list(iam_backends.items()):
-        if access_key in account["global"].access_keys:
-            return account_id
+        for partition in PARTITION_NAMES:
+            if access_key in account[partition].access_keys:
+                return account_id
     return DEFAULT_ACCOUNT_ID
 
 
 def mark_account_as_visited(
     account_id: str, access_key: str, service: str, region: str
 ) -> None:
+    partition = get_partition(region)
     account = iam_backends[account_id]
-    if access_key in account["global"].access_keys:
-        key = account["global"].access_keys[access_key]
+    if access_key in account[partition].access_keys:
+        key = account[partition].access_keys[access_key]
         key.last_used = AccessKeyLastUsed(
             timestamp=utcnow(), service=service, region=region
         )
         if key.role_arn:
             try:
-                role = account["global"].get_role_by_arn(key.role_arn)
+                role = account[partition].get_role_by_arn(key.role_arn)
                 role.last_used = utcnow()
             except IAMNotFoundException:
                 # User assumes a non-existing role
@@ -148,6 +150,7 @@ class Policy(CloudFormationModel):
         self,
         name: str,
         account_id: str,
+        region: str,
         default_version_id: Optional[str] = None,
         description: Optional[str] = None,
         document: Optional[str] = None,
@@ -163,6 +166,7 @@ class Policy(CloudFormationModel):
         self.id = random_policy_id()
         self.path = path or "/"
         self.tags = tags or {}
+        self.partition = get_partition(region)
 
         if default_version_id:
             self.default_version_id = default_version_id
@@ -336,7 +340,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
 
     @property
     def backend(self) -> "IAMBackend":
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
     is_attachable = True
 
@@ -426,7 +430,8 @@ class ManagedPolicy(Policy, CloudFormationModel):
         role_names = properties.get("Roles", [])
         tags = properties.get("Tags", {})
 
-        policy = iam_backends[account_id]["global"].create_policy(
+        partition = get_partition(region_name)
+        policy = iam_backends[account_id][partition].create_policy(
             description=description,
             path=path,
             policy_document=policy_document,
@@ -434,15 +439,15 @@ class ManagedPolicy(Policy, CloudFormationModel):
             tags=tags,
         )
         for group_name in group_names:
-            iam_backends[account_id]["global"].attach_group_policy(
+            iam_backends[account_id][partition].attach_group_policy(
                 group_name=group_name, policy_arn=policy.arn
             )
         for user_name in user_names:
-            iam_backends[account_id]["global"].attach_user_policy(
+            iam_backends[account_id][partition].attach_user_policy(
                 user_name=user_name, policy_arn=policy.arn
             )
         for role_name in role_names:
-            iam_backends[account_id]["global"].attach_role_policy(
+            iam_backends[account_id][partition].attach_role_policy(
                 role_name=role_name, policy_arn=policy.arn
             )
         return policy
@@ -463,11 +468,12 @@ class AWSManagedPolicy(ManagedPolicy):
 
     @classmethod
     def from_data(  # type: ignore[misc]
-        cls, name: str, account_id: str, data: Dict[str, Any]
+        cls, name: str, account_id: str, region_name: str, data: Dict[str, Any]
     ) -> "AWSManagedPolicy":
         return cls(
             name,
             account_id=account_id,
+            region=region_name,
             default_version_id=data.get("DefaultVersionId"),
             path=data.get("Path"),
             document=json.dumps(data.get("Document")),
@@ -541,7 +547,9 @@ class InlinePolicy(CloudFormationModel):
         role_names = properties.get("Roles")
         group_names = properties.get("Groups")
 
-        return iam_backends[account_id]["global"].create_inline_policy(
+        return iam_backends[account_id][
+            get_partition(region_name)
+        ].create_inline_policy(
             resource_name,
             policy_name,
             policy_document,
@@ -585,7 +593,9 @@ class InlinePolicy(CloudFormationModel):
             role_names = properties.get("Roles")
             group_names = properties.get("Groups")
 
-            return iam_backends[account_id]["global"].update_inline_policy(
+            return iam_backends[account_id][
+                get_partition(region_name)
+            ].update_inline_policy(
                 original_resource.name,
                 policy_name,
                 policy_document,
@@ -602,7 +612,9 @@ class InlinePolicy(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        iam_backends[account_id]["global"].delete_inline_policy(resource_name)
+        iam_backends[account_id][get_partition(region_name)].delete_inline_policy(
+            resource_name
+        )
 
     @staticmethod
     def is_replacement_update(properties: List[str]) -> bool:
@@ -651,6 +663,7 @@ class Role(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
+        partition: str,
         role_id: str,
         name: str,
         assume_role_policy_document: str,
@@ -662,6 +675,7 @@ class Role(CloudFormationModel):
         linked_service: Optional[str] = None,
     ):
         self.account_id = account_id
+        self.partition = partition
         self.id = role_id
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
@@ -710,7 +724,7 @@ class Role(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
-        iam_backend = iam_backends[account_id]["global"]
+        iam_backend = iam_backends[account_id][get_partition(region_name)]
         role = iam_backend.create_role(
             role_name=role_name,
             assume_role_policy_document=properties["AssumeRolePolicyDocument"],
@@ -737,7 +751,7 @@ class Role(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        backend = iam_backends[account_id]["global"]
+        backend = iam_backends[account_id][get_partition(region_name)]
         for profile in backend.instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
@@ -759,7 +773,7 @@ class Role(CloudFormationModel):
             _managed_policies.append(
                 {
                     "policyArn": key,
-                    "policyName": iam_backends[self.account_id]["global"]
+                    "policyName": iam_backends[self.account_id][self.partition]
                     .managed_policies[key]
                     .name,
                 }
@@ -772,9 +786,8 @@ class Role(CloudFormationModel):
             )
 
         _instance_profiles = []
-        for key, instance_profile in iam_backends[self.account_id][
-            "global"
-        ].instance_profiles.items():
+        backend = iam_backends[self.account_id][self.partition]
+        for key, instance_profile in backend.instance_profiles.items():
             for _ in instance_profile.roles:
                 _instance_profiles.append(instance_profile.to_embedded_config_dict())
                 break
@@ -945,7 +958,9 @@ class InstanceProfile(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         role_names = properties["Roles"]
-        return iam_backends[account_id]["global"].create_instance_profile(
+        return iam_backends[account_id][
+            get_partition(region_name)
+        ].create_instance_profile(
             name=resource_name,
             path=properties.get("Path", "/"),
             role_names=role_names,
@@ -959,7 +974,7 @@ class InstanceProfile(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        iam_backends[account_id]["global"].delete_instance_profile(
+        iam_backends[account_id][get_partition(region_name)].delete_instance_profile(
             resource_name, ignore_attached_roles=True
         )
 
@@ -1140,7 +1155,7 @@ class AccessKey(CloudFormationModel):
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
 
-        return iam_backends[account_id]["global"].create_access_key(
+        return iam_backends[account_id][get_partition(region_name)].create_access_key(
             user_name, status=status
         )
 
@@ -1170,7 +1185,9 @@ class AccessKey(CloudFormationModel):
         else:  # No Interruption
             properties = cloudformation_json.get("Properties", {})
             status = properties.get("Status")
-            return iam_backends[account_id]["global"].update_access_key(
+            return iam_backends[account_id][
+                get_partition(region_name)
+            ].update_access_key(
                 original_resource.user_name,  # type: ignore[arg-type]
                 original_resource.access_key_id,
                 status,
@@ -1184,7 +1201,9 @@ class AccessKey(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        iam_backends[account_id]["global"].delete_access_key_by_name(resource_name)
+        iam_backends[account_id][get_partition(region_name)].delete_access_key_by_name(
+            resource_name
+        )
 
     @staticmethod
     def is_replacement_update(properties: List[str]) -> bool:
@@ -1524,7 +1543,7 @@ class User(CloudFormationModel):
     ) -> "User":
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backends[account_id]["global"].create_user(
+        user, _ = iam_backends[account_id][get_partition(region_name)].create_user(
             region_name=region_name, user_name=resource_name, path=path
         )
         return user
@@ -1569,7 +1588,7 @@ class User(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        iam_backends[account_id]["global"].delete_user(resource_name)
+        iam_backends[account_id][get_partition(region_name)].delete_user(resource_name)
 
     @staticmethod
     def is_replacement_update(properties: List[str]) -> bool:
@@ -1833,7 +1852,7 @@ class IAMBackend(BaseBackend):
         # we periodically import them via `make aws_managed_policies`
         aws_managed_policies_data_parsed = json.loads(aws_managed_policies_data)
         return [
-            AWSManagedPolicy.from_data(name, self.account_id, d)
+            AWSManagedPolicy.from_data(name, self.account_id, self.region_name, d)
             for name, d in aws_managed_policies_data_parsed.items()
         ]
 
@@ -1957,6 +1976,7 @@ class IAMBackend(BaseBackend):
         policy = ManagedPolicy(
             policy_name,
             account_id=self.account_id,
+            region=self.region_name,
             description=description,
             document=policy_document,
             path=path,
@@ -2087,15 +2107,16 @@ class IAMBackend(BaseBackend):
 
         clean_tags = self._tag_verification(tags)
         role = Role(
-            self.account_id,
-            role_id,
-            role_name,
-            assume_role_policy_document,
-            path,
-            permissions_boundary,
-            description,
-            clean_tags,
-            max_session_duration,
+            account_id=self.account_id,
+            partition=self.partition,
+            role_id=role_id,
+            name=role_name,
+            assume_role_policy_document=assume_role_policy_document,
+            path=path,
+            permissions_boundary=permissions_boundary,
+            description=description,
+            tags=clean_tags,
+            max_session_duration=max_session_duration,
             linked_service=linked_service,
         )
         self.roles[role_id] = role
@@ -2810,8 +2831,8 @@ class IAMBackend(BaseBackend):
     def get_all_access_keys_for_all_users(self) -> List[AccessKey]:
         access_keys_list = []
         for account in iam_backends.values():
-            for user_name in account["global"].users:
-                access_keys_list += account["global"].list_access_keys(user_name)
+            for user_name in account[self.partition].users:
+                access_keys_list += account[self.partition].list_access_keys(user_name)
         return access_keys_list
 
     def list_access_keys(self, user_name: str) -> List[AccessKey]:
@@ -3337,5 +3358,5 @@ class IAMBackend(BaseBackend):
 
 
 iam_backends = BackendDict(
-    IAMBackend, "iam", use_boto3_regions=False, additional_regions=["global"]
+    IAMBackend, "iam", use_boto3_regions=False, additional_regions=PARTITION_NAMES
 )

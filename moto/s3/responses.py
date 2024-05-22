@@ -21,6 +21,7 @@ from moto.s3bucket_path.utils import (
 from moto.s3bucket_path.utils import (
     parse_key_name as bucketpath_parse_key_name,
 )
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AccessForbidden,
@@ -174,7 +175,7 @@ class S3Response(BaseResponse):
 
     @property
     def backend(self) -> S3Backend:
-        return s3_backends[self.current_account]["global"]
+        return s3_backends[self.current_account][get_partition(self.region)]
 
     @property
     def should_autoescape(self) -> bool:
@@ -257,9 +258,9 @@ class S3Response(BaseResponse):
             from moto.s3control import s3control_backends
 
             ap_name = bucket_name[: -(len(self.current_account) + 1)]
-            ap = s3control_backends[self.current_account]["global"].get_access_point(
-                self.current_account, ap_name
-            )
+            ap = s3control_backends[self.current_account][
+                self.partition
+            ].get_access_point(self.current_account, ap_name)
             bucket_name = ap.bucket
 
         return bucket_name

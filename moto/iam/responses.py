@@ -9,7 +9,7 @@ class IamResponse(BaseResponse):
 
     @property
     def backend(self) -> IAMBackend:
-        return iam_backends[self.current_account]["global"]
+        return iam_backends[self.current_account][self.partition]
 
     def attach_role_policy(self) -> str:
         policy_arn = self._get_param("PolicyArn")

@@ -67,7 +67,7 @@ class BotocoreStubber:
                     if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
                         backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
                     else:
-                        backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+                        backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
                 else:
                     backend = backend_dict["global"]
 

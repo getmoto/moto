@@ -1243,7 +1243,7 @@ class LogsBackend(BaseBackend):
         to: int,
     ) -> str:
         try:
-            s3_backends[self.account_id]["global"].get_bucket(destination)
+            s3_backends[self.account_id][self.partition].get_bucket(destination)
         except MissingBucket:
             raise InvalidParameterException(
                 "The given bucket does not exist. Please make sure the bucket is valid."
@@ -1261,7 +1261,7 @@ class LogsBackend(BaseBackend):
             to,
         )
 
-        s3_backends[self.account_id]["global"].put_object(
+        s3_backends[self.account_id][self.partition].put_object(
             bucket_name=destination,
             key_name="aws-logs-write-test",
             value=b"Permission Check Successful",
@@ -1287,7 +1287,7 @@ class LogsBackend(BaseBackend):
                 )
                 folder = str(mock_random.uuid4()) + "/" + stream_name.replace("/", "-")
                 key_name = f"{destinationPrefix}/{folder}/000000.gz"
-                s3_backends[self.account_id]["global"].put_object(
+                s3_backends[self.account_id][self.partition].put_object(
                     bucket_name=destination,
                     key_name=key_name,
                     value=gzip_compress(raw_logs.encode("utf-8")),

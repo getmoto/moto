@@ -8,6 +8,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import CostCategoryNotFound
 
@@ -209,5 +210,8 @@ class CostExplorerBackend(BaseBackend):
 
 
 ce_backends = BackendDict(
-    CostExplorerBackend, "ce", use_boto3_regions=False, additional_regions=["global"]
+    CostExplorerBackend,
+    "ce",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )
