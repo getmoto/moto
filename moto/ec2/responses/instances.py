@@ -106,6 +106,7 @@ class InstanceResponse(EC2BaseResponse):
             # Validate the profile exists, before we error_on_dryrun and run_instances
             filter_iam_instance_profiles(
                 self.current_account,
+                partition=self.partition,
                 iam_instance_profile_arn=iam_instance_profile_arn,
                 iam_instance_profile_name=iam_instance_profile_name,
             )

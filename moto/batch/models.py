@@ -1021,7 +1021,7 @@ class BatchBackend(BaseBackend):
         :return: IAM Backend
         :rtype: moto.iam.models.IAMBackend
         """
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
     @property
     def ec2_backend(self) -> EC2Backend:

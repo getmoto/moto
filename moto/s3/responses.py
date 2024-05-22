@@ -11,6 +11,7 @@ from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
+    ALT_DOMAIN_SUFFIXES,
     extract_region_from_aws_authorization,
     path_url,
     str_to_rfc_1123_datetime,
@@ -21,6 +22,7 @@ from moto.s3bucket_path.utils import (
 from moto.s3bucket_path.utils import (
     parse_key_name as bucketpath_parse_key_name,
 )
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import (
     AccessForbidden,
@@ -174,7 +176,7 @@ class S3Response(BaseResponse):
 
     @property
     def backend(self) -> S3Backend:
-        return s3_backends[self.current_account]["global"]
+        return s3_backends[self.current_account][get_partition(self.region)]
 
     @property
     def should_autoescape(self) -> bool:
@@ -236,8 +238,13 @@ class S3Response(BaseResponse):
             if match:
                 return False
 
-        path_based = host == "s3.amazonaws.com" or re.match(
-            r"s3[\.\-]([^.]*)\.amazonaws\.com", host
+        path_based = (
+            host == "s3.amazonaws.com"
+            or re.match(r"s3[\.\-]([^.]*)\.amazonaws\.com", host)
+            or any(
+                re.match(r"s3[\.\-]([^.]*)\." + suffix, host)
+                for suffix in ALT_DOMAIN_SUFFIXES
+            )
         )
         return not path_based
 
@@ -257,9 +264,9 @@ class S3Response(BaseResponse):
             from moto.s3control import s3control_backends
 
             ap_name = bucket_name[: -(len(self.current_account) + 1)]
-            ap = s3control_backends[self.current_account]["global"].get_access_point(
-                self.current_account, ap_name
-            )
+            ap = s3control_backends[self.current_account][
+                self.partition
+            ].get_access_point(self.current_account, ap_name)
             bucket_name = ap.bucket
 
         return bucket_name
@@ -1287,7 +1294,7 @@ class S3Response(BaseResponse):
         except S3ClientError:
             key = bucket = None
         if key:
-            resource = f"arn:aws:s3:::{bucket_name}/{key_name}"
+            resource = f"arn:{bucket.partition}:s3:::{bucket_name}/{key_name}"  # type: ignore[union-attr]
 
             # Authorization Workflow
             # https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-auth-workflow-object-operation.html
@@ -2124,7 +2131,10 @@ class S3Response(BaseResponse):
                     ] = [the_notification]
 
                 for n in the_notification:
-                    if not n[name].startswith(f"arn:aws:{arn_string}:"):
+                    if not any(
+                        n[name].startswith(f"arn:{p}:{arn_string}:")
+                        for p in PARTITION_NAMES
+                    ):
                         raise InvalidNotificationARN()
 
                     # 2nd, verify that the Events list is correct:

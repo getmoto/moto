@@ -38,7 +38,7 @@ from moto.core.utils import (
     utcfromtimestamp,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
-from moto.utilities.utils import load_resource, load_resource_as_bytes
+from moto.utilities.utils import get_partition, load_resource, load_resource_as_bytes
 
 log = logging.getLogger(__name__)
 
@@ -208,7 +208,7 @@ class ActionAuthenticatorMixin(object):
         self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
     ) -> None:
         arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
-        resource = f"arn:aws:s3:::{arn}"
+        resource = f"arn:{get_partition(self.region)}:s3:::{arn}"  # type: ignore[attr-defined]
 
         from moto.iam.access_control import S3IAMRequest
 
@@ -423,6 +423,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.data = querystring
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
+        self.partition = get_partition(self.region)
         self.uri_match: Optional[re.Match[str]] = None
 
         self.headers = request.headers

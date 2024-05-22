@@ -774,21 +774,23 @@ def filter_iam_instance_profile_associations(
 
 def filter_iam_instance_profiles(
     account_id: str,
+    partition: str,
     iam_instance_profile_arn: Optional[str],
     iam_instance_profile_name: Optional[str],
 ) -> Any:
     instance_profile = None
     instance_profile_by_name = None
     instance_profile_by_arn = None
+    backend = iam_backends[account_id][partition]
     if iam_instance_profile_name:
-        instance_profile_by_name = iam_backends[account_id][
-            "global"
-        ].get_instance_profile(iam_instance_profile_name)
+        instance_profile_by_name = backend.get_instance_profile(
+            iam_instance_profile_name
+        )
         instance_profile = instance_profile_by_name
     if iam_instance_profile_arn:
-        instance_profile_by_arn = iam_backends[account_id][
-            "global"
-        ].get_instance_profile_by_arn(iam_instance_profile_arn)
+        instance_profile_by_arn = backend.get_instance_profile_by_arn(
+            iam_instance_profile_arn
+        )
         instance_profile = instance_profile_by_arn
     # We would prefer instance profile that we found by arn
     if iam_instance_profile_arn and iam_instance_profile_name:

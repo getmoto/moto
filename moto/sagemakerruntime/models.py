@@ -89,7 +89,7 @@ class SageMakerRuntimeBackend(BaseBackend):
         output_location = "response.json"
         from moto.s3.models import s3_backends
 
-        s3_backend = s3_backends[self.account_id]["global"]
+        s3_backend = s3_backends[self.account_id][self.partition]
         s3_backend.create_bucket(output_bucket, region_name=self.region_name)
         s3_backend.put_object(output_bucket, output_location, value=output)
         self.async_results[endpoint_name][input_location] = (

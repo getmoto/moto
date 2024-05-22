@@ -91,6 +91,7 @@ class Trail(BaseModel):
     ):
         self.account_id = account_id
         self.region_name = region_name
+        self.partition = get_partition(region_name)
         self.trail_name = trail_name
         self.bucket_name = bucket_name
         self.s3_key_prefix = s3_key_prefix
@@ -136,7 +137,7 @@ class Trail(BaseModel):
         from moto.s3.models import s3_backends
 
         try:
-            s3_backends[self.account_id]["global"].get_bucket(self.bucket_name)
+            s3_backends[self.account_id][self.partition].get_bucket(self.bucket_name)
         except Exception:
             raise S3BucketDoesNotExistException(
                 f"S3 bucket {self.bucket_name} does not exist!"

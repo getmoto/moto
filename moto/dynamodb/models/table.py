@@ -211,9 +211,7 @@ class StreamShard(BaseModel):
         from moto.awslambda.utils import get_backend
 
         for arn, esm in self.table.lambda_event_source_mappings.items():
-            region = arn[
-                len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
-            ]
+            region = arn.split(":")[3]
 
             result = get_backend(self.account_id, region).send_dynamodb_items(
                 arn, self.items, esm.event_source_arn

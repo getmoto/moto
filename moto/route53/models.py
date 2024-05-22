@@ -31,7 +31,7 @@ from moto.route53.exceptions import (
     ResourceRecordAlreadyExists,
 )
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .utils import PAGINATION_MODEL
 
@@ -139,7 +139,7 @@ class HealthCheck(CloudFormationModel):
             "request_interval": properties.get("RequestInterval"),
             "failure_threshold": properties.get("FailureThreshold"),
         }
-        backend = route53_backends[account_id]["global"]
+        backend = route53_backends[account_id][get_partition(region_name)]
         health_check = backend.create_health_check(
             caller_reference=resource_name, health_check_args=health_check_args
         )
@@ -235,7 +235,7 @@ class RecordSet(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
-        backend = route53_backends[account_id]["global"]
+        backend = route53_backends[account_id][get_partition(region_name)]
         hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
         if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
@@ -271,7 +271,7 @@ class RecordSet(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
-        backend = route53_backends[account_id]["global"]
+        backend = route53_backends[account_id][get_partition(region_name)]
         hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
         if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
@@ -285,13 +285,9 @@ class RecordSet(CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.name
 
-    def delete(
-        self,
-        account_id: str,
-        region: str,  # pylint: disable=unused-argument
-    ) -> None:
+    def delete(self, account_id: str, region: str) -> None:
         """Not exposed as part of the Route 53 API - used for CloudFormation"""
-        backend = route53_backends[account_id]["global"]
+        backend = route53_backends[account_id][get_partition(region)]
         hosted_zone = (
             backend.get_hosted_zone_by_name(self.hosted_zone_name)
             if self.hosted_zone_name
@@ -454,20 +450,21 @@ class FakeZone(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeZone":
-        hosted_zone = route53_backends[account_id]["global"].create_hosted_zone(
-            resource_name, private_zone=False
-        )
+        hosted_zone = route53_backends[account_id][
+            get_partition(region_name)
+        ].create_hosted_zone(resource_name, private_zone=False)
         return hosted_zone
 
 
 class RecordSetGroup(CloudFormationModel):
-    def __init__(self, hosted_zone_id: str, record_sets: List[str]):
+    def __init__(self, region_name: str, hosted_zone_id: str, record_sets: List[str]):
+        self.region_name = region_name
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
 
     @property
     def physical_resource_id(self) -> str:
-        return f"arn:aws:route53:::hostedzone/{self.hosted_zone_id}"
+        return f"arn:{get_partition(self.region_name)}:route53:::hostedzone/{self.hosted_zone_id}"
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -490,7 +487,7 @@ class RecordSetGroup(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         zone_name = properties.get("HostedZoneName")
-        backend = route53_backends[account_id]["global"]
+        backend = route53_backends[account_id][get_partition(region_name)]
         hosted_zone = backend.get_hosted_zone_by_name(zone_name) if zone_name else None
         if hosted_zone is None:
             hosted_zone = backend.get_hosted_zone(properties["HostedZoneId"])
@@ -498,7 +495,7 @@ class RecordSetGroup(CloudFormationModel):
         for record_set in record_sets:
             hosted_zone.add_rrset(record_set)
 
-        return RecordSetGroup(hosted_zone.id, record_sets)
+        return RecordSetGroup(region_name, hosted_zone.id, record_sets)
 
 
 class QueryLoggingConfig(BaseModel):
@@ -987,5 +984,8 @@ class Route53Backend(BaseBackend):
 
 
 route53_backends = BackendDict(
-    Route53Backend, "route53", use_boto3_regions=False, additional_regions=["global"]
+    Route53Backend,
+    "route53",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )

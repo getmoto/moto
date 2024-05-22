@@ -12,7 +12,7 @@ class OrganizationsResponse(BaseResponse):
 
     @property
     def organizations_backend(self) -> OrganizationsBackend:
-        return organizations_backends[self.current_account]["global"]
+        return organizations_backends[self.current_account][self.partition]
 
     @property
     def request_params(self) -> Dict[str, Any]:  # type: ignore[misc]

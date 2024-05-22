@@ -294,6 +294,7 @@ def test_load_pipeline_definition_from_s3():
                     "ObjectKey": object_key,
                 },
                 account_id=ACCOUNT_ID,
+                partition="aws",
             )
     assert observed_pipeline_definition == pipeline_definition
 

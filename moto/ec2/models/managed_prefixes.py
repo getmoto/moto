@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from moto.utilities.utils import filter_resources
+from moto.utilities.utils import filter_resources, get_partition
 
 from ..utils import describe_tag_filter, random_managed_prefix_list_id
 from .core import TaggedEC2Resource
@@ -33,7 +33,9 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.delete_counter = 1
 
     def arn(self, region: str, owner_id: str) -> str:
-        return f"arn:aws:ec2:{region}:{owner_id}:prefix-list/{self.id}"
+        return (
+            f"arn:{get_partition(region)}:ec2:{region}:{owner_id}:prefix-list/{self.id}"
+        )
 
     @property
     def owner_id(self) -> str:

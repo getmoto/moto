@@ -14,7 +14,7 @@ from moto.sts.utils import (
     random_assumed_role_id,
     random_session_token,
 )
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES, get_partition
 
 
 class Token(BaseModel):
@@ -53,6 +53,7 @@ class AssumedRole(BaseModel):
         self.access_key_id = access_key.access_key_id
         self.secret_access_key = access_key.secret_access_key
         self.session_token = random_session_token()
+        self.partition = get_partition(region_name)
 
     @property
     def expiration_ISO8601(self) -> str:
@@ -60,7 +61,7 @@ class AssumedRole(BaseModel):
 
     @property
     def user_id(self) -> str:
-        iam_backend = iam_backends[self.account_id]["global"]
+        iam_backend = iam_backends[self.account_id][self.partition]
         try:
             role_id = iam_backend.get_role_by_arn(arn=self.role_arn).id
         except Exception:
@@ -108,7 +109,7 @@ class STSBackend(BaseBackend):
             external_id=external_id,
         )
         access_key.role_arn = role_arn
-        account_backend = sts_backends[account_id]["global"]
+        account_backend = sts_backends[account_id][get_partition(region_name)]
         account_backend.assumed_roles.append(role)
         return role
 
@@ -179,7 +180,7 @@ class STSBackend(BaseBackend):
         if assumed_role:
             return assumed_role.user_id, assumed_role.arn, assumed_role.account_id
 
-        iam_backend = iam_backends[self.account_id]["global"]
+        iam_backend = iam_backends[self.account_id][self.partition]
         user = iam_backend.get_user_from_access_key_id(access_key_id)
         if user:
             return user.id, user.arn, user.account_id
@@ -191,15 +192,15 @@ class STSBackend(BaseBackend):
         return user_id, arn, self.account_id
 
     def _create_access_key(self, role: str) -> Tuple[str, AccessKey]:
-        account_id_match = re.search(r"arn:aws:iam::([0-9]+).+", role)
+        account_id_match = re.search(ARN_PARTITION_REGEX + r":iam::([0-9]+).+", role)
         if account_id_match:
-            account_id = account_id_match.group(1)
+            account_id = account_id_match.group(2)
         else:
             account_id = self.account_id
-        iam_backend = iam_backends[account_id]["global"]
+        iam_backend = iam_backends[account_id][self.partition]
         return account_id, iam_backend.create_temp_access_key()
 
 
 sts_backends = BackendDict(
-    STSBackend, "sts", use_boto3_regions=False, additional_regions=["global"]
+    STSBackend, "sts", use_boto3_regions=False, additional_regions=PARTITION_NAMES
 )

@@ -1437,7 +1437,9 @@ class EventsBackend(BaseBackend):
                 "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
-        principal_arn = {"AWS": f"arn:aws:iam::{principal}:root"}
+        principal_arn = {
+            "AWS": f"arn:{get_partition(self.region_name)}:iam::{principal}:root"
+        }
         stmt_condition = self._condition_param_to_stmt_condition(condition)
         event_bus.add_permission(statement_id, action, principal_arn, stmt_condition)
 

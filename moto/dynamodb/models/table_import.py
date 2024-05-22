@@ -26,7 +26,8 @@ class TableImport(Thread):
         compression_type: Optional[str],
     ):
         super().__init__()
-        self.arn = f"arn:{get_partition(region_name)}:dynamodb:{region_name}:{account_id}:table/{table_name}/import/{str(uuid4()).replace('-', '')}"
+        self.partition = get_partition(region_name)
+        self.arn = f"arn:{self.partition}:dynamodb:{region_name}:{account_id}:table/{table_name}/import/{str(uuid4()).replace('-', '')}"
         self.status = "IN_PROGRESS"
         self.account_id = account_id
         self.s3_source = s3_source
@@ -56,7 +57,7 @@ class TableImport(Thread):
         try:
             from moto.s3.models import s3_backends
 
-            s3_backend = s3_backends[self.account_id]["global"]
+            s3_backend = s3_backends[self.account_id][self.partition]
             bucket = s3_backend.buckets[s3_bucket_name]
         except KeyError:
             self.status = "FAILED"

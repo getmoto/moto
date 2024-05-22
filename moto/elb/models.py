@@ -1,4 +1,5 @@
 import datetime
+import re
 from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -7,6 +8,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 from .exceptions import (
     BadHealthCheckDefinition,
@@ -113,9 +115,8 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
-            if (
-                listener.ssl_certificate_id
-                and not listener.ssl_certificate_id.startswith("arn:aws:iam:")
+            if listener.ssl_certificate_id and not re.search(
+                f"{ARN_PARTITION_REGEX}:iam:", listener.ssl_certificate_id
             ):
                 elb_backend._register_certificate(
                     listener.ssl_certificate_id, self.dns_name
@@ -369,8 +370,8 @@ class ELBBackend(BaseBackend):
                             raise DuplicateListenerError(name, lb_port)
                         break
                 else:
-                    if ssl_certificate_id and not ssl_certificate_id.startswith(
-                        "arn:aws:iam::"
+                    if ssl_certificate_id and not re.search(
+                        f"{ARN_PARTITION_REGEX}:iam::", ssl_certificate_id
                     ):
                         self._register_certificate(
                             ssl_certificate_id, balancer.dns_name

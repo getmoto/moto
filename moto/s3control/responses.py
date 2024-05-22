@@ -16,7 +16,7 @@ class S3ControlResponse(BaseResponse):
 
     @property
     def backend(self) -> S3ControlBackend:
-        return s3control_backends[self.current_account]["global"]
+        return s3control_backends[self.current_account][self.partition]
 
     def get_public_access_block(self) -> str:
         account_id = self.headers.get("x-amz-account-id")

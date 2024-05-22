@@ -470,7 +470,7 @@ class FirehoseBackend(BaseBackend):
 
         batched_data = b"".join([b64decode(r["Data"]) for r in records])
         try:
-            s3_backends[self.account_id]["global"].put_object(
+            s3_backends[self.account_id][self.partition].put_object(
                 bucket_name, object_path, batched_data
             )
         except Exception as exc:

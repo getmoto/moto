@@ -215,7 +215,8 @@ class SSOAdminBackend(BaseBackend):
         managed_policy = self.aws_managed_policies.get(policy_name, None)
         if managed_policy is not None:
             path = managed_policy.get("path", "/")
-            expected_arn = f"arn:aws:iam::aws:policy{path}{policy_name}"
+            expected_arn = f"arn:{self.partition}:iam::aws:policy{path}{policy_name}"
+
             if managed_policy_arn == expected_arn:
                 return ManagedPolicy(managed_policy_arn, policy_name)
         raise ResourceNotFoundException(

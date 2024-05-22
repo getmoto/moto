@@ -40,7 +40,11 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
 from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
-from moto.utilities.utils import get_partition, load_resource_as_bytes
+from moto.utilities.utils import (
+    ARN_PARTITION_REGEX,
+    get_partition,
+    load_resource_as_bytes,
+)
 
 from .exceptions import (
     ConflictException,
@@ -280,12 +284,12 @@ def _s3_content(key: Any) -> Tuple[bytes, int, str, str]:
 
 
 def _validate_s3_bucket_and_key(
-    account_id: str, data: Dict[str, Any]
+    account_id: str, partition: str, data: Dict[str, Any]
 ) -> Optional[FakeKey]:
     key = None
     try:
         # FIXME: does not validate bucket region
-        key = s3_backends[account_id]["global"].get_object(
+        key = s3_backends[account_id][partition].get_object(
             data["S3Bucket"], data["S3Key"]
         )
     except MissingBucket:
@@ -440,7 +444,10 @@ class LayerVersion(CloudFormationModel):
                 self.code_digest,
             ) = _zipfile_content(self.content["ZipFile"])
         else:
-            key = _validate_s3_bucket_and_key(account_id, data=self.content)
+            partition = get_partition(region)
+            key = _validate_s3_bucket_and_key(
+                account_id, partition=partition, data=self.content
+            )
             if key:
                 (
                     self.code_bytes,
@@ -605,6 +612,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         # required
         self.account_id = account_id
         self.region = region
+        self.partition = get_partition(region)
         self.code = spec["Code"]
         self.function_name = spec["FunctionName"]
         self.handler = spec.get("Handler")
@@ -858,11 +866,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             try:
                 if from_update:
                     # FIXME: does not validate bucket region
-                    key = s3_backends[self.account_id]["global"].get_object(
+                    key = s3_backends[self.account_id][self.partition].get_object(
                         updated_spec["S3Bucket"], updated_spec["S3Key"]
                     )
                 else:
-                    key = _validate_s3_bucket_and_key(self.account_id, data=self.code)
+                    key = _validate_s3_bucket_and_key(
+                        self.account_id, partition=self.partition, data=self.code
+                    )
             except MissingBucket:
                 if do_validate_s3():
                     raise ValueError(
@@ -1420,6 +1430,7 @@ class LambdaStorage(object):
         )
         self.region_name = region_name
         self.account_id = account_id
+        self.partition = get_partition(region_name)
 
         # function-arn -> alias -> LambdaAlias
         self._aliases: Dict[str, Dict[str, LambdaAlias]] = defaultdict(lambda: {})
@@ -1599,7 +1610,7 @@ class LambdaStorage(object):
         :raises: InvalidParameterValue if qualifier is provided
         """
 
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             [_, name, qualifier] = self.split_function_arn(name_or_arn)
 
             if qualifier is not None:
@@ -1618,7 +1629,7 @@ class LambdaStorage(object):
         :raises: UnknownFunctionException if function not found
         """
 
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             [_, name, qualifier_in_arn] = self.split_function_arn(name_or_arn)
             return self.get_function_by_name_with_qualifier(
                 name, qualifier_in_arn or qualifier
@@ -1629,7 +1640,7 @@ class LambdaStorage(object):
     def construct_unknown_function_exception(
         self, name_or_arn: str, qualifier: Optional[str] = None
     ) -> UnknownFunctionException:
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             arn = name_or_arn
         else:
             # name_or_arn is a function name with optional qualifier <func_name>[:<qualifier>]
@@ -1646,7 +1657,7 @@ class LambdaStorage(object):
             if account != self.account_id:
                 raise CrossAccountNotAllowed()
             try:
-                iam_backend = iam_backends[self.account_id]["global"]
+                iam_backend = iam_backends[self.account_id][self.partition]
                 iam_backend.get_role_by_arn(fn.role)
             except IAMNotFoundException:
                 raise InvalidParameterValueException(
@@ -1689,7 +1700,7 @@ class LambdaStorage(object):
 
     def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             # Extract from ARN
             if ":" in name_or_arn.split(":function:")[-1]:
                 qualifier = name_or_arn.split(":")[-1]
