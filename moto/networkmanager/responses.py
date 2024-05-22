@@ -1,6 +1,7 @@
 """Handles incoming networkmanager requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -51,7 +52,7 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps(dict(CoreNetwork=core_network.to_dict()))
 
     def delete_core_network(self) -> str:
-        core_network_id = self.uri_match.groups()[0]
+        core_network_id = unquote(self.path.split("/")[-1])
         core_network = self.networkmanager_backend.delete_core_network(
             core_network_id=core_network_id,
         )
@@ -60,8 +61,7 @@ class NetworkManagerResponse(BaseResponse):
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         tags = params.get("Tags")
-        resource_arn = self.uri_match.groups()[0]
-        resource_arn = resource_arn.replace("%3A", ":").replace("%2F", "/")
+        resource_arn = unquote(self.path.split("/")[-1])
 
         self.networkmanager_backend.tag_resource(
             resource_arn=resource_arn,
@@ -72,8 +72,7 @@ class NetworkManagerResponse(BaseResponse):
     def untag_resource(self) -> TYPE_RESPONSE:
         params = self._get_params()
         tag_keys = params.get("tagKeys")
-        resource_arn = self.uri_match.groups()[0]
-        resource_arn = resource_arn.replace("%3A", ":").replace("%2F", "/")
+        resource_arn = unquote(self.path.split("/")[-1])
         self.networkmanager_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,
@@ -89,10 +88,10 @@ class NetworkManagerResponse(BaseResponse):
             next_token=next_token,
         )
         list_core_networks = [core_network.to_dict() for core_network in core_networks]
-        return json.dumps(dict(CoreNetworks=list_core_networks, nextToken=next_token))
+        return json.dumps(dict(CoreNetworks=list_core_networks, NextToken=next_token))
 
     def get_core_network(self) -> str:
-        core_network_id = self.uri_match.groups()[0]
+        core_network_id = unquote(self.path.split("/")[-1])
         core_network = self.networkmanager_backend.get_core_network(
             core_network_id=core_network_id,
         )

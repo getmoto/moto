@@ -7,8 +7,18 @@ from typing import Any, Dict, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.ec2.utils import HEX_CHARS
+from moto.utilities.paginator import paginate
 
 from .exceptions import ResourceNotFound, ValidationError
+
+PAGINATION_MODEL = {
+    "describe_global_networks": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "global_network_arn",
+    },
+}
 
 
 class GlobalNetwork(BaseModel):
@@ -79,7 +89,7 @@ class CoreNetwork(BaseModel):
 class NetworkManagerBackend(BaseBackend):
     """Implementation of NetworkManager APIs."""
 
-    def __init__(self, region_name, account_id) -> None:
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.global_networks: Dict[str, GlobalNetwork] = {}
         self.core_networks: Dict[str, CoreNetwork] = {}
@@ -132,22 +142,22 @@ class NetworkManagerBackend(BaseBackend):
         core_network.state = "DELETING"
         return core_network
 
-    def tag_resource(self, resource_arn:str, tags:List[Dict[str,Any]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, Any]]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags.extend(tags)
 
-    def untag_resource(self, resource_arn:str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: Optional[List[str]]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     def list_core_networks(
-        self, max_results:int, next_token:str
+        self, max_results: Optional[int], next_token: Optional[str]
     ) -> Tuple[List[CoreNetwork], str]:
         return list(self.core_networks.values()), next_token
 
-    def get_core_network(self, core_network_id:str) -> CoreNetwork:
+    def get_core_network(self, core_network_id: str) -> CoreNetwork:
         if core_network_id not in self.core_networks:
-            raise ResourceNotFound
+            raise ResourceNotFound("Resource not found.")
         core_network = self.core_networks[core_network_id]
         return core_network
 
@@ -164,12 +174,13 @@ class NetworkManagerBackend(BaseBackend):
             raise ValidationError(message=message)
         return resource
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def describe_global_networks(
         self,
         global_network_ids: List[str],
-        max_results: int,
-        next_token: str,
-    ) -> Tuple[List[GlobalNetwork], str]:
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> List[GlobalNetwork]:
         queried_global_networks = []
         if not global_network_ids:
             queried_global_networks = list(self.global_networks.values())
@@ -182,7 +193,7 @@ class NetworkManagerBackend(BaseBackend):
                 if id in self.global_networks:
                     global_network = self.global_networks[id]
                     queried_global_networks.append(global_network)
-        return queried_global_networks, next_token
+        return queried_global_networks
 
 
 networkmanager_backends = BackendDict(

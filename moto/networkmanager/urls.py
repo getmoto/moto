@@ -10,7 +10,7 @@ url_paths = {
     "0/.*$": NetworkManagerResponse.dispatch,
     "{0}/global-networks$": NetworkManagerResponse.dispatch,
     "{0}/core-networks$": NetworkManagerResponse.dispatch,
-    "{0}/core-networks/(?P<network_id>[^/]+)$": NetworkManagerResponse.dispatch,
-    "{0}/global-networks/(?P<network_id>[^/]+)$": NetworkManagerResponse.dispatch,
-    "{0}/tags/(?P<resource_arn>[^/]+)$": NetworkManagerResponse.dispatch,
+    "{0}/core-networks/(?P<networkid>[^/.]+)$": NetworkManagerResponse.dispatch,
+    "{0}/global-networks/(?P<networkid>[^/.]+)$": NetworkManagerResponse.dispatch,
+    "{0}/tags/(?P<resourcearn>[^/.]+)$": NetworkManagerResponse.dispatch,
 }
