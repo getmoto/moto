@@ -2,7 +2,7 @@
 
 import random
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -17,6 +17,12 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "global_network_arn",
+    },
+    "list_core_networks": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "core_network_arn",
     },
 }
 
@@ -148,12 +154,12 @@ class NetworkManagerBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_keys: Optional[List[str]]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
-        resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
+        if tag_keys:
+            resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
-    def list_core_networks(
-        self, max_results: Optional[int], next_token: Optional[str]
-    ) -> Tuple[List[CoreNetwork], str]:
-        return list(self.core_networks.values()), next_token
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_core_networks(self) -> List[CoreNetwork]:
+        return list(self.core_networks.values())
 
     def get_core_network(self, core_network_id: str) -> CoreNetwork:
         if core_network_id not in self.core_networks:
@@ -176,10 +182,7 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_global_networks(
-        self,
-        global_network_ids: List[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
+        self, global_network_ids: List[str]
     ) -> List[GlobalNetwork]:
         queried_global_networks = []
         if not global_network_ids:
