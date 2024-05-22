@@ -1,3 +1,5 @@
+from unittest import mock
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -10,8 +12,13 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_aws
-def test_create_cost_category_definition():
-    client = boto3.client("ce", region_name="ap-southeast-1")
+@mock.patch.dict("os.environ", {"MOTO_ENABLE_ISO_REGIONS": "true"})
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_create_cost_category_definition(region, partition):
+    client = boto3.client("ce", region_name=region)
     resp = client.create_cost_category_definition(
         Name="ccd",
         RuleVersion="CostCategoryExpression.v1",
@@ -19,7 +26,9 @@ def test_create_cost_category_definition():
             {"Value": "v", "Rule": {"CostCategories": {"Key": "k", "Values": ["v"]}}}
         ],
     )
-    assert resp["CostCategoryArn"].startswith(f"arn:aws:ce::{ACCOUNT_ID}:costcategory/")
+    assert resp["CostCategoryArn"].startswith(
+        f"arn:{partition}:ce::{ACCOUNT_ID}:costcategory/"
+    )
     assert "EffectiveStart" in resp
 
 

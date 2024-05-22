@@ -24,6 +24,7 @@ from moto.route53resolver.utils import PAGINATION_MODEL
 from moto.route53resolver.validations import validate_args
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 CAMEL_TO_SNAKE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 
@@ -129,8 +130,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
 
     @property
     def arn(self) -> str:
-        """Return ARN for this resolver rule."""
-        return f"arn:aws:route53resolver:{self.region}:{self.account_id}:resolver-rule/{self.id}"
+        return f"arn:{get_partition(self.region)}:route53resolver:{self.region}:{self.account_id}:resolver-rule/{self.id}"
 
     def description(self) -> Dict[str, Any]:
         """Return a dictionary of relevant info for this resolver rule."""
@@ -213,8 +213,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
     @property
     def arn(self) -> str:
-        """Return ARN for this resolver endpoint."""
-        return f"arn:aws:route53resolver:{self.region}:{self.account_id}:resolver-endpoint/{self.id}"
+        return f"arn:{get_partition(self.region)}:route53resolver:{self.region}:{self.account_id}:resolver-endpoint/{self.id}"
 
     def _vpc_id_from_subnet(self) -> str:
         """Return VPC Id associated with the subnet.

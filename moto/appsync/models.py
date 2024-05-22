@@ -41,8 +41,9 @@ directive @aws_cognito_user_pools(
 
 
 class GraphqlSchema(BaseModel):
-    def __init__(self, definition: Any):
+    def __init__(self, definition: Any, region_name: str):
         self.definition = definition
+        self.region_name = region_name
         # [graphql.language.ast.ObjectTypeDefinitionNode, ..]
         self.types: List[Any] = []
 
@@ -58,7 +59,7 @@ class GraphqlSchema(BaseModel):
                     "description": graphql_type.description.value
                     if graphql_type.description
                     else None,
-                    "arn": f"arn:aws:appsync:graphql_type/{name}",
+                    "arn": f"arn:{get_partition(self.region_name)}:appsync:graphql_type/{name}",
                     "definition": "NotYetImplemented",
                 }
 
@@ -212,7 +213,7 @@ class GraphqlAPI(BaseModel):
     def start_schema_creation(self, definition: str) -> None:
         graphql_definition = base64.b64decode(definition).decode("utf-8")
 
-        self.graphql_schema = GraphqlSchema(graphql_definition)
+        self.graphql_schema = GraphqlSchema(graphql_definition, region_name=self.region)
 
     def get_schema_status(self) -> Any:
         return self.graphql_schema.get_status()  # type: ignore[union-attr]

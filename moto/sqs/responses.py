@@ -684,7 +684,13 @@ class SQSResponse(BaseResponse):
         )
         label = self._get_param("Label")
 
-        self.sqs_backend.add_permission(queue_name, actions, account_ids, label)
+        self.sqs_backend.add_permission(
+            region_name=self.region,
+            queue_name=queue_name,
+            actions=actions,
+            account_ids=account_ids,
+            label=label,
+        )
 
         return self._empty_response(ADD_PERMISSION_RESPONSE)
 

@@ -14,7 +14,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.neptune.models import NeptuneBackend, neptune_backends
-from moto.utilities.utils import get_partition, load_resource
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition, load_resource
 
 from .exceptions import (
     DBClusterNotFoundError,
@@ -73,6 +73,7 @@ class GlobalCluster(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         global_cluster_identifier: str,
         engine: str,
         engine_version: Optional[str],
@@ -81,9 +82,7 @@ class GlobalCluster(BaseModel):
     ):
         self.global_cluster_identifier = global_cluster_identifier
         self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
-        self.global_cluster_arn = (
-            f"arn:aws:rds::{account_id}:global-cluster:{global_cluster_identifier}"
-        )
+        self.global_cluster_arn = f"arn:{get_partition(region_name)}:rds::{account_id}:global-cluster:{global_cluster_identifier}"
         self.engine = engine
         self.engine_version = engine_version or "5.7.mysql_aurora.2.11.2"
         self.storage_encrypted = (
@@ -1698,7 +1697,8 @@ class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
-            r"^arn:aws:rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
+            ARN_PARTITION_REGEX
+            + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
         self.clusters: Dict[str, Cluster] = OrderedDict()
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
@@ -2892,7 +2892,7 @@ class RDSBackend(BaseBackend):
         source_cluster = None
         if source_db_cluster_identifier is not None:
             # validate our source cluster exists
-            if not source_db_cluster_identifier.startswith("arn:aws:rds"):
+            if not re.match(ARN_PARTITION_REGEX + ":rds", source_db_cluster_identifier):
                 raise InvalidParameterValue("Malformed db cluster arn dbci")
             source_cluster = self.describe_db_clusters(
                 cluster_identifier=source_db_cluster_identifier
@@ -2910,6 +2910,7 @@ class RDSBackend(BaseBackend):
             )
         global_cluster = GlobalCluster(
             account_id=self.account_id,
+            region_name=self.region_name,
             global_cluster_identifier=global_cluster_identifier,
             engine=engine,  # type: ignore
             engine_version=engine_version,

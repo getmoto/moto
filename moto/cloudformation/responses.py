@@ -531,8 +531,6 @@ class CloudFormationResponse(BaseResponse):
         stackset_name = self._get_param("StackSetName")
         stackset = self.cloudformation_backend.describe_stack_set(stackset_name)
 
-        if not stackset.admin_role:
-            stackset.admin_role = f"arn:aws:iam::{self.current_account}:role/AWSCloudFormationStackSetAdministrationRole"
         if not stackset.execution_role:
             stackset.execution_role = "AWSCloudFormationStackSetExecutionRole"
 
@@ -1208,7 +1206,7 @@ DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationRes
   <DescribeStackSetOperationResult>
     <StackSetOperation>
       <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
-      <AdministrationRoleARN>{{ stackset.admin_role_arn }}</AdministrationRoleARN>
+      <AdministrationRoleARN>{{ stackset.admin_role }}</AdministrationRoleARN>
       <StackSetId>{{ stackset.id }}</StackSetId>
       <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
       <OperationId>{{ operation.OperationId }}</OperationId>

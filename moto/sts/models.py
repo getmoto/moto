@@ -14,7 +14,7 @@ from moto.sts.utils import (
     random_assumed_role_id,
     random_session_token,
 )
-from moto.utilities.utils import PARTITION_NAMES, get_partition
+from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES, get_partition
 
 
 class Token(BaseModel):
@@ -192,9 +192,9 @@ class STSBackend(BaseBackend):
         return user_id, arn, self.account_id
 
     def _create_access_key(self, role: str) -> Tuple[str, AccessKey]:
-        account_id_match = re.search(r"arn:aws:iam::([0-9]+).+", role)
+        account_id_match = re.search(ARN_PARTITION_REGEX + r":iam::([0-9]+).+", role)
         if account_id_match:
-            account_id = account_id_match.group(1)
+            account_id = account_id_match.group(2)
         else:
             account_id = self.account_id
         iam_backend = iam_backends[account_id][self.partition]

@@ -706,11 +706,14 @@ def test_get_policy():
 
 
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
-def test_get_aws_managed_policy():
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_get_aws_managed_policy(region, partition):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Policies not loaded in ServerMode")
-    conn = boto3.client("iam", region_name="us-east-1")
-    managed_policy_arn = "arn:aws:iam::aws:policy/IAMUserChangePassword"
+    conn = boto3.client("iam", region_name=region)
+    managed_policy_arn = f"arn:{partition}:iam::aws:policy/IAMUserChangePassword"
     managed_policy_create_date = datetime.strptime(
         "2016-11-15T00:25:16+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
     )
@@ -3158,9 +3161,12 @@ def test_create_role_no_path():
 
 
 @mock_aws()
-def test_create_role_with_permissions_boundary():
-    conn = boto3.client("iam", region_name="us-east-1")
-    boundary = f"arn:aws:iam::{ACCOUNT_ID}:policy/boundary"
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_role_with_permissions_boundary(region, partition):
+    conn = boto3.client("iam", region_name=region)
+    boundary = f"arn:{partition}:iam::{ACCOUNT_ID}:policy/boundary"
     resp = conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="some policy",
@@ -3182,10 +3188,15 @@ def test_create_role_with_permissions_boundary():
 
     invalid_boundary_arn = "arn:aws:iam::123456789:not_a_boundary"
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         conn.put_role_permissions_boundary(
             RoleName="my-role", PermissionsBoundary=invalid_boundary_arn
         )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Value (arn:aws:iam::123456789:not_a_boundary) for parameter PermissionsBoundary is invalid."
+    )
 
     with pytest.raises(ClientError):
         conn.create_role(

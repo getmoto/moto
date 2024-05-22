@@ -23,7 +23,7 @@ from moto.utilities.utils import get_partition
 
 from .model_instances import model_data
 from .responses import TYPE_RESPONSE
-from .utils import convert_regex_to_flask_path
+from .utils import ISO_REGION_DOMAINS, convert_regex_to_flask_path
 
 if TYPE_CHECKING:
     from moto.core.common_models import BaseModel
@@ -87,14 +87,7 @@ class BaseBackend:
             # This extension ensures support for the China & ISO regions
             alt_dns_suffixes = {"cn": "amazonaws.com.cn"}
             if enable_iso_regions():
-                alt_dns_suffixes.update(
-                    {
-                        "iso": "c2s.ic.gov",
-                        "isob": "sc2s.sgov.gov",
-                        "isoe": "cloud.adc-e.uk",
-                        "isof": "csp.hci.ic.gov",
-                    }
-                )
+                alt_dns_suffixes.update(ISO_REGION_DOMAINS)
 
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)

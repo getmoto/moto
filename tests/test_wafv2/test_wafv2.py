@@ -9,13 +9,17 @@ from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
 
 
 @mock_aws
-def test_create_web_acl():
-    conn = boto3.client("wafv2", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-gov-east-1", "aws-us-gov")],
+)
+def test_create_web_acl(region, partition):
+    conn = boto3.client("wafv2", region_name=region)
     res = conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))
     web_acl = res["Summary"]
     assert web_acl.get("Name") == "John"
     assert web_acl.get("ARN").startswith(
-        f"arn:aws:wafv2:us-east-1:{ACCOUNT_ID}:regional/webacl/John/"
+        f"arn:{partition}:wafv2:{region}:{ACCOUNT_ID}:regional/webacl/John/"
     )
     # Duplicate name - should raise error
     with pytest.raises(ClientError) as ex:
