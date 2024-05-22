@@ -11,6 +11,7 @@ from moto.ds import ds_backends
 from moto.ds.models import Directory
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 from moto.workspaces.exceptions import (
     InvalidParameterValuesException,
     ResourceAlreadyExistsException,
@@ -141,7 +142,9 @@ class WorkSpaceDirectory(BaseModel):
         self.subnet_ids = subnet_ids or dir_subnet_ids
         self.dns_ip_addresses = directory.dns_ip_addrs
         self.customer_username = "Administrator"
-        self.iam_rold_id = f"arn:aws:iam::{account_id}:role/workspaces_DefaultRole"
+        self.iam_rold_id = (
+            f"arn:{get_partition(region)}:iam::{account_id}:role/workspaces_DefaultRole"
+        )
         dir_type = directory.directory_type
         if dir_type == "ADConnector":
             self.directory_type = "AD_CONNECTOR"

@@ -71,12 +71,12 @@ class Key(CloudFormationModel):
         self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()
         self.account_id = account_id
+        self.region = region
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
         self.description = description or ""
         self.enabled = True
-        self.region = region
         self.multi_region = multi_region
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
@@ -144,7 +144,9 @@ class Key(CloudFormationModel):
                     {
                         "Sid": "Enable IAM User Permissions",
                         "Effect": "Allow",
-                        "Principal": {"AWS": f"arn:aws:iam::{self.account_id}:root"},
+                        "Principal": {
+                            "AWS": f"arn:{get_partition(self.region)}:iam::{self.account_id}:root"
+                        },
                         "Action": "kms:*",
                         "Resource": "*",
                     }

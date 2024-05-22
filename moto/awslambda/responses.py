@@ -1,10 +1,12 @@
 import json
+import re
 import sys
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.utilities.aws_headers import amz_crc32
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 from .exceptions import FunctionAlreadyExists, UnknownFunctionException
 from .models import LambdaBackend
@@ -224,7 +226,7 @@ class LambdaResponse(BaseResponse):
         configuration: Dict[str, Any], function_name: str, qualifier: str
     ) -> Dict[str, Any]:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
-        if function_name.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, function_name):
             # Extract from ARN
             if ":" in function_name.split(":function:")[-1]:
                 qualifier = function_name.split(":")[-1]

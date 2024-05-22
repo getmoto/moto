@@ -17,6 +17,7 @@ class GlobalCluster(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         global_cluster_identifier: str,
         engine: Optional[str],
         engine_version: Optional[str],
@@ -25,9 +26,7 @@ class GlobalCluster(BaseModel):
     ):
         self.global_cluster_identifier = global_cluster_identifier
         self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
-        self.global_cluster_arn = (
-            f"arn:aws:rds::{account_id}:global-cluster:{global_cluster_identifier}"
-        )
+        self.global_cluster_arn = f"arn:{get_partition(region_name)}:rds::{account_id}:global-cluster:{global_cluster_identifier}"
         self.engine = engine or "neptune"
         self.engine_version = engine_version or "1.2.0.0"
         self.storage_encrypted = (
@@ -298,6 +297,7 @@ class NeptuneBackend(BaseBackend):
     ) -> GlobalCluster:
         cluster = GlobalCluster(
             account_id=self.account_id,
+            region_name=self.region_name,
             global_cluster_identifier=global_cluster_identifier,
             engine=engine,
             engine_version=engine_version,

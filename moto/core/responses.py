@@ -208,7 +208,7 @@ class ActionAuthenticatorMixin(object):
         self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
     ) -> None:
         arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
-        resource = f"arn:aws:s3:::{arn}"
+        resource = f"arn:{get_partition(self.region)}:s3:::{arn}"  # type: ignore[attr-defined]
 
         from moto.iam.access_control import S3IAMRequest
 

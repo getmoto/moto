@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List
 
 from moto.iam.exceptions import MalformedPolicyDocument
+from moto.utilities.utils import PARTITION_NAMES
 
 VALID_TOP_ELEMENTS = ["Version", "Id", "Statement", "Conditions"]
 
@@ -349,7 +350,10 @@ class BaseIAMPolicyValidator:
                 return
 
             resource_partitions = resource_partitions[2].partition(":")
-            if resource_partitions[0] not in ["aws", "*"]:
+            if (
+                resource_partitions[0] != "*"
+                and resource_partitions[0] not in PARTITION_NAMES
+            ):
                 remaining_resource_parts = resource_partitions[2].split(":")
 
                 arn1 = (

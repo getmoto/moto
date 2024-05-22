@@ -2,7 +2,7 @@ from collections import namedtuple
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable
 
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 if TYPE_CHECKING:
     from .models import LambdaBackend
@@ -33,7 +33,8 @@ make_layer_ver_arn = partial(make_ver_arn, "layer")
 
 
 def split_arn(arn_type: Callable[[str, str, str, str], str], arn: str) -> Any:
-    arn = arn.replace("arn:aws:lambda:", "")
+    for partition in PARTITION_NAMES:
+        arn = arn.replace(f"arn:{partition}:lambda:", "")
 
     region, account, _, name, version = arn.split(":")
 

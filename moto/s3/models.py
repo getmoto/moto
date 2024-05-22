@@ -192,7 +192,7 @@ class FakeKey(BaseModel, ManagedState):
     @property
     def arn(self) -> str:
         # S3 Objects don't have an ARN, but we do need something unique when creating tags against this resource
-        return f"arn:aws:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
+        return f"arn:{self.partition}:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
 
     @value.setter  # type: ignore
     def value(self, new_value: bytes) -> None:
@@ -1041,6 +1041,7 @@ class FakeBucket(CloudFormationModel):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
+        self.partition = get_partition(region_name)
         self.keys = _VersionedKeyStore()
         self.multiparts = MultipartDict()
         self.versioning_status: Optional[str] = None
@@ -1298,9 +1299,11 @@ class FakeBucket(CloudFormationModel):
                     continue
                 if (
                     stmt.get("Resource")
-                    != f"arn:aws:s3:::{target_bucket.name}/{target_prefix if target_prefix else ''}*"
-                    and stmt.get("Resource") != f"arn:aws:s3:::{target_bucket.name}/*"
-                    and stmt.get("Resource") != f"arn:aws:s3:::{target_bucket.name}"
+                    != f"arn:{target_bucket.partition}:s3:::{target_bucket.name}/{target_prefix if target_prefix else ''}*"
+                    and stmt.get("Resource")
+                    != f"arn:{target_bucket.partition}:s3:::{target_bucket.name}/*"
+                    and stmt.get("Resource")
+                    != f"arn:{target_bucket.partition}:s3:::{target_bucket.name}"
                 ):
                     continue
                 return True
@@ -1424,7 +1427,7 @@ class FakeBucket(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:s3:::{self.name}"
+        return f"arn:{self.partition}:s3:::{self.name}"
 
     @property
     def domain_name(self) -> str:
@@ -1825,7 +1828,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             source="aws.s3",
             event_name="CreateBucket",
             region=region_name,
-            resources=[f"arn:aws:s3:::{bucket_name}"],
+            resources=[f"arn:{new_bucket.partition}:s3:::{bucket_name}"],
             detail=notification_detail,
         )
 
@@ -1842,9 +1845,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             if not s3_allow_crossdomain_access():
                 raise AccessDeniedByLock
             account_id = s3_backends.bucket_accounts[bucket_name]
-            return s3_backends[account_id][get_partition(self.region_name)].get_bucket(
-                bucket_name
-            )
+            return s3_backends[account_id][self.partition].get_bucket(bucket_name)
 
         raise MissingBucket(bucket=bucket_name)
 
