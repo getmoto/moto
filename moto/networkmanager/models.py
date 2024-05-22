@@ -8,6 +8,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.ec2.utils import HEX_CHARS
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import ResourceNotFound, ValidationError
 
@@ -203,5 +204,5 @@ networkmanager_backends = BackendDict(
     NetworkManagerBackend,
     "networkmanager",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

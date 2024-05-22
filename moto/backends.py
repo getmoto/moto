@@ -93,6 +93,7 @@ if TYPE_CHECKING:
     from moto.moto_api._internal.models import MotoAPIBackend
     from moto.mq.models import MQBackend
     from moto.neptune.models import NeptuneBackend
+    from moto.networkmanager.models import NetworkManagerBackend
     from moto.opensearch.models import OpenSearchServiceBackend
     from moto.opsworks.models import OpsWorksBackend
     from moto.organizations.models import OrganizationsBackend
@@ -256,6 +257,7 @@ SERVICE_NAMES = Union[
     "Literal['moto_api']",
     "Literal['mq']",
     "Literal['neptune']",
+    "Literal['networkmanager']",
     "Literal['opensearch']",
     "Literal['opsworks']",
     "Literal['organizations']",
@@ -541,6 +543,10 @@ def get_backend(name: "Literal['moto_api']") -> "BackendDict[MotoAPIBackend]": .
 def get_backend(name: "Literal['mq']") -> "BackendDict[MQBackend]": ...
 @overload
 def get_backend(name: "Literal['neptune']") -> "BackendDict[NeptuneBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['networkmanager']",
+) -> "BackendDict[NetworkManagerBackend]": ...
 @overload
 def get_backend(
     name: "Literal['opensearch']",

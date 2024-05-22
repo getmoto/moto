@@ -17,11 +17,7 @@ class NetworkManagerResponse(BaseResponse):
 
     @property
     def networkmanager_backend(self) -> NetworkManagerBackend:
-        """Return backend instance specific for this region."""
-        # TODO
-        # networkmanager_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
-        return networkmanager_backends[self.current_account]["global"]
+        return networkmanager_backends[self.current_account][self.partition]
 
     # add methods from here
 
