@@ -55,7 +55,7 @@ class NetworkManagerResponse(BaseResponse):
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         tags = params.get("Tags")
-        resource_arn = unquote(self.path.split("/")[-1])
+        resource_arn = unquote(self.path.split("/tags/")[-1])
 
         self.networkmanager_backend.tag_resource(
             resource_arn=resource_arn,
@@ -66,7 +66,7 @@ class NetworkManagerResponse(BaseResponse):
     def untag_resource(self) -> TYPE_RESPONSE:
         params = self._get_params()
         tag_keys = params.get("tagKeys")
-        resource_arn = unquote(self.path.split("/")[-1])
+        resource_arn = unquote(self.path.split("/tags/")[-1])
         self.networkmanager_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,

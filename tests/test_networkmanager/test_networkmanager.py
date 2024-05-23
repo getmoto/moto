@@ -3,6 +3,7 @@
 import boto3
 
 from moto import mock_aws
+from tests import DEFAULT_ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -28,6 +29,10 @@ def test_create_global_network():
     )
 
     global_network = resp["GlobalNetwork"]
+    assert (
+        global_network["GlobalNetworkArn"]
+        == f"arn:aws:networkmanager:{DEFAULT_ACCOUNT_ID}:global-network/{global_network['GlobalNetworkId']}"
+    )
     assert global_network["Description"] == "Test global network"
     assert global_network["Tags"] == [{"Key": "Name", "Value": "TestNetwork"}]
     assert global_network["State"] == "PENDING"
@@ -55,6 +60,10 @@ def test_create_core_network():
     )
 
     core_network = resp["CoreNetwork"]
+    assert (
+        core_network["CoreNetworkArn"]
+        == f"arn:aws:networkmanager:{DEFAULT_ACCOUNT_ID}:core-network/{core_network['CoreNetworkId']}"
+    )
     assert core_network["GlobalNetworkId"] == global_network_id
     assert core_network["Description"] == "Test core network"
     assert len(core_network["Tags"]) == 1

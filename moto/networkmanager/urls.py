@@ -14,4 +14,5 @@ url_paths = {
     "{0}/global-networks/(?P<networkid>[^/.]+)$": NetworkManagerResponse.dispatch,
     "{0}/tags$": NetworkManagerResponse.dispatch,
     "{0}/tags/(?P<resourcearn>[^/.]+)$": NetworkManagerResponse.dispatch,
+    "{0}/tags/(?P<arn_prefix>[^/]+)/(?P<resource_id>[^/]+)$": NetworkManagerResponse.dispatch,
 }

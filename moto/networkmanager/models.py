@@ -1,12 +1,11 @@
 """NetworkManagerBackend class with methods for supported APIs."""
 
-import random
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.ec2.utils import HEX_CHARS
+from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES
 
@@ -32,15 +31,16 @@ class GlobalNetwork(BaseModel):
     def __init__(
         self,
         account_id: str,
+        partition: str,
         description: Optional[str],
         tags: Optional[List[Dict[str, str]]],
     ):
         self.description = description
         self.tags = tags or []
         self.global_network_id = "global-network-" + "".join(
-            random.choice(HEX_CHARS) for _ in range(18)
+            mock_random.get_random_hex(18)
         )
-        self.global_network_arn = f"arn:aws:networkmanager:{account_id}:global-network/{self.global_network_id}"
+        self.global_network_arn = f"arn:{partition}:networkmanager:{account_id}:global-network/{self.global_network_id}"
         self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
 
@@ -59,6 +59,7 @@ class CoreNetwork(BaseModel):
     def __init__(
         self,
         account_id: str,
+        partition: str,
         global_network_id: str,
         description: Optional[str],
         tags: Optional[List[Dict[str, str]]],
@@ -70,12 +71,8 @@ class CoreNetwork(BaseModel):
         self.tags = tags or []
         self.policy_document = policy_document
         self.client_token = client_token
-        self.core_network_id = "core-network-" + "".join(
-            random.choice(HEX_CHARS) for _ in range(18)
-        )
-        self.core_network_arn = (
-            f"arn:aws:networkmanager:{account_id}:core-network/{self.core_network_id}"
-        )
+        self.core_network_id = "core-network-" + "".join(mock_random.get_random_hex(18))
+        self.core_network_arn = f"arn:{partition}:networkmanager:{account_id}:core-network/{self.core_network_id}"
 
         self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.state = "PENDING"
@@ -101,8 +98,6 @@ class NetworkManagerBackend(BaseBackend):
         self.global_networks: Dict[str, GlobalNetwork] = {}
         self.core_networks: Dict[str, CoreNetwork] = {}
 
-    # add methods from here
-
     def create_global_network(
         self,
         description: Optional[str],
@@ -112,6 +107,7 @@ class NetworkManagerBackend(BaseBackend):
             description=description,
             tags=tags,
             account_id=self.account_id,
+            partition=self.partition,
         )
         gnw_id = global_network.global_network_id
         self.global_networks[gnw_id] = global_network
@@ -136,6 +132,7 @@ class NetworkManagerBackend(BaseBackend):
             policy_document=policy_document,
             client_token=client_token,
             account_id=self.account_id,
+            partition=self.partition,
         )
         cnw_id = core_network.core_network_id
         self.core_networks[cnw_id] = core_network
