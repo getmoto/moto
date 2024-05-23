@@ -12,5 +12,6 @@ url_paths = {
     "{0}/core-networks$": NetworkManagerResponse.dispatch,
     "{0}/core-networks/(?P<networkid>[^/.]+)$": NetworkManagerResponse.dispatch,
     "{0}/global-networks/(?P<networkid>[^/.]+)$": NetworkManagerResponse.dispatch,
+    "{0}/tags$": NetworkManagerResponse.dispatch,
     "{0}/tags/(?P<resourcearn>[^/.]+)$": NetworkManagerResponse.dispatch,
 }

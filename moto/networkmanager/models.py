@@ -10,7 +10,7 @@ from moto.ec2.utils import HEX_CHARS
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES
 
-from .exceptions import ResourceNotFound, ValidationError
+from .exceptions import ResourceNotFound
 
 PAGINATION_MODEL = {
     "describe_global_networks": {
@@ -127,7 +127,7 @@ class NetworkManagerBackend(BaseBackend):
     ) -> CoreNetwork:
         # check if global network exists
         if global_network_id not in self.global_networks:
-            raise ResourceNotFound("Resource not found.")
+            raise ResourceNotFound(global_network_id)
 
         core_network = CoreNetwork(
             global_network_id=global_network_id,
@@ -144,7 +144,7 @@ class NetworkManagerBackend(BaseBackend):
     def delete_core_network(self, core_network_id: str) -> CoreNetwork:
         # Check if core network exists
         if core_network_id not in self.core_networks:
-            raise ResourceNotFound("Resource not found.")
+            raise ResourceNotFound(core_network_id)
         core_network = self.core_networks.pop(core_network_id)
         core_network.state = "DELETING"
         return core_network
@@ -164,7 +164,7 @@ class NetworkManagerBackend(BaseBackend):
 
     def get_core_network(self, core_network_id: str) -> CoreNetwork:
         if core_network_id not in self.core_networks:
-            raise ResourceNotFound("Resource not found.")
+            raise ResourceNotFound(core_network_id)
         core_network = self.core_networks[core_network_id]
         return core_network
 
@@ -173,12 +173,11 @@ class NetworkManagerBackend(BaseBackend):
             "core-network": self.core_networks,
             "global-network": self.global_networks,
         }
-        target_resource, target_name = arn.split(":")[-1].split("/")
         try:
+            target_resource, target_name = arn.split(":")[-1].split("/")
             resource = resources.get(target_resource).get(target_name)  # type: ignore
-        except KeyError:
-            message = f"Could not find {target_resource} with name {target_name}"
-            raise ValidationError(message=message)
+        except (KeyError, ValueError):
+            raise ResourceNotFound(arn)
         return resource
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -190,7 +189,7 @@ class NetworkManagerBackend(BaseBackend):
             queried_global_networks = list(self.global_networks.values())
         elif isinstance(global_network_ids, str):
             if global_network_ids not in self.global_networks:
-                raise ResourceNotFound
+                raise ResourceNotFound(global_network_ids)
             queried_global_networks.append(self.global_networks[global_network_ids])
         else:
             for id in global_network_ids:

@@ -19,8 +19,6 @@ class NetworkManagerResponse(BaseResponse):
     def networkmanager_backend(self) -> NetworkManagerBackend:
         return networkmanager_backends[self.current_account][self.partition]
 
-    # add methods from here
-
     def create_global_network(self) -> str:
         params = json.loads(self.body)
         description = params.get("Description")
