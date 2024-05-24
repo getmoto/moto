@@ -305,3 +305,38 @@ def test_put_object_tagging_notification():
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectTagging"
+
+
+@mock_aws
+def test_delete_object_tagging_notification():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+    # Put Object
+    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+
+    # Put Object Tagging
+    s3_client.put_object_tagging(
+        Bucket=bucket_name,
+        Key="keyname",
+        Tagging={
+            "TagSet": [
+                {"Key": "item1", "Value": "foo"},
+                {"Key": "item2", "Value": "bar"},
+            ]
+        },
+    )
+
+    # Delete Object Tagging
+    s3_client.delete_object_tagging(Bucket=bucket_name, Key="keyname")
+
+    events = _get_send_events()
+    assert len(events) == 4
+    event_message = json.loads(events[3]["message"])
+    assert event_message["detail-type"] == "Object Tags Deleted"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["reason"] == "ObjectTagging"

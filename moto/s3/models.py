@@ -2687,7 +2687,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self, bucket_name: str, key_name: str, version_id: Optional[str] = None
     ) -> None:
         key = self.get_object(bucket_name, key_name, version_id=version_id)
+        bucket = self.get_bucket(bucket_name)
+
         self.tagger.delete_all_tags_for_resource(key.arn)  # type: ignore
+
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_TAGGING_DELETE_EVENT,
+            bucket,
+            key,
+        )
 
     def delete_object(
         self,
