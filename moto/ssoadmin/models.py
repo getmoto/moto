@@ -543,4 +543,4 @@ class SSOAdminBackend(BaseBackend):
         raise ResourceNotFoundException
 
 
-ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")
+ssoadmin_backends = BackendDict(SSOAdminBackend, "sso-admin")
