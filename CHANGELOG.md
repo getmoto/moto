@@ -1,6 +1,32 @@
 Moto Changelog
 ==============
 
+5.0.8
+-----
+Docker Digest for 5.0.8: <autopopulateddigest>
+
+    General:
+        * Improved support for non-generic partitions (China, GovCloud, ISO-regions). 
+          All ARN's now contain the correct partition for resources created in those regions.
+
+    New Services:
+        * NetworkManager:
+            * create_global_network()
+            * describe_global_networks()
+            * create_core_network()
+            * create_global_network()
+            * delete_core_network()
+            * list_core_networks()
+            * get_core_network()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * ResilienceHub: list_app_assessments() can now return pre-configured results
+        * ResourceGroupTagging: get_resources() now returns results when filtering on "lambda:function"
+        * S3: delete_object_tagging()/put_object_tagging() now send an EventBridge notification
+
+
 5.0.7
 -----
 Docker Digest for 5.0.7: _sha256:81ac52ff74b0bf0f4957ee4260e6a7e75d66c9e5d040ed4f721a5500b873c88a_
