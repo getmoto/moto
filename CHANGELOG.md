@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.8
 -----
-Docker Digest for 5.0.8: <autopopulateddigest>
+Docker Digest for 5.0.8: _sha256:cfcd97074011bd563cdbeebac35ed710581a23cb2be07ab9b67aa00298fc3369_
 
     General:
         * Improved support for non-generic partitions (China, GovCloud, ISO-regions). 
