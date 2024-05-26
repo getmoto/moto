@@ -70,6 +70,15 @@ def test_describe_filesystems():
 
 
 @mock_aws
+def test_describe_filesystems_does_not_exist():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    resp = client.describe_file_systems(FileSystemIds=["fs-1234567890"])
+    file_systems = resp["FileSystems"]
+
+    assert len(file_systems) == 0
+
+
+@mock_aws
 def test_delete_file_system():
     client = boto3.client("fsx", region_name=TEST_REGION_NAME)
     # Create a LUSTRE file system

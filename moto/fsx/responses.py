@@ -62,8 +62,8 @@ class FSxResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-
-        return json.dumps(dict(FileSystems=file_systems))
+        list_file_systems = [file_system.to_dict() for file_system in file_systems]
+        return json.dumps(dict(FileSystems=list_file_systems, NextToken=next_token))
 
     def delete_file_system(self) -> str:
         params = json.loads(self.body)

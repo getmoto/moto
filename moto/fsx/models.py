@@ -5,12 +5,26 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+
+from .utils import FileSystemType
+
+PAGINATION_MODEL = {
+    "describe_file_systems": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 2147483647,
+        "unique_attribute": "resource_arn",
+    }
+}
 
 
 class FileSystem(BaseModel):
     def __init__(
         self,
+        account_id: str,
+        region_name: str,
         file_system_type: str,
         storage_capacity: int,
         storage_type: str,
@@ -22,17 +36,19 @@ class FileSystem(BaseModel):
         lustre_configuration: Optional[Dict[str, Any]],
         ontap_configuration: Optional[Dict[str, Any]],
         open_zfs_configuration: Optional[Dict[str, Any]],
-    ):
+    ) -> None:
         self.file_system_id = f"fs-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.file_system_type = file_system_type
+        if self.file_system_type not in FileSystemType.list_values():
+            raise ValueError(f"Invalid FileSystemType: {self.file_system_type}")
         self.storage_capacity = storage_capacity
         self.storage_type = storage_type
         self.subnet_ids = subnet_ids
         self.security_group_ids = security_group_ids
-        self.dns_name = f"{self.file_system_id}.fsx.region-name.amazonaws.com"
+        self.dns_name = f"{self.file_system_id}.fsx.{region_name}.amazonaws.com"
         self.kms_key_id = kms_key_id
         self.resource_arn = (
-            f"arn:aws:fsx:region-name:account-id:file-system/{self.file_system_id}"
+            f"arn:aws:fsx:{region_name}:{account_id}:file-system/{self.file_system_id}"
         )
         self.tags = tags or []
         self.windows_configuration = windows_configuration
@@ -63,14 +79,14 @@ class FileSystem(BaseModel):
 class FSxBackend(BaseBackend):
     """Implementation of FSx APIs."""
 
-    def __init__(self, region_name, account_id) -> None:
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.file_systems: Dict[str, FileSystem] = {}
         self.tagger: TaggingService = TaggingService()
 
     def create_file_system(
         self,
-        client_request_token,
+        client_request_token: str,
         file_system_type: str,
         storage_capacity: int,
         storage_type: str,
@@ -85,6 +101,8 @@ class FSxBackend(BaseBackend):
         open_zfs_configuration: Optional[Dict[str, Any]],
     ) -> FileSystem:
         file_system = FileSystem(
+            account_id=self.account_id,
+            region_name=self.region_name,
             file_system_type=file_system_type,
             storage_capacity=storage_capacity,
             storage_type=storage_type,
@@ -104,22 +122,24 @@ class FSxBackend(BaseBackend):
         self.tagger.tag_resource(file_system.resource_arn, tags)
         return file_system
 
-    def describe_file_systems(self, file_system_ids, max_results, next_token) -> Tuple[List[Dict],str]:
-        # implement here
-        file_systems_fetched = list(self.file_systems.values())
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_file_systems(self, file_system_ids: List[str]) -> List[FileSystem]:
         file_systems = []
-        for file_system in file_systems_fetched:
-            file_systems.append(file_system.to_dict())
-        next_token = None
-        return file_systems, next_token
+        if not file_system_ids:
+            file_systems = list(self.file_systems.values())
+        else:
+            for id in file_system_ids:
+                if id in self.file_systems:
+                    file_systems.append(self.file_systems[id])
+        return file_systems
 
     def delete_file_system(
         self,
-        file_system_id,
-        client_request_token,
-        windows_configuration,
-        lustre_configuration,
-        open_zfs_configuration,
+        file_system_id: str,
+        client_request_token: str,
+        windows_configuration: Dict[str, Any],
+        lustre_configuration: Dict[str, Any],
+        open_zfs_configuration: Dict[str, Any],
     ) -> Tuple[str, str, Dict, Dict, Dict]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
@@ -147,10 +167,9 @@ class FSxBackend(BaseBackend):
             open_zfs_response,
         )
 
-    def tag_resource(self, resource_arn, tags) -> None:
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags.extend(tags)
-
 
     def _get_resource_from_arn(self, arn: str) -> Any:
         target_resource, target_name = arn.split(":")[-1].split("/")
