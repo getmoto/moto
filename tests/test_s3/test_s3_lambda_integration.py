@@ -282,17 +282,22 @@ def test_object_put__sends_to_queue__using_filter():
 
 
 @mock_aws
-def test_put_bucket_notification_sns_sqs():
-    s3_client = boto3.client("s3", region_name=REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_put_bucket_notification_sns_sqs(region, partition):
+    s3_client = boto3.client("s3", region_name=region)
+    s3_client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
 
-    sqs_client = boto3.client("sqs", region_name=REGION_NAME)
+    sqs_client = boto3.client("sqs", region_name=region)
     sqs_queue = sqs_client.create_queue(QueueName="queue")
     sqs_queue_arn = sqs_client.get_queue_attributes(
         QueueUrl=sqs_queue["QueueUrl"], AttributeNames=["QueueArn"]
     )
 
-    sns_client = boto3.client("sns", region_name=REGION_NAME)
+    sns_client = boto3.client("sns", region_name=region)
     sns_topic = sns_client.create_topic(Name="topic")
 
     # Subscribe SQS queue to SNS topic
@@ -352,6 +357,11 @@ def test_put_bucket_notification_sns_sqs():
     # Get S3 notification from SNS message
     s3_message_body = json.loads(sns_message["Message"])
     assert s3_message_body["Records"][0]["eventName"] == "ObjectCreated:Put"
+    assert s3_message_body["Records"][0]["awsRegion"] == region
+    assert (
+        s3_message_body["Records"][0]["s3"]["bucket"]["arn"]
+        == f"arn:{partition}:s3:::bucket"
+    )
 
 
 @mock_aws

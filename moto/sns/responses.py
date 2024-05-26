@@ -733,7 +733,13 @@ class SNSResponse(BaseResponse):
         aws_account_ids = self._get_multi_param("AWSAccountId.member.")
         action_names = self._get_multi_param("ActionName.member.")
 
-        self.backend.add_permission(topic_arn, label, aws_account_ids, action_names)
+        self.backend.add_permission(
+            region_name=self.region,
+            topic_arn=topic_arn,
+            label=label,
+            aws_account_ids=aws_account_ids,
+            action_names=action_names,
+        )
 
         template = self.response_template(ADD_PERMISSION_TEMPLATE)
         return template.render()

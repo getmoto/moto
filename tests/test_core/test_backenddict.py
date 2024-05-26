@@ -10,6 +10,7 @@ from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import AccountSpecificBackend, BackendDict, BaseBackend
 from moto.ec2.models import EC2Backend
 from moto.elbv2.models import ELBv2Backend
+from moto.utilities.utils import PARTITION_NAMES
 
 
 class ExampleBackend(BaseBackend):
@@ -63,7 +64,7 @@ def test_backend_dict_can_ignore_boto3_regions() -> None:
 
 def test_backend_dict_can_specify_additional_regions() -> None:
     backend_dict = BackendDict(
-        ExampleBackend, "ec2", additional_regions=["region1", "global"]
+        ExampleBackend, "ec2", additional_regions=["region1", "global", "aws"]
     )["123456"]
     assert isinstance(backend_dict["us-east-1"], ExampleBackend)
     assert isinstance(backend_dict["region1"], ExampleBackend)
@@ -176,3 +177,23 @@ def test_multiple_backends_cache_behaviour() -> None:
 
     as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
     assert type(as_1) == AutoScalingBackend
+
+
+def test_global_region_defaults_to_aws() -> None:
+    s3 = BackendDict(ExampleBackend, "s3", additional_regions=PARTITION_NAMES)
+
+    # Internally we use 'aws' as the S3 region
+    s3_aws = s3[DEFAULT_ACCOUNT_ID]["aws"]
+    assert isinstance(s3_aws, ExampleBackend)
+
+    # But users may still call this 'global'
+    # Ensure that we're getting the backend
+    s3_global = s3[DEFAULT_ACCOUNT_ID]["global"]
+    assert s3_global == s3_aws
+
+    # Changes to S3AWS should show up in global
+    s3_aws.var = "test"  # type: ignore[attr-defined]
+    assert s3_global.var == "test"  # type: ignore[attr-defined]
+
+    assert "aws" in s3[DEFAULT_ACCOUNT_ID]
+    assert "global" in s3[DEFAULT_ACCOUNT_ID]

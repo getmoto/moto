@@ -18,8 +18,11 @@ from moto.core.utils import utcnow
 
 
 @mock_aws
-def test_create_certificate_authority():
-    client = boto3.client("acm-pca", region_name="eu-west-1")
+@pytest.mark.parametrize(
+    "region,partition", [("eu-west-1", "aws"), ("us-gov-east-1", "aws-us-gov")]
+)
+def test_create_certificate_authority(region, partition):
+    client = boto3.client("acm-pca", region_name=region)
     resp = client.create_certificate_authority(
         CertificateAuthorityConfiguration={
             "KeyAlgorithm": "RSA_4096",
@@ -31,7 +34,7 @@ def test_create_certificate_authority():
     )
 
     assert (
-        f"arn:aws:acm-pca:eu-west-1:{DEFAULT_ACCOUNT_ID}:certificate-authority/"
+        f"arn:{partition}:acm-pca:{region}:{DEFAULT_ACCOUNT_ID}:certificate-authority/"
         in resp["CertificateAuthorityArn"]
     )
 
@@ -276,8 +279,11 @@ def test_delete_certificate_authority():
 
 
 @mock_aws
-def test_issue_certificate():
-    client = boto3.client("acm-pca", region_name="ap-southeast-1")
+@pytest.mark.parametrize(
+    "region,partition", [("ap-southeast-1", "aws"), ("us-gov-east-1", "aws-us-gov")]
+)
+def test_issue_certificate(region, partition):
+    client = boto3.client("acm-pca", region_name=region)
     ca_arn = client.create_certificate_authority(
         CertificateAuthorityConfiguration={
             "KeyAlgorithm": "RSA_4096",
@@ -296,7 +302,9 @@ def test_issue_certificate():
         Validity={"Type": "YEARS", "Value": 10},
     )
 
-    assert "CertificateArn" in resp
+    assert resp["CertificateArn"].startswith(
+        f"arn:{partition}:acm-pca:{region}:{DEFAULT_ACCOUNT_ID}:certificate-authority"
+    )
 
 
 @mock_aws

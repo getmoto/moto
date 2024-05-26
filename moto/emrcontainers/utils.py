@@ -5,21 +5,6 @@ from typing import Any, List, Optional, Tuple
 from moto.moto_api._internal import mock_random as random
 
 
-def get_partition(region: str) -> str:
-    valid_matches = [
-        # (region prefix, aws partition)
-        ("cn-", "aws-cn"),
-        ("us-gov-", "aws-us-gov"),
-        ("us-gov-iso-", "aws-iso"),
-        ("us-gov-iso-b-", "aws-iso-b"),
-    ]
-
-    for prefix, partition in valid_matches:
-        if region.startswith(prefix):
-            return partition
-    return "aws"
-
-
 def random_id(size: int = 13) -> str:
     chars = list(range(10)) + list(string.ascii_lowercase)
     return "".join(str(random.choice(chars)) for x in range(size))

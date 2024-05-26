@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .data import compatible_versions
 from .exceptions import EngineTypeNotFoundException, ResourceNotFoundException
@@ -66,7 +67,9 @@ class OpenSearchDomain(BaseModel):
     ):
         self.domain_id = f"{account_id}/{domain_name}"
         self.domain_name = domain_name
-        self.arn = f"arn:aws:es:{region}:{account_id}:domain/{domain_name}"
+        self.arn = (
+            f"arn:{get_partition(region)}:es:{region}:{account_id}:domain/{domain_name}"
+        )
         self.engine_version = engine_version or "OpenSearch 2.5"
         self.cluster_config = cluster_config or {}
         self.ebs_options = ebs_options or {"EBSEnabled": False}

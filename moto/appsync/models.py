@@ -8,6 +8,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import BadRequestException, GraphqlAPINotFound, GraphQLSchemaException
 
@@ -40,8 +41,9 @@ directive @aws_cognito_user_pools(
 
 
 class GraphqlSchema(BaseModel):
-    def __init__(self, definition: Any):
+    def __init__(self, definition: Any, region_name: str):
         self.definition = definition
+        self.region_name = region_name
         # [graphql.language.ast.ObjectTypeDefinitionNode, ..]
         self.types: List[Any] = []
 
@@ -57,7 +59,7 @@ class GraphqlSchema(BaseModel):
                     "description": graphql_type.description.value
                     if graphql_type.description
                     else None,
-                    "arn": f"arn:aws:appsync:graphql_type/{name}",
+                    "arn": f"arn:{get_partition(self.region_name)}:appsync:graphql_type/{name}",
                     "definition": "NotYetImplemented",
                 }
 
@@ -155,7 +157,7 @@ class GraphqlAPI(BaseModel):
         self.user_pool_config = user_pool_config
         self.xray_enabled = xray_enabled
 
-        self.arn = f"arn:aws:appsync:{self.region}:{account_id}:apis/{self.api_id}"
+        self.arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
         self.graphql_schema: Optional[GraphqlSchema] = None
 
         self.api_keys: Dict[str, GraphqlAPIKey] = dict()
@@ -211,7 +213,7 @@ class GraphqlAPI(BaseModel):
     def start_schema_creation(self, definition: str) -> None:
         graphql_definition = base64.b64decode(definition).decode("utf-8")
 
-        self.graphql_schema = GraphqlSchema(graphql_definition)
+        self.graphql_schema = GraphqlSchema(graphql_definition, region_name=self.region)
 
     def get_schema_status(self) -> Any:
         return self.graphql_schema.get_status()  # type: ignore[union-attr]

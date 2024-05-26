@@ -1,6 +1,7 @@
 import json
 import os
 import random
+import re
 import string
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
@@ -11,6 +12,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import (
     AWSValidationException,
@@ -2253,7 +2255,7 @@ class SageMakerModelBackend(BaseBackend):
             self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
             raise ResourceNotFound(
-                message=f"Trial 'arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}' does not exist."
+                message=f"Trial 'arn:{get_partition(self.region_name)}:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}' does not exist."
             )
 
         if trial_component_name in self.trial_components.keys():
@@ -2281,8 +2283,8 @@ class SageMakerModelBackend(BaseBackend):
             )
 
         return {
-            "TrialComponentArn": f"arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial-component/{trial_component_name}",
-            "TrialArn": f"arn:aws:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}",
+            "TrialComponentArn": f"arn:{get_partition(self.region_name)}:sagemaker:{self.region_name}:{self.account_id}:experiment-trial-component/{trial_component_name}",
+            "TrialArn": f"arn:{get_partition(self.region_name)}:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}",
         }
 
     def update_trial_component(
@@ -2673,7 +2675,9 @@ class SageMakerModelBackend(BaseBackend):
 
         if pipeline_definition_s3_location:
             pipeline_definition = load_pipeline_definition_from_s3(  # type: ignore
-                pipeline_definition_s3_location, self.account_id
+                pipeline_definition_s3_location,
+                account_id=self.account_id,
+                partition=self.partition,
             )
 
         pipeline = FakePipeline(
@@ -2715,7 +2719,9 @@ class SageMakerModelBackend(BaseBackend):
                     self.pipelines[
                         pipeline_name
                     ].pipeline_definition = load_pipeline_definition_from_s3(  # type: ignore
-                        attr_value, self.account_id
+                        attr_value,
+                        self.account_id,
+                        partition=self.partition,
                     )
                     continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
@@ -3445,7 +3451,7 @@ class SageMakerModelBackend(BaseBackend):
             )
         if model_package_group_name is not None:
             model_package_type = "Versioned"
-            if model_package_group_name.startswith("arn:aws"):
+            if re.match(ARN_PARTITION_REGEX, model_package_group_name):
                 model_package_group_name = model_package_group_name.split("/")[-1]
         model_package_summary_list = list(
             filter(

@@ -11,7 +11,7 @@ url_paths = {
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers/(?P<authorizer_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/stages$": APIGatewayResponse.dispatch,
     "{0}/tags/(?P<resourceArn>[^/]+)$": APIGatewayResponse.dispatch,
-    "{0}/tags/arn:aws:apigateway:(?P<region_name>[^/]+)::/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)$": APIGatewayResponse.dispatch,
+    "{0}/tags/arn:(?P<partition>[^/]+):apigateway:(?P<region_name>[^/]+)::/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/exports/(?P<export_type>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/deployments$": APIGatewayResponse.dispatch,

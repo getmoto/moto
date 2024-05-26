@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.utilities.utils import get_partition
 
 from ..exceptions import (
     CidrLimitExceeded,
@@ -22,8 +23,8 @@ from ..exceptions import (
     InvalidVpcEndPointIdError,
     InvalidVPCIdError,
     InvalidVPCRangeError,
-    OperationNotPermitted,
     UnsupportedTenancy,
+    VPCCidrBlockAssociationError,
 )
 from ..utils import (
     create_dns_entries,
@@ -675,7 +676,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         if self.cidr_block == self.cidr_block_association_set.get(
             association_id, {}
         ).get("cidr_block"):
-            raise OperationNotPermitted(association_id)
+            raise VPCCidrBlockAssociationError(association_id)
 
         entry = response = self.cidr_block_association_set.get(association_id, {})
         if entry:
@@ -1034,8 +1035,9 @@ class VPCBackend:
                     if service:
                         DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service)
 
-                if "global" in account_backend:
-                    service = account_backend["global"].default_vpc_endpoint_service(
+                partition = get_partition(region)
+                if partition in account_backend:
+                    service = account_backend[partition].default_vpc_endpoint_service(
                         region, zones
                     )
                     if service:

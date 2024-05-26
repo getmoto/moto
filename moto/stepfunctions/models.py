@@ -11,6 +11,7 @@ from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import (
     ExecutionAlreadyExists,
@@ -250,9 +251,13 @@ class Execution:
         state_machine_arn: str,
         execution_input: str,
     ):
-        execution_arn = "arn:aws:states:{}:{}:execution:{}:{}"
+        execution_arn = "arn:{}:states:{}:{}:execution:{}:{}"
         execution_arn = execution_arn.format(
-            region_name, account_id, state_machine_name, execution_name
+            get_partition(region_name),
+            region_name,
+            account_id,
+            state_machine_name,
+            execution_name,
         )
         self.execution_arn = execution_arn
         self.name = execution_name
@@ -494,13 +499,15 @@ class StepFunctionBackend(BaseBackend):
         "\u009f",
     ]
     accepted_role_arn_format = re.compile(
-        "arn:aws:iam::(?P<account_id>[0-9]{12}):role/.+"
+        ARN_PARTITION_REGEX + r":iam::(?P<account_id>[0-9]{12}):role/.+"
     )
     accepted_mchn_arn_format = re.compile(
-        "arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+"
+        ARN_PARTITION_REGEX
+        + r":states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):stateMachine:.+"
     )
     accepted_exec_arn_format = re.compile(
-        "arn:aws:states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
+        ARN_PARTITION_REGEX
+        + r":states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
     )
 
     def __init__(self, region_name: str, account_id: str):
@@ -517,7 +524,7 @@ class StepFunctionBackend(BaseBackend):
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
-        arn = f"arn:aws:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
+        arn = f"arn:{get_partition(self.region_name)}:states:{self.region_name}:{self.account_id}:stateMachine:{name}"
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:

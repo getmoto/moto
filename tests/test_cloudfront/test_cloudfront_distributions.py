@@ -9,12 +9,18 @@ from . import cloudfront_test_scaffolding as scaffold
 
 
 @mock_aws
-def test_create_distribution_s3_minimum():
-    client = boto3.client("cloudfront", region_name="us-west-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_distribution_s3_minimum(region, partition):
+    client = boto3.client("cloudfront", region_name=region)
     config = scaffold.example_distribution_config("ref")
 
     dist = client.create_distribution(DistributionConfig=config)["Distribution"]
-    assert dist["ARN"] == f"arn:aws:cloudfront:{ACCOUNT_ID}:distribution/{dist['Id']}"
+    assert (
+        dist["ARN"]
+        == f"arn:{partition}:cloudfront:{ACCOUNT_ID}:distribution/{dist['Id']}"
+    )
     assert dist["Status"] == "InProgress"
     assert "LastModifiedTime" in dist
     assert dist["InProgressInvalidationBatches"] == 0

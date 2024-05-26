@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterable
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFoundException
 
@@ -13,7 +14,7 @@ def _create_id(aws_account_id: str, namespace: str, _id: str) -> str:
 
 class QuicksightDataSet(BaseModel):
     def __init__(self, account_id: str, region: str, _id: str, name: str):
-        self.arn = f"arn:aws:quicksight:{region}:{account_id}:data-set/{_id}"
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{_id}"
         self._id = _id
         self.name = name
         self.region = region
@@ -23,7 +24,7 @@ class QuicksightDataSet(BaseModel):
         return {
             "Arn": self.arn,
             "DataSetId": self._id,
-            "IngestionArn": f"arn:aws:quicksight:{self.region}:{self.account_id}:ingestion/tbd",
+            "IngestionArn": f"arn:{get_partition(self.region)}:quicksight:{self.region}:{self.account_id}:ingestion/tbd",
         }
 
 
@@ -31,7 +32,7 @@ class QuicksightIngestion(BaseModel):
     def __init__(
         self, account_id: str, region: str, data_set_id: str, ingestion_id: str
     ):
-        self.arn = f"arn:aws:quicksight:{region}:{account_id}:data-set/{data_set_id}/ingestions/{ingestion_id}"
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{data_set_id}/ingestions/{ingestion_id}"
         self.ingestion_id = ingestion_id
 
     def to_json(self) -> Dict[str, Any]:
@@ -46,9 +47,7 @@ class QuicksightMembership(BaseModel):
     def __init__(self, account_id: str, region: str, group: str, user: str):
         self.group = group
         self.user = user
-        self.arn = (
-            f"arn:aws:quicksight:{region}:{account_id}:group/default/{group}/{user}"
-        )
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:group/default/{group}/{user}"
 
     def to_json(self) -> Dict[str, str]:
         return {"Arn": self.arn, "MemberName": self.user}
@@ -63,9 +62,7 @@ class QuicksightGroup(BaseModel):
         aws_account_id: str,
         namespace: str,
     ):
-        self.arn = (
-            f"arn:aws:quicksight:{region}:{aws_account_id}:group/default/{group_name}"
-        )
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{aws_account_id}:group/default/{group_name}"
         self.group_name = group_name
         self.description = description
         self.aws_account_id = aws_account_id
@@ -110,7 +107,7 @@ class QuicksightUser(BaseModel):
         username: str,
         user_role: str,
     ):
-        self.arn = f"arn:aws:quicksight:{region}:{account_id}:user/default/{username}"
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:user/default/{username}"
         self.email = email
         self.identity_type = identity_type
         self.username = username

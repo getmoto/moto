@@ -7,6 +7,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES
 
 from .exceptions import (
     WAFNonexistentItemException,
@@ -22,7 +23,8 @@ if TYPE_CHECKING:
 US_EAST_1_REGION = "us-east-1"
 GLOBAL_REGION = "global"
 APIGATEWAY_REGEX = (
-    r"arn:aws:apigateway:[a-zA-Z0-9-]+::/restapis/[a-zA-Z0-9]+/stages/[a-zA-Z0-9]+"
+    ARN_PARTITION_REGEX
+    + r":apigateway:[a-zA-Z0-9-]+::/restapis/[a-zA-Z0-9]+/stages/[a-zA-Z0-9]+"
 )
 
 
@@ -421,5 +423,5 @@ class WAFV2Backend(BaseBackend):
 
 
 wafv2_backends = BackendDict(
-    WAFV2Backend, "waf-regional", additional_regions=["global"]
+    WAFV2Backend, "waf-regional", additional_regions=PARTITION_NAMES
 )

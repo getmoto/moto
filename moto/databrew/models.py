@@ -9,6 +9,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_pascal, underscores_to_camelcase
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AlreadyExistsException,
@@ -601,9 +602,7 @@ class FakeDataset(BaseModel):
 
     @property
     def resource_arn(self) -> str:
-        return (
-            f"arn:aws:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
-        )
+        return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -667,7 +666,7 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
 
     @property
     def resource_arn(self) -> str:
-        return f"arn:aws:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
+        return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
 
     def as_dict(self) -> Dict[str, Any]:
         rtn_dict = {

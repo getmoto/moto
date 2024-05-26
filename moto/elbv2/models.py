@@ -1875,7 +1875,7 @@ Member must satisfy regular expression pattern: {expression}"
 
         from moto.iam import iam_backends
 
-        cert = iam_backends[self.account_id]["global"].get_certificate_by_arn(
+        cert = iam_backends[self.account_id][self.partition].get_certificate_by_arn(
             certificate_arn
         )
         if cert is not None:

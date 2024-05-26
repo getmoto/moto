@@ -40,6 +40,7 @@ from moto.s3.exceptions import (
     S3SignatureDoesNotMatchError,
 )
 from moto.sts.models import sts_backends
+from moto.utilities.utils import get_partition
 
 from .models import IAMBackend, Policy, iam_backends
 
@@ -47,21 +48,38 @@ log = logging.getLogger(__name__)
 
 
 def create_access_key(
-    account_id: str, access_key_id: str, headers: Dict[str, str]
+    account_id: str, partition: str, access_key_id: str, headers: Dict[str, str]
 ) -> Union["IAMUserAccessKey", "AssumedRoleAccessKey"]:
     if access_key_id.startswith("AKIA") or "X-Amz-Security-Token" not in headers:
-        return IAMUserAccessKey(account_id, access_key_id, headers)
+        return IAMUserAccessKey(
+            account_id=account_id,
+            partition=partition,
+            access_key_id=access_key_id,
+            headers=headers,
+        )
     else:
-        return AssumedRoleAccessKey(account_id, access_key_id, headers)
+        return AssumedRoleAccessKey(
+            account_id=account_id,
+            partition=partition,
+            access_key_id=access_key_id,
+            headers=headers,
+        )
 
 
 class IAMUserAccessKey:
     @property
     def backend(self) -> IAMBackend:
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
-    def __init__(self, account_id: str, access_key_id: str, headers: Dict[str, str]):
+    def __init__(
+        self,
+        account_id: str,
+        partition: str,
+        access_key_id: str,
+        headers: Dict[str, str],
+    ):
         self.account_id = account_id
+        self.partition = partition
         iam_users = self.backend.list_users("/", None, None)
 
         for iam_user in iam_users:
@@ -77,7 +95,9 @@ class IAMUserAccessKey:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:iam::{self.account_id}:user/{self._owner_user_name}"
+        return (
+            f"arn:{self.partition}:iam::{self.account_id}:user/{self._owner_user_name}"
+        )
 
     def create_credentials(self) -> Credentials:
         return Credentials(self._access_key_id, self._secret_access_key)
@@ -119,11 +139,18 @@ class IAMUserAccessKey:
 class AssumedRoleAccessKey:
     @property
     def backend(self) -> IAMBackend:
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
-    def __init__(self, account_id: str, access_key_id: str, headers: Dict[str, str]):
+    def __init__(
+        self,
+        account_id: str,
+        partition: str,
+        access_key_id: str,
+        headers: Dict[str, str],
+    ):
         self.account_id = account_id
-        for assumed_role in sts_backends[account_id]["global"].assumed_roles:
+        self.partition = partition
+        for assumed_role in sts_backends[account_id][partition].assumed_roles:
             if assumed_role.access_key_id == access_key_id:
                 self._access_key_id = access_key_id
                 self._secret_access_key = assumed_role.secret_access_key
@@ -137,7 +164,7 @@ class AssumedRoleAccessKey:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:sts::{self.account_id}:assumed-role/{self._owner_role_name}/{self._session_name}"
+        return f"arn:{self.partition}:sts::{self.account_id}:assumed-role/{self._owner_role_name}/{self._session_name}"
 
     def create_credentials(self) -> Credentials:
         return Credentials(
@@ -206,6 +233,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         try:
             self._access_key = create_access_key(
                 account_id=self.account_id,
+                partition=get_partition(self._region),
                 access_key_id=credential_data[0],
                 headers=headers,
             )

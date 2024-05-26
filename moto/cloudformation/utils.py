@@ -6,18 +6,19 @@ from urllib.parse import urlparse
 import yaml
 
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 
 def generate_stack_id(stack_name: str, region: str, account: str) -> str:
     random_id = random.uuid4()
-    return f"arn:aws:cloudformation:{region}:{account}:stack/{stack_name}/{random_id}"
+    return f"arn:{get_partition(region)}:cloudformation:{region}:{account}:stack/{stack_name}/{random_id}"
 
 
 def generate_changeset_id(
     changeset_name: str, region_name: str, account_id: str
 ) -> str:
     random_id = random.uuid4()
-    return f"arn:aws:cloudformation:{region_name}:{account_id}:changeSet/{changeset_name}/{random_id}"
+    return f"arn:{get_partition(region_name)}:cloudformation:{region_name}:{account_id}:changeSet/{changeset_name}/{random_id}"
 
 
 def generate_stackset_id(stackset_name: str) -> str:
@@ -26,7 +27,7 @@ def generate_stackset_id(stackset_name: str) -> str:
 
 
 def generate_stackset_arn(stackset_id: str, region_name: str, account_id: str) -> str:
-    return f"arn:aws:cloudformation:{region_name}:{account_id}:stackset/{stackset_id}"
+    return f"arn:{get_partition(region_name)}:cloudformation:{region_name}:{account_id}:stackset/{stackset_id}"
 
 
 def random_suffix() -> str:
@@ -89,7 +90,7 @@ def validate_template_cfn_lint(template: str) -> List[Any]:
     return matches
 
 
-def get_stack_from_s3_url(template_url: str, account_id: str) -> str:
+def get_stack_from_s3_url(template_url: str, account_id: str, partition: str) -> str:
     from moto.s3.models import s3_backends
 
     template_url_parts = urlparse(template_url)
@@ -108,5 +109,5 @@ def get_stack_from_s3_url(template_url: str, account_id: str) -> str:
             bucket_name = template_url_parts.netloc.split(".")[0]
             key_name = template_url_parts.path.lstrip("/")
 
-    key = s3_backends[account_id]["global"].get_object(bucket_name, key_name)
+    key = s3_backends[account_id][partition].get_object(bucket_name, key_name)
     return key.value.decode("utf-8")  # type: ignore[union-attr]

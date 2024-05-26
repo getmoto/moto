@@ -3,12 +3,13 @@ import re
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 E164_REGEX = re.compile(r"^\+?[1-9]\d{1,14}$")
 
 
 def make_arn_for_topic(account_id: str, name: str, region_name: str) -> str:
-    return f"arn:aws:sns:{region_name}:{account_id}:{name}"
+    return f"arn:{get_partition(region_name)}:sns:{region_name}:{account_id}:{name}"
 
 
 def make_arn_for_subscription(topic_arn: str) -> str:

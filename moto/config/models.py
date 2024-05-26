@@ -57,7 +57,7 @@ from moto.iam.config import policy_config_query, role_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
 from moto.s3control.config import s3_account_public_access_block_query
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import get_partition, load_resource
 
 POP_STRINGS = [
     "capitalizeStart",
@@ -400,7 +400,7 @@ class ConfigAggregator(ConfigEmptyDictable):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self.configuration_aggregator_name = name
-        self.configuration_aggregator_arn = f"arn:aws:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
+        self.configuration_aggregator_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
         self.account_aggregation_sources = account_sources
         self.organization_aggregation_source = org_source
         self.creation_time = datetime2int(utcnow())
@@ -438,7 +438,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
-        self.aggregation_authorization_arn = f"arn:aws:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
+        self.aggregation_authorization_arn = f"arn:{get_partition(current_region)}:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
         self.authorized_account_id = authorized_account_id
         self.authorized_aws_region = authorized_aws_region
         self.creation_time = datetime2int(utcnow())
@@ -468,7 +468,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
         self.last_update_time = datetime2int(utcnow())
-        self.organization_conformance_pack_arn = f"arn:aws:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
+        self.organization_conformance_pack_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
         self.organization_conformance_pack_name = name
 
     def update(
@@ -741,9 +741,7 @@ class ConfigRule(ConfigEmptyDictable):
         self.maximum_execution_frequency = None  # keeps pylint happy
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
-        self.config_rule_arn = (
-            f"arn:aws:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
-        )
+        self.config_rule_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
 
     def modify_fields(
         self, region: str, config_rule: Dict[str, Any], tags: Dict[str, str]
@@ -1449,7 +1447,6 @@ class ConfigBackend(BaseBackend):
     def list_discovered_resources(
         self,
         resource_type: str,
-        backend_region: str,
         resource_ids: List[str],
         resource_name: str,
         limit: int,
@@ -1485,14 +1482,19 @@ class ConfigBackend(BaseBackend):
         # moto, then call upon the resource type's Config Query class to
         # retrieve the list of resources that match the criteria:
         if RESOURCE_MAP.get(resource_type, {}):
-            # Is this a global resource type? -- if so, re-write the region to 'global':
-            backend_query_region = (
-                backend_region  # Always provide the backend this request arrived from.
-            )
-            if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
-                backend_region = "global"
+            # Always provide the backend this request arrived from.
+            backend_query_region = self.region_name
+            # Is this a global resource type? -- if so, use the partition
+            if (
+                RESOURCE_MAP[resource_type]
+                .backends[self.account_id]
+                .get(self.partition)
+            ):
+                backend_region = self.partition
+            else:
+                backend_region = self.region_name
 
-            # For non-aggregated queries, the we only care about the
+            # For non-aggregated queries, we only care about the
             # backend_region. Need to verify that moto has implemented
             # the region for the given backend:
             if (
@@ -1505,10 +1507,11 @@ class ConfigBackend(BaseBackend):
                     resource_type
                 ].list_config_service_resources(
                     self.account_id,
-                    resource_ids,
-                    resource_name,
-                    limit,
-                    next_token,
+                    partition=self.partition,
+                    resource_ids=resource_ids,
+                    resource_name=resource_name,
+                    limit=limit,
+                    next_token=next_token,
                     backend_region=backend_query_region,
                 )
 
@@ -1575,10 +1578,11 @@ class ConfigBackend(BaseBackend):
                 resource_type
             ].list_config_service_resources(
                 self.account_id,
-                resource_id,
-                resource_name,
-                limit,
-                next_token,
+                partition=self.partition,
+                resource_ids=resource_id,
+                resource_name=resource_name,
+                limit=limit,
+                next_token=next_token,
                 resource_region=resource_region,
                 aggregator=self.config_aggregators.get(aggregator_name).__dict__,
             )
@@ -1621,12 +1625,12 @@ class ConfigBackend(BaseBackend):
         if resource_type not in RESOURCE_MAP:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
+        # Always provide the backend this request arrived from.
+        backend_query_region = backend_region
         # Is the resource type global?
-        backend_query_region = (
-            backend_region  # Always provide the backend this request arrived from.
-        )
-        if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
-            backend_region = "global"
+        partition = get_partition(backend_region)
+        if RESOURCE_MAP[resource_type].backends[self.account_id].get(partition):
+            backend_region = partition
 
         # If the backend region isn't implemented then we won't find the item:
         if (
@@ -1638,7 +1642,10 @@ class ConfigBackend(BaseBackend):
 
         # Get the item:
         item = RESOURCE_MAP[resource_type].get_config_resource(
-            self.account_id, resource_id, backend_region=backend_query_region
+            account_id=self.account_id,
+            partition=self.partition,
+            resource_id=resource_id,
+            backend_region=backend_query_region,
         )
         if not item:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
@@ -1670,17 +1677,17 @@ class ConfigBackend(BaseBackend):
                 # Not found so skip.
                 continue
 
-            # Is the resource type global?
             config_backend_region = backend_region
-            backend_query_region = (
-                backend_region  # Always provide the backend this request arrived from.
-            )
+            # Always provide the backend this request arrived from.
+            backend_query_region = backend_region
+            # Is the resource type global?
+            partition = get_partition(backend_region)
             if (
                 RESOURCE_MAP[resource["resourceType"]]
                 .backends[self.account_id]
-                .get("global")
+                .get(partition)
             ):
-                config_backend_region = "global"
+                config_backend_region = partition
 
             # If the backend region isn't implemented then we won't find the item:
             if (
@@ -1693,7 +1700,8 @@ class ConfigBackend(BaseBackend):
             # Get the item:
             item = RESOURCE_MAP[resource["resourceType"]].get_config_resource(
                 self.account_id,
-                resource["resourceId"],
+                partition=self.partition,
+                resource_id=resource["resourceId"],
                 backend_region=backend_query_region,
             )
             if not item:
@@ -1748,7 +1756,8 @@ class ConfigBackend(BaseBackend):
             # Get the item:
             item = RESOURCE_MAP[resource_type].get_config_resource(
                 self.account_id,
-                resource_id,
+                partition=self.partition,
+                resource_id=resource_id,
                 resource_name=resource_name,
                 resource_region=resource_region,
             )

@@ -4,6 +4,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class SigningProfile(BaseModel):
@@ -24,7 +25,7 @@ class SigningProfile(BaseModel):
         self.backend = backend
 
         self.status = "Active"
-        self.arn = f"arn:aws:signer:{backend.region_name}:{backend.account_id}:/signing-profiles/{name}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:signer:{backend.region_name}:{backend.account_id}:/signing-profiles/{name}"
         self.profile_version = mock_random.get_random_hex(10)
         self.profile_version_arn = f"{self.arn}/{self.profile_version}"
         self.signing_material = signing_material

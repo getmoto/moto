@@ -11,6 +11,7 @@ from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ValidationException
 from .utils import (
@@ -70,12 +71,12 @@ class Key(CloudFormationModel):
         self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()
         self.account_id = account_id
+        self.region = region
         self.policy = policy or self.generate_default_policy()
         self.key_usage = key_usage
         self.key_state = "Enabled"
         self.description = description or ""
         self.enabled = True
-        self.region = region
         self.multi_region = multi_region
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
@@ -84,7 +85,9 @@ class Key(CloudFormationModel):
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
         self.private_key = generate_private_key(self.key_spec)
-        self.arn = f"arn:aws:kms:{region}:{account_id}:key/{self.id}"
+        self.arn = (
+            f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
+        )
 
         self.grants: Dict[str, Grant] = dict()
 
@@ -141,7 +144,9 @@ class Key(CloudFormationModel):
                     {
                         "Sid": "Enable IAM User Permissions",
                         "Effect": "Allow",
-                        "Principal": {"AWS": f"arn:aws:iam::{self.account_id}:root"},
+                        "Principal": {
+                            "AWS": f"arn:{get_partition(self.region)}:iam::{self.account_id}:root"
+                        },
                         "Action": "kms:*",
                         "Resource": "*",
                     }

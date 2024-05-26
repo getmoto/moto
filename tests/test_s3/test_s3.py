@@ -35,8 +35,8 @@ class MyModel:
         self.value = value
         self.metadata = metadata or {}
 
-    def save(self):
-        s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    def save(self, region=None):
+        s3_client = boto3.client("s3", region_name=region or DEFAULT_REGION_NAME)
         s3_client.put_object(
             Bucket="mybucket", Key=self.name, Body=self.value, Metadata=self.metadata
         )
@@ -45,7 +45,9 @@ class MyModel:
 @mock_aws
 def test_keys_are_pickleable():
     """Keys must be pickleable due to boto3 implementation details."""
-    key = s3model.FakeKey("name", b"data!", account_id=DEFAULT_ACCOUNT_ID)
+    key = s3model.FakeKey(
+        "name", b"data!", account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert key.value == b"data!"
 
     pickled = pickle.dumps(key)
@@ -55,14 +57,20 @@ def test_keys_are_pickleable():
 
 
 @mock_aws
-def test_my_model_save():
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-west-2", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_my_model_save(region, partition):
     # Create Bucket so that test can run
-    conn = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    conn.create_bucket(Bucket="mybucket")
+    conn = boto3.resource("s3", region_name=region)
+    conn.create_bucket(
+        Bucket="mybucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
     ####################################
 
     model_instance = MyModel("steve", "is awesome")
-    model_instance.save()
+    model_instance.save(region)
 
     body = conn.Object("mybucket", "steve").get()["Body"].read().decode()
 
@@ -520,11 +528,17 @@ def test_bucket_key_listing_order():
 
 
 @mock_aws
-def test_key_with_reduced_redundancy():
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-west-2", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_key_with_reduced_redundancy(region, partition):
+    s3_resource = boto3.resource("s3", region_name=region)
     bucket_name = "test_bucket"
+    s3_resource.create_bucket(
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
+    )
     bucket = s3_resource.Bucket(bucket_name)
-    bucket.create()
 
     bucket.put_object(
         Key="test_rr_key", Body=b"somedata", StorageClass="REDUCED_REDUNDANCY"
@@ -2192,9 +2206,14 @@ def test_delete_bucket_cors(bucket_name=None):
 
 
 @mock_aws
-def test_put_bucket_notification():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_put_bucket_notification(region, partition):
+    s3_client = boto3.client("s3", region_name=region)
+    s3_client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
 
     # With no configuration:
     result = s3_client.get_bucket_notification(Bucket="bucket")
@@ -2208,11 +2227,11 @@ def test_put_bucket_notification():
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
-                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                    "TopicArn": f"arn:{partition}:sns:{region}:012345678910:mytopic",
                     "Events": ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"],
                 },
                 {
-                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:myothertopic",
+                    "TopicArn": f"arn:{partition}:sns:{region}:012345678910:myothertopic",
                     "Events": ["s3:ObjectCreated:*"],
                     "Filter": {
                         "Key": {
@@ -2234,11 +2253,11 @@ def test_put_bucket_notification():
     assert not result.get("LambdaFunctionConfigurations")
     assert (
         result["TopicConfigurations"][0]["TopicArn"]
-        == "arn:aws:sns:us-east-1:012345678910:mytopic"
+        == f"arn:{partition}:sns:{region}:012345678910:mytopic"
     )
     assert (
         result["TopicConfigurations"][1]["TopicArn"]
-        == "arn:aws:sns:us-east-1:012345678910:myothertopic"
+        == f"arn:{partition}:sns:{region}:012345678910:myothertopic"
     )
     assert len(result["TopicConfigurations"][0]["Events"]) == 2
     assert len(result["TopicConfigurations"][1]["Events"]) == 1
@@ -2273,7 +2292,7 @@ def test_put_bucket_notification():
             "QueueConfigurations": [
                 {
                     "Id": "SomeID",
-                    "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                    "QueueArn": f"arn:{partition}:sqs:{region}:012345678910:myQueue",
                     "Events": ["s3:ObjectCreated:*"],
                     "Filter": {
                         "Key": {"FilterRules": [{"Name": "prefix", "Value": "images/"}]}
@@ -2289,7 +2308,7 @@ def test_put_bucket_notification():
     assert result["QueueConfigurations"][0]["Id"] == "SomeID"
     assert (
         result["QueueConfigurations"][0]["QueueArn"]
-        == "arn:aws:sqs:us-east-1:012345678910:myQueue"
+        == f"arn:{partition}:sqs:{region}:012345678910:myQueue"
     )
     assert result["QueueConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
     assert len(result["QueueConfigurations"][0]["Events"]) == 1
@@ -2309,7 +2328,7 @@ def test_put_bucket_notification():
         NotificationConfiguration={
             "LambdaFunctionConfigurations": [
                 {
-                    "LambdaFunctionArn": "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                    "LambdaFunctionArn": f"arn:{partition}:lambda:{region}:012345678910:function:lambda",
                     "Events": ["s3:ObjectCreated:*"],
                     "Filter": {
                         "Key": {"FilterRules": [{"Name": "prefix", "Value": "images/"}]}
@@ -2325,7 +2344,7 @@ def test_put_bucket_notification():
     assert result["LambdaFunctionConfigurations"][0]["Id"]
     assert (
         result["LambdaFunctionConfigurations"][0]["LambdaFunctionArn"]
-        == "arn:aws:lambda:us-east-1:012345678910:function:lambda"
+        == f"arn:{partition}:lambda:{region}:012345678910:function:lambda"
     )
     assert (
         result["LambdaFunctionConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
@@ -2354,19 +2373,19 @@ def test_put_bucket_notification():
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
-                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                    "TopicArn": f"arn:{partition}:sns:{region}:012345678910:mytopic",
                     "Events": ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"],
                 }
             ],
             "LambdaFunctionConfigurations": [
                 {
-                    "LambdaFunctionArn": "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                    "LambdaFunctionArn": f"arn:{partition}:lambda:{region}:012345678910:function:lambda",
                     "Events": ["s3:ObjectCreated:*"],
                 }
             ],
             "QueueConfigurations": [
                 {
-                    "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                    "QueueArn": f"arn:{partition}:sqs:{region}:012345678910:myQueue",
                     "Events": ["s3:ObjectCreated:*"],
                 }
             ],

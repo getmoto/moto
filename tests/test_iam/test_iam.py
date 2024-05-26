@@ -706,11 +706,14 @@ def test_get_policy():
 
 
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
-def test_get_aws_managed_policy():
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_get_aws_managed_policy(region, partition):
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Policies not loaded in ServerMode")
-    conn = boto3.client("iam", region_name="us-east-1")
-    managed_policy_arn = "arn:aws:iam::aws:policy/IAMUserChangePassword"
+    conn = boto3.client("iam", region_name=region)
+    managed_policy_arn = f"arn:{partition}:iam::aws:policy/IAMUserChangePassword"
     managed_policy_create_date = datetime.strptime(
         "2016-11-15T00:25:16+00:00", "%Y-%m-%dT%H:%M:%S+00:00"
     )
@@ -3158,9 +3161,12 @@ def test_create_role_no_path():
 
 
 @mock_aws()
-def test_create_role_with_permissions_boundary():
-    conn = boto3.client("iam", region_name="us-east-1")
-    boundary = f"arn:aws:iam::{ACCOUNT_ID}:policy/boundary"
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_role_with_permissions_boundary(region, partition):
+    conn = boto3.client("iam", region_name=region)
+    boundary = f"arn:{partition}:iam::{ACCOUNT_ID}:policy/boundary"
     resp = conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="some policy",
@@ -3182,10 +3188,15 @@ def test_create_role_with_permissions_boundary():
 
     invalid_boundary_arn = "arn:aws:iam::123456789:not_a_boundary"
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as exc:
         conn.put_role_permissions_boundary(
             RoleName="my-role", PermissionsBoundary=invalid_boundary_arn
         )
+    err = exc.value.response["Error"]
+    assert (
+        err["Message"]
+        == "Value (arn:aws:iam::123456789:not_a_boundary) for parameter PermissionsBoundary is invalid."
+    )
 
     with pytest.raises(ClientError):
         conn.create_role(
@@ -3515,7 +3526,7 @@ def test_role_list_config_discovered_resources():
 
     # Without any roles
     assert role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     ) == (
         [],
         None,
@@ -3541,7 +3552,7 @@ def test_role_list_config_discovered_resources():
     assert len(roles) == num_roles
 
     result = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     )[0]
     assert len(result) == num_roles
 
@@ -3554,13 +3565,13 @@ def test_role_list_config_discovered_resources():
 
     # test passing list of resource ids
     resource_ids = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, [roles[0]["id"], roles[1]["id"]], None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", [roles[0]["id"], roles[1]["id"]], None, 100, None
     )[0]
     assert len(resource_ids) == 2
 
     # test passing a single resource name
     resource_name = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, roles[0]["name"], 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, roles[0]["name"], 100, None
     )[0]
     assert len(resource_name) == 1
     assert resource_name[0]["id"] == roles[0]["id"]
@@ -3569,6 +3580,7 @@ def test_role_list_config_discovered_resources():
     # test passing a single resource name AND some resource id's
     both_filter_good = role_config_query.list_config_service_resources(
         DEFAULT_ACCOUNT_ID,
+        "aws",
         [roles[0]["id"], roles[1]["id"]],
         roles[0]["name"],
         100,
@@ -3580,6 +3592,7 @@ def test_role_list_config_discovered_resources():
 
     both_filter_bad = role_config_query.list_config_service_resources(
         DEFAULT_ACCOUNT_ID,
+        "aws",
         [roles[0]["id"], roles[1]["id"]],
         roles[2]["name"],
         100,
@@ -3596,9 +3609,11 @@ def test_role_config_dict():
     from moto.iam.utils import random_policy_id, random_role_id
 
     # Without any roles
-    assert not role_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "something")
+    assert not role_config_query.get_config_resource(
+        DEFAULT_ACCOUNT_ID, partition="aws", resource_id="something"
+    )
     assert role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     ) == (
         [],
         None,
@@ -3630,7 +3645,7 @@ def test_role_config_dict():
     )
 
     policy_id = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     )[0][0]["id"]
     assert len(policy_id) == len(random_policy_id())
 
@@ -3646,7 +3661,7 @@ def test_role_config_dict():
     )
 
     plain_role = role_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     )[0][0]
     assert plain_role is not None
     assert len(plain_role["id"]) == len(random_role_id(DEFAULT_ACCOUNT_ID))
@@ -3664,7 +3679,7 @@ def test_role_config_dict():
     assume_role = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
         )[0]
         if role["id"] not in [plain_role["id"]]
     )
@@ -3685,7 +3700,7 @@ def test_role_config_dict():
     assume_and_permission_boundary_role = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
         )[0]
         if role["id"] not in [plain_role["id"], assume_role["id"]]
     )
@@ -3711,7 +3726,7 @@ def test_role_config_dict():
     role_with_attached_policy = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
         )[0]
         if role["id"]
         not in [
@@ -3746,7 +3761,7 @@ def test_role_config_dict():
     role_with_inline_policy = next(
         role
         for role in role_config_query.list_config_service_resources(
-            DEFAULT_ACCOUNT_ID, None, None, 100, None
+            DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
         )[0]
         if role["id"]
         not in [
@@ -4116,7 +4131,7 @@ def test_policy_list_config_discovered_resources():
 
     # Without any policies
     assert policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     ) == (
         [],
         None,
@@ -4155,7 +4170,7 @@ def test_policy_list_config_discovered_resources():
         assert backend_key.startswith("arn:aws:iam::")
 
     result = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     )[0]
     assert len(result) == num_policies
 
@@ -4167,13 +4182,18 @@ def test_policy_list_config_discovered_resources():
 
     # test passing list of resource ids
     resource_ids = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, [policies[0]["id"], policies[1]["id"]], None, 100, None
+        DEFAULT_ACCOUNT_ID,
+        "aws",
+        [policies[0]["id"], policies[1]["id"]],
+        None,
+        100,
+        None,
     )[0]
     assert len(resource_ids) == 2
 
     # test passing a single resource name
     resource_name = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, policies[0]["name"], 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, policies[0]["name"], 100, None
     )[0]
     assert len(resource_name) == 1
     assert resource_name[0]["id"] == policies[0]["id"]
@@ -4182,6 +4202,7 @@ def test_policy_list_config_discovered_resources():
     # test passing a single resource name AND some resource id's
     both_filter_good = policy_config_query.list_config_service_resources(
         DEFAULT_ACCOUNT_ID,
+        "aws",
         [policies[0]["id"], policies[1]["id"]],
         policies[0]["name"],
         100,
@@ -4193,6 +4214,7 @@ def test_policy_list_config_discovered_resources():
 
     both_filter_bad = policy_config_query.list_config_service_resources(
         DEFAULT_ACCOUNT_ID,
+        "aws",
         [policies[0]["id"], policies[1]["id"]],
         policies[2]["name"],
         100,
@@ -4210,10 +4232,10 @@ def test_policy_config_dict():
 
     # Without any roles
     assert not policy_config_query.get_config_resource(
-        DEFAULT_ACCOUNT_ID, "arn:aws:iam::123456789012:policy/basic_policy"
+        DEFAULT_ACCOUNT_ID, "aws", "arn:aws:iam::123456789012:policy/basic_policy"
     )
     assert policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     ) == (
         [],
         None,
@@ -4244,13 +4266,13 @@ def test_policy_config_dict():
     )
 
     policy_id = policy_config_query.list_config_service_resources(
-        DEFAULT_ACCOUNT_ID, None, None, 100, None
+        DEFAULT_ACCOUNT_ID, "aws", None, None, 100, None
     )[0][0]["id"]
     assert len(policy_id) == len(random_policy_id())
 
     assert policy_arn == "arn:aws:iam::123456789012:policy/basic_policy"
     assert (
-        policy_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, policy_id)
+        policy_config_query.get_config_resource(DEFAULT_ACCOUNT_ID, "aws", policy_id)
         is not None
     )
 

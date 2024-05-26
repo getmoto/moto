@@ -5,6 +5,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import (
     DomainLimitExceededException,
@@ -47,7 +48,9 @@ class Route53DomainsBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.__route53_backend: Route53Backend = route53_backends[account_id]["global"]
+        self.__route53_backend: Route53Backend = route53_backends[account_id][
+            self.partition
+        ]
         self.__domains: Dict[str, Route53Domain] = {}
         self.__operations: Dict[str, Route53DomainsOperation] = {}
 
@@ -296,5 +299,5 @@ route53domains_backends = BackendDict(
     Route53DomainsBackend,
     "route53domains",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

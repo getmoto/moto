@@ -5,6 +5,7 @@ from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -24,34 +25,40 @@ def _seteup_bucket_notification_eventbridge(
     bucket_name: str = str(uuid4()),
     rule_name: str = "test-rule",
     log_group_name: str = "/test-group",
+    region: str = REGION_NAME,
 ) -> Dict[str, str]:
     """Setups S3, EventBridge and CloudWatchLogs"""
     # Setup S3
-    s3_res = boto3.resource("s3", region_name=REGION_NAME)
-    s3_res.create_bucket(Bucket=bucket_name)
+    s3_res = boto3.resource("s3", region_name=region)
+    if region == "us-east-1":
+        s3_res.create_bucket(Bucket=bucket_name)
+    else:
+        s3_res.create_bucket(
+            Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
+        )
 
     # Put bucket notification event bridge
-    s3_client = boto3.client("s3", region_name=REGION_NAME)
+    s3_client = boto3.client("s3", region_name=region)
     s3_client.put_bucket_notification_configuration(
         Bucket=bucket_name,
         NotificationConfiguration={"EventBridgeConfiguration": {}},
     )
 
     # Setup EventBridge Rule
-    events_client = boto3.client("events", region_name=REGION_NAME)
+    events_client = boto3.client("events", region_name=region)
     events_client.put_rule(
         Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]})
     )
 
     # Create a log group and attach it to the events target.
-    logs_client = boto3.client("logs", region_name=REGION_NAME)
+    logs_client = boto3.client("logs", region_name=region)
     logs_client.create_log_group(logGroupName=log_group_name)
     events_client.put_targets(
         Rule=rule_name,
         Targets=[
             {
                 "Id": "test",
-                "Arn": f"arn:aws:logs:{REGION_NAME}:{ACCOUNT_ID}:log-group:{log_group_name}",
+                "Arn": f"arn:aws:logs:{region}:{ACCOUNT_ID}:log-group:{log_group_name}",
             }
         ],
     )
@@ -63,8 +70,10 @@ def _seteup_bucket_notification_eventbridge(
     }
 
 
-def _get_send_events(log_group_name: str = "/test-group") -> List[Dict[str, Any]]:
-    logs_client = boto3.client("logs", region_name=REGION_NAME)
+def _get_send_events(
+    log_group_name: str = "/test-group", region: str = REGION_NAME
+) -> List[Dict[str, Any]]:
+    logs_client = boto3.client("logs", region_name=region)
     return sorted(
         logs_client.filter_log_events(logGroupName=log_group_name)["events"],
         key=lambda item: item["timestamp"],
@@ -72,21 +81,25 @@ def _get_send_events(log_group_name: str = "/test-group") -> List[Dict[str, Any]
 
 
 @mock_aws
-def test_put_object_notification_ObjectCreated_PUT():
-    resource_names = _seteup_bucket_notification_eventbridge()
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_put_object_notification_ObjectCreated_PUT(region, partition):
+    resource_names = _seteup_bucket_notification_eventbridge(region=region)
     bucket_name = resource_names["bucket_name"]
-    s3_client = boto3.client("s3", region_name=REGION_NAME)
+    s3_client = boto3.client("s3", region_name=region)
 
     # Put Object
     s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
 
-    events = _get_send_events()
+    events = _get_send_events(region=region)
     assert len(events) == 2
     event_message = json.loads(events[0]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
     assert event_message["account"] == ACCOUNT_ID
-    assert event_message["region"] == REGION_NAME
+    assert event_message["region"] == region
+    assert event_message["resources"] == [f"arn:{partition}:s3:::{bucket_name}"]
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectCreated"
 
@@ -287,6 +300,41 @@ def test_put_object_tagging_notification():
     assert len(events) == 3
     event_message = json.loads(events[2]["message"])
     assert event_message["detail-type"] == "Object Tags Added"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["reason"] == "ObjectTagging"
+
+
+@mock_aws
+def test_delete_object_tagging_notification():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+    # Put Object
+    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+
+    # Put Object Tagging
+    s3_client.put_object_tagging(
+        Bucket=bucket_name,
+        Key="keyname",
+        Tagging={
+            "TagSet": [
+                {"Key": "item1", "Value": "foo"},
+                {"Key": "item2", "Value": "bar"},
+            ]
+        },
+    )
+
+    # Delete Object Tagging
+    s3_client.delete_object_tagging(Bucket=bucket_name, Key="keyname")
+
+    events = _get_send_events()
+    assert len(events) == 4
+    event_message = json.loads(events[3]["message"])
+    assert event_message["detail-type"] == "Object Tags Deleted"
     assert event_message["source"] == "aws.s3"
     assert event_message["account"] == ACCOUNT_ID
     assert event_message["region"] == REGION_NAME

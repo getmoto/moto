@@ -16,6 +16,7 @@ from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.exceptions import RESTError
+from moto.core.utils import get_equivalent_url_in_aws_domain
 from moto.moto_api._internal.models import moto_api_backend
 
 from . import debug, error, info, with_color
@@ -34,8 +35,13 @@ class MotoRequestHandler:
         if host == f"http://localhost:{self.port}":
             return "moto_api"
 
+        # Handle non-standard AWS endpoint hostnames from ISO regions or custom S3 endpoints.
+        parsed_url, _ = get_equivalent_url_in_aws_domain(host)
+        # Remove the querystring from the URL, as we'll never match on that
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
         for backend, pattern in backend_url_patterns:
-            if pattern.match(host):
+            if pattern.match(clean_url):
                 return backend
 
     def get_handler_for_host(self, host: str, path: str) -> Any:
@@ -52,7 +58,7 @@ class MotoRequestHandler:
             if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
                 backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
             else:
-                backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+                backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
         else:
             backend = backend_dict["global"]
 

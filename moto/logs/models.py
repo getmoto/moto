@@ -17,6 +17,7 @@ from moto.moto_api._internal import mock_random
 from moto.s3.models import MissingBucket, s3_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .utils import PAGINATION_MODEL, EventMessageFilter
 
@@ -34,7 +35,7 @@ class Destination(BaseModel):
         access_policy: Optional[str] = None,
     ):
         self.access_policy = access_policy
-        self.arn = f"arn:aws:logs:{region}:{account_id}:destination:{destination_name}"
+        self.arn = f"arn:{get_partition(region)}:logs:{region}:{account_id}:destination:{destination_name}"
         self.creation_time = int(unix_time_millis())
         self.destination_name = destination_name
         self.role_arn = role_arn
@@ -126,7 +127,7 @@ class LogStream(BaseModel):
         self.account_id = log_group.account_id
         self.region = log_group.region
         self.log_group = log_group
-        self.arn = f"arn:aws:logs:{self.region}:{self.account_id}:log-group:{log_group.name}:log-stream:{name}"
+        self.arn = f"arn:{get_partition(self.region)}:logs:{self.region}:{self.account_id}:log-group:{log_group.name}:log-stream:{name}"
         self.creation_time = int(unix_time_millis())
         self.first_event_timestamp = None
         self.last_event_timestamp = None
@@ -380,7 +381,9 @@ class LogGroup(CloudFormationModel):
         self.name = name
         self.account_id = account_id
         self.region = region
-        self.arn = f"arn:aws:logs:{region}:{account_id}:log-group:{name}"
+        self.arn = (
+            f"arn:{get_partition(region)}:logs:{region}:{account_id}:log-group:{name}"
+        )
         self.creation_time = int(unix_time_millis())
         self.streams: Dict[str, LogStream] = dict()  # {name: LogStream}
         # AWS defaults to Never Expire for log group retention
@@ -1240,7 +1243,7 @@ class LogsBackend(BaseBackend):
         to: int,
     ) -> str:
         try:
-            s3_backends[self.account_id]["global"].get_bucket(destination)
+            s3_backends[self.account_id][self.partition].get_bucket(destination)
         except MissingBucket:
             raise InvalidParameterException(
                 "The given bucket does not exist. Please make sure the bucket is valid."
@@ -1258,7 +1261,7 @@ class LogsBackend(BaseBackend):
             to,
         )
 
-        s3_backends[self.account_id]["global"].put_object(
+        s3_backends[self.account_id][self.partition].put_object(
             bucket_name=destination,
             key_name="aws-logs-write-test",
             value=b"Permission Check Successful",
@@ -1284,7 +1287,7 @@ class LogsBackend(BaseBackend):
                 )
                 folder = str(mock_random.uuid4()) + "/" + stream_name.replace("/", "-")
                 key_name = f"{destinationPrefix}/{folder}/000000.gz"
-                s3_backends[self.account_id]["global"].put_object(
+                s3_backends[self.account_id][self.partition].put_object(
                     bucket_name=destination,
                     key_name=key_name,
                     value=gzip_compress(raw_logs.encode("utf-8")),

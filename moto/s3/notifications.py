@@ -2,9 +2,12 @@ import copy
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
 from moto.core.utils import unix_time
+
+if TYPE_CHECKING:
+    from moto.s3.models import FakeBucket
 
 _EVENT_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%f"
 
@@ -64,7 +67,7 @@ class S3NotificationEvent(str, Enum):
 
 
 def _get_s3_event(
-    event_name: str, bucket: Any, key: Any, notification_id: str
+    event_name: str, bucket: "FakeBucket", key: Any, notification_id: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     etag = key.etag.replace('"', "")
     # s3:ObjectCreated:Put --> ObjectCreated:Put
@@ -83,7 +86,7 @@ def _get_s3_event(
                     "configurationId": notification_id,
                     "bucket": {
                         "name": bucket.name,
-                        "arn": f"arn:aws:s3:::{bucket.name}",
+                        "arn": bucket.arn,
                     },
                     "object": {"key": key.name, "size": key.size, "eTag": etag},
                 },
@@ -165,7 +168,7 @@ def _send_sns_message(
 
 def _send_event_bridge_message(
     account_id: str,
-    bucket: Any,
+    bucket: "FakeBucket",
     event_name: str,
     key: Any,
 ) -> None:
@@ -179,7 +182,7 @@ def _send_event_bridge_message(
         event["account"] = account_id
         event["time"] = unix_time()
         event["region"] = bucket.region_name
-        event["resources"] = [f"arn:aws:s3:::{bucket.name}"]
+        event["resources"] = [bucket.arn]
         event["detail"] = {
             "version": "0",
             "bucket": {"name": bucket.name},

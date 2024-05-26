@@ -11,6 +11,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2 import ec2_backends
 from moto.ec2.models.security_groups import SecurityGroup as EC2SecurityGroup
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ClusterAlreadyExistsFaultError,
@@ -51,10 +52,7 @@ class TaggableResourceMixin:
 
     @property
     def arn(self) -> str:
-        return (
-            f"arn:aws:redshift:{self.region}:{self.account_id}"
-            f":{self.resource_type}:{self.resource_id}"
-        )
+        return f"arn:{get_partition(self.region)}:redshift:{self.region}:{self.account_id}:{self.resource_type}:{self.resource_id}"
 
     def create_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
         new_keys = [tag_set["Key"] for tag_set in tags]
