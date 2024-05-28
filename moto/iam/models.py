@@ -174,6 +174,7 @@ class Policy(CloudFormationModel):
     ):
         self.name = name
         self.account_id = account_id
+        self.region = region
         self.attachment_count = 0
         self.description = description or ""
         self.id = random_policy_id()
