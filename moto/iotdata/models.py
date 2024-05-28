@@ -221,4 +221,4 @@ class IoTDataPlaneBackend(BaseBackend):
         ]
 
 
-iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot")
+iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")
