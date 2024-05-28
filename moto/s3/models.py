@@ -1652,6 +1652,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     _-_-_-_
 
+    When listing objects, the default max-keys value is 1000, just as with AWS. Use the following environment variable to configure this this:
+
+    .. sourcecode:: bash
+
+        MOTO_S3_DEFAULT_MAX_KEYS=256
+
+    _-_-_-_
+
     CrossAccount access is allowed by default. If you want Moto to throw an AccessDenied-error when accessing a bucket in another account, use this environment variable:
 
     .. sourcecode:: bash
@@ -1881,6 +1889,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Tuple[
         List[FakeKey], List[str], List[FakeDeleteMarker], Optional[str], Optional[str]
     ]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         bucket = self.get_bucket(bucket_name)
 
         common_prefixes: Set[str] = set()
@@ -2571,6 +2584,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         marker: Optional[str],
         max_keys: Optional[int],
     ) -> Tuple[Set[FakeKey], Set[str], bool, Optional[str]]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2624,6 +2642,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         start_after: Optional[str],
         max_keys: int,
     ) -> Tuple[Set[Union[FakeKey, str]], bool, Optional[str]]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         result_keys, result_folders, _, _ = self.list_objects(
             bucket, prefix, delimiter, marker=None, max_keys=None
         )

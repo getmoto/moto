@@ -72,6 +72,10 @@ def get_s3_default_key_buffer_size() -> int:
     )
 
 
+def get_s3_default_max_keys() -> int:
+    return int(os.environ.get("MOTO_S3_DEFAULT_MAX_KEYS", 1000))
+
+
 def s3_allow_crossdomain_access() -> bool:
     return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
 

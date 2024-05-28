@@ -84,8 +84,26 @@ s3
 - [ ] list_directory_buckets
 - [ ] list_multipart_uploads
 - [X] list_object_versions
+  
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        
+
 - [X] list_objects
+  
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        
+
 - [X] list_objects_v2
+  
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        
+
 - [X] list_parts
 - [X] put_bucket_accelerate_configuration
 - [X] put_bucket_acl
