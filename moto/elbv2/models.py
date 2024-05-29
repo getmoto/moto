@@ -1979,4 +1979,4 @@ Member must satisfy regular expression pattern: {expression}"
         return resource
 
 
-elbv2_backends = BackendDict(ELBv2Backend, "ec2")
+elbv2_backends = BackendDict(ELBv2Backend, "elbv2")
