@@ -7891,7 +7891,7 @@
 
 ## sso-admin
 <details>
-<summary>27% implemented</summary>
+<summary>34% implemented</summary>
 
 - [X] attach_customer_managed_policy_reference_to_permission_set
 - [X] attach_managed_policy_to_permission_set
@@ -7936,7 +7936,7 @@
 - [ ] list_account_assignment_deletion_status
 - [X] list_account_assignments
 - [X] list_account_assignments_for_principal
-- [ ] list_accounts_for_provisioned_permission_set
+- [X] list_accounts_for_provisioned_permission_set
 - [ ] list_application_access_scopes
 - [ ] list_application_assignments
 - [ ] list_application_assignments_for_principal
@@ -7945,14 +7945,14 @@
 - [ ] list_application_providers
 - [ ] list_applications
 - [X] list_customer_managed_policy_references_in_permission_set
-- [ ] list_instances
+- [X] list_instances
 - [X] list_managed_policies_in_permission_set
 - [ ] list_permission_set_provisioning_status
 - [X] list_permission_sets
-- [ ] list_permission_sets_provisioned_to_account
+- [X] list_permission_sets_provisioned_to_account
 - [ ] list_tags_for_resource
 - [ ] list_trusted_token_issuers
-- [ ] provision_permission_set
+- [X] provision_permission_set
 - [ ] put_application_access_scope
 - [ ] put_application_assignment_configuration
 - [ ] put_application_authentication_method
@@ -7962,7 +7962,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_application
-- [ ] update_instance
+- [X] update_instance
 - [ ] update_instance_access_control_attribute_configuration
 - [X] update_permission_set
 - [ ] update_trusted_token_issuer
