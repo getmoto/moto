@@ -241,6 +241,46 @@ def test_query_gsi_pagination(table_name=None):
 
 
 @pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_gsi=True)
+def test_query_gsi_pagination_with_string_range(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    for i in range(3, 7):
+        table.put_item(Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "johndoe"})
+
+    for i in range(9, 6, -1):
+        table.put_item(Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "johndoe"})
+
+    for i in range(3):
+        table.put_item(Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "johndoe"})
+
+    page1 = table.query(
+        KeyConditionExpression=Key("gsi_pk").eq("johndoe"),
+        IndexName="test_gsi",
+        Limit=6,
+    )
+    assert page1["Count"] == 6
+    assert page1["ScannedCount"] == 6
+    assert len(page1["Items"]) == 6
+
+    page2 = table.query(
+        KeyConditionExpression=Key("gsi_pk").eq("johndoe"),
+        IndexName="test_gsi",
+        Limit=6,
+        ExclusiveStartKey=page1["LastEvaluatedKey"],
+    )
+    assert page2["Count"] == 4
+    assert page2["ScannedCount"] == 4
+    assert len(page2["Items"]) == 4
+    assert "LastEvaluatedKey" not in page2
+
+    results = page1["Items"] + page2["Items"]
+    subjects = set([int(r["sk"]) for r in results])
+    assert subjects == set(range(10))
+
+
+@pytest.mark.aws_verified
 @dynamodb_aws_verified(add_range=True, numeric_gsi_range=True)
 def test_query_gsi_pagination_with_numeric_range(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")

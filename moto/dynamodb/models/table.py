@@ -702,11 +702,12 @@ class Table(CloudFormationModel):
                     key for key in index.schema if key["KeyType"] == "RANGE"
                 ][0]
             except IndexError:
-                if isinstance(index, GlobalSecondaryIndex):
-                    # If we're querying a GSI that does not have an index, the main hash key acts as a range key
-                    index_range_key = {"AttributeName": self.hash_key_attr}
+                if isinstance(index, GlobalSecondaryIndex) and self.range_key_attr:
+                    # If we're querying a GSI that does not have a range key, the main range key acts as a range key
+                    index_range_key = {"AttributeName": self.range_key_attr}
                 else:
-                    index_range_key = None
+                    # If we don't have a range key on the main table either, the hash key acts as a range key
+                    index_range_key = {"AttributeName": self.hash_key_attr}
                 if range_comparison:
                     raise ValueError(
                         f"Range Key comparison but no range key found for index: {index_name}"
