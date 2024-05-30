@@ -129,6 +129,9 @@ jobs:
           python -m build
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          verbose: true
+          print-hash: true
       - name: Build Docker release
         run: |
           docker build -t motoserver/moto . --tag moto:latest

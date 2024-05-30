@@ -1,6 +1,27 @@
 Moto Changelog
 ==============
 
+5.0.9
+-----
+Docker Digest for 5.0.9: <autopopulateddigest>
+
+    General:
+        * Fixed an InfiniteRecursion-bug when accessing S3-buckets that was introduced in 5.0.8
+
+    New Methods:
+        * SSO-Admin:
+            * list_accounts_for_provisioned_permission_set()
+            * list_instances()
+            * list_permission_sets_provisioned_to_account()
+            * provision_permission_set()
+            * update_instance()
+
+    Miscellaneous:
+        * DynamoDB: query() now handles pagination correctly on a GSI without a range key
+        * IAM: create_policy() now returns tags correctly
+        * S3: list_objects(): The default value for MaxKeys can now be configured, using an environment variable:
+          MOTO_S3_DEFAULT_MAX_KEYS=1
+
 5.0.8
 -----
 Docker Digest for 5.0.8: _sha256:cfcd97074011bd563cdbeebac35ed710581a23cb2be07ab9b67aa00298fc3369_
