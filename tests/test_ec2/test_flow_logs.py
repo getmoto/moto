@@ -9,16 +9,19 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_aws
-def test_create_flow_logs_s3():
-    s3 = boto3.resource("s3", region_name="us-west-1")
-    client = boto3.client("ec2", region_name="us-west-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_flow_logs_s3(region, partition):
+    s3 = boto3.resource("s3", region_name=region)
+    client = boto3.client("ec2", region_name=region)
 
     vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
 
     bucket_name = str(uuid4())
     bucket = s3.create_bucket(
         Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
+        CreateBucketConfiguration={"LocationConstraint": region},
     )
 
     with pytest.raises(ClientError) as ex:
@@ -112,6 +115,32 @@ def test_create_multiple_flow_logs_s3():
     assert flow_log_1["ResourceId"] == flow_log_2["ResourceId"]
     assert flow_log_1["FlowLogId"] != flow_log_2["FlowLogId"]
     assert flow_log_1["LogDestination"] != flow_log_2["LogDestination"]
+
+
+@mock_aws
+def test_create_flow_logs_s3__bucket_in_different_partition():
+    s3 = boto3.resource("s3", region_name="cn-north-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+
+    bucket_name = str(uuid4())
+    bucket = s3.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": "cn-north-1"},
+    )
+
+    response = client.create_flow_logs(
+        ResourceType="VPC",
+        ResourceIds=[vpc["VpcId"]],
+        TrafficType="ALL",
+        LogDestinationType="s3",
+        LogDestination="arn:aws:s3:::" + bucket.name,
+    )["FlowLogIds"]
+    assert len(response) == 1
+
+    flow_logs = client.describe_flow_logs(FlowLogIds=[response[0]])["FlowLogs"]
+    assert len(flow_logs) == 1
 
 
 @mock_aws
