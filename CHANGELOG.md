@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.9
 -----
-Docker Digest for 5.0.9: <autopopulateddigest>
+Docker Digest for 5.0.9: _sha256:df61e4e76344017f6c82924a3dd1cdd4dcbac4095cf234c6d6fb0a0f800fbeff_
 
     General:
         * Fixed an InfiniteRecursion-bug when accessing S3-buckets that was introduced in 5.0.8
