@@ -578,8 +578,8 @@ def random_ed25519_key_pair() -> Dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "private_material": private_key_material.decode("ascii"),
-        "public_material": public_key_material,
+        "material": private_key_material.decode("ascii"),
+        "material_public": public_key_material,
     }
 
 
@@ -601,8 +601,8 @@ def random_rsa_key_pair() -> Dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "private_material": private_key_material.decode("ascii"),
-        "public_material": public_key_material,
+        "material": private_key_material.decode("ascii"),
+        "material_public": public_key_material,
     }
 
 
