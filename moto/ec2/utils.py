@@ -569,11 +569,17 @@ def random_ed25519_key_pair() -> Dict[str, str]:
         format=serialization.PrivateFormat.OpenSSH,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    fingerprint = public_key_fingerprint(private_key.public_key())
+    public_key = private_key.public_key()
+    public_key_material = public_key.public_bytes(
+        encoding=serialization.Encoding.OpenSSH,
+        format=serialization.PublicFormat.OpenSSH,
+    )
+    fingerprint = public_key_fingerprint(public_key)
 
     return {
         "fingerprint": fingerprint,
         "material": private_key_material.decode("ascii"),
+        "material_public": public_key_material.decode("ascii"),
     }
 
 
@@ -586,11 +592,17 @@ def random_rsa_key_pair() -> Dict[str, str]:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    fingerprint = public_key_fingerprint(private_key.public_key())
+    public_key = private_key.public_key()
+    public_key_material = public_key.public_bytes(
+        encoding=serialization.Encoding.OpenSSH,
+        format=serialization.PublicFormat.OpenSSH,
+    )
+    fingerprint = public_key_fingerprint(public_key)
 
     return {
         "fingerprint": fingerprint,
         "material": private_key_material.decode("ascii"),
+        "material_public": public_key_material.decode("ascii"),
     }
 
 
