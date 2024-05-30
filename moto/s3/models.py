@@ -1062,7 +1062,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
-        s3_backends.bucket_accounts[name] = account_id
+        s3_backends.bucket_accounts[name] = (self.partition, account_id)
 
     @property
     def location(self) -> str:
@@ -1852,8 +1852,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if bucket_name in s3_backends.bucket_accounts:
             if not s3_allow_crossdomain_access():
                 raise AccessDeniedByLock
-            account_id = s3_backends.bucket_accounts[bucket_name]
-            return s3_backends[account_id][self.partition].get_bucket(bucket_name)
+            (partition, account_id) = s3_backends.bucket_accounts[bucket_name]
+            return s3_backends[account_id][partition].get_bucket(bucket_name)
 
         raise MissingBucket(bucket=bucket_name)
 
@@ -3028,9 +3028,9 @@ class S3BackendDict(BackendDict[S3Backend]):
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
-        # Maps bucket names to account IDs. This is used to locate the exact S3Backend
+        # Maps bucket names to (partition, account IDs). This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
-        self.bucket_accounts: Dict[str, str] = {}
+        self.bucket_accounts: Dict[str, Tuple[str, str]] = {}
 
 
 s3_backends = S3BackendDict(
