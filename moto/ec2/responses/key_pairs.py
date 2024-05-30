@@ -63,7 +63,7 @@ CREATE_KEY_PAIR_RESPONSE = """<CreateKeyPairResponse xmlns="http://ec2.amazonaws
    <keyPairId>{{ keypair.id }}</keyPairId>
    <keyName>{{ keypair.name }}</keyName>
    <keyFingerprint>{{ keypair.fingerprint }}</keyFingerprint>
-   <keyMaterial>{{ keypair.material }}</keyMaterial>
+   <keyMaterial>{{ keypair.private_material }}</keyMaterial>
    {% if keypair.get_tags() %}
    <tagSet>
      {% for tag in keypair.get_tags() %}

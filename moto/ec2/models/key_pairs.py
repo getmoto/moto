@@ -23,14 +23,16 @@ class KeyPair(TaggedEC2Resource):
         self,
         name: str,
         fingerprint: str,
-        material: str,
+        public_material: str,
+        private_material: Optional[str],
         tags: Dict[str, str],
         ec2_backend: Any,
     ):
         self.id = random_key_pair_id()
         self.name = name
-        self.fingerprint = fingerprint
-        self.material = material
+        self.fingerprint = fingerprint  # public key fingerprint
+        self.public_material = public_material  # public key in OpenSSH format
+        self.private_material = private_material  # PEM encoded private key
         self.create_time = utcnow()
         self.ec2_backend = ec2_backend
         self.add_tags(tags or {})
@@ -108,7 +110,8 @@ class KeyPairBackend:
         fingerprint = public_key_fingerprint(public_key)
         keypair = KeyPair(
             key_name,
-            material=public_key_material,
+            public_material=public_key_material,
+            private_material=None,
             fingerprint=fingerprint,
             tags=tags,
             ec2_backend=self,
