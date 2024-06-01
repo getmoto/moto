@@ -634,6 +634,18 @@
       "Resource Types": "AWS::::Account",
       "Trigger type": "Periodic"
     },
+    "CLOUDTRAIL_S3_BUCKET_ACCESS_LOGGING": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::CloudTrail::Trail",
+      "Trigger type": "Periodic"
+    },
+    "CLOUDTRAIL_S3_BUCKET_PUBLIC_ACCESS_PROHIBITED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::CloudTrail::Trail",
+      "Trigger type": "Periodic"
+    },
     "CLOUDTRAIL_S3_DATAEVENTS_ENABLED": {
       "AWS Region": "All supported AWS regions except Canada West (Calgary) Region",
       "Parameters": [
@@ -2661,6 +2673,12 @@
       ],
       "Resource Types": "AWS::IAM::Policy",
       "Trigger type": "Configuration changes"
+    },
+    "IAM_EXTERNAL_ACCESS_ANALYZER_ENABLED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), AWS GovCloud (US-East), AWS GovCloud (US-West), Israel (Tel Aviv), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::::Account",
+      "Trigger type": "Periodic"
     },
     "IAM_GROUP_HAS_USERS_CHECK": {
       "AWS Region": "All supported AWS regions except Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Melbourne), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
