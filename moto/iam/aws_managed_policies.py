@@ -1905,7 +1905,7 @@ aws_managed_policies_data = """
  },
  "AWSApplicationMigrationFullAccess":{
   "CreateDate":"2021-04-07T06:56:05+00:00",
-  "DefaultVersionId":"v7",
+  "DefaultVersionId":"v8",
   "Document":{
    "Statement":[
     {
@@ -1913,7 +1913,8 @@ aws_managed_policies_data = """
       "mgn:*"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor0"
     },
     {
      "Action":[
@@ -1921,7 +1922,8 @@ aws_managed_policies_data = """
       "kms:DescribeKey"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor1"
     },
     {
      "Action":[
@@ -1947,22 +1949,26 @@ aws_managed_policies_data = """
       "ec2:GetEbsDefaultKmsKeyId"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor2"
     },
     {
      "Action":"license-manager:ListLicenseConfigurations",
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor3"
     },
     {
      "Action":"elasticloadbalancing:DescribeLoadBalancers",
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor4"
     },
     {
      "Action":"iam:ListInstanceProfiles",
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor5"
     },
     {
      "Action":"iam:PassRole",
@@ -1978,14 +1984,16 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:aws:iam::*:role/service-role/AWSApplicationMigrationLaunchInstanceWithSsmRole",
       "arn:aws:iam::*:role/service-role/AWSApplicationMigrationLaunchInstanceWithDrsRole"
-     ]
+     ],
+     "Sid":"VisualEditor6"
     },
     {
      "Action":[
       "drs:DescribeSourceServers"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor7"
     },
     {
      "Action":[
@@ -2002,14 +2010,16 @@ aws_managed_policies_data = """
      "Effect":"Allow",
      "Resource":[
       "arn:aws:ec2:*:*:instance/*"
-     ]
+     ],
+     "Sid":"VisualEditor8"
     },
     {
      "Action":[
       "ssm:ListCommandInvocations"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor9"
     },
     {
      "Action":[
@@ -2022,7 +2032,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor10"
     },
     {
      "Action":[
@@ -2038,7 +2049,8 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:aws:ssm:*:*:document/AWSDisasterRecovery-InstallDRAgentOnInstance",
       "arn:aws:ssm:*:*:document/AWSMigration-*"
-     ]
+     ],
+     "Sid":"VisualEditor11"
     },
     {
      "Action":[
@@ -2053,7 +2065,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:drs:*:*:source-server/*"
+     "Resource":"arn:aws:drs:*:*:source-server/*",
+     "Sid":"VisualEditor12"
     },
     {
      "Action":[
@@ -2061,21 +2074,24 @@ aws_managed_policies_data = """
       "ssm:PutParameter"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:ssm:*:*:parameter/ManagedByAWSApplicationMigrationService-*"
+     "Resource":"arn:aws:ssm:*:*:parameter/ManagedByAWSApplicationMigrationService-*",
+     "Sid":"VisualEditor13"
     },
     {
      "Action":[
       "servicequotas:GetServiceQuota"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor14"
     },
     {
      "Action":[
       "ssm:GetAutomationExecution"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:ssm:*:*:automation-execution/*"
+     "Resource":"arn:aws:ssm:*:*:automation-execution/*",
+     "Sid":"VisualEditor15"
     },
     {
      "Action":[
@@ -2085,7 +2101,8 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:aws:ssm:*:*:document/AWSDisasterRecovery-InstallDRAgentOnInstance",
       "arn:aws:ssm:*:*:document/AWSMigration-*"
-     ]
+     ],
+     "Sid":"VisualEditor16"
     },
     {
      "Action":[
@@ -2097,7 +2114,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:ssm:*:*:parameter/ManagedByAWSApplicationMigrationService-*"
+     "Resource":"arn:aws:ssm:*:*:parameter/ManagedByAWSApplicationMigrationService-*",
+     "Sid":"VisualEditor17"
     },
     {
      "Action":[
@@ -2109,7 +2127,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:ssm:*:*:automation-definition/AWSMigration-*:$DEFAULT"
+     "Resource":"arn:aws:ssm:*:*:automation-definition/AWSMigration-*:$DEFAULT",
+     "Sid":"VisualEditor18"
     },
     {
      "Action":"ssm:ListCommands",
@@ -2119,14 +2138,30 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"VisualEditor19"
+    },
+    {
+     "Action":[
+      "ssm:DescribeParameters"
+     ],
+     "Condition":{
+      "ForAnyValue:StringEquals":{
+       "aws:CalledVia":[
+        "mgn.amazonaws.com"
+       ]
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"*",
+     "Sid":"VisualEditor20"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-04-20T17:28:13+00:00"
+  "UpdateDate":"2024-05-19T08:30:02+00:00"
  },
  "AWSApplicationMigrationMGHAccess":{
   "CreateDate":"2021-04-07T07:10:01+00:00",
@@ -2822,7 +2857,7 @@ aws_managed_policies_data = """
  },
  "AWSAuditManagerAdministratorAccess":{
   "CreateDate":"2020-12-11T20:02:42+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
@@ -2976,23 +3011,35 @@ aws_managed_policies_data = """
      "Effect":"Allow",
      "Resource":"*",
      "Sid":"TagAccess"
+    },
+    {
+     "Action":[
+      "controlcatalog:ListCommonControls",
+      "controlcatalog:ListDomains",
+      "controlcatalog:ListObjectives"
+     ],
+     "Effect":"Allow",
+     "Resource":"*",
+     "Sid":"ControlCatalogAccess"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2022-04-30T00:02:56+00:00"
+  "UpdateDate":"2024-05-15T23:46:15+00:00"
  },
  "AWSAuditManagerServiceRolePolicy":{
   "CreateDate":"2020-12-08T15:12:12+00:00",
-  "DefaultVersionId":"v6",
+  "DefaultVersionId":"v8",
   "Document":{
    "Statement":[
     {
      "Action":[
       "acm:GetAccountConfiguration",
       "acm:ListCertificates",
+      "autoscaling:DescribeAutoScalingGroups",
+      "backup:ListBackupPlans",
       "backup:ListRecoveryPointsByResource",
       "bedrock:GetCustomModel",
       "bedrock:GetFoundationModel",
@@ -3001,6 +3048,11 @@ aws_managed_policies_data = """
       "bedrock:ListCustomModels",
       "bedrock:ListFoundationModels",
       "bedrock:ListModelCustomizationJobs",
+      "cloudfront:GetDistribution",
+      "cloudfront:GetDistributionConfig",
+      "cloudfront:ListDistributions",
+      "cloudtrail:GetTrail",
+      "cloudtrail:ListTrails",
       "cloudtrail:DescribeTrails",
       "cloudtrail:LookupEvents",
       "cloudwatch:DescribeAlarms",
@@ -3013,10 +3065,19 @@ aws_managed_policies_data = """
       "config:ListDiscoveredResources",
       "directconnect:DescribeDirectConnectGateways",
       "directconnect:DescribeVirtualGateways",
+      "dynamodb:DescribeContinuousBackups",
+      "dynamodb:DescribeBackup",
+      "dynamodb:DescribeTableReplicaAutoScaling",
       "dynamodb:DescribeTable",
       "dynamodb:ListBackups",
       "dynamodb:ListGlobalTables",
       "dynamodb:ListTables",
+      "ec2:DescribeInstanceCreditSpecifications",
+      "ec2:DescribeInstanceAttribute",
+      "ec2:DescribeSecurityGroupRules",
+      "ec2:DescribeVpcEndpointConnections",
+      "ec2:DescribeVpcEndpointServiceConfigurations",
+      "ec2:GetLaunchTemplateData",
       "ec2:DescribeAddresses",
       "ec2:DescribeCustomerGateways",
       "ec2:DescribeEgressOnlyInternetGateways",
@@ -3061,10 +3122,20 @@ aws_managed_policies_data = """
       "guardduty:ListDetectors",
       "iam:GenerateCredentialReport",
       "iam:GetAccountAuthorizationDetails",
+      "iam:GetAccessKeyLastUsed",
+      "iam:GetCredentialReport",
+      "iam:GetGroupPolicy",
+      "iam:GetPolicy",
+      "iam:GetPolicyVersion",
+      "iam:GetRolePolicy",
+      "iam:GetUser",
+      "iam:GetUserPolicy",
       "iam:GetAccountPasswordPolicy",
       "iam:GetAccountSummary",
-      "iam:GetCredentialReport",
+      "iam:ListAttachedGroupPolicies",
+      "iam:ListAttachedUserPolicies",
       "iam:ListEntitiesForPolicy",
+      "iam:ListGroupsForUser",
       "iam:ListGroupPolicies",
       "iam:ListGroups",
       "iam:ListOpenIdConnectProviders",
@@ -3075,6 +3146,11 @@ aws_managed_policies_data = """
       "iam:ListUserPolicies",
       "iam:ListUsers",
       "iam:ListVirtualMFADevices",
+      "iam:ListPolicyVersions",
+      "iam:ListAccessKeys",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListMfaDeviceTags",
+      "iam:ListMfaDevices",
       "kafka:ListClusters",
       "kafka:ListKafkaVersions",
       "kinesis:ListStreams",
@@ -3094,37 +3170,63 @@ aws_managed_policies_data = """
       "logs:DescribeMetricFilters",
       "logs:DescribeResourcePolicies",
       "logs:FilterLogEvents",
+      "logs:GetDataProtectionPolicy",
+      "es:DescribeDomains",
+      "es:DescribeDomain",
+      "es:DescribeDomainConfig",
+      "es:ListDomainNames",
       "organizations:DescribeOrganization",
       "organizations:DescribePolicy",
       "rds:DescribeCertificates",
-      "rds:DescribeDbClusterEndpoints",
-      "rds:DescribeDbClusterParameterGroups",
-      "rds:DescribeDbClusters",
+      "rds:DescribeDBClusterEndpoints",
+      "rds:DescribeDBClusterParameterGroups",
       "rds:DescribeDBInstances",
-      "rds:DescribeDbSecurityGroups",
+      "rds:DescribeDBSecurityGroups",
+      "rds:DescribeDBClusters",
+      "rds:DescribeDBInstanceAutomatedBackups",
       "redshift:DescribeClusters",
+      "redshift:DescribeClusterSnapshots",
+      "redshift:DescribeLoggingStatus",
       "route53:GetQueryLoggingConfig",
+      "sagemaker:ListEndpointConfigs",
       "s3:GetBucketPublicAccessBlock",
       "s3:GetBucketVersioning",
       "s3:GetEncryptionConfiguration",
       "s3:GetLifecycleConfiguration",
       "s3:ListAllMyBuckets",
+      "sagemaker:DescribeEndpointConfig",
+      "secretsmanager:DescribeSecret",
+      "secretsmanager:ListSecrets",
       "securityhub:DescribeStandards",
+      "sns:ListTagsForResource",
       "sns:ListTopics",
       "sqs:ListQueues",
+      "waf-regional:GetRule",
+      "waf-regional:GetWebAcl",
+      "waf:GetRule",
+      "waf:GetRuleGroup",
+      "waf:ListActivatedRulesInRuleGroup",
+      "waf:ListWebAcls",
+      "wafv2:ListWebAcls",
       "waf-regional:GetLoggingConfiguration",
       "waf-regional:ListRuleGroups",
       "waf-regional:ListSubscribedRuleGroups",
       "waf-regional:ListWebACLs",
-      "waf:ListActivatedRulesInRuleGroup"
+      "waf-regional:ListRules",
+      "waf:ListRuleGroups",
+      "waf:ListRules"
      ],
      "Effect":"Allow",
      "Resource":"*",
-     "Sid":"AuditManagerAPICallAccess"
+     "Sid":"APIsAccess"
     },
     {
      "Action":[
-      "s3:GetBucketPolicy"
+      "s3:GetBucketAcl",
+      "s3:GetBucketLogging",
+      "s3:GetBucketOwnershipControls",
+      "s3:GetBucketPolicy",
+      "s3:GetBucketTagging"
      ],
      "Condition":{
       "StringEquals":{
@@ -3135,7 +3237,26 @@ aws_managed_policies_data = """
      },
      "Effect":"Allow",
      "Resource":"*",
-     "Sid":"AuditManagerS3GetBucketPolicyAccess"
+     "Sid":"S3Access"
+    },
+    {
+     "Action":[
+      "apigateway:GET"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "aws:ResourceAccount":[
+        "${aws:PrincipalAccount}"
+       ]
+      }
+     },
+     "Effect":"Allow",
+     "Resource":[
+      "arn:aws:apigateway:*::/restapis",
+      "arn:aws:apigateway:*::/restapis/*/stages/*",
+      "arn:aws:apigateway:*::/restapis/*/stages"
+     ],
+     "Sid":"APIGatewayAccess"
     },
     {
      "Action":[
@@ -3177,7 +3298,7 @@ aws_managed_policies_data = """
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-12-06T20:39:40+00:00"
+  "UpdateDate":"2024-05-17T20:42:45+00:00"
  },
  "AWSAutoScalingPlansEC2AutoScalingPolicy":{
   "CreateDate":"2018-08-23T22:46:59+00:00",
@@ -4169,7 +4290,7 @@ aws_managed_policies_data = """
  },
  "AWSBackupServiceLinkedRolePolicyForBackup":{
   "CreateDate":"2020-06-02T23:08:40+00:00",
-  "DefaultVersionId":"v15",
+  "DefaultVersionId":"v16",
   "Document":{
    "Statement":[
     {
@@ -4497,13 +4618,26 @@ aws_managed_policies_data = """
       "arn:aws:cloudformation:*:*:stack/*"
      ],
      "Sid":"CloudformationStackPermissions"
+    },
+    {
+     "Action":[
+      "backup:TagResource"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "aws:PrincipalAccount":"${aws:ResourceAccount}"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"arn:aws:backup:*:*:recovery-point:*",
+     "Sid":"RecoveryPointTaggingPermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-12-15T22:06:53+00:00"
+  "UpdateDate":"2024-05-17T17:12:59+00:00"
  },
  "AWSBackupServiceLinkedRolePolicyForBackupTest":{
   "CreateDate":"2020-05-12T17:37:29+00:00",
@@ -4539,7 +4673,7 @@ aws_managed_policies_data = """
  },
  "AWSBackupServiceRolePolicyForBackup":{
   "CreateDate":"2019-01-10T21:01:28+00:00",
-  "DefaultVersionId":"v18",
+  "DefaultVersionId":"v19",
   "Document":{
    "Statement":[
     {
@@ -4999,13 +5133,26 @@ aws_managed_policies_data = """
      "Effect":"Allow",
      "Resource":"arn:aws:ssm-sap:*:*:*",
      "Sid":"SSMSAPResourcePermissions"
+    },
+    {
+     "Action":[
+      "backup:TagResource"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "aws:PrincipalAccount":"${aws:ResourceAccount}"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"arn:aws:backup:*:*:recovery-point:*",
+     "Sid":"RecoveryPointTaggingPermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-12-15T22:04:27+00:00"
+  "UpdateDate":"2024-05-17T17:12:58+00:00"
  },
  "AWSBackupServiceRolePolicyForRestores":{
   "CreateDate":"2019-01-12T00:23:54+00:00",
@@ -5441,13 +5588,14 @@ aws_managed_policies_data = """
  },
  "AWSBackupServiceRolePolicyForS3Backup":{
   "CreateDate":"2022-02-18T17:40:24+00:00",
-  "DefaultVersionId":"v3",
+  "DefaultVersionId":"v4",
   "Document":{
    "Statement":[
     {
      "Action":"cloudwatch:GetMetricData",
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"CloudWatchGetMetricDataPermissions"
     },
     {
      "Action":[
@@ -5463,12 +5611,14 @@ aws_managed_policies_data = """
      "Effect":"Allow",
      "Resource":[
       "arn:aws:events:*:*:rule/AwsBackupManagedRule*"
-     ]
+     ],
+     "Sid":"EventBridgePermissionsForAwsBackupManagedRule"
     },
     {
      "Action":"events:ListRules",
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"EventBridgeListRulesPermissions"
     },
     {
      "Action":[
@@ -5481,7 +5631,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"KmsPermissions"
     },
     {
      "Action":[
@@ -5497,7 +5648,8 @@ aws_managed_policies_data = """
       "s3:PutBucketNotification"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:s3:::*"
+     "Resource":"arn:aws:s3:::*",
+     "Sid":"S3BucketPermissions"
     },
     {
      "Action":[
@@ -5509,19 +5661,34 @@ aws_managed_policies_data = """
       "s3:GetObjectVersion"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:s3:::*/*"
+     "Resource":"arn:aws:s3:::*/*",
+     "Sid":"S3ObjectPermissions"
     },
     {
      "Action":"s3:ListAllMyBuckets",
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"S3ListBucketPermissions"
+    },
+    {
+     "Action":[
+      "backup:TagResource"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "aws:PrincipalAccount":"${aws:ResourceAccount}"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"arn:aws:backup:*:*:recovery-point:*",
+     "Sid":"RecoveryPointTaggingPermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2022-09-01T16:52:33+00:00"
+  "UpdateDate":"2024-05-17T17:12:03+00:00"
  },
  "AWSBackupServiceRolePolicyForS3Restore":{
   "CreateDate":"2022-02-18T17:39:37+00:00",
@@ -5850,7 +6017,7 @@ aws_managed_policies_data = """
  },
  "AWSBillingReadOnlyAccess":{
   "CreateDate":"2020-08-27T20:08:51+00:00",
-  "DefaultVersionId":"v5",
+  "DefaultVersionId":"v7",
   "Document":{
    "Statement":[
     {
@@ -5876,6 +6043,9 @@ aws_managed_policies_data = """
       "ce:ListCostCategoryDefinitions",
       "ce:ListTagsForResource",
       "ce:ListCostAllocationTags",
+      "ce:ListCostAllocationTagBackfillHistory",
+      "ce:GetTags",
+      "ce:GetDimensionValues",
       "consolidatedbilling:ListLinkedAccounts",
       "consolidatedbilling:GetAccountBillingRole",
       "cur:GetClassicReport",
@@ -5890,6 +6060,8 @@ aws_managed_policies_data = """
       "payments:GetPaymentInstrument",
       "payments:GetPaymentStatus",
       "payments:ListPaymentPreferences",
+      "payments:ListTagsForResource",
+      "payments:ListPaymentInstruments",
       "purchase-orders:GetPurchaseOrder",
       "purchase-orders:ViewPurchaseOrders",
       "purchase-orders:ListPurchaseOrderInvoices",
@@ -5909,7 +6081,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-01-17T18:15:35+00:00"
+  "UpdateDate":"2024-05-23T23:23:30+00:00"
  },
  "AWSBudgetsActionsWithAWSResourceControlAccess":{
   "CreateDate":"2020-10-15T17:19:12+00:00",
@@ -6634,13 +6806,14 @@ aws_managed_policies_data = """
  },
  "AWSCleanRoomsFullAccessNoQuerying":{
   "CreateDate":"2023-01-12T16:12:31+00:00",
-  "DefaultVersionId":"v3",
+  "DefaultVersionId":"v4",
   "Document":{
    "Statement":[
     {
      "Action":[
       "cleanrooms:BatchGetCollaborationAnalysisTemplate",
       "cleanrooms:BatchGetSchema",
+      "cleanrooms:BatchGetSchemaAnalysisRule",
       "cleanrooms:CreateAnalysisTemplate",
       "cleanrooms:CreateCollaboration",
       "cleanrooms:CreateConfiguredTable",
@@ -6838,7 +7011,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-07-31T20:03:50+00:00"
+  "UpdateDate":"2024-05-14T18:31:21+00:00"
  },
  "AWSCleanRoomsMLFullAccess":{
   "CreateDate":"2023-11-29T21:02:06+00:00",
@@ -7927,7 +8100,7 @@ aws_managed_policies_data = """
  },
  "AWSCodeBuildAdminAccess":{
   "CreateDate":"2016-12-01T19:04:44+00:00",
-  "DefaultVersionId":"v13",
+  "DefaultVersionId":"v14",
   "Document":{
    "Statement":[
     {
@@ -8004,7 +8177,10 @@ aws_managed_policies_data = """
       "codestar-connections:UseConnection"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:codestar-connections:*:*:connection/*",
+     "Resource":[
+      "arn:aws:codestar-connections:*:*:connection/*",
+      "arn:aws:codeconnections:*:*:connection/*"
+     ],
      "Sid":"CodeStarConnectionsReadWriteAccess"
     },
     {
@@ -8068,11 +8244,11 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-07-31T23:06:23+00:00"
+  "UpdateDate":"2024-05-02T01:45:44+00:00"
  },
  "AWSCodeBuildDeveloperAccess":{
   "CreateDate":"2016-12-01T19:02:32+00:00",
-  "DefaultVersionId":"v14",
+  "DefaultVersionId":"v15",
   "Document":{
    "Statement":[
     {
@@ -8126,7 +8302,10 @@ aws_managed_policies_data = """
       "codestar-connections:GetConnection"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:codestar-connections:*:*:connection/*",
+     "Resource":[
+      "arn:aws:codestar-connections:*:*:connection/*",
+      "arn:aws:codeconnections:*:*:connection/*"
+     ],
      "Sid":"CodeStarConnectionsUserAccess"
     },
     {
@@ -8180,11 +8359,11 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-07-31T23:06:10+00:00"
+  "UpdateDate":"2024-05-02T01:36:55+00:00"
  },
  "AWSCodeBuildReadOnlyAccess":{
   "CreateDate":"2016-12-01T19:03:41+00:00",
-  "DefaultVersionId":"v11",
+  "DefaultVersionId":"v12",
   "Document":{
    "Statement":[
     {
@@ -8204,7 +8383,8 @@ aws_managed_policies_data = """
       "logs:GetLogEvents"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AWSServicesAccess"
     },
     {
      "Action":[
@@ -8212,7 +8392,10 @@ aws_managed_policies_data = """
       "codestar-connections:GetConnection"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:codestar-connections:*:*:connection/*",
+     "Resource":[
+      "arn:aws:codestar-connections:*:*:connection/*",
+      "arn:aws:codeconnections:*:*:connection/*"
+     ],
      "Sid":"CodeStarConnectionsUserAccess"
     },
     {
@@ -8243,7 +8426,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2020-09-14T16:04:04+00:00"
+  "UpdateDate":"2024-05-02T01:23:27+00:00"
  },
  "AWSCodeCommitFullAccess":{
   "CreateDate":"2015-07-09T17:02:19+00:00",
@@ -12015,7 +12198,7 @@ aws_managed_policies_data = """
  },
  "AWSDataExchangeFullAccess":{
   "CreateDate":"2019-11-13T19:27:59+00:00",
-  "DefaultVersionId":"v6",
+  "DefaultVersionId":"v7",
   "Document":{
    "Statement":[
     {
@@ -12023,7 +12206,8 @@ aws_managed_policies_data = """
       "dataexchange:*"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DataExchangeActions"
     },
     {
      "Action":"s3:GetObject",
@@ -12035,7 +12219,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:s3:::*aws-data-exchange*"
+     "Resource":"arn:aws:s3:::*aws-data-exchange*",
+     "Sid":"S3GetActionConditionalResourceAndADX"
     },
     {
      "Action":"s3:GetObject",
@@ -12050,7 +12235,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"S3GetActionConditionalTagAndADX"
     },
     {
      "Action":[
@@ -12065,7 +12251,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:s3:::*aws-data-exchange*"
+     "Resource":"arn:aws:s3:::*aws-data-exchange*",
+     "Sid":"S3WriteActions"
     },
     {
      "Action":[
@@ -12074,7 +12261,8 @@ aws_managed_policies_data = """
       "s3:ListAllMyBuckets"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"S3ReadActions"
     },
     {
      "Action":[
@@ -12090,10 +12278,14 @@ aws_managed_policies_data = """
       "aws-marketplace:RejectAgreementApprovalRequest",
       "aws-marketplace:UpdateAgreementApprovalRequest",
       "aws-marketplace:SearchAgreements",
-      "aws-marketplace:GetAgreementTerms"
+      "aws-marketplace:GetAgreementTerms",
+      "aws-marketplace:TagResource",
+      "aws-marketplace:UntagResource",
+      "aws-marketplace:ListTagsForResource"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AWSMarketplaceProviderActions"
     },
     {
      "Action":[
@@ -12102,10 +12294,14 @@ aws_managed_policies_data = """
       "aws-marketplace:ViewSubscriptions",
       "aws-marketplace:GetAgreementRequest",
       "aws-marketplace:ListAgreementRequests",
-      "aws-marketplace:CancelAgreementRequest"
+      "aws-marketplace:CancelAgreementRequest",
+      "aws-marketplace:ListPrivateListings",
+      "aws-marketplace:GetPrivateListing",
+      "aws-marketplace:DescribeAgreement"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AWSMarketplaceSubscriberActions"
     },
     {
      "Action":[
@@ -12114,7 +12310,8 @@ aws_managed_policies_data = """
       "kms:ListKeys"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"KMSActions"
     },
     {
      "Action":[
@@ -12126,7 +12323,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"RedshiftConditionalActions"
     },
     {
      "Action":[
@@ -12134,21 +12332,23 @@ aws_managed_policies_data = """
       "redshift:DescribeDataShares"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"RedshiftActions"
     },
     {
      "Action":[
       "apigateway:GET"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"APIGatewayActions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2021-12-02T16:14:27+00:00"
+  "UpdateDate":"2024-05-07T17:04:55+00:00"
  },
  "AWSDataExchangeProviderFullAccess":{
   "CreateDate":"2019-11-13T19:27:55+00:00",
@@ -12348,7 +12548,7 @@ aws_managed_policies_data = """
  },
  "AWSDataExchangeSubscriberFullAccess":{
   "CreateDate":"2019-11-13T19:27:52+00:00",
-  "DefaultVersionId":"v6",
+  "DefaultVersionId":"v7",
   "Document":{
    "Statement":[
     {
@@ -12357,7 +12557,8 @@ aws_managed_policies_data = """
       "dataexchange:List*"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DataExchangeReadOnlyActions"
     },
     {
      "Action":[
@@ -12375,7 +12576,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DataExchangeExportActions"
     },
     {
      "Action":[
@@ -12385,7 +12587,8 @@ aws_managed_policies_data = """
       "dataexchange:SendApiAsset"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DataExchangeEventActionActions"
     },
     {
      "Action":"s3:GetObject",
@@ -12397,7 +12600,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:s3:::*aws-data-exchange*"
+     "Resource":"arn:aws:s3:::*aws-data-exchange*",
+     "Sid":"S3GetActionConditionalResourceAndADX"
     },
     {
      "Action":[
@@ -12406,7 +12610,8 @@ aws_managed_policies_data = """
       "s3:ListAllMyBuckets"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"S3ReadActions"
     },
     {
      "Action":[
@@ -12415,10 +12620,12 @@ aws_managed_policies_data = """
       "aws-marketplace:ViewSubscriptions",
       "aws-marketplace:GetAgreementRequest",
       "aws-marketplace:ListAgreementRequests",
-      "aws-marketplace:CancelAgreementRequest"
+      "aws-marketplace:CancelAgreementRequest",
+      "aws-marketplace:ListPrivateListings"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AWSMarketplaceSubscriberActions"
     },
     {
      "Action":[
@@ -12427,14 +12634,15 @@ aws_managed_policies_data = """
       "kms:ListKeys"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"KMSActions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2021-11-29T23:00:06+00:00"
+  "UpdateDate":"2024-05-21T17:36:35+00:00"
  },
  "AWSDataLifecycleManagerSSMFullAccess":{
   "CreateDate":"2023-10-31T20:29:44+00:00",
@@ -17559,7 +17767,7 @@ aws_managed_policies_data = """
  },
  "AWSElasticDisasterRecoveryConsoleFullAccess_v2":{
   "CreateDate":"2023-11-27T13:35:19+00:00",
-  "DefaultVersionId":"v1",
+  "DefaultVersionId":"v2",
   "Document":{
    "Statement":[
     {
@@ -17979,7 +18187,8 @@ aws_managed_policies_data = """
     },
     {
      "Action":[
-      "ssm:DescribeInstanceInformation"
+      "ssm:DescribeInstanceInformation",
+      "ssm:DescribeParameters"
      ],
      "Condition":{
       "ForAnyValue:StringEquals":{
@@ -18104,7 +18313,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-11-27T13:35:19+00:00"
+  "UpdateDate":"2024-05-19T07:38:32+00:00"
  },
  "AWSElasticDisasterRecoveryConversionServerPolicy":{
   "CreateDate":"2021-11-17T13:42:23+00:00",
@@ -18354,12 +18563,13 @@ aws_managed_policies_data = """
  },
  "AWSElasticDisasterRecoveryLaunchActionsPolicy":{
   "CreateDate":"2023-09-13T07:38:26+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
      "Action":[
-      "ssm:DescribeInstanceInformation"
+      "ssm:DescribeInstanceInformation",
+      "ssm:DescribeParameters"
      ],
      "Condition":{
       "ForAnyValue:StringEquals":{
@@ -18609,7 +18819,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-10-16T12:28:44+00:00"
+  "UpdateDate":"2024-05-19T07:29:42+00:00"
  },
  "AWSElasticDisasterRecoveryNetworkReplicationPolicy":{
   "CreateDate":"2023-06-11T12:36:48+00:00",
@@ -22148,7 +22358,7 @@ aws_managed_policies_data = """
  },
  "AWSIAMIdentityCenterAllowListForIdentityContext":{
   "CreateDate":"2023-11-08T15:21:33+00:00",
-  "DefaultVersionId":"v7",
+  "DefaultVersionId":"v8",
   "Document":{
    "Statement":[
     {
@@ -22183,6 +22393,11 @@ aws_managed_policies_data = """
       "athena:ListTableMetadata",
       "athena:ListWorkGroups",
       "elasticmapreduce:GetClusterSessionCredentials",
+      "elasticmapreduce:AddJobFlowSteps",
+      "elasticmapreduce:DescribeCluster",
+      "elasticmapreduce:CancelSteps",
+      "elasticmapreduce:DescribeStep",
+      "elasticmapreduce:ListSteps",
       "glue:GetDatabase",
       "glue:GetDatabases",
       "glue:GetTable",
@@ -22258,7 +22473,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-04-30T09:31:36+00:00"
+  "UpdateDate":"2024-05-16T22:01:55+00:00"
  },
  "AWSIPAMServiceRolePolicy":{
   "CreateDate":"2021-11-30T19:08:11+00:00",
@@ -30688,7 +30903,7 @@ aws_managed_policies_data = """
  },
  "AWSProtonSyncServiceRolePolicy":{
   "CreateDate":"2021-11-23T21:14:36+00:00",
-  "DefaultVersionId":"v1",
+  "DefaultVersionId":"v2",
   "Document":{
    "Statement":[
     {
@@ -30718,10 +30933,14 @@ aws_managed_policies_data = """
     },
     {
      "Action":[
-      "codestar-connections:UseConnection"
+      "codestar-connections:UseConnection",
+      "codeconnections:UseConnection"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:codestar-connections:*:*:connection/*",
+     "Resource":[
+      "arn:aws:codestar-connections:*:*:connection/*",
+      "arn:aws:codeconnections:*:*:connection/*"
+     ],
      "Sid":"AccessGitRepos"
     }
    ],
@@ -30729,7 +30948,7 @@ aws_managed_policies_data = """
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2021-11-23T21:14:36+00:00"
+  "UpdateDate":"2024-05-05T01:49:07+00:00"
  },
  "AWSPurchaseOrdersServiceRolePolicy":{
   "CreateDate":"2020-05-06T18:15:47+00:00",
@@ -31351,7 +31570,7 @@ aws_managed_policies_data = """
  },
  "AWSReachabilityAnalyzerServiceRolePolicy":{
   "CreateDate":"2022-11-23T17:12:28+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
@@ -31397,6 +31616,7 @@ aws_managed_policies_data = """
       "elasticloadbalancing:DescribeLoadBalancers",
       "elasticloadbalancing:DescribeRules",
       "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:DescribeTargetHealth",
       "globalaccelerator:ListAccelerators",
@@ -31428,7 +31648,8 @@ aws_managed_policies_data = """
       "tiros:GetQueryExtensionAccounts"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"ReachabilityAnalyzerPermissions"
     },
     {
      "Action":[
@@ -31440,14 +31661,15 @@ aws_managed_policies_data = """
       "arn:aws:apigateway:*::/restapis/*/stages",
       "arn:aws:apigateway:*::/restapis/*/stages/*",
       "arn:aws:apigateway:*::/vpclinks"
-     ]
+     ],
+     "Sid":"ApigatewayPermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-06-23T21:04:06+00:00"
+  "UpdateDate":"2024-05-15T20:49:51+00:00"
  },
  "AWSRefactoringToolkitFullAccess":{
   "CreateDate":"2022-10-25T16:41:15+00:00",
@@ -34836,7 +35058,7 @@ aws_managed_policies_data = """
  },
  "AWSServiceCatalogSyncServiceRolePolicy":{
   "CreateDate":"2022-11-15T21:20:15+00:00",
-  "DefaultVersionId":"v1",
+  "DefaultVersionId":"v2",
   "Document":{
    "Statement":[
     {
@@ -34855,10 +35077,14 @@ aws_managed_policies_data = """
     },
     {
      "Action":[
-      "codestar-connections:UseConnection"
+      "codestar-connections:UseConnection",
+      "codeconnections:UseConnection"
      ],
      "Effect":"Allow",
-     "Resource":"arn:aws:codestar-connections:*:*:connection/*",
+     "Resource":[
+      "arn:aws:codestar-connections:*:*:connection/*",
+      "arn:aws:codeconnections:*:*:connection/*"
+     ],
      "Sid":"AccessArtifactRepositories"
     },
     {
@@ -34874,7 +35100,7 @@ aws_managed_policies_data = """
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2022-11-15T21:20:15+00:00"
+  "UpdateDate":"2024-05-03T17:12:41+00:00"
  },
  "AWSServiceRoleForAmazonEKSNodegroup":{
   "CreateDate":"2019-11-07T01:34:26+00:00",
@@ -37040,7 +37266,7 @@ aws_managed_policies_data = """
  },
  "AWSSupportServiceRolePolicy":{
   "CreateDate":"2018-04-19T18:04:44+00:00",
-  "DefaultVersionId":"v35",
+  "DefaultVersionId":"v36",
   "Document":{
    "Statement":[
     {
@@ -37323,6 +37549,10 @@ aws_managed_policies_data = """
       "backup:getBackupVaultNotifications",
       "backup:getLegalHold",
       "backup:getRecoveryPointRestoreMetadata",
+      "backup:getRestoreJobMetadata",
+      "backup:getRestoreTestingInferredMetadata",
+      "backup:getRestoreTestingPlan",
+      "backup:getRestoreTestingSelection",
       "backup:getSupportedResourceTypes",
       "backup:listBackupJobs",
       "backup:listBackupPlans",
@@ -37340,6 +37570,9 @@ aws_managed_policies_data = """
       "backup:listReportJobs",
       "backup:listReportPlans",
       "backup:listRestoreJobs",
+      "backup:listRestoreJobsByProtectedResource",
+      "backup:listRestoreTestingPlans",
+      "backup:listRestoreTestingSelections",
       "backup:listTags",
       "backup-gateway:getGateway",
       "backup-gateway:getHypervisor",
@@ -37467,6 +37700,8 @@ aws_managed_policies_data = """
       "cloudfront:getPublicKey",
       "cloudfront:getPublicKeyConfig",
       "cloudfront:getRealtimeLogConfig",
+      "cloudfront:getResponseHeadersPolicy",
+      "cloudfront:getResponseHeadersPolicyConfig",
       "cloudfront:getStreamingDistribution",
       "cloudfront:getStreamingDistributionConfig",
       "cloudfront:listCachePolicies",
@@ -37486,6 +37721,7 @@ aws_managed_policies_data = """
       "cloudfront:listOriginRequestPolicies",
       "cloudfront:listPublicKeys",
       "cloudfront:listRealtimeLogConfigs",
+      "cloudfront:listResponseHeadersPolicies",
       "cloudfront:listStreamingDistributions",
       "cloudhsm:describeBackups",
       "cloudhsm:describeClusters",
@@ -37535,12 +37771,14 @@ aws_managed_policies_data = """
       "codeartifact:listRepositoriesInDomain",
       "codebuild:batchGetBuildBatches",
       "codebuild:batchGetBuilds",
+      "codebuild:batchGetFleets",
       "codebuild:batchGetProjects",
       "codebuild:listBuildBatches",
       "codebuild:listBuildBatchesForProject",
       "codebuild:listBuilds",
       "codebuild:listBuildsForProject",
       "codebuild:listCuratedEnvironmentImages",
+      "codebuild:listFleets",
       "codebuild:listProjects",
       "codebuild:listSourceCredentials",
       "codecommit:batchGetRepositories",
@@ -37721,15 +37959,23 @@ aws_managed_policies_data = """
       "controltower:describeSingleSignOn",
       "controltower:getAvailableUpdates",
       "controltower:getHomeRegion",
+      "controltower:getLandingZone",
       "controltower:getLandingZoneStatus",
       "controltower:listDirectoryGroups",
+      "controltower:listEnabledControls",
       "controltower:listGuardrailsForTarget",
       "controltower:listGuardrailViolations",
+      "controltower:listLandingZones",
       "controltower:listManagedAccounts",
       "controltower:listManagedAccountsForGuardrail",
       "controltower:listManagedAccountsForParent",
       "controltower:listManagedOrganizationalUnits",
       "controltower:listManagedOrganizationalUnitsForGuardrail",
+      "cost-optimization-hub:getPreferences",
+      "cost-optimization-hub:getRecommendation",
+      "cost-optimization-hub:listEnrollmentStatuses",
+      "cost-optimization-hub:listRecommendations",
+      "cost-optimization-hub:listRecommendationSummaries",
       "databrew:describeDataset",
       "databrew:describeJob",
       "databrew:describeProject",
@@ -38432,6 +38678,11 @@ aws_managed_policies_data = """
       "glue:listSessions",
       "glue:listStatements",
       "glue:querySchemaVersionMetadata",
+      "grafana:describeWorkspace",
+      "grafana:describeWorkspaceAuthentication",
+      "grafana:listPermissions",
+      "grafana:listVersions",
+      "grafana:listWorkspaces",
       "greengrass:getConnectivityInfo",
       "greengrass:getCoreDefinition",
       "greengrass:getCoreDefinitionVersion",
@@ -38550,6 +38801,7 @@ aws_managed_policies_data = """
       "imagebuilder:getInfrastructureConfiguration",
       "imagebuilder:getLifecycleExecution",
       "imagebuilder:getLifecyclePolicy",
+      "imagebuilder:getWorkflow",
       "imagebuilder:getWorkflowExecution",
       "imagebuilder:getWorkflowStepExecution",
       "imagebuilder:listComponentBuildVersions",
@@ -38566,7 +38818,9 @@ aws_managed_policies_data = """
       "imagebuilder:listLifecycleExecutions",
       "imagebuilder:listLifecycleExecutionResources",
       "imagebuilder:listLifecyclePolicies",
+      "imagebuilder:listWorkflowBuildVersions",
       "imagebuilder:listWorkflowExecutions",
+      "imagebuilder:listWorkflows",
       "imagebuilder:listWorkflowStepExecutions",
       "imagebuilder:listTagsForResource",
       "inspector:describeAssessmentRuns",
@@ -38589,6 +38843,10 @@ aws_managed_policies_data = """
       "inspector2:getDelegatedAdminAccount",
       "inspector2:getMember",
       "inspector2:getSbomExport",
+      "inspector2:listCisScanConfigurations",
+      "inspector2:listCisScanResultsAggregatedByChecks",
+      "inspector2:listCisScanResultsAggregatedByTargetResource",
+      "inspector2:listCisScans",
       "inspector2:listCoverage",
       "inspector2:listDelegatedAdminAccounts",
       "inspector2:listFilters",
@@ -39296,6 +39554,17 @@ aws_managed_policies_data = """
       "private-networks:listDeviceIdentifiers",
       "private-networks:listNetworks",
       "private-networks:listNetworkResources",
+      "qbusiness:getApplication",
+      "qbusiness:getDataSource",
+      "qbusiness:getIndex",
+      "qbusiness:getRetriever",
+      "qbusiness:getWebExperience",
+      "qbusiness:listApplications",
+      "qbusiness:listDataSources",
+      "qbusiness:listDataSourceSyncJobs",
+      "qbusiness:listIndices",
+      "qbusiness:listRetrievers",
+      "qbusiness:listWebExperiences",
       "quicksight:describeAccountCustomization",
       "quicksight:describeAccountSettings",
       "quicksight:describeAccountSubscription",
@@ -39617,6 +39886,7 @@ aws_managed_policies_data = """
       "s3:listMultipartUploadParts",
       "s3:listMultiRegionAccessPoints",
       "s3:listStorageLensConfigurations",
+      "s3express:getBucketPolicy",
       "s3express:listAllMyDirectoryBuckets",
       "sagemaker:describeAction",
       "sagemaker:describeAlgorithm",
@@ -39624,6 +39894,8 @@ aws_managed_policies_data = """
       "sagemaker:describeAppImageConfig",
       "sagemaker:describeArtifact",
       "sagemaker:describeAutoMLJob",
+      "sagemaker:describeCluster",
+      "sagemaker:describeClusterNode",
       "sagemaker:describeCodeRepository",
       "sagemaker:describeCompilationJob",
       "sagemaker:describeContext",
@@ -39645,6 +39917,7 @@ aws_managed_policies_data = """
       "sagemaker:describeHyperParameterTuningJob",
       "sagemaker:describeImage",
       "sagemaker:describeImageVersion",
+      "sagemaker:describeInferenceComponent",
       "sagemaker:describeInferenceExperiment",
       "sagemaker:describeInferenceRecommendationsJob",
       "sagemaker:describeLabelingJob",
@@ -39686,6 +39959,8 @@ aws_managed_policies_data = """
       "sagemaker:listAssociations",
       "sagemaker:listAutoMLJobs",
       "sagemaker:listCandidatesForAutoMLJob",
+      "sagemaker:listClusterNodes",
+      "sagemaker:listClusters",
       "sagemaker:listCodeRepositories",
       "sagemaker:listCompilationJobs",
       "sagemaker:listContexts",
@@ -39707,6 +39982,7 @@ aws_managed_policies_data = """
       "sagemaker:listHyperParameterTuningJobs",
       "sagemaker:listImages",
       "sagemaker:listImageVersions",
+      "sagemaker:listInferenceComponents",
       "sagemaker:listInferenceExperiments",
       "sagemaker:listInferenceRecommendationsJobs",
       "sagemaker:listInferenceRecommendationsJobSteps",
@@ -40280,7 +40556,12 @@ aws_managed_policies_data = """
       "workspaces:describeWorkspaceDirectories",
       "workspaces:describeWorkspaceImages",
       "workspaces:describeWorkspaces",
-      "workspaces:describeWorkspacesConnectionStatus"
+      "workspaces:describeWorkspacesConnectionStatus",
+      "xray:getEncryptionConfig",
+      "xray:getGroup",
+      "xray:getGroups",
+      "xray:getSamplingRules",
+      "xray:listResourcePolicies"
      ],
      "Effect":"Allow",
      "Resource":[
@@ -40293,7 +40574,7 @@ aws_managed_policies_data = """
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-03-25T16:28:02+00:00"
+  "UpdateDate":"2024-05-02T02:47:48+00:00"
  },
  "AWSSystemsManagerAccountDiscoveryServicePolicy":{
   "CreateDate":"2019-10-24T17:21:05+00:00",
@@ -44487,7 +44768,7 @@ aws_managed_policies_data = """
  },
  "AccessAnalyzerServiceRolePolicy":{
   "CreateDate":"2019-12-02T17:13:10+00:00",
-  "DefaultVersionId":"v12",
+  "DefaultVersionId":"v13",
   "Document":{
    "Statement":[
     {
@@ -44517,6 +44798,15 @@ aws_managed_policies_data = """
       "iam:ListAccessKeys",
       "iam:GetLoginProfile",
       "iam:GetAccessKeyLastUsed",
+      "iam:ListRolePolicies",
+      "iam:GetRolePolicy",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListUserPolicies",
+      "iam:GetUserPolicy",
+      "iam:ListAttachedUserPolicies",
+      "iam:GetPolicy",
+      "iam:GetPolicyVersion",
+      "iam:ListGroupsForUser",
       "kms:DescribeKey",
       "kms:GetKeyPolicy",
       "kms:ListGrants",
@@ -44580,7 +44870,7 @@ aws_managed_policies_data = """
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-01-22T22:34:53+00:00"
+  "UpdateDate":"2024-05-30T18:34:54+00:00"
  },
  "AdministratorAccess":{
   "CreateDate":"2015-02-06T18:39:46+00:00",
@@ -48407,7 +48697,7 @@ aws_managed_policies_data = """
  },
  "AmazonConnectServiceLinkedRolePolicy":{
   "CreateDate":"2018-09-07T00:21:43+00:00",
-  "DefaultVersionId":"v14",
+  "DefaultVersionId":"v16",
   "Document":{
    "Statement":[
     {
@@ -48544,7 +48834,8 @@ aws_managed_policies_data = """
       "wisdom:ListQuickResponses",
       "wisdom:UpdateQuickResponse",
       "wisdom:DeleteQuickResponse",
-      "wisdom:PutFeedback"
+      "wisdom:PutFeedback",
+      "wisdom:ListContentAssociations"
      ],
      "Condition":{
       "StringEquals":{
@@ -48602,13 +48893,37 @@ aws_managed_policies_data = """
      "Effect":"Allow",
      "Resource":"arn:aws:sms-voice:*:*:phone-number/*",
      "Sid":"AllowSMSVoiceOperationsForConnect"
+    },
+    {
+     "Action":[
+      "cognito-idp:DescribeUserPool",
+      "cognito-idp:ListUserPoolClients"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "aws:ResourceTag/AmazonConnectEnabled":"True"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"arn:aws:cognito-idp:*:*:userpool/*",
+     "Sid":"AllowCognitoForConnectEnabledTaggedResources"
+    },
+    {
+     "Action":[
+      "profile:PutProfileObject"
+     ],
+     "Effect":"Allow",
+     "Resource":[
+      "arn:aws:profile:*:*:domains/amazon-connect-*/object-types/*"
+     ],
+     "Sid":"AllowWritePermissionForCustomerProfileObjects"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-11-28T16:05:08+00:00"
+  "UpdateDate":"2024-05-24T01:42:32+00:00"
  },
  "AmazonConnectSynchronizationServiceRolePolicy":{
   "CreateDate":"2023-10-27T22:38:25+00:00",
@@ -50597,7 +50912,7 @@ aws_managed_policies_data = """
  },
  "AmazonDataZoneSageMakerEnvironmentRolePermissionsBoundary":{
   "CreateDate":"2024-04-23T23:01:14+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v4",
   "Document":{
    "Statement":[
     {
@@ -51256,8 +51571,11 @@ aws_managed_policies_data = """
       "glue:BatchCreatePartition",
       "glue:CreatePartitionIndex",
       "glue:CreateTable",
+      "glue:BatchGetWorkflows",
       "glue:BatchUpdatePartition",
       "glue:BatchDeletePartition",
+      "glue:GetPartition",
+      "glue:GetPartitions",
       "glue:UpdateTable",
       "glue:DeleteTableVersion",
       "glue:DeleteTable",
@@ -51276,8 +51594,16 @@ aws_managed_policies_data = """
       "glue:CreateConnection",
       "glue:CreateCrawler",
       "glue:CreateDataQualityRuleset",
+      "glue:CreateWorkflow",
       "glue:GetDatabases",
-      "glue:GetTables"
+      "glue:GetTables",
+      "glue:GetTable",
+      "glue:SearchTables",
+      "glue:NotifyEvent",
+      "glue:ListSchemas",
+      "glue:BatchGetJobs",
+      "glue:GetConnection",
+      "glue:GetDatabase"
      ],
      "Effect":"Allow",
      "Resource":[
@@ -51500,7 +51826,8 @@ aws_managed_policies_data = """
     },
     {
      "Action":[
-      "sso:CreateApplicationAssignment"
+      "sso:CreateApplicationAssignment",
+      "sso:AssociateProfile"
      ],
      "Effect":"Allow",
      "Resource":"*",
@@ -51764,7 +52091,8 @@ aws_managed_policies_data = """
       "states:StopExecution",
       "states:UpdateStateMachine",
       "tag:GetResources",
-      "sso:CreateApplicationAssignment"
+      "sso:CreateApplicationAssignment",
+      "sso:AssociateProfile"
      ],
      "Resource":"*",
      "Sid":"DenyNotAction"
@@ -51774,7 +52102,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-04-29T22:30:44+00:00"
+  "UpdateDate":"2024-05-08T02:03:49+00:00"
  },
  "AmazonDataZoneSageMakerManageAccessRolePolicy":{
   "CreateDate":"2024-04-23T23:34:52+00:00",
@@ -56598,7 +56926,7 @@ aws_managed_policies_data = """
  },
  "AmazonEMRServicePolicy_v2":{
   "CreateDate":"2021-03-12T01:11:08+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
@@ -56776,6 +57104,7 @@ aws_managed_policies_data = """
       "ec2:DescribeDhcpOptions",
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
+      "ec2:DescribeInstanceTypeOfferings",
       "ec2:DescribeLaunchTemplates",
       "ec2:DescribeNetworkAcls",
       "ec2:DescribeNetworkInterfaces",
@@ -56927,7 +57256,7 @@ aws_managed_policies_data = """
   },
   "Path":"/service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2022-02-15T16:48:29+00:00"
+  "UpdateDate":"2024-05-02T18:43:30+00:00"
  },
  "AmazonESCognitoAccess":{
   "CreateDate":"2018-02-28T22:29:18+00:00",
@@ -62544,7 +62873,7 @@ aws_managed_policies_data = """
  },
  "AmazonLexReadOnly":{
   "CreateDate":"2017-04-11T23:13:33+00:00",
-  "DefaultVersionId":"v4",
+  "DefaultVersionId":"v5",
   "Document":{
    "Statement":[
     {
@@ -62571,6 +62900,7 @@ aws_managed_policies_data = """
       "lex:DescribeBotChannel",
       "lex:DescribeBotLocale",
       "lex:DescribeBotRecommendation",
+      "lex:DescribeBotReplica",
       "lex:DescribeBotVersion",
       "lex:DescribeExport",
       "lex:DescribeImport",
@@ -62581,9 +62911,12 @@ aws_managed_policies_data = """
       "lex:ListBots",
       "lex:ListBotLocales",
       "lex:ListBotAliases",
+      "lex:ListBotAliasReplicas",
       "lex:ListBotChannels",
       "lex:ListBotRecommendations",
+      "lex:ListBotReplicas",
       "lex:ListBotVersions",
+      "lex:ListBotVersionReplicas",
       "lex:ListBuiltInIntents",
       "lex:ListBuiltInSlotTypes",
       "lex:ListExports",
@@ -62597,14 +62930,15 @@ aws_managed_policies_data = """
       "lex:ListCustomVocabularyItems"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AmazonLexReadOnlyStatement1"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-01-31T19:31:41+00:00"
+  "UpdateDate":"2024-05-13T16:58:13+00:00"
  },
  "AmazonLexReplicationPolicy":{
   "CreateDate":"2024-01-31T23:29:42+00:00",
@@ -64718,6 +65052,29 @@ aws_managed_policies_data = """
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
   "UpdateDate":"2023-12-22T19:38:16+00:00"
+ },
+ "AmazonOpenSearchDirectQueryGlueCreateAccess":{
+  "CreateDate":"2024-05-06T12:24:38+00:00",
+  "DefaultVersionId":"v1",
+  "Document":{
+   "Statement":[
+    {
+     "Action":[
+      "glue:CreateDatabase",
+      "glue:CreatePartition",
+      "glue:CreateTable",
+      "glue:BatchCreatePartition"
+     ],
+     "Effect":"Allow",
+     "Resource":"*",
+     "Sid":"AmazonOpenSearchDirectQueryGlueCreateAccess"
+    }
+   ],
+   "Version":"2012-10-17"
+  },
+  "Path":"/",
+  "PermissionsBoundaryUsageCount":0,
+  "UpdateDate":"2024-05-06T12:24:38+00:00"
  },
  "AmazonOpenSearchIngestionFullAccess":{
   "CreateDate":"2023-04-26T18:11:38+00:00",
@@ -70554,23 +70911,52 @@ aws_managed_policies_data = """
  },
  "AmazonSESReadOnlyAccess":{
   "CreateDate":"2015-02-06T18:41:03+00:00",
-  "DefaultVersionId":"v1",
+  "DefaultVersionId":"v2",
   "Document":{
    "Statement":[
     {
      "Action":[
       "ses:Get*",
-      "ses:List*"
+      "ses:List*",
+      "ses:BatchGetMetricData"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"SESReadOnlyAccess"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2015-02-06T18:41:03+00:00"
+  "UpdateDate":"2024-05-14T12:03:02+00:00"
+ },
+ "AmazonSESServiceRolePolicy":{
+  "CreateDate":"2024-05-21T16:02:20+00:00",
+  "DefaultVersionId":"v1",
+  "Document":{
+   "Statement":[
+    {
+     "Action":"cloudwatch:PutMetricData",
+     "Condition":{
+      "StringLike":{
+       "cloudwatch:namespace":[
+        "AWS/SES",
+        "AWS/SES/MailManager",
+        "AWS/SES/Addons"
+       ]
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"*",
+     "Sid":"AllowPutMetricDataToSESCloudWatchNamespaces"
+    }
+   ],
+   "Version":"2012-10-17"
+  },
+  "Path":"/aws-service-role/",
+  "PermissionsBoundaryUsageCount":0,
+  "UpdateDate":"2024-05-21T16:02:20+00:00"
  },
  "AmazonSNSFullAccess":{
   "CreateDate":"2015-02-06T18:41:05+00:00",
@@ -70657,7 +71043,7 @@ aws_managed_policies_data = """
  },
  "AmazonSQSReadOnlyAccess":{
   "CreateDate":"2015-02-06T18:41:08+00:00",
-  "DefaultVersionId":"v3",
+  "DefaultVersionId":"v4",
   "Document":{
    "Statement":[
     {
@@ -70666,17 +71052,19 @@ aws_managed_policies_data = """
       "sqs:GetQueueUrl",
       "sqs:ListDeadLetterSourceQueues",
       "sqs:ListQueues",
-      "sqs:ListMessageMoveTasks"
+      "sqs:ListMessageMoveTasks",
+      "sqs:ListQueueTags"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AmazonSQSReadOnlyAccess"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-06-15T15:37:35+00:00"
+  "UpdateDate":"2024-05-24T18:16:44+00:00"
  },
  "AmazonSSMAutomationApproverAccess":{
   "CreateDate":"2017-08-07T23:07:28+00:00",
@@ -74020,7 +74408,7 @@ aws_managed_policies_data = """
  },
  "AmazonSageMakerNotebooksServiceRolePolicy":{
   "CreateDate":"2019-10-18T20:27:37+00:00",
-  "DefaultVersionId":"v7",
+  "DefaultVersionId":"v8",
   "Document":{
    "Statement":[
     {
@@ -74032,7 +74420,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:elasticfilesystem:*:*:file-system/*"
+     "Resource":"arn:aws:elasticfilesystem:*:*:file-system/*",
+     "Sid":"AllowEFSAccessPointCreation"
     },
     {
      "Action":[
@@ -74044,7 +74433,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"arn:aws:elasticfilesystem:*:*:access-point/*"
+     "Resource":"arn:aws:elasticfilesystem:*:*:access-point/*",
+     "Sid":"AllowEFSAccessPointDeletion"
     },
     {
      "Action":"elasticfilesystem:CreateFileSystem",
@@ -74054,7 +74444,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowEFSCreation"
     },
     {
      "Action":[
@@ -74068,7 +74459,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowEFSMountWithDeletion"
     },
     {
      "Action":[
@@ -74077,7 +74469,8 @@ aws_managed_policies_data = """
       "elasticfilesystem:DescribeMountTargets"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowEFSDescribe"
     },
     {
      "Action":"elasticfilesystem:TagResource",
@@ -74090,7 +74483,8 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:aws:elasticfilesystem:*:*:access-point/*",
       "arn:aws:elasticfilesystem:*:*:file-system/*"
-     ]
+     ],
+     "Sid":"AllowEFSTagging"
     },
     {
      "Action":"ec2:CreateTags",
@@ -74098,7 +74492,8 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:aws:ec2:*:*:network-interface/*",
       "arn:aws:ec2:*:*:security-group/*"
-     ]
+     ],
+     "Sid":"AllowEC2Tagging"
     },
     {
      "Action":[
@@ -74113,7 +74508,8 @@ aws_managed_policies_data = """
       "ec2:ModifyNetworkInterfaceAttribute"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowEC2Operations"
     },
     {
      "Action":[
@@ -74131,7 +74527,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowEC2AuthZ"
     },
     {
      "Action":[
@@ -74140,7 +74537,8 @@ aws_managed_policies_data = """
       "sso:GetManagedApplicationInstance"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowIdcOperations"
     },
     {
      "Action":[
@@ -74148,14 +74546,39 @@ aws_managed_policies_data = """
       "sagemaker:DescribeUserProfile"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowSagemakerProfileCreation"
+    },
+    {
+     "Action":[
+      "sagemaker:CreateSpace",
+      "sagemaker:DescribeSpace",
+      "sagemaker:DeleteSpace",
+      "sagemaker:ListTags"
+     ],
+     "Effect":"Allow",
+     "Resource":"arn:aws:sagemaker:*:*:space/*/CanvasManagedSpace-*",
+     "Sid":"AllowSagemakerSpaceOperationsForCanvasManagedSpaces"
+    },
+    {
+     "Action":[
+      "sagemaker:AddTags"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "sagemaker:TaggingAction":"CreateSpace"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"arn:aws:sagemaker:*:*:space/*/CanvasManagedSpace-*",
+     "Sid":"AllowSagemakerAddTagsForAppManagedSpaces"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-03-09T18:20:35+00:00"
+  "UpdateDate":"2024-05-22T19:18:48+00:00"
  },
  "AmazonSageMakerPartnerServiceCatalogProductsApiGatewayServiceRolePolicy":{
   "CreateDate":"2023-08-01T15:06:24+00:00",
@@ -76445,7 +76868,7 @@ aws_managed_policies_data = """
  },
  "AmazonSecurityLakePermissionsBoundary":{
   "CreateDate":"2022-11-29T14:11:12+00:00",
-  "DefaultVersionId":"v1",
+  "DefaultVersionId":"v2",
   "Document":{
    "Statement":[
     {
@@ -76467,7 +76890,8 @@ aws_managed_policies_data = """
       "sqs:ListQueues"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"AllowActionsForSecurityLake"
     },
     {
      "Effect":"Deny",
@@ -76488,7 +76912,8 @@ aws_managed_policies_data = """
       "sqs:GetQueueAttributes",
       "sqs:ListQueues"
      ],
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DenyActionsForSecurityLake"
     },
     {
      "Action":[
@@ -76502,7 +76927,8 @@ aws_managed_policies_data = """
      "Effect":"Deny",
      "NotResource":[
       "arn:aws:s3:::aws-security-data-lake*"
-     ]
+     ],
+     "Sid":"DenyActionsNotOnSecurityLakeBucket"
     },
     {
      "Action":[
@@ -76515,7 +76941,8 @@ aws_managed_policies_data = """
       "sqs:ListQueues"
      ],
      "Effect":"Deny",
-     "NotResource":"arn:aws:sqs:*:*:AmazonSecurityLake*"
+     "NotResource":"arn:aws:sqs:*:*:AmazonSecurityLake*",
+     "Sid":"DenyActionsNotOnSecurityLakeSQS"
     },
     {
      "Action":[
@@ -76531,7 +76958,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Deny",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DenyActionsNotOnSecurityLakeKMSS3SQS"
     },
     {
      "Action":[
@@ -76549,7 +76977,8 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Deny",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DenyActionsNotOnSecurityLakeKMSForS3"
     },
     {
      "Action":[
@@ -76567,14 +76996,15 @@ aws_managed_policies_data = """
       }
      },
      "Effect":"Deny",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DenyActionsNotOnSecurityLakeKMSForS3SQS"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2022-11-29T14:11:12+00:00"
+  "UpdateDate":"2024-05-14T20:39:20+00:00"
  },
  "AmazonTextractFullAccess":{
   "CreateDate":"2018-11-28T19:07:42+00:00",
@@ -77252,7 +77682,7 @@ aws_managed_policies_data = """
  },
  "AmazonVPCNetworkAccessAnalyzerFullAccessPolicy":{
   "CreateDate":"2023-06-15T22:56:58+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
@@ -77265,7 +77695,8 @@ aws_managed_policies_data = """
       "directconnect:DescribeVirtualInterfaces"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DirectconnectPermissions"
     },
     {
      "Action":[
@@ -77307,7 +77738,8 @@ aws_managed_policies_data = """
       "ec2:StartNetworkInsightsAccessScopeAnalysis"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"EC2Permissions"
     },
     {
      "Action":[
@@ -77318,7 +77750,8 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:*:ec2:*:*:network-insights-access-scope/*",
       "arn:*:ec2:*:*:network-insights-access-scope-analysis/*"
-     ]
+     ],
+     "Sid":"EC2TagsPermissions"
     },
     {
      "Action":[
@@ -77327,11 +77760,13 @@ aws_managed_policies_data = """
       "elasticloadbalancing:DescribeLoadBalancers",
       "elasticloadbalancing:DescribeRules",
       "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:DescribeTargetHealth"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"ElasticloadbalancingPermissions"
     },
     {
      "Action":[
@@ -77344,7 +77779,8 @@ aws_managed_policies_data = """
       "globalaccelerator:ListListeners"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"GlobalacceleratorPermissions"
     },
     {
      "Action":[
@@ -77357,21 +77793,24 @@ aws_managed_policies_data = """
       "network-firewall:ListRuleGroups"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"NetworkFirewallPermissions"
     },
     {
      "Action":[
       "resource-groups:ListGroupResources"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"ResourceGroupsPermissions"
     },
     {
      "Action":[
       "tag:GetResources"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"TagsPermissions"
     },
     {
      "Action":[
@@ -77379,18 +77818,19 @@ aws_managed_policies_data = """
       "tiros:GetQueryAnswer"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"TirosPermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-11-03T19:31:09+00:00"
+  "UpdateDate":"2024-05-15T21:40:54+00:00"
  },
  "AmazonVPCReachabilityAnalyzerFullAccessPolicy":{
   "CreateDate":"2023-06-14T20:12:17+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
@@ -77403,7 +77843,8 @@ aws_managed_policies_data = """
       "directconnect:DescribeVirtualInterfaces"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"DirectconnectPermissions"
     },
     {
      "Action":[
@@ -77443,7 +77884,8 @@ aws_managed_policies_data = """
       "ec2:StartNetworkInsightsAnalysis"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"EC2Permissions"
     },
     {
      "Action":[
@@ -77454,7 +77896,8 @@ aws_managed_policies_data = """
      "Resource":[
       "arn:*:ec2:*:*:network-insights-path/*",
       "arn:*:ec2:*:*:network-insights-analysis/*"
-     ]
+     ],
+     "Sid":"EC2TagsPermissions"
     },
     {
      "Action":[
@@ -77463,11 +77906,13 @@ aws_managed_policies_data = """
       "elasticloadbalancing:DescribeLoadBalancers",
       "elasticloadbalancing:DescribeRules",
       "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:DescribeTargetHealth"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"ElasticloadbalancingPermissions"
     },
     {
      "Action":[
@@ -77480,7 +77925,8 @@ aws_managed_policies_data = """
       "globalaccelerator:ListListeners"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"GlobalacceleratorPermissions"
     },
     {
      "Action":[
@@ -77493,7 +77939,8 @@ aws_managed_policies_data = """
       "network-firewall:ListRuleGroups"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"NetworkFirewallPermissions"
     },
     {
      "Action":[
@@ -77504,14 +77951,15 @@ aws_managed_policies_data = """
       "tiros:GetQueryExtensionAccounts"
      ],
      "Effect":"Allow",
-     "Resource":"*"
+     "Resource":"*",
+     "Sid":"TirosPermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-11-03T19:37:28+00:00"
+  "UpdateDate":"2024-05-15T20:47:28+00:00"
  },
  "AmazonVPCReachabilityAnalyzerPathComponentReadPolicy":{
   "CreateDate":"2023-05-01T20:38:22+00:00",
@@ -78143,7 +78591,7 @@ aws_managed_policies_data = """
  },
  "AmplifyBackendDeployFullAccess":{
   "CreateDate":"2023-10-06T21:32:59+00:00",
-  "DefaultVersionId":"v6",
+  "DefaultVersionId":"v7",
   "Document":{
    "Statement":[
     {
@@ -78261,7 +78709,8 @@ aws_managed_policies_data = """
      },
      "Effect":"Allow",
      "Resource":[
-      "arn:aws:ssm:*:*:parameter/amplify/*"
+      "arn:aws:ssm:*:*:parameter/amplify/*",
+      "arn:aws:ssm:*:*:parameter/cdk-bootstrap/*"
      ],
      "Sid":"AmplifySSM"
     },
@@ -78308,7 +78757,7 @@ aws_managed_policies_data = """
   },
   "Path":"/service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-04-17T16:00:59+00:00"
+  "UpdateDate":"2024-05-31T15:53:42+00:00"
  },
  "AppIntegrationsServiceLinkedRolePolicy":{
   "CreateDate":"2022-09-30T19:42:56+00:00",
@@ -80001,7 +80450,7 @@ aws_managed_policies_data = """
  },
  "Billing":{
   "CreateDate":"2016-11-10T17:33:18+00:00",
-  "DefaultVersionId":"v9",
+  "DefaultVersionId":"v11",
   "Document":{
    "Statement":[
     {
@@ -80051,6 +80500,10 @@ aws_managed_policies_data = """
       "ce:UpdateReport",
       "ce:UpdateCostCategoryDefinition",
       "ce:UntagResource",
+      "ce:StartCostAllocationTagBackfill",
+      "ce:ListCostAllocationTagBackfillHistory",
+      "ce:GetTags",
+      "ce:GetDimensionValues",
       "consolidatedbilling:GetAccountBillingRole",
       "consolidatedbilling:ListLinkedAccounts",
       "cur:DeleteReportDefinition",
@@ -80074,8 +80527,13 @@ aws_managed_policies_data = """
       "payments:GetPaymentInstrument",
       "payments:GetPaymentStatus",
       "payments:ListPaymentPreferences",
+      "payments:ListTagsForResource",
+      "payments:ListPaymentInstruments",
       "payments:MakePayment",
+      "payments:TagResource",
       "payments:UpdatePaymentPreferences",
+      "payments:UpdatePaymentInstrument",
+      "payments:UntagResource",
       "pricing:DescribeServices",
       "purchase-orders:AddPurchaseOrder",
       "purchase-orders:DeletePurchaseOrder",
@@ -80114,7 +80572,7 @@ aws_managed_policies_data = """
   },
   "Path":"/job-function/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-01-17T18:03:48+00:00"
+  "UpdateDate":"2024-05-23T23:26:02+00:00"
  },
  "CertificateManagerServiceRolePolicy":{
   "CreateDate":"2020-06-25T17:56:49+00:00",
@@ -81145,12 +81603,13 @@ aws_managed_policies_data = """
  },
  "CloudWatchFullAccessV2":{
   "CreateDate":"2023-08-01T11:32:57+00:00",
-  "DefaultVersionId":"v2",
+  "DefaultVersionId":"v3",
   "Document":{
    "Statement":[
     {
      "Action":[
       "application-autoscaling:DescribeScalingPolicies",
+      "application-signals:*",
       "autoscaling:DescribeAutoScalingGroups",
       "autoscaling:DescribePolicies",
       "cloudwatch:*",
@@ -81207,7 +81666,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-12-05T19:36:00+00:00"
+  "UpdateDate":"2024-05-17T22:20:49+00:00"
  },
  "CloudWatchInternetMonitorServiceRolePolicy":{
   "CreateDate":"2022-11-27T17:46:24+00:00",
@@ -81431,12 +81890,15 @@ aws_managed_policies_data = """
  },
  "CloudWatchReadOnlyAccess":{
   "CreateDate":"2015-02-06T18:40:01+00:00",
-  "DefaultVersionId":"v8",
+  "DefaultVersionId":"v9",
   "Document":{
    "Statement":[
     {
      "Action":[
       "application-autoscaling:DescribeScalingPolicies",
+      "application-signals:BatchGet*",
+      "application-signals:Get*",
+      "application-signals:List*",
       "autoscaling:Describe*",
       "cloudwatch:BatchGet*",
       "cloudwatch:Describe*",
@@ -81475,13 +81937,19 @@ aws_managed_policies_data = """
      "Effect":"Allow",
      "Resource":"arn:aws:oam:*:*:sink/*",
      "Sid":"OAMReadPermissions"
+    },
+    {
+     "Action":"iam:GetRole",
+     "Effect":"Allow",
+     "Resource":"arn:aws:iam::*:role/aws-service-role/application-signals.cloudwatch.amazonaws.com/AWSServiceRoleForCloudWatchApplicationSignals",
+     "Sid":"CloudWatchReadOnlyGetRolePermissions"
     }
    ],
    "Version":"2012-10-17"
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-12-05T19:24:15+00:00"
+  "UpdateDate":"2024-05-17T22:17:51+00:00"
  },
  "CloudWatchSyntheticsFullAccess":{
   "CreateDate":"2019-11-25T17:39:46+00:00",
@@ -83031,6 +83499,123 @@ aws_managed_policies_data = """
   "Path":"/aws-service-role/",
   "PermissionsBoundaryUsageCount":0,
   "UpdateDate":"2024-01-08T20:10:36+00:00"
+ },
+ "EC2FastLaunchFullAccess":{
+  "CreateDate":"2024-05-13T22:45:26+00:00",
+  "DefaultVersionId":"v1",
+  "Document":{
+   "Statement":[
+    {
+     "Action":[
+      "ec2:EnableFastLaunch",
+      "ec2:DisableFastLaunch",
+      "ec2:DescribeFastLaunchImages"
+     ],
+     "Effect":"Allow",
+     "Resource":"*",
+     "Sid":"EC2FastLaunch"
+    },
+    {
+     "Action":[
+      "ec2:DescribeImages",
+      "ec2:DescribeLaunchTemplateVersions",
+      "ec2:DescribeSnapshots",
+      "ec2:DescribeVolumes",
+      "ec2:DescribeRegions",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeInstances",
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeTags"
+     ],
+     "Effect":"Allow",
+     "Resource":"*",
+     "Sid":"EC2ReadOnly"
+    },
+    {
+     "Action":[
+      "ec2:RunInstances"
+     ],
+     "Effect":"Allow",
+     "Resource":[
+      "arn:aws:ec2:*:*:subnet/*",
+      "arn:aws:ec2:*:*:network-interface/*",
+      "arn:aws:ec2:*::image/*",
+      "arn:aws:ec2:*:*:key-pair/*",
+      "arn:aws:ec2:*:*:security-group/*",
+      "arn:aws:ec2:*:*:launch-template/*"
+     ],
+     "Sid":"EC2LaunchInstance"
+    },
+    {
+     "Action":[
+      "ec2:RunInstances"
+     ],
+     "Condition":{
+      "StringEquals":{
+       "aws:RequestTag/CreatedBy":"EC2 Fast Launch"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":[
+      "arn:aws:ec2:*:*:volume/*",
+      "arn:aws:ec2:*:*:instance/*"
+     ],
+     "Sid":"EC2LaunchInstanceWithVolAndInstance"
+    },
+    {
+     "Action":"ec2:CreateTags",
+     "Condition":{
+      "StringEquals":{
+       "ec2:CreateAction":"RunInstances"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":[
+      "arn:aws:ec2:*:*:volume/*",
+      "arn:aws:ec2:*:*:instance/*",
+      "arn:aws:ec2:*:*:snapshot/*",
+      "arn:aws:ec2:*:*:launch-template/*",
+      "arn:aws:ec2:*:*:vpc/*",
+      "arn:aws:ec2:*:*:subnet/*"
+     ],
+     "Sid":"EC2Tags"
+    },
+    {
+     "Action":"iam:CreateServiceLinkedRole",
+     "Condition":{
+      "StringLike":{
+       "iam:AWSServiceName":"ec2fastlaunch.amazonaws.com"
+      }
+     },
+     "Effect":"Allow",
+     "Resource":"arn:aws:iam::*:role/aws-service-role/ec2fastlaunch.amazonaws.com/AWSServiceRoleForEC2FastLaunch",
+     "Sid":"IAMSLR"
+    },
+    {
+     "Action":"iam:PassRole",
+     "Condition":{
+      "StringEquals":{
+       "iam:PassedToService":[
+        "ec2.amazonaws.com",
+        "ec2.amazonaws.com.cn"
+       ]
+      }
+     },
+     "Effect":"Allow",
+     "Resource":[
+      "arn:aws:iam::*:instance-profile/*",
+      "arn:aws:iam::*:role/*"
+     ],
+     "Sid":"IAMSLRPassRole"
+    }
+   ],
+   "Version":"2012-10-17"
+  },
+  "Path":"/",
+  "PermissionsBoundaryUsageCount":0,
+  "UpdateDate":"2024-05-13T22:45:26+00:00"
  },
  "EC2FastLaunchServiceRolePolicy":{
   "CreateDate":"2022-01-10T13:08:21+00:00",
@@ -87969,11 +88554,12 @@ aws_managed_policies_data = """
  },
  "ROSANodePoolManagementPolicy":{
   "CreateDate":"2023-06-08T20:48:08+00:00",
-  "DefaultVersionId":"v1",
+  "DefaultVersionId":"v2",
   "Document":{
    "Statement":[
     {
      "Action":[
+      "ec2:DescribeDhcpOptions",
       "ec2:DescribeImages",
       "ec2:DescribeInstances",
       "ec2:DescribeInternetGateways",
@@ -88212,7 +88798,7 @@ aws_managed_policies_data = """
   },
   "Path":"/service-role/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2023-06-08T20:48:08+00:00"
+  "UpdateDate":"2024-05-02T14:01:47+00:00"
  },
  "ROSASRESupportPolicy":{
   "CreateDate":"2023-06-01T14:36:06+00:00",
@@ -88448,7 +89034,7 @@ aws_managed_policies_data = """
  },
  "ReadOnlyAccess":{
   "CreateDate":"2015-02-06T18:39:48+00:00",
-  "DefaultVersionId":"v112",
+  "DefaultVersionId":"v113",
   "Document":{
    "Statement":[
     {
@@ -88979,6 +89565,55 @@ aws_managed_policies_data = """
       "dax:ListTags",
       "dax:Query",
       "dax:Scan",
+      "deadline:BatchGetJobEntity",
+      "deadline:GetApplicationVersion",
+      "deadline:GetBudget",
+      "deadline:GetFarm",
+      "deadline:GetFleet",
+      "deadline:GetJob",
+      "deadline:GetLicenseEndpoint",
+      "deadline:GetMonitor",
+      "deadline:GetQueue",
+      "deadline:GetQueueEnvironment",
+      "deadline:GetQueueFleetAssociation",
+      "deadline:GetSession",
+      "deadline:GetSessionAction",
+      "deadline:GetSessionsStatisticsAggregation",
+      "deadline:GetStep",
+      "deadline:GetStorageProfile",
+      "deadline:GetStorageProfileForQueue",
+      "deadline:GetTask",
+      "deadline:GetWorker",
+      "deadline:ListAvailableMeteredProducts",
+      "deadline:ListBudgets",
+      "deadline:ListFarmMembers",
+      "deadline:ListFarms",
+      "deadline:ListFleetMembers",
+      "deadline:ListFleets",
+      "deadline:ListJobMembers",
+      "deadline:ListJobs",
+      "deadline:ListLicenseEndpoints",
+      "deadline:ListMeteredProducts",
+      "deadline:ListMonitors",
+      "deadline:ListQueueEnvironments",
+      "deadline:ListQueueFleetAssociations",
+      "deadline:ListQueueMembers",
+      "deadline:ListQueues",
+      "deadline:ListSessionActions",
+      "deadline:ListSessions",
+      "deadline:ListSessionsForWorker",
+      "deadline:ListStepConsumers",
+      "deadline:ListStepDependencies",
+      "deadline:ListSteps",
+      "deadline:ListStorageProfiles",
+      "deadline:ListStorageProfilesForQueue",
+      "deadline:ListTagsForResource",
+      "deadline:ListTasks",
+      "deadline:ListWorkers",
+      "deadline:SearchJobs",
+      "deadline:SearchSteps",
+      "deadline:SearchTasks",
+      "deadline:SearchWorkers",
       "deepcomposer:GetComposition",
       "deepcomposer:GetModel",
       "deepcomposer:GetSampleModel",
@@ -90116,8 +90751,30 @@ aws_managed_policies_data = """
       "rds:Describe*",
       "rds:Download*",
       "rds:List*",
+      "redshift-serverless:GetCustomDomainAssociation",
+      "redshift-serverless:GetEndpointAccess",
+      "redshift-serverless:GetNamespace",
+      "redshift-serverless:GetRecoveryPoint",
+      "redshift-serverless:GetResourcePolicy",
+      "redshift-serverless:GetScheduledAction",
+      "redshift-serverless:GetSnapshot",
+      "redshift-serverless:GetTableRestoreStatus",
+      "redshift-serverless:GetUsageLimit",
+      "redshift-serverless:GetWorkgroup",
+      "redshift-serverless:ListCustomDomainAssociations",
+      "redshift-serverless:ListEndpointAccess",
+      "redshift-serverless:ListNamespaces",
+      "redshift-serverless:ListRecoveryPoints",
+      "redshift-serverless:ListScheduledActions",
+      "redshift-serverless:ListSnapshotCopyConfigurations",
+      "redshift-serverless:ListSnapshots",
+      "redshift-serverless:ListTableRestoreStatus",
+      "redshift-serverless:ListTagsForResource",
+      "redshift-serverless:ListUsageLimits",
+      "redshift-serverless:ListWorkgroups",
       "redshift:Describe*",
       "redshift:GetReservedNodeExchangeOfferings",
+      "redshift:ListRecommendations",
       "redshift:View*",
       "refactor-spaces:GetApplication",
       "refactor-spaces:GetEnvironment",
@@ -90205,6 +90862,13 @@ aws_managed_policies_data = """
       "route53domains:Get*",
       "route53domains:List*",
       "route53domains:View*",
+      "route53profiles:GetProfile",
+      "route53profiles:GetProfileAssociation",
+      "route53profiles:GetProfileResourceAssociation",
+      "route53profiles:ListProfileAssociations",
+      "route53profiles:ListProfileResourceAssociations",
+      "route53profiles:ListProfiles",
+      "route53profiles:ListTagsForResource",
       "route53resolver:Get*",
       "route53resolver:List*",
       "rum:GetAppMonitor",
@@ -90310,6 +90974,7 @@ aws_managed_policies_data = """
       "signer:ListSigningPlatforms",
       "signer:ListSigningProfiles",
       "signer:ListTagsForResource",
+      "signin:ListTrustedIdentityPropagationApplicationsForConsole",
       "sms-voice:DescribeAccountAttributes",
       "sms-voice:DescribeAccountLimits",
       "sms-voice:DescribeConfigurationSets",
@@ -90365,6 +91030,7 @@ aws_managed_policies_data = """
       "states:Describe*",
       "states:GetExecutionHistory",
       "states:List*",
+      "states:ValidateStateMachineDefinition",
       "storagegateway:Describe*",
       "storagegateway:List*",
       "sts:GetAccessKeyInfo",
@@ -90541,7 +91207,7 @@ aws_managed_policies_data = """
   },
   "Path":"/",
   "PermissionsBoundaryUsageCount":0,
-  "UpdateDate":"2024-04-17T21:17:05+00:00"
+  "UpdateDate":"2024-05-16T21:10:15+00:00"
  },
  "ResourceGroupsServiceRolePolicy":{
   "CreateDate":"2023-01-05T16:57:08+00:00",
