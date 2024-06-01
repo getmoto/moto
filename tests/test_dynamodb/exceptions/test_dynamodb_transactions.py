@@ -46,29 +46,17 @@ def test_multiple_transactions_on_same_item():
     )
 
 
-@mock_aws
-def test_transact_write_items__put_and_delete_on_same_item():
-    schema = {
-        "KeySchema": [
-            {"AttributeName": "pk", "KeyType": "HASH"},
-            {"AttributeName": "sk", "KeyType": "RANGE"},
-        ],
-        "AttributeDefinitions": [
-            {"AttributeName": "pk", "AttributeType": "S"},
-            {"AttributeName": "sk", "AttributeType": "S"},
-        ],
-    }
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_transact_write_items__put_and_delete_on_same_item(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
 
     with pytest.raises(ClientError) as exc:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
                     "Put": {
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "Item": {
                             "pk": {"S": "test-pk"},
                             "sk": {"S": "test-sk"},
@@ -78,7 +66,7 @@ def test_transact_write_items__put_and_delete_on_same_item():
                 },
                 {
                     "Delete": {
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "Key": {
                             "pk": {"S": "test-pk"},
                             "sk": {"S": "test-sk"},
@@ -92,6 +80,36 @@ def test_transact_write_items__put_and_delete_on_same_item():
     assert (
         err["Message"]
         == "Transaction request cannot include multiple operations on one item"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_transact_write_items__update_with_multiple_sets(table_name=None):
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "TableName": table_name,
+                        "Key": {"pk": {"S": "s"}},
+                        "UpdateExpression": "SET expire_at_utc = :expire_at_utc SET is_final = :true ADD version :one",
+                        "ExpressionAttributeValues": {
+                            ":true": {"BOOL": True},
+                            ":one": {"N": "1"},
+                            ":expire_at_utc": {"S": "asdf"},
+                        },
+                    }
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
     )
 
 
