@@ -2612,6 +2612,14 @@
   "Location": "use1-az1"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "use1-az1"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "use1-az1"
+ },
+ {
   "InstanceType": "vt1.24xlarge",
   "Location": "use1-az1"
  },
@@ -8949,6 +8957,18 @@
  },
  {
   "InstanceType": "u-9tb1.112xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "use1-az4"
+ },
+ {
+  "InstanceType": "u7in-32tb.224xlarge",
   "Location": "use1-az4"
  },
  {
