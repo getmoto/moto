@@ -2335,22 +2335,21 @@ def test_remove_top_level_attribute():
     assert result == {"id": {"S": "foo"}}
 
 
-@mock_aws
-def test_remove_top_level_attribute_non_existent():
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_remove_top_level_attribute_non_existent(table_name=None):
     """
     Remove statements do not require attribute to exist they silently pass
     """
-    table_name = "test_remove"
-    client = create_table_with_list(table_name)
-    ddb_item = {"id": {"S": "foo"}, "item": {"S": "bar"}}
+    client = boto3.client("dynamodb", "us-east-1")
+    ddb_item = {"pk": {"S": "foo"}, "item": {"S": "bar"}}
     client.put_item(TableName=table_name, Item=ddb_item)
     client.update_item(
         TableName=table_name,
-        Key={"id": {"S": "foo"}},
+        Key={"pk": {"S": "foo"}},
         UpdateExpression="REMOVE non_existent_attribute",
-        ExpressionAttributeNames={"#i": "item"},
     )
-    result = client.get_item(TableName=table_name, Key={"id": {"S": "foo"}})["Item"]
+    result = client.get_item(TableName=table_name, Key={"pk": {"S": "foo"}})["Item"]
     assert result == ddb_item
 
 
@@ -4301,46 +4300,33 @@ def test_lsi_projection_type_keys_only():
     }
 
 
-@mock_aws
-@pytest.mark.parametrize(
-    "attr_name",
-    ["orders", "#placeholder"],
-    ids=["use attribute name", "use expression attribute name"],
-)
-def test_set_attribute_is_dropped_if_empty_after_update_expression(attr_name):
-    table_name, item_key, set_item = "test-table", "test-id", "test-data"
-    expression_attribute_names = {"#placeholder": "orders"}
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_set_attribute_is_dropped_if_empty_after_update_expression(table_name=None):
+    set_item = "test-data"
     client = boto3.client("dynamodb", region_name="us-east-1")
-    client.create_table(
-        TableName=table_name,
-        KeySchema=[{"AttributeName": "customer", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "customer", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
 
     client.update_item(
         TableName=table_name,
-        Key={"customer": {"S": item_key}},
-        UpdateExpression=f"ADD {attr_name} :order",
-        ExpressionAttributeNames=expression_attribute_names,
+        Key={"pk": {"S": "item1"}},
+        UpdateExpression="ADD orders :order",
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
-    resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
-    item = resp["Items"][0]
-    assert "customer" in item
-    assert "orders" in item
+    items = client.scan(TableName=table_name, ProjectionExpression="pk, orders")[
+        "Items"
+    ]
+    assert items == [{"pk": {"S": "item1"}, "orders": {"SS": ["test-data"]}}]
 
     client.update_item(
         TableName=table_name,
-        Key={"customer": {"S": item_key}},
-        UpdateExpression=f"DELETE {attr_name} :order",
-        ExpressionAttributeNames=expression_attribute_names,
+        Key={"pk": {"S": "item1"}},
+        UpdateExpression="DELETE orders :order",
         ExpressionAttributeValues={":order": {"SS": [set_item]}},
     )
-    resp = client.scan(TableName=table_name, ProjectionExpression="customer, orders")
-    item = resp["Items"][0]
-    assert "customer" in item
-    assert "orders" not in item
+    items = client.scan(TableName=table_name, ProjectionExpression="pk, orders")[
+        "Items"
+    ]
+    assert items == [{"pk": {"S": "item1"}}]
 
 
 @mock_aws

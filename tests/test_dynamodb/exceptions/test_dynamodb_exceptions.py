@@ -194,6 +194,44 @@ def test_update_item_range_key_set():
     )
 
 
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_update_item_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    table = ddb.Table(table_name)
+    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0})
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET spec.#limit = :limit",
+            ExpressionAttributeNames={"#count": "count", "#limit": "limit"},
+            ExpressionAttributeValues={":countChange": 1, ":limit": "limit"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="ADD am :limit",
+            ExpressionAttributeNames={"#count": "count"},
+            ExpressionAttributeValues={":limit": 2},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
 @mock_aws
 def test_batch_get_item_non_existing_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
