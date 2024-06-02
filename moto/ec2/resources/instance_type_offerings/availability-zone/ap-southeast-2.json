@@ -2228,6 +2228,10 @@
   "Location": "ap-southeast-2a"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-2a"
  },
@@ -4656,6 +4660,10 @@
   "Location": "ap-southeast-2b"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "ap-southeast-2b"
  },
@@ -6997,6 +7005,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "ap-southeast-2c"
  },
  {
