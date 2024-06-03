@@ -1103,6 +1103,7 @@ def test_modify_db_cluster_snapshot_attribute():
         "AttributeValues"
     ] == ["test2"]
 
+
 @mock_aws
 def test_backtrack_window():
     client = boto3.client("rds", region_name=RDS_REGION)
@@ -1125,4 +1126,28 @@ def test_backtrack_window():
         BacktrackWindow=window,
     )
 
-    assert resp["BacktrackWindow"] == window
+    assert resp["DBCluster"]["BacktrackWindow"] == window
+
+@mock_aws
+def test_backtrack_errors():
+    client = boto3.client("rds", region_name=RDS_REGION)
+    window = 86400
+    resp = client.create_db_cluster(
+        AvailabilityZones=["eu-north-1b"],
+        DatabaseName="users",
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora-mysql",
+        EngineVersion="8.0.mysql_aurora.3.01.0",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        Port=1234,
+        DeletionProtection=True,
+        EnableCloudwatchLogsExports=["audit"],
+        NetworkType="IPV4",
+        DBSubnetGroupName="subnetgroupname",
+        StorageEncrypted=True,
+        VpcSecurityGroupIds=["sg1", "sg2"],
+        BacktrackWindow=window,
+    )
+
+    assert resp["DBCluster"]["BacktrackWindow"] == window

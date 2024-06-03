@@ -247,6 +247,25 @@ class Cluster:
             )
         self.backup_retention_period = kwargs.get("backup_retention_period") or 1
 
+        if (backtrack := kwargs.get("backtrack_window")) and self.engine == "aurora-mysql":
+            # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html
+            if 0 <= backtrack <= 259200:
+                self.backtrack_window: int = backtrack
+            else:
+                raise InvalidParameterValue(
+                    "The specified value (259201) is not a valid Backtrack Window. "
+                    "Allowed values are within the range of 0 to 259200"
+                )
+        elif backtrack is not None:
+            raise InvalidParameterValue("Backtrack is not enabled for the postgres engine.")
+        else:
+            self.backtrack_window = 0
+
+        if iam_auth := kwargs.get("enable_iam_database_authentication", None) and not self.engine.startswith("aurora-"):
+            raise InvalidParameterCombination("IAM Authentication is currently not supported by Multi-AZ DB clusters.")
+        else:
+            self.iam_auth: bool = iam_auth
+
     @property
     def is_multi_az(self) -> bool:
         return (
@@ -384,7 +403,7 @@ class Cluster:
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
-              <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ cluster.iam_auth }}</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
@@ -695,24 +714,6 @@ class Database(CloudFormationModel):
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
 
-        if backtrack := kwargs.get("backtrack_window") and self.engine == "aurora-mysql":
-            # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html
-            if 0 <= backtrack <= 259200:
-                self.backtrack_window: int = backtrack
-            else:
-                raise InvalidParameterValue(
-                    "The specified value (259201) is not a valid Backtrack Window. "
-                    "Allowed values are within the range of 0 to 259200"
-                )
-        elif backtrack is not None:
-            raise InvalidParameterValue("Backtrack is not enabled for the postgres engine.")
-        else:
-            self.backtrack_window = 0
-
-        if iam_auth := kwargs.get("enable_iam_database_authentication", None) and not self.engine.startswith("aurora-"):
-            raise InvalidParameterCombination("IAM Authentication is currently not supported by Multi-AZ DB clusters.")
-        else:
-            self.iam_auth: bool = iam_auth
 
     @property
     def arn(self) -> str:
