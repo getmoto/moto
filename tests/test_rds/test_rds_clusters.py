@@ -249,6 +249,7 @@ def test_create_db_cluster_additional_parameters():
             "MaxCapacity": 4,
         },
         VpcSecurityGroupIds=["sg1", "sg2"],
+        IAMDatabaseAuthenticationEnabled = True,
     )
 
     cluster = resp["DBCluster"]
@@ -276,6 +277,7 @@ def test_create_db_cluster_additional_parameters():
     assert len(security_groups) == 2
     assert {"VpcSecurityGroupId": "sg1", "Status": "active"} in security_groups
     assert {"VpcSecurityGroupId": "sg2", "Status": "active"} in security_groups
+    assert cluster["IAMDatabaseAuthenticationEnabled"] is True
 
 
 @mock_aws
@@ -1100,3 +1102,27 @@ def test_modify_db_cluster_snapshot_attribute():
     assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
         "AttributeValues"
     ] == ["test2"]
+
+@mock_aws
+def test_backtrack_window():
+    client = boto3.client("rds", region_name=RDS_REGION)
+    window = 86400
+    resp = client.create_db_cluster(
+        AvailabilityZones=["eu-north-1b"],
+        DatabaseName="users",
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora-mysql",
+        EngineVersion="8.0.mysql_aurora.3.01.0",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        Port=1234,
+        DeletionProtection=True,
+        EnableCloudwatchLogsExports=["audit"],
+        NetworkType="IPV4",
+        DBSubnetGroupName="subnetgroupname",
+        StorageEncrypted=True,
+        VpcSecurityGroupIds=["sg1", "sg2"],
+        BacktrackWindow=window,
+    )
+
+    assert resp["BacktrackWindow"] == window
