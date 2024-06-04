@@ -221,6 +221,8 @@ class RDSResponse(BaseResponse):
             "vpc_security_group_ids": self.unpack_list_params(
                 "VpcSecurityGroupIds", "VpcSecurityGroupId"
             ),
+            "preferred_backup_window": self._get_param("PreferredBackupWindow"),
+            "backup_retention_period": self._get_param("BackupRetentionPeriod"),
         }
 
     def _get_export_task_kwargs(self) -> Dict[str, Any]:
@@ -1312,7 +1314,7 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
 
 CREATE_DB_CLUSTER_TEMPLATE = """<CreateDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBClusterResult>
-  {{ cluster.to_xml() }}
+  {{ cluster.to_xml(initial=True) }}
   </CreateDBClusterResult>
   <ResponseMetadata>
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
