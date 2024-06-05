@@ -274,18 +274,21 @@ class AmiBackend:
         else:
             # Limit images by launch permissions
             if exec_users:
-                # support filtering by ExecutableUsers=['self']
-                if "self" in exec_users:
-                    exec_users = list(
-                        map(lambda o: self.account_id if o == "self" else o, exec_users)  # type: ignore[attr-defined]
-                    )
-
                 tmp_images = []
                 for ami in images:
-                    for user_id in exec_users:
-                        for lp in ami.launch_permissions:
-                            if lp.get("UserId") == user_id:
-                                tmp_images.append(ami)
+                    if ami.is_public:
+                        tmp_images.append(ami)
+                    else:
+                        # support filtering by ExecutableUsers=['self']
+                        if "self" in exec_users:
+                            exec_users = list(
+                                map(lambda o: self.account_id if o == "self" else o, exec_users)  # type: ignore[attr-defined]
+                            )
+
+                        for user_id in exec_users:
+                            for lp in ami.launch_permissions:
+                                if lp.get("UserId") == user_id:
+                                    tmp_images.append(ami)
                 images = tmp_images
 
             # Limit by owner ids
