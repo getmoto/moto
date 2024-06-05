@@ -157,7 +157,7 @@ class Cluster:
         self.iops = kwargs.get("iops")
         self.kms_key_id = kwargs.get("kms_key_id")
         self.network_type = kwargs.get("network_type") or "IPV4"
-        self.status = "active"
+        self.status = "available"
         self.account_id = kwargs.get("account_id")
         self.region_name = kwargs["region"]
         self.cluster_create_time = iso_8601_datetime_with_milliseconds()
@@ -192,7 +192,6 @@ class Cluster:
             ]
         self.parameter_group = kwargs.get("parameter_group") or "default.aurora8.0"
         self.subnet_group = kwargs.get("db_subnet_group_name") or "default"
-        self.status = "creating"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
@@ -201,7 +200,9 @@ class Cluster:
         self.port: int = kwargs.get("port")  # type: ignore
         if self.port is None:
             self.port = Cluster.default_port(self.engine)
-        self.preferred_backup_window = "01:37-02:07"
+        self.preferred_backup_window = (
+            kwargs.get("preferred_backup_window") or "01:37-02:07"
+        )
         self.preferred_maintenance_window = "wed:02:40-wed:03:10"
         # This should default to the default security group
         self.vpc_security_group_ids: List[str] = kwargs["vpc_security_group_ids"]
@@ -244,6 +245,7 @@ class Cluster:
             self.global_write_forwarding_requested = kwargs.get(
                 "enable_global_write_forwarding"
             )
+        self.backup_retention_period = kwargs.get("backup_retention_period") or 1
 
     @property
     def is_multi_az(self) -> bool:
@@ -317,7 +319,8 @@ class Cluster:
         cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
         return cfg
 
-    def to_xml(self) -> str:
+    def to_xml(self, initial: bool = False) -> str:
+        status = "creating" if initial else self.status
         template = Template(
             """<DBCluster>
               <AllocatedStorage>{{ cluster.allocated_storage }}</AllocatedStorage>
@@ -326,7 +329,7 @@ class Cluster:
                   <AvailabilityZone>{{ zone }}</AvailabilityZone>
               {% endfor %}
               </AvailabilityZones>
-              <BackupRetentionPeriod>1</BackupRetentionPeriod>
+              <BackupRetentionPeriod>{{ cluster.backup_retention_period }}</BackupRetentionPeriod>
               <BacktrackWindow>0</BacktrackWindow>
               <DBInstanceStatus>{{ cluster.status }}</DBInstanceStatus>
               {% if cluster.db_name %}<DatabaseName>{{ cluster.db_name }}</DatabaseName>{% endif %}
@@ -338,7 +341,7 @@ class Cluster:
               <ClusterCreateTime>{{ cluster.cluster_create_time }}</ClusterCreateTime>
               <EarliestRestorableTime>{{ cluster.earliest_restorable_time }}</EarliestRestorableTime>
               <Engine>{{ cluster.engine }}</Engine>
-              <Status>{{ cluster.status }}</Status>
+              <Status>{{ status }}</Status>
               <Endpoint>{{ cluster.endpoint }}</Endpoint>
               <ReaderEndpoint>{{ cluster.reader_endpoint }}</ReaderEndpoint>
               <MultiAZ>{{ 'true' if cluster.is_multi_az else 'false' }}</MultiAZ>
@@ -377,7 +380,7 @@ class Cluster:
               </VpcSecurityGroups>
               <HostedZoneId>{{ cluster.hosted_zone_id }}</HostedZoneId>
               <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
-              <GlobalWriteForwardingRequested>{{ cluster.global_write_forwarding_requested }}</GlobalWriteForwardingRequested>
+              <GlobalWriteForwardingRequested>{{ 'true' if cluster.global_write_forwarding_requested else 'false'  }}</GlobalWriteForwardingRequested>
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
@@ -423,7 +426,7 @@ class Cluster:
               {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
             </DBCluster>"""
         )
-        return template.render(cluster=self)
+        return template.render(cluster=self, status=status)
 
     @staticmethod
     def default_engine_version(engine: str) -> str:
