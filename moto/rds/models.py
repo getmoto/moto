@@ -254,10 +254,10 @@ class Cluster:
                     self.backtrack_window: int = backtrack
                 else:
                     raise InvalidParameterValue(
-                        "The specified value (259201) is not a valid Backtrack Window. "
+                        f"The specified value ({backtrack}) is not a valid Backtrack Window. "
                         "Allowed values are within the range of 0 to 259200"
                     )
-            if not backtrack:
+            else:
                 raise InvalidParameterValue(
                     "Backtrack is not enabled for the postgres engine."
                 )
@@ -408,7 +408,7 @@ class Cluster:
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
-              <IAMDatabaseAuthenticationEnabled>{ cluster.iam_auth| string | lower }}</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ cluster.iam_auth | string | lower }}</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
