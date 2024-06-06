@@ -282,7 +282,10 @@ class AmiBackend:
                         # support filtering by ExecutableUsers=['self']
                         if "self" in exec_users:
                             exec_users = list(
-                                map(lambda o: self.account_id if o == "self" else o, exec_users)  # type: ignore[attr-defined]
+                                map(
+                                    lambda o: self.account_id if o == "self" else o,  # type: ignore[attr-defined]
+                                    exec_users,
+                                )
                             )
 
                         for user_id in exec_users:
