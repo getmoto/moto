@@ -247,24 +247,29 @@ class Cluster:
             )
         self.backup_retention_period = kwargs.get("backup_retention_period") or 1
 
-        if (backtrack := kwargs.get("backtrack_window")) and self.engine == "aurora-mysql":
-            # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html
-            if 0 <= backtrack <= 259200:
-                self.backtrack_window: int = backtrack
-            else:
+        if backtrack := kwargs.get("backtrack_window"):
+            if self.engine == "aurora-mysql":
+                # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html
+                if 0 <= backtrack <= 259200:
+                    self.backtrack_window: int = backtrack
+                else:
+                    raise InvalidParameterValue(
+                        "The specified value (259201) is not a valid Backtrack Window. "
+                        "Allowed values are within the range of 0 to 259200"
+                    )
+            if not backtrack:
                 raise InvalidParameterValue(
-                    "The specified value (259201) is not a valid Backtrack Window. "
-                    "Allowed values are within the range of 0 to 259200"
+                    "Backtrack is not enabled for the postgres engine."
                 )
-        elif backtrack is not None:
-            raise InvalidParameterValue("Backtrack is not enabled for the postgres engine.")
         else:
             self.backtrack_window = 0
 
-        if iam_auth := kwargs.get("enable_iam_database_authentication", None) and not self.engine.startswith("aurora-"):
-            raise InvalidParameterCombination("IAM Authentication is currently not supported by Multi-AZ DB clusters.")
-        else:
-            self.iam_auth: bool = iam_auth
+        if iam_auth := kwargs.get("enable_iam_database_authentication", False):
+            if not self.engine.startswith("aurora-"):
+                raise InvalidParameterCombination(
+                    "IAM Authentication is currently not supported by Multi-AZ DB clusters."
+                )
+        self.iam_auth: bool = iam_auth
 
     @property
     def is_multi_az(self) -> bool:
@@ -403,7 +408,7 @@ class Cluster:
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
-              <IAMDatabaseAuthenticationEnabled>{{ cluster.iam_auth }}</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{ cluster.iam_auth| string | lower }}</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
@@ -611,7 +616,7 @@ class Database(CloudFormationModel):
         self.replicas: List[str] = []
         self.account_id: str = kwargs["account_id"]
         self.region_name: str = kwargs["region"]
-        self.engine: str = kwargs.get("engine")
+        self.engine: str = kwargs["engine"]
         if self.engine not in DbInstanceEngine.valid_db_instance_engine():
             raise InvalidParameterValue(
                 f"Value {self.engine} for parameter Engine is invalid. Reason: engine {self.engine} not supported"
@@ -713,7 +718,6 @@ class Database(CloudFormationModel):
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
-
 
     @property
     def arn(self) -> str:

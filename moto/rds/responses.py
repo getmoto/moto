@@ -57,9 +57,6 @@ class RDSResponse(BaseResponse):
             "enable_cloudwatch_logs_exports": self._get_params().get(
                 "EnableCloudwatchLogsExports"
             ),
-            "enable_iam_database_authentication": self._get_bool_param(
-                "EnableIAMDatabaseAuthentication"
-            ),
             "license_model": self._get_param("LicenseModel"),
             "iops": self._get_int_param("Iops"),
             "kms_key_id": self._get_param("KmsKeyId"),
@@ -187,6 +184,9 @@ class RDSResponse(BaseResponse):
             ),
             "backtrack_window": self._get_int_param("BacktrackWindow"),
             "enable_cloudwatch_logs_exports": params.get("EnableCloudwatchLogsExports"),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),

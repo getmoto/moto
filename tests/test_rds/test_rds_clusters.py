@@ -249,7 +249,7 @@ def test_create_db_cluster_additional_parameters():
             "MaxCapacity": 4,
         },
         VpcSecurityGroupIds=["sg1", "sg2"],
-        IAMDatabaseAuthenticationEnabled = True,
+        EnableIAMDatabaseAuthentication=True,
     )
 
     cluster = resp["DBCluster"]
@@ -1127,6 +1127,7 @@ def test_backtrack_window():
     )
 
     assert resp["DBCluster"]["BacktrackWindow"] == window
+
 
 @mock_aws
 def test_backtrack_errors():
