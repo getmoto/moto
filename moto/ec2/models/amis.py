@@ -281,12 +281,9 @@ class AmiBackend:
                     else:
                         # support filtering by ExecutableUsers=['self']
                         if "self" in exec_users:
-                            exec_users = list(
-                                map(
-                                    lambda o: self.account_id if o == "self" else o,  # type: ignore[attr-defined]
-                                    exec_users,
-                                )
-                            )
+                            exec_users = list(set(exec_users))
+                            exec_users.remove("self")
+                            exec_users.append(self.account_id)  # type: ignore[attr-defined]
 
                         for user_id in exec_users:
                             for lp in ami.launch_permissions:
