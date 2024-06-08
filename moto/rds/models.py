@@ -265,7 +265,7 @@ class Cluster:
             self.backtrack_window = 0
 
         self.iam_auth: bool = False
-        if kwargs["enable_iam_database_authentication"]:
+        if kwargs.get("enable_iam_database_authentication", False):
             if not self.engine.startswith("aurora-"):
                 raise InvalidParameterCombination(
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
