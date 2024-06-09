@@ -1212,6 +1212,7 @@ class CognitoIdpBackend(BaseBackend):
         group = self.get_group(user_pool_id, group_name)
         return list(filter(lambda user: user in group.users, user_pool.users.values()))
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def admin_list_groups_for_user(
         self, user_pool_id: str, username: str
     ) -> List[CognitoIdpGroup]:
