@@ -245,7 +245,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             status_records, max_results=max_results, next_token=next_token
         )
-        result = {"Status": []}
+        result = {"Status": {}}
         for record in page:
             result["Status"][record[0]] = record[1]
         if new_token:

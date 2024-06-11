@@ -10,11 +10,12 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ConflictingDomainExists,
+    CustomHealthNotFound,
+    InstanceNotFound,
+    InvalidInput,
     NamespaceNotFound,
     OperationNotFound,
     ServiceNotFound,
-    InstanceNotFound,
-    CustomHealthNotFound, InvalidInput,
 )
 
 
@@ -128,15 +129,17 @@ class Service(BaseModel):
 class ServiceInstance(BaseModel):
     def __init__(
         self,
-            service_id: str,
-            instance_id: str,
-            creator_request_id: Optional[str] = None,
-            attributes: Optional[Dict[str, str]] = None,
+        service_id: str,
+        instance_id: str,
+        creator_request_id: Optional[str] = None,
+        attributes: Optional[Dict[str, str]] = None,
     ):
         self.service_id = service_id
         self.instance_id = instance_id
         self.attributes = attributes if attributes else {}
-        self.creator_request_id = creator_request_id if creator_request_id else random_id(32)
+        self.creator_request_id = (
+            creator_request_id if creator_request_id else random_id(32)
+        )
         self.health_status = "HEALTHY"
 
     def to_json(self) -> Dict[str, Any]:
@@ -398,10 +401,11 @@ class ServiceDiscoveryBackend(BaseBackend):
         return operation_id
 
     def register_instance(
-        self, service_id: str,
-            instance_id: str,
-            creator_request_id: str,
-            attributes: Dict[str, str]
+        self,
+        service_id: str,
+        instance_id: str,
+        creator_request_id: str,
+        attributes: Dict[str, str],
     ) -> str:
         service = self.get_service(service_id)
         instance = ServiceInstance(
@@ -440,14 +444,15 @@ class ServiceDiscoveryBackend(BaseBackend):
         raise InstanceNotFound(service_id)
 
     def get_instances_health_status(
-        self, service_id: str,
-            instances: Optional[List[str]] = None,
+        self,
+        service_id: str,
+        instances: Optional[List[str]] = None,
     ) -> List[Tuple[str, str]]:
         service = self.get_service(service_id)
         status = []
         if instances is None:
             instances = [instance.instance_id for instance in service.instances]
-        if type(instances) is not list:
+        if isinstance(instances, list):
             raise InvalidInput("Instances must be a list")
         filtered_instances = [
             instance
@@ -470,7 +475,7 @@ class ServiceDiscoveryBackend(BaseBackend):
     def paginate(
         items: List[Any],
         max_results: Optional[int] = None,
-        next_token: Optional[str] = None
+        next_token: Optional[str] = None,
     ) -> Tuple[List[Any], Optional[str]]:
         if next_token is None:
             next_token = "0"
@@ -480,10 +485,8 @@ class ServiceDiscoveryBackend(BaseBackend):
             max_results = len(items)
         new_token = int(next_token) + max_results
         if new_token >= len(items):
-            return items[int(next_token):], None
-        return items[int(next_token): new_token], str(new_token)
-
-
+            return items[int(next_token) :], None
+        return items[int(next_token) : new_token], str(new_token)
 
 
 servicediscovery_backends = BackendDict(ServiceDiscoveryBackend, "servicediscovery")
