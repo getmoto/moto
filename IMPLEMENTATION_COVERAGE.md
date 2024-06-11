@@ -788,7 +788,7 @@
 
 ## budgets
 <details>
-<summary>26% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] create_budget
 - [ ] create_budget_action
@@ -809,9 +809,6 @@
 - [X] describe_notifications_for_budget
 - [ ] describe_subscribers_for_notification
 - [ ] execute_budget_action
-- [ ] list_tags_for_resource
-- [ ] tag_resource
-- [ ] untag_resource
 - [ ] update_budget
 - [ ] update_budget_action
 - [ ] update_notification
@@ -2568,7 +2565,6 @@
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
-- [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
@@ -3379,7 +3375,7 @@
 
 ## events
 <details>
-<summary>78% implemented</summary>
+<summary>80% implemented</summary>
 
 - [ ] activate_event_source
 - [X] cancel_replay
@@ -3437,7 +3433,6 @@
 - [X] update_archive
 - [X] update_connection
 - [ ] update_endpoint
-- [ ] update_event_bus
 </details>
 
 ## firehose
@@ -4674,7 +4669,7 @@
 
 ## lakeformation
 <details>
-<summary>36% implemented</summary>
+<summary>37% implemented</summary>
 
 - [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
@@ -4697,7 +4692,6 @@
 - [ ] describe_transaction
 - [ ] extend_transaction
 - [ ] get_data_cells_filter
-- [ ] get_data_lake_principal
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
 - [X] get_lf_tag
@@ -5410,6 +5404,49 @@
 - [ ] upgrade_domain
 </details>
 
+## opensearchserverless
+<details>
+<summary>32% implemented</summary>
+
+- [X] batch_get_collection
+- [ ] batch_get_effective_lifecycle_policy
+- [ ] batch_get_lifecycle_policy
+- [ ] batch_get_vpc_endpoint
+- [ ] create_access_policy
+- [X] create_collection
+- [ ] create_lifecycle_policy
+- [ ] create_security_config
+- [X] create_security_policy
+- [X] create_vpc_endpoint
+- [ ] delete_access_policy
+- [X] delete_collection
+- [ ] delete_lifecycle_policy
+- [ ] delete_security_config
+- [ ] delete_security_policy
+- [ ] delete_vpc_endpoint
+- [ ] get_access_policy
+- [ ] get_account_settings
+- [ ] get_policies_stats
+- [ ] get_security_config
+- [X] get_security_policy
+- [ ] list_access_policies
+- [X] list_collections
+- [ ] list_lifecycle_policies
+- [ ] list_security_configs
+- [X] list_security_policies
+- [X] list_tags_for_resource
+- [ ] list_vpc_endpoints
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_access_policy
+- [ ] update_account_settings
+- [ ] update_collection
+- [ ] update_lifecycle_policy
+- [ ] update_security_config
+- [X] update_security_policy
+- [ ] update_vpc_endpoint
+</details>
+
 ## opsworks
 <details>
 <summary>12% implemented</summary>
@@ -5598,7 +5635,6 @@
 - [ ] create_batch_inference_job
 - [ ] create_batch_segment_job
 - [ ] create_campaign
-- [ ] create_data_deletion_job
 - [ ] create_dataset
 - [ ] create_dataset_export_job
 - [ ] create_dataset_group
@@ -5623,7 +5659,6 @@
 - [ ] describe_batch_inference_job
 - [ ] describe_batch_segment_job
 - [ ] describe_campaign
-- [ ] describe_data_deletion_job
 - [ ] describe_dataset
 - [ ] describe_dataset_export_job
 - [ ] describe_dataset_group
@@ -5641,7 +5676,6 @@
 - [ ] list_batch_inference_jobs
 - [ ] list_batch_segment_jobs
 - [ ] list_campaigns
-- [ ] list_data_deletion_jobs
 - [ ] list_dataset_export_jobs
 - [ ] list_dataset_groups
 - [ ] list_dataset_import_jobs
@@ -5889,7 +5923,6 @@
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
-- [ ] describe_key_registration
 - [ ] describe_namespace
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
@@ -5972,7 +6005,6 @@
 - [ ] update_iam_policy_assignment
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
-- [ ] update_key_registration
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
@@ -6448,7 +6480,7 @@
 
 ## resiliencehub
 <details>
-<summary>30% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] add_draft_app_version_resource_mappings
 - [ ] batch_update_recommendation_status
@@ -6476,7 +6508,6 @@
 - [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
-- [ ] list_app_assessment_resource_drifts
 - [X] list_app_assessments
 - [ ] list_app_component_compliances
 - [ ] list_app_component_recommendations
@@ -8049,14 +8080,12 @@
 
 ## swf
 <details>
-<summary>48% implemented</summary>
+<summary>51% implemented</summary>
 
 - [ ] count_closed_workflow_executions
 - [ ] count_open_workflow_executions
 - [X] count_pending_activity_tasks
 - [X] count_pending_decision_tasks
-- [ ] delete_activity_type
-- [ ] delete_workflow_type
 - [ ] deprecate_activity_type
 - [X] deprecate_domain
 - [ ] deprecate_workflow_type
@@ -8493,7 +8522,6 @@
 - m2
 - machinelearning
 - macie2
-- mailmanager
 - managedblockchain-query
 - marketplace-agreement
 - marketplace-catalog
@@ -8522,7 +8550,6 @@
 - nimble
 - oam
 - omics
-- opensearchserverless
 - opsworkscm
 - osis
 - outposts
