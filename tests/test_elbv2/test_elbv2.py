@@ -482,7 +482,7 @@ def test_register_targets():
         return None
 
     def assert_target_not_registered(target):
-        assert target["TargetHealth"]["State"] == "unavailable"
+        assert target["TargetHealth"]["State"] == "unused"
         assert target["TargetHealth"]["Reason"] == "Target.NotRegistered"
 
     response = conn.describe_target_health(

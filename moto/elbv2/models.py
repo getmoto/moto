@@ -144,6 +144,8 @@ class FakeTargetGroup(CloudFormationModel):
             self.attributes["stickiness.type"] = "source_ip"
 
         self.targets: Dict[str, Dict[str, Any]] = OrderedDict()
+        self.deregistered_targets: Dict[str, Dict[str, Any]] = OrderedDict()
+        self.terminated_targets: Dict[str, Dict[str, Any]] = OrderedDict()
 
     @property
     def physical_resource_id(self) -> str:
@@ -155,17 +157,20 @@ class FakeTargetGroup(CloudFormationModel):
                 "id": target["id"],
                 "port": target.get("port", self.port),
             }
+            self.deregistered_targets.pop(target["id"], None)
 
     def deregister(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
             t = self.targets.pop(target["id"], None)
             if not t:
                 raise InvalidTargetError()
+            self.deregistered_targets[target["id"]] = t
 
     def deregister_terminated_instances(self, instance_ids: List[str]) -> None:
         for target_id in list(self.targets.keys()):
             if target_id in instance_ids:
-                del self.targets[target_id]
+                t = self.targets.pop(target_id)
+                self.terminated_targets[target_id] = t
 
     def health_for(self, target: Dict[str, Any], ec2_backend: Any) -> FakeHealthStatus:
         t = self.targets.get(target["id"])
@@ -173,6 +178,25 @@ class FakeTargetGroup(CloudFormationModel):
             port = self.port
             if "port" in target:
                 port = target["port"]
+            if target["id"] in self.deregistered_targets:
+                return FakeHealthStatus(
+                    target["id"],
+                    port,
+                    self.healthcheck_port,
+                    "unused",
+                    "Target.NotRegistered",
+                    "Target is not registered to the target group",
+                )
+            if target["id"] in self.terminated_targets:
+                return FakeHealthStatus(
+                    target["id"],
+                    port,
+                    self.healthcheck_port,
+                    "draining",
+                    "Target.DeregistrationInProgress",
+                    "Target deregistration is in progress",
+                )
+
             return FakeHealthStatus(
                 target["id"],
                 port,
