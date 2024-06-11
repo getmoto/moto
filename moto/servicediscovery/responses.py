@@ -197,3 +197,85 @@ class ServiceDiscoveryResponse(BaseResponse):
             properties=properties,
         )
         return json.dumps(dict(OperationId=operation_id))
+
+    def register_instance(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        instance_id = params.get("InstanceId")
+        creator_request_id = params.get("CreatorRequestId")
+        attributes = params.get("Attributes")
+        operation_id = self.servicediscovery_backend.register_instance(
+            service_id=service_id,
+            instance_id=instance_id,
+            creator_request_id=creator_request_id,
+            attributes=attributes,
+        )
+        return json.dumps(dict(OperationId=operation_id))
+
+    def deregister_instance(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        instance_id = params.get("InstanceId")
+        operation_id = self.servicediscovery_backend.deregister_instance(
+            service_id=service_id,
+            instance_id=instance_id,
+        )
+        return json.dumps(dict(OperationId=operation_id))
+
+    def get_instance(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        instance_id = params.get("InstanceId")
+        instance = self.servicediscovery_backend.get_instance(
+            service_id=service_id,
+            instance_id=instance_id,
+        )
+        return json.dumps(dict(Instance=instance.to_json()))
+
+    def get_instances_health_status(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        instances = params.get("Instances")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        status_records = self.servicediscovery_backend.get_instances_health_status(
+            service_id=service_id,
+            instances=instances,
+        )
+        page, new_token = self.servicediscovery_backend.paginate(
+            status_records, max_results=max_results, next_token=next_token
+        )
+        result = {"Status": []}
+        for record in page:
+            result["Status"][record[0]] = record[1]
+        if new_token:
+            result["NextToken"] = new_token
+        return json.dumps(result)
+
+    def update_instance_custom_health_status(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        instance_id = params.get("InstanceId")
+        status = params.get("Status")
+        self.servicediscovery_backend.update_instance_custom_health_status(
+            service_id=service_id,
+            instance_id=instance_id,
+            status=status,
+        )
+        return "{}"
+
+    def list_instances(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        next_token = params.get("NextToken")
+        max_results = params.get("MaxResults")
+        instances = self.servicediscovery_backend.list_instances(service_id=service_id)
+        page, new_token = self.servicediscovery_backend.paginate(
+            instances, max_results=max_results, next_token=next_token
+        )
+        result = {"Instances": []}
+        for instance in page:
+            result["Instances"].append(instance.to_json())
+        if new_token:
+            result["NextToken"] = new_token
+        return json.dumps(result)

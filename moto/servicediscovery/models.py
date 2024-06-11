@@ -1,5 +1,5 @@
 import string
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -13,6 +13,8 @@ from .exceptions import (
     NamespaceNotFound,
     OperationNotFound,
     ServiceNotFound,
+    InstanceNotFound,
+    CustomHealthNotFound, InvalidInput,
 )
 
 
@@ -89,6 +91,8 @@ class Service(BaseModel):
         self.health_check_custom_config = health_check_custom_config
         self.service_type = service_type
         self.created = unix_time()
+        self.instances: List[ServiceInstance] = []
+        self.instances_revision = 0
 
     def update(self, details: Dict[str, Any]) -> None:
         if "Description" in details:
@@ -118,6 +122,28 @@ class Service(BaseModel):
             "HealthCheckConfig": self.health_check_config,
             "HealthCheckCustomConfig": self.health_check_custom_config,
             "Type": self.service_type,
+        }
+
+
+class ServiceInstance(BaseModel):
+    def __init__(
+        self,
+            service_id: str,
+            instance_id: str,
+            creator_request_id: Optional[str] = None,
+            attributes: Optional[Dict[str, str]] = None,
+    ):
+        self.service_id = service_id
+        self.instance_id = instance_id
+        self.attributes = attributes if attributes else {}
+        self.creator_request_id = creator_request_id if creator_request_id else random_id(32)
+        self.health_status = "HEALTHY"
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "Id": self.instance_id,
+            "CreatorRequestId": self.service_id,
+            "Attributes": self.attributes,
         }
 
 
@@ -370,6 +396,94 @@ class ServiceDiscoveryBackend(BaseBackend):
             "UPDATE_NAMESPACE", targets={"NAMESPACE": namespace.id}
         )
         return operation_id
+
+    def register_instance(
+        self, service_id: str,
+            instance_id: str,
+            creator_request_id: str,
+            attributes: Dict[str, str]
+    ) -> str:
+        service = self.get_service(service_id)
+        instance = ServiceInstance(
+            service_id=service_id,
+            instance_id=instance_id,
+            creator_request_id=creator_request_id,
+            attributes=attributes,
+        )
+        service.instances.append(instance)
+        service.instances_revision += 1
+        operation_id = self._create_operation(
+            "REGISTER_INSTANCE", targets={"INSTANCE": instance_id}
+        )
+        return operation_id
+
+    def deregister_instance(self, service_id: str, instance_id: str) -> str:
+        service = self.get_service(service_id)
+        for instance in service.instances:
+            if instance.instance_id == instance_id:
+                service.instances.remove(instance)
+                service.instances_revision += 1
+                operation_id = self._create_operation(
+                    "DEREGISTER_INSTANCE", targets={"INSTANCE": instance_id}
+                )
+                return operation_id
+        raise InstanceNotFound(service_id)
+
+    def list_instances(self, service_id: str) -> List[ServiceInstance]:
+        service = self.get_service(service_id)
+        return service.instances
+
+    def get_instance(self, service_id: str, instance_id: str) -> ServiceInstance:
+        for instance in self.list_instances(service_id):
+            if instance.instance_id == instance_id:
+                return instance
+        raise InstanceNotFound(service_id)
+
+    def get_instances_health_status(
+        self, service_id: str,
+            instances: Optional[List[str]] = None,
+    ) -> List[Tuple[str, str]]:
+        service = self.get_service(service_id)
+        status = []
+        if instances is None:
+            instances = [instance.instance_id for instance in service.instances]
+        if type(instances) is not list:
+            raise InvalidInput("Instances must be a list")
+        filtered_instances = [
+            instance
+            for instance in service.instances
+            if instance.instance_id in instances
+        ]
+        for instance in filtered_instances:
+            status.append((instance.instance_id, instance.health_status))
+        return status
+
+    def update_instance_custom_health_status(
+        self, service_id: str, instance_id: str, status: str
+    ) -> None:
+        if status not in ["HEALTHY", "UNHEALTHY"]:
+            raise CustomHealthNotFound(service_id)
+        instance = self.get_instance(service_id, instance_id)
+        instance.health_status = status
+
+    @staticmethod
+    def paginate(
+        items: List[Any],
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None
+    ) -> Tuple[List[Any], Optional[str]]:
+        if next_token is None:
+            next_token = "0"
+        if not next_token.isdigit():
+            return [], None
+        if max_results is None:
+            max_results = len(items)
+        new_token = int(next_token) + max_results
+        if new_token >= len(items):
+            return items[int(next_token):], None
+        return items[int(next_token): new_token], str(new_token)
+
+
 
 
 servicediscovery_backends = BackendDict(ServiceDiscoveryBackend, "servicediscovery")
