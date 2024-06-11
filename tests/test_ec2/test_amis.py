@@ -770,8 +770,7 @@ def test_ami_describe_executable_users():
     assert len(attributes["LaunchPermissions"]) == 1
     assert attributes["LaunchPermissions"][0]["UserId"] == USER1
     images = conn.describe_images(ExecutableUsers=[USER1])["Images"]
-    assert len(images) == 1
-    assert images[0]["ImageId"] == image_id
+    assert image_id in [image["ImageId"] for image in images]
 
 
 @mock_aws
@@ -796,7 +795,6 @@ def test_ami_describe_executable_users_negative():
     }
 
     # Add users and get no images
-    # Add users and get no images
     conn.modify_image_attribute(**ADD_USER_ARGS)
 
     attributes = conn.describe_image_attribute(
@@ -805,7 +803,7 @@ def test_ami_describe_executable_users_negative():
     assert len(attributes["LaunchPermissions"]) == 1
     assert attributes["LaunchPermissions"][0]["UserId"] == USER1
     images = conn.describe_images(ExecutableUsers=[USER2])["Images"]
-    assert len(images) == 0
+    assert image_id not in [image["ImageId"] for image in images]
 
 
 @mock_aws
@@ -841,8 +839,75 @@ def test_ami_describe_executable_users_and_filter():
     images = conn.describe_images(
         ExecutableUsers=[USER1], Filters=[{"Name": "state", "Values": ["available"]}]
     )["Images"]
-    assert len(images) == 1
-    assert images[0]["ImageId"] == image_id
+    assert image_id in [image["ImageId"] for image in images]
+
+
+@mock_aws
+def test_ami_describe_images_executable_user_public():
+    conn = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    response = conn.describe_instances(
+        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+    )
+    instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
+    public_image_id = conn.create_image(InstanceId=instance_id, Name="PublicImage")[
+        "ImageId"
+    ]
+    private_image_id = conn.create_image(InstanceId=instance_id, Name="PrivateImage")[
+        "ImageId"
+    ]
+
+    USER1 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
+    USER2 = "".join([f"{random.randint(0, 9)}" for _ in range(0, 12)])
+
+    SET_IMAGE_PUBLIC = {
+        "ImageId": public_image_id,
+        "Attribute": "launchPermission",
+        "OperationType": "add",
+        "UserGroups": ["all"],
+    }
+    conn.modify_image_attribute(**SET_IMAGE_PUBLIC)
+
+    SET_IMAGE_PRIVATE = {
+        "ImageId": private_image_id,
+        "Attribute": "launchPermission",
+        "OperationType": "add",
+        "UserIds": [USER2],
+    }
+    conn.modify_image_attribute(**SET_IMAGE_PRIVATE)
+
+    images = conn.describe_images(
+        ExecutableUsers=[USER1],
+    )["Images"]
+
+    image_ids = [image["ImageId"] for image in images]
+    assert public_image_id in image_ids
+    assert private_image_id not in image_ids
+
+
+@mock_aws
+def test_ami_describe_images_executable_users_self():
+    conn = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", "us-east-1")
+    ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    response = conn.describe_instances(
+        Filters=[{"Name": "instance-state-name", "Values": ["running"]}]
+    )
+    instance_id = response["Reservations"][0]["Instances"][0]["InstanceId"]
+    image_id = conn.create_image(InstanceId=instance_id, Name="PublicImage")["ImageId"]
+
+    SET_IMAGE_TO_SELF = {
+        "ImageId": image_id,
+        "Attribute": "launchPermission",
+        "OperationType": "add",
+        "UserIds": [ACCOUNT_ID],
+    }
+    conn.modify_image_attribute(**SET_IMAGE_TO_SELF)
+
+    images = conn.describe_images(ExecutableUsers=["self"])["Images"]
+
+    assert image_id in [image["ImageId"] for image in images]
 
 
 @mock_aws
