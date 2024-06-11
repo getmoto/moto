@@ -247,6 +247,31 @@ class Cluster:
             )
         self.backup_retention_period = kwargs.get("backup_retention_period") or 1
 
+        if backtrack := kwargs.get("backtrack_window"):
+            if self.engine == "aurora-mysql":
+                # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBCluster.html
+                if 0 <= backtrack <= 259200:
+                    self.backtrack_window: int = backtrack
+                else:
+                    raise InvalidParameterValue(
+                        f"The specified value ({backtrack}) is not a valid Backtrack Window. "
+                        "Allowed values are within the range of 0 to 259200"
+                    )
+            else:
+                raise InvalidParameterValue(
+                    "Backtrack is not enabled for the postgres engine."
+                )
+        else:
+            self.backtrack_window = 0
+
+        self.iam_auth: bool = False
+        if auth := kwargs.get("enable_iam_database_authentication", False):
+            if not self.engine.startswith("aurora-"):
+                raise InvalidParameterCombination(
+                    "IAM Authentication is currently not supported by Multi-AZ DB clusters."
+                )
+            self.iam_auth = auth
+
     @property
     def is_multi_az(self) -> bool:
         return (
@@ -330,7 +355,7 @@ class Cluster:
               {% endfor %}
               </AvailabilityZones>
               <BackupRetentionPeriod>{{ cluster.backup_retention_period }}</BackupRetentionPeriod>
-              <BacktrackWindow>0</BacktrackWindow>
+              <BacktrackWindow>{{ cluster.backtrack_window }}</BacktrackWindow>
               <DBInstanceStatus>{{ cluster.status }}</DBInstanceStatus>
               {% if cluster.db_name %}<DatabaseName>{{ cluster.db_name }}</DatabaseName>{% endif %}
               {% if cluster.kms_key_id %}<KmsKeyId>{{ cluster.kms_key_id }}</KmsKeyId>{% endif %}
@@ -384,7 +409,7 @@ class Cluster:
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
-              <IAMDatabaseAuthenticationEnabled>false</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ cluster.iam_auth | string | lower }}</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
@@ -592,7 +617,7 @@ class Database(CloudFormationModel):
         self.replicas: List[str] = []
         self.account_id: str = kwargs["account_id"]
         self.region_name: str = kwargs["region"]
-        self.engine = kwargs.get("engine")
+        self.engine: str = kwargs["engine"]
         if self.engine not in DbInstanceEngine.valid_db_instance_engine():
             raise InvalidParameterValue(
                 f"Value {self.engine} for parameter Engine is invalid. Reason: engine {self.engine} not supported"

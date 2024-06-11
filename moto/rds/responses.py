@@ -97,6 +97,7 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_int_param("AllocatedStorage"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
+            "backtrack_window": self._get_param("BacktrackWindow"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
@@ -184,7 +185,11 @@ class RDSResponse(BaseResponse):
             "availability_zones": self._get_multi_param(
                 "AvailabilityZones.AvailabilityZone"
             ),
+            "backtrack_window": self._get_int_param("BacktrackWindow"),
             "enable_cloudwatch_logs_exports": params.get("EnableCloudwatchLogsExports"),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
