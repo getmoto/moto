@@ -302,13 +302,19 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         result = {"Instances": [], "InstancesRevision": 0}
         for instance in page:
-            result["Instances"].append(instance.to_json())
+            result["Instances"].append(
+                {
+                    "InstanceId": instance.instance_id,
+                    "NamespaceName": namespace_name,
+                    "ServiceName": service_name,
+                    "Attributes": instance.attributes,
+                    "HealthStatus": instance.health_status,
+                }
+            )
             result["InstancesRevision"] += instances_revision[instance.id]
         if new_token:
             result["NextToken"] = new_token
-        return json.dumps(
-            dict(instances=instances, instancesRevision=instances_revision)
-        )
+        return json.dumps(result)
 
     def discover_instances_revision(self):
         params = self._get_params()
@@ -318,4 +324,4 @@ class ServiceDiscoveryResponse(BaseResponse):
             namespace_name=namespace_name,
             service_name=service_name,
         )
-        return json.dumps(dict(instancesRevision=instances_revision))
+        return json.dumps(dict(InstancesRevision=instances_revision))

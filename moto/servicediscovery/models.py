@@ -475,6 +475,55 @@ class ServiceDiscoveryBackend(BaseBackend):
         instance = self.get_instance(service_id, instance_id)
         instance.health_status = status
 
+    def _filter_instances(
+        self,
+        instances: List[ServiceInstance],
+        query_parameters: dict[str, str] = None,
+        optional_parameters: dict[str, str] = None,
+        health_status: str = None,
+    ) -> List[ServiceInstance]:
+        filtered_instances = []
+        has_healthy = False
+        for instance in instances:
+            # Filter out instances with mismatching health status
+            if (
+                instance.health_status not in ["ALL", "HEALTHY_OR_ELSE_ALL"]
+                and instance.health_status != health_status
+            ):
+                continue
+            # Record if there is at least one healthy instance for HEALTHY_OR_ELSE_ALL
+            if instance.health_status == "HEALTHY":
+                has_healthy = True
+            # Filter out instances with mismatching query parameters
+            matches_query = True
+            for param in query_parameters:
+                if instance.attributes.get(param) != query_parameters[param]:
+                    matches_query = False
+                    break
+            if not matches_query:
+                continue
+            # Add instance to the list if it passed all filters
+            filtered_instances.append(instance)
+        # Handle HEALTHY_OR_ELSE_ALL
+        if has_healthy and health_status == "HEALTHY_OR_ELSE_ALL":
+            filtered_instances = [
+                instance
+                for instance in filtered_instances
+                if instance.health_status == "HEALTHY"
+            ]
+        # Filter out instances with mismatching optional parameters
+        opt_filtered_instances = []
+        for instance in filtered_instances:
+            matches_optional = True
+            for param in optional_parameters:
+                if instance.attributes.get(param) != optional_parameters[param]:
+                    matches_optional = False
+                    break
+            if matches_optional:
+                opt_filtered_instances.append(instance)
+        # If no instances passed the optional parameters, return the original filtered list
+        return opt_filtered_instances if opt_filtered_instances else filtered_instances
+
     def discover_instances(
         self,
         namespace_name: str,
@@ -506,58 +555,20 @@ class ServiceDiscoveryBackend(BaseBackend):
         except IndexError:
             raise ServiceNotFound(service_name)
         instances = self.list_instances(service.id)
-        filtered_instances = []
-        has_healthy = False
-        for instance in instances:
-            if (
-                instance.health_status not in ["ALL", "HEALTHY_OR_ELSE_ALL"]
-                and instance.health_status != health_status
-            ):
-                continue
-            if instance.health_status == "HEALTHY":
-                has_healthy = True
-
-            matches_query = True
-            for param in query_parameters:
-                if instance.attributes.get(param) != query_parameters[param]:
-                    matches_query = False
-                    break
-            if not matches_query:
-                continue
-
-            filtered_instances.append(instance)
-
-        if has_healthy and health_status == "HEALTHY_OR_ELSE_ALL":
-            filtered_instances = [
-                instance
-                for instance in filtered_instances
-                if instance.health_status == "HEALTHY"
-            ]
-
-        opt_filtered_instances = []
-        for instance in filtered_instances:
-            matches_optional = True
-            for param in optional_parameters:
-                if instance.attributes.get(param) != optional_parameters[param]:
-                    matches_optional = False
-                    break
-            if matches_optional:
-                opt_filtered_instances.append(instance)
-
-        final_instances = (
-            opt_filtered_instances if opt_filtered_instances else filtered_instances
+        # Filter instances based on query parameters, optional parameters, and health status
+        final_instances = self._filter_instances(
+            instances, query_parameters, optional_parameters, health_status
         )
-
+        # Get the revision number for each instance that passed the filters
         instance_revisions = {
             instance.instance_id: service.instances_revision.get(
                 instance.instance_id, 0
             )
             for instance in final_instances
         }
-
         return final_instances, instance_revisions
 
-    def discover_instances_revision(self, namespace_name, service_name):
+    def discover_instances_revision(self, namespace_name: str, service_name: str):
         return sum(self.discover_instances(namespace_name, service_name)[1].values())
 
     @staticmethod

@@ -171,3 +171,227 @@ def test_update_instance_custom_health_status(client, ns_resp, srv_resp):
         ServiceId=srv_resp["Service"]["Id"]
     )
     assert health_status["Status"][instance_id] == "UNHEALTHY"
+
+
+@mock_aws
+def test_discover_instances_formatting(client, ns_resp, srv_resp):
+    attr_dict = {"attr1": "value1", "attr2": "value1"}
+    client.register_instance(
+        ServiceId=srv_resp["Service"]["Id"], InstanceId="i-123", Attributes=attr_dict
+    )
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        MaxResults=2,
+    )
+
+    assert len(instances["Instances"]) == 1
+    assert instances["Instances"][0]["InstanceId"] == "i-123"
+    assert instances["Instances"][0]["NamespaceName"] == ns_resp["Namespace"]["Name"]
+    assert instances["Instances"][0]["ServiceName"] == srv_resp["Service"]["Name"]
+    assert instances["Instances"][0]["Attributes"] == attr_dict
+    assert instances["Instances"][0]["HealthStatus"] == "HEALTHY"
+    assert instances["InstancesRevision"] == 1
+
+
+@mock_aws
+def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
+    instance_dicts = [
+        {"id": "i-123", "attributes": {"attr1": "value1", "attr2": "value1"}},
+        {"id": "i-456", "attributes": {"attr1": "value2"}},
+        {"id": "i-789", "attributes": {"attr1": "value3", "attr2": "value1"}},
+        {"id": "i-012", "attributes": {"attr1": "value3"}},
+    ]
+    for inst_dict in instance_dicts:
+        client.register_instance(
+            ServiceId=srv_resp["Service"]["Id"],
+            InstanceId=inst_dict["id"],
+            Attributes=inst_dict["attributes"],
+        )
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+    )
+    assert len(instances["Instances"]) == 4
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-123",
+        "i-456",
+        "i-789",
+        "i-012",
+    }
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        QueryParameters={"attr1": "value3"},
+    )
+    assert len(instances["Instances"]) == 2
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-789",
+        "i-012",
+    }
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        QueryParameters={"attr1": "value3"},
+        OptionalParameters={"attr2": "value1"},
+    )
+    assert len(instances["Instances"]) == 1
+    assert instances["Instances"][0]["InstanceId"] == "i-789"
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        QueryParameters={"attr1": "value3"},
+        OptionalParameters={"attr2": "value2"},
+    )
+    assert len(instances["Instances"]) == 2
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-789",
+        "i-012",
+    }
+
+
+@mock_aws
+def test_discover_instances_health_filters(client, ns_resp, srv_resp):
+    instance_dicts = [
+        {"id": "i-123"},
+        {"id": "i-456"},
+        {"id": "i-789", "health": "UNHEALTHY"},
+        {"id": "i-012", "health": "UNHEALTHY"},
+    ]
+    for inst_dict in instance_dicts:
+        client.register_instance(
+            ServiceId=srv_resp["Service"]["Id"],
+            InstanceId=inst_dict["id"],
+        )
+        if "health" in inst_dict:
+            client.update_instance_custom_health_status(
+                ServiceId=srv_resp["Service"]["Id"],
+                InstanceId=inst_dict["id"],
+                Status=inst_dict["health"],
+            )
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        HealthStatus="ALL",
+    )
+    assert len(instances["Instances"]) == 4
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-123",
+        "i-456",
+        "i-789",
+        "i-012",
+    }
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        HealthStatus="UNHEALTHY",
+    )
+    assert len(instances["Instances"]) == 2
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-789",
+        "i-012",
+    }
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        HealthStatus="HEALTHY",
+    )
+    assert len(instances["Instances"]) == 2
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-123",
+        "i-456",
+    }
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        HealthStatus="HEALTHY_OR_ELSE_ALL",
+    )
+    assert len(instances["Instances"]) == 2
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-123",
+        "i-456",
+    }
+
+    client.update_instance_custom_health_status(
+        ServiceId=srv_resp["Service"]["Id"],
+        InstanceId="i-123",
+        Status="UNHEALTHY",
+    )
+    client.update_instance_custom_health_status(
+        ServiceId=srv_resp["Service"]["Id"],
+        InstanceId="i-456",
+        Status="UNHEALTHY",
+    )
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        HealthStatus="HEALTHY_OR_ELSE_ALL",
+    )
+    assert len(instances["Instances"]) == 4
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == {
+        "i-123",
+        "i-456",
+        "i-789",
+        "i-012",
+    }
+
+
+@mock_aws
+def test_paginate_discover_instances(client, ns_resp, srv_resp):
+    instance_ids = ["i-123", "i-456", "i-789", "i-012"]
+    for instance_id in instance_ids:
+        client.register_instance(
+            ServiceId=srv_resp["Service"]["Id"], InstanceId=instance_id
+        )
+
+    instances = client.discover_instances(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+        MaxResults=2,
+    )
+    assert len(instances["Instances"]) == 2
+    assert "NextToken" in instances
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == set(
+        instance_ids[:2]
+    )
+
+    instances = client.list_instances(
+        ServiceId=srv_resp["Service"]["Id"], NextToken=instances["NextToken"]
+    )
+    assert len(instances["Instances"]) == 2
+    assert "NextToken" not in instances
+    assert set(inst["InstanceId"] for inst in instances["Instances"]) == set(
+        instance_ids[2:]
+    )
+
+
+@mock_aws
+def test_discover_instances_revision(client, ns_resp, srv_resp):
+    instance_ids = ["i-123", "i-456", "i-789", "i-012"]
+    for instance_id in instance_ids:
+        client.register_instance(
+            ServiceId=srv_resp["Service"]["Id"], InstanceId=instance_id
+        )
+
+    revisions = client.discover_instances_revision(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+    )
+    assert revisions["InstancesRevision"] == 4
+
+    client.deregister_instance(ServiceId=srv_resp["Service"]["Id"], InstanceId="i-123")
+    client.register_instance(ServiceId=srv_resp["Service"]["Id"], InstanceId="i-123")
+    revisions = client.discover_instances_revision(
+        NamespaceName=ns_resp["Namespace"]["Name"],
+        ServiceName=srv_resp["Service"]["Name"],
+    )
+    assert revisions["InstancesRevision"] == 6
