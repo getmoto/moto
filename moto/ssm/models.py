@@ -1187,6 +1187,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
+        self.ssm_prefix = f"arn:aws:ssm:{self.region_name}:{self.account_id}:parameter"
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
@@ -1915,6 +1916,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         return True
 
     def get_parameter(self, name: str) -> Optional[Parameter]:
+        if name.startswith(self.ssm_prefix):
+            name = name.replace(self.ssm_prefix, "")
+
         name_parts = name.split(":")
         name_prefix = name_parts[0]
 
