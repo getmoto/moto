@@ -93,7 +93,7 @@ class Service(BaseModel):
         self.service_type = service_type
         self.created = unix_time()
         self.instances: List[ServiceInstance] = []
-        self.instances_revision = 0
+        self.instances_revision = {}
 
     def update(self, details: Dict[str, Any]) -> None:
         if "Description" in details:
@@ -415,7 +415,9 @@ class ServiceDiscoveryBackend(BaseBackend):
             attributes=attributes,
         )
         service.instances.append(instance)
-        service.instances_revision += 1
+        service.instances_revision[instance_id] = (
+            service.instances_revision.get(instance_id, 0) + 1
+        )
         operation_id = self._create_operation(
             "REGISTER_INSTANCE", targets={"INSTANCE": instance_id}
         )
@@ -426,7 +428,9 @@ class ServiceDiscoveryBackend(BaseBackend):
         for instance in service.instances:
             if instance.instance_id == instance_id:
                 service.instances.remove(instance)
-                service.instances_revision += 1
+                service.instances_revision[instance_id] = (
+                    service.instances_revision.get(instance_id, 0) + 1
+                )
                 operation_id = self._create_operation(
                     "DEREGISTER_INSTANCE", targets={"INSTANCE": instance_id}
                 )
@@ -470,6 +474,82 @@ class ServiceDiscoveryBackend(BaseBackend):
             raise CustomHealthNotFound(service_id)
         instance = self.get_instance(service_id, instance_id)
         instance.health_status = status
+
+    def discover_instances(
+        self,
+        namespace_name: str,
+        service_name: str,
+        query_parameters: dict[str, str],
+        optional_parameters: dict[str, str],
+        health_status: str,
+    ):
+        if health_status not in ["HEALTHY", "UNHEALTHY", "ALL", "HEALTHY_OR_ELSE_ALL"]:
+            raise InvalidInput("Invalid health status")
+        try:
+            namespace = [
+                ns for ns in self.list_namespaces() if ns.name == namespace_name
+            ][0]
+        except IndexError:
+            raise NamespaceNotFound(namespace_name)
+        try:
+            service = [
+                srv
+                for srv in self.list_services()
+                if srv.name == service_name and srv.namespace_id == namespace.id
+            ][0]
+        except IndexError:
+            raise ServiceNotFound(service_name)
+        instances = self.list_instances(service.id)
+        filtered_instances = []
+        has_healthy = False
+        for instance in instances:
+            if (
+                instance.health_status not in ["ALL", "HEALTHY_OR_ELSE_ALL"]
+                and instance.health_status != health_status
+            ):
+                continue
+            if instance.health_status == "HEALTHY":
+                has_healthy = True
+
+            matches_query = True
+            for param in query_parameters:
+                if instance.attributes.get(param) != query_parameters[param]:
+                    matches_query = False
+                    break
+            if not matches_query:
+                continue
+
+            filtered_instances.append(instance)
+
+        if has_healthy and health_status == "HEALTHY_OR_ELSE_ALL":
+            filtered_instances = [
+                instance
+                for instance in filtered_instances
+                if instance.health_status == "HEALTHY"
+            ]
+
+        opt_filtered_instances = []
+        for instance in filtered_instances:
+            matches_optional = True
+            for param in optional_parameters:
+                if instance.attributes.get(param) != optional_parameters[param]:
+                    matches_optional = False
+                    break
+            if matches_optional:
+                opt_filtered_instances.append(instance)
+
+        final_instances = (
+            opt_filtered_instances if opt_filtered_instances else filtered_instances
+        )
+
+        instance_revisions = {
+            instance.instance_id: service.instances_revision.get(
+                instance.instance_id, 0
+            )
+            for instance in final_instances
+        }
+
+        return final_instances, instance_revisions
 
     @staticmethod
     def paginate(

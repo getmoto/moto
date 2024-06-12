@@ -279,3 +279,33 @@ class ServiceDiscoveryResponse(BaseResponse):
         if new_token:
             result["NextToken"] = new_token
         return json.dumps(result)
+
+    def discover_instances(self):
+        params = self._get_params()
+        namespace_name = params.get("NamespaceName")
+        service_name = params.get("ServiceName")
+        max_results = params.get("MaxResults")
+        query_parameters = params.get("QueryParameters")
+        optional_parameters = params.get("OptionalParameters")
+        health_status = params.get("HealthStatus")
+        instances, instances_revision = (
+            self.servicediscovery_backend.discover_instances(
+                namespace_name=namespace_name,
+                service_name=service_name,
+                query_parameters=query_parameters,
+                optional_parameters=optional_parameters,
+                health_status=health_status,
+            )
+        )
+        page, new_token = self.servicediscovery_backend.paginate(
+            instances, max_results=max_results
+        )
+        result = {"Instances": [], "InstancesRevision": 0}
+        for instance in page:
+            result["Instances"].append(instance.to_json())
+            result["InstancesRevision"] += instances_revision[instance.id]
+        if new_token:
+            result["NextToken"] = new_token
+        return json.dumps(
+            dict(instances=instances, instancesRevision=instances_revision)
+        )
