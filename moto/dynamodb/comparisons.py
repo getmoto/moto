@@ -7,6 +7,14 @@ from moto.dynamodb.models.dynamo_type import Item
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
+def create_condition_expression_parser(
+    expr: Optional[str],
+    names: Optional[Dict[str, str]],
+    values: Optional[Dict[str, Dict[str, str]]],
+) -> "ConditionExpressionParser":
+    return ConditionExpressionParser(expr, names, values)
+
+
 def get_filter_expression(
     expr: Optional[str],
     names: Optional[Dict[str, str]],
@@ -19,7 +27,7 @@ def get_filter_expression(
         expr = 'Id > 5 AND attribute_exists(test) AND Id BETWEEN 5 AND 6 OR length < 6 AND contains(test, 1) AND 5 IN (4,5, 6) OR (Id < 5 AND 5 > Id)'
         expr = 'Id > 5 AND Subs < 7'
     """
-    parser = ConditionExpressionParser(expr, names, values)
+    parser = create_condition_expression_parser(expr, names, values)
     return parser.parse()
 
 
@@ -151,6 +159,8 @@ class ConditionExpressionParser:
         self.expression_attribute_names = expression_attribute_names
         self.expression_attribute_values = expression_attribute_values
 
+        self.expr_attr_names_found: List[str] = []
+
     def parse(self) -> Union[Op, "Func"]:
         """Returns a syntax tree for the expression.
 
@@ -202,6 +212,9 @@ class ConditionExpressionParser:
         nodes = self._apply_between(nodes)
         nodes = self._apply_parens_and_booleans(nodes)
         node = nodes[0]
+
+        self.expr_attr_names_found.extend(self._find_literals(node))
+
         op = self._make_op_condition(node)
         return op
 
@@ -247,6 +260,16 @@ class ConditionExpressionParser:
         WHITESPACE = "WHITESPACE"
 
     Node = namedtuple("Node", ["nonterminal", "kind", "text", "value", "children"])
+
+    @classmethod
+    def _find_literals(cls, parent: Node) -> List[str]:  # type: ignore
+        literals: List[str] = []
+        if parent.kind == "LITERAL" and parent.nonterminal == "IDENTIFIER":
+            literals.append(parent.text)
+        else:
+            for child in parent.children:
+                literals.extend(cls._find_literals(child))
+        return literals
 
     @classmethod
     def raise_exception_if_keyword(cls, attribute: str) -> None:

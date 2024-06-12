@@ -2352,6 +2352,10 @@
   "Location": "apse2-az1"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "apse2-az1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "apse2-az1"
  },
@@ -4696,6 +4700,10 @@
   "Location": "apse2-az2"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "apse2-az2"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "apse2-az2"
  },
@@ -7029,6 +7037,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "apse2-az3"
  },
  {

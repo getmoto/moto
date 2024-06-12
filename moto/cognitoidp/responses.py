@@ -307,8 +307,15 @@ class CognitoIdpResponse(BaseResponse):
     def admin_list_groups_for_user(self) -> str:
         username = self._get_param("Username")
         user_pool_id = self._get_param("UserPoolId")
-        groups = self.backend.admin_list_groups_for_user(user_pool_id, username)
-        return json.dumps({"Groups": [group.to_json() for group in groups]})
+        limit = self._get_param("Limit")
+        token = self._get_param("NextToken")
+        groups, token = self.backend.admin_list_groups_for_user(
+            user_pool_id, username, limit=limit, next_token=token
+        )
+        response = {"Groups": [group.to_json() for group in groups]}
+        if token:
+            response["NextToken"] = token
+        return json.dumps(response)
 
     def admin_remove_user_from_group(self) -> str:
         user_pool_id = self._get_param("UserPoolId")
