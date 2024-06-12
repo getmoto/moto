@@ -309,3 +309,13 @@ class ServiceDiscoveryResponse(BaseResponse):
         return json.dumps(
             dict(instances=instances, instancesRevision=instances_revision)
         )
+
+    def discover_instances_revision(self):
+        params = self._get_params()
+        namespace_name = params.get("NamespaceName")
+        service_name = params.get("ServiceName")
+        instances_revision = self.servicediscovery_backend.discover_instances_revision(
+            namespace_name=namespace_name,
+            service_name=service_name,
+        )
+        return json.dumps(dict(instancesRevision=instances_revision))

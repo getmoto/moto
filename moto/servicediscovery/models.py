@@ -479,10 +479,16 @@ class ServiceDiscoveryBackend(BaseBackend):
         self,
         namespace_name: str,
         service_name: str,
-        query_parameters: dict[str, str],
-        optional_parameters: dict[str, str],
-        health_status: str,
+        query_parameters: dict[str, str] = None,
+        optional_parameters: dict[str, str] = None,
+        health_status: str = None,
     ):
+        if query_parameters is None:
+            query_parameters = {}
+        if optional_parameters is None:
+            optional_parameters = {}
+        if health_status is None:
+            health_status = "ALL"
         if health_status not in ["HEALTHY", "UNHEALTHY", "ALL", "HEALTHY_OR_ELSE_ALL"]:
             raise InvalidInput("Invalid health status")
         try:
@@ -550,6 +556,9 @@ class ServiceDiscoveryBackend(BaseBackend):
         }
 
         return final_instances, instance_revisions
+
+    def discover_instances_revision(self, namespace_name, service_name):
+        return sum(self.discover_instances(namespace_name, service_name)[1].values())
 
     @staticmethod
     def paginate(
