@@ -23,6 +23,7 @@ emr-serverless
 - [ ] get_dashboard_for_job_run
 - [X] get_job_run
 - [X] list_applications
+- [ ] list_job_run_attempts
 - [X] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
