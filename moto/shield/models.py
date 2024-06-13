@@ -23,11 +23,11 @@ class Protection(BaseModel):
         self.resource_arn = resource_arn
         self.protection_id = str(mock_random.uuid4())
         self.tags = tags
-        self.health_check_ids: list[
+        self.health_check_ids: List[
             str
         ] = []  # value is returned in associate_health_check method.
         # value is returned in enable_application_layer_automatic_response and disable_application_layer_automatic_response methods.
-        self.application_layer_automatic_response_configuration: dict[str, Any] = {}
+        self.application_layer_automatic_response_configuration: Dict[str, Any] = {}
         self.protection_arn = (
             f"arn:aws:shield::{account_id}:protection/{self.protection_id}"
         )
