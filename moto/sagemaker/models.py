@@ -1476,7 +1476,7 @@ class Cluster(BaseObject):
                 "s3://sagemaker-"
             ):
                 raise ValidationError(
-                    message=f"Validation Error: SourceS3Uri {instance_group["LifeCycleConfig"]["SourceS3Uri"]} does not start with 's3://sagemaker'."
+                    message=f"Validation Error: SourceS3Uri {instance_group['LifeCycleConfig']['SourceS3Uri']} does not start with 's3://sagemaker'."
                 )
         self.vpc_config = vpc_config
         self.tags = tags or []
