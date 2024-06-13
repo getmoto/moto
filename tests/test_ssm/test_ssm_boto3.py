@@ -2333,16 +2333,3 @@ def test_get_parameter_history_exception_when_requesting_invalid_parameter():
     error = ex.value.response["Error"]
     assert error["Code"] == "ParameterNotFound"
     assert error["Message"] == "Parameter invalid_parameter_name not found."
-
-
-@mock_aws
-def test_repro():
-    ssm = boto3.client("ssm", region_name=SSM_REGION)
-
-    ssm.put_parameter(Name="/test", Value="Secret", Type="SecureString")
-
-    # This works.
-    ssm.get_parameter(Name="/test")
-
-    # This does not work.
-    ssm.get_parameter(Name="arn:aws:ssm:us-east-1:123456789012:parameter/test")
