@@ -604,6 +604,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "connection_logs.s3.bucket",
         "connection_logs.s3.enabled",
         "connection_logs.s3.prefix",
+        "client_keep_alive.seconds",
         "deletion_protection.enabled",
         "dns_record.client_routing_policy",
         "idle_timeout.timeout_seconds",
