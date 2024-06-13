@@ -183,13 +183,23 @@ def test_list_protections_with_only_resource_type():
         Name="shield1",
         ResourceArn="arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/foobar",
     )
-    resp = client.list_protections(
+    client.create_protection(
+        Name="shield1",
+        ResourceArn="arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/my-load-balancer/1234567890123456",
+    )
+    resp_elb = client.list_protections(
         InclusionFilters={
             "ResourceTypes": ["CLASSIC_LOAD_BALANCER"],
         }
     )
-    assert "Protections" in resp
-    assert len(resp["Protections"]) == 1
+    assert "Protections" in resp_elb
+    assert len(resp_elb["Protections"]) == 1
+    resp_alb = client.list_protections(
+        InclusionFilters={
+            "ResourceTypes": ["APPLICATION_LOAD_BALANCER"],
+        }
+    )
+    assert len(resp_alb["Protections"]) == 1
 
 
 @mock_aws

@@ -40,7 +40,7 @@ class Protection(BaseModel):
         }
         res_type = resource_arn.split(":")[2]
         if res_type == "elasticloadbalancing":
-            if resource_arn.split(":")[-1][1] == "app":
+            if resource_arn.split(":")[-1].split("/")[1] == "app":
                 self.resource_type = "APPLICATION_LOAD_BALANCER"
             else:
                 self.resource_type = "CLASSIC_LOAD_BALANCER"
