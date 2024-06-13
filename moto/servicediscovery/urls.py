@@ -3,7 +3,7 @@
 from .responses import ServiceDiscoveryResponse
 
 url_bases = [
-    r"https?://servicediscovery\.(.+)\.amazonaws\.com",
+    r"https?://(data-)?servicediscovery\.(.+)\.amazonaws\.com",
 ]
 
 

@@ -174,6 +174,18 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(OperationId=operation_id))
 
+    def update_http_namespace(self):
+        params = json.loads(self.body)
+        _id = params.get("Id")
+        updater_request_id = params.get("UpdaterRequestId")
+        namespace = params.get("Namespace")
+        operation_id = self.servicediscovery_backend.update_http_namespace(
+            _id=_id,
+            updater_request_id=updater_request_id,
+            namespace_dict=namespace,
+        )
+        return json.dumps(dict(operationId=operation_id))
+
     def update_private_dns_namespace(self) -> str:
         params = json.loads(self.body)
         _id = params.get("Id")
@@ -281,7 +293,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         return json.dumps(result)
 
     def discover_instances(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         namespace_name = params.get("NamespaceName")
         service_name = params.get("ServiceName")
         max_results = params.get("MaxResults")
@@ -311,13 +323,11 @@ class ServiceDiscoveryResponse(BaseResponse):
                     "HealthStatus": instance.health_status,
                 }
             )
-            result["InstancesRevision"] += instances_revision[instance.id]
-        if new_token:
-            result["NextToken"] = new_token
+            result["InstancesRevision"] += instances_revision[instance.instance_id]
         return json.dumps(result)
 
     def discover_instances_revision(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         namespace_name = params.get("NamespaceName")
         service_name = params.get("ServiceName")
         instances_revision = self.servicediscovery_backend.discover_instances_revision(

@@ -145,7 +145,7 @@ class ServiceInstance(BaseModel):
     def to_json(self) -> Dict[str, Any]:
         return {
             "Id": self.instance_id,
-            "CreatorRequestId": self.service_id,
+            "CreatorRequestId": self.creator_request_id,
             "Attributes": self.attributes,
         }
 
@@ -188,7 +188,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         """
         Pagination or the Filters-parameter is not yet implemented
         """
-        return self.namespaces.values()
+        return list(self.namespaces.values())
 
     def create_http_namespace(
         self,
@@ -374,6 +374,30 @@ class ServiceDiscoveryBackend(BaseBackend):
         )
         return operation_id
 
+    def update_http_namespace(
+        self,
+        _id: str,
+        namespace_dict: dict[str, Any],
+        updater_request_id: Optional[str] = None,
+    ) -> str:
+        if "Description" not in namespace_dict:
+            raise InvalidInput("Description is required")
+
+        namespace = self.get_namespace(namespace_id=_id)
+        if updater_request_id is None:
+            # Unused as the operation cannot fail
+            updater_request_id = random_id(32)
+        namespace.description = namespace_dict["Description"]
+        if "Properties" in namespace_dict:
+            if "HttpProperties" in namespace_dict["Properties"]:
+                namespace.http_properties = namespace_dict["Properties"][
+                    "HttpProperties"
+                ]
+        operation_id = self._create_operation(
+            "UPDATE_NAMESPACE", targets={"NAMESPACE": namespace.id}
+        )
+        return operation_id
+
     def update_private_dns_namespace(
         self, _id: str, description: str, properties: Dict[str, Any]
     ) -> str:
@@ -425,7 +449,9 @@ class ServiceDiscoveryBackend(BaseBackend):
 
     def deregister_instance(self, service_id: str, instance_id: str) -> str:
         service = self.get_service(service_id)
-        for instance in service.instances:
+        i = 0
+        while i < len(service.instances):
+            instance = service.instances[i]
             if instance.instance_id == instance_id:
                 service.instances.remove(instance)
                 service.instances_revision[instance_id] = (
@@ -435,7 +461,8 @@ class ServiceDiscoveryBackend(BaseBackend):
                     "DEREGISTER_INSTANCE", targets={"INSTANCE": instance_id}
                 )
                 return operation_id
-        raise InstanceNotFound(service_id)
+            i += 1
+        raise InstanceNotFound(instance_id)
 
     def list_instances(self, service_id: str) -> List[ServiceInstance]:
         service = self.get_service(service_id)
@@ -445,7 +472,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         for instance in self.list_instances(service_id):
             if instance.instance_id == instance_id:
                 return instance
-        raise InstanceNotFound(service_id)
+        raise InstanceNotFound(instance_id)
 
     def get_instances_health_status(
         self,
@@ -456,7 +483,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         status = []
         if instances is None:
             instances = [instance.instance_id for instance in service.instances]
-        if isinstance(instances, list):
+        if not isinstance(instances, list):
             raise InvalidInput("Instances must be a list")
         filtered_instances = [
             instance
@@ -478,16 +505,16 @@ class ServiceDiscoveryBackend(BaseBackend):
     def _filter_instances(
         self,
         instances: List[ServiceInstance],
-        query_parameters: dict[str, str] = None,
-        optional_parameters: dict[str, str] = None,
-        health_status: str = None,
+        query_parameters: Optional[dict[str, str]] = None,
+        optional_parameters: Optional[dict[str, str]] = None,
+        health_status: Optional[str] = None,
     ) -> List[ServiceInstance]:
         filtered_instances = []
         has_healthy = False
         for instance in instances:
             # Filter out instances with mismatching health status
             if (
-                instance.health_status not in ["ALL", "HEALTHY_OR_ELSE_ALL"]
+                health_status not in ["ALL", "HEALTHY_OR_ELSE_ALL"]
                 and instance.health_status != health_status
             ):
                 continue
@@ -528,10 +555,10 @@ class ServiceDiscoveryBackend(BaseBackend):
         self,
         namespace_name: str,
         service_name: str,
-        query_parameters: dict[str, str] = None,
-        optional_parameters: dict[str, str] = None,
-        health_status: str = None,
-    ):
+        query_parameters: Optional[dict[str, str]] = None,
+        optional_parameters: Optional[dict[str, str]] = None,
+        health_status: Optional[str] = None,
+    ) -> Tuple[List[ServiceInstance], Dict[str, int]]:
         if query_parameters is None:
             query_parameters = {}
         if optional_parameters is None:
@@ -577,13 +604,20 @@ class ServiceDiscoveryBackend(BaseBackend):
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
     ) -> Tuple[List[Any], Optional[str]]:
+        """
+        Paginates a list of items. If called without optional parameters, the entire list is returned as-is.
+        """
+        # Default to beginning of list
         if next_token is None:
             next_token = "0"
+        # Return empty list if next_token is invalid
         if not next_token.isdigit():
             return [], None
+        # Default to the entire list
         if max_results is None:
             max_results = len(items)
         new_token = int(next_token) + max_results
+        # If the new token overflows the list, return the rest of the list
         if new_token >= len(items):
             return items[int(next_token) :], None
         return items[int(next_token) : new_token], str(new_token)
