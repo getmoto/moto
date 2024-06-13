@@ -49,6 +49,16 @@ def test_create_protection_invalid_resource():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidResourceException"
+    assert err["Message"] == "Unrecognized resource 'table' of service 'dynamodb'."
+
+    with pytest.raises(ClientError) as exc:
+        client.create_protection(
+            Name="foobar",
+            ResourceArn="arn:aws:sns:us-east-2:123456789012:MyTopic",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidResourceException"
+    assert err["Message"] == "Relative ID must be in the form '<resource>/<id>'."
 
 
 @mock_aws
