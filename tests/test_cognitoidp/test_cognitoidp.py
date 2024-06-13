@@ -1950,6 +1950,42 @@ def test_admin_list_groups_for_user_ignores_deleted_group():
 
 
 @mock_aws
+def test_admin_list_groups_for_users_returns_pagination_tokens():
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    # Given a user
+    username = str(uuid.uuid4())
+    conn.admin_create_user(UserPoolId=user_pool_id, Username=username)
+    # And given 10 groups
+    group_count = 10
+    for idx in range(group_count):
+        group_name = f"group_{idx}"
+        conn.create_group(UserPoolId=user_pool_id, GroupName=group_name)
+        conn.admin_add_user_to_group(
+            UserPoolId=user_pool_id, Username=username, GroupName=group_name
+        )
+
+    # When listing groups for the user pagination tokens are returned if limit is reached.
+    max_results = 5
+    result = conn.admin_list_groups_for_user(
+        UserPoolId=user_pool_id, Username=username, Limit=max_results
+    )
+    assert len(result["Groups"]) == max_results
+    assert "NextToken" in result
+
+    next_token = result["NextToken"]
+    result_2 = conn.admin_list_groups_for_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        Limit=max_results,
+        NextToken=next_token,
+    )
+    assert len(result_2["Groups"]) == max_results
+    assert "NextToken" not in result_2
+
+
+@mock_aws
 def test_admin_remove_user_from_group():
     conn = boto3.client("cognito-idp", "us-west-2")
 
