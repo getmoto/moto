@@ -676,7 +676,7 @@
 
 ## batch
 <details>
-<summary>100% implemented</summary>
+<summary>96% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
@@ -691,6 +691,7 @@
 - [X] describe_job_queues
 - [X] describe_jobs
 - [X] describe_scheduling_policies
+- [ ] get_job_queue_snapshot
 - [X] list_jobs
 - [X] list_scheduling_policies
 - [X] list_tags_for_resource
@@ -3301,7 +3302,7 @@
 
 ## emr-serverless
 <details>
-<summary>73% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] cancel_job_run
 - [X] create_application
@@ -3310,6 +3311,7 @@
 - [ ] get_dashboard_for_job_run
 - [X] get_job_run
 - [X] list_applications
+- [ ] list_job_run_attempts
 - [X] list_job_runs
 - [ ] list_tags_for_resource
 - [X] start_application
@@ -7435,7 +7437,7 @@
 
 ## servicediscovery
 <details>
-<summary>66% implemented</summary>
+<summary>100% implemented</summary>
 
 - [X] create_http_namespace
 - [X] create_private_dns_namespace
@@ -7443,24 +7445,24 @@
 - [X] create_service
 - [X] delete_namespace
 - [X] delete_service
-- [ ] deregister_instance
-- [ ] discover_instances
-- [ ] discover_instances_revision
-- [ ] get_instance
-- [ ] get_instances_health_status
+- [X] deregister_instance
+- [X] discover_instances
+- [X] discover_instances_revision
+- [X] get_instance
+- [X] get_instances_health_status
 - [X] get_namespace
 - [X] get_operation
 - [X] get_service
-- [ ] list_instances
+- [X] list_instances
 - [X] list_namespaces
 - [X] list_operations
 - [X] list_services
 - [X] list_tags_for_resource
-- [ ] register_instance
+- [X] register_instance
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_http_namespace
-- [ ] update_instance_custom_health_status
+- [X] update_http_namespace
+- [X] update_instance_custom_health_status
 - [X] update_private_dns_namespace
 - [X] update_public_dns_namespace
 - [X] update_service
@@ -8347,7 +8349,6 @@
 
 - accessanalyzer
 - account
-- alexaforbusiness
 - amplify
 - amplifybackend
 - amplifyuibuilder
@@ -8356,6 +8357,7 @@
 - appflow
 - appintegrations
 - application-insights
+- application-signals
 - applicationcostprofiler
 - appmesh
 - apprunner
@@ -8445,7 +8447,6 @@
 - groundstation
 - health
 - healthlake
-- honeycode
 - imagebuilder
 - importexport
 - inspector
@@ -8580,6 +8581,7 @@
 - supplychain
 - support-app
 - synthetics
+- taxsettings
 - timestream-influxdb
 - timestream-query
 - tnb
