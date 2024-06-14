@@ -5,14 +5,14 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 
 
-@pytest.fixture
-def client():
+@pytest.fixture(name="client")
+def client_fixture():
     with mock_aws():
         yield boto3.client("servicediscovery", region_name="eu-west-1")
 
 
-@pytest.fixture
-def ns_resp(client):
+@pytest.fixture(name="ns_resp")
+def ns_resp_fixture(client):
     client.create_http_namespace(Name="mynamespace")
     namespace = [
         ns
@@ -22,8 +22,8 @@ def ns_resp(client):
     return dict(Namespace=namespace)
 
 
-@pytest.fixture
-def srv_resp(client, ns_resp):
+@pytest.fixture(name="srv_resp")
+def srv_resp_fixture(client, ns_resp):
     return client.create_service(
         Name="myservice",
         NamespaceId=ns_resp["Namespace"]["Id"],

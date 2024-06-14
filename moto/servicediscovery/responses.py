@@ -1,6 +1,7 @@
 """Handles incoming servicediscovery requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -174,7 +175,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         )
         return json.dumps(dict(OperationId=operation_id))
 
-    def update_http_namespace(self):
+    def update_http_namespace(self) -> str:
         params = json.loads(self.body)
         _id = params.get("Id")
         updater_request_id = params.get("UpdaterRequestId")
@@ -257,7 +258,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             status_records, max_results=max_results, next_token=next_token
         )
-        result = {"Status": {}}
+        result: dict[str, Any] = {"Status": {}}
         for record in page:
             result["Status"][record[0]] = record[1]
         if new_token:
@@ -285,14 +286,14 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             instances, max_results=max_results, next_token=next_token
         )
-        result = {"Instances": []}
+        result: dict[str, Any] = {"Instances": []}
         for instance in page:
             result["Instances"].append(instance.to_json())
         if new_token:
             result["NextToken"] = new_token
         return json.dumps(result)
 
-    def discover_instances(self):
+    def discover_instances(self) -> str:
         params = json.loads(self.body)
         namespace_name = params.get("NamespaceName")
         service_name = params.get("ServiceName")
@@ -312,9 +313,10 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             instances, max_results=max_results
         )
-        result = {"Instances": [], "InstancesRevision": 0}
+        result_instances: list[dict[str, Any]] = []
+        instances_revision_total = 0
         for instance in page:
-            result["Instances"].append(
+            result_instances.append(
                 {
                     "InstanceId": instance.instance_id,
                     "NamespaceName": namespace_name,
@@ -323,10 +325,15 @@ class ServiceDiscoveryResponse(BaseResponse):
                     "HealthStatus": instance.health_status,
                 }
             )
-            result["InstancesRevision"] += instances_revision[instance.instance_id]
-        return json.dumps(result)
+            instances_revision_total += instances_revision[instance.instance_id]
+        return json.dumps(
+            {
+                "Instances": result_instances,
+                "InstancesRevision": instances_revision_total,
+            }
+        )
 
-    def discover_instances_revision(self):
+    def discover_instances_revision(self) -> str:
         params = json.loads(self.body)
         namespace_name = params.get("NamespaceName")
         service_name = params.get("ServiceName")

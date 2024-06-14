@@ -93,7 +93,7 @@ class Service(BaseModel):
         self.service_type = service_type
         self.created = unix_time()
         self.instances: List[ServiceInstance] = []
-        self.instances_revision = {}
+        self.instances_revision: Dict[str, int] = {}
 
     def update(self, details: Dict[str, Any]) -> None:
         if "Description" in details:
@@ -509,6 +509,13 @@ class ServiceDiscoveryBackend(BaseBackend):
         optional_parameters: Optional[dict[str, str]] = None,
         health_status: Optional[str] = None,
     ) -> List[ServiceInstance]:
+        if query_parameters is None:
+            query_parameters = {}
+        if optional_parameters is None:
+            optional_parameters = {}
+        if health_status is None:
+            health_status = "ALL"
+
         filtered_instances = []
         has_healthy = False
         for instance in instances:
@@ -595,11 +602,13 @@ class ServiceDiscoveryBackend(BaseBackend):
         }
         return final_instances, instance_revisions
 
-    def discover_instances_revision(self, namespace_name: str, service_name: str):
+    def discover_instances_revision(
+        self, namespace_name: str, service_name: str
+    ) -> int:
         return sum(self.discover_instances(namespace_name, service_name)[1].values())
 
-    @staticmethod
     def paginate(
+        self,
         items: List[Any],
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
