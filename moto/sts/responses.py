@@ -40,7 +40,9 @@ class TokenResponse(BaseResponse):
         name = self.querystring.get("Name")[0]  # type: ignore
         token = self.backend.get_federation_token(duration=duration, name=name)
         template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
-        return template.render(token=token, account_id=self.current_account, partition=self.partition)
+        return template.render(
+            token=token, account_id=self.current_account, partition=self.partition
+        )
 
     def assume_role(self) -> str:
         role_session_name = self.querystring.get("RoleSessionName")[0]  # type: ignore
