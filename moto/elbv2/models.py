@@ -197,6 +197,16 @@ class FakeTargetGroup(CloudFormationModel):
                     "Target deregistration is in progress",
                 )
 
+            if target["id"].startswith("i-"):  # EC2 instance ID
+                return FakeHealthStatus(
+                    target["id"],
+                    target.get("Port", 80),
+                    self.healthcheck_port,
+                    "unused",
+                    "Target.NotRegistered",
+                    "Target is not registered to the target group",
+                )
+
             return FakeHealthStatus(
                 target["id"],
                 port,

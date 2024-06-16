@@ -286,8 +286,6 @@ sudo systemctl enable httpd"""
             }
         ]
 
-    except Exception as e:
-        print(e)  # noqa: T201 `print` found
     finally:
         try:  # to delete instance1 - just in case it failed to stop earlier
             ec2_client.stop_instances(InstanceIds=[instance_id1])
@@ -328,4 +326,112 @@ sudo systemctl enable httpd"""
         subnet2.delete()
         route_table.delete()
         ec2_client.detach_internet_gateway(InternetGatewayId=igw_id, VpcId=vpc.id)
+        vpc.delete()
+        ec2_client.delete_internet_gateway(InternetGatewayId=igw_id)
+
+
+@elbv2_aws_verified()
+@pytest.mark.aws_verified
+def test_describe_unknown_targets(target_is_aws=False):
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+
+    lb_name = f"lb-{str(uuid4())[0:6]}"
+    sg_name = f"sg{str(uuid4())[0:6]}"
+    target_name = f"target-{str(uuid4())[0:6]}"
+
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    security_group = ec2.create_security_group(
+        GroupName=sg_name, Description="a", VpcId=vpc.id
+    )
+
+    ec2_client.authorize_security_group_ingress(
+        GroupId=security_group.id,
+        IpPermissions=[{"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}],
+    )
+    subnet1 = vpc.create_subnet(
+        CidrBlock="172.28.7.192/26", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = vpc.create_subnet(
+        CidrBlock="172.28.7.0/26", AvailabilityZone="us-east-1b"
+    )
+
+    load_balancer_arn = listener_arn = target_group_arn = None
+    instance_id = "i-12345678901234567"
+
+    try:
+        load_balancer_arn = conn.create_load_balancer(
+            Name=lb_name,
+            Subnets=[subnet1.id, subnet2.id],
+            SecurityGroups=[security_group.id],
+            Scheme="internal",
+            Tags=[{"Key": "key_name", "Value": "a_value"}],
+        )["LoadBalancers"][0]["LoadBalancerArn"]
+        waiter = conn.get_waiter("load_balancer_available")
+        waiter.wait(LoadBalancerArns=[load_balancer_arn])
+
+        target_group_arn = conn.create_target_group(
+            Name=target_name,
+            Protocol="HTTP",
+            Port=80,
+            VpcId=vpc.id,
+            HealthCheckProtocol="HTTP",
+            HealthCheckPort="80",
+            HealthCheckPath="/",
+            HealthCheckIntervalSeconds=5,
+            HealthCheckTimeoutSeconds=3,
+            HealthyThresholdCount=5,
+            UnhealthyThresholdCount=2,
+            # Apache returns a 403 (with text: 'It Works!') by default if no other pages are available
+            Matcher={"HttpCode": "403"},
+        )["TargetGroups"][0]["TargetGroupArn"]
+
+        listener_arn = conn.create_listener(
+            LoadBalancerArn=load_balancer_arn,
+            Protocol="HTTP",
+            Port=80,
+            DefaultActions=[
+                {
+                    "Type": "forward",
+                    "TargetGroupArn": target_group_arn,
+                }
+            ],
+        )["Listeners"][0]["ListenerArn"]
+
+        healths = conn.describe_target_health(
+            TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id}]
+        )["TargetHealthDescriptions"]
+        assert healths == [
+            {
+                "Target": {"Id": instance_id, "Port": 80},
+                "HealthCheckPort": "80",
+                "TargetHealth": {
+                    "State": "unused",
+                    "Reason": "Target.NotRegistered",
+                    "Description": "Target is not registered to the target group",
+                },
+            }
+        ]
+
+    finally:
+        if listener_arn:
+            conn.delete_listener(ListenerArn=listener_arn)
+
+        if target_group_arn:
+            conn.delete_target_group(TargetGroupArn=target_group_arn)
+
+        if load_balancer_arn:
+            conn.delete_load_balancer(LoadBalancerArn=load_balancer_arn)
+            waiter = conn.get_waiter("load_balancers_deleted")
+            waiter.wait(LoadBalancerArns=[load_balancer_arn])
+
+    if target_is_aws:
+        # Resources take a while to deregister
+        # Wait, so we don't get DependencyViolations when deleting the SG
+        sleep(30)
+
+        security_group.delete()
+        subnet1.delete()
+        subnet2.delete()
         vpc.delete()
