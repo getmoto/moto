@@ -1952,6 +1952,10 @@
   "Location": "us-east-1"
  },
  {
+  "InstanceType": "mac2-m1ultra.metal",
+  "Location": "us-east-1"
+ },
+ {
   "InstanceType": "mac2-m2.metal",
   "Location": "us-east-1"
  },
