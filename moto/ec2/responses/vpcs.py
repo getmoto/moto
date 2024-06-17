@@ -224,12 +224,17 @@ class VPCs(EC2BaseResponse):
         add_route_tables = self._get_multi_param("AddRouteTableId")
         remove_route_tables = self._get_multi_param("RemoveRouteTableId")
         policy_doc = self._get_param("PolicyDocument")
+        add_security_groups = self._get_multi_param("AddSecurityGroupId")
+        remove_security_groups = self._get_multi_param("RemoveSecurityGroupId")
+
         self.ec2_backend.modify_vpc_endpoint(
             vpc_id=vpc_id,
             policy_doc=policy_doc,
             add_subnets=add_subnets,
             add_route_tables=add_route_tables,
             remove_route_tables=remove_route_tables,
+            add_security_groups=add_security_groups,
+            remove_security_groups=remove_security_groups,
         )
         template = self.response_template(MODIFY_VPC_END_POINT)
         return template.render()
@@ -251,9 +256,19 @@ class VPCs(EC2BaseResponse):
         vpc_end_points = self.ec2_backend.describe_vpc_endpoints(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
         )
+
+        security_group_ids = []
+        for service in vpc_end_points:
+            security_group_ids.extend(service.security_group_ids)
+        security_groups = self.ec2_backend.describe_security_groups(
+            group_ids=security_group_ids
+        )
+
         template = self.response_template(DESCRIBE_VPC_ENDPOINT_RESPONSE)
         return template.render(
-            vpc_end_points=vpc_end_points, account_id=self.current_account
+            vpc_end_points=vpc_end_points,
+            account_id=self.current_account,
+            security_groups=security_groups,
         )
 
     def delete_vpc_endpoints(self) -> str:
@@ -736,10 +751,14 @@ DESCRIBE_VPC_ENDPOINT_RESPONSE = """<DescribeVpcEndpointsResponse xmlns="http://
                 {% if vpc_end_point.security_group_ids %}
                     <groupSet>
                         {% for group_id in vpc_end_point.security_group_ids %}
-                            <item>
-                                <groupId>{{ group_id }}</groupId>
-                                <groupName>TODO</groupName>
-                            </item>
+                            {% for sec_g in security_groups %}
+                                {% if sec_g.id == group_id %}
+                                    <item>
+                                        <groupId>{{ group_id }}</groupId>
+                                        <groupName>{{ sec_g.name }}</groupName>
+                                    </item>
+                                {% endif %}
+                            {% endfor %}
                         {% endfor %}
                     </groupSet>
                 {% endif %}
