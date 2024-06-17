@@ -93,7 +93,7 @@ jobs:
     - name: Push to DockerHub and GHCR
       if: ${{ inputs.current_release }}
       id: build_and_push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         platforms: linux/amd64,linux/arm64
         push: true
