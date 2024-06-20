@@ -941,3 +941,85 @@ class SageMakerResponse(BaseResponse):
             feature_group_name=self._get_param("FeatureGroupName"),
         )
         return json.dumps(resp)
+
+    def create_cluster(self) -> str:
+        cluster_name = self._get_param("ClusterName")
+        instance_groups = self._get_param("InstanceGroups")
+        vpc_config = self._get_param("VpcConfig")
+        tags = self._get_param("Tags")
+        cluster_arn = self.sagemaker_backend.create_cluster(
+            cluster_name=cluster_name,
+            instance_groups=instance_groups,
+            vpc_config=vpc_config,
+            tags=tags,
+        )
+        return json.dumps(dict(ClusterArn=cluster_arn))
+
+    def delete_cluster(self) -> str:
+        cluster_name = self._get_param("ClusterName")
+        cluster_arn = self.sagemaker_backend.delete_cluster(
+            cluster_name=cluster_name,
+        )
+        return json.dumps(dict(ClusterArn=cluster_arn))
+
+    def describe_cluster(self) -> str:
+        cluster_name = self._get_param("ClusterName")
+        cluster_description = self.sagemaker_backend.describe_cluster(
+            cluster_name=cluster_name,
+        )
+        return json.dumps(cluster_description)
+
+    def describe_cluster_node(self) -> str:
+        cluster_name = self._get_param("ClusterName")
+        node_id = self._get_param("NodeId")
+        node_details = self.sagemaker_backend.describe_cluster_node(
+            cluster_name=cluster_name,
+            node_id=node_id,
+        )
+        return json.dumps(dict(NodeDetails=node_details))
+
+    def list_clusters(self) -> str:
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        next_token = self._get_param("NextToken")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        clusters, next_token = self.sagemaker_backend.list_clusters(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            max_results=max_results,
+            name_contains=name_contains,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        cluster_summaries = [cluster.summary() for cluster in clusters]
+        return json.dumps(
+            dict(NextToken=next_token, ClusterSummaries=cluster_summaries)
+        )
+
+    def list_cluster_nodes(self) -> str:
+        cluster_name = self._get_param("ClusterName")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        instance_group_name_contains = self._get_param("InstanceGroupNameContains")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        cluster_nodes, next_token = self.sagemaker_backend.list_cluster_nodes(
+            cluster_name=cluster_name,
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            instance_group_name_contains=instance_group_name_contains,
+            max_results=max_results,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        cluster_node_summaries = [node.summary() for node in cluster_nodes]
+        return json.dumps(
+            dict(NextToken=next_token, ClusterNodeSummaries=cluster_node_summaries)
+        )
