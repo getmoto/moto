@@ -22,7 +22,6 @@ class Protection(BaseModel):
         self.name = name
         self.resource_arn = resource_arn
         self.protection_id = str(mock_random.uuid4())
-        self.tags = tags
         self.health_check_ids: List[
             str
         ] = []  # value is returned in associate_health_check method.
