@@ -114,4 +114,4 @@ class FSxResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return 200, {}, json.dumps({})

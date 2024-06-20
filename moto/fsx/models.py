@@ -134,10 +134,16 @@ class FSxBackend(BaseBackend):
         self,
         file_system_id: str,
         client_request_token: str,
-        windows_configuration: Dict[str, Any],
-        lustre_configuration: Dict[str, Any],
-        open_zfs_configuration: Dict[str, Any],
-    ) -> Tuple[str, str, Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+        windows_configuration: Optional[Dict[str, Any]],
+        lustre_configuration: Optional[Dict[str, Any]],
+        open_zfs_configuration: Optional[Dict[str, Any]],
+    ) -> Tuple[
+        str,
+        str,
+        Optional[Dict[str, Any]],
+        Optional[Dict[str, Any]],
+        Optional[Dict[str, Any]],
+    ]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
         file_system_type = self.file_systems[file_system_id].file_system_type
@@ -177,7 +183,7 @@ class FSxBackend(BaseBackend):
             raise ValueError(message)
         return resource
 
-    def untag_resource(self, resource_arn, tag_keys) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         resource = self._get_resource_from_arn(resource_arn)
         if tag_keys:
             resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
