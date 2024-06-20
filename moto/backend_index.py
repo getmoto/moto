@@ -121,6 +121,7 @@ backend_url_patterns = [
     ("moto_api._internal", re.compile("https?://motoapi.amazonaws.com")),
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("networkmanager", re.compile("https?://networkmanager\\.(.+)\\.amazonaws\\.com")),
+    ("opensearchserverless", re.compile("https?://aoss\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),
     ("organizations", re.compile("https?://organizations\\.(.+)\\.amazonaws\\.com")),
     ("panorama", re.compile("https?://panorama\\.(.+)\\.amazonaws.com")),
