@@ -98,7 +98,9 @@ def test_delete_file_system():
     assert resp["LustreResponse"] is not None
 
 
-def test_tag_resource(client):
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
     fs = client.create_file_system(
         FileSystemType="LUSTRE",
         StorageCapacity=1200,
@@ -119,3 +121,31 @@ def test_tag_resource(client):
 
     resp = client.describe_file_systems(FileSystemIds=[file_system_id])
     assert resp["FileSystems"][0]["Tags"] == tags
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+        Tags=[
+            {"Key": "Moto", "Value": "Hello"},
+            {"Key": "Environment", "Value": "Dev"},
+        ],
+    )
+    file_system_id = fs["FileSystem"]["FileSystemId"]
+
+    resp = client.describe_file_systems(FileSystemIds=[file_system_id])
+    resource_arn = resp["FileSystems"][0]["ResourceARN"]
+
+    tag_keys = ["Moto"]
+
+    client.untag_resource(ResourceARN=resource_arn, TagKeys=tag_keys)
+
+    resp = client.describe_file_systems(FileSystemIds=[file_system_id])
+    assert len(resp["FileSystems"][0]["Tags"]) == 1
+    assert resp["FileSystems"][0]["Tags"] == [{"Key": "Environment", "Value": "Dev"}]

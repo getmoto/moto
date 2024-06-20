@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
-from moto.utilities.tagging_service import TaggingService
 
 from .utils import FileSystemType
 
@@ -82,7 +81,6 @@ class FSxBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.file_systems: Dict[str, FileSystem] = {}
-        self.tagger: TaggingService = TaggingService()
 
     def create_file_system(
         self,
@@ -119,7 +117,6 @@ class FSxBackend(BaseBackend):
         file_system_id = file_system.file_system_id
 
         self.file_systems[file_system_id] = file_system
-        self.tagger.tag_resource(file_system.resource_arn, tags)
         return file_system
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -140,7 +137,7 @@ class FSxBackend(BaseBackend):
         windows_configuration: Dict[str, Any],
         lustre_configuration: Dict[str, Any],
         open_zfs_configuration: Dict[str, Any],
-    ) -> Tuple[str, str, Dict, Dict, Dict]:
+    ) -> Tuple[str, str, Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
         file_system_type = self.file_systems[file_system_id].file_system_type
@@ -179,6 +176,11 @@ class FSxBackend(BaseBackend):
             message = f"Could not find {target_resource} with name {target_name}"
             raise ValueError(message)
         return resource
+
+    def untag_resource(self, resource_arn, tag_keys) -> None:
+        resource = self._get_resource_from_arn(resource_arn)
+        if tag_keys:
+            resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
 
 fsx_backends = BackendDict(FSxBackend, "fsx")
