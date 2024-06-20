@@ -69,7 +69,7 @@ def test_boto3_json_invalid_missing_resource():
     err = exc.value.response["Error"]
     assert (
         err["Message"]
-        == "Stack with id Missing top level template section Resources does not exist"
+        == "Stack with id 'Resources' is a required property does not exist"
     )
 
 
@@ -124,5 +124,5 @@ def test_boto3_yaml_invalid_missing_resource():
     err = exc.value.response["Error"]
     assert (
         err["Message"]
-        == "Stack with id Missing top level template section Resources does not exist"
+        == "Stack with id 'Resources' is a required property does not exist"
     )
