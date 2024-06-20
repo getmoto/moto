@@ -340,6 +340,46 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "c6id.12xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.16xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.24xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.2xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.32xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.4xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.large",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.metal",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "c6id.xlarge",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "c6in.12xlarge",
   "Location": "ca-central-1"
  },
@@ -1145,6 +1185,86 @@
  },
  {
   "InstanceType": "m6id.xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.12xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.16xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.24xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.2xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.32xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.4xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.large",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.metal",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6idn.xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.12xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.16xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.24xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.2xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.32xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.4xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.large",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.metal",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "m6in.xlarge",
   "Location": "ca-central-1"
  },
  {

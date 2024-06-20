@@ -1062,7 +1062,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
-        s3_backends.bucket_accounts[name] = account_id
+        s3_backends.bucket_accounts[name] = (self.partition, account_id)
 
     @property
     def location(self) -> str:
@@ -1652,6 +1652,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     _-_-_-_
 
+    When listing objects, the default max-keys value is 1000, just as with AWS. Use the following environment variable to configure this this:
+
+    .. sourcecode:: bash
+
+        MOTO_S3_DEFAULT_MAX_KEYS=256
+
+    _-_-_-_
+
     CrossAccount access is allowed by default. If you want Moto to throw an AccessDenied-error when accessing a bucket in another account, use this environment variable:
 
     .. sourcecode:: bash
@@ -1844,8 +1852,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if bucket_name in s3_backends.bucket_accounts:
             if not s3_allow_crossdomain_access():
                 raise AccessDeniedByLock
-            account_id = s3_backends.bucket_accounts[bucket_name]
-            return s3_backends[account_id][self.partition].get_bucket(bucket_name)
+            (partition, account_id) = s3_backends.bucket_accounts[bucket_name]
+            return s3_backends[account_id][partition].get_bucket(bucket_name)
 
         raise MissingBucket(bucket=bucket_name)
 
@@ -1881,6 +1889,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Tuple[
         List[FakeKey], List[str], List[FakeDeleteMarker], Optional[str], Optional[str]
     ]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         bucket = self.get_bucket(bucket_name)
 
         common_prefixes: Set[str] = set()
@@ -2571,6 +2584,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         marker: Optional[str],
         max_keys: Optional[int],
     ) -> Tuple[Set[FakeKey], Set[str], bool, Optional[str]]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2624,6 +2642,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         start_after: Optional[str],
         max_keys: int,
     ) -> Tuple[Set[Union[FakeKey, str]], bool, Optional[str]]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         result_keys, result_folders, _, _ = self.list_objects(
             bucket, prefix, delimiter, marker=None, max_keys=None
         )
@@ -3005,9 +3028,9 @@ class S3BackendDict(BackendDict[S3Backend]):
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
-        # Maps bucket names to account IDs. This is used to locate the exact S3Backend
+        # Maps bucket names to (partition, account IDs). This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
-        self.bucket_accounts: Dict[str, str] = {}
+        self.bucket_accounts: Dict[str, Tuple[str, str]] = {}
 
 
 s3_backends = S3BackendDict(

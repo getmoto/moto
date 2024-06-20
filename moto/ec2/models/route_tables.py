@@ -122,6 +122,12 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
                 for route in self.routes.values()
                 if route.nat_gateway is not None
             ]
+        elif filter_name == "route.transit-gateway-id":
+            return [
+                route.transit_gateway.id
+                for route in self.routes.values()
+                if route.transit_gateway is not None
+            ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 

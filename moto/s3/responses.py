@@ -619,7 +619,9 @@ class S3Response(BaseResponse):
         elif "versions" in querystring:
             delimiter = querystring.get("delimiter", [None])[0]
             key_marker = querystring.get("key-marker", [None])[0]
-            max_keys = int(querystring.get("max-keys", [1000])[0])
+            max_keys = int(
+                querystring.get("max-keys", [settings.get_s3_default_max_keys()])[0]
+            )
             prefix = querystring.get("prefix", [""])[0]
             version_id_marker = querystring.get("version-id-marker", [None])[0]
 
@@ -693,7 +695,9 @@ class S3Response(BaseResponse):
         if prefix and isinstance(prefix, bytes):
             prefix = prefix.decode("utf-8")
         delimiter = querystring.get("delimiter", [None])[0]
-        max_keys = int(querystring.get("max-keys", [1000])[0])
+        max_keys = int(
+            querystring.get("max-keys", [settings.get_s3_default_max_keys()])[0]
+        )
         marker = querystring.get("marker", [None])[0]
         encoding_type = querystring.get("encoding-type", [None])[0]
 
@@ -756,7 +760,9 @@ class S3Response(BaseResponse):
         delimiter = querystring.get("delimiter", [None])[0]
 
         fetch_owner = querystring.get("fetch-owner", [False])[0]
-        max_keys = int(querystring.get("max-keys", [1000])[0])
+        max_keys = int(
+            querystring.get("max-keys", [settings.get_s3_default_max_keys()])[0]
+        )
         start_after = querystring.get("start-after", [None])[0]
         encoding_type = querystring.get("encoding-type", [None])[0]
 

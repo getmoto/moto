@@ -1,6 +1,53 @@
 Moto Changelog
 ==============
 
+5.0.9
+-----
+Docker Digest for 5.0.9: _sha256:df61e4e76344017f6c82924a3dd1cdd4dcbac4095cf234c6d6fb0a0f800fbeff_
+
+    General:
+        * Fixed an InfiniteRecursion-bug when accessing S3-buckets that was introduced in 5.0.8
+
+    New Methods:
+        * SSO-Admin:
+            * list_accounts_for_provisioned_permission_set()
+            * list_instances()
+            * list_permission_sets_provisioned_to_account()
+            * provision_permission_set()
+            * update_instance()
+
+    Miscellaneous:
+        * DynamoDB: query() now handles pagination correctly on a GSI without a range key
+        * IAM: create_policy() now returns tags correctly
+        * S3: list_objects(): The default value for MaxKeys can now be configured, using an environment variable:
+          MOTO_S3_DEFAULT_MAX_KEYS=1
+
+5.0.8
+-----
+Docker Digest for 5.0.8: _sha256:cfcd97074011bd563cdbeebac35ed710581a23cb2be07ab9b67aa00298fc3369_
+
+    General:
+        * Improved support for non-generic partitions (China, GovCloud, ISO-regions). 
+          All ARN's now contain the correct partition for resources created in those regions.
+
+    New Services:
+        * NetworkManager:
+            * create_global_network()
+            * describe_global_networks()
+            * create_core_network()
+            * create_global_network()
+            * delete_core_network()
+            * list_core_networks()
+            * get_core_network()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * ResilienceHub: list_app_assessments() can now return pre-configured results
+        * ResourceGroupTagging: get_resources() now returns results when filtering on "lambda:function"
+        * S3: delete_object_tagging()/put_object_tagging() now send an EventBridge notification
+
+
 5.0.7
 -----
 Docker Digest for 5.0.7: _sha256:81ac52ff74b0bf0f4957ee4260e6a7e75d66c9e5d040ed4f721a5500b873c88a_

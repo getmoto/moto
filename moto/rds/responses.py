@@ -97,6 +97,7 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_int_param("AllocatedStorage"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
+            "backtrack_window": self._get_param("BacktrackWindow"),
             "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
@@ -184,7 +185,11 @@ class RDSResponse(BaseResponse):
             "availability_zones": self._get_multi_param(
                 "AvailabilityZones.AvailabilityZone"
             ),
+            "backtrack_window": self._get_int_param("BacktrackWindow"),
             "enable_cloudwatch_logs_exports": params.get("EnableCloudwatchLogsExports"),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
@@ -221,6 +226,8 @@ class RDSResponse(BaseResponse):
             "vpc_security_group_ids": self.unpack_list_params(
                 "VpcSecurityGroupIds", "VpcSecurityGroupId"
             ),
+            "preferred_backup_window": self._get_param("PreferredBackupWindow"),
+            "backup_retention_period": self._get_param("BackupRetentionPeriod"),
         }
 
     def _get_export_task_kwargs(self) -> Dict[str, Any]:
@@ -1312,7 +1319,7 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
 
 CREATE_DB_CLUSTER_TEMPLATE = """<CreateDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBClusterResult>
-  {{ cluster.to_xml() }}
+  {{ cluster.to_xml(initial=True) }}
   </CreateDBClusterResult>
   <ResponseMetadata>
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>

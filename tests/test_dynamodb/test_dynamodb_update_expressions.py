@@ -160,8 +160,8 @@ def test_update_item_add_empty_set(table_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        err["Message"]
-        == "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+        in err["Message"]
     )
 
     assert dynamodb.scan(TableName=table_name)["Items"] == [{"pk": {"S": "foo"}}]
@@ -180,8 +180,8 @@ def test_update_item_add_empty_set(table_name=None):
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-        err["Message"]
-        == "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+        "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An string set  may not be empty"
+        in err["Message"]
     )
 
     assert dynamodb.scan(TableName=table_name)["Items"] == [

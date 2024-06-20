@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ["acm", "awslambda", "cloudfront", "elb", "route53", "sqs"]
+        service: ["acm", "awslambda", "cloudfront", "elb", "iam", "rds", "route53", "sqs"]
 
     steps:
     - uses: actions/checkout@v4

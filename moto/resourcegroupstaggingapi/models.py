@@ -20,6 +20,7 @@ from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
+from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -128,6 +129,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspaces_backends[self.account_id][self.region_name]
         return None
+
+    @property
+    def sagemaker_backend(self) -> SageMakerModelBackend:
+        return sagemaker_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -640,6 +645,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {
                     "ResourceARN": table.table_arn,
+                    "Tags": tags,
+                }
+
+        # sagemaker cluster
+        if (
+            not resource_type_filters
+            or "sagemaker" in resource_type_filters
+            or "sagemaker:cluster" in resource_type_filters
+        ):
+            for sagemaker_cluster in self.sagemaker_backend.clusters.values():
+                tags = self.sagemaker_backend.list_tags(sagemaker_cluster.arn)[0]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": sagemaker_cluster.arn,
                     "Tags": tags,
                 }
 

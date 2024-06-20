@@ -512,9 +512,9 @@ def test_publish_to_deleted_platform_endpoint(api_key=None):
             == f"Invalid parameter: Endpoint Reason: Endpoint does not exist for endpoint arn{endpoint_arn}"
         )
     finally:
-        if application_arn is not None:
+        if topic_arn is not None:
             conn.delete_topic(TopicArn=topic_arn)
-
+        if application_arn is not None:
             conn.delete_platform_application(PlatformApplicationArn=application_arn)
 
 

@@ -67165,10 +67165,10 @@
           "workspaces-web": {
             "Value": "workspaces-web",
             "longName": {
-              "Value": "Amazon WorkSpaces Web"
+              "Value": "Amazon WorkSpaces Secure Browser"
             },
             "marketingHomeURL": {
-              "Value": "https://aws.amazon.com/workspaces/web/"
+              "Value": "https://aws.amazon.com/workspaces/secure-browser/"
             },
             "regions": {
               "ap-northeast-1": {

@@ -1239,14 +1239,16 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      {% if policy.tags %}
       <Tags>
-        {% for tag_key, tag_value in policy.tags.items() %}
+        {% for tag in policy.get_tags() %}
         <member>
-          <Key>{{ tag_key }}</Key>
-          <Value>{{ tag_value }}</Value>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
         </member>
         {% endfor %}
       </Tags>
+      {% endif %}
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>

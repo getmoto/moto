@@ -858,25 +858,24 @@ def test_delete_default_policy_version():
 @mock_aws()
 def test_create_policy_with_tags():
     conn = boto3.client("iam", region_name="us-east-1")
-    conn.create_policy(
+    tag1 = {"Key": "somekey", "Value": "somevalue"}
+    tag2 = {"Key": "someotherkey", "Value": "someothervalue"}
+    create = conn.create_policy(
         PolicyName="TestCreatePolicyWithTags1",
         PolicyDocument=MOCK_POLICY,
-        Tags=[
-            {"Key": "somekey", "Value": "somevalue"},
-            {"Key": "someotherkey", "Value": "someothervalue"},
-        ],
+        Tags=[tag1, tag2],
         Description="testing",
-    )
+    )["Policy"]
+    assert tag1 in create["Tags"]
+    assert tag2 in create["Tags"]
 
     # Get policy:
     policy = conn.get_policy(
         PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestCreatePolicyWithTags1"
     )["Policy"]
     assert len(policy["Tags"]) == 2
-    assert policy["Tags"][0]["Key"] == "somekey"
-    assert policy["Tags"][0]["Value"] == "somevalue"
-    assert policy["Tags"][1]["Key"] == "someotherkey"
-    assert policy["Tags"][1]["Value"] == "someothervalue"
+    assert tag1 in policy["Tags"]
+    assert tag2 in policy["Tags"]
     assert policy["Description"] == "testing"
 
 

@@ -6,7 +6,11 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
-from moto.dynamodb.comparisons import get_expected, get_filter_expression
+from moto.dynamodb.comparisons import (
+    create_condition_expression_parser,
+    get_expected,
+    get_filter_expression,
+)
 from moto.dynamodb.exceptions import (
     BackupNotFoundException,
     ConditionalCheckFailed,
@@ -36,7 +40,10 @@ from moto.dynamodb.models.table import (
 from moto.dynamodb.models.table_import import TableImport
 from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
-from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
+from moto.dynamodb.parsing.expressions import (  # type: ignore
+    ExpressionAttributeName,
+    UpdateExpressionParser,
+)
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 
 
@@ -469,11 +476,12 @@ class DynamoDBBackend(BaseBackend):
 
         if not get_expected(expected).expr(item):
             raise ConditionalCheckFailed
-        condition_op = get_filter_expression(
+        condition_expression_parser = create_condition_expression_parser(
             condition_expression,
             expression_attribute_names,
             expression_attribute_values,
         )
+        condition_op = condition_expression_parser.parse()
         if not condition_op.expr(item):
             if (
                 return_values_on_condition_check_failure == "ALL_OLD"
@@ -510,6 +518,7 @@ class DynamoDBBackend(BaseBackend):
             item.validate_no_empty_key_values(attribute_updates, table.attribute_keys)  # type: ignore[union-attr]
 
         if update_expression:
+            # Validate the UpdateExpression itself has all information
             validator = UpdateExpressionValidator(
                 update_expression_ast,
                 expression_attribute_names=expression_attribute_names,
@@ -527,6 +536,24 @@ class DynamoDBBackend(BaseBackend):
                 ).execute()
             except ItemSizeTooLarge:
                 raise ItemSizeToUpdateTooLarge()
+
+            # Ensure all ExpressionAttributeNames are requested
+            # Either in the Condition, or in the UpdateExpression
+            attr_name_clauses = update_expression_ast.find_clauses(
+                [ExpressionAttributeName]
+            )
+            attr_names_in_expression = [
+                attr.get_attribute_name_placeholder() for attr in attr_name_clauses
+            ]
+            attr_names_in_condition = condition_expression_parser.expr_attr_names_found
+            for attr_name in expression_attribute_names:
+                if (
+                    attr_name not in attr_names_in_expression
+                    and attr_name not in attr_names_in_condition
+                ):
+                    raise MockValidationException(
+                        f"Value provided in ExpressionAttributeNames unused in expressions: keys: {{{attr_name}}}"
+                    )
         else:
             item.update_with_attribute_updates(attribute_updates)  # type: ignore
         if table.stream_shard is not None:

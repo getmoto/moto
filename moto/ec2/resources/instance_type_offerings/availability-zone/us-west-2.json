@@ -1916,6 +1916,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "mac2-m1ultra.metal",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "mac2-m2.metal",
   "Location": "us-west-2a"
  },
@@ -2881,6 +2885,22 @@
  },
  {
   "InstanceType": "u-9tb1.112xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u7in-32tb.224xlarge",
   "Location": "us-west-2a"
  },
  {
@@ -7964,6 +7984,10 @@
   "Location": "us-west-2c"
  },
  {
+  "InstanceType": "mac2-m1ultra.metal",
+  "Location": "us-west-2c"
+ },
+ {
   "InstanceType": "mac2-m2.metal",
   "Location": "us-west-2c"
  },
@@ -8913,6 +8937,18 @@
  },
  {
   "InstanceType": "u-9tb1.112xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "u7in-32tb.224xlarge",
   "Location": "us-west-2c"
  },
  {
@@ -10489,6 +10525,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "mac2-m1ultra.metal",
   "Location": "us-west-2d"
  },
  {
