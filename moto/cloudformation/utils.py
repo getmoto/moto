@@ -1,3 +1,4 @@
+import os
 import string
 from typing import Any, List
 from urllib.parse import urlparse
@@ -58,19 +59,58 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
 
 def validate_template_cfn_lint(template: str) -> List[Any]:
     # Importing cfnlint adds a significant overhead, so we keep it local
-    from cfnlint import api, config, core
 
-    # Set cfn-lint to info
-    config.configure_logging(None, False)
+    try:
+        # Compatibility for cfn-lint 0.x
+        # Fail fast with `cfnlint.core.configure_logging` which is removed in cfn-lint 1.x
 
-    # Initialize the ruleset to be applied (no overrules, no excludes)
-    rules = core.get_rules([], [], [])
+        from cfnlint.core import configure_logging, get_rules, run_checks
+        from cfnlint.decode import decode
 
-    # Use us-east-1 region (spec file) for validation
-    regions = ["us-east-1"]
+        # Save the template to a temporary file -- cfn-lint requires a file
+        filename = "file.tmp"
+        with open(filename, "w") as file:
+            file.write(template)
+        abs_filename = os.path.abspath(filename)
 
-    # Process all the rules and gather the errors
-    return api.lint(template, rules, regions)
+        # decode handles both yaml and json
+        try:
+            template, matches = decode(abs_filename, False)
+        except TypeError:
+            # As of cfn-lint 0.39.0, the second argument (ignore_bad_template) was dropped
+            # https://github.com/aws-cloudformation/cfn-python-lint/pull/1580
+            template, matches = decode(abs_filename)
+
+        # Set cfn-lint to info
+        configure_logging(None)
+
+        # Initialize the ruleset to be applied (no overrules, no excludes)
+        rules = get_rules([], [], [])
+
+        # Use us-east-1 region (spec file) for validation
+        regions = ["us-east-1"]
+
+        # Process all the rules and gather the errors
+        return run_checks(abs_filename, template, rules, regions)
+
+    except ImportError:
+        # Compatibility for cfn-lint 1.x
+
+        from cfnlint.api import lint
+        from cfnlint.config import configure_logging
+        from cfnlint.core import get_rules
+
+        # Set cfn-lint to info
+        configure_logging(None, False)
+
+        # Initialize the ruleset to be applied (no overrules, no excludes)
+        rules = get_rules([], [], [])
+
+        # Use us-east-1 region (spec file) for validation
+        regions = ["us-east-1"]
+
+        # Process all the rules and gather the errors
+        return lint(template, rules, regions)
 
 
 def get_stack_from_s3_url(template_url: str, account_id: str, partition: str) -> str:
