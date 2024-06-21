@@ -86,5 +86,4 @@ events
 - [X] update_archive
 - [X] update_connection
 - [ ] update_endpoint
-- [ ] update_event_bus
 
