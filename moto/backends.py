@@ -66,6 +66,7 @@ if TYPE_CHECKING:
     from moto.events.models import EventsBackend
     from moto.firehose.models import FirehoseBackend
     from moto.forecast.models import ForecastBackend
+    from moto.fsx.models import FSxBackend
     from moto.glacier.models import GlacierBackend
     from moto.glue.models import GlueBackend
     from moto.greengrass.models import GreengrassBackend
@@ -231,6 +232,7 @@ SERVICE_NAMES = Union[
     "Literal['events']",
     "Literal['firehose']",
     "Literal['forecast']",
+    "Literal['fsx']",
     "Literal['glacier']",
     "Literal['glue']",
     "Literal['greengrass']",
@@ -471,6 +473,8 @@ def get_backend(name: "Literal['events']") -> "BackendDict[EventsBackend]": ...
 def get_backend(name: "Literal['firehose']") -> "BackendDict[FirehoseBackend]": ...
 @overload
 def get_backend(name: "Literal['forecast']") -> "BackendDict[ForecastBackend]": ...
+@overload
+def get_backend(name: "Literal['fsx']") -> "BackendDict[FSxBackend]": ...
 @overload
 def get_backend(name: "Literal['glacier']") -> "BackendDict[GlacierBackend]": ...
 @overload
