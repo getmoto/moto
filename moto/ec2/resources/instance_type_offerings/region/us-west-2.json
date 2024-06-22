@@ -1944,6 +1944,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "mac2-m1ultra.metal",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "mac2-m2.metal",
   "Location": "us-west-2"
  },

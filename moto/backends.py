@@ -66,6 +66,7 @@ if TYPE_CHECKING:
     from moto.events.models import EventsBackend
     from moto.firehose.models import FirehoseBackend
     from moto.forecast.models import ForecastBackend
+    from moto.fsx.models import FSxBackend
     from moto.glacier.models import GlacierBackend
     from moto.glue.models import GlueBackend
     from moto.greengrass.models import GreengrassBackend
@@ -95,6 +96,7 @@ if TYPE_CHECKING:
     from moto.neptune.models import NeptuneBackend
     from moto.networkmanager.models import NetworkManagerBackend
     from moto.opensearch.models import OpenSearchServiceBackend
+    from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
     from moto.opsworks.models import OpsWorksBackend
     from moto.organizations.models import OrganizationsBackend
     from moto.personalize.models import PersonalizeBackend
@@ -126,6 +128,7 @@ if TYPE_CHECKING:
     from moto.servicequotas.models import ServiceQuotasBackend
     from moto.ses.models import SESBackend
     from moto.sesv2.models import SESV2Backend
+    from moto.shield.models import ShieldBackend
     from moto.signer.models import SignerBackend
     from moto.sns.models import SNSBackend
     from moto.sqs.models import SQSBackend
@@ -229,6 +232,7 @@ SERVICE_NAMES = Union[
     "Literal['events']",
     "Literal['firehose']",
     "Literal['forecast']",
+    "Literal['fsx']",
     "Literal['glacier']",
     "Literal['glue']",
     "Literal['greengrass']",
@@ -259,6 +263,7 @@ SERVICE_NAMES = Union[
     "Literal['neptune']",
     "Literal['networkmanager']",
     "Literal['opensearch']",
+    "Literal['opensearchserverless']",
     "Literal['opsworks']",
     "Literal['organizations']",
     "Literal['personalize']",
@@ -291,6 +296,7 @@ SERVICE_NAMES = Union[
     "Literal['service-quotas']",
     "Literal['ses']",
     "Literal['sesv2']",
+    "Literal['shield']",
     "Literal['signer']",
     "Literal['sns']",
     "Literal['sqs']",
@@ -468,6 +474,8 @@ def get_backend(name: "Literal['firehose']") -> "BackendDict[FirehoseBackend]": 
 @overload
 def get_backend(name: "Literal['forecast']") -> "BackendDict[ForecastBackend]": ...
 @overload
+def get_backend(name: "Literal['fsx']") -> "BackendDict[FSxBackend]": ...
+@overload
 def get_backend(name: "Literal['glacier']") -> "BackendDict[GlacierBackend]": ...
 @overload
 def get_backend(name: "Literal['glue']") -> "BackendDict[GlueBackend]": ...
@@ -551,6 +559,10 @@ def get_backend(
 def get_backend(
     name: "Literal['opensearch']",
 ) -> "BackendDict[OpenSearchServiceBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['opensearchserverless']",
+) -> "BackendDict[OpenSearchServiceServerlessBackend]": ...
 @overload
 def get_backend(name: "Literal['opsworks']") -> "BackendDict[OpsWorksBackend]": ...
 @overload
@@ -651,6 +663,8 @@ def get_backend(
 def get_backend(name: "Literal['ses']") -> "BackendDict[SESBackend]": ...
 @overload
 def get_backend(name: "Literal['sesv2']") -> "BackendDict[SESV2Backend]": ...
+@overload
+def get_backend(name: "Literal['shield']") -> "BackendDict[ShieldBackend]": ...
 @overload
 def get_backend(name: "Literal['signer']") -> "BackendDict[SignerBackend]": ...
 @overload

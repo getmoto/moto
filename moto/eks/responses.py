@@ -76,6 +76,7 @@ class EKSResponse(BaseResponse):
         remote_access = self._get_param("remoteAccess")
         node_role = self._get_param("nodeRole")
         labels = self._get_param("labels")
+        taints = self._get_param("taints")
         tags = self._get_param("tags")
         client_request_token = self._get_param("clientRequestToken")
         launch_template = self._get_param("launchTemplate")
@@ -94,6 +95,7 @@ class EKSResponse(BaseResponse):
             remote_access=remote_access,
             node_role=node_role,
             labels=labels,
+            taints=taints,
             tags=tags,
             client_request_token=client_request_token,
             launch_template=launch_template,

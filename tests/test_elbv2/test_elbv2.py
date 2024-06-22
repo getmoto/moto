@@ -482,7 +482,7 @@ def test_register_targets():
         return None
 
     def assert_target_not_registered(target):
-        assert target["TargetHealth"]["State"] == "unavailable"
+        assert target["TargetHealth"]["State"] == "unused"
         assert target["TargetHealth"]["Reason"] == "Target.NotRegistered"
 
     response = conn.describe_target_health(
@@ -1244,6 +1244,27 @@ def test_modify_load_balancer_attributes_crosszone_enabled():
     attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
     assert {"Key": "deletion_protection.enabled", "Value": "false"} in attrs
     assert {"Key": "load_balancing.cross_zone.enabled", "Value": "false"} in attrs
+
+
+@mock_aws
+def test_modify_load_balancer_attributes_client_keep_alive():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "client_keep_alive.seconds", "Value": "600"}],
+    )
+
+    # Check its 600 not the default value 3600
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    client_keep_alive = list(
+        filter(
+            lambda item: item["Key"] == "client_keep_alive.seconds",
+            response["Attributes"],
+        )
+    )[0]
+    assert client_keep_alive["Value"] == "600"
 
 
 @mock_aws
