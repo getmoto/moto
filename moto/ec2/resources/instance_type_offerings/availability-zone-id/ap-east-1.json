@@ -268,6 +268,42 @@
   "Location": "ape1-az1"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "ape1-az1"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "ape1-az1"
  },
@@ -780,6 +816,42 @@
   "Location": "ape1-az1"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "ape1-az1"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "ape1-az1"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "ape1-az1"
  },
@@ -1109,6 +1181,42 @@
  },
  {
   "InstanceType": "c6in.xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
   "Location": "ape1-az2"
  },
  {
@@ -1640,6 +1748,42 @@
   "Location": "ape1-az2"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "ape1-az2"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "ape1-az2"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "ape1-az2"
  },
@@ -1969,6 +2113,42 @@
  },
  {
   "InstanceType": "c6in.xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
   "Location": "ape1-az3"
  },
  {
@@ -2497,6 +2677,42 @@
  },
  {
   "InstanceType": "r6i.xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "ape1-az3"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
   "Location": "ape1-az3"
  },
  {
