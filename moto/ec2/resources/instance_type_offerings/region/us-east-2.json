@@ -632,6 +632,26 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "us-east-2"
  },

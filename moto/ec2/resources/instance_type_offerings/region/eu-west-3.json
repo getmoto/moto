@@ -384,6 +384,22 @@
   "Location": "eu-west-3"
  },
  {
+  "InstanceType": "d3.2xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "d3.4xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "d3.8xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "d3.xlarge",
+  "Location": "eu-west-3"
+ },
+ {
   "InstanceType": "g4dn.12xlarge",
   "Location": "eu-west-3"
  },
