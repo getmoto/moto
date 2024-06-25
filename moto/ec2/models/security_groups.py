@@ -1178,9 +1178,10 @@ class SecurityGroupBackend:
     ) -> None:
         for item in security_rule.ip_ranges:
             for cidr_item in rule.ip_ranges:
-                if cidr_item.get("CidrIp") == item.get("CidrIp"):
-                    cidr_item["Description"] = item.get("Description")
-                if cidr_item.get("CidrIp6") == item.get("CidrIp6"):
+                if "CidrIp" in cidr_item:
+                    if cidr_item.get("CidrIp") == item.get("CidrIp"):
+                        cidr_item["Description"] = item.get("Description")
+                elif cidr_item.get("CidrIp6") == item.get("CidrIp6"):
                     cidr_item["Description"] = item.get("Description")
 
             for group in security_rule.source_groups:
