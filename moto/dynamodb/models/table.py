@@ -713,30 +713,30 @@ class Table(CloudFormationModel):
                         f"Range Key comparison but no range key found for index: {index_name}"
                     )
 
-            actual_hash_attr = index_hash_key["AttributeName"]
+            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
             if index_range_key:
-                actual_range_attrs = [
+                range_attrs = [
                     index_range_key["AttributeName"],
                     self.range_key_attr,
                 ]
             else:
-                actual_range_attrs = [self.range_key_attr]
+                range_attrs = [self.range_key_attr]
 
             possible_results = []
             for item in self.all_items():
                 if not isinstance(item, Item):
                     continue
-                item_hash_key = item.attrs.get(actual_hash_attr)
-                if len(actual_range_attrs) == 1:
+                item_hash_key = item.attrs.get(hash_attrs[0])
+                if len(range_attrs) == 1:
                     if item_hash_key and item_hash_key == hash_key:
                         possible_results.append(item)
                 else:
-                    item_range_key = item.attrs.get(actual_range_attrs[0])  # type: ignore
+                    item_range_key = item.attrs.get(range_attrs[0])  # type: ignore
                     if item_hash_key and item_hash_key == hash_key and item_range_key:
                         possible_results.append(item)
         else:
-            actual_hash_attr = self.hash_key_attr
-            actual_range_attrs = [self.range_key_attr]
+            hash_attrs = [self.hash_key_attr]
+            range_attrs = [self.range_key_attr]
 
             possible_results = [
                 item
@@ -746,15 +746,15 @@ class Table(CloudFormationModel):
 
         # SORT
         if index_name:
-            if len(actual_range_attrs) == 2:
+            if len(range_attrs) == 2:
                 # Convert to float if necessary to ensure proper ordering
                 def conv(x: DynamoType) -> Any:
                     return float(x.value) if x.type == "N" else x.value
 
                 possible_results.sort(
                     key=lambda item: (  # type: ignore
-                        conv(item.attrs[actual_range_attrs[0]])  # type: ignore
-                        if item.attrs.get(actual_range_attrs[0])  # type: ignore
+                        conv(item.attrs[range_attrs[0]])  # type: ignore
+                        if item.attrs.get(range_attrs[0])  # type: ignore
                         else None
                     )
                 )
@@ -777,8 +777,8 @@ class Table(CloudFormationModel):
                 if self._item_comes_before_dct(
                     result,
                     exclusive_start_key,
-                    actual_hash_attr,
-                    actual_range_attrs,
+                    hash_attrs,
+                    range_attrs,
                     scan_index_forward,
                 ):
                     continue
@@ -926,19 +926,16 @@ class Table(CloudFormationModel):
             except IndexError:
                 index_range_key = None
 
-            actual_hash_attr = index_hash_key["AttributeName"]
+            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
             if index_range_key:
-                actual_range_attrs = [
-                    index_range_key["AttributeName"],
-                    self.range_key_attr,
-                ]
+                range_attrs = [index_range_key["AttributeName"], self.range_key_attr]
             else:
-                actual_range_attrs = [self.range_key_attr]
+                range_attrs = [self.range_key_attr]
 
             items = self.has_idx_items(index_name)
         else:
-            actual_hash_attr = self.hash_key_attr
-            actual_range_attrs = [self.range_key_attr]
+            hash_attrs = [self.hash_key_attr]
+            range_attrs = [self.range_key_attr]
 
             items = self.all_items()
 
@@ -951,8 +948,8 @@ class Table(CloudFormationModel):
                 if self._item_comes_before_dct(
                     item,
                     exclusive_start_key,
-                    actual_hash_attr,
-                    actual_range_attrs,
+                    hash_attrs,
+                    range_attrs,
                     True,
                 ):
                     continue
@@ -1012,12 +1009,15 @@ class Table(CloudFormationModel):
         self,
         item: Item,
         dct: Dict[str, Any],
-        hash_key_attr: str,
+        hash_key_attrs: List[str],
         range_key_attrs: List[Optional[str]],
         scan_index_forward: bool,
     ) -> bool:
         """
         Does item appear before or at dct relative to sort options?
+
+        hash_key_attrs: The list of hash keys.
+        Includes the key of the GSI (first, if it exists) and the key of the main table.
 
         range_key_attrs: A list of range keys (RK).
         Includes the RK-name of the GSI (first, if it exists) and the RK-name of the main table (second - can be None).
@@ -1026,11 +1026,21 @@ class Table(CloudFormationModel):
         If that is the case, we compare by the RK of the main table instead
         Related: https://github.com/getmoto/moto/issues/7761
         """
-        dict_hash_val = DynamoType(dct.get(hash_key_attr))  # type: ignore[arg-type]
-        item_hash_val = item.attrs[hash_key_attr]
-        if item_hash_val != dict_hash_val:
+        hash_comes_before = any(
+            item.attrs[hash_key_attr] != DynamoType(dct.get(hash_key_attr))  # type: ignore
+            for hash_key_attr in hash_key_attrs
+            if hash_key_attr in item.attrs
+        )
+        if hash_comes_before:
             # If hash keys are different, order immediately
-            return bool(item_hash_val < dict_hash_val) == scan_index_forward
+            return (
+                any(
+                    item.attrs[hash_key_attr] < DynamoType(dct.get(hash_key_attr))  # type: ignore
+                    for hash_key_attr in hash_key_attrs
+                    if hash_key_attr in item.attrs
+                )
+                == scan_index_forward
+            )
         if not any(range_key_attrs):
             # If hash keys match and no range key, items are identical
             return True
