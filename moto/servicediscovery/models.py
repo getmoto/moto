@@ -377,7 +377,7 @@ class ServiceDiscoveryBackend(BaseBackend):
     def update_http_namespace(
         self,
         _id: str,
-        namespace_dict: dict[str, Any],
+        namespace_dict: Dict[str, Any],
         updater_request_id: Optional[str] = None,
     ) -> str:
         if "Description" not in namespace_dict:
@@ -505,8 +505,8 @@ class ServiceDiscoveryBackend(BaseBackend):
     def _filter_instances(
         self,
         instances: List[ServiceInstance],
-        query_parameters: Optional[dict[str, str]] = None,
-        optional_parameters: Optional[dict[str, str]] = None,
+        query_parameters: Optional[Dict[str, str]] = None,
+        optional_parameters: Optional[Dict[str, str]] = None,
         health_status: Optional[str] = None,
     ) -> List[ServiceInstance]:
         if query_parameters is None:
@@ -562,8 +562,8 @@ class ServiceDiscoveryBackend(BaseBackend):
         self,
         namespace_name: str,
         service_name: str,
-        query_parameters: Optional[dict[str, str]] = None,
-        optional_parameters: Optional[dict[str, str]] = None,
+        query_parameters: Optional[Dict[str, str]] = None,
+        optional_parameters: Optional[Dict[str, str]] = None,
         health_status: Optional[str] = None,
     ) -> Tuple[List[ServiceInstance], Dict[str, int]]:
         if query_parameters is None:
