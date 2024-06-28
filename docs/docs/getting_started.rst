@@ -303,7 +303,7 @@ Example:
 .. sourcecode:: python
 
     def test_something(aws):
-        # s3 is a fixture defined above that yields a boto3 s3 client.
+        # aws is a fixture defined above that yields a boto3 s3 client.
         
         from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
         # ^^ Importing here ensures that the mock has been established.
