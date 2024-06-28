@@ -286,7 +286,7 @@ Moto will delete any data after the mock ends, so the state is not shared across
 
 What about those pesky imports
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-As mentioned earlier, mocks should be established __BEFORE__ the clients are set up.
+As mentioned earlier, mocks should be established *BEFORE* the clients are set up.
 
 Some background on why this is necessary:  :raw-html:`<br />`
 Moto intercepts HTTP requests using a custom event handler that hooks into botocore's event-system.  :raw-html:`<br />`
