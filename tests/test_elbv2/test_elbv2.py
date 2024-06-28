@@ -1582,6 +1582,12 @@ def test_add_listener_certificate():
     ]
     assert len(certs) == 0
 
+    with pytest.raises(ClientError) as exc:
+        client.add_listener_certificates(
+            ListenerArn=listener_arn, Certificates=[{"CertificateArn": google_arn}] * 50
+        )
+    assert exc.value.response["Error"]["Code"] == "TooManyCertificates"
+
 
 @mock_aws
 def test_forward_config_action():

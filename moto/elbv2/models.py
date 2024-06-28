@@ -37,6 +37,7 @@ from .exceptions import (
     RuleNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
+    TooManyCertificatesError,
     TooManyTagsError,
     ValidationError,
 )
@@ -1942,6 +1943,9 @@ Member must satisfy regular expression pattern: {expression}"
         listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
             0
         ]
+        # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html
+        if len(certificates) + len(listener.certificates) > 25:
+            raise TooManyCertificatesError()
         listener.certificates.extend([c["certificate_arn"] for c in certificates])
         return listener.certificates
 

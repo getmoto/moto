@@ -47,6 +47,14 @@ class TooManyTagsError(ELBClientError):
         )
 
 
+class TooManyCertificatesError(ELBClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "TooManyCertificates",
+            "You've reached the limit on the number of certificates per load balancer",
+        )
+
+
 class BadHealthCheckDefinition(ELBClientError):
     def __init__(self) -> None:
         super().__init__(
