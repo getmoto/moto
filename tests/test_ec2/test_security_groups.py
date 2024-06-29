@@ -1284,12 +1284,17 @@ def test_update_security_group_rule_descriptions_ingress():
     )
     sg_id = sg.id
 
+    expected_ip_ranges = [
+        {"CidrIp": "1.2.3.4/32", "Description": "first desc"},
+        {"CidrIp": "1.2.3.5/32", "Description": "first desc"},
+        {"CidrIp": "1.2.3.6/32", "Description": "first desc"},
+    ]
     ip_permissions = [
         {
             "IpProtocol": "tcp",
             "FromPort": 27017,
             "ToPort": 27017,
-            "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "first desc"}],
+            "IpRanges": expected_ip_ranges,
         }
     ]
     client.authorize_security_group_ingress(
@@ -1302,8 +1307,7 @@ def test_update_security_group_rule_descriptions_ingress():
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]
-    assert len(ip_ranges) == 1
-    assert ip_ranges[0] == {"CidrIp": "1.2.3.4/32", "Description": "first desc"}
+    assert ip_ranges == expected_ip_ranges
 
     client.update_security_group_rule_descriptions_ingress(
         GroupName=sg_name,
@@ -1312,16 +1316,20 @@ def test_update_security_group_rule_descriptions_ingress():
                 "IpProtocol": "tcp",
                 "FromPort": 27017,
                 "ToPort": 27017,
-                "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "second desc"}],
+                "IpRanges": [
+                    {"CidrIp": "1.2.3.4/32", "Description": "second desc"},
+                    {"CidrIp": "1.2.3.6/32", "Description": "third desc"},
+                ],
             }
         ],
     )
+    expected_ip_ranges[0]["Description"] = "second desc"
+    expected_ip_ranges[2]["Description"] = "third desc"
 
     ip_ranges = client.describe_security_groups(GroupIds=[sg_id])["SecurityGroups"][0][
         "IpPermissions"
     ][0]["IpRanges"]
-    assert len(ip_ranges) == 1
-    assert ip_ranges[0] == {"CidrIp": "1.2.3.4/32", "Description": "second desc"}
+    assert ip_ranges == expected_ip_ranges
 
 
 @mock_aws
