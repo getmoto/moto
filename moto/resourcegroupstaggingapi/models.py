@@ -211,7 +211,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
         # S3
-        if not resource_type_filters or "s3" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "s3" in resource_type_filters
+            or "s3:bucket" in resource_type_filters
+        ):
             for bucket in self.s3_backend.buckets.values():
                 tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
                 if not tags or not tag_filter(

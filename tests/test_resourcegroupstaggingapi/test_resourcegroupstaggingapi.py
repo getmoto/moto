@@ -1,6 +1,7 @@
 import json
 
 import boto3
+import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
@@ -534,8 +535,9 @@ def test_get_resources_target_group():
     assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
 
+@pytest.mark.parametrize("resource_type", ["s3", "s3:bucket"])
 @mock_aws
-def test_get_resources_s3():
+def test_get_resources_s3(resource_type):
     # Tests pagination
     s3_client = boto3.client("s3", region_name="eu-central-1")
 
@@ -556,14 +558,16 @@ def test_get_resources_s3():
         response_keys.add("key" + i_str)
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
-    resp = rtapi.get_resources(ResourcesPerPage=2)
+    resp = rtapi.get_resources(ResourcesPerPage=2, ResourceTypeFilters=[resource_type])
     for resource in resp["ResourceTagMappingList"]:
         response_keys.remove(resource["Tags"][0]["Key"])
 
     assert len(response_keys) == 2
 
     resp = rtapi.get_resources(
-        ResourcesPerPage=2, PaginationToken=resp["PaginationToken"]
+        ResourcesPerPage=2,
+        PaginationToken=resp["PaginationToken"],
+        ResourceTypeFilters=[resource_type],
     )
     for resource in resp["ResourceTagMappingList"]:
         response_keys.remove(resource["Tags"][0]["Key"])
