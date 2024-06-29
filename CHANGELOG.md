@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.10
 -----
-Docker Digest for 5.0.10: <autopopulateddigest>
+Docker Digest for 5.0.10: _sha256:bfb9cd2a437fc7c754b3a6a66b7fb528ec1a53e0c683e8b75514bff81543cf55_
 
     General:
         * CloudFormation now supports cfn-lint v1, as well as v0
