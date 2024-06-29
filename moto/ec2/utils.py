@@ -517,13 +517,13 @@ def filter_internet_gateways(
 
 def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
     value = obj.get_filter_value(_filter)
-
     if filter_value is None:
         return False
 
     if isinstance(value, str):
         if not isinstance(filter_value, list):
             filter_value = [filter_value]
+
         if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
             return True
         return False
@@ -534,6 +534,9 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
     try:
         value = set(value)
+        if isinstance(filter_value, list) and len(filter_value) == 1:
+            return any(fnmatch.fnmatch(element, filter_value[0]) for element in value)
+
         return (value and value.issubset(filter_value)) or value.issuperset(
             filter_value
         )

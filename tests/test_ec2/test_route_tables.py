@@ -283,12 +283,25 @@ def test_route_tables_filters_transit_gateway():
 
     gateway = response["TransitGateway"]
     main_route_table.create_route(TransitGatewayId=gateway["TransitGatewayId"])
-
     route_tables = client.describe_route_tables(
         Filters=[
             {
                 "Name": "route.transit-gateway-id",
                 "Values": [gateway["TransitGatewayId"]],
+            }
+        ]
+    )["RouteTables"]
+
+    assert len(route_tables) == 1
+    route_table = route_tables[0]
+    assert route_table["RouteTableId"] == main_route_table_id
+
+    # Filter using regex
+    route_tables = client.describe_route_tables(
+        Filters=[
+            {
+                "Name": "route.transit-gateway-id",
+                "Values": ["tgw-*"],
             }
         ]
     )["RouteTables"]
