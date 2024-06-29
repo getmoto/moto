@@ -286,7 +286,7 @@ Moto will delete any data after the mock ends, so the state is not shared across
 
 What about those pesky imports
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-As mentioned earlier, mocks should be established __BEFORE__ the clients are set up.
+As mentioned earlier, mocks should be established *BEFORE* the clients are set up.
 
 Some background on why this is necessary:  :raw-html:`<br />`
 Moto intercepts HTTP requests using a custom event handler that hooks into botocore's event-system.  :raw-html:`<br />`
@@ -303,7 +303,7 @@ Example:
 .. sourcecode:: python
 
     def test_something(aws):
-        # s3 is a fixture defined above that yields a boto3 s3 client.
+        # aws is a fixture defined above that yields a boto3 s3 client.
         
         from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
         # ^^ Importing here ensures that the mock has been established.
