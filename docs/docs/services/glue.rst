@@ -60,6 +60,7 @@ glue
 - [X] create_table
 - [ ] create_table_optimizer
 - [X] create_trigger
+- [ ] create_usage_profile
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
@@ -86,6 +87,7 @@ glue
 - [ ] delete_table_optimizer
 - [X] delete_table_version
 - [X] delete_trigger
+- [ ] delete_usage_profile
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
 - [ ] get_blueprint
@@ -162,6 +164,7 @@ glue
 - [ ] get_unfiltered_partition_metadata
 - [ ] get_unfiltered_partitions_metadata
 - [ ] get_unfiltered_table_metadata
+- [ ] get_usage_profile
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -188,6 +191,7 @@ glue
 - [ ] list_statements
 - [ ] list_table_optimizer_runs
 - [X] list_triggers
+- [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_resource_policy
@@ -245,6 +249,7 @@ glue
 - [X] update_table
 - [ ] update_table_optimizer
 - [ ] update_trigger
+- [ ] update_usage_profile
 - [ ] update_user_defined_function
 - [ ] update_workflow
 

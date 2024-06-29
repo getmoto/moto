@@ -41,6 +41,7 @@ batch
 
 - [X] describe_jobs
 - [X] describe_scheduling_policies
+- [ ] get_job_queue_snapshot
 - [X] list_jobs
   
         Pagination is not yet implemented

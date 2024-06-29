@@ -35,6 +35,7 @@ kms
 
 - [ ] delete_custom_key_store
 - [ ] delete_imported_key_material
+- [ ] derive_shared_secret
 - [ ] describe_custom_key_stores
 - [X] describe_key
 - [X] disable_key

@@ -91,6 +91,7 @@ quicksight
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
+- [ ] describe_key_registration
 - [ ] describe_namespace
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
@@ -190,6 +191,7 @@ quicksight
 - [ ] update_iam_policy_assignment
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
+- [ ] update_key_registration
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission

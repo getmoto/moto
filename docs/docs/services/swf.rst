@@ -18,6 +18,8 @@ swf
 - [ ] count_open_workflow_executions
 - [X] count_pending_activity_tasks
 - [X] count_pending_decision_tasks
+- [ ] delete_activity_type
+- [ ] delete_workflow_type
 - [ ] deprecate_activity_type
 - [X] deprecate_domain
 - [ ] deprecate_workflow_type

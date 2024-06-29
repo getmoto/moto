@@ -25,7 +25,7 @@ sagemaker
 - [ ] create_artifact
 - [ ] create_auto_ml_job
 - [ ] create_auto_ml_job_v2
-- [ ] create_cluster
+- [X] create_cluster
 - [ ] create_code_repository
 - [ ] create_compilation_job
 - [ ] create_context
@@ -41,6 +41,7 @@ sagemaker
 - [X] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_hub
+- [ ] create_hub_content_reference
 - [ ] create_human_task_ui
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
@@ -49,6 +50,7 @@ sagemaker
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
+- [ ] create_mlflow_tracking_server
 - [X] create_model
 - [ ] create_model_bias_job_definition
 - [ ] create_model_card
@@ -62,6 +64,7 @@ sagemaker
 - [X] create_notebook_instance_lifecycle_config
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
+- [ ] create_presigned_mlflow_tracking_server_url
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
 - [ ] create_project
@@ -80,7 +83,7 @@ sagemaker
 - [ ] delete_app_image_config
 - [ ] delete_artifact
 - [ ] delete_association
-- [ ] delete_cluster
+- [X] delete_cluster
 - [ ] delete_code_repository
 - [ ] delete_compilation_job
 - [ ] delete_context
@@ -96,12 +99,14 @@ sagemaker
 - [ ] delete_flow_definition
 - [ ] delete_hub
 - [ ] delete_hub_content
+- [ ] delete_hub_content_reference
 - [ ] delete_human_task_ui
 - [ ] delete_hyper_parameter_tuning_job
 - [ ] delete_image
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_mlflow_tracking_server
 - [X] delete_model
 - [ ] delete_model_bias_job_definition
 - [ ] delete_model_card
@@ -131,8 +136,8 @@ sagemaker
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
 - [ ] describe_auto_ml_job_v2
-- [ ] describe_cluster
-- [ ] describe_cluster_node
+- [X] describe_cluster
+- [X] describe_cluster_node
 - [ ] describe_code_repository
 - [ ] describe_compilation_job
 - [ ] describe_context
@@ -159,6 +164,7 @@ sagemaker
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
+- [ ] describe_mlflow_tracking_server
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
 - [ ] describe_model_card
@@ -204,8 +210,8 @@ sagemaker
 - [ ] list_associations
 - [ ] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
-- [ ] list_cluster_nodes
-- [ ] list_clusters
+- [X] list_cluster_nodes
+- [X] list_clusters
 - [ ] list_code_repositories
 - [ ] list_compilation_jobs
 - [ ] list_contexts
@@ -234,6 +240,7 @@ sagemaker
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
+- [ ] list_mlflow_tracking_servers
 - [ ] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
 - [ ] list_model_card_versions
@@ -285,6 +292,7 @@ sagemaker
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
 - [ ] start_inference_experiment
+- [ ] start_mlflow_tracking_server
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [X] start_pipeline_execution
@@ -296,6 +304,7 @@ sagemaker
 - [ ] stop_inference_experiment
 - [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
+- [ ] stop_mlflow_tracking_server
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance
 - [ ] stop_pipeline_execution
@@ -323,6 +332,7 @@ sagemaker
 - [ ] update_inference_component
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
+- [ ] update_mlflow_tracking_server
 - [ ] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
