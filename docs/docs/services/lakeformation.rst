@@ -35,6 +35,7 @@ lakeformation
 - [ ] describe_transaction
 - [ ] extend_transaction
 - [ ] get_data_cells_filter
+- [ ] get_data_lake_principal
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
 - [X] get_lf_tag

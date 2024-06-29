@@ -676,7 +676,7 @@
 
 ## batch
 <details>
-<summary>100% implemented</summary>
+<summary>96% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
@@ -691,6 +691,7 @@
 - [X] describe_job_queues
 - [X] describe_jobs
 - [X] describe_scheduling_policies
+- [ ] get_job_queue_snapshot
 - [X] list_jobs
 - [X] list_scheduling_policies
 - [X] list_tags_for_resource
@@ -788,7 +789,7 @@
 
 ## budgets
 <details>
-<summary>30% implemented</summary>
+<summary>26% implemented</summary>
 
 - [X] create_budget
 - [ ] create_budget_action
@@ -809,6 +810,9 @@
 - [X] describe_notifications_for_budget
 - [ ] describe_subscribers_for_notification
 - [ ] execute_budget_action
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
 - [ ] update_budget
 - [ ] update_budget_action
 - [ ] update_notification
@@ -2455,6 +2459,7 @@
 - [ ] describe_store_image_tasks
 - [X] describe_subnets
 - [X] describe_tags
+- [ ] describe_traffic_mirror_filter_rules
 - [ ] describe_traffic_mirror_filters
 - [ ] describe_traffic_mirror_sessions
 - [ ] describe_traffic_mirror_targets
@@ -2565,6 +2570,7 @@
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
+- [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history
@@ -3376,7 +3382,7 @@
 
 ## events
 <details>
-<summary>80% implemented</summary>
+<summary>78% implemented</summary>
 
 - [ ] activate_event_source
 - [X] cancel_replay
@@ -3434,6 +3440,7 @@
 - [X] update_archive
 - [X] update_connection
 - [ ] update_endpoint
+- [ ] update_event_bus
 </details>
 
 ## firehose
@@ -3523,6 +3530,57 @@
 - [X] update_dataset_group
 </details>
 
+## fsx
+<details>
+<summary>11% implemented</summary>
+
+- [ ] associate_file_system_aliases
+- [ ] cancel_data_repository_task
+- [ ] copy_backup
+- [ ] copy_snapshot_and_update_volume
+- [ ] create_backup
+- [ ] create_data_repository_association
+- [ ] create_data_repository_task
+- [ ] create_file_cache
+- [X] create_file_system
+- [ ] create_file_system_from_backup
+- [ ] create_snapshot
+- [ ] create_storage_virtual_machine
+- [ ] create_volume
+- [ ] create_volume_from_backup
+- [ ] delete_backup
+- [ ] delete_data_repository_association
+- [ ] delete_file_cache
+- [X] delete_file_system
+- [ ] delete_snapshot
+- [ ] delete_storage_virtual_machine
+- [ ] delete_volume
+- [ ] describe_backups
+- [ ] describe_data_repository_associations
+- [ ] describe_data_repository_tasks
+- [ ] describe_file_caches
+- [ ] describe_file_system_aliases
+- [X] describe_file_systems
+- [ ] describe_shared_vpc_configuration
+- [ ] describe_snapshots
+- [ ] describe_storage_virtual_machines
+- [ ] describe_volumes
+- [ ] disassociate_file_system_aliases
+- [ ] list_tags_for_resource
+- [ ] release_file_system_nfs_v3_locks
+- [ ] restore_volume_from_snapshot
+- [ ] start_misconfigured_state_recovery
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_data_repository_association
+- [ ] update_file_cache
+- [ ] update_file_system
+- [ ] update_shared_vpc_configuration
+- [ ] update_snapshot
+- [ ] update_storage_virtual_machine
+- [ ] update_volume
+</details>
+
 ## glacier
 <details>
 <summary>30% implemented</summary>
@@ -3564,7 +3622,7 @@
 
 ## glue
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3608,6 +3666,7 @@
 - [X] create_table
 - [ ] create_table_optimizer
 - [X] create_trigger
+- [ ] create_usage_profile
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
@@ -3634,6 +3693,7 @@
 - [ ] delete_table_optimizer
 - [X] delete_table_version
 - [X] delete_trigger
+- [ ] delete_usage_profile
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
 - [ ] get_blueprint
@@ -3698,6 +3758,7 @@
 - [ ] get_unfiltered_partition_metadata
 - [ ] get_unfiltered_partitions_metadata
 - [ ] get_unfiltered_table_metadata
+- [ ] get_usage_profile
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -3724,6 +3785,7 @@
 - [ ] list_statements
 - [ ] list_table_optimizer_runs
 - [X] list_triggers
+- [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_resource_policy
@@ -3777,6 +3839,7 @@
 - [X] update_table
 - [ ] update_table_optimizer
 - [ ] update_trigger
+- [ ] update_usage_profile
 - [ ] update_user_defined_function
 - [ ] update_workflow
 </details>
@@ -3881,7 +3944,7 @@
 
 ## guardduty
 <details>
-<summary>15% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -3889,6 +3952,7 @@
 - [X] create_detector
 - [X] create_filter
 - [ ] create_ip_set
+- [ ] create_malware_protection_plan
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
@@ -3898,6 +3962,7 @@
 - [X] delete_filter
 - [ ] delete_invitations
 - [ ] delete_ip_set
+- [ ] delete_malware_protection_plan
 - [ ] delete_members
 - [ ] delete_publishing_destination
 - [ ] delete_threat_intel_set
@@ -3917,6 +3982,7 @@
 - [ ] get_findings_statistics
 - [ ] get_invitations_count
 - [ ] get_ip_set
+- [ ] get_malware_protection_plan
 - [ ] get_malware_scan_settings
 - [ ] get_master_account
 - [ ] get_member_detectors
@@ -3932,6 +3998,7 @@
 - [ ] list_findings
 - [ ] list_invitations
 - [ ] list_ip_sets
+- [ ] list_malware_protection_plans
 - [ ] list_members
 - [X] list_organization_admin_accounts
 - [ ] list_publishing_destinations
@@ -3947,6 +4014,7 @@
 - [X] update_filter
 - [ ] update_findings_feedback
 - [ ] update_ip_set
+- [ ] update_malware_protection_plan
 - [ ] update_malware_scan_settings
 - [ ] update_member_detectors
 - [ ] update_organization_configuration
@@ -4612,7 +4680,7 @@
 
 ## kms
 <details>
-<summary>57% implemented</summary>
+<summary>56% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -4624,6 +4692,7 @@
 - [X] delete_alias
 - [ ] delete_custom_key_store
 - [ ] delete_imported_key_material
+- [ ] derive_shared_secret
 - [ ] describe_custom_key_stores
 - [X] describe_key
 - [X] disable_key
@@ -4670,7 +4739,7 @@
 
 ## lakeformation
 <details>
-<summary>37% implemented</summary>
+<summary>36% implemented</summary>
 
 - [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
@@ -4693,6 +4762,7 @@
 - [ ] describe_transaction
 - [ ] extend_transaction
 - [ ] get_data_cells_filter
+- [ ] get_data_lake_principal
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
 - [X] get_lf_tag
@@ -5636,6 +5706,7 @@
 - [ ] create_batch_inference_job
 - [ ] create_batch_segment_job
 - [ ] create_campaign
+- [ ] create_data_deletion_job
 - [ ] create_dataset
 - [ ] create_dataset_export_job
 - [ ] create_dataset_group
@@ -5660,6 +5731,7 @@
 - [ ] describe_batch_inference_job
 - [ ] describe_batch_segment_job
 - [ ] describe_campaign
+- [ ] describe_data_deletion_job
 - [ ] describe_dataset
 - [ ] describe_dataset_export_job
 - [ ] describe_dataset_group
@@ -5677,6 +5749,7 @@
 - [ ] list_batch_inference_jobs
 - [ ] list_batch_segment_jobs
 - [ ] list_campaigns
+- [ ] list_data_deletion_jobs
 - [ ] list_dataset_export_jobs
 - [ ] list_dataset_groups
 - [ ] list_dataset_import_jobs
@@ -5924,6 +5997,7 @@
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
+- [ ] describe_key_registration
 - [ ] describe_namespace
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
@@ -6006,6 +6080,7 @@
 - [ ] update_iam_policy_assignment
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
+- [ ] update_key_registration
 - [ ] update_public_sharing_settings
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
@@ -6481,7 +6556,7 @@
 
 ## resiliencehub
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] add_draft_app_version_resource_mappings
 - [ ] batch_update_recommendation_status
@@ -6509,6 +6584,7 @@
 - [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
+- [ ] list_app_assessment_resource_drifts
 - [X] list_app_assessments
 - [ ] list_app_component_compliances
 - [ ] list_app_component_recommendations
@@ -7037,7 +7113,7 @@
 
 ## sagemaker
 <details>
-<summary>20% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -7050,7 +7126,7 @@
 - [ ] create_artifact
 - [ ] create_auto_ml_job
 - [ ] create_auto_ml_job_v2
-- [ ] create_cluster
+- [X] create_cluster
 - [ ] create_code_repository
 - [ ] create_compilation_job
 - [ ] create_context
@@ -7066,6 +7142,7 @@
 - [X] create_feature_group
 - [ ] create_flow_definition
 - [ ] create_hub
+- [ ] create_hub_content_reference
 - [ ] create_human_task_ui
 - [ ] create_hyper_parameter_tuning_job
 - [ ] create_image
@@ -7074,6 +7151,7 @@
 - [ ] create_inference_experiment
 - [ ] create_inference_recommendations_job
 - [ ] create_labeling_job
+- [ ] create_mlflow_tracking_server
 - [X] create_model
 - [ ] create_model_bias_job_definition
 - [ ] create_model_card
@@ -7087,6 +7165,7 @@
 - [X] create_notebook_instance_lifecycle_config
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
+- [ ] create_presigned_mlflow_tracking_server_url
 - [ ] create_presigned_notebook_instance_url
 - [X] create_processing_job
 - [ ] create_project
@@ -7105,7 +7184,7 @@
 - [ ] delete_app_image_config
 - [ ] delete_artifact
 - [ ] delete_association
-- [ ] delete_cluster
+- [X] delete_cluster
 - [ ] delete_code_repository
 - [ ] delete_compilation_job
 - [ ] delete_context
@@ -7121,12 +7200,14 @@
 - [ ] delete_flow_definition
 - [ ] delete_hub
 - [ ] delete_hub_content
+- [ ] delete_hub_content_reference
 - [ ] delete_human_task_ui
 - [ ] delete_hyper_parameter_tuning_job
 - [ ] delete_image
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
+- [ ] delete_mlflow_tracking_server
 - [X] delete_model
 - [ ] delete_model_bias_job_definition
 - [ ] delete_model_card
@@ -7156,8 +7237,8 @@
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
 - [ ] describe_auto_ml_job_v2
-- [ ] describe_cluster
-- [ ] describe_cluster_node
+- [X] describe_cluster
+- [X] describe_cluster_node
 - [ ] describe_code_repository
 - [ ] describe_compilation_job
 - [ ] describe_context
@@ -7184,6 +7265,7 @@
 - [ ] describe_inference_recommendations_job
 - [ ] describe_labeling_job
 - [ ] describe_lineage_group
+- [ ] describe_mlflow_tracking_server
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
 - [ ] describe_model_card
@@ -7229,8 +7311,8 @@
 - [ ] list_associations
 - [ ] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
-- [ ] list_cluster_nodes
-- [ ] list_clusters
+- [X] list_cluster_nodes
+- [X] list_clusters
 - [ ] list_code_repositories
 - [ ] list_compilation_jobs
 - [ ] list_contexts
@@ -7259,6 +7341,7 @@
 - [ ] list_labeling_jobs
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
+- [ ] list_mlflow_tracking_servers
 - [ ] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
 - [ ] list_model_card_versions
@@ -7305,6 +7388,7 @@
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
 - [ ] start_inference_experiment
+- [ ] start_mlflow_tracking_server
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [X] start_pipeline_execution
@@ -7316,6 +7400,7 @@
 - [ ] stop_inference_experiment
 - [ ] stop_inference_recommendations_job
 - [ ] stop_labeling_job
+- [ ] stop_mlflow_tracking_server
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance
 - [ ] stop_pipeline_execution
@@ -7343,6 +7428,7 @@
 - [ ] update_inference_component
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
+- [ ] update_mlflow_tracking_server
 - [ ] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
@@ -8123,12 +8209,14 @@
 
 ## swf
 <details>
-<summary>51% implemented</summary>
+<summary>48% implemented</summary>
 
 - [ ] count_closed_workflow_executions
 - [ ] count_open_workflow_executions
 - [X] count_pending_activity_tasks
 - [X] count_pending_decision_tasks
+- [ ] delete_activity_type
+- [ ] delete_workflow_type
 - [ ] deprecate_activity_type
 - [X] deprecate_domain
 - [ ] deprecate_workflow_type
@@ -8331,7 +8419,7 @@
 
 ## workspaces
 <details>
-<summary>18% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
@@ -8349,6 +8437,7 @@
 - [ ] create_workspace_bundle
 - [X] create_workspace_image
 - [X] create_workspaces
+- [ ] create_workspaces_pool
 - [ ] delete_account_link_invitation
 - [ ] delete_client_branding
 - [ ] delete_connect_client_add_in
@@ -8380,6 +8469,8 @@
 - [ ] describe_workspace_snapshots
 - [X] describe_workspaces
 - [ ] describe_workspaces_connection_status
+- [ ] describe_workspaces_pool_sessions
+- [ ] describe_workspaces_pools
 - [ ] disassociate_connection_alias
 - [ ] disassociate_ip_groups
 - [ ] disassociate_workspace_application
@@ -8394,6 +8485,7 @@
 - [X] modify_client_properties
 - [ ] modify_saml_properties
 - [X] modify_selfservice_permissions
+- [ ] modify_streaming_properties
 - [ ] modify_workspace_access_properties
 - [X] modify_workspace_creation_properties
 - [ ] modify_workspace_properties
@@ -8405,13 +8497,18 @@
 - [ ] restore_workspace
 - [ ] revoke_ip_rules
 - [ ] start_workspaces
+- [ ] start_workspaces_pool
 - [ ] stop_workspaces
+- [ ] stop_workspaces_pool
 - [ ] terminate_workspaces
+- [ ] terminate_workspaces_pool
+- [ ] terminate_workspaces_pool_session
 - [ ] update_connect_client_add_in
 - [ ] update_connection_alias_permission
 - [ ] update_rules_of_ip_group
 - [ ] update_workspace_bundle
 - [X] update_workspace_image_permission
+- [ ] update_workspaces_pool
 </details>
 
 ## Unimplemented:
@@ -8419,7 +8516,6 @@
 
 - accessanalyzer
 - account
-- alexaforbusiness
 - amplify
 - amplifybackend
 - amplifyuibuilder
@@ -8428,17 +8524,18 @@
 - appflow
 - appintegrations
 - application-insights
+- application-signals
 - applicationcostprofiler
 - appmesh
 - apprunner
 - appstream
+- apptest
 - arc-zonal-shift
 - artifact
 - auditmanager
 - autoscaling-plans
 - b2bi
 - backup-gateway
-- backupstorage
 - bcm-data-exports
 - bedrock-agent-runtime
 - bedrock-runtime
@@ -8509,7 +8606,6 @@
 - forecastquery
 - frauddetector
 - freetier
-- fsx
 - gamelift
 - globalaccelerator
 - grafana
@@ -8517,7 +8613,6 @@
 - groundstation
 - health
 - healthlake
-- honeycode
 - imagebuilder
 - importexport
 - inspector
@@ -8565,6 +8660,7 @@
 - m2
 - machinelearning
 - macie2
+- mailmanager
 - managedblockchain-query
 - marketplace-agreement
 - marketplace-catalog
@@ -8599,6 +8695,7 @@
 - payment-cryptography
 - payment-cryptography-data
 - pca-connector-ad
+- pca-connector-scep
 - personalize-events
 - personalize-runtime
 - pi
@@ -8649,6 +8746,7 @@
 - supplychain
 - support-app
 - synthetics
+- taxsettings
 - timestream-influxdb
 - timestream-query
 - tnb

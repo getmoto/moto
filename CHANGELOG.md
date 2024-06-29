@@ -1,6 +1,69 @@
 Moto Changelog
 ==============
 
+5.0.10
+-----
+Docker Digest for 5.0.10: <autopopulateddigest>
+
+    General:
+        * CloudFormation now supports cfn-lint v1, as well as v0
+
+    New Services:
+
+        * FSX:
+            * create_file_system()
+            * delete_file_system()
+            * describe_file_systems()
+            * tag_resource()
+            * untag_resource()
+
+        * OpenSearch Serverless:
+            * batch_get_collection()
+            * create_collection()
+            * create_security_policy()
+            * create_vpc_endpoint()
+            * delete_collection()
+            * get_security_policy()
+            * list_collections()
+            * list_security_policies()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+            * update_security_policy()
+
+        * Shield:
+            * create_protection()
+            * delete_protection()
+            * describe_protection()
+            * list_protections()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * Sagemaker:
+            * create_cluster()
+            * delete_cluster()
+            * describe_cluster()
+            * list_clusters()
+            * list_cluster_nodes()
+
+    Miscellaneous:
+        * CognitoIDP: admin_list_groups_by_user() now supports pagination
+        * DynamoDB: transact_write_items() now validates the number of SET expressions
+        * DynamoDB: update_item() now validates unused ExpressionAttributeValues
+        * DynamoDB: query() now supports pagination when querying Global Indexes
+        * EC2: describe_images() - feat: support filtering images by ExecutableUsers=['self']
+        * EC2: describe_route_tables() now supports the filter `route.transit-gateway-id`
+        * EC2: update_security_group_rule_descriptions_ingress() now supports updating multiple descriptions
+        * EKS: create_nodegroup() now supports the `taints`-parameter
+        * ELBv2: add_listener_certificates() now validates when adding too many certificates (> 25)
+        * ELBv2: describe_target_health() now handles unknown/deregistered/terminated instances better
+        * ResourceGroupsTaggingAPI: get_resources() now supports ResourceType=s3:bucket
+        * RDS: Clusters now have the `creating`-status on create, and `available` immediately after - in line with AWS
+        * SSM: get_parameter() now supports ARN's for the Name-parameter
+
+
 5.0.9
 -----
 Docker Digest for 5.0.9: _sha256:df61e4e76344017f6c82924a3dd1cdd4dcbac4095cf234c6d6fb0a0f800fbeff_
