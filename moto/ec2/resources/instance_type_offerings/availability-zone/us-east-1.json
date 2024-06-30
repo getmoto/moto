@@ -2652,7 +2652,15 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "u7in-32tb.224xlarge",
   "Location": "us-east-1a"
  },
  {

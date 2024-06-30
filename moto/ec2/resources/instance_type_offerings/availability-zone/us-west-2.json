@@ -8940,6 +8940,10 @@
   "Location": "us-west-2c"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "us-west-2c"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "us-west-2c"
  },
