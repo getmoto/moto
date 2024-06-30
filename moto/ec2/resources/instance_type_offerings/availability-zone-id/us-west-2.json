@@ -8940,6 +8940,10 @@
   "Location": "usw2-az3"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "usw2-az3"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "usw2-az3"
  },

@@ -2652,7 +2652,15 @@
   "Location": "use1-az1"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "use1-az1"
+ },
+ {
   "InstanceType": "u7in-24tb.224xlarge",
+  "Location": "use1-az1"
+ },
+ {
+  "InstanceType": "u7in-32tb.224xlarge",
   "Location": "use1-az1"
  },
  {
