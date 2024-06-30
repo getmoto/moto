@@ -232,15 +232,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.af-south-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -1896,15 +1887,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-east-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -3666,15 +3648,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-northeast-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6389,15 +6362,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-northeast-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -8762,15 +8726,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-northeast-3.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -10428,15 +10383,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-south-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12636,15 +12582,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-south-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -14050,15 +13987,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16699,15 +16627,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-2.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19372,15 +19291,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-3.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -20765,15 +20675,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-4.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -22144,15 +22045,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ca-central-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25432,15 +25324,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.cn-north-1.storage.cryo.aws.a2z.org.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -26850,15 +26733,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.cn-northwest-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.cn-northwest-1.storage.cryo.aws.a2z.org.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28353,15 +28227,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-central-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31037,15 +30902,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-central-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -32374,15 +32230,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-north-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34438,15 +34285,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-south-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -35966,15 +35804,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-south-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -37378,15 +37207,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-west-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40234,15 +40054,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-west-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -42743,15 +42554,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.eu-west-3.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-west-3.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45981,15 +45783,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.me-central-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -47447,15 +47240,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.me-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.me-south-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49155,15 +48939,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.sa-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.sa-east-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51285,15 +51060,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-east-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54497,15 +54263,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-east-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -56922,15 +56679,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-gov-east-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -58397,15 +58145,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.us-gov-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-gov-west-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60183,15 +59922,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-west-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62319,15 +62049,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-west-2.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
