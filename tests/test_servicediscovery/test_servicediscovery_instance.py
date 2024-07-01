@@ -1,8 +1,10 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 
 @pytest.fixture(name="client")
@@ -181,6 +183,11 @@ def test_update_instance_custom_health_status(client, ns_resp, srv_resp):
 
 @mock_aws
 def test_discover_instances_formatting(client, ns_resp, srv_resp):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
+        )
+
     attr_dict = {"attr1": "value1", "attr2": "value1"}
     client.register_instance(
         ServiceId=srv_resp["Service"]["Id"], InstanceId="i-123", Attributes=attr_dict
@@ -203,6 +210,11 @@ def test_discover_instances_formatting(client, ns_resp, srv_resp):
 
 @mock_aws
 def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
+        )
+
     instance_dicts = [
         {"id": "i-123", "attributes": {"attr1": "value1", "attr2": "value1"}},
         {"id": "i-456", "attributes": {"attr1": "value2"}},
@@ -263,6 +275,11 @@ def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
 
 @mock_aws
 def test_discover_instances_health_filters(client, ns_resp, srv_resp):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
+        )
+
     instance_dicts = [
         {"id": "i-123"},
         {"id": "i-456"},
@@ -354,6 +371,11 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
 
 @mock_aws
 def test_max_results_discover_instances(client, ns_resp, srv_resp):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
+        )
+
     instance_ids = ["i-123", "i-456", "i-789", "i-012"]
     for instance_id in instance_ids:
         client.register_instance(
@@ -373,6 +395,11 @@ def test_max_results_discover_instances(client, ns_resp, srv_resp):
 
 @mock_aws
 def test_discover_instances_revision(client, ns_resp, srv_resp):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
+        )
+
     instance_ids = ["i-123", "i-456", "i-789", "i-012"]
     for instance_id in instance_ids:
         client.register_instance(
