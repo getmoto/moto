@@ -1,5 +1,6 @@
 import json
 import sys
+from typing import Dict, Optional
 from unittest import SkipTest
 
 import boto3
@@ -11,16 +12,17 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
 
+from . import iot_aws_verified
+
 boto3_version = sys.modules["botocore"].__version__
 
 
-@mock_aws
-def test_basic() -> None:
-    iot_client = boto3.client("iot", region_name="ap-northeast-1")
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_basic(name: Optional[str] = None) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
-    name = "my-thing"
+
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
-    iot_client.create_thing(thingName=name)
 
     with pytest.raises(ClientError):
         client.get_thing_shadow(thingName=name)
@@ -47,13 +49,11 @@ def test_basic() -> None:
         client.get_thing_shadow(thingName=name)
 
 
-@mock_aws
-def test_update() -> None:
-    iot_client = boto3.client("iot", region_name="ap-northeast-1")
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_update(name: Optional[str] = None) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")
-    name = "my-thing"
     raw_payload = b'{"state": {"desired": {"led": "on"}}}'
-    iot_client.create_thing(thingName=name)
 
     # first update
     res = client.update_thing_shadow(thingName=name, payload=raw_payload)
@@ -97,14 +97,13 @@ def test_update() -> None:
     assert ex.value.response["Error"]["Message"] == "Version conflict"
 
 
-@mock_aws
-def test_create_named_shadows() -> None:
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_create_named_shadows(name: Optional[str] = None) -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameter only available in newer versions")
-    iot_client = boto3.client("iot", region_name="ap-northeast-1")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
-    thing_name = "my-thing"
-    iot_client.create_thing(thingName=thing_name)
+    thing_name = name
 
     # default shadow
     default_payload = json.dumps({"state": {"desired": {"name": "default"}}})
@@ -128,23 +127,16 @@ def test_create_named_shadows() -> None:
     # List named shadows
     shadows = client.list_named_shadows_for_thing(thingName=thing_name)["results"]
     assert len(shadows) == 2
-
-    for shadow in shadows:
-        shadow.pop("metadata")
-        shadow.pop("timestamp")
-        shadow.pop("version")
-
-    # Verify both named shadows are present
-    for name in ["shadow1", "shadow2"]:
-        assert {
-            "state": {"reported": {"name": name}, "delta": {"name": name}}
-        } in shadows
+    assert "shadow1" in shadows
+    assert "shadow2" in shadows
 
     # Verify we can delete a named shadow
     client.delete_thing_shadow(thingName=thing_name, shadowName="shadow2")
 
-    with pytest.raises(ClientError):
-        client.get_thing_shadow(thingName="shadow1")
+    with pytest.raises(ClientError) as exc:
+        client.get_thing_shadow(thingName=thing_name, shadowName="shadow2")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
     # The default and other named shadow are still there
     assert "payload" in client.get_thing_shadow(thingName=thing_name)
@@ -171,38 +163,86 @@ def test_publish() -> None:
         assert ("test/topic4", b"string") in mock_backend.published_payloads
 
 
-@mock_aws
-def test_delete_field_from_device_shadow() -> None:
-    test_thing_name = "TestThing"
-
-    iot_raw_client = boto3.client("iot", region_name="eu-central-1")
-    iot_raw_client.create_thing(thingName=test_thing_name)
-    iot = boto3.client("iot-data", region_name="eu-central-1")
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
+    iot = boto3.client("iot-data", region_name="ap-northeast-1")
 
     iot.update_thing_shadow(
-        thingName=test_thing_name,
+        thingName=name,
         payload=json.dumps({"state": {"desired": {"state1": 1, "state2": 2}}}),
     )
-    response = json.loads(
-        iot.get_thing_shadow(thingName=test_thing_name)["payload"].read()
-    )
+    response = json.loads(iot.get_thing_shadow(thingName=name)["payload"].read())
     assert len(response["state"]["desired"]) == 2
 
     iot.update_thing_shadow(
-        thingName=test_thing_name,
+        thingName=name,
         payload=json.dumps({"state": {"desired": {"state1": None}}}),
     )
-    response = json.loads(
-        iot.get_thing_shadow(thingName=test_thing_name)["payload"].read()
-    )
+    response = json.loads(iot.get_thing_shadow(thingName=name)["payload"].read())
     assert len(response["state"]["desired"]) == 1
     assert "state2" in response["state"]["desired"]
 
     iot.update_thing_shadow(
-        thingName=test_thing_name,
+        thingName=name,
         payload=json.dumps({"state": {"desired": {"state2": None}}}),
     )
-    response = json.loads(
-        iot.get_thing_shadow(thingName=test_thing_name)["payload"].read()
-    )
+    response = json.loads(iot.get_thing_shadow(thingName=name)["payload"].read())
     assert "desired" not in response["state"]
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "desired,initial_delta,reported,delta_after_report",
+    [
+        (
+            {"desired": {"online": True}},
+            {"desired": {"online": True}, "delta": {"online": True}},
+            {"reported": {"online": False}},
+            {
+                "desired": {"online": True},
+                "reported": {"online": False},
+                "delta": {"online": True},
+            },
+        ),
+        (
+            {"desired": {"enabled": True}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+            {"reported": {"online": False, "enabled": True}},
+            {
+                "desired": {"enabled": True},
+                "reported": {"online": False, "enabled": True},
+            },
+        ),
+        ({}, {}, {"reported": {"online": False}}, {"reported": {"online": False}}),
+        ({}, {}, {"reported": {"online": None}}, {}),
+        (
+            {"desired": {}},
+            {},
+            {"reported": {"online": False}},
+            {"reported": {"online": False}},
+        ),
+    ],
+)
+def test_delta_calculation(
+    desired: Dict[str, Dict[str, Optional[bool]]],
+    initial_delta: Dict[str, Dict[str, Optional[bool]]],
+    reported: Dict[str, Dict[str, Optional[bool]]],
+    delta_after_report: Dict[str, Dict[str, Optional[bool]]],
+    name: Optional[str] = None,
+) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+    desired_payload = json.dumps({"state": desired}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=desired_payload)
+
+    res = client.get_thing_shadow(thingName=name)
+    payload = json.loads(res["payload"].read())
+    assert payload["state"] == initial_delta
+
+    reported_payload = json.dumps({"state": reported}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=reported_payload)
+
+    res = client.get_thing_shadow(thingName=name)
+    payload = json.loads(res["payload"].read())
+    assert payload["state"] == delta_after_report
