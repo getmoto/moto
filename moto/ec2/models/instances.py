@@ -935,5 +935,5 @@ class InstanceBackend:
             )[0]
         )
         version = launch_template_arg.get("Version", template.latest_version_number)
-        template_version = template.get_version(int(version))
+        template_version = template.get_version(version)
         return template_version
