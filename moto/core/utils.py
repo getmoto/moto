@@ -337,12 +337,22 @@ def merge_dicts(
                 merge_dicts(dict1[key], dict2[key], remove_nulls)
             else:
                 dict1[key] = dict2[key]
+                if isinstance(dict1[key], dict):
+                    remove_null_from_dict(dict1)
             if dict1[key] == {} and remove_nulls:
                 dict1.pop(key)
         else:
             dict1[key] = dict2[key]
             if dict1[key] is None and remove_nulls:
                 dict1.pop(key)
+
+
+def remove_null_from_dict(dct: Dict[str, Any]) -> None:
+    for key in list(dct.keys()):
+        if dct[key] is None:
+            dct.pop(key)
+        elif isinstance(dct[key], dict):
+            remove_null_from_dict(dct[key])
 
 
 def aws_api_matches(pattern: str, string: Any) -> bool:
