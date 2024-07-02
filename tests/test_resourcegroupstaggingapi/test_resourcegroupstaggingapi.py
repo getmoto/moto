@@ -1031,3 +1031,61 @@ def test_get_resources_sagemaker_cluster():
     assert {"Key": "sagemakerkey", "Value": "sagemakervalue"} in resp[
         "ResourceTagMappingList"
     ][0]["Tags"]
+
+
+@mock_aws
+def test_get_resources_efs():
+    client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    efs = boto3.client("efs", region_name="us-east-1")
+    # elasticfilesystem:file-system
+    fs_one = efs.create_file_system(
+        CreationToken="test-token-1", Tags=[{"Key": "tag", "Value": "a tag"}]
+    )
+    fs_two = efs.create_file_system(
+        CreationToken="test-token-2", Tags=[{"Key": "tag", "Value": "b tag"}]
+    )
+    resp = client.get_resources(ResourceTypeFilters=["elasticfilesystem:file-system"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+    resp = client.get_resources(
+        ResourceTypeFilters=["elasticfilesystem:file-system"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    returned_arns = [i["ResourceARN"] for i in resp["ResourceTagMappingList"]]
+    assert fs_one["FileSystemArn"] in returned_arns
+    assert fs_two["FileSystemArn"] not in returned_arns
+
+    # elasticfilesystem:access-point
+    ap_one = efs.create_access_point(
+        ClientToken="ct-1",
+        FileSystemId=fs_one["FileSystemId"],
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+    ap_two = efs.create_access_point(
+        ClientToken="ct-2",
+        FileSystemId=fs_two["FileSystemId"],
+        Tags=[{"Key": "tag", "Value": "b tag"}],
+    )
+    resp = client.get_resources(ResourceTypeFilters=["elasticfilesystem:access-point"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+    resp = client.get_resources(
+        ResourceTypeFilters=["elasticfilesystem:access-point"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    returned_arns = [i["ResourceARN"] for i in resp["ResourceTagMappingList"]]
+    assert ap_one["AccessPointArn"] in returned_arns
+    assert ap_two["AccessPointArn"] not in returned_arns
+
+    resp = client.get_resources(ResourceTypeFilters=["elasticfilesystem"])
+    assert len(resp["ResourceTagMappingList"]) == 4
+    resp = client.get_resources(
+        ResourceTypeFilters=["elasticfilesystem"],
+        TagFilters=[{"Key": "tag", "Values": ["b tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 2
+    returned_arns = [i["ResourceARN"] for i in resp["ResourceTagMappingList"]]
+    assert fs_one["FileSystemArn"] not in returned_arns
+    assert fs_two["FileSystemArn"] in returned_arns
+    assert ap_one["AccessPointArn"] not in returned_arns
+    assert ap_two["AccessPointArn"] in returned_arns

@@ -8,6 +8,7 @@ from moto.core.exceptions import RESTError
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
+from moto.efs.models import EFSBackend, efs_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
@@ -50,6 +51,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
         return ec2_backends[self.account_id][self.region_name]
+
+    @property
+    def efs_backend(self) -> EFSBackend:
+        return efs_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -371,6 +376,30 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::volume/{volume.id}",
                     "Tags": tags,
                 }
+
+        # EFS, resource type elasticfilesystem:access-point
+        if (
+            not resource_type_filters
+            or "elasticfilesystem" in resource_type_filters
+            or "elasticfilesystem:access-point" in resource_type_filters
+        ):
+            for ap in self.efs_backend.access_points.values():
+                tags = self.efs_backend.list_tags_for_resource(ap.access_point_id)
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{ap.access_point_arn}", "Tags": tags}
+
+        # EFS, resource type elasticfilesystem:file-system
+        if (
+            not resource_type_filters
+            or "elasticfilesystem" in resource_type_filters
+            or "elasticfilesystem:file-system" in resource_type_filters
+        ):
+            for fs in self.efs_backend.file_systems_by_id.values():
+                tags = self.efs_backend.list_tags_for_resource(fs.file_system_id)
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{fs.file_system_arn}", "Tags": tags}
 
         # ELB (Classic Load Balancers)
         if (
