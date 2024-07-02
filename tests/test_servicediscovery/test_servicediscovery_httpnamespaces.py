@@ -290,3 +290,23 @@ def test_update_public_dns_namespace():
 
     dns_props = namespace["Properties"]["DnsProperties"]
     assert dns_props == {"SOA": {"TTL": 987}}
+
+
+@mock_aws
+def test_update_http_namespace():
+    client = boto3.client("servicediscovery", region_name="us-east-2")
+    client.create_http_namespace(
+        Name="mynamespace", CreatorRequestId="crid", Description="mu fancy namespace"
+    )
+
+    ns_id = client.list_namespaces()["Namespaces"][0]["Id"]
+
+    client.update_http_namespace(
+        Id=ns_id,
+        Namespace={
+            "Description": "updated http",
+        },
+    )
+
+    namespace = client.get_namespace(Id=ns_id)["Namespace"]
+    assert namespace["Description"] == "updated http"

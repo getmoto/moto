@@ -55,7 +55,7 @@ Please let us know if you'd like support for a resource not yet listed here.
   +---------------------------------------+--------+--------+--------+----------------------------------------+
   |AWS::EC2::InternetGateway              |    x   |        |        | - [ ] InternetGatewayId                |
   +---------------------------------------+--------+--------+--------+----------------------------------------+
-  |AWS::EC2::LaunchTemplate               |    x   |    x   |    x   | - [x] LatestVersionNumber              |
+  |AWS::EC2::LaunchTemplate               |    x   |    x   |        | - [x] LatestVersionNumber              |
   +---------------------------------------+--------+--------+--------+ - [x] LaunchTemplateId                 |
   |                                       |        |        |        | - [x] DefaultVersionNumber             |
   +---------------------------------------+--------+--------+--------+----------------------------------------+
