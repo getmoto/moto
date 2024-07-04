@@ -88,6 +88,8 @@ athena
 
         .. note:: The exact QueryExecutionId is not relevant here, but will likely be whatever value is returned by start_query_execution
 
+        Query results will also be stored in the S3 output location (in CSV format).
+
         
 
 - [ ] get_query_runtime_statistics
