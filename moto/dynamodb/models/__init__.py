@@ -546,7 +546,7 @@ class DynamoDBBackend(BaseBackend):
                 attr.get_attribute_name_placeholder() for attr in attr_name_clauses
             ]
             attr_names_in_condition = condition_expression_parser.expr_attr_names_found
-            for attr_name in expression_attribute_names:
+            for attr_name in expression_attribute_names or []:
                 if (
                     attr_name not in attr_names_in_expression
                     and attr_name not in attr_names_in_condition

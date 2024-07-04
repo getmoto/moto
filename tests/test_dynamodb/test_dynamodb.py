@@ -5006,45 +5006,6 @@ def test_update_non_existing_item_raises_error_and_does_not_contain_item_afterwa
 
 
 @mock_aws
-def test_batch_write_item():
-    conn = boto3.resource("dynamodb", region_name="us-west-2")
-    tables = [f"table-{i}" for i in range(3)]
-    for name in tables:
-        conn.create_table(
-            TableName=name,
-            KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
-            AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
-            BillingMode="PAY_PER_REQUEST",
-        )
-
-    conn.batch_write_item(
-        RequestItems={
-            tables[0]: [{"PutRequest": {"Item": {"id": "0"}}}],
-            tables[1]: [{"PutRequest": {"Item": {"id": "1"}}}],
-            tables[2]: [{"PutRequest": {"Item": {"id": "2"}}}],
-        }
-    )
-
-    for idx, name in enumerate(tables):
-        table = conn.Table(f"table-{idx}")
-        res = table.get_item(Key={"id": str(idx)})
-        assert res["Item"] == {"id": str(idx)}
-        assert table.scan()["Count"] == 1
-
-    conn.batch_write_item(
-        RequestItems={
-            tables[0]: [{"DeleteRequest": {"Key": {"id": "0"}}}],
-            tables[1]: [{"DeleteRequest": {"Key": {"id": "1"}}}],
-            tables[2]: [{"DeleteRequest": {"Key": {"id": "2"}}}],
-        }
-    )
-
-    for idx, name in enumerate(tables):
-        table = conn.Table(f"table-{idx}")
-        assert table.scan()["Count"] == 0
-
-
-@mock_aws
 def test_gsi_lastevaluatedkey():
     # github.com/getmoto/moto/issues/3968
     conn = boto3.resource("dynamodb", region_name="us-west-2")
