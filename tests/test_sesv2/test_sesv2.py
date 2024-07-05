@@ -41,7 +41,7 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
     assert e.value.response["Error"]["Code"] == "MessageRejected"
 
     ses_v1.verify_domain_identity(Domain="example.com")
-    conn.send_email(**kwargs)
+    resp = conn.send_email(**kwargs)
     send_quota = ses_v1.get_send_quota()
 
     # Verify
@@ -53,6 +53,8 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
         msg: Message = backend.sent_messages[0]
         assert msg.subject == "test subject"
         assert msg.body == "test body"
+        assert "MessageId" in resp
+        assert resp["MessageId"] is not None
 
 
 @mock_aws
