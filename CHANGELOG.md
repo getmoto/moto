@@ -1,6 +1,31 @@
 Moto Changelog
 ==============
 
+5.0.11
+-----
+Docker Digest for 5.0.11: <autopopulateddigest>
+
+    New Methods:
+        * ServiceDiscovery:
+            * deregister_instance()
+            * discover_instances()
+            * discover_instances_revision()
+            * get_instance()
+            * get_instances_health_status()
+            * list_instances()
+            * register_instance()
+            * update_http_namespace()
+            * update_instance_custom_health_status()
+
+    Miscellaneous:
+        * DynamoDB: transact_write_items() no longer throws a ValidationException when passing multiple set actions, only when passing multiple set clauses
+        * DynamoDB: transact_write_items() no longer throws an Exception when ExpressionAttributeNames are not provided
+          (Both bugs were introduced in 5.0.10)
+
+        * IOT-data: update_thing_shadow() now calculates the delta correctly
+        * ResourceGroupsTagging: get_resources() now supports EFS resources
+
+
 5.0.10
 -----
 Docker Digest for 5.0.10: _sha256:bfb9cd2a437fc7c754b3a6a66b7fb528ec1a53e0c683e8b75514bff81543cf55_
