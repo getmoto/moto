@@ -40,7 +40,8 @@ class Node(metaclass=abc.ABCMeta):
             if len(set_attributes) != len(set(set_attributes)):
                 raise DuplicateUpdateExpression(set_attributes)
 
-            if limit_set_actions and len(set_actions) > 1:
+            set_clauses = self.find_clauses([UpdateExpressionSetClause])
+            if limit_set_actions and len(set_clauses) > 1:
                 raise MockValidationException(
                     'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
                 )

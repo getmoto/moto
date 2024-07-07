@@ -85,7 +85,7 @@ def test_transact_write_items__put_and_delete_on_same_item(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(add_range=True)
-def test_transact_write_items__update_with_multiple_sets(table_name=None):
+def test_transact_write_items__update_with_multiple_set_clauses(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
     with pytest.raises(ClientError) as exc:
@@ -111,6 +111,28 @@ def test_transact_write_items__update_with_multiple_sets(table_name=None):
         err["Message"]
         == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
     )
+
+    # Note that we can do this by simply separating the statements with a comma
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {
+                "Update": {
+                    "TableName": table_name,
+                    "Key": {"pk": {"S": "s"}, "sk": {"S": "t"}},
+                    "UpdateExpression": "SET a1 = :v1, a2 = :v2",
+                    "ExpressionAttributeValues": {
+                        ":v1": {"S": "v1"},
+                        ":v2": {"S": "v1"},
+                    },
+                }
+            }
+        ]
+    )
+
+    inventory = dynamodb.scan(TableName=table_name)["Items"]
+    assert inventory == [
+        {"a1": {"S": "v1"}, "sk": {"S": "t"}, "a2": {"S": "v1"}, "pk": {"S": "s"}}
+    ]
 
 
 @mock_aws
