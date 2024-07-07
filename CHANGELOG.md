@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.11
 -----
-Docker Digest for 5.0.11: <autopopulateddigest>
+Docker Digest for 5.0.11: _sha256:438f7fbb5fa1dff2cf0887c59466ff78bed5aaca9ea7b5cf54d6a41fc2418e28_
 
     New Methods:
         * ServiceDiscovery:
