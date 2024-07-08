@@ -276,19 +276,19 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
   <requestId>{{ request_id }}</requestId>
   <securityGroupRuleSet>
         {% for rule in rules %}
+          {% for ip_range in rule.ip_ranges %}
             <item>
                 {% if rule.from_port is not none %}
-                <fromPort>{{ rule.from_port }}</fromPort>
+                  <fromPort>{{ rule.from_port }}</fromPort>
                 {% endif %}
                 {% if rule.to_port is not none %}
                   <toPort>{{ rule.to_port }}</toPort>
                 {% endif %}
-                {% if rule.ip_ranges %}
-                  <cidrIpv4>{{ rule.ip_ranges[0]['CidrIp'] }}</cidrIpv4>
-                {% endif %}
+                <cidrIpv4>{{ ip_range['CidrIp'] }}</cidrIpv4>
                 <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
                 <groupId>{{ rule.group_id }}</groupId>
                 <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+                <description>{{ ip_range['Description'] }}</description>
                 <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
                 <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
                 <tagSet>
@@ -300,6 +300,7 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
                 {% endfor %}
                 </tagSet> 
             </item>
+          {% endfor %}
         {% endfor %}
   </securityGroupRuleSet>
 </DescribeSecurityGroupRulesResponse>"""
