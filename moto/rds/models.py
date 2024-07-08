@@ -1692,6 +1692,7 @@ class DBProxy(BaseModel):
                 <Auth>
                   {% for auth in dbproxy.auth %}
                     <member>
+                        <Description>{{ auth["Description"] }}</Description>
                         <UserName>{{ auth["UserName"] }}</UserName>
                         <AuthScheme>{{ auth["AuthScheme"] }}</AuthScheme>
                         <SecretArn>{{ auth["SecretArn"] }}</SecretArn>

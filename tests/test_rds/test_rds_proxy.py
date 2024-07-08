@@ -50,6 +50,7 @@ def test_create_db_proxy():
     assert db_proxy["VpcSubnetIds"] == [subnet_id, subnet_id_2]
     assert db_proxy["Auth"] == [
         {
+            "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
             "SecretArn": "TestSecretARN",
@@ -109,6 +110,7 @@ def test_describe_db_proxies():
     assert db_proxy["VpcSubnetIds"] == [subnet_id, subnet_id_2]
     assert db_proxy["Auth"] == [
         {
+            "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
             "SecretArn": "TestSecretARN",
