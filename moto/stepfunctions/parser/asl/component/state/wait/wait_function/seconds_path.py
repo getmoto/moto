@@ -1,6 +1,6 @@
 from typing import Final
 
-from jsonpath_ng import parse
+from jsonpath_ng.ext import parse
 
 from moto.stepfunctions.parser.asl.component.state.wait.wait_function.wait_function import (
     WaitFunction,

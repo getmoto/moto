@@ -1,7 +1,7 @@
 import abc
 from typing import Final
 
-from jsonpath_ng import parse
+from jsonpath_ng.ext import parse
 
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment

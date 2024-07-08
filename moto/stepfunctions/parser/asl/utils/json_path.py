@@ -1,6 +1,6 @@
 import json
 
-from jsonpath_ng import parse
+from jsonpath_ng.ext import parse
 
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
