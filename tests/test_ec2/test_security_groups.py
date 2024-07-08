@@ -854,11 +854,11 @@ def test_description_in_ip_permissions():
     result = conn.describe_security_group_rules(
         Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
     )
-    assert len(result['SecurityGroupRules']) == 3
-    assert result['SecurityGroupRules'][0]['Description'] == 'austin'
-    assert result['SecurityGroupRules'][0]['CidrIpv4'] == '1.2.3.4/32'
-    assert result['SecurityGroupRules'][1]['Description'] == 'powers'
-    assert result['SecurityGroupRules'][1]['CidrIpv4'] == '2.3.4.5/32'
+    assert len(result["SecurityGroupRules"]) == 3
+    assert result["SecurityGroupRules"][0]["Description"] == "austin"
+    assert result["SecurityGroupRules"][0]["CidrIpv4"] == "1.2.3.4/32"
+    assert result["SecurityGroupRules"][1]["Description"] == "powers"
+    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "2.3.4.5/32"
 
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
     group = result["SecurityGroups"][0]
