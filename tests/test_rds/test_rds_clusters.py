@@ -815,6 +815,7 @@ def test_add_tags_to_cluster_snapshot():
         MasterUserPassword="hunter2000",
         Port=1234,
         Tags=[{"Key": "k1", "Value": "v1"}],
+        CopyTagsToSnapshot=True,
     )
     resp = conn.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
