@@ -278,12 +278,8 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
         {% for rule in rules %}
           {% for ip_range in rule.ip_ranges %}
             <item>
-                {% if rule.from_port is not none %}
-                  <fromPort>{{ rule.from_port }}</fromPort>
-                {% endif %}
-                {% if rule.to_port is not none %}
-                  <toPort>{{ rule.to_port }}</toPort>
-                {% endif %}
+                <fromPort>{{ rule.from_port if rule.from_port is not none else -1 }}</fromPort>
+                <toPort>{{ rule.to_port if rule.to_port is not none else -1 }}</toPort>
                 <cidrIpv4>{{ ip_range['CidrIp'] }}</cidrIpv4>
                 <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
                 <groupId>{{ rule.group_id }}</groupId>
