@@ -163,7 +163,7 @@ class Cluster:
         self.cluster_create_time = iso_8601_datetime_with_milliseconds()
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
-            self.copy_tags_to_snapshot = True
+            self.copy_tags_to_snapshot = False
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
             self.storage_type = Cluster.default_storage_type(iops=self.iops)
@@ -413,7 +413,7 @@ class Cluster:
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
-              <CopyTagsToSnapshot>{{ cluster.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
+              <CopyTagsToSnapshot>{{ 'true' if cluster.copy_tags_to_snapshot else 'false' }}</CopyTagsToSnapshot>
               <CrossAccountClone>false</CrossAccountClone>
               <DomainMemberships></DomainMemberships>
               <EnabledCloudwatchLogsExports>
