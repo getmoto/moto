@@ -1852,6 +1852,75 @@
 - [ ] update_subnet_group
 </details>
 
+## directconnect
+<details>
+<summary>1% implemented</summary>
+
+- [ ] accept_direct_connect_gateway_association_proposal
+- [ ] allocate_connection_on_interconnect
+- [ ] allocate_hosted_connection
+- [ ] allocate_private_virtual_interface
+- [ ] allocate_public_virtual_interface
+- [ ] allocate_transit_virtual_interface
+- [ ] associate_connection_with_lag
+- [ ] associate_hosted_connection
+- [ ] associate_mac_sec_key
+- [ ] associate_virtual_interface
+- [ ] confirm_connection
+- [ ] confirm_customer_agreement
+- [ ] confirm_private_virtual_interface
+- [ ] confirm_public_virtual_interface
+- [ ] confirm_transit_virtual_interface
+- [ ] create_bgp_peer
+- [ ] create_connection
+- [ ] create_direct_connect_gateway
+- [ ] create_direct_connect_gateway_association
+- [ ] create_direct_connect_gateway_association_proposal
+- [ ] create_interconnect
+- [ ] create_lag
+- [ ] create_private_virtual_interface
+- [ ] create_public_virtual_interface
+- [ ] create_transit_virtual_interface
+- [ ] delete_bgp_peer
+- [ ] delete_connection
+- [ ] delete_direct_connect_gateway
+- [ ] delete_direct_connect_gateway_association
+- [ ] delete_direct_connect_gateway_association_proposal
+- [ ] delete_interconnect
+- [ ] delete_lag
+- [ ] delete_virtual_interface
+- [ ] describe_connection_loa
+- [X] describe_connections
+- [ ] describe_connections_on_interconnect
+- [ ] describe_customer_metadata
+- [ ] describe_direct_connect_gateway_association_proposals
+- [ ] describe_direct_connect_gateway_associations
+- [ ] describe_direct_connect_gateway_attachments
+- [ ] describe_direct_connect_gateways
+- [ ] describe_hosted_connections
+- [ ] describe_interconnect_loa
+- [ ] describe_interconnects
+- [ ] describe_lags
+- [ ] describe_loa
+- [ ] describe_locations
+- [ ] describe_router_configuration
+- [ ] describe_tags
+- [ ] describe_virtual_gateways
+- [ ] describe_virtual_interfaces
+- [ ] disassociate_connection_from_lag
+- [ ] disassociate_mac_sec_key
+- [ ] list_virtual_interface_test_history
+- [ ] start_bgp_failover_test
+- [ ] stop_bgp_failover_test
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_connection
+- [ ] update_direct_connect_gateway
+- [ ] update_direct_connect_gateway_association
+- [ ] update_lag
+- [ ] update_virtual_interface_attributes
+</details>
+
 ## dms
 <details>
 <summary>4% implemented</summary>
@@ -7163,6 +7232,7 @@
 - [ ] create_monitoring_schedule
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
+- [ ] create_optimization_job
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_mlflow_tracking_server_url
@@ -7219,6 +7289,7 @@
 - [ ] delete_monitoring_schedule
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
+- [ ] delete_optimization_job
 - [X] delete_pipeline
 - [ ] delete_project
 - [ ] delete_space
@@ -7277,6 +7348,7 @@
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
+- [ ] describe_optimization_job
 - [X] describe_pipeline
 - [X] describe_pipeline_definition_for_execution
 - [X] describe_pipeline_execution
@@ -7358,6 +7430,7 @@
 - [ ] list_monitoring_schedules
 - [ ] list_notebook_instance_lifecycle_configs
 - [X] list_notebook_instances
+- [ ] list_optimization_jobs
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
@@ -7403,6 +7476,7 @@
 - [ ] stop_mlflow_tracking_server
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance
+- [ ] stop_optimization_job
 - [ ] stop_pipeline_execution
 - [ ] stop_processing_job
 - [ ] stop_training_job
@@ -8588,7 +8662,6 @@
 - detective
 - devicefarm
 - devops-guru
-- directconnect
 - discovery
 - dlm
 - docdb
@@ -8706,6 +8779,7 @@
 - pricing
 - privatenetworks
 - proton
+- qapps
 - qbusiness
 - qconnect
 - qldb
