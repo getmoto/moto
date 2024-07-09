@@ -7,7 +7,6 @@ from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
-from ..ses.responses import SEND_EMAIL_RESPONSE
 from .models import SESV2Backend, sesv2_backends
 
 
@@ -57,9 +56,7 @@ class SESV2Response(BaseResponse):
         elif "Template" in content:
             raise NotImplementedError("Template functionality not ready")
 
-        # use v1 templates as response same in v1 and v2
-        template = self.response_template(SEND_EMAIL_RESPONSE)
-        return template.render(message=message)
+        return json.dumps({"MessageId": message.id})
 
     def create_contact_list(self) -> str:
         params = json.loads(self.body)
