@@ -1026,39 +1026,33 @@ class Table(CloudFormationModel):
         If that is the case, we compare by the RK of the main table instead
         Related: https://github.com/getmoto/moto/issues/7761
         """
-        hash_comes_before = any(
-            item.attrs[hash_key_attr] != DynamoType(dct.get(hash_key_attr))  # type: ignore
-            for hash_key_attr in hash_key_attrs
-            if hash_key_attr in item.attrs
+        gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
+        table_hash_key = str(
+            hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
         )
-        if hash_comes_before:
-            # If hash keys are different, order immediately
-            return (
-                any(
-                    item.attrs[hash_key_attr] < DynamoType(dct.get(hash_key_attr))  # type: ignore
-                    for hash_key_attr in hash_key_attrs
-                    if hash_key_attr in item.attrs
+        gsi_range_key = range_key_attrs[0] if len(range_key_attrs) == 2 else None
+        table_range_key = str(
+            range_key_attrs[0] if gsi_range_key is None else range_key_attrs[1]
+        )
+        # Gets the GSI and table hash and range keys in the order to try sorting by
+        attrs_to_sort_by = [
+            gsi_hash_key,
+            gsi_range_key,
+            table_hash_key,
+            table_range_key,
+        ]
+        for attr in attrs_to_sort_by:
+            if (
+                attr is not None
+                and attr in item.attrs
+                and item.attrs[attr] != DynamoType(dct.get(attr))  # type: ignore
+            ):
+                return (
+                    (item.attrs[attr] < DynamoType(dct.get(attr)))  # type: ignore
+                    == scan_index_forward
                 )
-                == scan_index_forward
-            )
-        if not any(range_key_attrs):
-            # If hash keys match and no range key, items are identical
-            return True
-        # We know hash keys are equal, use range key as tiebreaker
-        if all(
-            item.attrs[attr] == DynamoType(dct.get(attr))  # type: ignore[arg-type]
-            for attr in range_key_attrs
-            if attr
-        ):
-            # If range keys (also) match, items are identical
-            return True
-        # Range keys are different, order accordingly
-        comes_before = any(
-            item.attrs[attr] < DynamoType(dct.get(attr))  # type: ignore[arg-type]
-            for attr in range_key_attrs
-            if attr
-        )
-        return comes_before == scan_index_forward
+        # Keys were equal, items are identical
+        return True
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]
