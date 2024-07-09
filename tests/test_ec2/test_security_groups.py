@@ -840,19 +840,47 @@ def test_description_in_ip_permissions():
         {
             "IpProtocol": "tcp",
             "FromPort": 27017,
-            "ToPort": 27017,
-            "IpRanges": [{"CidrIp": "1.2.3.4/32", "Description": "testDescription"}],
+            "ToPort": 27018,
+            "IpRanges": [
+                {"CidrIp": "1.2.3.4/32", "Description": "austin"},
+                {"CidrIp": "2.3.4.5/32", "Description": "powers"},
+            ],
         }
     ]
     conn.authorize_security_group_ingress(
         GroupId=sg["GroupId"], IpPermissions=ip_permissions
     )
 
+    result = conn.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+    )
+    assert len(result["SecurityGroupRules"]) == 3
+
+    assert result["SecurityGroupRules"][0]["Description"] == "austin"
+    assert result["SecurityGroupRules"][0]["CidrIpv4"] == "1.2.3.4/32"
+    assert result["SecurityGroupRules"][0]["IsEgress"] is False
+    assert result["SecurityGroupRules"][0]["FromPort"] == 27017
+    assert result["SecurityGroupRules"][0]["ToPort"] == 27018
+
+    assert result["SecurityGroupRules"][1]["Description"] == "powers"
+    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][1]["IsEgress"] is False
+    assert result["SecurityGroupRules"][1]["FromPort"] == 27017
+    assert result["SecurityGroupRules"][1]["ToPort"] == 27018
+
+    assert result["SecurityGroupRules"][2]["Description"] == ""
+    assert result["SecurityGroupRules"][2]["IsEgress"] is True
+    assert result["SecurityGroupRules"][2]["FromPort"] == -1
+    assert result["SecurityGroupRules"][2]["ToPort"] == -1
+
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
     group = result["SecurityGroups"][0]
 
-    assert group["IpPermissions"][0]["IpRanges"][0]["Description"] == "testDescription"
+    assert group["IpPermissions"][0]["IpRanges"][0]["Description"] == "austin"
     assert group["IpPermissions"][0]["IpRanges"][0]["CidrIp"] == "1.2.3.4/32"
+
+    assert group["IpPermissions"][0]["IpRanges"][1]["Description"] == "powers"
+    assert group["IpPermissions"][0]["IpRanges"][1]["CidrIp"] == "2.3.4.5/32"
 
     sg = conn.create_security_group(
         GroupName="sg2", Description="Test security group sg1", VpcId=vpc.id
@@ -861,9 +889,9 @@ def test_description_in_ip_permissions():
     ip_permissions = [
         {
             "IpProtocol": "tcp",
-            "FromPort": 27017,
-            "ToPort": 27017,
-            "IpRanges": [{"CidrIp": "1.2.3.4/32"}],
+            "FromPort": 27019,
+            "ToPort": 27019,
+            "IpRanges": [{"CidrIp": "3.4.5.6/32"}],
         }
     ]
     conn.authorize_security_group_ingress(
@@ -874,7 +902,7 @@ def test_description_in_ip_permissions():
     group = result["SecurityGroups"][0]
 
     assert group["IpPermissions"][0]["IpRanges"][0].get("Description") is None
-    assert group["IpPermissions"][0]["IpRanges"][0]["CidrIp"] == "1.2.3.4/32"
+    assert group["IpPermissions"][0]["IpRanges"][0]["CidrIp"] == "3.4.5.6/32"
 
 
 @mock_aws
