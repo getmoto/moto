@@ -88,9 +88,13 @@ class GlobalCluster(BaseModel):
         self.storage_encrypted = (
             storage_encrypted and storage_encrypted.lower() == "true"
         )
+        if self.storage_encrypted is None:
+            self.storage_encrypted = False
         self.deletion_protection = (
             deletion_protection and deletion_protection.lower() == "true"
         )
+        if self.deletion_protection is None:
+            self.deletion_protection = False
         self.members: List[Cluster] = []
 
     def to_xml(self) -> str:
@@ -138,6 +142,8 @@ class Cluster:
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.deletion_protection = kwargs.get("deletion_protection")
+        if self.deletion_protection is None:
+            self.deletion_protection = False
         self.engine = kwargs.get("engine")
         if self.engine not in ClusterEngine.list_cluster_engines():
             raise InvalidParameterValue(
@@ -237,6 +243,8 @@ class Cluster:
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
         self.storage_encrypted = kwargs.get("storage_encrypted", False)
+        if self.storage_encrypted is None:
+            self.storage_encrypted = False
         if self.storage_encrypted:
             self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
         else:
@@ -264,13 +272,14 @@ class Cluster:
         else:
             self.backtrack_window = 0
 
-        self.iam_auth: bool = False
-        if auth := kwargs.get("enable_iam_database_authentication", False):
+        self.iam_auth = kwargs.get("enable_iam_database_authentication", False)
+        if self.iam_auth is None:
+            self.iam_auth = False
+        if self.iam_auth:
             if not self.engine.startswith("aurora-"):
                 raise InvalidParameterCombination(
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
                 )
-            self.iam_auth = auth
 
     @property
     def is_multi_az(self) -> bool:
@@ -409,7 +418,7 @@ class Cluster:
               <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
               <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
               <AssociatedRoles></AssociatedRoles>
-              <IAMDatabaseAuthenticationEnabled>{{ cluster.iam_auth | string | lower }}</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ 'true' if cluster.iam_auth else 'false' }}</IAMDatabaseAuthenticationEnabled>
               <EngineMode>{{ cluster.engine_mode }}</EngineMode>
               <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
               <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
@@ -667,6 +676,8 @@ class Database(CloudFormationModel):
         if not self.availability_zone:
             self.availability_zone = f"{self.region_name}a"
         self.multi_az = kwargs.get("multi_az")
+        if self.multi_az is None:
+            self.multi_az = False
         self.db_subnet_group_name = kwargs.get("db_subnet_group_name")
         self.db_subnet_group = None
         if self.db_subnet_group_name:
@@ -713,9 +724,13 @@ class Database(CloudFormationModel):
         self.enable_iam_database_authentication = kwargs.get(
             "enable_iam_database_authentication", False
         )
+        if self.enable_iam_database_authentication is None:
+            self.enable_iam_database_authentication = False
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = kwargs.get("tags", [])
         self.deletion_protection = kwargs.get("deletion_protection", False)
+        if self.deletion_protection is None:
+            self.deletion_protection = False
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
@@ -865,7 +880,7 @@ class Database(CloudFormationModel):
               <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
               <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
-              <StorageEncrypted>{{ database.storage_encrypted }}</StorageEncrypted>
+              <StorageEncrypted>{{ 'true' if database.storage_encrypted else 'false' }}</StorageEncrypted>
               {% if database.kms_key_id %}
               <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
               {% endif %}
@@ -1222,7 +1237,7 @@ class DatabaseSnapshot(BaseModel):
               <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
               <Timezone></Timezone>
               {% if database.enable_iam_database_authentication %}
-              <IAMDatabaseAuthenticationEnabled>{{ database.enable_iam_database_authentication|lower }}</IAMDatabaseAuthenticationEnabled>
+              <IAMDatabaseAuthenticationEnabled>{{ 'true' if database.enable_iam_database_authentication else 'false' }}</IAMDatabaseAuthenticationEnabled>
               {% endif %}
             </DBSnapshot>"""
         )
