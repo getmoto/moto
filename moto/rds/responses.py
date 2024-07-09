@@ -80,7 +80,7 @@ class RDSResponse(BaseResponse):
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
-            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_encrypted": self._get_bool_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType", None),
             "vpc_security_group_ids": self._get_multi_param(
                 "VpcSecurityGroupIds.VpcSecurityGroupId"
@@ -137,7 +137,7 @@ class RDSResponse(BaseResponse):
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
-            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_encrypted": self._get_bool_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType", None),
             "vpc_security_group_ids": self._get_multi_param(
                 "VpcSecurityGroupIds.VpcSecurityGroupId"
@@ -200,7 +200,7 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_param("AllocatedStorage"),
             "global_cluster_identifier": self._get_param("GlobalClusterIdentifier"),
             "iops": self._get_param("Iops"),
-            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_encrypted": self._get_bool_param("StorageEncrypted"),
             "enable_global_write_forwarding": self._get_param(
                 "EnableGlobalWriteForwarding"
             ),
@@ -214,7 +214,7 @@ class RDSResponse(BaseResponse):
             "region": self.region,
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
             "enable_http_endpoint": self._get_bool_param("EnableHttpEndpoint"),
-            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
             "tags": self.unpack_list_params("Tags", "Tag"),
             "scaling_configuration": self._get_dict_param("ScalingConfiguration."),
             "serverless_v2_scaling_configuration": params.get(
