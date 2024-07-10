@@ -13,7 +13,11 @@ def fixture_dx_client():
         yield boto3.client("directconnect", region_name="us-east-1")
 
 def test_create_connection(client):
-    resp = client.create_connection()
+    resp = client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection"
+    )
     connection = resp["connection"]
     assert connection["connection_id"].startswith("dx-moto")
     assert connection["connectionState"] == "available"

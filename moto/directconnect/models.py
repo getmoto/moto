@@ -43,7 +43,7 @@ class Connection(BaseModel):
     has_logical_redundancy: bool
     jumbo_frame_capable: bool
     lag_id: str
-    loa_issue_time: datetime
+    loa_issue_time: str
     location: str
     mac_sec_capable: bool
     mac_sec_keys: List[MacSecKey]
