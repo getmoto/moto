@@ -1,6 +1,7 @@
 """Exceptions raised by the directconnect service."""
 from moto.core.exceptions import JsonRESTError
 
+
 class DXConnectionError(JsonRESTError):
     code = 400
 

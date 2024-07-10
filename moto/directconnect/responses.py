@@ -1,7 +1,10 @@
 """Handles incoming directconnect requests, invokes methods, returns responses."""
 import json
-from .models import directconnect_backends, Connection
+
 from moto.core.responses import BaseResponse
+
+from .models import Connection, directconnect_backends
+
 
 class DirectConnectResponse(BaseResponse):
     """Handler for DirectConnect requests and responses."""

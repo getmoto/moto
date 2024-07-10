@@ -2,11 +2,19 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from .enums import ConnectionStateType, EncryptionModeType, MacSecKeyStateType, PortEncryptionStatusType
-from .exceptions import ConnectionIdMissing, ConnectionNotFound
-from moto.core.base_backend import BaseBackend, BackendDict
-from moto.core.common_models import BaseModel
 from typing import Dict, List, Optional
+
+from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.common_models import BaseModel
+
+from .enums import (
+    ConnectionStateType,
+    EncryptionModeType,
+    MacSecKeyStateType,
+    PortEncryptionStatusType,
+)
+from .exceptions import ConnectionIdMissing, ConnectionNotFound
+
 
 @dataclass
 class MacSecKey(BaseModel):

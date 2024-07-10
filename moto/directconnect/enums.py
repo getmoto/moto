@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ConnectionStateType(str, Enum):
     AVAILABLE = 'available'
     DELETED = 'deleted'

@@ -1,9 +1,11 @@
 """Unit tests for directconnect-supported APIs."""
-import boto3
-import pytest
 import time
 
+import boto3
+import pytest
+
 from moto import mock_aws
+
 
 @pytest.fixture(name="client")
 def fixture_dx_client():
@@ -35,8 +37,8 @@ def test_describe_connections(client):
     resp = client.describe_connections()
     connections = resp["connections"]
     assert len(connections) == 2
-    assert connections[0]["macSecCapable"] == False
-    assert connections[1]["macSecCapable"] == True
+    assert not connections[0]["macSecCapable"] 
+    assert connections[1]["macSecCapable"]
     assert len(connections[0]["macSecKeys"]) == 0
     assert len(connections[1]["macSecKeys"]) == 1
     assert connections[0]["encryptionMode"] == "no_encrypt"
