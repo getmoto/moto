@@ -15,17 +15,11 @@ class DirectConnectResponse(BaseResponse):
     def directconnect_backend(self):
         """Return backend instance specific for this region."""
         return directconnect_backends[self.current_account][self.region]
-
-    # add methods from here
-
     
-    def describe_connections(self):
-        params = self._get_params()
+    def describe_connections(self) -> str:
+        params = json.loads(self.body)
         connection_id = params.get("connectionId")
         connections = self.directconnect_backend.describe_connections(
             connection_id=connection_id,
         )
-        # TODO: adjust response
         return json.dumps(dict(connections=connections))
-
-# add templates from here

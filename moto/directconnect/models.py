@@ -1,11 +1,11 @@
 """DirectConnectBackend class with methods for supported APIs."""
 
+from .enums import ConnectionStateType, EncryptionModeType, MacSecKeyStateType, PortEncryptionStatusType
 from dataclasses import dataclass
 from datetime import datetime
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.core.common_models import BaseModel
 from typing import Dict, List
-from moto.directconnect.enums import ConnectionStateType, EncryptionModeType, MacSecKeyStateType, PortEncryptionStatusType
 
 @dataclass
 class MacSecKey(BaseModel):
@@ -27,7 +27,7 @@ class Connection(BaseModel):
     connection_id: str
     owner_account: str
     connection_name: str
-    connection_state: ConnectionStateType = ConnectionStateType.AVAILABLE
+    connection_state: ConnectionStateType
     region: str
     location: str
     bandwidth: str
@@ -79,9 +79,9 @@ class DirectConnectBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.connections: Dict[str, Connection] = {}
 
-    def describe_connections(self, connection_id: str) -> Connection:
+    def describe_connections(self, connection_id: str) -> List[Connection]:
         if connection_id:
-            return self.connections.get(connection_id)
+            return list(self.connections.get(connection_id))
         return self.connections.values()
     
     # TODO: create_connection, delete_connection, update_connection, etc.

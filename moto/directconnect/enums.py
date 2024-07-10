@@ -16,7 +16,7 @@ class PortEncryptionStatusType(str, Enum):
     DOWN = 'Encryption Down'
 
 class EncryptionModeType(str, Enum):
-    NO = 'no_encrypt'
+    NONE = 'no_encrypt'
     SHOULD = 'should_encrypt'
     MUST = 'must_encrypt'
 
