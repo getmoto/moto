@@ -70,7 +70,9 @@ class TestBucketPolicy:
 
         assert requests.get(self.key_name).status_code == unauthorized_status
 
-    @pytest.mark.parametrize("key", ["test_txt", "new_txt"], ids=["update_object", "create_object"])
+    @pytest.mark.parametrize(
+        "key", ["test_txt", "new_txt"], ids=["update_object", "create_object"]
+    )
     def test_block_put_object(self, key):
         # Block Put-access
         self._put_policy(**{"effect": "Deny", "actions": ["s3:PutObject"]})
