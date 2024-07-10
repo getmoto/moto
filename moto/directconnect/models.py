@@ -1,10 +1,26 @@
 """DirectConnectBackend class with methods for supported APIs."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.core.common_models import BaseModel
-from typing import Dict
-from utils import ConnectionStateType, EncryptionModeType, PortEncryptionStatusType
+from typing import Dict, List
+from moto.directconnect.enums import ConnectionStateType, EncryptionModeType, MacSecKeyStateType, PortEncryptionStatusType
+
+@dataclass
+class MacSecKey(BaseModel):
+    secret_arn: str
+    ckn: str
+    state: MacSecKeyStateType
+    start_on: str
+
+    def to_dict(self):
+        return {
+            "secretARN": self.secret_arn,
+            "ckn": self.ckn,
+            "state": self.state,
+            "startOn": self.start_on
+        }
 
 @dataclass
 class Connection(BaseModel):
@@ -17,7 +33,7 @@ class Connection(BaseModel):
     bandwidth: str
     vlan: int
     partner_name: str
-    loa_issue_time: str # TODO: datetime
+    loa_issue_time: datetime
     lag_id: str
     aws_device: str
     jumbo_frame_capable: bool
@@ -29,13 +45,31 @@ class Connection(BaseModel):
     mac_sec_capable: bool
     port_encryption_status: PortEncryptionStatusType
     encryption_mode: EncryptionModeType
-    mac_sec_keys: Dict[str, str] # TODO dataclass
+    mac_sec_keys: List[MacSecKey]
 
     def to_dict(self):
         return {
             "connectionId": self.connection_id,
             "connectionName": self.connection_name,
-            # TODO remaining fields
+            "connectionState": self.connection_state,
+            "region": self.region,
+            "location": self.location,
+            "bandwidth": self.bandwidth,
+            "vlan": self.vlan,
+            "partnerName": self.partner_name,
+            "loaIssueTime": self.loa_issue_time,
+            "lagId": self.lag_id,
+            "awsDevice": self.aws_device,
+            "jumboFrameCapable": self.jumbo_frame_capable,
+            "awsDeviceV2": self.aws_device_v2,
+            "awsLogicalDeviceId": self.aws_logical_device_id,
+            "hasLogicalRedundancy": self.has_logical_redundancy,
+            "tags": self.tags,
+            "providerName": self.provider_name,
+            "macSecCapable": self.mac_sec_capable,
+            "portEncryptionStatus": self.port_encryption_status,
+            "encryptionMode": self.encryption_mode,
+            "macSecKeys": [key.to_dict() for key in self.mac_sec_keys]
         }
 
 class DirectConnectBackend(BaseBackend):

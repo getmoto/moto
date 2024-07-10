@@ -19,3 +19,9 @@ class EncryptionModeType(str, Enum):
     NO = 'no_encrypt'
     SHOULD = 'should_encrypt'
     MUST = 'must_encrypt'
+
+class MacSecKeyStateType(str, Enum):
+    ASSOCIATING = 'associating'
+    ASSOCIATED = 'associated'
+    DISASSOCIATING = 'disassociating'
+    DISASSOCIATED = 'disassociated'
