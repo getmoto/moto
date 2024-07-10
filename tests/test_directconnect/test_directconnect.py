@@ -52,10 +52,14 @@ def test_describe_connections(client):
 
 @mock_aws
 def test_delete_connection(client):
-    create_resp = client.create_connection()
-    connection_id = create_resp["connection"]["connection_id"]
+    create_resp = client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection"
+    )
+    connection_id = create_resp["connections"][0]["connection_id"]
     delete_resp = client.delete_connection(connectionId=connection_id)
-    assert delete_resp["connection"]["connectionState"] == "deleted"
+    assert delete_resp["connections"][0]["connectionState"] == "deleted"
 
 @mock_aws
 def test_update_connection(client):
@@ -79,10 +83,10 @@ def test_update_connection(client):
         connectionId=connection1_id,
         connectionName="NewConnectionName",
     )
-    assert update_resp["connection"]["connectionName"] == "NewConnectionName"
+    assert update_resp["connections"][0]["connectionName"] == "NewConnectionName"
     update_resp = client.update_connection(
         connectionId=connection2_id,
         encryptionMode="should_encrypt",
     )
-    assert update_resp["connection"]["encryptionMode"] == "should_encrypt"
+    assert update_resp["connection"][0]["encryptionMode"] == "should_encrypt"
 

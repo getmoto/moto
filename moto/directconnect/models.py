@@ -93,7 +93,7 @@ class DirectConnectBackend(BaseBackend):
             raise ConnectionNotFound(connection_id, self.region_name)
         if connection_id:
             return list(self.connections.get(connection_id))
-        return self.connections.values()
+        return list(self.connections.values())
     
     def create_connection(
         self, 
@@ -113,7 +113,7 @@ class DirectConnectBackend(BaseBackend):
                 secret_arn="mock_secret_arn",
                 ckn="mock_ckn",
                 state=MacSecKeyStateType.ASSOCIATED,
-                start_on=datetime.now(datetime.UTC),
+                start_on=datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
             ))
         connection = Connection(
             aws_device_v2="mock_device_v2",
@@ -126,7 +126,7 @@ class DirectConnectBackend(BaseBackend):
             has_logical_redundancy=False,
             jumbo_frame_capable=False,
             lag_id=lag_id,
-            loa_issue_time=datetime.now(),
+            loa_issue_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             location=location,
             mac_sec_capable=request_mac_sec,
             mac_sec_keys=mac_sec_keys,
