@@ -14,9 +14,6 @@ class DirectConnectResponse(BaseResponse):
     @property
     def directconnect_backend(self):
         """Return backend instance specific for this region."""
-        # TODO
-        # directconnect_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return directconnect_backends[self.current_account][self.region]
 
     # add methods from here
