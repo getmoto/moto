@@ -1299,7 +1299,9 @@ class S3Response(BaseResponse):
             bucket = self.backend.get_bucket(bucket_name)
         except S3ClientError:
             key = bucket = None
-        if key:
+
+        # Enforces policy when creating new objects, `if key` does not https://github.com/getmoto/moto/issues/7837
+        if bucket:
             resource = f"arn:{bucket.partition}:s3:::{bucket_name}/{key_name}"  # type: ignore[union-attr]
 
             # Authorization Workflow
@@ -1315,7 +1317,7 @@ class S3Response(BaseResponse):
 
             # If the request is not authorized, and not signed,
             # that means that the action should be allowed for anonymous users
-            if not authorized_request and not signed_url:
+            if key and not authorized_request and not signed_url:
                 # We already know that the bucket permissions do not explicitly deny this
                 # So bucket permissions are either not set, or do not explicitly allow
                 # Next check is to see if the ACL of the individual key allows this action
@@ -1323,11 +1325,10 @@ class S3Response(BaseResponse):
                     key.acl and not key.acl.public_read
                 ):
                     return 403, {}, ""
-
-        elif signed_url and not authorized_request:
-            # coming in from requests.get(s3.generate_presigned_url())
-            if self._invalid_headers(request.url, dict(request.headers)):
-                return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
+            elif signed_url and not authorized_request:
+                # coming in from requests.get(s3.generate_presigned_url())
+                if self._invalid_headers(request.url, dict(request.headers)):
+                    return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
 
         body = self.body or b""
 
