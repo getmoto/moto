@@ -1,11 +1,12 @@
 """DirectConnectBackend class with methods for supported APIs."""
 
-from .enums import ConnectionStateType, EncryptionModeType, MacSecKeyStateType, PortEncryptionStatusType
 from dataclasses import dataclass
 from datetime import datetime
+from .enums import ConnectionStateType, EncryptionModeType, MacSecKeyStateType, PortEncryptionStatusType
+from .exceptions import ConnectionIdMissing, ConnectionNotFound
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.core.common_models import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 @dataclass
 class MacSecKey(BaseModel):
@@ -79,25 +80,33 @@ class DirectConnectBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.connections: Dict[str, Connection] = {}
 
-    def describe_connections(self, connection_id: str) -> List[Connection]:
+    def describe_connections(self, connection_id: Optional[str]) -> List[Connection]:
+        if connection_id and connection_id not in self.connections:
+            raise ConnectionNotFound(connection_id, self.region_name)
         if connection_id:
             return list(self.connections.get(connection_id))
         return self.connections.values()
-        
+    
     def create_connection(
         self, 
         location: str, 
         bandwidth: str, 
         connection_name: str, 
-        lag_id: str, 
-        tags: List[Dict[str, str]], 
-        provider_name: str, 
-        request_mac_sec: bool
+        lag_id: Optional[str], 
+        tags: Optional[List[Dict[str, str]]], 
+        provider_name: Optional[str], 
+        request_mac_sec: Optional[bool]
     ) -> Connection:
-        encryption_mode = EncryptionModeType.NONE
-
+        encryption_mode = EncryptionModeType.NO
+        mac_sec_keys = []
         if request_mac_sec:
             encryption_mode = EncryptionModeType.MUST
+            mac_sec_keys = List(MacSecKey(
+                secret_arn="mock_secret_arn",
+                ckn="mock_ckn",
+                state=MacSecKeyStateType.ASSOCIATED,
+                start_on=datetime.now(datetime.UTC),
+            ))
         connection = Connection(
             aws_device_v2="mock_device_v2",
             aws_device="mock_device",
@@ -112,7 +121,7 @@ class DirectConnectBackend(BaseBackend):
             loa_issue_time=datetime.now(),
             location=location,
             mac_sec_capable=request_mac_sec,
-            mac_sec_keys=[],
+            mac_sec_keys=mac_sec_keys,
             owner_account=self.account_id,
             partner_name="mock_partner",
             port_encryption_status=PortEncryptionStatusType.DOWN,
@@ -124,13 +133,30 @@ class DirectConnectBackend(BaseBackend):
         self.connections[connection.connection_id] = connection
         return connection
         
-    def delete_connection(self, connection_id):
-        # implement here
-        return owner_account, connection_id, connection_name, connection_state, region, location, bandwidth, vlan, partner_name, loa_issue_time, lag_id, aws_device, jumbo_frame_capable, aws_device_v2, aws_logical_device_id, has_logical_redundancy, tags, provider_name, mac_sec_capable, port_encryption_status, encryption_mode, mac_sec_keys
+    def delete_connection(self, connection_id: str) -> Connection:
+        if not connection_id:
+            raise ConnectionIdMissing()
+        connection = self.connections.get(connection_id)
+        if connection:
+            self.connections[connection_id].connection_state = ConnectionStateType.DELETED
+            return connection
+        raise ConnectionNotFound(connection_id, self.region_name)
     
-    def update_connection(self, connection_id, connection_name, encryption_mode):
-        # implement here
-        return owner_account, connection_id, connection_name, connection_state, region, location, bandwidth, vlan, partner_name, loa_issue_time, lag_id, aws_device, jumbo_frame_capable, aws_device_v2, aws_logical_device_id, has_logical_redundancy, tags, provider_name, mac_sec_capable, port_encryption_status, encryption_mode, mac_sec_keys
-    
+    def update_connection(
+        self, 
+        connection_id: str, 
+        new_connection_name: Optional[str], 
+        new_encryption_mode: Optional[EncryptionModeType]
+    ) -> Connection:
+        if not connection_id:
+            raise ConnectionIdMissing()
+        connection = self.connections.get(connection_id)
+        if connection:
+            if new_connection_name:
+                self.connections[connection_id].connection_name = new_connection_name
+            if new_connection_name:
+                self.connections[connection_id].encryption_mode = new_encryption_mode
+            return connection
+        raise ConnectionNotFound(connection_id, self.region_name)
 
 directconnect_backends = BackendDict(DirectConnectBackend, "directconnect")
