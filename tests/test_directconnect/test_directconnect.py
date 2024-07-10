@@ -12,3 +12,27 @@ def test_describe_connections():
     resp = client.describe_connections()
 
     raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_create_connection():
+    client = boto3.client("directconnect", region_name="ap-southeast-1")
+    resp = client.create_connection()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_connection():
+    client = boto3.client("directconnect", region_name="us-east-2")
+    resp = client.delete_connection()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_update_connection():
+    client = boto3.client("directconnect", region_name="eu-west-1")
+    resp = client.update_connection()
+
+    raise Exception("NotYetImplemented")
