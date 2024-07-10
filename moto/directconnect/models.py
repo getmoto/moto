@@ -29,7 +29,6 @@ class Connection(BaseModel):
     aws_device: str
     aws_logical_device_id: str
     bandwidth: str
-    connection_id: str = f"dx-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
     connection_name: str
     connection_state: ConnectionStateType
     encryption_mode: EncryptionModeType
@@ -46,7 +45,8 @@ class Connection(BaseModel):
     provider_name: str
     region: str
     tags: Dict[str, str]
-    vlan: int
+    vlan: int 
+    connection_id: str = f"dx-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(self):
         return {

@@ -62,6 +62,7 @@ sagemaker
 - [ ] create_monitoring_schedule
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
+- [ ] create_optimization_job
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_mlflow_tracking_server_url
@@ -118,6 +119,7 @@ sagemaker
 - [ ] delete_monitoring_schedule
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
+- [ ] delete_optimization_job
 - [X] delete_pipeline
 - [ ] delete_project
 - [ ] delete_space
@@ -176,6 +178,7 @@ sagemaker
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
+- [ ] describe_optimization_job
 - [X] describe_pipeline
 - [X] describe_pipeline_definition_for_execution
 - [X] describe_pipeline_execution
@@ -262,6 +265,7 @@ sagemaker
         CreationTimeBefore, CreationTimeAfter, LastModifiedTimeBefore, LastModifiedTimeAfter, NotebookInstanceLifecycleConfigNameContains, DefaultCodeRepositoryContains, AdditionalCodeRepositoryEquals
         
 
+- [ ] list_optimization_jobs
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
@@ -307,6 +311,7 @@ sagemaker
 - [ ] stop_mlflow_tracking_server
 - [ ] stop_monitoring_schedule
 - [X] stop_notebook_instance
+- [ ] stop_optimization_job
 - [ ] stop_pipeline_execution
 - [ ] stop_processing_job
 - [ ] stop_training_job

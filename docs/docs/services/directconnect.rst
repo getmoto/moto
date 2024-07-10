@@ -32,7 +32,7 @@ directconnect
 - [ ] confirm_public_virtual_interface
 - [ ] confirm_transit_virtual_interface
 - [ ] create_bgp_peer
-- [ ] create_connection
+- [X] create_connection
 - [ ] create_direct_connect_gateway
 - [ ] create_direct_connect_gateway_association
 - [ ] create_direct_connect_gateway_association_proposal
@@ -42,7 +42,7 @@ directconnect
 - [ ] create_public_virtual_interface
 - [ ] create_transit_virtual_interface
 - [ ] delete_bgp_peer
-- [ ] delete_connection
+- [X] delete_connection
 - [ ] delete_direct_connect_gateway
 - [ ] delete_direct_connect_gateway_association
 - [ ] delete_direct_connect_gateway_association_proposal
@@ -74,7 +74,7 @@ directconnect
 - [ ] stop_bgp_failover_test
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_connection
+- [X] update_connection
 - [ ] update_direct_connect_gateway
 - [ ] update_direct_connect_gateway_association
 - [ ] update_lag
