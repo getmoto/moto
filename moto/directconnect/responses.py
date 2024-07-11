@@ -18,14 +18,14 @@ class DirectConnectResponse(BaseResponse):
         return directconnect_backends[self.current_account][self.region]
     
     def describe_connections(self) -> str:
-        params = self._get_params()
+        params = json.loads(self.body)
         connections = self.directconnect_backend.describe_connections(
             connection_id=params.get("connectionId"),
         )
         return json.dumps(dict(connections=[connection.to_dict() for connection in connections]))
     
     def create_connection(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.create_connection(
             location=params.get("location"),
             bandwidth=params.get("bandwidth"),
@@ -38,14 +38,14 @@ class DirectConnectResponse(BaseResponse):
         return json.dumps(connection.to_dict())
     
     def delete_connection(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.delete_connection(
             connection_id=params.get("connectionId"),
         )
         return json.dumps(connection.to_dict())
     
     def update_connection(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.update_connection(
             connection_id=params.get("connectionId"),
             connection_name=params.get("connectionName"),

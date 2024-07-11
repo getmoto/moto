@@ -92,7 +92,7 @@ class DirectConnectBackend(BaseBackend):
         if connection_id and connection_id not in self.connections:
             raise ConnectionNotFound(connection_id, self.region_name)
         if connection_id:
-            return list(self.connections.get(connection_id))
+            return [self.connections.get(connection_id)]
         return list(self.connections.values())
     
     def create_connection(
@@ -109,12 +109,12 @@ class DirectConnectBackend(BaseBackend):
         mac_sec_keys = []
         if request_mac_sec:
             encryption_mode = EncryptionModeType.MUST
-            mac_sec_keys = List(MacSecKey(
+            mac_sec_keys = [MacSecKey(
                 secret_arn="mock_secret_arn",
                 ckn="mock_ckn",
                 state=MacSecKeyStateType.ASSOCIATED,
-                start_on=datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M:%S"),
-            ))
+                start_on=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )]
         connection = Connection(
             aws_device_v2="mock_device_v2",
             aws_device="mock_device",
