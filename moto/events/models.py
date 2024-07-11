@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+import base64
 import warnings
 from collections import OrderedDict
 from enum import Enum, unique
@@ -1033,7 +1034,7 @@ class EventsBackend(BaseBackend):
         )
 
     def _gen_next_token(self, index: int) -> str:
-        token = os.urandom(128).encode("base64")  # type: ignore
+        token = base64.b64encode(os.urandom(128)).decode('utf-8')
         self.next_tokens[token] = index
         return token
 
