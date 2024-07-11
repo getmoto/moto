@@ -1006,10 +1006,10 @@ class DynamoDBBackend(BaseBackend):
         s3_bucket: str,
         s3_prefix: str,
         table_arn: str,
-        export_format: Optional[str],
-        export_type: Optional[str],
-        s3_bucket_owner: Optional[str],
-    ):
+        export_format: str,
+        export_type: str,
+        s3_bucket_owner: str,
+    ) -> TableExport:
         table_export = TableExport(
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
@@ -1026,7 +1026,7 @@ class DynamoDBBackend(BaseBackend):
     def describe_export(self, export_arn: str) -> TableExport:
         return self.table_exports[export_arn]
 
-    def list_exports(self, table_arn):
+    def list_exports(self, table_arn: str) -> List[TableExport]:
         exports = []
         for export_arn in self.table_exports:
             if self.table_exports[export_arn].table_arn == table_arn:

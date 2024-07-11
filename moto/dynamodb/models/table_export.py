@@ -19,8 +19,8 @@ class TableExport(Thread):
         region_name: str,
         account_id: str,
         table_arn: str,
-        export_format: str = "DYNAMO_JSON",
-        export_type: str = "FULL_EXPORT",
+        export_format: str,
+        export_type: str,
     ):
         super().__init__()
         self.partition = get_partition(region_name)
@@ -36,7 +36,7 @@ class TableExport(Thread):
 
         self.failure_code: Optional[str] = None
         self.failure_message: Optional[str] = None
-        self.table_name: str = None
+        self.table_name: str = ""
         self.item_count = 0
         self.processed_bytes = 0
         self.error_count = 0

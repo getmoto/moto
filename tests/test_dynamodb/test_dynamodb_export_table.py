@@ -215,10 +215,10 @@ def test_list_exports():
     export_summaries = client.list_exports(TableArn=table_arn)["ExportSummaries"]
     assert len(export_summaries) == 2
     assert export_summaries[0]["ExportStatus"] == "COMPLETED"
-    assert export_summaries[0]['ExportType'] == 'FULL_EXPORT'
+    assert export_summaries[0]["ExportType"] == "FULL_EXPORT"
     assert export_summaries[0]["ExportArn"] == export_details_1["ExportArn"]
     assert export_summaries[1]["ExportStatus"] == "COMPLETED"
-    assert export_summaries[1]['ExportType'] == 'FULL_EXPORT'
+    assert export_summaries[1]["ExportType"] == "FULL_EXPORT"
     assert export_summaries[1]["ExportArn"] == export_details_2["ExportArn"]
 
 
