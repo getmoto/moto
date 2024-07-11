@@ -53,15 +53,15 @@ class Connection(BaseModel):
     port_encryption_status: PortEncryptionStatusType
     provider_name: Optional[str]
     region: str
-    tags: List[Dict[str, str]]
+    tags: Optional[List[Dict[str, str]]]
     vlan: int
-    connection_id: str | None = field(default=None, init=False)
+    connection_id: str = field(default="", init=False)
 
     def __post_init__(self) -> None:
         if self.connection_id is None:
             self.connection_id = f"dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self) -> Dict[str, str|bool|int|List[Dict[str, str]]|Dict[str, str]]:
+    def to_dict(self) -> Dict[str, str|bool|int|List[Dict[str, str]]|Dict[str, str]|None]:
         return {
             "awsDevice": self.aws_device,
             "awsDeviceV2": self.aws_device_v2,
@@ -90,15 +90,16 @@ class Connection(BaseModel):
 class DirectConnectBackend(BaseBackend):
     """Implementation of DirectConnect APIs."""
 
-    def __init__(self, region_name, account_id) -> None:
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.connections: Dict[str, Connection] = {}
 
-    def describe_connections(self, connection_id: Optional[str]) -> List[Connection|None]:
+    def describe_connections(self, connection_id: Optional[str]) -> List[Connection]:
         if connection_id and connection_id not in self.connections:
             raise ConnectionNotFound(connection_id, self.region_name)
         if connection_id:
-            return [self.connections.get(connection_id)]
+            connection = self.connections.get(connection_id)
+            return [] if not connection else [connection]
         return list(self.connections.values())
 
     def create_connection(
