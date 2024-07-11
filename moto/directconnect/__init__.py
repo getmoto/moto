@@ -1,1 +1,1 @@
-from .models import directconnect_backends  #noqa: F401
+from .models import directconnect_backends  # noqa: F401

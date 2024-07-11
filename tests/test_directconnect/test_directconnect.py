@@ -1,4 +1,5 @@
 """Unit tests for directconnect-supported APIs."""
+
 import time
 
 import boto3
@@ -12,14 +13,14 @@ def fixture_dx_client():
     with mock_aws():
         yield boto3.client("directconnect", region_name="us-east-1")
 
+
 def test_create_connection(client):
     connection = client.create_connection(
-        location="EqDC2",
-        bandwidth="10Gbps",
-        connectionName="TestConnection"
+        location="EqDC2", bandwidth="10Gbps", connectionName="TestConnection"
     )
     assert connection["connectionId"].startswith("dx-moto")
     assert connection["connectionState"] == "available"
+
 
 @mock_aws
 def test_describe_connections(client):
@@ -40,7 +41,7 @@ def test_describe_connections(client):
     resp = client.describe_connections()
     connections = resp["connections"]
     assert len(connections) == 2
-    assert not connections[0]["macSecCapable"] 
+    assert not connections[0]["macSecCapable"]
     assert connections[1]["macSecCapable"]
     assert len(connections[0]["macSecKeys"]) == 0
     assert len(connections[1]["macSecKeys"]) == 1
@@ -49,15 +50,15 @@ def test_describe_connections(client):
     resp = client.describe_connections(connectionId=connections[0]["connectionId"])
     assert len(resp["connections"]) == 1
 
+
 @mock_aws
 def test_delete_connection(client):
     connection = client.create_connection(
-        location="EqDC2",
-        bandwidth="10Gbps",
-        connectionName="TestConnection"
+        location="EqDC2", bandwidth="10Gbps", connectionName="TestConnection"
     )
     connection = client.delete_connection(connectionId=connection["connectionId"])
     assert connection["connectionState"] == "deleted"
+
 
 @mock_aws
 def test_update_connection(client):
@@ -87,4 +88,3 @@ def test_update_connection(client):
         encryptionMode="should_encrypt",
     )
     assert connection["encryptionMode"] == "should_encrypt"
-

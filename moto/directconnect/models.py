@@ -28,8 +28,9 @@ class MacSecKey(BaseModel):
             "secretARN": self.secret_arn,
             "ckn": self.ckn,
             "state": self.state,
-            "startOn": self.start_on
+            "startOn": self.start_on,
         }
+
 
 @dataclass
 class Connection(BaseModel):
@@ -53,7 +54,7 @@ class Connection(BaseModel):
     provider_name: str
     region: str
     tags: Dict[str, str]
-    vlan: int 
+    vlan: int
     connection_id: str = field(default=None, init=False)
 
     def __post_init__(self):
@@ -85,6 +86,7 @@ class Connection(BaseModel):
             "vlan": self.vlan,
         }
 
+
 class DirectConnectBackend(BaseBackend):
     """Implementation of DirectConnect APIs."""
 
@@ -98,27 +100,29 @@ class DirectConnectBackend(BaseBackend):
         if connection_id:
             return [self.connections.get(connection_id)]
         return list(self.connections.values())
-    
+
     def create_connection(
-        self, 
-        location: str, 
-        bandwidth: str, 
-        connection_name: str, 
-        lag_id: Optional[str], 
-        tags: Optional[List[Dict[str, str]]], 
-        provider_name: Optional[str], 
-        request_mac_sec: Optional[bool]
+        self,
+        location: str,
+        bandwidth: str,
+        connection_name: str,
+        lag_id: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
+        provider_name: Optional[str],
+        request_mac_sec: Optional[bool],
     ) -> Connection:
         encryption_mode = EncryptionModeType.NO
         mac_sec_keys = []
         if request_mac_sec:
             encryption_mode = EncryptionModeType.MUST
-            mac_sec_keys = [MacSecKey(
-                secret_arn="mock_secret_arn",
-                ckn="mock_ckn",
-                state=MacSecKeyStateType.ASSOCIATED,
-                start_on=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            )]
+            mac_sec_keys = [
+                MacSecKey(
+                    secret_arn="mock_secret_arn",
+                    ckn="mock_ckn",
+                    state=MacSecKeyStateType.ASSOCIATED,
+                    start_on=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                )
+            ]
         connection = Connection(
             aws_device_v2="mock_device_v2",
             aws_device="mock_device",
@@ -144,21 +148,23 @@ class DirectConnectBackend(BaseBackend):
         )
         self.connections[connection.connection_id] = connection
         return connection
-        
+
     def delete_connection(self, connection_id: str) -> Connection:
         if not connection_id:
             raise ConnectionIdMissing()
         connection = self.connections.get(connection_id)
         if connection:
-            self.connections[connection_id].connection_state = ConnectionStateType.DELETED
+            self.connections[
+                connection_id
+            ].connection_state = ConnectionStateType.DELETED
             return connection
         raise ConnectionNotFound(connection_id, self.region_name)
-    
+
     def update_connection(
-        self, 
-        connection_id: str, 
-        new_connection_name: Optional[str], 
-        new_encryption_mode: Optional[EncryptionModeType]
+        self,
+        connection_id: str,
+        new_connection_name: Optional[str],
+        new_encryption_mode: Optional[EncryptionModeType],
     ) -> Connection:
         if not connection_id:
             raise ConnectionIdMissing()
@@ -170,5 +176,6 @@ class DirectConnectBackend(BaseBackend):
                 self.connections[connection_id].encryption_mode = new_encryption_mode
             return connection
         raise ConnectionNotFound(connection_id, self.region_name)
+
 
 directconnect_backends = BackendDict(DirectConnectBackend, "directconnect")
