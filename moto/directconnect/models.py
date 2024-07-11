@@ -58,7 +58,7 @@ class Connection(BaseModel):
     connection_id: str = field(default="", init=False)
 
     def __post_init__(self) -> None:
-        if self.connection_id is None:
+        if self.connection_id == "":
             self.connection_id = f"dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(self) -> Dict[str, str|bool|int|List[Dict[str, str]]|Dict[str, str]|None]:
