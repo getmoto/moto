@@ -22,7 +22,7 @@ class DirectConnectResponse(BaseResponse):
         connections = self.directconnect_backend.describe_connections(
             connection_id=params.get("connectionId"),
         )
-        return json.dumps(dict(connections=connections))
+        return json.dumps(dict(connections=[connection.to_dict() for connection in connections]))
     
     def create_connection(self):
         params = self._get_params()

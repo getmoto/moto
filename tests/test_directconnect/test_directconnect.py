@@ -13,13 +13,12 @@ def fixture_dx_client():
         yield boto3.client("directconnect", region_name="us-east-1")
 
 def test_create_connection(client):
-    resp = client.create_connection(
+    connection = client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
         connectionName="TestConnection"
     )
-    connection = resp["connection"]
-    assert connection["connection_id"].startswith("dx-moto")
+    assert connection["connectionId"].startswith("dx-moto")
     assert connection["connectionState"] == "available"
 
 @mock_aws
@@ -52,14 +51,13 @@ def test_describe_connections(client):
 
 @mock_aws
 def test_delete_connection(client):
-    create_resp = client.create_connection(
+    connection = client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
         connectionName="TestConnection"
     )
-    connection_id = create_resp["connections"][0]["connection_id"]
-    delete_resp = client.delete_connection(connectionId=connection_id)
-    assert delete_resp["connections"][0]["connectionState"] == "deleted"
+    connection = client.delete_connection(connectionId=connection["connectionId"])
+    assert connection["connectionState"] == "deleted"
 
 @mock_aws
 def test_update_connection(client):
@@ -79,14 +77,14 @@ def test_update_connection(client):
     resp = client.describe_connections()
     connection1_id = resp["connections"][0]["connectionId"]
     connection2_id = resp["connections"][1]["connectionId"]
-    update_resp = client.update_connection(
+    connection = client.update_connection(
         connectionId=connection1_id,
         connectionName="NewConnectionName",
     )
-    assert update_resp["connections"][0]["connectionName"] == "NewConnectionName"
-    update_resp = client.update_connection(
+    assert connection["connectionName"] == "NewConnectionName"
+    connection = client.update_connection(
         connectionId=connection2_id,
         encryptionMode="should_encrypt",
     )
-    assert update_resp["connection"][0]["encryptionMode"] == "should_encrypt"
+    assert connection["encryptionMode"] == "should_encrypt"
 
