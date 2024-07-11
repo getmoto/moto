@@ -48,7 +48,7 @@ class DirectConnectResponse(BaseResponse):
         params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.update_connection(
             connection_id=params.get("connectionId"),
-            connection_name=params.get("connectionName"),
-            encryption_mode=params.get("encryptionMode"),
+            new_connection_name=params.get("connectionName"),
+            new_encryption_mode=params.get("encryptionMode"),
         )
         return json.dumps(connection.to_dict())

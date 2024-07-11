@@ -40,7 +40,6 @@ def test_describe_connections(client):
     resp = client.describe_connections()
     connections = resp["connections"]
     assert len(connections) == 2
-    
     assert not connections[0]["macSecCapable"] 
     assert connections[1]["macSecCapable"]
     assert len(connections[0]["macSecKeys"]) == 0

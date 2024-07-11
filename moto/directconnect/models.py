@@ -1,6 +1,6 @@
 """DirectConnectBackend class with methods for supported APIs."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -54,7 +54,11 @@ class Connection(BaseModel):
     region: str
     tags: Dict[str, str]
     vlan: int 
-    connection_id: str = f"dx-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    connection_id: str = field(default=None, init=False)
+
+    def __post_init__(self):
+        if self.connection_id is None:
+            self.connection_id = f"dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(self):
         return {
@@ -162,7 +166,7 @@ class DirectConnectBackend(BaseBackend):
         if connection:
             if new_connection_name:
                 self.connections[connection_id].connection_name = new_connection_name
-            if new_connection_name:
+            if new_encryption_mode:
                 self.connections[connection_id].encryption_mode = new_encryption_mode
             return connection
         raise ConnectionNotFound(connection_id, self.region_name)
