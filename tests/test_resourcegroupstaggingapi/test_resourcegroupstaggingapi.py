@@ -1034,6 +1034,40 @@ def test_get_resources_sagemaker_cluster():
 
 
 @mock_aws
+def test_tag_resources_sagemaker():
+    sagemaker = boto3.client("sagemaker", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = sagemaker.create_cluster(
+        ClusterName="testcluster",
+        InstanceGroups=[
+            {
+                "InstanceCount": 10,
+                "InstanceGroupName": "testgroup",
+                "InstanceType": "ml.p4d.24xlarge",
+                "LifeCycleConfig": {
+                    "SourceS3Uri": "s3://sagemaker-lifecycleconfig",
+                    "OnCreate": "filename",
+                },
+                "ExecutionRole": "arn:aws:iam::123456789012:role/service-role/AmazonSageMaker-TestExecutionRole",
+                "ThreadsPerCore": 2,
+            },
+        ],
+        Tags=[
+            {"Key": "sagemakerkey", "Value": "sagemakervalue"},
+        ],
+    )
+    rtapi.tag_resources(
+        ResourceARNList=[resp["ClusterArn"]], Tags={"key1": "k", "key2": "v"}
+    )
+
+    assert sagemaker.list_tags(ResourceArn=resp["ClusterArn"])["Tags"] == [
+        {"Key": "sagemakerkey", "Value": "sagemakervalue"},
+        {"Key": "key1", "Value": "k"},
+        {"Key": "key2", "Value": "v"},
+    ]
+
+
+@mock_aws
 def test_get_resources_efs():
     client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
     efs = boto3.client("efs", region_name="us-east-1")
