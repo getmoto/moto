@@ -23,7 +23,7 @@ class MacSecKey(BaseModel):
     state: MacSecKeyStateType
     start_on: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str]:
         return {
             "secretARN": self.secret_arn,
             "ckn": self.ckn,
@@ -43,25 +43,25 @@ class Connection(BaseModel):
     encryption_mode: EncryptionModeType
     has_logical_redundancy: bool
     jumbo_frame_capable: bool
-    lag_id: str
+    lag_id: Optional[str]
     loa_issue_time: str
     location: str
-    mac_sec_capable: bool
+    mac_sec_capable: Optional[bool]
     mac_sec_keys: List[MacSecKey]
     owner_account: str
     partner_name: str
     port_encryption_status: PortEncryptionStatusType
-    provider_name: str
+    provider_name: Optional[str]
     region: str
-    tags: Dict[str, str]
+    tags: List[Dict[str, str]]
     vlan: int
-    connection_id: str = field(default=None, init=False)
+    connection_id: str | None = field(default=None, init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.connection_id is None:
             self.connection_id = f"dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str|bool|int|List[Dict[str, str]]|Dict[str, str]]:
         return {
             "awsDevice": self.aws_device,
             "awsDeviceV2": self.aws_device_v2,
@@ -90,11 +90,11 @@ class Connection(BaseModel):
 class DirectConnectBackend(BaseBackend):
     """Implementation of DirectConnect APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name, account_id) -> None:
         super().__init__(region_name, account_id)
         self.connections: Dict[str, Connection] = {}
 
-    def describe_connections(self, connection_id: Optional[str]) -> List[Connection]:
+    def describe_connections(self, connection_id: Optional[str]) -> List[Connection|None]:
         if connection_id and connection_id not in self.connections:
             raise ConnectionNotFound(connection_id, self.region_name)
         if connection_id:

@@ -4,18 +4,17 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import Connection, directconnect_backends
+from .models import Connection, DirectConnectBackend, directconnect_backends
 
 
 class DirectConnectResponse(BaseResponse):
     """Handler for DirectConnect requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="directconnect")
 
     @property
-    def directconnect_backend(self):
-        """Return backend instance specific for this region."""
+    def directconnect_backend(self) -> DirectConnectBackend:
         return directconnect_backends[self.current_account][self.region]
 
     def describe_connections(self) -> str:
@@ -27,7 +26,7 @@ class DirectConnectResponse(BaseResponse):
             dict(connections=[connection.to_dict() for connection in connections])
         )
 
-    def create_connection(self):
+    def create_connection(self) -> str:
         params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.create_connection(
             location=params.get("location"),
@@ -40,14 +39,14 @@ class DirectConnectResponse(BaseResponse):
         )
         return json.dumps(connection.to_dict())
 
-    def delete_connection(self):
+    def delete_connection(self) -> str:
         params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.delete_connection(
             connection_id=params.get("connectionId"),
         )
         return json.dumps(connection.to_dict())
 
-    def update_connection(self):
+    def update_connection(self) -> str:
         params = json.loads(self.body)
         connection: Connection = self.directconnect_backend.update_connection(
             connection_id=params.get("connectionId"),
