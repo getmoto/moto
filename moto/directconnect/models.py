@@ -61,7 +61,9 @@ class Connection(BaseModel):
         if self.connection_id == "":
             self.connection_id = f"dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self) -> Dict[str, str|bool|int|List[Dict[str, str]]|Dict[str, str]|None]:
+    def to_dict(
+        self,
+    ) -> Dict[str, str | bool | int | List[Dict[str, str]] | Dict[str, str] | None]:
         return {
             "awsDevice": self.aws_device,
             "awsDeviceV2": self.aws_device_v2,
