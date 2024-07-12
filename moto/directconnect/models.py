@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -63,7 +63,7 @@ class Connection(BaseModel):
 
     def to_dict(
         self,
-    ) -> Dict[str, str | bool | int | List[Dict[str, str]] | Dict[str, str] | None]:
+    ) -> Dict[str, Any]:
         return {
             "awsDevice": self.aws_device,
             "awsDeviceV2": self.aws_device_v2,
