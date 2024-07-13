@@ -70,7 +70,10 @@ class TestBucketPolicy:
 
         assert requests.get(self.key_name).status_code == unauthorized_status
 
-    def test_block_put_object(self):
+    @pytest.mark.parametrize(
+        "key", ["test_txt", "new_txt"], ids=["update_object", "create_object"]
+    )
+    def test_block_put_object(self, key):
         # Block Put-access
         self._put_policy(**{"effect": "Deny", "actions": ["s3:PutObject"]})
 
@@ -79,7 +82,7 @@ class TestBucketPolicy:
 
         # But Put (via boto3 or requests) is not allowed
         with pytest.raises(ClientError) as exc:
-            self.client.put_object(Bucket="mybucket", Key="test_txt", Body="new data")
+            self.client.put_object(Bucket="mybucket", Key=key, Body="new data")
         err = exc.value.response["Error"]
         assert err["Message"] == "Forbidden"
 
