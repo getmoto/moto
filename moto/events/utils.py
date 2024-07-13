@@ -38,6 +38,13 @@ PAGINATION_MODEL = {
         "unique_attribute": "arn",
         "fail_on_invalid_token": False,
     },
+    "list_targets_by_rule": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 50,
+        "unique_attribute": "Arn",
+        "fail_on_invalid_token": False,
+    },
 }
 
 _BASE_EVENT_MESSAGE: EventMessageType = {

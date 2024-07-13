@@ -356,6 +356,21 @@ def test_list_targets_by_rule():
 
 
 @mock_aws
+def test_list_targets_by_rule_pagination():
+    rule_name = "test1"
+    client = generate_environment()
+    page1 = client.list_targets_by_rule(Rule=rule_name, Limit=1)
+    assert len(page1["Targets"]) == 1
+    assert "NextToken" in page1
+
+    page2 = client.list_targets_by_rule(Rule=rule_name, NextToken=page1["NextToken"])
+    assert len(page2["Targets"]) == 5
+
+    large_page = client.list_targets_by_rule(Rule=rule_name, Limit=4)
+    assert len(large_page["Targets"]) == 4
+
+
+@mock_aws
 def test_list_targets_by_rule_for_different_event_bus():
     client = generate_environment()
 

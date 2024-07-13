@@ -1,6 +1,5 @@
 import copy
 import json
-import os
 import re
 import sys
 import warnings
@@ -8,7 +7,7 @@ from collections import OrderedDict
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -1032,32 +1031,6 @@ class EventsBackend(BaseBackend):
             self.account_id, self.region_name, "default"
         )
 
-    def _gen_next_token(self, index: int) -> str:
-        token = os.urandom(128).encode("base64")  # type: ignore
-        self.next_tokens[token] = index
-        return token
-
-    def _process_token_and_limits(
-        self,
-        array_len: int,
-        next_token: Optional[str] = None,
-        limit: Optional[str] = None,
-    ) -> Tuple[int, int, Optional[str]]:
-        start_index = 0
-        end_index = array_len
-        new_next_token: Optional[str] = None
-
-        if next_token:
-            start_index = self.next_tokens.pop(next_token, 0)
-
-        if limit is not None:
-            new_end_index = start_index + int(limit)
-            if new_end_index < end_index:
-                end_index = new_end_index
-                new_next_token = self._gen_next_token(end_index)
-
-        return start_index, end_index, new_next_token
-
     def _get_event_bus(self, name: str) -> EventBus:
         event_bus_name = name.split(f"{self.account_id}:event-bus/")[-1]
 
@@ -1211,34 +1184,16 @@ class EventsBackend(BaseBackend):
 
         return matching_rules
 
-    def list_targets_by_rule(
-        self,
-        rule_id: str,
-        event_bus_arn: Optional[str],
-        next_token: Optional[str] = None,
-        limit: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_targets_by_rule(  # type: ignore[misc]
+        self, rule_id: str, event_bus_arn: Optional[str]
+    ) -> List[Dict[str, Any]]:
         # We'll let a KeyError exception be thrown for response to handle if
         # rule doesn't exist.
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         rule = event_bus.rules[rule_id]
-
-        start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(rule.targets), next_token, limit
-        )
-
-        returned_targets: List[Dict[str, Any]] = []
-        return_obj: Dict[str, Any] = {}
-
-        for i in range(start_index, end_index):
-            returned_targets.append(rule.targets[i])
-
-        return_obj["Targets"] = returned_targets
-        if new_next_token is not None:
-            return_obj["NextToken"] = new_next_token
-
-        return return_obj
+        return rule.targets
 
     def put_targets(
         self, name: str, event_bus_arn: Optional[str], targets: List[Dict[str, Any]]
