@@ -984,7 +984,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only DynamoDB, Logs and RDS resources are currently supported
+        Only DynamoDB, Logs, RDS, and SageMaker resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -1008,6 +1008,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.logs_backend.tag_resource(arn, tags)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:dynamodb"):
                 self.dynamodb_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:sagemaker:"):
+                self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
             else:
