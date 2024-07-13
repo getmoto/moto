@@ -24,6 +24,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "core_network_arn",
     },
+    "get_sites": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "site_arn",
+    },
 }
 
 
@@ -90,6 +96,40 @@ class CoreNetwork(BaseModel):
         }
 
 
+class Site(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        partition: str,
+        global_network_id: str,
+        description: Optional[str],
+        location: Dict[str, Any],
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.global_network_id = global_network_id
+        self.description = description
+        self.location = location
+        self.tags = tags or []
+        self.site_id = "site-" + "".join(mock_random.get_random_hex(18))
+        self.site_arn = (
+            f"arn:{partition}:networkmanager:{account_id}:site/{self.site_id}"
+        )
+        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.state = "PENDING"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "SiteId": self.site_id,
+            "SiteArn": self.site_arn,
+            "GlobalNetworkId": self.global_network_id,
+            "Description": self.description,
+            "Location": self.location,
+            "Tags": self.tags,
+            "State": self.state,
+            "CreatedAt": self.created_at,
+        }
+
+
 class NetworkManagerBackend(BaseBackend):
     """Implementation of NetworkManager APIs."""
 
@@ -97,6 +137,7 @@ class NetworkManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.global_networks: Dict[str, GlobalNetwork] = {}
         self.core_networks: Dict[str, CoreNetwork] = {}
+        self.sites: Dict[str, Site] = {}
 
     def create_global_network(
         self,
@@ -169,6 +210,7 @@ class NetworkManagerBackend(BaseBackend):
         resources = {
             "core-network": self.core_networks,
             "global-network": self.global_networks,
+            "site": self.sites,
         }
         try:
             target_resource, target_name = arn.split(":")[-1].split("/")
@@ -194,6 +236,51 @@ class NetworkManagerBackend(BaseBackend):
                     global_network = self.global_networks[id]
                     queried_global_networks.append(global_network)
         return queried_global_networks
+
+    def create_site(
+        self,
+        global_network_id: str,
+        description: str,
+        location: Optional[Dict[str, str]],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> Site:
+        # check if global network exists
+        if global_network_id not in self.global_networks:
+            raise ResourceNotFound(global_network_id)
+
+        site = Site(
+            global_network_id=global_network_id,
+            description=description,
+            location=location,
+            tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+        )
+        site_id = site.site_id
+        self.sites[site_id] = site
+        return site
+
+    def delete_site(self, global_network_id: str, site_id: str) -> Site:
+        site = self.sites.pop(site_id)
+        site.state = "DELETING"
+        return site
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_sites(self, global_network_id, site_ids) -> List[Site]:
+        queried_sites = []
+        if not site_ids:
+            queried_sites = list(self.sites.values())
+        elif isinstance(site_ids, str):
+            if site_ids not in self.sites:
+                raise ResourceNotFound(site_ids)
+            queried_sites.append(self.sites[site_ids])
+        else:
+            for id in site_ids:
+                if id in self.sites:
+                    site = self.sites[id]
+                    queried_sites.append(site)
+
+        return queried_sites
 
 
 networkmanager_backends = BackendDict(

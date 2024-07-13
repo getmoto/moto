@@ -109,3 +109,41 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps(
             dict(GlobalNetworks=list_global_networks, nextToken=next_token)
         )
+
+    def create_site(self) -> str:
+        params = json.loads(self.body)
+        global_network_id = self.uri_match.group(1)
+        description = params.get("Description")
+        location = params.get("Location")
+        tags = params.get("Tags")
+        site = self.networkmanager_backend.create_site(
+            global_network_id=global_network_id,
+            description=description,
+            location=location,
+            tags=tags,
+        )
+        return json.dumps(dict(Site=site.to_dict()))
+
+    def delete_site(self) -> str:
+        global_network_id = self.uri_match.group(1)
+        site_id = self.uri_match.group(2)
+        site = self.networkmanager_backend.delete_site(
+            global_network_id=global_network_id,
+            site_id=site_id,
+        )
+        return json.dumps(dict(Site=site.to_dict()))
+
+    def get_sites(self) -> str:
+        params = self._get_params()
+        global_network_id = params.get("GlobalNetworkId")
+        site_ids = params.get("siteIds")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        sites, next_token = self.networkmanager_backend.get_sites(
+            global_network_id=global_network_id,
+            site_ids=site_ids,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        list_sites = [site.to_dict() for site in sites]
+        return json.dumps(dict(Sites=list_sites, nextToken=next_token))

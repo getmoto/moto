@@ -191,3 +191,60 @@ def test_describe_global_networks():
             0
         ]
         assert gn["GlobalNetworkId"] == g_id
+
+
+@mock_aws
+def test_create_site():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    site = client.create_site(
+        GlobalNetworkId=gn_id,
+        Description="Test site",
+        Location={
+            "Address": "123 Main St",
+            "Latitude": "47.6062",
+            "Longitude": "122.3321",
+        },
+        Tags=[
+            {"Key": "Name", "Value": "TestSite"},
+        ],
+    )["Site"]
+    assert site["GlobalNetworkId"] == gn_id
+    assert site["Description"] == "Test site"
+    assert len(site["Tags"]) == 1
+
+
+@mock_aws
+def test_delete_site():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    site_id = client.create_site(
+        GlobalNetworkId=gn_id, Description="Test site to be deleted"
+    )["Site"]["SiteId"]
+
+    resp = client.delete_site(GlobalNetworkId=gn_id, SiteId=site_id)
+    assert resp["Site"]["State"] == "DELETING"
+
+
+@mock_aws
+def test_get_sites():
+    NUM_SITES = 3
+    NUM_TO_TEST = 2
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    site_ids = []
+    for i in range(NUM_SITES):
+        site_id = client.create_site(
+            GlobalNetworkId=gn_id,
+            Description="Test site #{i}",
+        )["Site"]["SiteId"]
+        site_ids.append(site_id)
+    sites_to_get = site_ids[0:NUM_TO_TEST]
+    resp = client.get_sites(GlobalNetworkId=gn_id, SiteIds=sites_to_get)["Sites"]
+    # Fix this
+    assert len(resp) == NUM_TO_TEST
+
+    # Check each site by ID
+    for site in resp:
+        assert site["GlobalNetworkId"] == gn_id
+        assert site["SiteId"] in sites_to_get
