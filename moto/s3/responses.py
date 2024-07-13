@@ -1326,10 +1326,10 @@ class S3Response(BaseResponse):
                         key.acl and not key.acl.public_read
                     ):
                         return 403, {}, ""
-            elif signed_url and not authorized_request:
-                # coming in from requests.get(s3.generate_presigned_url())
-                if self._invalid_headers(request.url, dict(request.headers)):
-                    return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
+        if not key and signed_url and not authorized_request:
+            # coming in from requests.get(s3.generate_presigned_url())
+            if self._invalid_headers(request.url, dict(request.headers)):
+                return 403, {}, S3_INVALID_PRESIGNED_PARAMETERS
 
         body = self.body or b""
 
