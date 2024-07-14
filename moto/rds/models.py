@@ -1313,7 +1313,9 @@ class EventSubscription(BaseModel):
         self.source_type = kwargs.get("source_type")
         self.event_categories = kwargs.get("event_categories", [])
         self.source_ids = kwargs.get("source_ids", [])
-        self.enabled = kwargs.get("enabled", True)
+        self.enabled = kwargs.get("enabled", False)
+        if self.enabled is None:
+            self.enabled = False
         self.tags = kwargs.get("tags", True)
 
         self.region_name = ""
@@ -1345,7 +1347,7 @@ class EventSubscription(BaseModel):
                 {%- endfor -%}
               </EventCategoriesList>
               <Status>{{ subscription.status }}</Status>
-              <Enabled>{{ subscription.enabled }}</Enabled>
+              <Enabled>{{ 'true' if subscription.enabled else 'false' }}</Enabled>
               <EventSubscriptionArn>{{ subscription.es_arn }}</EventSubscriptionArn>
               <TagList>
               {%- for tag in subscription.tags -%}
@@ -1654,6 +1656,8 @@ class DBProxy(BaseModel):
             else:
                 self.idle_client_timeout = idle_client_timeout
         self.debug_logging = debug_logging
+        if self.debug_logging is None:
+            self.debug_logging = False
         self.created_date = iso_8601_datetime_with_milliseconds()
         self.updated_date = iso_8601_datetime_with_milliseconds()
         if tags is None:
@@ -1723,7 +1727,7 @@ class DBProxy(BaseModel):
                 <Endpoint>{{ dbproxy.endpoint }}</Endpoint>
                 <CreatedDate>{{ dbproxy.created_date }}</CreatedDate>
                 <RoleArn>{{ dbproxy.role_arn }}</RoleArn>
-                <DebugLogging>{{ dbproxy.debug_logging }}</DebugLogging>
+                <DebugLogging>{{ 'true' if dbproxy.debug_logging else 'false' }}</DebugLogging>
                 <VpcId>{{ dbproxy.vpc_id }}</VpcId>
                 <DBProxyArn>{{ dbproxy.db_proxy_arn }}</DBProxyArn>
                 <VpcSubnetIds>
