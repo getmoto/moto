@@ -39,7 +39,7 @@ def test_copy_key_boto3(key_name):
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_copy_key_boto3_with_args(bucket=None):
+def test_copy_key_boto3_with_args(bucket_name=None):
     # Setup
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -47,13 +47,13 @@ def test_copy_key_boto3_with_args(bucket=None):
     new_key = "new_key"
     expected_hash = "qz0H8xacy9DtbEtF3iFRn5+TjHLSQSSZiquUnOg7tRs="
 
-    key = s3_resource.Object(bucket, key_name)
+    key = s3_resource.Object(bucket_name, key_name)
     key.put(Body=b"some value")
 
     # Execute
-    key2 = s3_resource.Object(bucket, new_key)
+    key2 = s3_resource.Object(bucket_name, new_key)
     key2.copy(
-        CopySource={"Bucket": bucket, "Key": key_name},
+        CopySource={"Bucket": bucket_name, "Key": key_name},
         ExtraArgs={
             "ChecksumAlgorithm": "SHA256",
             "WebsiteRedirectLocation": "http://getmoto.org/",
@@ -62,20 +62,20 @@ def test_copy_key_boto3_with_args(bucket=None):
 
     # Verify
     resp = client.get_object_attributes(
-        Bucket=bucket, Key=new_key, ObjectAttributes=["Checksum"]
+        Bucket=bucket_name, Key=new_key, ObjectAttributes=["Checksum"]
     )
 
     assert "Checksum" in resp
     assert "ChecksumSHA256" in resp["Checksum"]
     assert resp["Checksum"]["ChecksumSHA256"] == expected_hash
 
-    obj = client.get_object(Bucket=bucket, Key=new_key)
+    obj = client.get_object(Bucket=bucket_name, Key=new_key)
     assert obj["WebsiteRedirectLocation"] == "http://getmoto.org/"
 
     # Verify in place
     copy_in_place = client.copy_object(
-        Bucket=bucket,
-        CopySource=f"{bucket}/{new_key}",
+        Bucket=bucket_name,
+        CopySource=f"{bucket_name}/{new_key}",
         Key=new_key,
         ChecksumAlgorithm="SHA256",
         MetadataDirective="REPLACE",
@@ -87,7 +87,7 @@ def test_copy_key_boto3_with_args(bucket=None):
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_copy_key_boto3_with_args__using_multipart(bucket=None):
+def test_copy_key_boto3_with_args__using_multipart(bucket_name=None):
     # Setup
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -95,13 +95,13 @@ def test_copy_key_boto3_with_args__using_multipart(bucket=None):
     new_key = "new_key"
     expected_hash = "DnKotDi4EtYGwNMDKmnR6SqH3bWVOlo2BC+tsz9rHqw="
 
-    key = s3_resource.Object(bucket, key_name)
+    key = s3_resource.Object(bucket_name, key_name)
     key.put(Body=b"some value")
 
     # Execute
-    key2 = s3_resource.Object(bucket, new_key)
+    key2 = s3_resource.Object(bucket_name, new_key)
     key2.copy(
-        CopySource={"Bucket": bucket, "Key": key_name},
+        CopySource={"Bucket": bucket_name, "Key": key_name},
         ExtraArgs={
             "ChecksumAlgorithm": "SHA256",
             "WebsiteRedirectLocation": "http://getmoto.org/",
@@ -111,14 +111,14 @@ def test_copy_key_boto3_with_args__using_multipart(bucket=None):
 
     # Verify
     resp = client.get_object_attributes(
-        Bucket=bucket, Key=new_key, ObjectAttributes=["Checksum"]
+        Bucket=bucket_name, Key=new_key, ObjectAttributes=["Checksum"]
     )
 
     assert "Checksum" in resp
     assert "ChecksumSHA256" in resp["Checksum"]
     assert resp["Checksum"]["ChecksumSHA256"] == expected_hash
 
-    obj = client.get_object(Bucket=bucket, Key=new_key)
+    obj = client.get_object(Bucket=bucket_name, Key=new_key)
     assert obj["WebsiteRedirectLocation"] == "http://getmoto.org/"
 
 

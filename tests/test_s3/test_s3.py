@@ -1615,37 +1615,73 @@ def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_er
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_aws
-def test_head_object():
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("size", [10, 10000000])
+def test_head_object(size, bucket_name=None):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="blah")
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    s3_resource.Object("blah", "hello.txt").put(Body="some text")
+    s3_resource.Object(bucket_name, "hello.txt").put(Body="x" * size)
 
-    s3_resource.Object("blah", "hello.txt").meta.client.head_object(
-        Bucket="blah", Key="hello.txt"
+    resp = client.head_object(Bucket=bucket_name, Key="hello.txt")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "content-range" not in resp["ResponseMetadata"]["HTTPHeaders"]
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
+
+    resp = client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=1)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+    assert (
+        resp["ResponseMetadata"]["HTTPHeaders"]["content-range"]
+        == f"bytes 0-{size-1}/{size}"
     )
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
 
     with pytest.raises(ClientError) as exc:
-        s3_resource.Object("blah", "hello2.txt").meta.client.head_object(
-            Bucket="blah", Key="hello_bad.txt"
-        )
+        client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=2)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "416"
+    assert err["Message"] == "Requested Range Not Satisfiable"
+
+    with pytest.raises(ClientError) as exc:
+        client.head_object(Bucket=bucket_name, Key="hello_bad.txt")
     assert exc.value.response["Error"]["Code"] == "404"
 
 
-@mock_aws
-def test_get_object():
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("size", [10, 10000000])
+def test_get_object(size, bucket_name=None):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="blah")
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    s3_resource.Object("blah", "hello.txt").put(Body="some text")
+    s3_resource.Object(bucket_name, "hello.txt").put(Body="x" * size)
 
-    s3_resource.Object("blah", "hello.txt").meta.client.head_object(
-        Bucket="blah", Key="hello.txt"
+    resp = client.get_object(Bucket=bucket_name, Key="hello.txt")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "content-range" not in resp["ResponseMetadata"]["HTTPHeaders"]
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
+
+    resp = client.get_object(Bucket=bucket_name, Key="hello.txt", PartNumber=1)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+    assert (
+        resp["ResponseMetadata"]["HTTPHeaders"]["content-range"]
+        == f"bytes 0-{size - 1}/{size}"
     )
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
 
     with pytest.raises(ClientError) as exc:
-        s3_resource.Object("blah", "hello2.txt").get()
+        client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=2)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "416"
+    assert err["Message"] == "Requested Range Not Satisfiable"
+
+    with pytest.raises(ClientError) as exc:
+        s3_resource.Object(bucket_name, "hello2.txt").get()
 
     assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
@@ -1766,27 +1802,27 @@ def test_delete_versioned_bucket():
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_delete_versioned_bucket_returns_metadata(name=None):
+def test_delete_versioned_bucket_returns_metadata(bucket_name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = resource.Bucket(name)
+    bucket = resource.Bucket(bucket_name)
     versions = bucket.object_versions
 
-    enable_versioning(name, client)
+    enable_versioning(bucket_name, client)
 
-    client.put_object(Bucket=name, Key="test1", Body=b"test1")
+    client.put_object(Bucket=bucket_name, Key="test1", Body=b"test1")
 
     # We now have zero delete markers
-    assert "DeleteMarkers" not in client.list_object_versions(Bucket=name)
+    assert "DeleteMarkers" not in client.list_object_versions(Bucket=bucket_name)
 
     # Delete the object
-    del_file = client.delete_object(Bucket=name, Key="test1")
+    del_file = client.delete_object(Bucket=bucket_name, Key="test1")
     deleted_version_id = del_file["VersionId"]
     assert del_file["DeleteMarker"] is True
     assert deleted_version_id is not None
 
     # We now have one DeleteMarker
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 1
 
     # list_object_versions returns the object itself, and a DeleteMarker
     # object.head() returns a 'x-amz-delete-marker' header
@@ -1808,7 +1844,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     # Note that delete_marker.head() returns a regular 404
     # i.e., without specifying the versionId
     with pytest.raises(ClientError) as exc:
-        client.head_object(Bucket=name, Key="test1")
+        client.head_object(Bucket=bucket_name, Key="test1")
     err = exc.value.response
     assert err["Error"] == {"Code": "404", "Message": "Not Found"}
     assert err["ResponseMetadata"]["HTTPStatusCode"] == 404
@@ -1818,16 +1854,16 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     )
 
     # Delete the same object gives a new version id
-    del_mrk1 = client.delete_object(Bucket=name, Key="test1")
+    del_mrk1 = client.delete_object(Bucket=bucket_name, Key="test1")
     assert del_mrk1["DeleteMarker"] is True
     assert del_mrk1["VersionId"] != del_file["VersionId"]
 
     # We now have two DeleteMarkers
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 2
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 2
 
     # Delete the delete marker
     del_mrk2 = client.delete_object(
-        Bucket=name, Key="test1", VersionId=del_mrk1["VersionId"]
+        Bucket=bucket_name, Key="test1", VersionId=del_mrk1["VersionId"]
     )
     assert del_mrk2["DeleteMarker"] is True
     assert del_mrk2["VersionId"] == del_mrk1["VersionId"]
@@ -1847,19 +1883,19 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
             assert version.head()["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # We now have only one DeleteMarker
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 1
 
     # Delete the actual file
-    actual_version = client.list_object_versions(Bucket=name)["Versions"][0]
+    actual_version = client.list_object_versions(Bucket=bucket_name)["Versions"][0]
     del_mrk3 = client.delete_object(
-        Bucket=name, Key="test1", VersionId=actual_version["VersionId"]
+        Bucket=bucket_name, Key="test1", VersionId=actual_version["VersionId"]
     )
     assert "DeleteMarker" not in del_mrk3
     assert del_mrk3["VersionId"] == actual_version["VersionId"]
 
     # We still have one DeleteMarker, but zero objects
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
-    assert "Versions" not in client.list_object_versions(Bucket=name)
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 1
+    assert "Versions" not in client.list_object_versions(Bucket=bucket_name)
 
     # Because we only have DeleteMarkers, we can not call `head()` on any of othem
     for version in versions.filter(Prefix="test1"):
@@ -1870,7 +1906,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
 
     # Delete the last marker
     del_mrk4 = client.delete_object(
-        Bucket=name, Key="test1", VersionId=del_mrk2["VersionId"]
+        Bucket=bucket_name, Key="test1", VersionId=del_mrk2["VersionId"]
     )
     assert "DeleteMarker" not in del_mrk4
     assert del_mrk4["VersionId"] == del_mrk2["VersionId"]

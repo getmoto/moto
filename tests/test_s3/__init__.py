@@ -23,7 +23,7 @@ def s3_aws_verified(func):
     """
 
     @wraps(func)
-    def pagination_wrapper():
+    def pagination_wrapper(**kwargs):
         bucket_name = str(uuid4())
 
         allow_aws_request = (
@@ -32,13 +32,13 @@ def s3_aws_verified(func):
 
         if allow_aws_request:
             print(f"Test {func} will create {bucket_name}")  # noqa: T201
-            resp = create_bucket_and_test(bucket_name)
+            resp = create_bucket_and_test(bucket_name, **kwargs)
         else:
             with mock_aws():
-                resp = create_bucket_and_test(bucket_name)
+                resp = create_bucket_and_test(bucket_name, **kwargs)
         return resp
 
-    def create_bucket_and_test(bucket_name):
+    def create_bucket_and_test(bucket_name, **kwargs):
         client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
         client.create_bucket(Bucket=bucket_name)
@@ -47,7 +47,7 @@ def s3_aws_verified(func):
             Tagging={"TagSet": [{"Key": "environment", "Value": "moto_tests"}]},
         )
         try:
-            resp = func(bucket_name)
+            resp = func(**kwargs, bucket_name=bucket_name)
         finally:
             ### CLEANUP ###
 

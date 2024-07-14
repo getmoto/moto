@@ -481,6 +481,13 @@ class InvalidRange(S3ClientError):
         )
 
 
+class RangeNotSatisfiable(S3ClientError):
+    code = 416
+
+    def __init__(self) -> None:
+        super().__init__(RangeNotSatisfiable.code, "Requested Range Not Satisfiable")
+
+
 class InvalidContinuationToken(S3ClientError):
     code = 400
 
