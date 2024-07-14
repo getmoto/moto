@@ -50,6 +50,7 @@ from .exceptions import (
     NotAnIntegerException,
     ObjectNotInActiveTierError,
     PreconditionFailed,
+    RangeNotSatisfiable,
     S3AclAndGrantError,
     S3ClientError,
 )
@@ -1423,6 +1424,10 @@ class S3Response(BaseResponse):
                     part_number_marker=part_number_marker,
                 ),
             )
+
+        part_number = query.get("partNumber", [None])[0]
+        if part_number:
+            part_number = int(part_number)
         version_id = query.get("versionId", [None])[0]
         if_modified_since = headers.get("If-Modified-Since", None)
         if_match = headers.get("If-Match", None)
@@ -1481,6 +1486,15 @@ class S3Response(BaseResponse):
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
         response_headers.update({"Accept-Ranges": "bytes"})
+        if part_number:
+            if key.multipart:
+                # TODO
+                pass
+            else:
+                if part_number > 1:
+                    raise RangeNotSatisfiable
+                response_headers["content-range"] = f"bytes 0-{key.size - 1}/{key.size}"
+                return 206, response_headers, key.value
         return 200, response_headers, key.value
 
     def _key_response_put(
@@ -1834,6 +1848,13 @@ class S3Response(BaseResponse):
                 if full_key.multipart:  # type: ignore
                     mp_part_count = str(len(full_key.multipart.partlist))  # type: ignore
                     response_headers["x-amz-mp-parts-count"] = mp_part_count
+                else:
+                    if part_number > 1:
+                        raise RangeNotSatisfiable
+                    response_headers["content-range"] = (
+                        f"bytes 0-{full_key.size -1}/{full_key.size}"  # type: ignore
+                    )
+                    return 206, response_headers, ""
 
             return 200, response_headers, ""
         else:

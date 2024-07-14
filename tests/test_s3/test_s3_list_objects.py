@@ -10,7 +10,7 @@ from . import s3_aws_verified
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_s3_filter_with_manual_marker(name=None) -> None:
+def test_s3_filter_with_manual_marker(bucket_name=None) -> None:
     """
     Batch manually:
     1. Get list of all items, but only take first 5
@@ -22,7 +22,7 @@ def test_s3_filter_with_manual_marker(name=None) -> None:
 
     This test verifies that it is possible to pass an existing key-name as the Marker-attribute
     """
-    bucket = boto3.resource("s3", "us-east-1").Bucket(name)
+    bucket = boto3.resource("s3", "us-east-1").Bucket(bucket_name)
 
     def batch_from(marker: str, *, batch_size: int):
         first: str | None = None
