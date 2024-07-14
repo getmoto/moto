@@ -37,6 +37,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -3377,6 +3386,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -6116,6 +6134,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -8519,6 +8546,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -9518,6 +9554,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -10121,6 +10160,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -12444,6 +12492,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -13224,6 +13281,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -13725,6 +13785,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -14908,15 +14977,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16365,6 +16425,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -19135,6 +19204,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -19978,6 +20056,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -20546,6 +20627,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -21317,6 +21407,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -21801,6 +21894,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -23334,6 +23436,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -24183,6 +24294,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -24759,6 +24879,9 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -25193,6 +25316,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -25838,15 +25970,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26609,6 +26732,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -27252,15 +27384,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.cn-northwest-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27965,6 +28088,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -30764,6 +30896,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -31517,6 +31658,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -32016,6 +32160,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -34081,6 +34234,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -35666,6 +35828,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -36428,6 +36599,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -36945,6 +37119,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -38119,15 +38302,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39787,6 +39961,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -42325,6 +42508,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -44321,6 +44513,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -45092,6 +45293,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -45636,6 +45840,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -46515,6 +46728,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa"
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -47038,6 +47254,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -48707,6 +48932,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -50012,6 +50246,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -50768,6 +51011,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -52142,15 +52394,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -52791,15 +53034,6 @@
                 "Value": "migrationhubstrategy",
                 "endpoint": {
                   "Value": "migrationhub-strategy.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mobile": {
-                "Value": "mobile",
-                "endpoint": {
-                  "Value": "mobile.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53987,6 +54221,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -56520,6 +56763,15 @@
               "Value": "aws-us-gov"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -57988,6 +58240,15 @@
               "Value": "aws-us-gov"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -59702,6 +59963,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -60597,15 +60867,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -61769,6 +62030,15 @@
               "Value": "aws"
             },
             "services": {
+              "__DELETE_FLAG__": {
+                "Value": "__DELETE_FLAG__",
+                "endpoint": {
+                  "Value": "sms-voice.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -63074,15 +63344,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -63660,15 +63921,6 @@
                 "Value": "migrationhubstrategy",
                 "endpoint": {
                   "Value": "migrationhub-strategy.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mobile": {
-                "Value": "mobile",
-                "endpoint": {
-                  "Value": "mobile.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
