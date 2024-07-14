@@ -250,7 +250,7 @@ class RDSResponse(BaseResponse):
                 "EventCategories", "EventCategory"
             ),
             "source_ids": self.unpack_list_params("SourceIds", "SourceId"),
-            "enabled": self._get_param("Enabled"),
+            "enabled": self._get_bool_param("Enabled"),
             "tags": self.unpack_list_params("Tags", "Tag"),
         }
 
