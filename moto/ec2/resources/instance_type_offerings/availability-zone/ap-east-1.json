@@ -1888,6 +1888,10 @@
   "Location": "ap-east-1b"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "ap-east-1b"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "ap-east-1b"
  },

@@ -1888,6 +1888,10 @@
   "Location": "ape1-az2"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "ape1-az2"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "ape1-az2"
  },
