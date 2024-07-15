@@ -176,6 +176,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
         tags = self._get_param("Tags")  # Optional
+        cert_auth_arn = self._get_param("CertificateAuthorityArn") # Optional
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -192,6 +193,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             idempotency_token,
             subject_alt_names,
             tags,
+            cert_auth_arn,
         )
 
         return json.dumps({"CertificateArn": arn})

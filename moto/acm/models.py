@@ -123,6 +123,7 @@ class CertBundle(BaseModel):
         arn: Optional[str] = None,
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
+        cert_auth_arn: Optional[str] = None
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -132,6 +133,7 @@ class CertBundle(BaseModel):
         self.tags = TagHolder()
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
+        self.cert_auth_arn = cert_auth_arn
         self.in_use_by: List[str] = []
 
         # Takes care of PEM checking
@@ -158,6 +160,7 @@ class CertBundle(BaseModel):
         account_id: str,
         region: str,
         sans: Optional[List[str]] = None,
+        cert_auth_arn: Optional[str] = None,
     ) -> "CertBundle":
         unique_sans: Set[str] = set(sans) if sans else set()
 
@@ -210,11 +213,16 @@ class CertBundle(BaseModel):
             encryption_algorithm=serialization.NoEncryption(),
         )
 
+        cert_type = "AMAZON_ISSUED"
+        if cert_auth_arn is not None:
+            cert_type = "PRIVATE"
+
         return cls(
             certificate=cert_armored,
             private_key=private_key,
-            cert_type="AMAZON_ISSUED",
+            cert_type=cert_type,
             cert_status="PENDING_VALIDATION",
+            cert_auth_arn=cert_auth_arn,
             account_id=account_id,
             region=region,
         )
@@ -356,6 +364,9 @@ class CertBundle(BaseModel):
                 "Options": {"CertificateTransparencyLoggingPreference": "ENABLED"},
             }
         }
+
+        if self.cert_auth_arn is not None:
+            result["Certificate"]["CertificateAuthorityArn"] = self.cert_auth_arn
 
         domain_names = set(sans + [self.common_name])
         validation_options = []
@@ -514,6 +525,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         idempotency_token: str,
         subject_alt_names: List[str],
         tags: List[Dict[str, str]],
+        cert_auth_arn: Optional[str] = None,
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
@@ -528,6 +540,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             account_id=self.account_id,
             region=self.region_name,
             sans=subject_alt_names,
+            cert_auth_arn=cert_auth_arn,
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
