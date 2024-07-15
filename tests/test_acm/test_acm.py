@@ -170,7 +170,7 @@ def test_delete_certificate():
 @mock_aws
 def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
-    arn = _import_cert(client)
+    arn = client.request_certificate(DomainName=SERVER_COMMON_NAME)
 
     try:
         resp = client.describe_certificate(CertificateArn=arn)
@@ -178,10 +178,10 @@ def test_describe_certificate():
         pytest.skip("This test requires 64-bit time_t")
     assert resp["Certificate"]["CertificateArn"] == arn
     assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-    assert resp["Certificate"]["Issuer"] == "Moto"
+    assert resp["Certificate"]["Issuer"] == "Amazon"
     assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
-    assert resp["Certificate"]["Status"] == "ISSUED"
-    assert resp["Certificate"]["Type"] == "IMPORTED"
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
+    assert resp["Certificate"]["Type"] == "AMAZON_ISSUED"
     assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
     assert "Options" in resp["Certificate"]
 

@@ -387,7 +387,8 @@ class CertBundle(BaseModel):
                 }
             )
 
-        result["Certificate"]["DomainValidationOptions"] = validation_options
+        if self.type == "AMAZON_ISSUED":
+            result["Certificate"]["DomainValidationOptions"] = validation_options
 
         if self.type == "IMPORTED":
             result["Certificate"]["ImportedAt"] = datetime_to_epoch(self.created_at)
