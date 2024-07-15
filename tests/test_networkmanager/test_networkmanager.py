@@ -306,3 +306,63 @@ def test_delete_link():
     resp = client.delete_link(GlobalNetworkId=gn_id, LinkId=link_id)["Link"]
     assert resp["State"] == "DELETING"
     assert resp["LinkId"] == link_id
+
+
+@mock_aws
+def test_create_device():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    device = client.create_device(
+        GlobalNetworkId=gn_id,
+        AWSLocation={
+            "Zone": "us-west-2a",
+            "SubnetArn": "subnet-arn",
+        },
+        Description="Test device",
+    )["Device"]
+    assert device["GlobalNetworkId"] == gn_id
+
+
+@mock_aws
+def test_get_devices():
+    NUM_DEVICES = 4
+    NUM_TO_TEST = 1
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    ids = []
+    for i in range(NUM_DEVICES):
+        id = client.create_device(
+            GlobalNetworkId=gn_id,
+            AWSLocation={
+                "Zone": "us-east-1",
+                "SubnetArn": "subnet-arn",
+            },
+            Description=f"Test device #{i}",
+        )["Device"]["DeviceId"]
+        ids.append(id)
+    resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
+    resp = client.get_devices(GlobalNetworkId=gn_id, DeviceIds=resources_to_get)[
+        "Devices"
+    ]
+    assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
+
+
+@mock_aws
+def test_delete_device():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    device_id = client.create_device(
+        GlobalNetworkId=gn_id,
+        Description="Test device to delete",
+        AWSLocation={
+            "Zone": "us-west-2a",
+            "SubnetArn": "subnet-arn",
+        },
+    )["Device"]["DeviceId"]
+
+    resp = client.delete_device(GlobalNetworkId=gn_id, DeviceId=device_id)["Device"]
+    assert resp["State"] == "DELETING"
+
+    # Check that the device is deleted
+    devices = client.get_devices(GlobalNetworkId=gn_id)["Devices"]
+    assert len(devices) == 0

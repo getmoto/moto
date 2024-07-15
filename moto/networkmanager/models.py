@@ -185,6 +185,58 @@ class Link(BaseModel):
         }
 
 
+class Device(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        partition: str,
+        global_network_id: str,
+        aws_location: Optional[Dict[str, str]],
+        description: Optional[str],
+        type: Optional[str],
+        vendor: Optional[str],
+        model: Optional[str],
+        serial_number: Optional[str],
+        location: Optional[Dict[str, str]],
+        site_id: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.global_network_id = global_network_id
+        self.aws_location = aws_location
+        self.description = description
+        self.type = type
+        self.vendor = vendor
+        self.model = model
+        self.serial_number = serial_number
+        self.location = location
+        self.site_id = site_id
+        self.tags = tags or []
+        self.device_id = "device-" + "".join(mock_random.get_random_hex(18))
+        self.device_arn = (
+            f"arn:{partition}:networkmanager:{account_id}:device/{self.device_id}"
+        )
+        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.state = "PENDING"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "DeviceId": self.device_id,
+            "DeviceArn": self.device_arn,
+            "GlobalNetworkId": self.global_network_id,
+            "AWSLocation": self.aws_location,
+            "Description": self.description,
+            "Type": self.type,
+            "Vendor": self.vendor,
+            "Model": self.model,
+            "SerialNumber": self.serial_number,
+            "Location": self.location,
+            "SiteId": self.site_id,
+            "Tags": self.tags,
+            "State": self.state,
+            "CreatedAt": self.created_at,
+        }
+
+
 class NetworkManagerBackend(BaseBackend):
     """Implementation of NetworkManager APIs."""
 
@@ -194,7 +246,7 @@ class NetworkManagerBackend(BaseBackend):
         self.core_networks: Dict[str, CoreNetwork] = {}
         self.sites: Dict[str, Dict[str, Site]] = {}
         self.links: Dict[str, Dict[str, Link]] = {}
-        self.devices: Dict[str, Dict[str, object]] = {}  # Update this
+        self.devices: Dict[str, Dict[str, Device]] = {}  # Update this
 
     def create_global_network(
         self,
@@ -406,6 +458,67 @@ class NetworkManagerBackend(BaseBackend):
             raise ResourceNotFound(link_id)
         link.state = "DELETING"
         return link
+
+    def create_device(
+        self,
+        global_network_id: str,
+        aws_location: Optional[Dict[str, str]],
+        description: Optional[str],
+        type: Optional[str],
+        vendor: Optional[str],
+        model: Optional[str],
+        serial_number: Optional[str],
+        location: Optional[Dict[str, str]],
+        site_id: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> Device:
+        # check if global network exists
+        if global_network_id not in self.global_networks:
+            raise ResourceNotFound(global_network_id)
+        device = Device(
+            global_network_id=global_network_id,
+            aws_location=aws_location,
+            description=description,
+            type=type,
+            vendor=vendor,
+            model=model,
+            serial_number=serial_number,
+            location=location,
+            site_id=site_id,
+            tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+        )
+        self.devices[global_network_id][device.device_id] = device
+        return device
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_devices(
+        self, global_network_id: str, device_ids: List[str], site_id: Optional[str]
+    ) -> List[Device]:
+        gn_devices = self.devices.get(global_network_id) or {}
+        queried = []
+        if not device_ids:
+            queried = list(gn_devices.values())
+        elif isinstance(device_ids, str):
+            if device_ids not in gn_devices:
+                raise ResourceNotFound(device_ids)
+            queried.append(gn_devices[device_ids])
+        else:
+            for id in device_ids:
+                if id in gn_devices:
+                    q = gn_devices[id]
+                    queried.append(q)
+
+        return queried
+
+    def delete_device(self, global_network_id: str, device_id: str) -> Device:
+        try:
+            device = self.devices[global_network_id].pop(device_id)
+        except KeyError:
+            raise ResourceNotFound(device_id)
+        device.state = "DELETING"
+        return device
 
 
 networkmanager_backends = BackendDict(
