@@ -404,6 +404,8 @@ class CertBundle(BaseModel):
 
 
 class AWSCertificateManagerBackend(BaseBackend):
+    MIN_PASSPHRASE_LEN = 4
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._certificates: Dict[str, CertBundle] = {}
@@ -551,9 +553,18 @@ class AWSCertificateManagerBackend(BaseBackend):
     def export_certificate(
         self, certificate_arn: str, passphrase: str
     ) -> Tuple[str, str, str]:
+        if len(passphrase) < self.MIN_PASSPHRASE_LEN:
+            raise AWSValidationException(
+                "Value at 'passphrase' failed to satisfy constraint: Member must have length greater than or equal to %s"
+                % (self.MIN_PASSPHRASE_LEN)
+            )
         passphrase_bytes = base64.standard_b64decode(passphrase)
         cert_bundle = self.get_certificate(certificate_arn)
-
+        if cert_bundle.type != "PRIVATE":
+            raise AWSValidationException(
+                "Certificate ARN: %s is not a private certificate"
+                % (certificate_arn)
+            )
         certificate = cert_bundle.cert.decode()
         certificate_chain = cert_bundle.chain.decode()
         private_key = cert_bundle.serialize_pk(passphrase_bytes)
