@@ -1,6 +1,7 @@
 """Unit tests for networkmanager-supported APIs."""
 
 import boto3
+import pytest
 
 from moto import mock_aws
 from tests import DEFAULT_ACCOUNT_ID
@@ -248,6 +249,10 @@ def test_get_sites():
         assert site["GlobalNetworkId"] == gn_id
         assert site["SiteId"] in sites_to_get
 
+    # Check all sites
+    all_sites = client.get_sites(GlobalNetworkId=gn_id)["Sites"]
+    assert len(all_sites) == NUM_SITES
+
 
 @mock_aws
 def test_create_link():
@@ -290,6 +295,10 @@ def test_get_links():
     resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
     resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=resources_to_get)["Links"]
     assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
+
+    # Check all links
+    all_links = client.get_links(GlobalNetworkId=gn_id)["Links"]
+    assert len(all_links) == NUM_LINKS
 
 
 @mock_aws
@@ -346,6 +355,10 @@ def test_get_devices():
     ]
     assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
 
+    # Check all devices
+    all_devices = client.get_devices(GlobalNetworkId=gn_id)["Devices"]
+    assert len(all_devices) == NUM_DEVICES
+
 
 @mock_aws
 def test_delete_device():
@@ -366,3 +379,88 @@ def test_delete_device():
     # Check that the device is deleted
     devices = client.get_devices(GlobalNetworkId=gn_id)["Devices"]
     assert len(devices) == 0
+
+
+# Exception testing
+
+
+@mock_aws
+def test_device_exceptions():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    device_id = client.create_device(
+        GlobalNetworkId=gn_id,
+        Description="Test device",
+        AWSLocation={
+            "Zone": "us-west-2a",
+            "SubnetArn": "subnet-arn",
+        },
+    )["Device"]["DeviceId"]
+
+    # Test invalid global_network_id for create resource
+    with pytest.raises(Exception):
+        client.create_device(
+            GlobalNetworkId="invalid-global-network-id",
+            AWSLocation={
+                "Zone": "us-west-2a",
+                "SubnetArn": "subnet-arn",
+            },
+            Description="Test device",
+        )
+
+    # Test invalid resource id on get
+    with pytest.raises(Exception):
+        client.get_devices(GlobalNetworkId=gn_id, DeviceIds=["invalid-device-id"])
+
+    # Test invalid global_network_id for get
+    with pytest.raises(Exception):
+        client.get_devices(
+            GlobalNetworkId="invalid-global-network-id", DeviceIds=[device_id]
+        )
+
+
+@mock_aws
+def test_site_exceptions():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+
+    # Test invalid global_network_id for create resource
+    with pytest.raises(Exception):
+        client.create_site(
+            GlobalNetworkId="invalid-global-network-id", Description="Test site"
+        )
+
+    # Test invalid resource id on get
+    with pytest.raises(Exception):
+        client.get_sites(GlobalNetworkId=gn_id, SiteIds=["invalid-site-id"])
+
+    # Test invalid global_network_id for get
+    with pytest.raises(Exception):
+        client.get_devices(
+            GlobalNetworkId="invalid-global-network-id", SiteIds=["site-id"]
+        )
+
+
+@mock_aws
+def test_link_exceptions():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+
+    # Test invalid global_network_id for create resource
+    with pytest.raises(Exception):
+        client.create_link(
+            GlobalNetworkId="invalid-global-network-id",
+            SiteId="site-id",
+            Description="Test link",
+            Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        )
+
+    # Test invalid resource id on get
+    with pytest.raises(Exception):
+        client.get_links(GlobalNetworkId=gn_id, LinkIds=["invalid-link-id"])
+
+    # Test invalid global_network_id for get
+    with pytest.raises(Exception):
+        client.get_links(
+            GlobalNetworkId="invalid-global-network-id", LinkIds=["link-id"]
+        )
