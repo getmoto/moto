@@ -170,7 +170,7 @@ def test_delete_certificate():
 @mock_aws
 def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
-    arn = client.request_certificate(DomainName=SERVER_COMMON_NAME)
+    arn = client.request_certificate(DomainName=SERVER_COMMON_NAME)["CertificateArn"]
 
     try:
         resp = client.describe_certificate(CertificateArn=arn)
