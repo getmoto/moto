@@ -213,14 +213,10 @@ class CertBundle(BaseModel):
             encryption_algorithm=serialization.NoEncryption(),
         )
 
-        cert_type = "AMAZON_ISSUED"
-        if cert_auth_arn is not None:
-            cert_type = "PRIVATE"
-
         return cls(
             certificate=cert_armored,
             private_key=private_key,
-            cert_type=cert_type,
+            cert_type="PRIVATE" if cert_authority_arn is not None else "AMAZON_ISSUED",
             cert_status="PENDING_VALIDATION",
             cert_authority_arn=cert_auth_arn,
             account_id=account_id,
