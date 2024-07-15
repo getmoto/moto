@@ -107,7 +107,9 @@ def parse_expression(
                     current_phrase, current_phrase
                 )
             current_phrase = ""
-            if crnt_char in ["<", ">"] and tokenizer.peek() == "=":
+            if (crnt_char in ["<", ">"] and tokenizer.peek() == "=") or (
+                crnt_char == "<" and tokenizer.peek() == ">"
+            ):
                 comparison = crnt_char + tokenizer.__next__()
             else:
                 comparison = crnt_char
