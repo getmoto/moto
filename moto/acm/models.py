@@ -133,7 +133,7 @@ class CertBundle(BaseModel):
         self.tags = TagHolder()
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
-        self.cert_authority_arn = cert_auth_arn
+        self.cert_authority_arn = cert_authority_arn
         self.in_use_by: List[str] = []
 
         # Takes care of PEM checking
@@ -218,7 +218,7 @@ class CertBundle(BaseModel):
             private_key=private_key,
             cert_type="PRIVATE" if cert_authority_arn is not None else "AMAZON_ISSUED",
             cert_status="PENDING_VALIDATION",
-            cert_authority_arn=cert_auth_arn,
+            cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
         )
@@ -537,7 +537,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             account_id=self.account_id,
             region=self.region_name,
             sans=subject_alt_names,
-            cert_authority_arn=cert_auth_arn,
+            cert_authority_arn=cert_authority_arn,
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
