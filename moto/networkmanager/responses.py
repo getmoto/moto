@@ -135,7 +135,7 @@ class NetworkManagerResponse(BaseResponse):
 
     def get_sites(self) -> str:
         params = self._get_params()
-        global_network_id = params.get("GlobalNetworkId")
+        global_network_id = self.uri_match.group(1)
         site_ids = params.get("siteIds")
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")
@@ -147,3 +147,53 @@ class NetworkManagerResponse(BaseResponse):
         )
         list_sites = [site.to_dict() for site in sites]
         return json.dumps(dict(Sites=list_sites, nextToken=next_token))
+
+    def create_link(self) -> str:
+        params = json.loads(self.body)
+        global_network_id = self.uri_match.group(1)
+        description = params.get("Description")
+        type = params.get("Type")
+        bandwidth = params.get("Bandwidth")
+        provider = params.get("Provider")
+        site_id = params.get("SiteId")
+        tags = params.get("Tags")
+        link = self.networkmanager_backend.create_link(
+            global_network_id=global_network_id,
+            description=description,
+            type=type,
+            bandwidth=bandwidth,
+            provider=provider,
+            site_id=site_id,
+            tags=tags,
+        )
+        return json.dumps(dict(Link=link.to_dict()))
+
+    def get_links(self) -> str:
+        params = self._get_params()
+        global_network_id = self.uri_match.group(1)
+        link_ids = params.get("linkIds")
+        site_id = params.get("SiteId")
+        type = params.get("Type")
+        provider = params.get("Provider")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        links, next_token = self.networkmanager_backend.get_links(
+            global_network_id=global_network_id,
+            link_ids=link_ids,
+            site_id=site_id,
+            type=type,
+            provider=provider,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        list_links = [link.to_dict() for link in links]
+        return json.dumps(dict(Links=list_links, nextToken=next_token))
+
+    def delete_link(self) -> str:
+        global_network_id = self.uri_match.group(1)
+        link_id = self.uri_match.group(2)
+        link = self.networkmanager_backend.delete_link(
+            global_network_id=global_network_id,
+            link_id=link_id,
+        )
+        return json.dumps(dict(Link=link.to_dict()))

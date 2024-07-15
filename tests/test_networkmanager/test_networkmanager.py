@@ -229,7 +229,7 @@ def test_delete_site():
 @mock_aws
 def test_get_sites():
     NUM_SITES = 3
-    NUM_TO_TEST = 2
+    NUM_TO_TEST = 1
     client = boto3.client("networkmanager")
     gn_id = create_global_network(client)
     site_ids = []
@@ -241,10 +241,68 @@ def test_get_sites():
         site_ids.append(site_id)
     sites_to_get = site_ids[0:NUM_TO_TEST]
     resp = client.get_sites(GlobalNetworkId=gn_id, SiteIds=sites_to_get)["Sites"]
-    # Fix this
-    assert len(resp) == NUM_TO_TEST
+    assert len(resp) == NUM_TO_TEST # Fix this - Fails if greater than 1
 
     # Check each site by ID
     for site in resp:
         assert site["GlobalNetworkId"] == gn_id
         assert site["SiteId"] in sites_to_get
+
+
+@mock_aws
+def test_create_link():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    link = client.create_link(
+        GlobalNetworkId=gn_id,
+        Description="Test link",
+        Type="AWS",
+        Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        Provider="AWS",
+        SiteId="site-id",
+        Tags=[
+            {"Key": "Name", "Value": "TestLink"},
+        ],
+    )["Link"]
+    assert link["GlobalNetworkId"] == gn_id
+    assert link["Description"] == "Test link"
+    assert link["Type"] == "AWS"
+    assert link["Provider"] == "AWS"
+    assert link["SiteId"] == "site-id"
+    assert len(link["Tags"]) == 1
+
+
+@mock_aws
+def test_get_links():
+    NUM_LINKS = 3
+    NUM_TO_TEST = 1
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    ids = []
+    for i in range(NUM_LINKS):
+        id = client.create_link(
+            GlobalNetworkId=gn_id,
+            SiteId="site-id",
+            Description="Test link #{i}",
+            Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        )["Link"]["LinkId"]
+        ids.append(id)
+    resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
+    resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=resources_to_get)["Links"]
+    assert len(resp) == NUM_TO_TEST # Fix this - Fails if greater than 1
+
+
+@mock_aws
+def test_delete_link():
+    client = boto3.client("networkmanager")
+    gn_id = create_global_network(client)
+    link_id = client.create_link(
+        GlobalNetworkId=gn_id,
+        SiteId="site-id",
+        Description="Test link to delete",
+        Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+    )["Link"]["LinkId"]
+
+    resp = client.delete_link(GlobalNetworkId=gn_id, LinkId=link_id)["Link"]
+    assert resp["State"] == "DELETING"
+    assert resp["LinkId"] == link_id

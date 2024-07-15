@@ -30,6 +30,18 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "site_arn",
     },
+    "get_links": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "link_arn",
+    },
+    "get_devices": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "device_arn",
+    },
 }
 
 
@@ -103,7 +115,7 @@ class Site(BaseModel):
         partition: str,
         global_network_id: str,
         description: Optional[str],
-        location: Dict[str, Any],
+        location: Optional[Dict[str, Any]],
         tags: Optional[List[Dict[str, str]]],
     ):
         self.global_network_id = global_network_id
@@ -130,6 +142,49 @@ class Site(BaseModel):
         }
 
 
+class Link(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        partition: str,
+        global_network_id: str,
+        description: Optional[str],
+        type: Optional[str],
+        bandwidth: Dict[str, int],
+        provider: Optional[str],
+        site_id: str,
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.global_network_id = global_network_id
+        self.description = description
+        self.type = type
+        self.bandwidth = bandwidth
+        self.provider = provider
+        self.site_id = site_id
+        self.tags = tags or []
+        self.link_id = "link-" + "".join(mock_random.get_random_hex(18))
+        self.link_arn = (
+            f"arn:{partition}:networkmanager:{account_id}:link/{self.link_id}"
+        )
+        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.state = "PENDING"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "LinkId": self.link_id,
+            "LinkArn": self.link_arn,
+            "GlobalNetworkId": self.global_network_id,
+            "Description": self.description,
+            "Type": self.type,
+            "Bandwidth": self.bandwidth,
+            "Provider": self.provider,
+            "SiteId": self.site_id,
+            "Tags": self.tags,
+            "State": self.state,
+            "CreatedAt": self.created_at,
+        }
+
+
 class NetworkManagerBackend(BaseBackend):
     """Implementation of NetworkManager APIs."""
 
@@ -137,7 +192,9 @@ class NetworkManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.global_networks: Dict[str, GlobalNetwork] = {}
         self.core_networks: Dict[str, CoreNetwork] = {}
-        self.sites: Dict[str, Site] = {}
+        self.sites: Dict[str, Dict[str, Site]] = {}
+        self.links: Dict[str, Dict[str, Link]] = {}
+        self.devices: Dict[str, Dict[str, object]] = {}  # Update this
 
     def create_global_network(
         self,
@@ -152,6 +209,10 @@ class NetworkManagerBackend(BaseBackend):
         )
         gnw_id = global_network.global_network_id
         self.global_networks[gnw_id] = global_network
+        # Create empty dict for resources
+        self.sites[gnw_id] = {}
+        self.links[gnw_id] = {}
+        self.devices[gnw_id] = {}
         return global_network
 
     def create_core_network(
@@ -240,14 +301,13 @@ class NetworkManagerBackend(BaseBackend):
     def create_site(
         self,
         global_network_id: str,
-        description: str,
+        description: Optional[str],
         location: Optional[Dict[str, str]],
         tags: Optional[List[Dict[str, str]]],
     ) -> Site:
         # check if global network exists
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
-
         site = Site(
             global_network_id=global_network_id,
             description=description,
@@ -257,30 +317,95 @@ class NetworkManagerBackend(BaseBackend):
             partition=self.partition,
         )
         site_id = site.site_id
-        self.sites[site_id] = site
+        self.sites[global_network_id][site_id] = site
         return site
 
     def delete_site(self, global_network_id: str, site_id: str) -> Site:
-        site = self.sites.pop(site_id)
+        if global_network_id not in self.global_networks:
+            raise ResourceNotFound(global_network_id)
+        if global_network_id not in self.sites:
+            raise ResourceNotFound(site_id)
+        gn_sites = self.sites[global_network_id]
+        site = gn_sites.pop(site_id)
         site.state = "DELETING"
         return site
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def get_sites(self, global_network_id, site_ids) -> List[Site]:
-        queried_sites = []
+    def get_sites(self, global_network_id: str, site_ids: List[str]) -> List[Site]:
+        gn_sites = self.sites.get(global_network_id)
+        queried = []
         if not site_ids:
-            queried_sites = list(self.sites.values())
+            queried = list(gn_sites.values())
         elif isinstance(site_ids, str):
-            if site_ids not in self.sites:
+            if site_ids not in gn_sites:
                 raise ResourceNotFound(site_ids)
-            queried_sites.append(self.sites[site_ids])
+            queried.append(gn_sites[site_ids])
         else:
             for id in site_ids:
-                if id in self.sites:
-                    site = self.sites[id]
-                    queried_sites.append(site)
+                if id in gn_sites:
+                    q = gn_sites[id]
+                    queried.append(q)
 
-        return queried_sites
+        return queried
+
+    def create_link(
+        self,
+        global_network_id: str,
+        description: Optional[str],
+        type: Optional[str],
+        bandwidth: Dict[str, Any],
+        provider: Optional[str],
+        site_id: str,
+        tags: Optional[List[Dict[str, str]]],
+    ) -> Link:
+        # check if global network exists
+        if global_network_id not in self.global_networks:
+            raise ResourceNotFound(global_network_id)
+        link = Link(
+            global_network_id=global_network_id,
+            description=description,
+            type=type,
+            bandwidth=bandwidth,
+            provider=provider,
+            site_id=site_id,
+            tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+        )
+        self.links[global_network_id][link.link_id] = link
+        return link
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_links(
+        self,
+        global_network_id: str,
+        link_ids: List[str],
+        site_id: str,
+        type: str,
+        provider: str,
+    ) -> List[Link]:
+        gn_links = self.links.get(global_network_id) or {}
+        queried = []
+        if not link_ids:
+            queried = list(gn_links.values())
+        elif isinstance(link_ids, str):
+            if link_ids not in gn_links:
+                raise ResourceNotFound(link_ids)
+            queried.append(gn_links[link_ids])
+        else:
+            for id in link_ids:
+                if id in gn_links:
+                    q = gn_links[id]
+                    queried.append(q)
+        return queried
+
+    def delete_link(self, global_network_id: str, link_id: str) -> Link:
+        try:
+            link = self.links[global_network_id].pop(link_id)
+        except KeyError:
+            raise ResourceNotFound(link_id)
+        link.state = "DELETING"
+        return link
 
 
 networkmanager_backends = BackendDict(
