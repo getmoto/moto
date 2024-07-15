@@ -241,7 +241,7 @@ def test_get_sites():
         site_ids.append(site_id)
     sites_to_get = site_ids[0:NUM_TO_TEST]
     resp = client.get_sites(GlobalNetworkId=gn_id, SiteIds=sites_to_get)["Sites"]
-    assert len(resp) == NUM_TO_TEST # Fix this - Fails if greater than 1
+    assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
 
     # Check each site by ID
     for site in resp:
@@ -289,7 +289,7 @@ def test_get_links():
         ids.append(id)
     resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
     resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=resources_to_get)["Links"]
-    assert len(resp) == NUM_TO_TEST # Fix this - Fails if greater than 1
+    assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
 
 
 @mock_aws

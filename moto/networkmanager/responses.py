@@ -112,7 +112,7 @@ class NetworkManagerResponse(BaseResponse):
 
     def create_site(self) -> str:
         params = json.loads(self.body)
-        global_network_id = self.uri_match.group(1)
+        global_network_id = unquote(self.path.split("/")[-1])
         description = params.get("Description")
         location = params.get("Location")
         tags = params.get("Tags")
@@ -125,8 +125,8 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps(dict(Site=site.to_dict()))
 
     def delete_site(self) -> str:
-        global_network_id = self.uri_match.group(1)
-        site_id = self.uri_match.group(2)
+        global_network_id = unquote(self.path.split("/")[-2])
+        site_id = unquote(self.path.split("/")[-1])
         site = self.networkmanager_backend.delete_site(
             global_network_id=global_network_id,
             site_id=site_id,
@@ -135,7 +135,7 @@ class NetworkManagerResponse(BaseResponse):
 
     def get_sites(self) -> str:
         params = self._get_params()
-        global_network_id = self.uri_match.group(1)
+        global_network_id = unquote(self.path.split("/")[-1])
         site_ids = params.get("siteIds")
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")
@@ -150,7 +150,7 @@ class NetworkManagerResponse(BaseResponse):
 
     def create_link(self) -> str:
         params = json.loads(self.body)
-        global_network_id = self.uri_match.group(1)
+        global_network_id = unquote(self.path.split("/")[-1])
         description = params.get("Description")
         type = params.get("Type")
         bandwidth = params.get("Bandwidth")
@@ -170,7 +170,7 @@ class NetworkManagerResponse(BaseResponse):
 
     def get_links(self) -> str:
         params = self._get_params()
-        global_network_id = self.uri_match.group(1)
+        global_network_id = unquote(self.path.split("/")[-1])
         link_ids = params.get("linkIds")
         site_id = params.get("SiteId")
         type = params.get("Type")
@@ -190,8 +190,8 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps(dict(Links=list_links, nextToken=next_token))
 
     def delete_link(self) -> str:
-        global_network_id = self.uri_match.group(1)
-        link_id = self.uri_match.group(2)
+        global_network_id = unquote(self.path.split("/")[-2])
+        link_id = unquote(self.path.split("/")[-1])
         link = self.networkmanager_backend.delete_link(
             global_network_id=global_network_id,
             link_id=link_id,

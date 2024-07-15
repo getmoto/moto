@@ -332,7 +332,7 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_sites(self, global_network_id: str, site_ids: List[str]) -> List[Site]:
-        gn_sites = self.sites.get(global_network_id)
+        gn_sites = self.sites.get(global_network_id) or {}
         queried = []
         if not site_ids:
             queried = list(gn_sites.values())
