@@ -1023,3 +1023,53 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(
             dict(NextToken=next_token, ClusterNodeSummaries=cluster_node_summaries)
         )
+
+    def list_endpoints(self) -> str:
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        status_equals = self._get_param("StatusEquals")
+        endpoints, next_token = self.sagemaker_backend.list_endpoints(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            next_token=next_token,
+            max_results=max_results,
+            name_contains=name_contains,
+            creation_time_before=creation_time_before,
+            creation_time_after=creation_time_after,
+            last_modified_time_before=last_modified_time_before,
+            last_modified_time_after=last_modified_time_after,
+            status_equals=status_equals,
+        )
+        endpoint_summaries = [endpoint.summary() for endpoint in endpoints]
+        return json.dumps(dict(Endpoints=endpoint_summaries, NextToken=next_token))
+
+    def list_endpoint_configs(self) -> str:
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        endpoint_configs, next_token = self.sagemaker_backend.list_endpoint_configs(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            next_token=next_token,
+            max_results=max_results,
+            name_contains=name_contains,
+            creation_time_before=creation_time_before,
+            creation_time_after=creation_time_after,
+        )
+        endpoint_summaries = [
+            endpoint_config.summary() for endpoint_config in endpoint_configs
+        ]
+        return json.dumps(
+            dict(EndpointConfigs=endpoint_summaries, NextToken=next_token)
+        )
