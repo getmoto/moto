@@ -6,12 +6,9 @@ from unittest import SkipTest, mock
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
-from moto.acm.models import AWS_ROOT_CA
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
@@ -39,8 +36,9 @@ def _import_cert(client):
 
 
 def _pca_cert(client):
-    response = client.request_certificate(DomainName=SERVER_COMMON_NAME,
-            CertificateAuthorityArn=CERT_AUTH_ARN)
+    response = client.request_certificate(
+        DomainName=SERVER_COMMON_NAME, CertificateAuthorityArn=CERT_AUTH_ARN
+    )
     return response["CertificateArn"]
 
 
@@ -240,6 +238,7 @@ def test_describe_certificate_with_pca_cert():
     assert resp["Certificate"]["CertificateAuthorityArn"] == CERT_AUTH_ARN
     assert "DomainValidationOptions" not in resp["Certificate"]
 
+
 @mock_aws
 def test_export_certificate_with_pca_cert():
     client = boto3.client("acm", region_name="eu-central-1")
@@ -249,15 +248,17 @@ def test_export_certificate_with_pca_cert():
     assert "Certificate" in resp
     assert "PrivateKey" in resp
 
+
 @mock_aws
 def test_export_certificate_with_imported_cert():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
     with pytest.raises(ClientError) as err:
-        resp = client.export_certificate(CertificateArn=arn, Passphrase="passphrase")
+        client.export_certificate(CertificateArn=arn, Passphrase="passphrase")
     assert err.value.response["Error"]["Code"] == "ValidationException"
     assert "is not a private certificate" in err.value.response["Error"]["Message"]
+
 
 @mock_aws
 def test_export_certificate_with_short_passphrase():
@@ -265,7 +266,7 @@ def test_export_certificate_with_short_passphrase():
     arn = _pca_cert(client)
 
     with pytest.raises(ClientError) as err:
-        resp = client.export_certificate(CertificateArn=arn, Passphrase="")
+        client.export_certificate(CertificateArn=arn, Passphrase="")
     assert err.value.response["Error"]["Code"] == "ValidationException"
     assert "passphrase" in err.value.response["Error"]["Message"]
 
@@ -523,6 +524,7 @@ def test_request_certificate_with_optional_arguments():
     arn_4 = resp["CertificateArn"]
 
     assert arn_1 != arn_4  # if tags are matched, ACM would have returned same arn
+
 
 @mock_aws
 def test_request_certificate_with_certificate_authority():

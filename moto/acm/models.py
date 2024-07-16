@@ -123,7 +123,7 @@ class CertBundle(BaseModel):
         arn: Optional[str] = None,
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
-        cert_authority_arn: Optional[str] = None
+        cert_authority_arn: Optional[str] = None,
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -572,8 +572,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         cert_bundle = self.get_certificate(certificate_arn)
         if cert_bundle.type != "PRIVATE":
             raise AWSValidationException(
-                "Certificate ARN: %s is not a private certificate"
-                % (certificate_arn)
+                "Certificate ARN: %s is not a private certificate" % (certificate_arn)
             )
         certificate = cert_bundle.cert.decode()
         certificate_chain = cert_bundle.chain.decode()
