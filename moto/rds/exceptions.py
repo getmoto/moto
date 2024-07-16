@@ -160,7 +160,7 @@ class DBClusterSnapshotAlreadyExistsError(RDSClientError):
 class ExportTaskAlreadyExistsError(RDSClientError):
     def __init__(self, export_task_identifier: str):
         super().__init__(
-            "ExportTaskAlreadyExistsFault",
+            "ExportTaskAlreadyExists",
             f"Cannot start export task because a task with the identifier {export_task_identifier} already exists.",
         )
 
@@ -168,7 +168,7 @@ class ExportTaskAlreadyExistsError(RDSClientError):
 class ExportTaskNotFoundError(RDSClientError):
     def __init__(self, export_task_identifier: str):
         super().__init__(
-            "ExportTaskNotFoundFault",
+            "ExportTaskNotFound",
             f"Cannot cancel export task because a task with the identifier {export_task_identifier} is not exist.",
         )
 
@@ -184,7 +184,7 @@ class InvalidExportSourceStateError(RDSClientError):
 class SubscriptionAlreadyExistError(RDSClientError):
     def __init__(self, subscription_name: str):
         super().__init__(
-            "SubscriptionAlreadyExistFault",
+            "SubscriptionAlreadyExist",
             f"Subscription {subscription_name} already exists.",
         )
 
@@ -192,7 +192,7 @@ class SubscriptionAlreadyExistError(RDSClientError):
 class SubscriptionNotFoundError(RDSClientError):
     def __init__(self, subscription_name: str):
         super().__init__(
-            "SubscriptionNotFoundFault", f"Subscription {subscription_name} not found."
+            "SubscriptionNotFound", f"Subscription {subscription_name} not found."
         )
 
 
