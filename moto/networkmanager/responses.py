@@ -199,7 +199,7 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps(dict(Link=link.to_dict()))
 
     def create_device(self) -> str:
-        params = self._get_params()
+        params = json.loads(self.body)
         global_network_id = unquote(self.path.split("/")[-2])
         aws_location = params.get("AWSLocation")
         description = params.get("Description")
@@ -249,3 +249,10 @@ class NetworkManagerResponse(BaseResponse):
             device_id=device_id,
         )
         return json.dumps(dict(Device=device.to_dict()))
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self.path.split("/tags/")[-1])
+        tag_list = self.networkmanager_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict(TagList=tag_list))

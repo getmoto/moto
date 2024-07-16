@@ -10,12 +10,10 @@ from tests import DEFAULT_ACCOUNT_ID
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
+@mock_aws
 def create_global_network(client) -> str:
     return client.create_global_network(
         Description="Test global network",
-        Tags=[
-            {"Key": "Name", "Value": "TestNetwork"},
-        ],
     )["GlobalNetwork"]["GlobalNetworkId"]
 
 
@@ -85,6 +83,10 @@ def test_delete_core_network():
 
 @mock_aws
 def test_tag_resource():
+    test_tags = [
+        {"Key": "Moto", "Value": "TestTag"},
+        {"Key": "Owner", "Value": "Alice"},
+    ]
     client = boto3.client("networkmanager")
     gn_id = create_global_network(client)
     cn = client.create_core_network(GlobalNetworkId=gn_id)["CoreNetwork"]
@@ -92,28 +94,39 @@ def test_tag_resource():
     # Check tagging core-network
     resp = client.tag_resource(
         ResourceArn=cn["CoreNetworkArn"],
-        Tags=[{"Key": "Test", "Value": "TestValue-Core"}],
+        Tags=test_tags,
     )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     updated_cn = client.get_core_network(CoreNetworkId=cn["CoreNetworkId"])[
         "CoreNetwork"
     ]
-    assert updated_cn["Tags"] == [{"Key": "Test", "Value": "TestValue-Core"}]
+    assert updated_cn["Tags"] == test_tags
 
     # Check tagging global-network
     gn_arn = client.describe_global_networks()["GlobalNetworks"][0]["GlobalNetworkArn"]
-    resp = client.tag_resource(
-        ResourceArn=gn_arn, Tags=[{"Key": "Test", "Value": "TestValue-Global"}]
-    )
+    resp = client.tag_resource(ResourceArn=gn_arn, Tags=test_tags)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     updated_gn = client.describe_global_networks(GlobalNetworkIds=[gn_id])[
         "GlobalNetworks"
     ][0]
-    assert len(updated_gn["Tags"]) == 2
-    assert updated_gn["Tags"] == [
-        {"Key": "Name", "Value": "TestNetwork"},
-        {"Key": "Test", "Value": "TestValue-Global"},
-    ]
+    assert updated_gn["Tags"] == test_tags
+
+    # Check tagging site
+    site = client.create_site(
+        GlobalNetworkId=gn_id,
+        Description="Test site",
+        Location={
+            "Address": "123 Main St",
+            "Latitude": "47.6062",
+            "Longitude": "122.3321",
+        },
+    )["Site"]
+    resp = client.tag_resource(ResourceArn=site["SiteArn"], Tags=test_tags)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    updated_site = client.get_sites(GlobalNetworkId=gn_id, SiteIds=[site["SiteId"]])[
+        "Sites"
+    ][0]
+    assert updated_site["Tags"] == test_tags
 
 
 @mock_aws
@@ -379,6 +392,62 @@ def test_delete_device():
     # Check that the device is deleted
     devices = client.get_devices(GlobalNetworkId=gn_id)["Devices"]
     assert len(devices) == 0
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    sample_tags = [
+        {"Key": "Moto", "Value": "TestTag"},
+        {"Key": "Owner", "Value": "Alice"},
+    ]
+    client = boto3.client("networkmanager")
+
+    # Global Network
+    g_network = client.create_global_network(
+        Description="Test global network", Tags=sample_tags
+    )["GlobalNetwork"]
+    gn_arn = g_network["GlobalNetworkArn"]
+    gn_id = g_network["GlobalNetworkId"]
+    resp = client.list_tags_for_resource(ResourceArn=gn_arn)
+    assert resp["TagList"] == sample_tags
+
+    # Core Network
+    cn_arn = client.create_core_network(
+        Description="Test core network", GlobalNetworkId=gn_id, Tags=sample_tags
+    )["CoreNetwork"]["CoreNetworkArn"]
+    resp = client.list_tags_for_resource(ResourceArn=cn_arn)
+    assert resp["TagList"] == sample_tags
+
+    # Site
+    site_arn = client.create_site(
+        GlobalNetworkId=gn_id, Description="Test site", Tags=sample_tags
+    )["Site"]["SiteArn"]
+    resp = client.list_tags_for_resource(ResourceArn=site_arn)
+    assert resp["TagList"] == sample_tags
+
+    # Link
+    link_arn = client.create_link(
+        GlobalNetworkId=gn_id,
+        SiteId="site-id",
+        Description="Test link",
+        Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
+        Tags=sample_tags,
+    )["Link"]["LinkArn"]
+    resp = client.list_tags_for_resource(ResourceArn=link_arn)
+    assert resp["TagList"] == sample_tags
+
+    # Device
+    device_arn = client.create_device(
+        GlobalNetworkId=gn_id,
+        Description="Test device",
+        AWSLocation={
+            "Zone": "us-west-2a",
+            "SubnetArn": "subnet-arn",
+        },
+        Tags=sample_tags,
+    )["Device"]["DeviceArn"]
+    resp = client.list_tags_for_resource(ResourceArn=device_arn)
+    assert resp["TagList"] == sample_tags
 
 
 # Exception testing

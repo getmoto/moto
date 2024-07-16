@@ -246,7 +246,30 @@ class NetworkManagerBackend(BaseBackend):
         self.core_networks: Dict[str, CoreNetwork] = {}
         self.sites: Dict[str, Dict[str, Site]] = {}
         self.links: Dict[str, Dict[str, Link]] = {}
-        self.devices: Dict[str, Dict[str, Device]] = {}  # Update this
+        self.devices: Dict[str, Dict[str, Device]] = {}
+
+    def _get_resource_from_arn(self, arn: str) -> Any:
+        resources_types: Dict[str, Dict[str, Any]] = {
+            "core-network": self.core_networks,
+            "global-network": self.global_networks,
+            "site": self.sites,
+            "link": self.links,
+            "device": self.devices,
+        }
+        try:
+            target_resource, target_name = arn.split(":")[-1].split("/")
+            resources = resources_types.get(target_resource, {})
+            # Flatten the nested dictionary stores
+            if target_resource not in ["core-network", "global-network"]:
+                resources = {
+                    k: v
+                    for inner_dict in resources.values()
+                    for k, v in inner_dict.items()
+                }
+            resource = resources.get(target_name)  # type: ignore
+        except (KeyError, ValueError, AttributeError):
+            raise ResourceNotFound(arn)
+        return resource
 
     def create_global_network(
         self,
@@ -318,19 +341,6 @@ class NetworkManagerBackend(BaseBackend):
             raise ResourceNotFound(core_network_id)
         core_network = self.core_networks[core_network_id]
         return core_network
-
-    def _get_resource_from_arn(self, arn: str) -> Any:
-        resources = {
-            "core-network": self.core_networks,
-            "global-network": self.global_networks,
-            "site": self.sites,
-        }
-        try:
-            target_resource, target_name = arn.split(":")[-1].split("/")
-            resource = resources.get(target_resource).get(target_name)  # type: ignore
-        except (KeyError, ValueError):
-            raise ResourceNotFound(arn)
-        return resource
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_global_networks(
@@ -436,6 +446,7 @@ class NetworkManagerBackend(BaseBackend):
         type: str,
         provider: str,
     ) -> List[Link]:
+        # TODO: Implement filtering by site_id, type, provider
         gn_links = self.links.get(global_network_id) or {}
         queried = []
         if not link_ids:
@@ -519,6 +530,11 @@ class NetworkManagerBackend(BaseBackend):
             raise ResourceNotFound(device_id)
         device.state = "DELETING"
         return device
+
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+        resource = self._get_resource_from_arn(resource_arn)
+        tag_list = resource.tags
+        return tag_list
 
 
 networkmanager_backends = BackendDict(
