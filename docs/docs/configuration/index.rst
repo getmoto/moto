@@ -23,6 +23,7 @@ If you are using the decorators, some options are configurable within the decora
         },
         "iam": {"load_aws_managed_policies": False},
         "stepfunctions": {"execute_state_machine": True},
+        "iot": {"use_valid_cert": True},
     })
 
 
@@ -56,6 +57,16 @@ AWS Managed Policies
 Moto comes bundled with all Managed Policies that AWS exposes, which are updated regularly. However, they are not loaded unless specifically requested for performance reasons.
 
 Set `"iam": {"load_aws_managed_policies": True}` to load these policies for a single test.
+
+IoT Certificates Validity and Certificate ID computation
+-------------------------
+The IoT Client API's for certificates require a valid certificate
+in order to compute the certificate ID properly.
+Previous releases computed the certificate ID incorrectly based on
+the PEM cert.  The algorithm now computes the certificate ID correctly using
+the sha256 of the DER cert.  For the previous behavior,
+to run with invalid certificates and use the previous
+incorrect cert ID computation, set `"iot": {"use_valid_cert": False}`
 
 Configuring MotoServer
 ----------------------

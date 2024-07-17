@@ -5,8 +5,12 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 
 
-@mock_aws
-def test_register_ca_certificate_simple():
+@mock_aws(config={"iot": {"use_valid_cert": False}})
+def test_register_ca_certificate_simple_invalid_cert():
+    """
+    Original test case with invalid cert.  If users don't want to
+    provide a valid cert, they can set "use_valid_cert" to False
+    """
     client = boto3.client("iot", region_name="us-east-1")
 
     resp = client.register_ca_certificate(
@@ -16,6 +20,31 @@ def test_register_ca_certificate_simple():
 
     assert "certificateArn" in resp
     assert "certificateId" in resp
+
+
+@pytest.fixture(name="make_cert")
+@mock_aws
+def fixture_make_cert():
+    """
+    Create a valid cert for testing
+    """
+    client = boto3.client("iot", region_name="us-east-1")
+    return client.create_keys_and_certificate(setAsActive=False)
+
+
+@mock_aws
+def test_register_ca_certificate_simple(make_cert):
+    client = boto3.client("iot", region_name="us-east-1")
+    certInfo = make_cert
+
+    resp = client.register_ca_certificate(
+        caCertificate=certInfo["certificatePem"],
+        verificationCertificate="verification_certificate",
+    )
+
+    assert "certificateArn" in resp
+    assert "certificateId" in resp
+    assert resp["certificateId"] == certInfo["certificateId"]
 
 
 @mock_aws
@@ -29,11 +58,12 @@ def test_describe_ca_certificate_unknown():
 
 
 @mock_aws
-def test_describe_ca_certificate_simple():
+def test_describe_ca_certificate_simple(make_cert):
     client = boto3.client("iot", region_name="us-east-1")
 
+    certInfo = make_cert
     resp = client.register_ca_certificate(
-        caCertificate="ca_certificate",
+        caCertificate=certInfo["certificatePem"],
         verificationCertificate="verification_certificate",
     )
 
@@ -44,15 +74,16 @@ def test_describe_ca_certificate_simple():
     assert description["certificateArn"] == resp["certificateArn"]
     assert description["certificateId"] == resp["certificateId"]
     assert description["status"] == "INACTIVE"
-    assert description["certificatePem"] == "ca_certificate"
+    assert description["certificatePem"] == certInfo["certificatePem"]
 
 
 @mock_aws
-def test_describe_ca_certificate_advanced():
+def test_describe_ca_certificate_advanced(make_cert):
+    certInfo = make_cert
     client = boto3.client("iot", region_name="us-east-1")
 
     resp = client.register_ca_certificate(
-        caCertificate="ca_certificate",
+        caCertificate=make_cert["certificatePem"],
         verificationCertificate="verification_certificate",
         setAsActive=True,
         registrationConfig={
@@ -67,15 +98,19 @@ def test_describe_ca_certificate_advanced():
     assert description["certificateArn"] == resp["certificateArn"]
     assert description["certificateId"] == resp["certificateId"]
     assert description["status"] == "ACTIVE"
-    assert description["certificatePem"] == "ca_certificate"
+    assert description["certificatePem"] == certInfo["certificatePem"]
 
     config = describe["registrationConfig"]
     assert config["templateBody"] == "template_b0dy"
     assert config["roleArn"] == "aws:iot:arn:role/asdfqwerwe"
 
 
-@mock_aws
+@mock_aws(config={"iot": {"use_valid_cert": False}})
 def test_list_certificates_by_ca():
+    """
+    test listing certificates by CA.  Don't use valid cert to make it simpler
+    for the test.
+    """
     client = boto3.client("iot", region_name="us-east-1")
 
     # create ca
@@ -112,11 +147,11 @@ def test_list_certificates_by_ca():
 
 
 @mock_aws
-def test_delete_ca_certificate():
+def test_delete_ca_certificate(make_cert):
     client = boto3.client("iot", region_name="us-east-1")
 
     cert_id = client.register_ca_certificate(
-        caCertificate="ca_certificate",
+        caCertificate=make_cert["certificatePem"],
         verificationCertificate="verification_certificate",
     )["certificateId"]
 
@@ -129,10 +164,10 @@ def test_delete_ca_certificate():
 
 
 @mock_aws
-def test_update_ca_certificate__status():
+def test_update_ca_certificate__status(make_cert):
     client = boto3.client("iot", region_name="us-east-1")
     cert_id = client.register_ca_certificate(
-        caCertificate="ca_certificate",
+        caCertificate=make_cert["certificatePem"],
         verificationCertificate="verification_certificate",
         registrationConfig={"templateBody": "tb", "roleArn": "my:old_and_busted:arn"},
     )["certificateId"]
@@ -148,10 +183,10 @@ def test_update_ca_certificate__status():
 
 
 @mock_aws
-def test_update_ca_certificate__config():
+def test_update_ca_certificate__config(make_cert):
     client = boto3.client("iot", region_name="us-east-1")
     cert_id = client.register_ca_certificate(
-        caCertificate="ca_certificate",
+        caCertificate=make_cert["certificatePem"],
         verificationCertificate="verification_certificate",
     )["certificateId"]
 

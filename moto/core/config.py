@@ -25,6 +25,10 @@ class _sfn_config(TypedDict, total=False):
     execute_state_machine: bool
 
 
+class _iot_config(TypedDict, total=False):
+    use_valid_cert: bool
+
+
 DefaultConfig = TypedDict(
     "DefaultConfig",
     {
@@ -33,6 +37,7 @@ DefaultConfig = TypedDict(
         "lambda": _docker_config,
         "iam": _iam_config,
         "stepfunctions": _sfn_config,
+        "iot": _iot_config,
     },
     total=False,
 )
@@ -47,6 +52,7 @@ default_user_config: DefaultConfig = {
     },
     "iam": {"load_aws_managed_policies": False},
     "stepfunctions": {"execute_state_machine": False},
+    "iot": {"use_valid_cert": True},
 }
 
 

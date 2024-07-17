@@ -15,6 +15,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
+from moto.settings import iot_use_valid_cert
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -192,11 +193,10 @@ class FakeCertificate(BaseModel):
         region_name: str,
         ca_certificate_id: Optional[str] = None,
     ):
-        m = hashlib.sha256()
-        m.update(certificate_pem.encode("utf-8"))
-        self.certificate_id = m.hexdigest()
+        self.certificate_id = self.compute_cert_id(certificate_pem)
         self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:cert/{self.certificate_id}"
         self.certificate_pem = certificate_pem
+
         self.status = status
 
         self.owner = account_id
@@ -206,6 +206,32 @@ class FakeCertificate(BaseModel):
         self.validity_not_before = time.time() - 86400
         self.validity_not_after = time.time() + 86400
         self.ca_certificate_id = ca_certificate_id
+
+    def compute_cert_id(self, certificate_pem: str) -> str:
+        if iot_use_valid_cert():
+            return self.compute_der_cert_id(certificate_pem)
+        else:
+            return self.compute_pem_cert_id(certificate_pem)
+
+    def compute_pem_cert_id(self, certificate_pem: str) -> str:
+        """
+        Original (incorrect) PEM-based hash kept for backwards compatibility
+        with existing tests which may or may not use valid certs. Also useful
+        for simplifying tests that don't require a real cert.
+        """
+        m = hashlib.sha256()
+        m.update(certificate_pem.encode("utf-8"))
+        return m.hexdigest()
+
+    def compute_der_cert_id(self, certificate_pem: str) -> str:
+        """
+        Compute the certificate hash based on DER encoding
+        """
+        return hashlib.sha256(
+            x509.load_pem_x509_certificate(
+                certificate_pem.encode("utf-8")
+            ).public_bytes(serialization.Encoding.DER)
+        ).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
