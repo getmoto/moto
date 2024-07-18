@@ -472,19 +472,6 @@ class Route53(BaseResponse):
         template = self.response_template(DELETE_REUSABLE_DELEGATION_SET_TEMPLATE)
         return template.render()
 
-    
-    # def list_tags_for_resources(self, request, full_url, headers):
-    #     self.setup_class(request, full_url, headers)
-    #     params = self._get_params()
-    #     resource_type = params.get("ResourceType")
-    #     resource_ids = params.get("ResourceIds")
-    #     resource_tag_sets = self.route53_backend.list_tags_for_resources(
-    #         resource_type=resource_type,
-    #         resource_ids=resource_ids,
-    #     )
-    #     template = self.response_template(LIST_TAGS_FOR_RESOURCES_TEMPLATE)
-    #     return template.render(resource_tag_sets=resource_tag_sets)
-
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
     <ResourceTagSet>
