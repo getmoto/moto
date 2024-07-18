@@ -242,8 +242,8 @@ def test_delete_site():
 
 @mock_aws
 def test_get_sites():
-    NUM_SITES = 3
-    NUM_TO_TEST = 1
+    NUM_SITES = 4
+    NUM_TO_TEST = 2
     client = boto3.client("networkmanager")
     gn_id = create_global_network(client)
     site_ids = []
@@ -292,8 +292,8 @@ def test_create_link():
 
 @mock_aws
 def test_get_links():
-    NUM_LINKS = 3
-    NUM_TO_TEST = 1
+    NUM_LINKS = 4
+    NUM_TO_TEST = 2
     client = boto3.client("networkmanager")
     gn_id = create_global_network(client)
     ids = []
@@ -348,7 +348,7 @@ def test_create_device():
 @mock_aws
 def test_get_devices():
     NUM_DEVICES = 4
-    NUM_TO_TEST = 1
+    NUM_TO_TEST = 2
     client = boto3.client("networkmanager")
     gn_id = create_global_network(client)
     ids = []

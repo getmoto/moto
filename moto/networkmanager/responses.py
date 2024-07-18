@@ -136,7 +136,7 @@ class NetworkManagerResponse(BaseResponse):
     def get_sites(self) -> str:
         params = self._get_params()
         global_network_id = unquote(self.path.split("/")[-2])
-        site_ids = params.get("siteIds")
+        site_ids = self.querystring.get("siteIds")
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")
         sites, next_token = self.networkmanager_backend.get_sites(
@@ -171,7 +171,7 @@ class NetworkManagerResponse(BaseResponse):
     def get_links(self) -> str:
         params = self._get_params()
         global_network_id = unquote(self.path.split("/")[-2])
-        link_ids = params.get("linkIds")
+        link_ids = self.querystring.get("linkIds")
         site_id = params.get("SiteId")
         type = params.get("Type")
         provider = params.get("Provider")
@@ -227,7 +227,7 @@ class NetworkManagerResponse(BaseResponse):
     def get_devices(self) -> str:
         params = self._get_params()
         global_network_id = unquote(self.path.split("/")[-2])
-        device_ids = params.get("deviceIds")
+        device_ids = self.querystring.get("deviceIds")
         site_id = params.get("SiteId")
         max_results = params.get("MaxResults")
         next_token = params.get("NextToken")

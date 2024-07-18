@@ -398,10 +398,11 @@ class NetworkManagerBackend(BaseBackend):
         queried = []
         if not site_ids:
             queried = list(gn_sites.values())
-        elif isinstance(site_ids, str):
-            if site_ids not in gn_sites:
-                raise ResourceNotFound(site_ids)
-            queried.append(gn_sites[site_ids])
+        elif isinstance(site_ids, List) and len(site_ids) == 1:
+            site_id = site_ids[0]
+            if site_id not in gn_sites:
+                raise ResourceNotFound(site_id)
+            queried.append(gn_sites[site_id])
         else:
             for id in site_ids:
                 if id in gn_sites:
@@ -451,10 +452,11 @@ class NetworkManagerBackend(BaseBackend):
         queried = []
         if not link_ids:
             queried = list(gn_links.values())
-        elif isinstance(link_ids, str):
-            if link_ids not in gn_links:
-                raise ResourceNotFound(link_ids)
-            queried.append(gn_links[link_ids])
+        elif isinstance(link_ids, List) and len(link_ids) == 1:
+            link_id = link_ids[0]
+            if link_id not in gn_links:
+                raise ResourceNotFound(link_id)
+            queried.append(gn_links[link_id])
         else:
             for id in link_ids:
                 if id in gn_links:
@@ -507,14 +509,16 @@ class NetworkManagerBackend(BaseBackend):
     def get_devices(
         self, global_network_id: str, device_ids: List[str], site_id: Optional[str]
     ) -> List[Device]:
+        # TODO: Implement filtering by site_id
         gn_devices = self.devices.get(global_network_id) or {}
         queried = []
         if not device_ids:
             queried = list(gn_devices.values())
-        elif isinstance(device_ids, str):
-            if device_ids not in gn_devices:
-                raise ResourceNotFound(device_ids)
-            queried.append(gn_devices[device_ids])
+        elif isinstance(device_ids, List) and len(device_ids) == 1:
+            device_id = device_ids[0]
+            if device_id not in gn_devices:
+                raise ResourceNotFound(device_id)
+            queried.append(gn_devices[device_id])
         else:
             for id in device_ids:
                 if id in gn_devices:
