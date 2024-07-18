@@ -648,8 +648,10 @@ class Route53Backend(BaseBackend):
         return {}
     
     def list_tags_for_resources(self, resource_ids: List[str]) -> Dict[str, str]:
+        resources = {}
         for id in resource_ids:
-            self.list_tags_for_resource(id)
+            resources.update(self.list_tags_for_resource(id))
+        return resources
 
     def list_resource_record_sets(
         self, zone_id: str, start_type: str, start_name: str, max_items: int
