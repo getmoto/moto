@@ -646,6 +646,10 @@ class Route53Backend(BaseBackend):
         if resource_id in self.resource_tags:
             return self.resource_tags[resource_id]
         return {}
+    
+    def list_tags_for_resources(self, resource_ids: List[str]) -> Dict[str, str]:
+        for id in resource_ids:
+            self.list_tags_for_resource(id)
 
     def list_resource_record_sets(
         self, zone_id: str, start_type: str, start_name: str, max_items: int
