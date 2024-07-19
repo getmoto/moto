@@ -14,6 +14,7 @@ def tag_response(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         request, full_url, headers
     )
 
+
 url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone$": Route53.dispatch,
     r"{0}/(?P<api_version>[\d_-]+)/hostedzone/(?P<zone_id>[^/]+)$": Route53.dispatch,

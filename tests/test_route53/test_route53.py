@@ -486,9 +486,10 @@ def test_list_or_change_tags_for_resource_request():
     )
     assert response["ResourceTagSet"]["Tags"] == []
 
+
 @mock_aws
 def test_list_tags_for_resources():
-    conn = boto3.client("route53", region_name="us-east-1") 
+    conn = boto3.client("route53", region_name="us-east-1")
     zone1 = conn.create_hosted_zone(
         Name="testdns1.aws.com", CallerReference=str(hash("foo"))
     )
@@ -500,8 +501,7 @@ def test_list_tags_for_resources():
 
     # confirm this works for resources with zero tags
     response = conn.list_tags_for_resources(
-        ResourceIds=[zone1_id, zone2_id],
-        ResourceType="hostedzone"
+        ResourceIds=[zone1_id, zone2_id], ResourceType="hostedzone"
     )
 
     for set in response["ResourceTagSets"]:
@@ -520,8 +520,7 @@ def test_list_tags_for_resources():
     )
 
     response = conn.list_tags_for_resources(
-        ResourceIds=[zone1_id, zone2_id],
-        ResourceType="hostedzone"
+        ResourceIds=[zone1_id, zone2_id], ResourceType="hostedzone"
     )
     for set in response["ResourceTagSets"]:
         if set["ResourceId"] == zone1_id:
@@ -530,6 +529,7 @@ def test_list_tags_for_resources():
         elif set["ResourceId"] == zone2_id:
             assert tag3 in set["Tags"]
             assert tag4 in set["Tags"]
+
 
 @mock_aws
 def test_list_hosted_zones_by_name():

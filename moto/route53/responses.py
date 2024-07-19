@@ -369,9 +369,11 @@ class Route53(BaseResponse):
             self.backend.change_tags_for_resource(id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
-        
-    def list_tags_for_resources(self) -> TYPE_RESPONSE: 
-        resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"]["ResourceIds"] 
+
+    def list_tags_for_resources(self) -> TYPE_RESPONSE:
+        resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
+            "ResourceIds"
+        ]
         tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
         template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
         return template.render(tag_sets)
@@ -468,6 +470,7 @@ class Route53(BaseResponse):
         self.backend.delete_reusable_delegation_set(delegation_set_id=ds_id)
         template = self.response_template(DELETE_REUSABLE_DELEGATION_SET_TEMPLATE)
         return template.render()
+
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
