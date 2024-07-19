@@ -370,7 +370,7 @@ class Route53(BaseResponse):
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
 
-    def list_tags_for_resources(self) -> TYPE_RESPONSE:
+    def list_tags_for_resources(self) -> str:
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
         ]
