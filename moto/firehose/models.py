@@ -445,7 +445,7 @@ class FirehoseBackend(BaseBackend):
         # Path prefix pattern: myApp/YYYY/MM/DD/HH/
         # Object name pattern:
         # DeliveryStreamName-DeliveryStreamVersion-YYYY-MM-DD-HH-MM-SS-RandomString
-        prefix = f"{prefix}{'' if prefix.endswith('/') else '/'}"
+        prefix = f"{prefix}{'' if prefix.endswith('/') or prefix == '' else '/'}"
         now = utcnow()
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
