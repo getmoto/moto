@@ -800,6 +800,14 @@
   "Location": "apse3-az1"
  },
  {
+  "InstanceType": "u-6tb1.112xlarge",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "u-6tb1.56xlarge",
+  "Location": "apse3-az1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "apse3-az1"
  },
@@ -2429,6 +2437,14 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "u-6tb1.112xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "u-6tb1.56xlarge",
   "Location": "apse3-az3"
  },
  {
