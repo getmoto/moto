@@ -63,7 +63,7 @@ if TYPE_CHECKING:
     from moto.ec2.models.subnets import Subnet
 
 
-def find_cluster(cluster_arn: str) -> "Cluster":
+def find_cluster(cluster_arn: str) -> "DBCluster":
     arn_parts = cluster_arn.split(":")
     region, account = arn_parts[3], arn_parts[4]
     return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
@@ -95,7 +95,7 @@ class GlobalCluster(BaseModel):
         )
         if self.deletion_protection is None:
             self.deletion_protection = False
-        self.members: List[Cluster] = []
+        self.members: List[DBCluster] = []
 
     def to_xml(self) -> str:
         template = Template(
@@ -129,7 +129,7 @@ class GlobalCluster(BaseModel):
         return template.render(cluster=self)
 
 
-class Cluster:
+class DBCluster:
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"], "DB Cluster Identifiers"
@@ -158,7 +158,7 @@ class Cluster:
             )
         self.engine_version = kwargs.get(
             "engine_version"
-        ) or Cluster.default_engine_version(self.engine)
+        ) or DBCluster.default_engine_version(self.engine)
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
         self.kms_key_id = kwargs.get("kms_key_id")
@@ -172,10 +172,10 @@ class Cluster:
             self.copy_tags_to_snapshot = False
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
-            self.storage_type = Cluster.default_storage_type(iops=self.iops)
+            self.storage_type = DBCluster.default_storage_type(iops=self.iops)
         self.allocated_storage = kwargs.get("allocated_storage")
         if self.allocated_storage is None:
-            self.allocated_storage = Cluster.default_allocated_storage(
+            self.allocated_storage = DBCluster.default_allocated_storage(
                 engine=self.engine, storage_type=self.storage_type
             )
         self.master_username = kwargs.get("master_username")
@@ -205,7 +205,7 @@ class Cluster:
         self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
         self.port: int = kwargs.get("port")  # type: ignore
         if self.port is None:
-            self.port = Cluster.default_port(self.engine)
+            self.port = DBCluster.default_port(self.engine)
         self.preferred_backup_window = (
             kwargs.get("preferred_backup_window") or "01:37-02:07"
         )
@@ -527,7 +527,7 @@ class ClusterSnapshot(BaseModel):
 
     def __init__(
         self,
-        cluster: Cluster,
+        cluster: DBCluster,
         snapshot_id: str,
         snapshot_type: str,
         tags: List[Dict[str, str]],
@@ -1748,7 +1748,7 @@ class RDSBackend(BaseBackend):
             ARN_PARTITION_REGEX
             + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
-        self.clusters: Dict[str, Cluster] = OrderedDict()
+        self.clusters: Dict[str, DBCluster] = OrderedDict()
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
         self.databases: Dict[str, Database] = OrderedDict()
         self.database_snapshots: Dict[str, DatabaseSnapshot] = OrderedDict()
@@ -2402,10 +2402,10 @@ class RDSBackend(BaseBackend):
     def describe_db_cluster_parameters(self) -> List[Dict[str, Any]]:
         return []
 
-    def create_db_cluster(self, kwargs: Dict[str, Any]) -> Cluster:
+    def create_db_cluster(self, kwargs: Dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
         kwargs["account_id"] = self.account_id
-        cluster = Cluster(**kwargs)
+        cluster = DBCluster(**kwargs)
         self.clusters[cluster_id] = cluster
 
         if (
@@ -2444,7 +2444,7 @@ class RDSBackend(BaseBackend):
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
 
-    def modify_db_cluster(self, kwargs: Dict[str, Any]) -> Cluster:
+    def modify_db_cluster(self, kwargs: Dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
 
         if cluster_id in self.neptune.clusters:
@@ -2472,7 +2472,7 @@ class RDSBackend(BaseBackend):
         cluster.status = "available"  # Already set the final status in the background
         return initial_state
 
-    def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> Cluster:
+    def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
         cluster = self.clusters[db_cluster_identifier]
         source_cluster = find_cluster(cluster.replication_source_identifier)  # type: ignore
         source_cluster.read_replica_identifiers.remove(cluster.db_cluster_arn)
@@ -2540,15 +2540,15 @@ class RDSBackend(BaseBackend):
 
     def describe_db_clusters(
         self, cluster_identifier: Optional[str] = None, filters: Any = None
-    ) -> List[Cluster]:
+    ) -> List[DBCluster]:
         clusters = self.clusters
         clusters_neptune = self.neptune.clusters
         if cluster_identifier:
             filters = merge_filters(filters, {"db-cluster-id": [cluster_identifier]})
         if filters:
-            clusters = self._filter_resources(clusters, filters, Cluster)
+            clusters = self._filter_resources(clusters, filters, DBCluster)
             clusters_neptune = self._filter_resources(
-                clusters_neptune, filters, Cluster
+                clusters_neptune, filters, DBCluster
             )
         if cluster_identifier and not (clusters or clusters_neptune):
             raise DBClusterNotFoundError(cluster_identifier)
@@ -2575,7 +2575,7 @@ class RDSBackend(BaseBackend):
 
     def delete_db_cluster(
         self, cluster_identifier: str, snapshot_name: Optional[str] = None
-    ) -> Cluster:
+    ) -> DBCluster:
         if cluster_identifier in self.clusters:
             cluster = self.clusters[cluster_identifier]
             if cluster.deletion_protection:
@@ -2595,7 +2595,7 @@ class RDSBackend(BaseBackend):
             return self.neptune.delete_db_cluster(cluster_identifier)  # type: ignore
         raise DBClusterNotFoundError(cluster_identifier)
 
-    def start_db_cluster(self, cluster_identifier: str) -> Cluster:
+    def start_db_cluster(self, cluster_identifier: str) -> DBCluster:
         if cluster_identifier not in self.clusters:
             return self.neptune.start_db_cluster(cluster_identifier)  # type: ignore
             raise DBClusterNotFoundError(cluster_identifier)
@@ -2611,7 +2611,7 @@ class RDSBackend(BaseBackend):
 
     def restore_db_cluster_from_snapshot(
         self, from_snapshot_id: str, overrides: Dict[str, Any]
-    ) -> Cluster:
+    ) -> DBCluster:
         snapshot = self.describe_db_cluster_snapshots(
             db_cluster_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
@@ -2623,7 +2623,7 @@ class RDSBackend(BaseBackend):
 
         return self.create_db_cluster(new_cluster_props)
 
-    def stop_db_cluster(self, cluster_identifier: str) -> "Cluster":
+    def stop_db_cluster(self, cluster_identifier: str) -> "DBCluster":
         if cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(cluster_identifier)
         cluster = self.clusters[cluster_identifier]
