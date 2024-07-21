@@ -10,6 +10,7 @@ name: "DataUpdate_SSMdefaultAMIs"
 on:
   schedule:
     - cron: '00 10 1 * *'
+  workflow_dispatch:
 
 jobs:
   update:
@@ -34,7 +35,7 @@ jobs:
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-region: us-east-1
-        role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
+        role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
 
     - name: Pull SSM default AMIs from AWS
       run: |
