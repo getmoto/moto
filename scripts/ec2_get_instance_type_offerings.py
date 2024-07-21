@@ -62,15 +62,19 @@ def main():
                 )
 
                 # Ensure we use the correct US-west availability zones
-                # There are only two - for some accounts they are called us-west-1b and us-west-1c
-                # As our EC2-module assumes us-west-1a and us-west-1b, we may have to rename the zones coming from AWS
+                # There are three, but accounts only have access to two
+                # Because of this, some accounts have access to (us-west-1a or us-west-1b) and us-west-1c
+                # As our EC2-module assumes us-west-1a and us-west-1b, we have to rename the zones accordingly
                 # https://github.com/getmoto/moto/issues/5494
                 if region == "us-west-1" and location_type == "availability-zone":
                     zones = set([i["Location"] for i in instances])
+                    # If AWS returns b and c, we have to convert b --> a
                     if zones == {"us-west-1b", "us-west-1c"}:
                         for i in instances:
                             if i["Location"] == "us-west-1b":
                                 i["Location"] = "us-west-1a"
+                    # If AWS returns c, we always have to convert c --> b (the other location will always be a at this point)
+                    if "us-west-1c" in zones:
                         for i in instances:
                             if i["Location"] == "us-west-1c":
                                 i["Location"] = "us-west-1b"
