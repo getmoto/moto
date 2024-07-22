@@ -33,6 +33,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
         start_date = self._get_param("StartDate")
         state = self._get_param("State")
         target = self._get_param("Target")
+        action_after_completion = self._get_param("ActionAfterCompletion")
         schedule = self.scheduler_backend.create_schedule(
             description=description,
             end_date=end_date,
@@ -45,6 +46,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             start_date=start_date,
             state=state,
             target=target,
+            action_after_completion=action_after_completion,
         )
         return json.dumps(dict(ScheduleArn=schedule.arn))
 
