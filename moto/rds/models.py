@@ -1499,7 +1499,7 @@ class DBSecurityGroup(CloudFormationModel):
         backend.delete_security_group(self.group_name)
 
 
-class SubnetGroup(CloudFormationModel):
+class DBSubnetGroup(CloudFormationModel):
     def __init__(
         self,
         subnet_name: str,
@@ -1586,7 +1586,7 @@ class SubnetGroup(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "SubnetGroup":
+    ) -> "DBSubnetGroup":
         properties = cloudformation_json["Properties"]
 
         description = properties["DBSubnetGroupDescription"]
@@ -1759,7 +1759,7 @@ class RDSBackend(BaseBackend):
         self.db_cluster_parameter_groups: Dict[str, DBClusterParameterGroup] = {}
         self.option_groups: Dict[str, OptionGroup] = {}
         self.security_groups: Dict[str, DBSecurityGroup] = {}
-        self.subnet_groups: Dict[str, SubnetGroup] = {}
+        self.subnet_groups: Dict[str, DBSubnetGroup] = {}
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
 
@@ -2111,14 +2111,14 @@ class RDSBackend(BaseBackend):
         description: str,
         subnets: List[Any],
         tags: List[Dict[str, str]],
-    ) -> SubnetGroup:
-        subnet_group = SubnetGroup(
+    ) -> DBSubnetGroup:
+        subnet_group = DBSubnetGroup(
             subnet_name, description, subnets, tags, self.region_name, self.account_id
         )
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
-    def describe_db_subnet_groups(self, subnet_group_name: str) -> List[SubnetGroup]:
+    def describe_db_subnet_groups(self, subnet_group_name: str) -> List[DBSubnetGroup]:
         if subnet_group_name:
             if subnet_group_name in self.subnet_groups:
                 return [self.subnet_groups[subnet_group_name]]
@@ -2128,7 +2128,7 @@ class RDSBackend(BaseBackend):
 
     def modify_db_subnet_group(
         self, subnet_name: str, description: str, subnets: "List[Subnet]"
-    ) -> SubnetGroup:
+    ) -> DBSubnetGroup:
         subnet_group = self.subnet_groups.pop(subnet_name)
         if not subnet_group:
             raise DBSubnetGroupNotFoundError(subnet_name)
@@ -2138,7 +2138,7 @@ class RDSBackend(BaseBackend):
             subnet_group.description = description
         return subnet_group
 
-    def delete_subnet_group(self, subnet_name: str) -> SubnetGroup:
+    def delete_subnet_group(self, subnet_name: str) -> DBSubnetGroup:
         if subnet_name in self.subnet_groups:
             return self.subnet_groups.pop(subnet_name)
         else:
