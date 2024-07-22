@@ -596,7 +596,7 @@ class ClusterSnapshot(BaseModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class Database(CloudFormationModel):
+class DBInstance(CloudFormationModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
@@ -642,7 +642,7 @@ class Database(CloudFormationModel):
             self.kms_key_id = kwargs.get("kms_key_id")
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
-            self.storage_type = Database.default_storage_type(iops=self.iops)
+            self.storage_type = DBInstance.default_storage_type(iops=self.iops)
         self.master_username = kwargs.get("master_username")
         self.master_user_password = kwargs.get("master_user_password")
         self.auto_minor_version_upgrade = kwargs.get("auto_minor_version_upgrade")
@@ -650,7 +650,7 @@ class Database(CloudFormationModel):
             self.auto_minor_version_upgrade = True
         self.allocated_storage = kwargs.get("allocated_storage")
         if self.allocated_storage is None:
-            self.allocated_storage = Database.default_allocated_storage(
+            self.allocated_storage = DBInstance.default_allocated_storage(
                 engine=self.engine, storage_type=self.storage_type
             )
         self.db_cluster_identifier: Optional[str] = kwargs.get("db_cluster_identifier")
@@ -659,7 +659,7 @@ class Database(CloudFormationModel):
         self.db_instance_class = kwargs.get("db_instance_class")
         self.port = kwargs.get("port")
         if self.port is None:
-            self.port = Database.default_port(self.engine)
+            self.port = DBInstance.default_port(self.engine)
         self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
         self.instance_create_time = iso_8601_datetime_with_milliseconds()
@@ -915,14 +915,14 @@ class Database(CloudFormationModel):
     def address(self) -> str:
         return f"{self.db_instance_identifier}.aaaaaaaaaa.{self.region_name}.rds.amazonaws.com"
 
-    def add_replica(self, replica: "Database") -> None:
+    def add_replica(self, replica: "DBInstance") -> None:
         if self.region_name != replica.region_name:
             # Cross Region replica
             self.replicas.append(replica.db_instance_arn)
         else:
             self.replicas.append(replica.db_instance_identifier)  # type: ignore
 
-    def remove_replica(self, replica: "Database") -> None:
+    def remove_replica(self, replica: "DBInstance") -> None:
         self.replicas.remove(replica.db_instance_identifier)  # type: ignore
 
     def set_as_replica(self) -> None:
@@ -1010,7 +1010,7 @@ class Database(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Database":
+    ) -> "DBInstance":
         properties = cloudformation_json["Properties"]
 
         db_security_groups = properties.get("DBSecurityGroups")
@@ -1171,7 +1171,7 @@ class DatabaseSnapshot(BaseModel):
 
     def __init__(
         self,
-        database: Database,
+        database: DBInstance,
         snapshot_id: str,
         snapshot_type: str,
         tags: List[Dict[str, str]],
@@ -1750,7 +1750,7 @@ class RDSBackend(BaseBackend):
         )
         self.clusters: Dict[str, DBCluster] = OrderedDict()
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
-        self.databases: Dict[str, Database] = OrderedDict()
+        self.databases: Dict[str, DBInstance] = OrderedDict()
         self.database_snapshots: Dict[str, DatabaseSnapshot] = OrderedDict()
         self.cluster_snapshots: Dict[str, ClusterSnapshot] = OrderedDict()
         self.export_tasks: Dict[str, ExportTask] = OrderedDict()
@@ -1784,10 +1784,10 @@ class RDSBackend(BaseBackend):
             ]
         return self._db_cluster_options
 
-    def create_db_instance(self, db_kwargs: Dict[str, Any]) -> Database:
+    def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
         self._validate_db_identifier(database_id)
-        database = Database(**db_kwargs)
+        database = DBInstance(**db_kwargs)
 
         cluster_id = database.db_cluster_identifier
         if cluster_id is not None:
@@ -1819,7 +1819,7 @@ class RDSBackend(BaseBackend):
 
     def create_db_snapshot(
         self,
-        db_instance: Union[str, Database],
+        db_instance: Union[str, DBInstance],
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
@@ -1873,7 +1873,7 @@ class RDSBackend(BaseBackend):
 
         return self.database_snapshots.pop(db_snapshot_identifier)
 
-    def promote_read_replica(self, db_kwargs: Dict[str, Any]) -> Database:
+    def promote_read_replica(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
         database = self.databases[database_id]
         if database.is_replica:
@@ -1882,7 +1882,7 @@ class RDSBackend(BaseBackend):
 
         return database
 
-    def create_db_instance_read_replica(self, db_kwargs: Dict[str, Any]) -> Database:
+    def create_db_instance_read_replica(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
         source_database_id = db_kwargs["source_db_identifier"]
         primary = self.find_db_from_id(source_database_id)
@@ -1900,14 +1900,14 @@ class RDSBackend(BaseBackend):
 
     def describe_db_instances(
         self, db_instance_identifier: Optional[str] = None, filters: Any = None
-    ) -> List[Database]:
+    ) -> List[DBInstance]:
         databases = self.databases
         if db_instance_identifier:
             filters = merge_filters(
                 filters, {"db-instance-id": [db_instance_identifier]}
             )
         if filters:
-            databases = self._filter_resources(databases, filters, Database)
+            databases = self._filter_resources(databases, filters, DBInstance)
         if db_instance_identifier and not databases:
             raise DBInstanceNotFoundError(db_instance_identifier)
         return list(databases.values())
@@ -1935,7 +1935,7 @@ class RDSBackend(BaseBackend):
 
     def modify_db_instance(
         self, db_instance_identifier: str, db_kwargs: Dict[str, Any]
-    ) -> Database:
+    ) -> DBInstance:
         database = self.describe_db_instances(db_instance_identifier)[0]
         if "new_db_instance_identifier" in db_kwargs:
             del self.databases[db_instance_identifier]
@@ -1953,12 +1953,12 @@ class RDSBackend(BaseBackend):
         database.update(db_kwargs)
         return database
 
-    def reboot_db_instance(self, db_instance_identifier: str) -> Database:
+    def reboot_db_instance(self, db_instance_identifier: str) -> DBInstance:
         return self.describe_db_instances(db_instance_identifier)[0]
 
     def restore_db_instance_from_db_snapshot(
         self, from_snapshot_id: str, overrides: Dict[str, Any]
-    ) -> Database:
+    ) -> DBInstance:
         snapshot = self.describe_db_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
@@ -1980,7 +1980,7 @@ class RDSBackend(BaseBackend):
         source_db_identifier: str,
         target_db_identifier: str,
         overrides: Dict[str, Any],
-    ) -> Database:
+    ) -> DBInstance:
         db_instance = self.describe_db_instances(
             db_instance_identifier=source_db_identifier
         )[0]
@@ -2007,7 +2007,7 @@ class RDSBackend(BaseBackend):
 
     def stop_db_instance(
         self, db_instance_identifier: str, db_snapshot_identifier: Optional[str] = None
-    ) -> Database:
+    ) -> DBInstance:
         self._validate_db_identifier(db_instance_identifier)
         database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: certain rds types not allowed to be stopped at this time.
@@ -2024,7 +2024,7 @@ class RDSBackend(BaseBackend):
         database.status = "stopped"
         return database
 
-    def start_db_instance(self, db_instance_identifier: str) -> Database:
+    def start_db_instance(self, db_instance_identifier: str) -> DBInstance:
         self._validate_db_identifier(db_instance_identifier)
         database = self.describe_db_instances(db_instance_identifier)[0]
         # todo: bunch of different error messages to be generated from this api call
@@ -2033,7 +2033,7 @@ class RDSBackend(BaseBackend):
         database.status = "available"
         return database
 
-    def find_db_from_id(self, db_id: str) -> Database:
+    def find_db_from_id(self, db_id: str) -> DBInstance:
         if self.arn_regex.match(db_id):
             arn_breakdown = db_id.split(":")
             region = arn_breakdown[3]
@@ -2047,7 +2047,7 @@ class RDSBackend(BaseBackend):
 
     def delete_db_instance(
         self, db_instance_identifier: str, db_snapshot_name: Optional[str] = None
-    ) -> Database:
+    ) -> DBInstance:
         self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
             if self.databases[db_instance_identifier].deletion_protection:
