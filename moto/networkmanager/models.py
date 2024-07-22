@@ -9,7 +9,7 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES
 
-from .exceptions import ResourceNotFound
+from .exceptions import ResourceNotFound, ValidationError
 
 PAGINATION_MODEL = {
     "describe_global_networks": {
@@ -394,15 +394,12 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_sites(self, global_network_id: str, site_ids: List[str]) -> List[Site]:
+        if global_network_id not in self.global_networks:
+            raise ValidationError("Incorrect input.")
         gn_sites = self.sites.get(global_network_id) or {}
         queried = []
         if not site_ids:
             queried = list(gn_sites.values())
-        elif isinstance(site_ids, List) and len(site_ids) == 1:
-            site_id = site_ids[0]
-            if site_id not in gn_sites:
-                raise ResourceNotFound(site_id)
-            queried.append(gn_sites[site_id])
         else:
             for id in site_ids:
                 if id in gn_sites:
@@ -447,16 +444,13 @@ class NetworkManagerBackend(BaseBackend):
         type: str,
         provider: str,
     ) -> List[Link]:
+        if global_network_id not in self.global_networks:
+            raise ValidationError("Incorrect input.")
         # TODO: Implement filtering by site_id, type, provider
         gn_links = self.links.get(global_network_id) or {}
         queried = []
         if not link_ids:
             queried = list(gn_links.values())
-        elif isinstance(link_ids, List) and len(link_ids) == 1:
-            link_id = link_ids[0]
-            if link_id not in gn_links:
-                raise ResourceNotFound(link_id)
-            queried.append(gn_links[link_id])
         else:
             for id in link_ids:
                 if id in gn_links:
@@ -509,16 +503,13 @@ class NetworkManagerBackend(BaseBackend):
     def get_devices(
         self, global_network_id: str, device_ids: List[str], site_id: Optional[str]
     ) -> List[Device]:
+        if global_network_id not in self.global_networks:
+            raise ValidationError("Incorrect input.")
         # TODO: Implement filtering by site_id
         gn_devices = self.devices.get(global_network_id) or {}
         queried = []
         if not device_ids:
             queried = list(gn_devices.values())
-        elif isinstance(device_ids, List) and len(device_ids) == 1:
-            device_id = device_ids[0]
-            if device_id not in gn_devices:
-                raise ResourceNotFound(device_id)
-            queried.append(gn_devices[device_id])
         else:
             for id in device_ids:
                 if id in gn_devices:

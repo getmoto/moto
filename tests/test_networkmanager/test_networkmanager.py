@@ -255,7 +255,7 @@ def test_get_sites():
         site_ids.append(site_id)
     sites_to_get = site_ids[0:NUM_TO_TEST]
     resp = client.get_sites(GlobalNetworkId=gn_id, SiteIds=sites_to_get)["Sites"]
-    assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
+    assert len(resp) == NUM_TO_TEST
 
     # Check each site by ID
     for site in resp:
@@ -265,6 +265,10 @@ def test_get_sites():
     # Check all sites
     all_sites = client.get_sites(GlobalNetworkId=gn_id)["Sites"]
     assert len(all_sites) == NUM_SITES
+
+    # Check invalid resource id returns empty list
+    resp = client.get_sites(GlobalNetworkId=gn_id, SiteIds=["invalid-id"])
+    assert len(resp["Sites"]) == 0
 
 
 @mock_aws
@@ -307,11 +311,15 @@ def test_get_links():
         ids.append(id)
     resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
     resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=resources_to_get)["Links"]
-    assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
+    assert len(resp) == NUM_TO_TEST
 
     # Check all links
     all_links = client.get_links(GlobalNetworkId=gn_id)["Links"]
     assert len(all_links) == NUM_LINKS
+
+    # Check invalid resource id returns empty list
+    resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=["invalid-id"])
+    assert len(resp["Links"]) == 0
 
 
 @mock_aws
@@ -366,11 +374,15 @@ def test_get_devices():
     resp = client.get_devices(GlobalNetworkId=gn_id, DeviceIds=resources_to_get)[
         "Devices"
     ]
-    assert len(resp) == NUM_TO_TEST  # Fix this - Fails if greater than 1
+    assert len(resp) == NUM_TO_TEST
 
     # Check all devices
     all_devices = client.get_devices(GlobalNetworkId=gn_id)["Devices"]
     assert len(all_devices) == NUM_DEVICES
+
+    # Check invalid resource id returns empty list
+    resp = client.get_devices(GlobalNetworkId=gn_id, DeviceIds=["invalid-id"])
+    assert len(resp["Devices"]) == 0
 
 
 @mock_aws
@@ -477,10 +489,6 @@ def test_device_exceptions():
             Description="Test device",
         )
 
-    # Test invalid resource id on get
-    with pytest.raises(Exception):
-        client.get_devices(GlobalNetworkId=gn_id, DeviceIds=["invalid-device-id"])
-
     # Test invalid global_network_id for get
     with pytest.raises(Exception):
         client.get_devices(
@@ -491,17 +499,12 @@ def test_device_exceptions():
 @mock_aws
 def test_site_exceptions():
     client = boto3.client("networkmanager")
-    gn_id = create_global_network(client)
 
     # Test invalid global_network_id for create resource
     with pytest.raises(Exception):
         client.create_site(
             GlobalNetworkId="invalid-global-network-id", Description="Test site"
         )
-
-    # Test invalid resource id on get
-    with pytest.raises(Exception):
-        client.get_sites(GlobalNetworkId=gn_id, SiteIds=["invalid-site-id"])
 
     # Test invalid global_network_id for get
     with pytest.raises(Exception):
@@ -513,7 +516,6 @@ def test_site_exceptions():
 @mock_aws
 def test_link_exceptions():
     client = boto3.client("networkmanager")
-    gn_id = create_global_network(client)
 
     # Test invalid global_network_id for create resource
     with pytest.raises(Exception):
@@ -523,10 +525,6 @@ def test_link_exceptions():
             Description="Test link",
             Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
         )
-
-    # Test invalid resource id on get
-    with pytest.raises(Exception):
-        client.get_links(GlobalNetworkId=gn_id, LinkIds=["invalid-link-id"])
 
     # Test invalid global_network_id for get
     with pytest.raises(Exception):
