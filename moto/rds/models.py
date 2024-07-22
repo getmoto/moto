@@ -1372,7 +1372,7 @@ class EventSubscription(BaseModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class SecurityGroup(CloudFormationModel):
+class DBSecurityGroup(CloudFormationModel):
     def __init__(
         self,
         account_id: str,
@@ -1458,7 +1458,7 @@ class SecurityGroup(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "SecurityGroup":
+    ) -> "DBSecurityGroup":
         properties = cloudformation_json["Properties"]
         group_name = resource_name.lower()
         description = properties["GroupDescription"]
@@ -1758,7 +1758,7 @@ class RDSBackend(BaseBackend):
         self.db_parameter_groups: Dict[str, DBParameterGroup] = {}
         self.db_cluster_parameter_groups: Dict[str, DBClusterParameterGroup] = {}
         self.option_groups: Dict[str, OptionGroup] = {}
-        self.security_groups: Dict[str, SecurityGroup] = {}
+        self.security_groups: Dict[str, DBSecurityGroup] = {}
         self.subnet_groups: Dict[str, SubnetGroup] = {}
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
@@ -2071,12 +2071,12 @@ class RDSBackend(BaseBackend):
 
     def create_db_security_group(
         self, group_name: str, description: str, tags: List[Dict[str, str]]
-    ) -> SecurityGroup:
-        security_group = SecurityGroup(self.account_id, group_name, description, tags)
+    ) -> DBSecurityGroup:
+        security_group = DBSecurityGroup(self.account_id, group_name, description, tags)
         self.security_groups[group_name] = security_group
         return security_group
 
-    def describe_security_groups(self, security_group_name: str) -> List[SecurityGroup]:
+    def describe_security_groups(self, security_group_name: str) -> List[DBSecurityGroup]:
         if security_group_name:
             if security_group_name in self.security_groups:
                 return [self.security_groups[security_group_name]]
@@ -2084,7 +2084,7 @@ class RDSBackend(BaseBackend):
                 raise DBSecurityGroupNotFoundError(security_group_name)
         return list(self.security_groups.values())
 
-    def delete_security_group(self, security_group_name: str) -> SecurityGroup:
+    def delete_security_group(self, security_group_name: str) -> DBSecurityGroup:
         if security_group_name in self.security_groups:
             return self.security_groups.pop(security_group_name)
         else:
@@ -2100,7 +2100,7 @@ class RDSBackend(BaseBackend):
 
     def authorize_security_group(
         self, security_group_name: str, cidr_ip: str
-    ) -> SecurityGroup:
+    ) -> DBSecurityGroup:
         security_group = self.describe_security_groups(security_group_name)[0]
         security_group.authorize_cidr(cidr_ip)
         return security_group
