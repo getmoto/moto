@@ -109,3 +109,150 @@ class NetworkManagerResponse(BaseResponse):
         return json.dumps(
             dict(GlobalNetworks=list_global_networks, nextToken=next_token)
         )
+
+    def create_site(self) -> str:
+        params = json.loads(self.body)
+        global_network_id = unquote(self.path.split("/")[-2])
+        description = params.get("Description")
+        location = params.get("Location")
+        tags = params.get("Tags")
+        site = self.networkmanager_backend.create_site(
+            global_network_id=global_network_id,
+            description=description,
+            location=location,
+            tags=tags,
+        )
+        return json.dumps(dict(Site=site.to_dict()))
+
+    def delete_site(self) -> str:
+        global_network_id = unquote(self.path.split("/")[-3])
+        site_id = unquote(self.path.split("/")[-1])
+        site = self.networkmanager_backend.delete_site(
+            global_network_id=global_network_id,
+            site_id=site_id,
+        )
+        return json.dumps(dict(Site=site.to_dict()))
+
+    def get_sites(self) -> str:
+        params = self._get_params()
+        global_network_id = unquote(self.path.split("/")[-2])
+        site_ids = self.querystring.get("siteIds")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        sites, next_token = self.networkmanager_backend.get_sites(
+            global_network_id=global_network_id,
+            site_ids=site_ids,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        list_sites = [site.to_dict() for site in sites]
+        return json.dumps(dict(Sites=list_sites, nextToken=next_token))
+
+    def create_link(self) -> str:
+        params = json.loads(self.body)
+        global_network_id = unquote(self.path.split("/")[-2])
+        description = params.get("Description")
+        type = params.get("Type")
+        bandwidth = params.get("Bandwidth")
+        provider = params.get("Provider")
+        site_id = params.get("SiteId")
+        tags = params.get("Tags")
+        link = self.networkmanager_backend.create_link(
+            global_network_id=global_network_id,
+            description=description,
+            type=type,
+            bandwidth=bandwidth,
+            provider=provider,
+            site_id=site_id,
+            tags=tags,
+        )
+        return json.dumps(dict(Link=link.to_dict()))
+
+    def get_links(self) -> str:
+        params = self._get_params()
+        global_network_id = unquote(self.path.split("/")[-2])
+        link_ids = self.querystring.get("linkIds")
+        site_id = params.get("SiteId")
+        type = params.get("Type")
+        provider = params.get("Provider")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        links, next_token = self.networkmanager_backend.get_links(
+            global_network_id=global_network_id,
+            link_ids=link_ids,
+            site_id=site_id,
+            type=type,
+            provider=provider,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        list_links = [link.to_dict() for link in links]
+        return json.dumps(dict(Links=list_links, nextToken=next_token))
+
+    def delete_link(self) -> str:
+        global_network_id = unquote(self.path.split("/")[-3])
+        link_id = unquote(self.path.split("/")[-1])
+        link = self.networkmanager_backend.delete_link(
+            global_network_id=global_network_id,
+            link_id=link_id,
+        )
+        return json.dumps(dict(Link=link.to_dict()))
+
+    def create_device(self) -> str:
+        params = json.loads(self.body)
+        global_network_id = unquote(self.path.split("/")[-2])
+        aws_location = params.get("AWSLocation")
+        description = params.get("Description")
+        type = params.get("Type")
+        vendor = params.get("Vendor")
+        model = params.get("Model")
+        serial_number = params.get("SerialNumber")
+        location = params.get("Location")
+        site_id = params.get("SiteId")
+        tags = params.get("Tags")
+        device = self.networkmanager_backend.create_device(
+            global_network_id=global_network_id,
+            aws_location=aws_location,
+            description=description,
+            type=type,
+            vendor=vendor,
+            model=model,
+            serial_number=serial_number,
+            location=location,
+            site_id=site_id,
+            tags=tags,
+        )
+        return json.dumps(dict(Device=device.to_dict()))
+
+    def get_devices(self) -> str:
+        params = self._get_params()
+        global_network_id = unquote(self.path.split("/")[-2])
+        device_ids = self.querystring.get("deviceIds")
+        site_id = params.get("SiteId")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        devices, next_token = self.networkmanager_backend.get_devices(
+            global_network_id=global_network_id,
+            device_ids=device_ids,
+            site_id=site_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        list_devices = [device.to_dict() for device in devices]
+        return json.dumps(dict(Devices=list_devices, nextToken=next_token))
+
+    def delete_device(self) -> str:
+        global_network_id = unquote(self.path.split("/")[-3])
+        device_id = unquote(self.path.split("/")[-1])
+        device = self.networkmanager_backend.delete_device(
+            global_network_id=global_network_id,
+            device_id=device_id,
+        )
+        return json.dumps(dict(Device=device.to_dict()))
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self.path.split("/tags/")[-1])
+        tag_list = self.networkmanager_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict(TagList=tag_list))
