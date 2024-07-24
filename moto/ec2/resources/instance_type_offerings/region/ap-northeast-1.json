@@ -628,6 +628,26 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "ap-northeast-1"
  },
