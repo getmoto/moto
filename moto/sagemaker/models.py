@@ -2136,6 +2136,7 @@ class SageMakerModelBackend(BaseBackend):
             "pipeline": self.pipelines,
             "model-package-group": self.model_package_groups,
             "cluster": self.clusters,
+            "data-quality-job-definition": self.data_quality_job_definitions,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
