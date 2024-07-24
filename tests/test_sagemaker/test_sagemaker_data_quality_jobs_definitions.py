@@ -61,10 +61,6 @@ def test_create_data_quality_job():
         StoppingCondition={'MaxRuntimeInSeconds': 3600}
     )
 
-    print("Bob")
-    print(response)
-    print("Mob")
-
     assert response[
         'JobDefinitionArn'] == f'arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:data-quality-job-definition/{job_name}'
 

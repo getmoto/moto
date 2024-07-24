@@ -2004,6 +2004,8 @@ class SageMakerModelBackend(BaseBackend):
         self.model_package_name_mapping: Dict[str, str] = {}
         self.feature_groups: Dict[str, FeatureGroup] = {}
         self.clusters: Dict[str, Cluster] = {}
+        self.data_quality_job_definitions: Dict[str,
+                                                FakeDataQualityJobDefinition] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
