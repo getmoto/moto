@@ -370,6 +370,14 @@ class Route53(BaseResponse):
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
 
+    def list_tags_for_resources(self) -> str:
+        resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
+            "ResourceIds"
+        ]
+        tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
+        template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
+        return template.render(tag_sets)
+
     def get_change(self) -> str:
         change_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
         template = Template(GET_CHANGE_RESPONSE)
@@ -479,6 +487,27 @@ LIST_TAGS_FOR_RESOURCE_RESPONSE = """
         </Tags>
     </ResourceTagSet>
 </ListTagsForResourceResponse>
+"""
+
+LIST_TAGS_FOR_RESOURCES_RESPONSE = """
+<ListTagsForResourcesResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ResourceTagSets>
+        {% for set in tag_sets %}
+        <ResourceTagSet>
+            <ResourceType>{{set.resource_type}}</ResourceType>
+            <ResourceId>{{set.resource_id}}</ResourceId>
+            <Tags>
+                {% for key, value in set.tags.items() %}
+                <Tag>
+                    <Key>{{key}}</Key>
+                    <Value>{{value}}</Value>
+                </Tag>
+                {% endfor %}
+            </Tags>
+        </ResourceTagSet>
+        {% endfor %}
+    </ResourceTagSets>
+</ListTagsForResourcesResponse>
 """
 
 CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">

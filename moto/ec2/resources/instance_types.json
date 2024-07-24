@@ -57038,6 +57038,169 @@
    ]
   }
  },
+ "p4de.24xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 19000,
+    "BaselineIops": 80000,
+    "BaselineThroughputInMBps": 2375.0,
+    "MaximumBandwidthInMbps": 19000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2375.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 8,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 81920
+     },
+     "Name": "A100"
+    }
+   ],
+   "TotalGpuMemoryInMiB": 655360
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 8,
+     "SizeInGB": 1000,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 8000
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "p4de.24xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 1179648
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 4
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 4,
+   "MaximumNetworkInterfaces": 60,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 2,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 3,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    }
+   ],
+   "NetworkPerformance": "4x 100 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.0
+  },
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 48,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 96,
+   "ValidCores": [
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
  "p5.48xlarge": {
   "AutoRecoverySupported": false,
   "BareMetal": false,
