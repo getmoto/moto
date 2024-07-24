@@ -6787,7 +6787,7 @@
 
 ## route53
 <details>
-<summary>41% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] activate_key_signing_key
 - [X] associate_vpc_with_hosted_zone
@@ -6847,7 +6847,7 @@
 - [X] list_resource_record_sets
 - [X] list_reusable_delegation_sets
 - [X] list_tags_for_resource
-- [ ] list_tags_for_resources
+- [X] list_tags_for_resources
 - [ ] list_traffic_policies
 - [ ] list_traffic_policy_instances
 - [ ] list_traffic_policy_instances_by_hosted_zone

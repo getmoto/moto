@@ -74,7 +74,7 @@ def test_create_event_fail_already_exists():
 
     err = ex.value.response["Error"]
 
-    assert err["Code"] == "SubscriptionAlreadyExistFault"
+    assert err["Code"] == "SubscriptionAlreadyExist"
     assert err["Message"] == "Subscription db-primary-1-events already exists."
 
 
@@ -85,7 +85,7 @@ def test_delete_event_subscription_fails_unknown_subscription():
         client.delete_event_subscription(SubscriptionName="my-db-events")
 
     err = ex.value.response["Error"]
-    assert err["Code"] == "SubscriptionNotFoundFault"
+    assert err["Code"] == "SubscriptionNotFound"
     assert err["Message"] == "Subscription my-db-events not found."
 
 
@@ -133,5 +133,5 @@ def test_describe_event_subscriptions_fails_unknown_subscription():
 
     err = ex.value.response["Error"]
 
-    assert err["Code"] == "SubscriptionNotFoundFault"
+    assert err["Code"] == "SubscriptionNotFound"
     assert err["Message"] == "Subscription my-db-events not found."
