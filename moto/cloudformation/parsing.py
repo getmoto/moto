@@ -688,7 +688,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             self.lazy_condition_map[condition_name] = functools.partial(
                 parse_condition,
                 condition,
-                self._parsed_resources,
+                self._parsed_resources,  # type: ignore
                 self.lazy_condition_map,
             )
 

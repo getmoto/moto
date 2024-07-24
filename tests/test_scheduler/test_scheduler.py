@@ -25,6 +25,7 @@ def test_create_get_schedule():
             "Arn": "not supported yet",
             "RoleArn": "n/a",
         },
+        ActionAfterCompletion="DELETE",
     )["ScheduleArn"]
 
     assert (
@@ -40,6 +41,7 @@ def test_create_get_schedule():
         "MaximumWindowInMinutes": 4,
         "Mode": "OFF",
     }
+    assert resp["ActionAfterCompletion"] == "DELETE"
     assert resp["Target"] == {
         "Arn": "not supported yet",
         "RoleArn": "n/a",
