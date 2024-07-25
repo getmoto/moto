@@ -91,6 +91,18 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "arn",
     },
+    "list_endpoints": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "endpoint_arn",
+    },
+    "list_endpoint_configs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "endpoint_config_arn",
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -438,6 +450,15 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
         return endpoint_variants
 
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "EndpointName": self.endpoint_name,
+            "EndpointArn": self.endpoint_arn,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+            "EndpointStatus": self.endpoint_status,
+        }
+
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
@@ -652,6 +673,13 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         if not validators.is_one_of(instance_type, VALID_INSTANCE_TYPES):
             message = f"Value '{instance_type}' at 'instanceType' failed to satisfy constraint: Member must satisfy enum value set: {VALID_INSTANCE_TYPES}"
             raise ValidationError(message=message)
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "EndpointConfigName": self.endpoint_config_name,
+            "EndpointConfigArn": self.endpoint_config_arn,
+            "CreationTime": self.creation_time,
+        }
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -4325,6 +4353,95 @@ class SageMakerModelBackend(BaseBackend):
         auto_ml_job.auto_ml_job_status = "Stopped"
         auto_ml_job.auto_ml_job_secondary_status = "Stopped"
         return
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_endpoints(
+        self,
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+        name_contains: Optional[str],
+        creation_time_before: Optional[str],
+        creation_time_after: Optional[str],
+        last_modified_time_before: Optional[str],
+        last_modified_time_after: Optional[str],
+        status_equals: Optional[str],
+    ) -> List[FakeEndpoint]:
+        endpoints = list(self.endpoints.values())
+        if name_contains:
+            endpoints = [i for i in endpoints if name_contains in i.endpoint_name]
+        if status_equals:
+            endpoints = [i for i in endpoints if status_equals == i.endpoint_status]
+        if creation_time_before:
+            endpoints = [
+                i for i in endpoints if i.creation_time < str(creation_time_before)
+            ]
+        if creation_time_after:
+            endpoints = [
+                i for i in endpoints if i.creation_time > str(creation_time_after)
+            ]
+        if last_modified_time_before:
+            endpoints = [
+                i
+                for i in endpoints
+                if i.last_modified_time < str(last_modified_time_before)
+            ]
+        if last_modified_time_after:
+            endpoints = [
+                i
+                for i in endpoints
+                if i.last_modified_time > str(last_modified_time_after)
+            ]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            endpoints = sorted(
+                endpoints, key=lambda x: x.endpoint_name, reverse=reverse
+            )
+        elif sort_by == "Status":
+            endpoints = sorted(
+                endpoints, key=lambda x: x.endpoint_status, reverse=reverse
+            )
+        else:
+            endpoints = sorted(
+                endpoints, key=lambda x: x.creation_time, reverse=reverse
+            )
+        return endpoints
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_endpoint_configs(
+        self,
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+        name_contains: Optional[str],
+        creation_time_before: Optional[str],
+        creation_time_after: Optional[str],
+    ) -> List[FakeEndpointConfig]:
+        endpoint_configs = list(self.endpoint_configs.values())
+        if name_contains:
+            endpoint_configs = [
+                i for i in endpoint_configs if name_contains in i.endpoint_config_name
+            ]
+        if creation_time_before:
+            endpoint_configs = [
+                i
+                for i in endpoint_configs
+                if i.creation_time < str(creation_time_before)
+            ]
+        if creation_time_after:
+            endpoint_configs = [
+                i
+                for i in endpoint_configs
+                if i.creation_time > str(creation_time_after)
+            ]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            endpoint_configs = sorted(
+                endpoint_configs, key=lambda x: x.endpoint_config_name, reverse=reverse
+            )
+        else:
+            endpoint_configs = sorted(
+                endpoint_configs, key=lambda x: x.creation_time, reverse=reverse
+            )
+        return endpoint_configs
 
 
 class FakeExperiment(BaseObject):
