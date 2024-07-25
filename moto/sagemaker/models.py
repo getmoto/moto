@@ -85,6 +85,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "cluster_node_arn",
     },
+    "list_model_explainability_job_definitions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -1604,6 +1610,83 @@ class ClusterNode(BaseObject):
         }
 
 
+class ModelExplainabilityJobDefinition(BaseObject):
+    def __init__(
+        self,
+        job_definition_name: str,
+        model_explainability_baseline_config: Optional[Dict[str, Any]],
+        model_explainability_app_specification: Dict[str, Any],
+        model_explainability_job_input: Dict[str, Any],
+        model_explainability_job_output_config: Dict[str, Any],
+        job_resources: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]],
+        role_arn: str,
+        stopping_condition: Optional[Dict[str, Any]],
+        region_name: str,
+        account_id: str,
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.job_definition_name = job_definition_name
+        if (
+            job_definition_name
+            in sagemaker_backends[account_id][
+                region_name
+            ].model_explainability_job_definitions
+        ):
+            raise ResourceInUseException(
+                message=f"Resource Already Exists: ModelExplainabilityJobDefinition with name {job_definition_name} already exists. Choose a different name."
+            )
+        self.model_explainability_baseline_config = model_explainability_baseline_config
+        self.model_explainability_app_specification = (
+            model_explainability_app_specification
+        )
+        self.model_explainability_job_input = model_explainability_job_input
+        self.model_explainability_job_output_config = (
+            model_explainability_job_output_config
+        )
+        self.job_resources = job_resources
+        self.network_config = network_config
+        self.role_arn = role_arn
+        self.stopping_condition = stopping_condition
+        self.region_name = region_name
+        self.account_id = account_id
+        self.tags = tags
+
+        self.arn = arn_formatter(
+            "model-explainability-job-definition",
+            job_definition_name,
+            self.account_id,
+            self.region_name,
+        )
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.endpoint_name = model_explainability_job_input["EndpointInput"][
+            "EndpointName"
+        ]
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "JobDefinitionArn": self.arn,
+            "JobDefinitionName": self.job_definition_name,
+            "CreationTime": self.creation_time,
+            "ModelExplainabilityBaselineConfig": self.model_explainability_baseline_config,
+            "ModelExplainabilityAppSpecification": self.model_explainability_app_specification,
+            "ModelExplainabilityJobInput": self.model_explainability_job_input,
+            "ModelExplainabilityJobOutputConfig": self.model_explainability_job_output_config,
+            "JobResources": self.job_resources,
+            "NetworkConfig": self.network_config,
+            "RoleArn": self.role_arn,
+            "StoppingConditions": self.stopping_condition,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "MonitoringJobDefinitionName": self.job_definition_name,
+            "MonitoringJobDefinitionArn": self.arn,
+            "CreationTime": self.creation_time,
+            "EndpointName": self.endpoint_name,
+        }
+
+
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids: List[str], subnets: List[str]):
         self.security_group_ids = security_group_ids
@@ -1998,6 +2081,9 @@ class SageMakerModelBackend(BaseBackend):
         self.model_package_name_mapping: Dict[str, str] = {}
         self.feature_groups: Dict[str, FeatureGroup] = {}
         self.clusters: Dict[str, Cluster] = {}
+        self.model_explainability_job_definitions: Dict[
+            str, ModelExplainabilityJobDefinition
+        ] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2128,6 +2214,7 @@ class SageMakerModelBackend(BaseBackend):
             "pipeline": self.pipelines,
             "model-package-group": self.model_package_groups,
             "cluster": self.clusters,
+            "model-explainability-job-definition": self.model_explainability_job_definitions,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -3964,6 +4051,109 @@ class SageMakerModelBackend(BaseBackend):
                 nodes_list, key=lambda x: x.launch_time, reverse=reverse
             )
         return nodes_list
+
+    def create_model_explainability_job_definition(
+        self,
+        job_definition_name: str,
+        model_explainability_baseline_config: Optional[Dict[str, Any]],
+        model_explainability_app_specification: Dict[str, Any],
+        model_explainability_job_input: Dict[str, Any],
+        model_explainability_job_output_config: Dict[str, Any],
+        job_resources: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]],
+        role_arn: str,
+        stopping_condition: Optional[Dict[str, Any]],
+        tags: List[Dict[str, str]],
+    ) -> str:
+        model_explainability_job_definition = ModelExplainabilityJobDefinition(
+            job_definition_name=job_definition_name,
+            model_explainability_baseline_config=model_explainability_baseline_config,
+            model_explainability_app_specification=model_explainability_app_specification,
+            model_explainability_job_input=model_explainability_job_input,
+            model_explainability_job_output_config=model_explainability_job_output_config,
+            job_resources=job_resources,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            network_config=network_config,
+            role_arn=role_arn,
+            stopping_condition=stopping_condition,
+            tags=tags,
+        )
+        self.model_explainability_job_definitions[
+            model_explainability_job_definition.job_definition_name
+        ] = model_explainability_job_definition
+        return model_explainability_job_definition.arn
+
+    def describe_model_explainability_job_definition(
+        self, job_definition_name: str
+    ) -> Dict[str, Any]:
+        if job_definition_name not in self.model_explainability_job_definitions:
+            raise ResourceNotFound(
+                message=f"Could not find model explainability job definition with name '{job_definition_name}'."
+            )
+        return self.model_explainability_job_definitions[job_definition_name].describe()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_explainability_job_definitions(
+        self,
+        endpoint_name: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+        name_contains: Optional[str],
+        creation_time_before: Optional[str],
+        creation_time_after: Optional[str],
+    ) -> List[ModelExplainabilityJobDefinition]:
+        model_explainability_job_definitions = list(
+            self.model_explainability_job_definitions.values()
+        )
+        if endpoint_name:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if endpoint_name == i.endpoint_name
+            ]
+        if name_contains:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if name_contains in i.job_definition_name
+            ]
+        if creation_time_before:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if i.creation_time < str(creation_time_before)
+            ]
+        if creation_time_after:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if i.creation_time > str(creation_time_after)
+            ]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            model_explainability_job_definitions = sorted(
+                model_explainability_job_definitions,
+                key=lambda x: x.job_definition_name,
+                reverse=reverse,
+            )
+        if sort_by == "CreationTime" or sort_by is None:
+            model_explainability_job_definitions = sorted(
+                model_explainability_job_definitions,
+                key=lambda x: x.creation_time,
+                reverse=reverse,
+            )
+        return model_explainability_job_definitions
+
+    def delete_model_explainability_job_definition(
+        self, job_definition_name: str
+    ) -> None:
+        if job_definition_name not in self.model_explainability_job_definitions:
+            raise ResourceNotFound(
+                message=f"Could not find model explainability job definition with name '{job_definition_name}'."
+            )
+        del self.model_explainability_job_definitions[job_definition_name]
+        return
 
 
 class FakeExperiment(BaseObject):
