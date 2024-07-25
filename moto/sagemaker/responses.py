@@ -1023,3 +1023,55 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(
             dict(NextToken=next_token, ClusterNodeSummaries=cluster_node_summaries)
         )
+
+    def create_model_bias_job_definition(self) -> str:
+        account_id = self.current_account
+        job_definition_name = self._get_param("JobDefinitionName")
+        tags = self._get_param("Tags", [])
+        role_arn = self._get_param("RoleArn")
+        job_resources = self._get_param("JobResources")
+        stopping_condition = self._get_param("StoppingCondition")
+        environment = self._get_param("Environment", {})
+        network_config = self._get_param("NetworkConfig", {})
+        model_bias_baseline_config = self._get_param(
+            "ModelBiasBaselineConfig", {})
+        model_bias_app_specification = self._get_param(
+            "ModelBiasAppSpecification")
+        model_bias_job_input = self._get_param("ModelBiasJobInput")
+        model_bias_job_output_config = self._get_param(
+            "ModelBiasJobOutputConfig")
+
+        response = self.sagemaker_backend.create_model_bias_job_definition(
+            account_id=account_id,
+            job_definition_name=job_definition_name,
+            tags=tags,
+            role_arn=role_arn,
+            job_resources=job_resources,
+            stopping_condition=stopping_condition,
+            environment=environment,
+            network_config=network_config,
+            model_bias_baseline_config=model_bias_baseline_config,
+            model_bias_app_specification=model_bias_app_specification,
+            model_bias_job_input=model_bias_job_input,
+            model_bias_job_output_config=model_bias_job_output_config,
+        )
+        return json.dumps(response)
+
+    def list_model_bias_job_definitions(self) -> str:
+        result, next_token = self.sagemaker_backend.list_model_bias_job_definitions()
+        return json.dumps({
+            "JobDefinitionSummaries": result,
+            "NextToken": next_token
+        })
+
+    def describe_model_bias_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        job_definition = self.sagemaker_backend.describe_model_bias_job_definition(
+            job_definition_name)
+        return json.dumps(job_definition)
+
+    def delete_model_bias_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        self.sagemaker_backend.delete_model_bias_job_definition(
+            job_definition_name)
+        return json.dumps({})

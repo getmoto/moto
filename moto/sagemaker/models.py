@@ -85,6 +85,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "cluster_node_arn",
     },
+    "list_model_bias_job_definitions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    }
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -1998,6 +2004,8 @@ class SageMakerModelBackend(BaseBackend):
         self.model_package_name_mapping: Dict[str, str] = {}
         self.feature_groups: Dict[str, FeatureGroup] = {}
         self.clusters: Dict[str, Cluster] = {}
+        self.model_bias_job_definitions: Dict[str,
+                                              FakeModelBiasJobDefinition] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2128,6 +2136,7 @@ class SageMakerModelBackend(BaseBackend):
             "pipeline": self.pipelines,
             "model-package-group": self.model_package_groups,
             "cluster": self.clusters,
+            "model-bias-job-definition": self.model_bias_job_definitions,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -3965,6 +3974,58 @@ class SageMakerModelBackend(BaseBackend):
             )
         return nodes_list
 
+    def create_model_bias_job_definition(
+        self,
+        account_id: str,
+        job_definition_name: str,
+        tags: List[Dict[str, str]] = [],
+        role_arn: str = "",
+        job_resources: Optional[Dict[str, Any]] = None,
+        stopping_condition: Optional[Dict[str, Any]] = None,
+        environment: Optional[Dict[str, str]] = None,
+        network_config: Optional[Dict[str, Any]] = None,
+        model_bias_baseline_config: Optional[Dict[str, Any]] = None,
+        model_bias_app_specification: Optional[Dict[str, Any]] = None,
+        model_bias_job_input: Optional[Dict[str, Any]] = None,
+        model_bias_job_output_config: Optional[Dict[str, Any]] = None,
+    ) -> dict[str, str]:
+        job_definition = FakeModelBiasJobDefinition(
+            account_id=account_id,
+            region_name=self.region_name,
+            job_definition_name=job_definition_name,
+            tags=tags,
+            role_arn=role_arn,
+            job_resources=job_resources,
+            stopping_condition=stopping_condition,
+            environment=environment,
+            network_config=network_config,
+            model_bias_baseline_config=model_bias_baseline_config,
+            model_bias_app_specification=model_bias_app_specification,
+            model_bias_job_input=model_bias_job_input,
+            model_bias_job_output_config=model_bias_job_output_config,
+        )
+        self.model_bias_job_definitions[job_definition_name] = job_definition
+        return job_definition.response_create
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_bias_job_definitions(self) -> List[Dict[str, str]]:
+        return [job.summary_object for job in self.model_bias_job_definitions.values()]
+
+    def describe_model_bias_job_definition(self, job_definition_name: str) -> Dict[str, Any]:
+        job_definition = self.model_bias_job_definitions.get(
+            job_definition_name)
+        if job_definition is None:
+            raise ResourceNotFound(
+                f"Job definition {job_definition_name} not found")
+        return job_definition.response_object
+
+    def delete_model_bias_job_definition(self, job_definition_name: str) -> None:
+        if job_definition_name in self.model_bias_job_definitions:
+            del self.model_bias_job_definitions[job_definition_name]
+        else:
+            raise ResourceNotFound(
+                f"Job definition {job_definition_name} not found")
+
 
 class FakeExperiment(BaseObject):
     def __init__(
@@ -4128,6 +4189,66 @@ class FakeTrialComponent(BaseObject):
         return arn_formatter(
             "experiment-trial-component", trial_component_name, account_id, region_name
         )
+
+
+class FakeModelBiasJobDefinition(BaseObject):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        job_definition_name: str,
+        tags: List[Dict[str, str]] = [],
+        role_arn: str = "",
+        job_resources: Optional[Dict[str, Any]] = None,
+        stopping_condition: Optional[Dict[str, Any]] = None,
+        environment: Optional[Dict[str, str]] = None,
+        network_config: Optional[Dict[str, Any]] = None,
+        model_bias_baseline_config: Optional[Dict[str, Any]] = None,
+        model_bias_app_specification: Optional[Dict[str, Any]] = None,
+        model_bias_job_input: Optional[Dict[str, Any]] = None,
+        model_bias_job_output_config: Optional[Dict[str, Any]] = None,
+    ):
+        self.job_definition_name = job_definition_name
+        self.job_definition_arn = FakeModelBiasJobDefinition.arn_formatter(
+            job_definition_name, account_id, region_name
+        )
+        self.tags = tags
+        self.role_arn = role_arn
+        self.job_resources = job_resources or {}
+        self.stopping_condition = stopping_condition or {}
+        self.environment = environment or {}
+        self.network_config = network_config or {}
+        self.model_bias_baseline_config = model_bias_baseline_config or {}
+        self.model_bias_app_specification = model_bias_app_specification or {}
+        self.model_bias_job_input = model_bias_job_input or {}
+        self.model_bias_job_output_config = model_bias_job_output_config or {}
+        self.creation_time = self.last_modified_time = datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+    @property
+    def response_object(self) -> Dict[str, str]:
+        response_object = self.gen_response_object()
+        return {
+            k: v for k, v in response_object.items() if v is not None and v != [None]
+        }
+
+    @property
+    def response_create(self) -> Dict[str, str]:
+        return {"JobDefinitionArn": self.job_definition_arn}
+
+    @staticmethod
+    def arn_formatter(name: str, account_id: str, region: str) -> str:
+        return f"arn:aws:sagemaker:{region}:{account_id}:model-bias-job-definition/{name}"
+
+    @property
+    def summary_object(self) -> Dict[str, str]:
+        return {
+            "MonitoringJobDefinitionName": self.job_definition_name,
+            "MonitoringJobDefinitionArn": self.job_definition_arn,
+            "CreationTime": self.creation_time,
+            "EndpointName": self.model_bias_job_input.get('EndpointInput', {}).get('EndpointName', 'EndpointName'),
+        }
 
 
 sagemaker_backends = BackendDict(SageMakerModelBackend, "sagemaker")
