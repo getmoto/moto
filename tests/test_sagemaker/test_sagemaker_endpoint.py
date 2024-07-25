@@ -579,9 +579,13 @@ def test_list_endpoints_filters(sagemaker_client):
 
     response = sagemaker_client.list_endpoints(
         SortBy="name",
+        SortOrder="Ascending",
         NameContains="MyEndpoint",
-        StatusEquals="InService",
+        CreationTimeBefore=datetime.datetime(2099, 1, 1),
         CreationTimeAfter=datetime.datetime(2021, 1, 1),
+        LastModifiedTimeBefore=datetime.datetime(2099, 1, 1),
+        LastModifiedTimeAfter=datetime.datetime(2021, 1, 1),
+        StatusEquals="InService",
     )
     assert len(response["Endpoints"]) == 2
     assert response["Endpoints"][0]["EndpointName"] == TEST_ENDPOINT_NAME
@@ -642,7 +646,9 @@ def test_list_endpoint_configs_filters(sagemaker_client):
 
     response = sagemaker_client.list_endpoint_configs(
         SortBy="name",
+        SortOrder="Ascending",
         NameContains="MyEndpoint",
+        CreationTimeBefore=datetime.datetime(2099, 1, 1),
         CreationTimeAfter=datetime.datetime(2021, 1, 1),
     )
     assert len(response["EndpointConfigs"]) == 2
