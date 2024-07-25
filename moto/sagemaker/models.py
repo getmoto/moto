@@ -1614,9 +1614,9 @@ class AutoMLJob(BaseObject):
     def __init__(
         self,
         auto_ml_job_name: str,
-        auto_ml_job_input_data_config: list[Dict[str, Any]],
-        output_data_config: dict[str, Any],
-        auto_ml_problem_type_config: dict[str, Any],
+        auto_ml_job_input_data_config: List[Dict[str, Any]],
+        output_data_config: Dict[str, Any],
+        auto_ml_problem_type_config: Dict[str, Any],
         role_arn: str,
         region_name: str,
         account_id: str,
@@ -4224,7 +4224,7 @@ class SageMakerModelBackend(BaseBackend):
     def create_auto_ml_job_v2(
         self,
         auto_ml_job_name: str,
-        auto_ml_job_input_data_config: list[Dict[str, Any]],
+        auto_ml_job_input_data_config: List[Dict[str, Any]],
         output_data_config: Dict[str, Any],
         auto_ml_problem_type_config: Dict[str, Any],
         role_arn: str,
