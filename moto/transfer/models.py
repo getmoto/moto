@@ -12,10 +12,7 @@ class TransferBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        # {Server ID: [User Names]}
-        self.servers: Dict[str, List[str]] = {}
-        # {User Name: User}
-        self.users: Dict[str, User] = {}
+        self.server_users: Dict[str, List[User]] = {}
 
     def create_user(
         self, 
@@ -30,7 +27,7 @@ class TransferBackend(BaseBackend):
         tags: Optional[List[Dict[str,str]]], 
         user_name: str
     ) -> Tuple[str, str]:
-        if server_id not in self.servers:
+        if server_id not in self.server_users:
             raise ServerNotFound(server_id=server_id)
         ssh_public_keys: List[SshPublicKey] = [
             {
@@ -49,29 +46,29 @@ class TransferBackend(BaseBackend):
             Tags=tags,
             UserName=user_name
         )
-        self.servers[server_id].append(user.UserName)
-        self.users[user.UserName] = user
+        self.server_users[server_id].append(user)
         return server_id, user_name
     
     def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
-        if user_name not in self.users:
-            raise UserNotFound(user_name=user_name)
-        return server_id, self.users[user_name]
+        if server_id not in self.server_users:
+            raise ServerNotFound(server_id=server_id)
+        for user in self.server_users[server_id]:
+            if user.name == user_name:
+                return server_id, user
+        raise UserNotFound(user_name=user_name, server_id=server_id)
     
     def delete_user(
         self, 
         server_id: str, 
         user_name: str
     ) -> None:
-        if user_name not in self.users:
-            raise UserNotFound(user_name=user_name)
-        if server_id not in self.servers:
+        if server_id not in self.server_users:
             raise ServerNotFound(server_id=server_id)
-        if user_name not in self.servers[server_id]:
-            raise ServerNotAssociatedWithUser(server_id=server_id, user_name=user_name)
-        del self.users[user_name]
-        self.servers[server_id].remove(user_name)
-        return 
+        for i, user in enumerate(self.server_users[server_id]):
+            if user.UserName == user_name:
+                del self.server_users[server_id][i]
+                return
+        raise UserNotFound(server_id=server_id, user_name=user_name)
     
     def import_ssh_public_key(
         self, 
@@ -80,7 +77,22 @@ class TransferBackend(BaseBackend):
         user_name: str
     ) -> Tuple[str, str, str]:
         ssh_public_key_id = "TODO"
-        return server_id, ssh_public_key_id, user_name
+        if server_id not in self.server_users:
+            raise ServerNotFound(server_id=server_id)
+        for user in self.server_users[server_id]:
+            if user.name == user_name:
+                # TODO create and add ssh key        
+                return server_id, ssh_public_key_id, user_name
+        # TODO raise error
+    
+    def delete_ssh_public_key(
+        self,
+        server_id: str, 
+        ssh_public_key_id: str, 
+        user_name: str
+    ) -> None:
+        # implement here
+        return 
     
 
 transfer_backends = BackendDict(TransferBackend, "transfer")

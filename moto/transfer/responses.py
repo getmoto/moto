@@ -85,3 +85,16 @@ class TransferResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(serverId=server_id, sshPublicKeyId=ssh_public_key_id, userName=user_name))
+    
+    def delete_ssh_public_key(self):
+        params = self._get_params()
+        server_id = params.get("ServerId")
+        ssh_public_key_id = params.get("SshPublicKeyId")
+        user_name = params.get("UserName")
+        self.transfer_backend.delete_ssh_public_key(
+            server_id=server_id,
+            ssh_public_key_id=ssh_public_key_id,
+            user_name=user_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())

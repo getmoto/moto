@@ -36,3 +36,11 @@ def test_import_ssh_public_key():
     resp = client.import_ssh_public_key()
 
     raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_ssh_public_key():
+    client = boto3.client("transfer", region_name="ap-southeast-1")
+    resp = client.delete_ssh_public_key()
+
+    raise Exception("NotYetImplemented")
