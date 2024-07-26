@@ -12,8 +12,15 @@ class ServerNotFound(TransferError):
         ) 
 
 class UserNotFound(TransferError):
-    def __init__(self, user_name: str, server_id: str) -> None:
+    def __init__(self, user_name: str) -> None:
         super().__init__(
             "UserNotFound",
-            f"{user_name} does not match any user associated with the server {server_id}."
+            f"{user_name} does not match any user associated with a transfer protocol-enabled server."
+        )
+
+class ServerNotAssociatedWithUser(TransferError):
+    def __init__(self, user_name: str, server_id: str) -> None:
+        super().__init__(
+            "ServerNotAssociatedWithUser",
+            f"{user_name} does not match any user associated with server {server_id}."
         )

@@ -3,7 +3,7 @@
 from typing import Dict, Optional, Tuple
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.core.common_models import BaseModel
-from moto.transfer.exceptions import ServerNotFound, UserNotFound
+from moto.transfer.exceptions import ServerNotAssociatedWithUser, ServerNotFound, UserNotFound
 
 from .types import *
 
@@ -12,7 +12,10 @@ class TransferBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self.servers: Dict[str, List[User]] = []
+        # {Server ID: [User Names]}
+        self.servers: Dict[str, List[str]] = {}
+        # {User Name: User}
+        self.users: Dict[str, User] = {}
 
     def create_user(
         self, 
@@ -46,26 +49,28 @@ class TransferBackend(BaseBackend):
             Tags=tags,
             UserName=user_name
         )
-        self.servers[server_id].append(User)
+        self.servers[server_id].append(user.UserName)
+        self.users[user.UserName] = user
         return server_id, user_name
     
     def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
-        user = self.get(user_name)
-        if not user:
-            raise UserNotFound(server_id=server_id, user_name=user_name)
-        return server_id, user
+        if user_name not in self.users:
+            raise UserNotFound(user_name=user_name)
+        return server_id, self.users[user_name]
     
     def delete_user(
         self, 
         server_id: str, 
         user_name: str
     ) -> None:
+        if user_name not in self.users:
+            raise UserNotFound(user_name=user_name)
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        users = self.servers[server_id]
-        for i, user in enumerate(users):
-            if user.UserName == user_name:
-                del users[i]
+        if user_name not in self.servers[server_id]:
+            raise ServerNotAssociatedWithUser(server_id=server_id, user_name=user_name)
+        del self.users[user_name]
+        self.servers[server_id].remove(user_name)
         return 
     
     def import_ssh_public_key(
