@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, TypedDict
@@ -42,5 +42,8 @@ class User(BaseModel):
     UserName: str
 
     def __post_init__(self) -> None:
-            if self.Arn == "":
-                self.Arn =f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        if self.Arn == "":
+            self.Arn =f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    to_dict = asdict
+    
