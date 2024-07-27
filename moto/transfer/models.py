@@ -3,7 +3,7 @@
 from typing import Dict, Optional, Tuple
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.core.common_models import BaseModel
-from moto.transfer.exceptions import ServerNotAssociatedWithUser, ServerNotFound, UserNotFound
+from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
 
 from .types import *
 
@@ -97,8 +97,16 @@ class TransferBackend(BaseBackend):
         ssh_public_key_id: str, 
         user_name: str
     ) -> None:
-        # implement here
-        return 
+        if server_id not in self.server_users:
+            raise ServerNotFound(server_id=server_id)
+        for i, user in enumerate(self.server_users[server_id]):
+            if user.name == user_name:
+                for j, key in enumerate(self.server_users[server_id][i].SshPublicKeys):
+                    if key.SshPublicKeyId == ssh_public_key_id:
+                        del self.server_users[server_id][i].SshPublicKeys[j]
+                        return
+                raise PublicKeyNotFound(user_name=user_name, server_id=server_id, ssh_public_key_id=ssh_public_key_id)
+        raise UserNotFound(user_name=user_name, server_id=server_id) 
     
 
 transfer_backends = BackendDict(TransferBackend, "transfer")
