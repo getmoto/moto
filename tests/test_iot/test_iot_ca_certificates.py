@@ -8,8 +8,7 @@ from moto import mock_aws
 @mock_aws(config={"iot": {"use_valid_cert": False}})
 def test_register_ca_certificate_simple_invalid_cert():
     """
-    Original test case with invalid cert.  If users don't want to
-    provide a valid cert, they can set "use_valid_cert" to False
+    Original test case with invalid cert.
     """
     client = boto3.client("iot", region_name="us-east-1")
 
@@ -23,7 +22,7 @@ def test_register_ca_certificate_simple_invalid_cert():
 
 
 @pytest.fixture(name="make_cert")
-@mock_aws
+@mock_aws(config={"iot": {"use_valid_cert": True}})
 def fixture_make_cert():
     """
     Create a valid cert for testing
@@ -32,7 +31,7 @@ def fixture_make_cert():
     return client.create_keys_and_certificate(setAsActive=False)
 
 
-@mock_aws
+@mock_aws(config={"iot": {"use_valid_cert": True}})
 def test_register_ca_certificate_simple(make_cert):
     client = boto3.client("iot", region_name="us-east-1")
     certInfo = make_cert
