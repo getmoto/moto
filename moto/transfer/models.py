@@ -76,15 +76,21 @@ class TransferBackend(BaseBackend):
         ssh_public_key_body: str, 
         user_name: str
     ) -> Tuple[str, str, str]:
-        ssh_public_key_id = "TODO"
         if server_id not in self.server_users:
             raise ServerNotFound(server_id=server_id)
-        for user in self.server_users[server_id]:
+        for i, user in enumerate(self.server_users[server_id]):
             if user.name == user_name:
-                # TODO create and add ssh key        
+                date_imported = datetime.now().strftime('%Y%m%d%H%M%S')
+                ssh_public_key_id = f"{server_id}:{user_name}:public_key:{date_imported}"
+                key: SshPublicKey = {
+                    'SshPublicKeyId': ssh_public_key_id,
+                    'SshPublicKeyBody': ssh_public_key_body,
+                    'DateImported': date_imported
+                }
+                self.server_users[server_id][i]['SshPublicKeys'].append(key)
                 return server_id, ssh_public_key_id, user_name
-        # TODO raise error
-    
+        raise UserNotFound(user_name=user_name, server_id=server_id)
+
     def delete_ssh_public_key(
         self,
         server_id: str, 
