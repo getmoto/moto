@@ -14,7 +14,7 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.neptune.models import NeptuneBackend, neptune_backends
-from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition, load_resource
+from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
 
 from .exceptions import (
     DBClusterNotFoundError,
@@ -1684,22 +1684,24 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         backend.delete_subnet_group(self.subnet_name)
 
 
-class DBProxy(BaseModel):
+class DBProxy(RDSBaseModel):
+    resource_type = "db-proxy"
+
     def __init__(
         self,
+        backend: "RDSBackend",
         db_proxy_name: str,
         engine_family: str,
         auth: List[Dict[str, str]],
         role_arn: str,
         vpc_subnet_ids: List[str],
-        region_name: str,
-        account_id: str,
         vpc_security_group_ids: Optional[List[str]],
         require_tls: Optional[bool] = False,
         idle_client_timeout: Optional[int] = 1800,
         debug_logging: Optional[bool] = False,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
+        super().__init__(backend)
         self.db_proxy_name = db_proxy_name
         self.engine_family = engine_family
         if self.engine_family not in ["MYSQL", "POSTGRESQ", "SQLSERVER"]:
@@ -1727,11 +1729,7 @@ class DBProxy(BaseModel):
             self.tags = []
         else:
             self.tags = tags
-        self.region_name = region_name
-        self.account_id = account_id
-        self.db_proxy_arn = f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:db-proxy:{self.db_proxy_name}"
-        self.arn = self.db_proxy_arn
-        ec2_backend = ec2_backends[self.account_id][self.region_name]
+        ec2_backend = ec2_backends[self.account_id][self.region]
         subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
         vpcs = []
         for subnet in subnets:
@@ -1746,7 +1744,11 @@ class DBProxy(BaseModel):
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
-        self.endpoint = f"{self.db_proxy_name}.db-proxy-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
+        self.endpoint = f"{self.db_proxy_name}.db-proxy-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+
+    @property
+    def name(self) -> str:
+        return self.db_proxy_name
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
@@ -1792,7 +1794,7 @@ class DBProxy(BaseModel):
                 <RoleArn>{{ dbproxy.role_arn }}</RoleArn>
                 <DebugLogging>{{ 'true' if dbproxy.debug_logging else 'false' }}</DebugLogging>
                 <VpcId>{{ dbproxy.vpc_id }}</VpcId>
-                <DBProxyArn>{{ dbproxy.db_proxy_arn }}</DBProxyArn>
+                <DBProxyArn>{{ dbproxy.arn }}</DBProxyArn>
                 <VpcSubnetIds>
                   {% for vpcsubnetid in dbproxy.vpc_subnet_ids %}
                     <member>{{ vpcsubnetid }}</member>
@@ -3163,13 +3165,12 @@ class RDSBackend(BaseBackend):
         if len(self.db_proxies) >= int(os.environ.get("MOTO_RDS_PROXY_LIMIT", "100")):
             raise DBProxyQuotaExceededFault()
         db_proxy = DBProxy(
+            self,
             db_proxy_name,
             engine_family,
             auth,
             role_arn,
             vpc_subnet_ids,
-            self.region_name,
-            self.account_id,
             vpc_security_group_ids,
             require_tls,
             idle_client_timeout,
