@@ -2,7 +2,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import transfer_backends
+from .models import TransferBackend, transfer_backends
 
 
 class TransferResponse(BaseResponse):
@@ -12,89 +12,56 @@ class TransferResponse(BaseResponse):
         super().__init__(service_name="transfer")
 
     @property
-    def transfer_backend(self):
-        """Return backend instance specific for this region."""
-        # TODO
-        # transfer_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
+    def transfer_backend(self) -> TransferBackend:
         return transfer_backends[self.current_account][self.region]
-
-    # add methods from here
-
     
     def create_user(self):
-        params = self._get_params()
-        home_directory = params.get("HomeDirectory")
-        home_directory_type = params.get("HomeDirectoryType")
-        home_directory_mappings = params.get("HomeDirectoryMappings")
-        policy = params.get("Policy")
-        posix_profile = params.get("PosixProfile")
-        role = params.get("Role")
-        server_id = params.get("ServerId")
-        ssh_public_key_body = params.get("SshPublicKeyBody")
-        tags = params.get("Tags")
-        user_name = params.get("UserName")
+        params = json.loads(self.body)
         server_id, user_name = self.transfer_backend.create_user(
-            home_directory=home_directory,
-            home_directory_type=home_directory_type,
-            home_directory_mappings=home_directory_mappings,
-            policy=policy,
-            posix_profile=posix_profile,
-            role=role,
-            server_id=server_id,
-            ssh_public_key_body=ssh_public_key_body,
-            tags=tags,
-            user_name=user_name,
+            home_directory=params.get("HomeDirectory"),
+            home_directory_type=params.get("HomeDirectoryType"),
+            home_directory_mappings=params.get("HomeDirectoryMappings"),
+            policy=params.get("Policy"),
+            posix_profile=params.get("PosixProfile"),
+            role=params.get("Role"),
+            server_id=params.get("ServerId"),
+            ssh_public_key_body=params.get("SshPublicKeyBody"),
+            tags=params.get("Tags"),
+            user_name=params.get("UserName"),
         )
-        # TODO: adjust response
         return json.dumps(dict(serverId=server_id, userName=user_name))
 
     
-    def describe_user(self):
-        params = self._get_params()
-        server_id = params.get("ServerId")
-        user_name = params.get("UserName")
+    def describe_user(self) -> str:
+        params = json.loads(self.body)
         server_id, user = self.transfer_backend.describe_user(
-            server_id=server_id,
-            user_name=user_name,
+            server_id=params.get("UserName"),
+            user_name=params.get("UserName"),
         )
-        # TODO: adjust response
-        return json.dumps(dict(serverId=server_id, user=user))
-# add templates from here
+        return json.dumps(dict(serverId=server_id, user=user.to_dict()))
     
     def delete_user(self):
         params = self._get_params()
-        server_id = params.get("ServerId")
-        user_name = params.get("UserName")
         self.transfer_backend.delete_user(
-            server_id=server_id,
-            user_name=user_name,
+            server_id=params.get("ServerId"),
+            user_name=params.get("UserName"),
         )
-        # TODO: adjust response
         return json.dumps(dict())
     
     def import_ssh_public_key(self):
         params = self._get_params()
-        server_id = params.get("ServerId")
-        ssh_public_key_body = params.get("SshPublicKeyBody")
-        user_name = params.get("UserName")
         server_id, ssh_public_key_id, user_name = self.transfer_backend.import_ssh_public_key(
-            server_id=server_id,
-            ssh_public_key_body=ssh_public_key_body,
-            user_name=user_name,
+            server_id=params.get("UserName"),
+            ssh_public_key_body=params.get("UserName"),
+            user_name=params.get("UserName"),
         )
-        # TODO: adjust response
         return json.dumps(dict(serverId=server_id, sshPublicKeyId=ssh_public_key_id, userName=user_name))
     
     def delete_ssh_public_key(self):
         params = self._get_params()
-        server_id = params.get("ServerId")
-        ssh_public_key_id = params.get("SshPublicKeyId")
-        user_name = params.get("UserName")
         self.transfer_backend.delete_ssh_public_key(
-            server_id=server_id,
-            ssh_public_key_id=ssh_public_key_id,
-            user_name=user_name,
+            server_id=params.get("UserName"),
+            ssh_public_key_id=params.get("UserName"),
+            user_name=params.get("UserName"),
         )
-        # TODO: adjust response
         return json.dumps(dict())
