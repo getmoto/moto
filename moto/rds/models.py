@@ -1340,9 +1340,12 @@ class ExportTask(BaseModel):
         return template.render(task=self, snapshot=self.snapshot)
 
 
-class EventSubscription(BaseModel):
-    def __init__(self, kwargs: Dict[str, Any]):
-        self.subscription_name = kwargs.get("subscription_name")
+class EventSubscription(BaseRDSModel):
+    resource_type = "es"
+
+    def __init__(self, backend: "RDSBackend", subscription_name: str, **kwargs: Any):
+        super().__init__(backend)
+        self.subscription_name = subscription_name
         self.sns_topic_arn = kwargs.get("sns_topic_arn")
         self.source_type = kwargs.get("source_type")
         self.event_categories = kwargs.get("event_categories", [])
@@ -1350,23 +1353,20 @@ class EventSubscription(BaseModel):
         self.enabled = kwargs.get("enabled", False)
         if self.enabled is None:
             self.enabled = False
-        self.tags = kwargs.get("tags", True)
-
-        self.region_name = ""
-        self.customer_aws_id = kwargs["account_id"]
+        self.tags = kwargs.get("tags", [])
         self.status = "active"
         self.created_at = iso_8601_datetime_with_milliseconds()
 
     @property
-    def es_arn(self) -> str:
-        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.customer_aws_id}:es:{self.subscription_name}"
+    def name(self) -> str:
+        return self.subscription_name
 
     def to_xml(self) -> str:
         template = Template(
             """
             <EventSubscription>
-              <CustomerAwsId>{{ subscription.customer_aws_id }}</CustomerAwsId>
-              <CustSubscriptionId>{{ subscription.subscription_name }}</CustSubscriptionId>
+              <CustomerAwsId>{{ subscription.account_id }}</CustomerAwsId>
+              <CustSubscriptionId>{{ subscription.name }}</CustSubscriptionId>
               <SnsTopicArn>{{ subscription.sns_topic_arn }}</SnsTopicArn>
               <SubscriptionCreationTime>{{ subscription.created_at }}</SubscriptionCreationTime>
               <SourceType>{{ subscription.source_type }}</SourceType>
@@ -1382,7 +1382,7 @@ class EventSubscription(BaseModel):
               </EventCategoriesList>
               <Status>{{ subscription.status }}</Status>
               <Enabled>{{ 'true' if subscription.enabled else 'false' }}</Enabled>
-              <EventSubscriptionArn>{{ subscription.es_arn }}</EventSubscriptionArn>
+              <EventSubscriptionArn>{{ subscription.arn }}</EventSubscriptionArn>
               <TagList>
               {%- for tag in subscription.tags -%}
                 <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
@@ -2731,8 +2731,7 @@ class RDSBackend(BaseBackend):
         if subscription_name in self.event_subscriptions:
             raise SubscriptionAlreadyExistError(subscription_name)
 
-        kwargs["account_id"] = self.account_id
-        subscription = EventSubscription(kwargs)
+        subscription = EventSubscription(self, **kwargs)
         self.event_subscriptions[subscription_name] = subscription
 
         return subscription
