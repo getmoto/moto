@@ -757,7 +757,7 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
         self.license_model = kwargs.get("license_model", "general-public-license")
-        self.option_group_name = kwargs.get("option_group_name", None)
+        self.option_group_name = kwargs.get("option_group_name", "")
         self.option_group_supplied = self.option_group_name is not None
         if (
             self.option_group_name
