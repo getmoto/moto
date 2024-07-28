@@ -70,7 +70,7 @@ def find_cluster(cluster_arn: str) -> "DBCluster":
 
 
 class BaseRDSModel(BaseModel):
-    resource_type: str = None
+    resource_type: str
 
     def __init__(self, backend: "RDSBackend"):
         self.backend = backend
@@ -167,10 +167,12 @@ class DBCluster(BaseRDSModel):
 
     resource_type = "cluster"
 
-    def __init__(self, backend: "RDSBackend", **kwargs: Any):
+    def __init__(
+        self, backend: "RDSBackend", db_cluster_identifier: str, **kwargs: Any
+    ):
         super().__init__(backend)
         self.db_name = kwargs.get("db_name")
-        self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
+        self.db_cluster_identifier = db_cluster_identifier
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.deletion_protection = kwargs.get("deletion_protection")
         if self.deletion_protection is None:
@@ -652,7 +654,9 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
 
     resource_type = "db"
 
-    def __init__(self, backend: "RDSBackend", **kwargs: Any):
+    def __init__(
+        self, backend: "RDSBackend", db_instance_identifier: str, **kwargs: Any
+    ):
         super().__init__(backend)
         self.status = "available"
         self.is_replica = False
@@ -685,13 +689,12 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
                 engine=self.engine, storage_type=self.storage_type
             )
         self.db_cluster_identifier: Optional[str] = kwargs.get("db_cluster_identifier")
-        self.db_instance_identifier = kwargs.get("db_instance_identifier")
+        self.db_instance_identifier = db_instance_identifier
         self.source_db_identifier: Optional[str] = kwargs.get("source_db_identifier")
         self.db_instance_class = kwargs.get("db_instance_class")
         self.port = kwargs.get("port")
         if self.port is None:
             self.port = DBInstance.default_port(self.engine)
-        self.db_instance_identifier = kwargs.get("db_instance_identifier")
         self.db_name = kwargs.get("db_name")
         self.instance_create_time = iso_8601_datetime_with_milliseconds()
         self.publicly_accessible = kwargs.get("publicly_accessible")
