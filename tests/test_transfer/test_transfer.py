@@ -14,7 +14,7 @@ def fixture_transfer_client():
 
 
 @mock_aws
-def test_create_and_describe_user(client):
+def test_create_describe_and_delete_user(client):
     connection = client.create_user(
         HomeDirectory="/Users/mock_user",
         HomeDirectoryType="PATH",
@@ -24,10 +24,10 @@ def test_create_and_describe_user(client):
             'Uid': 0,
             'Gid': 1,
         },
-        Role="TransferAdmin",
-        ServerId="1234",
+        Role="TransferFamilyAdministrator",
+        ServerId="123467890ABCDEFGHIJ",
         SshPublicKeyBody="ED25519",
-        Tags=[{'Owner': 'MotoUser1337'}],
+        Tags=[{'Key': 'Owner', 'Value': 'MotoUser1337'}],
         UserName="test_user"
     )
     user_name = connection["userName"]
@@ -50,10 +50,11 @@ def test_create_and_describe_user(client):
     assert user["Policy"] == "MockPolicy"
     assert user["PosixProfile"]['Uid'] == 0
     assert user["PosixProfile"]['Gid'] == 1
-    assert user["Role"] == "TransferAdmin"
-    assert user["ServerId"] == "1234"
+    assert user["Role"] == "TransferFamilyAdministrator"
+    assert user["ServerId"] == "123467890ABCDEFGHIJ"
     assert user["SshPublicKeys"][0]["SshPublicKeyBody"] == "ED25519"
-    assert user["Tags"]["Owner"] == "MotoUser1337"
+    assert user["Tags"][0]["Key"] == "Owner"
+    assert user["Tags"][0]["Value"] == "MotoUser1337"
     assert user["UserName"] == "test_user"
     
     client.delete_user(
@@ -67,7 +68,6 @@ def test_create_and_describe_user(client):
             server_id=server_id
         )
        
-
 
 @mock_aws
 @pytest.mark.skip(reason="TODO")

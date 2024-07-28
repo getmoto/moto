@@ -27,8 +27,6 @@ class TransferBackend(BaseBackend):
         tags: Optional[List[Dict[str,str]]], 
         user_name: str
     ) -> Tuple[str, str]:
-        if server_id not in self.server_users:
-            raise ServerNotFound(server_id=server_id)
         ssh_public_keys: List[SshPublicKey] = [
             {
                 'DateImported': datetime.now().strftime('%Y%m%d%H%M%S'),
@@ -38,6 +36,7 @@ class TransferBackend(BaseBackend):
         ]
         user = User(
             HomeDirectory=home_directory,
+            HomeDirectoryMappings=HomeDirectoryMapping,
             HomeDirectoryType=home_directory_type,
             Policy=policy,
             PosixProfile=posix_profile,
@@ -46,7 +45,7 @@ class TransferBackend(BaseBackend):
             Tags=tags,
             UserName=user_name
         )
-        self.server_users[server_id].append(user)
+        self.server_users.setdefault(server_id, []).append(user)
         return server_id, user_name
     
     def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
