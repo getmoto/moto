@@ -41,7 +41,7 @@ def test_export_from_missing_table(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(create_table=False)
-def test_export_from_missing_s3_bucket(table_name=None):
+def test_export_to_missing_s3_bucket(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
