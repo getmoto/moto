@@ -36,9 +36,10 @@ def test_export_from_missing_table(table_name=None):
     s3.delete_bucket(Bucket=s3_bucket_name)
 
 
+
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(create_table=False)
-def test_export_empty_table():
+def test_export_empty_table(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-2")
     s3 = boto3.client("s3", region_name="us-east-1")
 
@@ -92,7 +93,7 @@ def test_export_empty_table():
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(create_table=False)
-def test_export_table():
+def test_export_table(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-2")
     s3 = boto3.client("s3", region_name="us-east-1")
 
@@ -161,7 +162,7 @@ def test_export_table():
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(create_table=False)
-def test_list_exports():
+def test_list_exports(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-2")
     s3 = boto3.client("s3", region_name="us-east-1")
 
@@ -220,6 +221,12 @@ def test_list_exports():
     assert export_summaries[1]["ExportStatus"] == "COMPLETED"
     assert export_summaries[1]["ExportType"] == "FULL_EXPORT"
     assert export_summaries[1]["ExportArn"] == export_details_2["ExportArn"]
+
+    client.delete_table(TableName=table_name)
+    s3_contents = s3.list_objects(Bucket=s3_bucket_name, Prefix=s3_prefix)["Contents"]
+    for object in s3_contents:
+        s3.delete_object(Bucket=s3_bucket_name, Key=object["Key"])
+    s3.delete_bucket(Bucket=s3_bucket_name)
 
 
 def wait_for_export(client, export_description):

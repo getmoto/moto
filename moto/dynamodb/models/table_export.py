@@ -59,7 +59,7 @@ class TableExport(Thread):
         for key in dynamodb_backend.tables:
             if dynamodb_backend.tables[key].table_arn == self.table_arn:
                 self.table_name = key
-        if self.table_name is None:
+        if not self.table_name:
             self.status = "FAILED"
             self.failure_code = "DynamoDBTableNotFound"
             self.failure_message = "The specified table does not exist"

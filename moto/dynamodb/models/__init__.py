@@ -1010,6 +1010,9 @@ class DynamoDBBackend(BaseBackend):
         export_type: str,
         s3_bucket_owner: str,
     ) -> TableExport:
+        """Only ExportFormat=DYNAMODB_JSON is supported so far.
+           Only exports one file following DYNAMODB_JSON format to the s3 location. Other files aren't created.
+        """
         table_export = TableExport(
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
