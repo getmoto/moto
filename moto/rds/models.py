@@ -558,7 +558,7 @@ class DBCluster(BaseRDSModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class ClusterSnapshot(BaseModel):
+class DBClusterSnapshot(BaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["cluster.db_cluster_arn", "cluster.db_cluster_identifier"],
@@ -1306,7 +1306,7 @@ class DatabaseSnapshot(BaseModel):
 
 class ExportTask(BaseModel):
     def __init__(
-        self, snapshot: Union[DatabaseSnapshot, ClusterSnapshot], kwargs: Dict[str, Any]
+        self, snapshot: Union[DatabaseSnapshot, DBClusterSnapshot], kwargs: Dict[str, Any]
     ):
         self.snapshot = snapshot
 
@@ -1807,7 +1807,7 @@ class RDSBackend(BaseBackend):
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
         self.databases: Dict[str, DBInstance] = OrderedDict()
         self.database_snapshots: Dict[str, DatabaseSnapshot] = OrderedDict()
-        self.cluster_snapshots: Dict[str, ClusterSnapshot] = OrderedDict()
+        self.cluster_snapshots: Dict[str, DBClusterSnapshot] = OrderedDict()
         self.export_tasks: Dict[str, ExportTask] = OrderedDict()
         self.event_subscriptions: Dict[str, EventSubscription] = OrderedDict()
         self.db_parameter_groups: Dict[str, DBParameterGroup] = {}
@@ -2536,7 +2536,7 @@ class RDSBackend(BaseBackend):
 
     def create_auto_cluster_snapshot(
         self, db_cluster_identifier: str, db_snapshot_identifier: str
-    ) -> ClusterSnapshot:
+    ) -> DBClusterSnapshot:
         return self.create_db_cluster_snapshot(
             db_cluster_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
@@ -2547,7 +2547,7 @@ class RDSBackend(BaseBackend):
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> ClusterSnapshot:
+    ) -> DBClusterSnapshot:
         cluster = self.clusters.get(db_cluster_identifier)
         if cluster is None:
             raise DBClusterNotFoundError(db_cluster_identifier)
@@ -2561,7 +2561,7 @@ class RDSBackend(BaseBackend):
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
-        snapshot = ClusterSnapshot(cluster, db_snapshot_identifier, snapshot_type, tags)
+        snapshot = DBClusterSnapshot(cluster, db_snapshot_identifier, snapshot_type, tags)
         self.cluster_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
 
@@ -2570,7 +2570,7 @@ class RDSBackend(BaseBackend):
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> ClusterSnapshot:
+    ) -> DBClusterSnapshot:
         if source_snapshot_identifier not in self.cluster_snapshots:
             raise DBClusterSnapshotNotFoundError(source_snapshot_identifier)
 
@@ -2587,7 +2587,7 @@ class RDSBackend(BaseBackend):
 
     def delete_db_cluster_snapshot(
         self, db_snapshot_identifier: str
-    ) -> ClusterSnapshot:
+    ) -> DBClusterSnapshot:
         if db_snapshot_identifier not in self.cluster_snapshots:
             raise DBClusterSnapshotNotFoundError(db_snapshot_identifier)
 
@@ -2614,7 +2614,7 @@ class RDSBackend(BaseBackend):
         db_cluster_identifier: Optional[str],
         db_snapshot_identifier: str,
         filters: Any = None,
-    ) -> List[ClusterSnapshot]:
+    ) -> List[DBClusterSnapshot]:
         snapshots = self.cluster_snapshots
         if db_cluster_identifier:
             filters = merge_filters(filters, {"db-cluster-id": [db_cluster_identifier]})
@@ -2623,7 +2623,7 @@ class RDSBackend(BaseBackend):
                 filters, {"db-cluster-snapshot-id": [db_snapshot_identifier]}
             )
         if filters:
-            snapshots = self._filter_resources(snapshots, filters, ClusterSnapshot)
+            snapshots = self._filter_resources(snapshots, filters, DBClusterSnapshot)
         if db_snapshot_identifier and not snapshots and not db_cluster_identifier:
             raise DBClusterSnapshotNotFoundError(db_snapshot_identifier)
         return list(snapshots.values())
@@ -2707,7 +2707,7 @@ class RDSBackend(BaseBackend):
             raise DBClusterSnapshotNotFoundError(snapshot_id)
 
         if snapshot_type == "snapshot":
-            snapshot: Union[DatabaseSnapshot, ClusterSnapshot] = (
+            snapshot: Union[DatabaseSnapshot, DBClusterSnapshot] = (
                 self.database_snapshots[snapshot_id]
             )
         else:
