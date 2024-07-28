@@ -2272,10 +2272,7 @@ class RDSBackend(BaseBackend):
         # }
         # The CLI does not allow deletion of default groups
 
-        # add region and account-id to construct the arn
-        option_group_kwargs["region"] = self.region_name
-        option_group_kwargs["account_id"] = self.account_id
-        option_group = OptionGroup(**option_group_kwargs)
+        option_group = OptionGroup(self, **option_group_kwargs)
         self.option_groups[option_group_id] = option_group
         return option_group
 
@@ -3198,25 +3195,30 @@ class RDSBackend(BaseBackend):
         return db_proxies
 
 
-class OptionGroup:
+class OptionGroup(BaseRDSModel):
+    resource_type = "og"
+
     def __init__(
         self,
+        backend: "RDSBackend",
         name: str,
         engine_name: str,
         major_engine_version: str,
-        region: str,
-        account_id: str,
         description: Optional[str] = None,
     ):
+        super().__init__(backend)
         self.engine_name = engine_name
         self.major_engine_version = major_engine_version
         self.description = description
-        self.name = name
+        self._name = name
         self.vpc_and_non_vpc_instance_memberships = False
         self.options: Dict[str, Any] = {}
         self.vpcId = "null"
         self.tags: List[Dict[str, str]] = []
-        self.arn = f"arn:{get_partition(region)}:rds:{region}:{account_id}:og:{name}"
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def to_json(self) -> str:
         template = Template(
