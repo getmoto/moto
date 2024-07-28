@@ -1742,7 +1742,7 @@ class DBProxy(BaseModel):
         self.vpc_id = ec2_backend.describe_subnets(subnet_ids=[self.vpc_subnet_ids[0]])[
             0
         ].vpc_id
-        self.status = "availible"
+        self.status = "available"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
