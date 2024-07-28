@@ -1,12 +1,13 @@
 import gzip
 import json
 from time import sleep
-from unittest import mock
+from unittest import SkipTest, mock
 from uuid import uuid4
 
 import boto3
 import pytest
 
+from moto import settings
 from moto.dynamodb.models import TableExport
 
 from . import dynamodb_aws_verified
@@ -119,6 +120,9 @@ def test_export_point_in_time_recovery_not_enabled(table_name=None):
 @dynamodb_aws_verified(create_table=False)
 @mock.patch.object(TableExport, "_backup_to_s3_file", mock.Mock(side_effect=Exception))
 def test_export_backup_to_s3_error(table_name=None):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can't mock backup to s3 error in server mode")
+
     client = boto3.client("dynamodb", region_name="us-east-2")
     s3 = boto3.client("s3", region_name="us-east-1")
 
