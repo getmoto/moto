@@ -36,7 +36,6 @@ def test_export_from_missing_table(table_name=None):
     s3.delete_bucket(Bucket=s3_bucket_name)
 
 
-
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(create_table=False)
 def test_export_empty_table(table_name=None):
