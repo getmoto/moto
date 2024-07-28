@@ -69,7 +69,7 @@ def find_cluster(cluster_arn: str) -> "DBCluster":
     return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
 
 
-class BaseRDSModel(BaseModel):
+class RDSBaseModel(BaseModel):
     resource_type: str
 
     def __init__(self, backend: "RDSBackend"):
@@ -97,7 +97,7 @@ class BaseRDSModel(BaseModel):
         return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.name}"
 
 
-class GlobalCluster(BaseRDSModel):
+class GlobalCluster(RDSBaseModel):
     resource_type = "global-cluster"
 
     def __init__(
@@ -171,7 +171,7 @@ class GlobalCluster(BaseRDSModel):
         return template.render(cluster=self)
 
 
-class DBCluster(BaseRDSModel):
+class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"], "DB Cluster Identifiers"
@@ -558,7 +558,7 @@ class DBCluster(BaseRDSModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBClusterSnapshot(BaseRDSModel):
+class DBClusterSnapshot(RDSBaseModel):
     resource_type = "cluster-snapshot"
 
     SUPPORTED_FILTERS = {
@@ -646,7 +646,7 @@ class DBClusterSnapshot(BaseRDSModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBInstance(CloudFormationModel, BaseRDSModel):
+class DBInstance(CloudFormationModel, RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
@@ -1208,7 +1208,7 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
         backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
 
 
-class DBInstanceSnapshot(BaseRDSModel):
+class DBInstanceSnapshot(RDSBaseModel):
     resource_type = "snapshot"
     SUPPORTED_FILTERS = {
         "db-instance-id": FilterDef(
@@ -1362,7 +1362,7 @@ class ExportTask(BaseModel):
         return template.render(task=self, snapshot=self.snapshot)
 
 
-class EventSubscription(BaseRDSModel):
+class EventSubscription(RDSBaseModel):
     resource_type = "es"
 
     def __init__(self, backend: "RDSBackend", subscription_name: str, **kwargs: Any):
@@ -1428,7 +1428,7 @@ class EventSubscription(BaseRDSModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBSecurityGroup(CloudFormationModel, BaseRDSModel):
+class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "secgrp"
 
     def __init__(
@@ -1562,7 +1562,7 @@ class DBSecurityGroup(CloudFormationModel, BaseRDSModel):
         backend.delete_security_group(self.group_name)
 
 
-class DBSubnetGroup(CloudFormationModel, BaseRDSModel):
+class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "subgrp"
 
     def __init__(
@@ -3195,7 +3195,7 @@ class RDSBackend(BaseBackend):
         return db_proxies
 
 
-class OptionGroup(BaseRDSModel):
+class OptionGroup(RDSBaseModel):
     resource_type = "og"
 
     def __init__(
@@ -3278,7 +3278,7 @@ class OptionGroup(BaseRDSModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBParameterGroup(CloudFormationModel, BaseRDSModel):
+class DBParameterGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "pg"
 
     def __init__(
@@ -3374,7 +3374,7 @@ class DBParameterGroup(CloudFormationModel, BaseRDSModel):
         return db_parameter_group
 
 
-class DBClusterParameterGroup(CloudFormationModel, BaseRDSModel):
+class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "cluster-pg"
 
     def __init__(self, backend: RDSBackend, name: str, description: str, family: str):
