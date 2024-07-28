@@ -747,7 +747,7 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
         if msg:
             raise RDSClientError("InvalidParameterValue", msg)
 
-        self.db_parameter_group_name = kwargs.get("db_parameter_group_name")
+        self.db_parameter_group_name = kwargs.get("db_parameter_group_name", "")
         if (
             self.db_parameter_group_name
             and not self.is_default_parameter_group(self.db_parameter_group_name)
@@ -810,12 +810,11 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
             description = f"Default parameter group for {db_family}"
             return [
                 DBParameterGroup(
-                    account_id=self.account_id,
+                    backend=self.backend,
                     name=db_parameter_group_name,
                     family=db_family,
                     description=description,
                     tags=[],
-                    region=self.region,
                 )
             ]
         else:
@@ -828,9 +827,9 @@ class DBInstance(CloudFormationModel, BaseRDSModel):
     def is_default_parameter_group(self, param_group_name: str) -> bool:
         return param_group_name.startswith(f"default.{self.engine.lower()}")  # type: ignore
 
-    def default_db_parameter_group_details(self) -> Tuple[Optional[str], Optional[str]]:
+    def default_db_parameter_group_details(self) -> Tuple[str, str]:
         if not self.engine_version:
-            return (None, None)
+            return "", ""
 
         minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
         db_family = f"{self.engine.lower()}{minor_engine_version}"  # type: ignore
@@ -2413,9 +2412,7 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterValue",
                 "The parameter DBParameterGroupName must be provided and must not be blank.",
             )
-        db_parameter_group_kwargs["region"] = self.region_name
-        db_parameter_group_kwargs["account_id"] = self.account_id
-        db_parameter_group = DBParameterGroup(**db_parameter_group_kwargs)
+        db_parameter_group = DBParameterGroup(self, **db_parameter_group_kwargs)
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
 
@@ -3279,22 +3276,27 @@ class OptionGroup:
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBParameterGroup(CloudFormationModel):
+class DBParameterGroup(CloudFormationModel, BaseRDSModel):
+    resource_type = "pg"
+
     def __init__(
         self,
-        account_id: str,
-        name: Optional[str],
+        backend: "RDSBackend",
+        name: str,
         description: str,
         family: Optional[str],
         tags: List[Dict[str, str]],
-        region: str,
     ):
-        self.name = name
+        super().__init__(backend)
+        self._name = name
         self.description = description
         self.family = family
         self.tags = tags
         self.parameters: Dict[str, Any] = defaultdict(dict)
-        self.arn = f"arn:{get_partition(region)}:rds:{region}:{account_id}:pg:{name}"
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def to_xml(self) -> str:
         template = Template(
