@@ -35,7 +35,7 @@ class TransferResponse(BaseResponse):
     def describe_user(self) -> str:
         params = json.loads(self.body)
         server_id, user = self.transfer_backend.describe_user(
-            server_id=params.get("UserName"),
+            server_id=params.get("ServerId"),
             user_name=params.get("UserName"),
         )
         return json.dumps(dict(serverId=server_id, user=user.to_dict()))
@@ -51,8 +51,8 @@ class TransferResponse(BaseResponse):
     def import_ssh_public_key(self):
         params = self._get_params()
         server_id, ssh_public_key_id, user_name = self.transfer_backend.import_ssh_public_key(
-            server_id=params.get("UserName"),
-            ssh_public_key_body=params.get("UserName"),
+            server_id=params.get("ServerId"),
+            ssh_public_key_body=params.get("SshPublicKeyBody"),
             user_name=params.get("UserName"),
         )
         return json.dumps(dict(serverId=server_id, sshPublicKeyId=ssh_public_key_id, userName=user_name))
@@ -60,8 +60,8 @@ class TransferResponse(BaseResponse):
     def delete_ssh_public_key(self):
         params = self._get_params()
         self.transfer_backend.delete_ssh_public_key(
-            server_id=params.get("UserName"),
-            ssh_public_key_id=params.get("UserName"),
+            server_id=params.get("ServerId"),
+            ssh_public_key_id=params.get("SshPublicKeyId"),
             user_name=params.get("UserName"),
         )
         return json.dumps(dict())
