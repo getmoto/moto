@@ -1,10 +1,13 @@
 import gzip
 import json
 from time import sleep
+from unittest import mock
 from uuid import uuid4
 
 import boto3
 import pytest
+
+from moto.dynamodb.models import TableExport
 
 from . import dynamodb_aws_verified
 
@@ -33,6 +36,122 @@ def test_export_from_missing_table(table_name=None):
     assert export_details["FailureCode"] == "DynamoDBTableNotFound"
     assert "The specified table does not exist" in export_details["FailureMessage"]
 
+    s3.delete_bucket(Bucket=s3_bucket_name)
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(create_table=False)
+def test_export_from_missing_s3_bucket(table_name=None):
+    client = boto3.client("dynamodb", region_name="us-east-1")
+
+    s3_bucket_name = f"inttest{uuid4()}"
+    s3_prefix = "prefix"
+    table_name = "test-table"
+
+    response = client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table_arn = response["TableDescription"]["TableArn"]
+
+    client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    export_description = client.export_table_to_point_in_time(
+        TableArn=table_arn,
+        ExportFormat="DYNAMO_JSON",
+        S3Bucket=s3_bucket_name,
+        S3Prefix=s3_prefix,
+    )["ExportDescription"]
+
+    export_details = wait_for_export(client, export_description)
+
+    assert export_details["ExportStatus"] == "FAILED"
+    assert export_details["FailureCode"] == "S3NoSuchBucket"
+    assert "The specified bucket does not exist" in export_details["FailureMessage"]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(create_table=False)
+def test_export_point_in_time_recovery_not_enabled(table_name=None):
+    client = boto3.client("dynamodb", region_name="us-east-2")
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    s3_bucket_name = f"inttest{uuid4()}"
+    s3_prefix = "prefix"
+    table_name = "moto_test_" + str(uuid4())[0:6]
+
+    s3.create_bucket(Bucket=s3_bucket_name)
+    response = client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+
+    table_arn = response["TableDescription"]["TableArn"]
+
+    export_description = client.export_table_to_point_in_time(
+        TableArn=table_arn,
+        ExportFormat="DYNAMO_JSON",
+        S3Bucket=s3_bucket_name,
+        S3Prefix=s3_prefix,
+    )["ExportDescription"]
+
+    export_details = wait_for_export(client, export_description)
+
+    assert export_details["ExportStatus"] == "FAILED"
+    assert export_details["FailureCode"] == "PointInTimeRecoveryUnavailable"
+    assert (
+        "Point in time recovery not enabled for table"
+        in export_details["FailureMessage"]
+    )
+
+    client.delete_table(TableName=table_name)
+    s3.delete_bucket(Bucket=s3_bucket_name)
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(create_table=False)
+@mock.patch.object(TableExport, "_backup_to_s3_file", mock.Mock(side_effect=Exception))
+def test_export_backup_to_s3_error(table_name=None):
+    client = boto3.client("dynamodb", region_name="us-east-2")
+    s3 = boto3.client("s3", region_name="us-east-1")
+
+    s3_bucket_name = f"inttest{uuid4()}"
+    s3_prefix = "prefix"
+    table_name = "moto_test_" + str(uuid4())[0:6]
+
+    s3.create_bucket(Bucket=s3_bucket_name)
+    response = client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table_arn = response["TableDescription"]["TableArn"]
+    client.update_continuous_backups(
+        TableName=table_name,
+        PointInTimeRecoverySpecification={"PointInTimeRecoveryEnabled": True},
+    )
+
+    export_description = client.export_table_to_point_in_time(
+        TableArn=table_arn,
+        ExportFormat="DYNAMO_JSON",
+        S3Bucket=s3_bucket_name,
+        S3Prefix=s3_prefix,
+    )["ExportDescription"]
+
+    export_details = wait_for_export(client, export_description)
+
+    assert export_details["ExportStatus"] == "FAILED"
+    assert export_details["FailureCode"] == "UNKNOWN"
+
+    client.delete_table(TableName=table_name)
     s3.delete_bucket(Bucket=s3_bucket_name)
 
 
@@ -133,7 +252,6 @@ def test_export_table(table_name=None):
     )["ExportDescription"]
 
     export_details = wait_for_export(client, export_description)
-
     assert export_details["BilledSizeBytes"] == 3
     assert export_details["ExportStatus"] == "COMPLETED"
     assert export_details["ItemCount"] == 3
