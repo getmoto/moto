@@ -2076,7 +2076,9 @@ class RDSBackend(BaseBackend):
         self.security_groups[group_name] = security_group
         return security_group
 
-    def describe_security_groups(self, security_group_name: str) -> List[DBSecurityGroup]:
+    def describe_security_groups(
+        self, security_group_name: str
+    ) -> List[DBSecurityGroup]:
         if security_group_name:
             if security_group_name in self.security_groups:
                 return [self.security_groups[security_group_name]]
