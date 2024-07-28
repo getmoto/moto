@@ -558,7 +558,9 @@ class DBCluster(BaseRDSModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBClusterSnapshot(BaseModel):
+class DBClusterSnapshot(BaseRDSModel):
+    resource_type = "cluster-snapshot"
+
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["cluster.db_cluster_arn", "cluster.db_cluster_identifier"],
@@ -573,11 +575,13 @@ class DBClusterSnapshot(BaseModel):
 
     def __init__(
         self,
+        backend: "RDSBackend",
         cluster: DBCluster,
         snapshot_id: str,
         snapshot_type: str,
         tags: List[Dict[str, str]],
     ):
+        super().__init__(backend)
         self.cluster = cluster
         self.snapshot_id = snapshot_id
         self.snapshot_type = snapshot_type
@@ -587,12 +591,12 @@ class DBClusterSnapshot(BaseModel):
         self.attributes: List[Dict[str, Any]] = []
 
     @property
-    def arn(self) -> str:
-        return self.snapshot_arn
+    def name(self) -> str:
+        return self.snapshot_id
 
     @property
     def snapshot_arn(self) -> str:
-        return f"arn:{get_partition(self.cluster.region)}:rds:{self.cluster.region}:{self.cluster.account_id}:cluster-snapshot:{self.snapshot_id}"
+        return self.arn
 
     def to_xml(self) -> str:
         template = Template(
@@ -1306,7 +1310,9 @@ class DatabaseSnapshot(BaseModel):
 
 class ExportTask(BaseModel):
     def __init__(
-        self, snapshot: Union[DatabaseSnapshot, DBClusterSnapshot], kwargs: Dict[str, Any]
+        self,
+        snapshot: Union[DatabaseSnapshot, DBClusterSnapshot],
+        kwargs: Dict[str, Any],
     ):
         self.snapshot = snapshot
 
@@ -2561,7 +2567,9 @@ class RDSBackend(BaseBackend):
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
-        snapshot = DBClusterSnapshot(cluster, db_snapshot_identifier, snapshot_type, tags)
+        snapshot = DBClusterSnapshot(
+            self, cluster, db_snapshot_identifier, snapshot_type, tags
+        )
         self.cluster_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
 
