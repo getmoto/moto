@@ -2943,8 +2943,7 @@ class RDSBackend(BaseBackend):
         description: str,
     ) -> "DBClusterParameterGroup":
         group = DBClusterParameterGroup(
-            account_id=self.account_id,
-            region=self.region_name,
+            backend=self,
             name=group_name,
             family=family,
             description=description,
@@ -3343,15 +3342,19 @@ class DBParameterGroup(CloudFormationModel):
         return db_parameter_group
 
 
-class DBClusterParameterGroup(CloudFormationModel):
-    def __init__(
-        self, account_id: str, region: str, name: str, description: str, family: str
-    ):
-        self.name = name
+class DBClusterParameterGroup(CloudFormationModel, BaseRDSModel):
+    resource_type = "cluster-pg"
+
+    def __init__(self, backend: RDSBackend, name: str, description: str, family: str):
+        super().__init__(backend)
+        self._name = name
         self.description = description
         self.family = family
         self.parameters: Dict[str, Any] = defaultdict(dict)
-        self.arn = f"arn:{get_partition(region)}:rds:{region}:{account_id}:cpg:{name}"
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def to_xml(self) -> str:
         template = Template(
