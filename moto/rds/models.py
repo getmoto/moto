@@ -1533,28 +1533,28 @@ class DBSecurityGroup(CloudFormationModel):
         backend.delete_security_group(self.group_name)
 
 
-class DBSubnetGroup(CloudFormationModel):
+class DBSubnetGroup(CloudFormationModel, BaseRDSModel):
+    resource_type = "subgrp"
+
     def __init__(
         self,
+        backend: "RDSBackend",
         subnet_name: str,
         description: str,
         subnets: "List[Subnet]",
         tags: List[Dict[str, str]],
-        region: str,
-        account_id: str,
     ):
+        super().__init__(backend)
         self.subnet_name = subnet_name
         self.description = description
         self.subnets = subnets
         self.status = "Complete"
         self.tags = tags
         self.vpc_id = self.subnets[0].vpc_id
-        self.region = region
-        self.account_id = account_id
 
     @property
-    def sg_arn(self) -> str:
-        return f"arn:{get_partition(self.region)}:rds:{self.region}:{self.account_id}:subgrp:{self.subnet_name}"
+    def name(self) -> str:
+        return self.subnet_name
 
     def to_xml(self) -> str:
         template = Template(
@@ -1562,8 +1562,8 @@ class DBSubnetGroup(CloudFormationModel):
               <VpcId>{{ subnet_group.vpc_id }}</VpcId>
               <SubnetGroupStatus>{{ subnet_group.status }}</SubnetGroupStatus>
               <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
-              <DBSubnetGroupName>{{ subnet_group.subnet_name }}</DBSubnetGroupName>
-              <DBSubnetGroupArn>{{ subnet_group.sg_arn }}</DBSubnetGroupArn>
+              <DBSubnetGroupName>{{ subnet_group.name }}</DBSubnetGroupName>
+              <DBSubnetGroupArn>{{ subnet_group.arn }}</DBSubnetGroupArn>
               <Subnets>
                 {% for subnet in subnet_group.subnets %}
                 <Subnet>
@@ -2149,9 +2149,7 @@ class RDSBackend(BaseBackend):
         subnets: List[Any],
         tags: List[Dict[str, str]],
     ) -> DBSubnetGroup:
-        subnet_group = DBSubnetGroup(
-            subnet_name, description, subnets, tags, self.region_name, self.account_id
-        )
+        subnet_group = DBSubnetGroup(self, subnet_name, description, subnets, tags)
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
 
