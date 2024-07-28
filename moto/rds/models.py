@@ -97,20 +97,21 @@ class BaseRDSModel(BaseModel):
         return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.name}"
 
 
-class GlobalCluster(BaseModel):
+class GlobalCluster(BaseRDSModel):
+    resource_type = "global-cluster"
+
     def __init__(
         self,
-        account_id: str,
-        region_name: str,
+        backend: "RDSBackend",
         global_cluster_identifier: str,
         engine: str,
         engine_version: Optional[str],
         storage_encrypted: Optional[str],
         deletion_protection: Optional[str],
     ):
+        super().__init__(backend)
         self.global_cluster_identifier = global_cluster_identifier
         self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
-        self.global_cluster_arn = f"arn:{get_partition(region_name)}:rds::{account_id}:global-cluster:{global_cluster_identifier}"
         self.engine = engine
         self.engine_version = engine_version or "5.7.mysql_aurora.2.11.2"
         self.storage_encrypted = (
@@ -124,6 +125,19 @@ class GlobalCluster(BaseModel):
         if self.deletion_protection is None:
             self.deletion_protection = False
         self.members: List[DBCluster] = []
+
+    @property
+    def name(self) -> str:
+        return self.global_cluster_identifier
+
+    @property
+    def arn(self) -> str:
+        # Global Clusters do not belong to a particular region.
+        return super().arn.replace(self.region, "")
+
+    @property
+    def global_cluster_arn(self) -> str:
+        return self.arn
 
     def to_xml(self) -> str:
         template = Template(
@@ -139,7 +153,7 @@ class GlobalCluster(BaseModel):
           <GlobalClusterMembers>
           {% for cluster_member in cluster.members %}
           <GlobalClusterMember>
-            <DBClusterArn>{{ cluster_member.db_cluster_arn }}</DBClusterArn>
+            <DBClusterArn>{{ cluster_member.arn }}</DBClusterArn>
             <IsWriter>{{ 'true' if cluster_member.is_writer else 'false' }}</IsWriter>
             {% if not cluster_member.is_writer %}<GlobalWriteForwardingStatus>disabled</GlobalWriteForwardingStatus>{% endif %}
                 <Readers>
@@ -2996,8 +3010,7 @@ class RDSBackend(BaseBackend):
                 "When creating standalone global cluster, value for engineName should be specified"
             )
         global_cluster = GlobalCluster(
-            account_id=self.account_id,
-            region_name=self.region_name,
+            backend=self,
             global_cluster_identifier=global_cluster_identifier,
             engine=engine,  # type: ignore
             engine_version=engine_version,
