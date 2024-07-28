@@ -69,6 +69,34 @@ def find_cluster(cluster_arn: str) -> "DBCluster":
     return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
 
 
+class BaseRDSModel(BaseModel):
+    resource_type: str = None
+
+    def __init__(self, backend: "RDSBackend"):
+        self.backend = backend
+        self.created = iso_8601_datetime_with_milliseconds()
+
+    @property
+    def name(self) -> str:
+        raise NotImplementedError("Subclasses must implement name property.")
+
+    @property
+    def region(self) -> str:
+        return self.backend.region_name
+
+    @property
+    def account_id(self) -> str:
+        return self.backend.account_id
+
+    @property
+    def partition(self) -> str:
+        return self.backend.partition
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.name}"
+
+
 class GlobalCluster(BaseModel):
     def __init__(
         self,
@@ -129,7 +157,7 @@ class GlobalCluster(BaseModel):
         return template.render(cluster=self)
 
 
-class DBCluster:
+class DBCluster(BaseRDSModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"], "DB Cluster Identifiers"
@@ -137,7 +165,10 @@ class DBCluster:
         "engine": FilterDef(["engine"], "Engine Names"),
     }
 
-    def __init__(self, **kwargs: Any):
+    resource_type = "cluster"
+
+    def __init__(self, backend: "RDSBackend", **kwargs: Any):
+        super().__init__(backend)
         self.db_name = kwargs.get("db_name")
         self.db_cluster_identifier = kwargs.get("db_cluster_identifier")
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
@@ -164,8 +195,6 @@ class DBCluster:
         self.kms_key_id = kwargs.get("kms_key_id")
         self.network_type = kwargs.get("network_type") or "IPV4"
         self.status = "available"
-        self.account_id = kwargs.get("account_id")
-        self.region_name = kwargs["region"]
         self.cluster_create_time = iso_8601_datetime_with_milliseconds()
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
@@ -192,17 +221,17 @@ class DBCluster:
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
             self.availability_zones = [
-                f"{self.region_name}a",
-                f"{self.region_name}b",
-                f"{self.region_name}c",
+                f"{self.region}a",
+                f"{self.region}b",
+                f"{self.region}c",
             ]
         self.parameter_group = kwargs.get("parameter_group") or "default.aurora8.0"
         self.subnet_group = kwargs.get("db_subnet_group_name") or "default"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
-        self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
-        self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region_name}.rds.amazonaws.com"
+        self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+        self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.port: int = kwargs.get("port")  # type: ignore
         if self.port is None:
             self.port = DBCluster.default_port(self.engine)
@@ -282,6 +311,10 @@ class DBCluster:
                 )
 
     @property
+    def name(self) -> str:
+        return self.db_cluster_identifier
+
+    @property
     def is_multi_az(self) -> bool:
         return (
             len(self.read_replica_identifiers) > 0
@@ -289,12 +322,8 @@ class DBCluster:
         )
 
     @property
-    def arn(self) -> str:
-        return self.db_cluster_arn
-
-    @property
     def db_cluster_arn(self) -> str:
-        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:cluster:{self.db_cluster_identifier}"
+        return self.arn
 
     @property
     def master_user_password(self) -> str:
@@ -349,6 +378,7 @@ class DBCluster:
 
     def get_cfg(self) -> Dict[str, Any]:
         cfg = self.__dict__
+        cfg.pop("backend")
         cfg["master_user_password"] = cfg.pop("_master_user_password")
         cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
         return cfg
@@ -546,7 +576,7 @@ class ClusterSnapshot(BaseModel):
 
     @property
     def snapshot_arn(self) -> str:
-        return f"arn:{get_partition(self.cluster.region_name)}:rds:{self.cluster.region_name}:{self.cluster.account_id}:cluster-snapshot:{self.snapshot_id}"
+        return f"arn:{get_partition(self.cluster.region)}:rds:{self.cluster.region}:{self.cluster.account_id}:cluster-snapshot:{self.snapshot_id}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -596,7 +626,7 @@ class ClusterSnapshot(BaseModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBInstance(CloudFormationModel):
+class DBInstance(CloudFormationModel, BaseRDSModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
@@ -620,12 +650,13 @@ class DBInstance(CloudFormationModel):
         "postgres": "9.3.3",
     }
 
-    def __init__(self, **kwargs: Any):
+    resource_type = "db"
+
+    def __init__(self, backend: "RDSBackend", **kwargs: Any):
+        super().__init__(backend)
         self.status = "available"
         self.is_replica = False
         self.replicas: List[str] = []
-        self.account_id: str = kwargs["account_id"]
-        self.region_name: str = kwargs["region"]
         self.engine: str = kwargs["engine"]
         if self.engine not in DbInstanceEngine.valid_db_instance_engine():
             raise InvalidParameterValue(
@@ -674,7 +705,7 @@ class DBInstance(CloudFormationModel):
             self.backup_retention_period = 1
         self.availability_zone = kwargs.get("availability_zone")
         if not self.availability_zone:
-            self.availability_zone = f"{self.region_name}a"
+            self.availability_zone = f"{self.region}a"
         self.multi_az = kwargs.get("multi_az")
         if self.multi_az is None:
             self.multi_az = False
@@ -682,7 +713,7 @@ class DBInstance(CloudFormationModel):
         self.db_subnet_group = None
         if self.db_subnet_group_name:
             self.db_subnet_group = rds_backends[self.account_id][
-                self.region_name
+                self.region
             ].describe_db_subnet_groups(self.db_subnet_group_name)[0]
         self.security_groups = kwargs.get("security_groups", [])
         self.vpc_security_group_ids = kwargs.get("vpc_security_group_ids", [])
@@ -700,7 +731,7 @@ class DBInstance(CloudFormationModel):
             self.db_parameter_group_name
             and not self.is_default_parameter_group(self.db_parameter_group_name)
             and self.db_parameter_group_name
-            not in rds_backends[self.account_id][self.region_name].db_parameter_groups
+            not in rds_backends[self.account_id][self.region].db_parameter_groups
         ):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
@@ -710,7 +741,7 @@ class DBInstance(CloudFormationModel):
         if (
             self.option_group_name
             and self.option_group_name
-            not in rds_backends[self.account_id][self.region_name].option_groups
+            not in rds_backends[self.account_id][self.region].option_groups
         ):
             raise OptionGroupNotFoundFaultError(self.option_group_name)
         self.default_option_groups = {
@@ -736,12 +767,12 @@ class DBInstance(CloudFormationModel):
         )
 
     @property
-    def arn(self) -> str:
-        return self.db_instance_arn
+    def name(self) -> str:
+        return self.db_instance_identifier
 
     @property
     def db_instance_arn(self) -> str:
-        return f"arn:{get_partition(self.region_name)}:rds:{self.region_name}:{self.account_id}:db:{self.db_instance_identifier}"
+        return self.arn
 
     @property
     def physical_resource_id(self) -> Optional[str]:
@@ -763,11 +794,11 @@ class DBInstance(CloudFormationModel):
                     family=db_family,
                     description=description,
                     tags=[],
-                    region=self.region_name,
+                    region=self.region,
                 )
             ]
         else:
-            backend = rds_backends[self.account_id][self.region_name]
+            backend = rds_backends[self.account_id][self.region]
             if self.db_parameter_group_name not in backend.db_parameter_groups:
                 raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
@@ -913,10 +944,12 @@ class DBInstance(CloudFormationModel):
 
     @property
     def address(self) -> str:
-        return f"{self.db_instance_identifier}.aaaaaaaaaa.{self.region_name}.rds.amazonaws.com"
+        return (
+            f"{self.db_instance_identifier}.aaaaaaaaaa.{self.region}.rds.amazonaws.com"
+        )
 
     def add_replica(self, replica: "DBInstance") -> None:
-        if self.region_name != replica.region_name:
+        if self.region != replica.region:
             # Cross Region replica
             self.replicas.append(replica.db_instance_arn)
         else:
@@ -1045,8 +1078,6 @@ class DBInstance(CloudFormationModel):
             "port": properties.get("Port", 3306),
             "publicly_accessible": properties.get("PubliclyAccessible"),
             "copy_tags_to_snapshot": properties.get("CopyTagsToSnapshot"),
-            "account_id": account_id,
-            "region": region_name,
             "security_groups": security_groups,
             "storage_encrypted": properties.get("StorageEncrypted"),
             "storage_type": properties.get("StorageType"),
@@ -1190,7 +1221,7 @@ class DatabaseSnapshot(BaseModel):
 
     @property
     def snapshot_arn(self) -> str:
-        return f"arn:{get_partition(self.database.region_name)}:rds:{self.database.region_name}:{self.database.account_id}:snapshot:{self.snapshot_id}"
+        return f"arn:{get_partition(self.database.region)}:rds:{self.database.region}:{self.database.account_id}:snapshot:{self.snapshot_id}"
 
     def to_xml(self) -> str:
         template = Template(
@@ -1787,7 +1818,7 @@ class RDSBackend(BaseBackend):
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
         self._validate_db_identifier(database_id)
-        database = DBInstance(**db_kwargs)
+        database = DBInstance(self, **db_kwargs)
 
         cluster_id = database.db_cluster_identifier
         if cluster_id is not None:
@@ -1887,12 +1918,11 @@ class RDSBackend(BaseBackend):
         source_database_id = db_kwargs["source_db_identifier"]
         primary = self.find_db_from_id(source_database_id)
         if self.arn_regex.match(source_database_id):
-            db_kwargs["region"] = self.region_name
+            db_kwargs["backend"] = self
 
         # Shouldn't really copy here as the instance is duplicated. RDS replicas have different instances.
         replica = copy.copy(primary)
         replica.update(db_kwargs)
-        replica.region_name = self.region_name
         replica.set_as_replica()
         self.databases[database_id] = replica
         primary.add_replica(replica)
@@ -1964,6 +1994,7 @@ class RDSBackend(BaseBackend):
         )[0]
         original_database = snapshot.database
         new_instance_props = copy.deepcopy(original_database.__dict__)
+        new_instance_props.pop("backend")
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -1991,6 +2022,7 @@ class RDSBackend(BaseBackend):
         del source_dict["db_subnet_group"]
 
         new_instance_props = copy.deepcopy(source_dict)
+        new_instance_props.pop("backend")
         if not db_instance.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2406,8 +2438,7 @@ class RDSBackend(BaseBackend):
 
     def create_db_cluster(self, kwargs: Dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
-        kwargs["account_id"] = self.account_id
-        cluster = DBCluster(**kwargs)
+        cluster = DBCluster(self, **kwargs)
         self.clusters[cluster_id] = cluster
 
         if (
