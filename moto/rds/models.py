@@ -1406,22 +1406,28 @@ class EventSubscription(BaseModel):
         self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
-class DBSecurityGroup(CloudFormationModel):
+class DBSecurityGroup(CloudFormationModel, BaseRDSModel):
+    resource_type = "secgrp"
+
     def __init__(
         self,
-        account_id: str,
+        backend: "RDSBackend",
         group_name: str,
         description: str,
         tags: List[Dict[str, str]],
     ):
+        super().__init__(backend)
         self.group_name = group_name
         self.description = description
         self.status = "authorized"
         self.ip_ranges: List[Any] = []
         self.ec2_security_groups: List[Any] = []
         self.tags = tags
-        self.owner_id = account_id
         self.vpc_id = None
+
+    @property
+    def name(self) -> str:
+        return self.group_name
 
     def to_xml(self) -> str:
         template = Template(
@@ -1430,8 +1436,8 @@ class DBSecurityGroup(CloudFormationModel):
             {% for security_group in security_group.ec2_security_groups %}
                 <EC2SecurityGroup>
                     <EC2SecurityGroupId>{{ security_group.id }}</EC2SecurityGroupId>
-                    <EC2SecurityGroupName>{{ security_group.name }}</EC2SecurityGroupName>
-                    <EC2SecurityGroupOwnerId>{{ security_group.owner_id }}</EC2SecurityGroupOwnerId>
+                    <EC2SecurityGroupName>{{ security_group.group_name }}</EC2SecurityGroupName>
+                    <EC2SecurityGroupOwnerId>{{ security_group.account_id }}</EC2SecurityGroupOwnerId>
                     <Status>authorized</Status>
                 </EC2SecurityGroup>
             {% endfor %}
@@ -1447,7 +1453,8 @@ class DBSecurityGroup(CloudFormationModel):
             {% endfor %}
             </IPRanges>
             <OwnerId>{{ security_group.ownder_id }}</OwnerId>
-            <DBSecurityGroupName>{{ security_group.group_name }}</DBSecurityGroupName>
+            <DBSecurityGroupName>{{ security_group.name }}</DBSecurityGroupName>
+            <DBSecurityGroupArn>{{ security_group.arn }}</DBSecurityGroupArn>
         </DBSecurityGroup>"""
         )
         return template.render(security_group=self)
@@ -2107,7 +2114,7 @@ class RDSBackend(BaseBackend):
     def create_db_security_group(
         self, group_name: str, description: str, tags: List[Dict[str, str]]
     ) -> DBSecurityGroup:
-        security_group = DBSecurityGroup(self.account_id, group_name, description, tags)
+        security_group = DBSecurityGroup(self, group_name, description, tags)
         self.security_groups[group_name] = security_group
         return security_group
 
