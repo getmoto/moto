@@ -1140,3 +1140,68 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(
             dict(EndpointConfigs=endpoint_summaries, NextToken=next_token)
         )
+
+    def create_compilation_job(self) -> str:
+        compilation_job_name = self._get_param("CompilationJobName")
+        role_arn = self._get_param("RoleArn")
+        model_package_version_arn = self._get_param("ModelPackageVersionArn")
+        input_config = self._get_param("InputConfig")
+        output_config = self._get_param("OutputConfig")
+        vpc_config = self._get_param("VpcConfig")
+        stopping_condition = self._get_param("StoppingCondition")
+        tags = self._get_param("Tags")
+        compilation_job_arn = self.sagemaker_backend.create_compilation_job(
+            compilation_job_name=compilation_job_name,
+            role_arn=role_arn,
+            model_package_version_arn=model_package_version_arn,
+            input_config=input_config,
+            output_config=output_config,
+            vpc_config=vpc_config,
+            stopping_condition=stopping_condition,
+            tags=tags,
+        )
+        return json.dumps(dict(CompilationJobArn=compilation_job_arn))
+
+    def describe_compilation_job(self) -> str:
+        compilation_job_name = self._get_param("CompilationJobName")
+        compilation_job_description = self.sagemaker_backend.describe_compilation_job(
+            compilation_job_name=compilation_job_name,
+        )
+        return json.dumps(compilation_job_description)
+
+    def list_compilation_jobs(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        name_contains = self._get_param("NameContains")
+        status_equals = self._get_param("StatusEquals")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        compilation_jobs, next_token = self.sagemaker_backend.list_compilation_jobs(
+            next_token=next_token,
+            max_results=max_results,
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            last_modified_time_after=last_modified_time_after,
+            last_modified_time_before=last_modified_time_before,
+            name_contains=name_contains,
+            status_equals=status_equals,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        compilation_job_summaries = [x.summary() for x in compilation_jobs]
+        return json.dumps(
+            dict(
+                CompilationJobSummaries=compilation_job_summaries, NextToken=next_token
+            )
+        )
+
+    def delete_compilation_job(self) -> str:
+        compilation_job_name = self._get_param("CompilationJobName")
+        self.sagemaker_backend.delete_compilation_job(
+            compilation_job_name=compilation_job_name,
+        )
+        return json.dumps({})
