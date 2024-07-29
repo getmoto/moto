@@ -3081,10 +3081,9 @@ class RDSBackend(BaseBackend):
             if attribute["AttributeName"] == attribute_name:
                 attribute_present = True
                 if values_to_add:
-                    attribute["AttributeValues"] = (
-                        values_to_add["AttributeValue"].values()
-                        + attribute["AttributeValues"]
-                    )
+                    attribute["AttributeValues"] = list(
+                        attribute["AttributeValues"]
+                    ) + list(values_to_add["AttributeValue"].values())
                 if values_to_remove:
                     attribute["AttributeValues"] = [
                         i
@@ -3125,10 +3124,9 @@ class RDSBackend(BaseBackend):
             if attribute["AttributeName"] == attribute_name:
                 attribute_present = True
                 if values_to_add:
-                    attribute["AttributeValues"] = (
-                        values_to_add["AttributeValue"].values()
-                        + attribute["AttributeValues"]
-                    )
+                    attribute["AttributeValues"] = list(
+                        attribute["AttributeValues"]
+                    ) + list(values_to_add["AttributeValue"].values())
                 if values_to_remove:
                     attribute["AttributeValues"] = [
                         i
