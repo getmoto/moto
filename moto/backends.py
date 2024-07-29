@@ -312,7 +312,7 @@ SERVICE_NAMES = Union[
     "Literal['textract']",
     "Literal['timestream-write']",
     "Literal['transcribe']",
-    "Literal['transfer']", 
+    "Literal['transfer']",
     "Literal['wafv2']",
     "Literal['workspaces']",
     "Literal['xray']",
