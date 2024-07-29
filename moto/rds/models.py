@@ -1208,7 +1208,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
 
 
-class DBInstanceSnapshot(RDSBaseModel):
+class DBSnapshot(RDSBaseModel):
     resource_type = "snapshot"
     SUPPORTED_FILTERS = {
         "db-instance-id": FilterDef(
@@ -1313,7 +1313,7 @@ class DBInstanceSnapshot(RDSBaseModel):
 class ExportTask(BaseModel):
     def __init__(
         self,
-        snapshot: Union[DBInstanceSnapshot, DBClusterSnapshot],
+        snapshot: Union[DBSnapshot, DBClusterSnapshot],
         kwargs: Dict[str, Any],
     ):
         self.snapshot = snapshot
@@ -1328,9 +1328,7 @@ class ExportTask(BaseModel):
 
         self.status = "complete"
         self.created_at = iso_8601_datetime_with_milliseconds()
-        self.source_type = (
-            "SNAPSHOT" if type(snapshot) is DBInstanceSnapshot else "CLUSTER"
-        )
+        self.source_type = "SNAPSHOT" if type(snapshot) is DBSnapshot else "CLUSTER"
 
     def to_xml(self) -> str:
         template = Template(
@@ -1816,7 +1814,7 @@ class RDSBackend(BaseBackend):
         self.clusters: Dict[str, DBCluster] = OrderedDict()
         self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
         self.databases: Dict[str, DBInstance] = OrderedDict()
-        self.database_snapshots: Dict[str, DBInstanceSnapshot] = OrderedDict()
+        self.database_snapshots: Dict[str, DBSnapshot] = OrderedDict()
         self.cluster_snapshots: Dict[str, DBClusterSnapshot] = OrderedDict()
         self.export_tasks: Dict[str, ExportTask] = OrderedDict()
         self.event_subscriptions: Dict[str, EventSubscription] = OrderedDict()
@@ -1877,7 +1875,7 @@ class RDSBackend(BaseBackend):
         self,
         db_instance_identifier: str,
         db_snapshot_identifier: str,
-    ) -> DBInstanceSnapshot:
+    ) -> DBSnapshot:
         return self.create_db_snapshot(
             db_instance_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
@@ -1888,7 +1886,7 @@ class RDSBackend(BaseBackend):
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> DBInstanceSnapshot:
+    ) -> DBSnapshot:
         if isinstance(db_instance, str):
             database = self.databases.get(db_instance)
             if not database:
@@ -1906,7 +1904,7 @@ class RDSBackend(BaseBackend):
             tags = list()
         if database.copy_tags_to_snapshot and not tags:
             tags = database.get_tags()
-        snapshot = DBInstanceSnapshot(
+        snapshot = DBSnapshot(
             self, database, db_snapshot_identifier, snapshot_type, tags
         )
         self.database_snapshots[db_snapshot_identifier] = snapshot
@@ -1917,7 +1915,7 @@ class RDSBackend(BaseBackend):
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> DBInstanceSnapshot:
+    ) -> DBSnapshot:
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)
 
@@ -1932,7 +1930,7 @@ class RDSBackend(BaseBackend):
             tags=tags,
         )
 
-    def delete_db_snapshot(self, db_snapshot_identifier: str) -> DBInstanceSnapshot:
+    def delete_db_snapshot(self, db_snapshot_identifier: str) -> DBSnapshot:
         if db_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(db_snapshot_identifier)
 
@@ -1981,7 +1979,7 @@ class RDSBackend(BaseBackend):
         db_instance_identifier: Optional[str],
         db_snapshot_identifier: str,
         filters: Optional[Dict[str, Any]] = None,
-    ) -> List[DBInstanceSnapshot]:
+    ) -> List[DBSnapshot]:
         snapshots = self.database_snapshots
         if db_instance_identifier:
             filters = merge_filters(
@@ -1992,7 +1990,7 @@ class RDSBackend(BaseBackend):
                 filters, {"db-snapshot-id": [db_snapshot_identifier]}
             )
         if filters:
-            snapshots = self._filter_resources(snapshots, filters, DBInstanceSnapshot)
+            snapshots = self._filter_resources(snapshots, filters, DBSnapshot)
         if db_snapshot_identifier and not snapshots and not db_instance_identifier:
             raise DBSnapshotNotFoundError(db_snapshot_identifier)
         return list(snapshots.values())
@@ -2714,9 +2712,9 @@ class RDSBackend(BaseBackend):
             raise DBClusterSnapshotNotFoundError(snapshot_id)
 
         if snapshot_type == "snapshot":
-            snapshot: Union[DBInstanceSnapshot, DBClusterSnapshot] = (
-                self.database_snapshots[snapshot_id]
-            )
+            snapshot: Union[DBSnapshot, DBClusterSnapshot] = self.database_snapshots[
+                snapshot_id
+            ]
         else:
             snapshot = self.cluster_snapshots[snapshot_id]
 
