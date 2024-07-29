@@ -30,13 +30,14 @@ class TransferBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         user_name: str,
     ) -> Tuple[str, str]:
-        ssh_public_keys: List[SshPublicKey] = [
-            {
-                "DateImported": datetime.now().strftime("%Y%m%d%H%M%S"),
-                "SshPublicKeyBody": ssh_public_key_body,
-                "SshPublicKeyId": "mock_id",  # TODO figure this out
-            }
-        ]
+        if ssh_public_key_body:
+            ssh_public_keys: List[SshPublicKey] = [
+                {
+                    "DateImported": datetime.now().strftime("%Y%m%d%H%M%S"),
+                    "SshPublicKeyBody": ssh_public_key_body,
+                    "SshPublicKeyId": "mock_id",  # TODO figure this out
+                }
+            ]
         user = User(
             HomeDirectory=home_directory,
             HomeDirectoryMappings=home_directory_mappings,

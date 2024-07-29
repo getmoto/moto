@@ -10,14 +10,14 @@ from .models import TransferBackend, transfer_backends
 class TransferResponse(BaseResponse):
     """Handler for Transfer requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="transfer")
 
     @property
     def transfer_backend(self) -> TransferBackend:
         return transfer_backends[self.current_account][self.region]
 
-    def create_user(self):
+    def create_user(self) -> str:
         params = json.loads(self.body)
         server_id, user_name = self.transfer_backend.create_user(
             home_directory=params.get("HomeDirectory"),
@@ -41,7 +41,7 @@ class TransferResponse(BaseResponse):
         )
         return json.dumps(dict(ServerId=server_id, User=user.to_dict()))
 
-    def delete_user(self):
+    def delete_user(self) -> str:
         params = json.loads(self.body)
         self.transfer_backend.delete_user(
             server_id=params.get("ServerId"),
@@ -49,7 +49,7 @@ class TransferResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def import_ssh_public_key(self):
+    def import_ssh_public_key(self) -> str:
         params = json.loads(self.body)
         server_id, ssh_public_key_id, user_name = (
             self.transfer_backend.import_ssh_public_key(
@@ -64,7 +64,7 @@ class TransferResponse(BaseResponse):
             )
         )
 
-    def delete_ssh_public_key(self):
+    def delete_ssh_public_key(self) -> str:
         params = json.loads(self.body)
         self.transfer_backend.delete_ssh_public_key(
             server_id=params.get("ServerId"),
