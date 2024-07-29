@@ -1115,82 +1115,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             database = rds_backend.create_db_instance(db_kwargs)
         return database
 
-    def to_json(self) -> str:
-        template = Template(
-            """{
-        "AllocatedStorage": 10,
-        "AutoMinorVersionUpgrade": "{{ database.auto_minor_version_upgrade }}",
-        "AvailabilityZone": "{{ database.availability_zone }}",
-        "BackupRetentionPeriod": "{{ database.backup_retention_period }}",
-        "CharacterSetName": {%- if database.character_set_name -%}{{ database.character_set_name }}{%- else %} null{%- endif -%},
-        "DBInstanceClass": "{{ database.db_instance_class }}",
-        {%- if database.db_cluster_identifier -%}"DBClusterIdentifier": "{{ database.db_cluster_identifier }}",{%- endif -%}
-        "DBInstanceIdentifier": "{{ database.db_instance_identifier }}",
-        "DBInstanceStatus": "{{ database.status }}",
-        "DBName": {%- if database.db_name -%}"{{ database.db_name }}"{%- else %} null{%- endif -%},
-        {% if database.db_parameter_group_name -%}"DBParameterGroups": {
-            "DBParameterGroup": {
-            "ParameterApplyStatus": "in-sync",
-            "DBParameterGroupName": "{{ database.db_parameter_group_name }}"
-          }
-        },{%- endif %}
-        "DBSecurityGroups": [
-          {% for security_group in database.security_groups -%}{%- if loop.index != 1 -%},{%- endif -%}
-          {"DBSecurityGroup": {
-            "Status": "active",
-            "DBSecurityGroupName": "{{ security_group }}"
-          }}{% endfor %}
-        ],
-        {%- if database.db_subnet_group -%}{{ database.db_subnet_group.to_json() }},{%- endif %}
-        "Engine": "{{ database.engine }}",
-        "EngineVersion": "{{ database.engine_version }}",
-        "LatestRestorableTime": null,
-        "LicenseModel": "{{ database.license_model }}",
-        "MasterUsername": "{{ database.master_username }}",
-        "MultiAZ": "{{ database.multi_az }}",{% if database.option_group_name %}
-        "OptionGroupMemberships": [{
-          "OptionGroupMembership": {
-            "OptionGroupName": "{{ database.option_group_name }}",
-            "Status": "in-sync"
-          }
-        }],{%- endif %}
-        "PendingModifiedValues": { "MasterUserPassword": "****" },
-        "PreferredBackupWindow": "{{ database.preferred_backup_window }}",
-        "PreferredMaintenanceWindow": "{{ database.preferred_maintenance_window }}",
-        "PubliclyAccessible": "{{ database.publicly_accessible }}",
-        "CopyTagsToSnapshot": "{{ database.copy_tags_to_snapshot }}",
-        "AllocatedStorage": "{{ database.allocated_storage }}",
-        "Endpoint": {
-            "Address": "{{ database.address }}",
-            "Port": "{{ database.port }}"
-        },
-        "InstanceCreateTime": "{{ database.instance_create_time }}",
-        "Iops": null,
-        "ReadReplicaDBInstanceIdentifiers": [{%- for replica in database.replicas -%}
-            {%- if not loop.first -%},{%- endif -%}
-            "{{ replica }}"
-        {%- endfor -%}
-        ],
-        {%- if database.source_db_identifier -%}
-        "ReadReplicaSourceDBInstanceIdentifier": "{{ database.source_db_identifier }}",
-        {%- else -%}
-        "ReadReplicaSourceDBInstanceIdentifier": null,
-        {%- endif -%}
-        "SecondaryAvailabilityZone": null,
-        "StatusInfos": null,
-        "VpcSecurityGroups": [
-            {% for vpc_security_group_id in database.vpc_security_group_ids %}
-            {
-                "Status": "active",
-                "VpcSecurityGroupId": "{{ vpc_security_group_id }}"
-            }
-            {% endfor %}
-        ],
-        "DBInstanceArn": "{{ database.db_instance_arn }}"
-      }"""
-        )
-        return template.render(database=self)
-
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
 
@@ -1455,23 +1379,6 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
         )
         return template.render(security_group=self)
 
-    def to_json(self) -> str:
-        template = Template(
-            """{
-            "DBSecurityGroupDescription": "{{ security_group.description }}",
-            "DBSecurityGroupName": "{{ security_group.group_name }}",
-            "EC2SecurityGroups": {{ security_group.ec2_security_groups }},
-            "IPRanges": [{%- for ip in security_group.ip_ranges -%}
-                         {%- if loop.index != 1 -%},{%- endif -%}
-                         "{{ ip }}"
-                         {%- endfor -%}
-                        ],
-            "OwnerId": "{{ security_group.owner_id }}",
-            "VpcId": "{{ security_group.vpc_id }}"
-        }"""
-        )
-        return template.render(security_group=self)
-
     def authorize_cidr(self, cidr_ip: str) -> None:
         self.ip_ranges.append(cidr_ip)
 
@@ -1568,29 +1475,6 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
                 {% endfor %}
               </Subnets>
             </DBSubnetGroup>"""
-        )
-        return template.render(subnet_group=self)
-
-    def to_json(self) -> str:
-        template = Template(
-            """"DBSubnetGroup": {
-                "VpcId": "{{ subnet_group.vpc_id }}",
-                "SubnetGroupStatus": "{{ subnet_group.status }}",
-                "DBSubnetGroupDescription": "{{ subnet_group.description }}",
-                "DBSubnetGroupName": "{{ subnet_group.subnet_name }}",
-                "Subnets": {
-                  "Subnet": [
-                    {% for subnet in subnet_group.subnets %}{
-                      "SubnetStatus": "Active",
-                      "SubnetIdentifier": "{{ subnet.id }}",
-                      "SubnetAvailabilityZone": {
-                        "Name": "{{ subnet.availability_zone }}",
-                        "ProvisionedIopsCapable": "false"
-                      }
-                    }{%- if not loop.last -%},{%- endif -%}{% endfor %}
-                  ]
-                }
-            }"""
         )
         return template.render(subnet_group=self)
 
@@ -3156,21 +3040,6 @@ class OptionGroup(RDSBaseModel):
     @property
     def name(self) -> str:
         return self._name
-
-    def to_json(self) -> str:
-        template = Template(
-            """{
-    "VpcId": null,
-    "MajorEngineVersion": "{{ option_group.major_engine_version }}",
-    "OptionGroupDescription": "{{ option_group.description }}",
-    "AllowsVpcAndNonVpcInstanceMemberships": "{{ option_group.vpc_and_non_vpc_instance_memberships }}",
-    "EngineName": "{{ option_group.engine_name }}",
-    "Options": [],
-    "OptionGroupName": "{{ option_group.name }},
-    "OptionGroupArn": "{{ option_group.arn }}
-}"""
-        )
-        return template.render(option_group=self)
 
     def to_xml(self) -> str:
         template = Template(
