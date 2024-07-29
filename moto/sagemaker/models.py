@@ -1743,7 +1743,7 @@ class CompilationJob(BaseObject):
             ]["Accelerator"]
         return summary
 
-      
+
 class AutoMLJob(BaseObject):
     def __init__(
         self,
@@ -2388,7 +2388,6 @@ class SageMakerModelBackend(BaseBackend):
         self.clusters: Dict[str, Cluster] = {}
         self.auto_ml_jobs: Dict[str, AutoMLJob] = {}
         self.compilation_jobs: Dict[str, CompilationJob] = {}
-
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -4357,7 +4356,6 @@ class SageMakerModelBackend(BaseBackend):
                 nodes_list, key=lambda x: x.launch_time, reverse=reverse
             )
         return nodes_list
-
 
     def create_auto_ml_job_v2(
         self,

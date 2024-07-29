@@ -1024,7 +1024,6 @@ class SageMakerResponse(BaseResponse):
             dict(NextToken=next_token, ClusterNodeSummaries=cluster_node_summaries)
         )
 
-
     def create_auto_ml_job_v2(self) -> str:
         auto_ml_job_name = self._get_param("AutoMLJobName")
         auto_ml_job_input_data_config = self._get_param("AutoMLJobInputDataConfig")
@@ -1141,7 +1140,7 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(
             dict(EndpointConfigs=endpoint_summaries, NextToken=next_token)
         )
-  
+
     def create_compilation_job(self) -> str:
         compilation_job_name = self._get_param("CompilationJobName")
         role_arn = self._get_param("RoleArn")
