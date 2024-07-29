@@ -38,13 +38,13 @@ class SshPublicKey(TypedDict):
 class User(BaseModel):
     Arn: str = field(default="", init=False)
     HomeDirectory: Optional[str]
-    HomeDirectoryMappings: List[HomeDirectoryMapping]
+    HomeDirectoryMappings: List[HomeDirectoryMapping] = []
     HomeDirectoryType: Optional[HomeDirectoryType]
     Policy: Optional[str]
     PosixProfile: Optional[PosixProfile]
     Role: str
-    SshPublicKeys: Optional[List[SshPublicKey]]
-    Tags: Optional[List[Dict[str, str]]]
+    SshPublicKeys: Optional[List[SshPublicKey]] = []
+    Tags: Optional[List[Dict[str, str]]] = []
     UserName: str
 
     def __post_init__(self) -> None:

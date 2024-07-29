@@ -13,7 +13,7 @@ from .types import HomeDirectoryMapping, HomeDirectoryType, SshPublicKey, User
 class TransferBackend(BaseBackend):
     """Implementation of Transfer APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name, account_id) -> None:
         super().__init__(region_name, account_id)
         self.server_users: Dict[str, List[User]] = {}
 
