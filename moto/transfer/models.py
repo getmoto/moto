@@ -1,11 +1,13 @@
 """TransferBackend class with methods for supported APIs."""
 
-from typing import Dict, Optional, Tuple
+from datetime import datetime
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
+from moto.transfer.types import PosixProfile
 
-from .types import *
+from .types import HomeDirectoryMapping, HomeDirectoryType, SshPublicKey, User
 
 
 class TransferBackend(BaseBackend):
