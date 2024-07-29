@@ -69,7 +69,31 @@ def find_cluster(cluster_arn: str) -> "DBCluster":
     return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
 
 
-class RDSBaseModel(BaseModel):
+class TaggingMixin:
+    _tags: List[Dict[str, str]] = []
+
+    @property
+    def tags(self) -> List[Dict[str, str]]:
+        return self._tags
+
+    @tags.setter
+    def tags(self, value: List[Dict[str, str]]) -> None:
+        self._tags = value
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
+
+    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        new_keys = [tag_set["Key"] for tag_set in tags]
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
+        self.tags.extend(tags)
+        return self.tags
+
+    def remove_tags(self, tag_keys: List[str]) -> None:
+        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
+
+
+class RDSBaseModel(TaggingMixin, BaseModel):
     resource_type: str
 
     def __init__(self, backend: "RDSBackend"):
@@ -545,18 +569,6 @@ class DBCluster(RDSBaseModel):
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
         }[engine][storage_type]
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
 
 class DBClusterSnapshot(RDSBaseModel):
     resource_type = "cluster-snapshot"
@@ -632,18 +644,6 @@ class DBClusterSnapshot(RDSBaseModel):
             """
         )
         return template.render(snapshot=self, cluster=self.cluster)
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
 class DBInstance(CloudFormationModel, RDSBaseModel):
@@ -1297,18 +1297,6 @@ class DBSnapshot(RDSBaseModel):
         )
         return template.render(snapshot=self, database=self.database)
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
 
 class ExportTask(BaseModel):
     def __init__(
@@ -1412,18 +1400,6 @@ class EventSubscription(RDSBaseModel):
             """
         )
         return template.render(subscription=self)
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
 
 class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
@@ -1543,18 +1519,6 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
                     security_group.authorize_security_group(subnet)  # type: ignore[arg-type]
         return security_group
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
         backend.delete_security_group(self.group_name)
@@ -1665,18 +1629,6 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         )
         return subnet_group
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
         backend.delete_subnet_group(self.subnet_name)
@@ -1747,18 +1699,6 @@ class DBProxy(RDSBaseModel):
     @property
     def name(self) -> str:
         return self.db_proxy_name
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
     def to_xml(self) -> str:
         template = Template(
@@ -3262,18 +3202,6 @@ class OptionGroup(RDSBaseModel):
         # error
         return
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
 
 class DBParameterGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "pg"
@@ -3307,18 +3235,6 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
         </DBParameterGroup>"""
         )
         return template.render(param_group=self)
-
-    def get_tags(self) -> List[Dict[str, Any]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, Any]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
 
     def update_parameters(self, new_parameters: Iterable[Dict[str, Any]]) -> None:
         for new_parameter in new_parameters:
