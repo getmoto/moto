@@ -36,16 +36,16 @@ class SshPublicKey(TypedDict):
 
 @dataclass
 class User(BaseModel):
-    Arn: str = field(default="", init=False)
     HomeDirectory: Optional[str]
-    HomeDirectoryMappings: List[HomeDirectoryMapping] = []
     HomeDirectoryType: Optional[HomeDirectoryType]
     Policy: Optional[str]
     PosixProfile: Optional[PosixProfile]
     Role: str
+    UserName: str
+    Arn: str = field(default="", init=False)
+    HomeDirectoryMappings: List[HomeDirectoryMapping] = []
     SshPublicKeys: Optional[List[SshPublicKey]] = []
     Tags: Optional[List[Dict[str, str]]] = []
-    UserName: str
 
     def __post_init__(self) -> None:
         if self.Arn == "":
