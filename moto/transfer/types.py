@@ -44,8 +44,8 @@ class User(BaseModel):
     UserName: str
     Arn: str = field(default="", init=False)
     HomeDirectoryMappings: List[HomeDirectoryMapping] = []
-    SshPublicKeys: Optional[List[SshPublicKey]] = []
-    Tags: Optional[List[Dict[str, str]]] = []
+    SshPublicKeys: List[SshPublicKey] = []
+    Tags: List[Dict[str, str]] = []
 
     def __post_init__(self) -> None:
         if self.Arn == "":
