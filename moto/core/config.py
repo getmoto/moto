@@ -52,7 +52,7 @@ default_user_config: DefaultConfig = {
     },
     "iam": {"load_aws_managed_policies": False},
     "stepfunctions": {"execute_state_machine": False},
-    "iot": {"use_valid_cert": True},
+    "iot": {"use_valid_cert": False},
 }
 
 
