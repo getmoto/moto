@@ -24,7 +24,7 @@ def test_create_describe_delete():
     assert group["Description"] == "familia"
     assert (
         group["DBClusterParameterGroupArn"]
-        == f"arn:aws:rds:us-east-2:{DEFAULT_ACCOUNT_ID}:cpg:groupname"
+        == f"arn:aws:rds:us-east-2:{DEFAULT_ACCOUNT_ID}:cluster-pg:groupname"
     )
 
     groups = client.describe_db_cluster_parameter_groups(
@@ -37,7 +37,7 @@ def test_create_describe_delete():
     assert groups[0]["Description"] == "familia"
     assert (
         groups[0]["DBClusterParameterGroupArn"]
-        == f"arn:aws:rds:us-east-2:{DEFAULT_ACCOUNT_ID}:cpg:groupname"
+        == f"arn:aws:rds:us-east-2:{DEFAULT_ACCOUNT_ID}:cluster-pg:groupname"
     )
 
     client.delete_db_cluster_parameter_group(DBClusterParameterGroupName="groupname")
