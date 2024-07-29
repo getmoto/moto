@@ -37,6 +37,7 @@ from moto.dynamodb.models.table import (
     RestoredTable,
     Table,
 )
+from moto.dynamodb.models.table_export import TableExport
 from moto.dynamodb.models.table_import import TableImport
 from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
@@ -53,6 +54,7 @@ class DynamoDBBackend(BaseBackend):
         self.tables: Dict[str, Table] = OrderedDict()
         self.backups: Dict[str, Backup] = OrderedDict()
         self.table_imports: Dict[str, TableImport] = {}
+        self.table_exports: Dict[str, TableExport] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -998,6 +1000,42 @@ class DynamoDBBackend(BaseBackend):
 
     def describe_import(self, import_arn: str) -> TableImport:
         return self.table_imports[import_arn]
+
+    def export_table(
+        self,
+        s3_bucket: str,
+        s3_prefix: str,
+        table_arn: str,
+        export_format: str,
+        export_type: str,
+        s3_bucket_owner: str,
+    ) -> TableExport:
+        """Only ExportFormat=DYNAMODB_JSON is supported so far.
+        Only exports one file following DYNAMODB_JSON format to the s3 location. Other files aren't created.
+        Incremental export is also not supported.
+        """
+        table_export = TableExport(
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            region_name=self.region_name,
+            account_id=s3_bucket_owner if s3_bucket_owner else self.account_id,
+            table_arn=table_arn,
+            export_format=export_format,
+            export_type=export_type,
+        )
+        self.table_exports[table_export.arn] = table_export
+        table_export.start()
+        return table_export
+
+    def describe_export(self, export_arn: str) -> TableExport:
+        return self.table_exports[export_arn]
+
+    def list_exports(self, table_arn: str) -> List[TableExport]:
+        exports = []
+        for export_arn in self.table_exports:
+            if self.table_exports[export_arn].table_arn == table_arn:
+                exports.append(self.table_exports[export_arn])
+        return exports
 
 
 dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")
