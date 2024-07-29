@@ -29,7 +29,7 @@ class TransferResponse(BaseResponse):
             tags=params.get("Tags"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict(serverId=server_id, userName=user_name))
+        return json.dumps(dict(ServerId=server_id, UserName=user_name))
 
     
     def describe_user(self) -> str:
@@ -38,10 +38,10 @@ class TransferResponse(BaseResponse):
             server_id=params.get("ServerId"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict(serverId=server_id, user=user.to_dict()))
+        return json.dumps(dict(ServerId=server_id, User=user.to_dict()))
     
     def delete_user(self):
-        params = self._get_params()
+        params = json.loads(self.body)
         self.transfer_backend.delete_user(
             server_id=params.get("ServerId"),
             user_name=params.get("UserName"),
@@ -55,7 +55,7 @@ class TransferResponse(BaseResponse):
             ssh_public_key_body=params.get("SshPublicKeyBody"),
             user_name=params.get("UserName"),
         )
-        return json.dumps(dict(serverId=server_id, sshPublicKeyId=ssh_public_key_id, userName=user_name))
+        return json.dumps(dict(ServerId=server_id, SshPublicKeyId=ssh_public_key_id, UserName=user_name))
     
     def delete_ssh_public_key(self):
         params = self._get_params()

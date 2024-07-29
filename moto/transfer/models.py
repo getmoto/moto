@@ -36,7 +36,7 @@ class TransferBackend(BaseBackend):
         ]
         user = User(
             HomeDirectory=home_directory,
-            HomeDirectoryMappings=HomeDirectoryMapping,
+            HomeDirectoryMappings=home_directory_mappings,
             HomeDirectoryType=home_directory_type,
             Policy=policy,
             PosixProfile=posix_profile,
@@ -52,7 +52,7 @@ class TransferBackend(BaseBackend):
         if server_id not in self.server_users:
             raise ServerNotFound(server_id=server_id)
         for user in self.server_users[server_id]:
-            if user.name == user_name:
+            if user.UserName == user_name:
                 return server_id, user
         raise UserNotFound(user_name=user_name, server_id=server_id)
     
@@ -78,7 +78,7 @@ class TransferBackend(BaseBackend):
         if server_id not in self.server_users:
             raise ServerNotFound(server_id=server_id)
         for i, user in enumerate(self.server_users[server_id]):
-            if user.name == user_name:
+            if user.UserName == user_name:
                 date_imported = datetime.now().strftime('%Y%m%d%H%M%S')
                 ssh_public_key_id = f"{server_id}:{user_name}:public_key:{date_imported}"
                 key: SshPublicKey = {
@@ -99,7 +99,7 @@ class TransferBackend(BaseBackend):
         if server_id not in self.server_users:
             raise ServerNotFound(server_id=server_id)
         for i, user in enumerate(self.server_users[server_id]):
-            if user.name == user_name:
+            if user.UserName == user_name:
                 for j, key in enumerate(self.server_users[server_id][i].SshPublicKeys):
                     if key.SshPublicKeyId == ssh_public_key_id:
                         del self.server_users[server_id][i].SshPublicKeys[j]

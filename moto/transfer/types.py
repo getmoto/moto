@@ -43,7 +43,35 @@ class User(BaseModel):
 
     def __post_init__(self) -> None:
         if self.Arn == "":
-            self.Arn =f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.Arn =f"arn:aws:transfer:{self.UserName}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     to_dict = asdict
-    
+    # def to_dict(self) -> Dict[str, any]:
+    #     return {
+    #         'Arn': self.Arn,
+    #         'HomeDirectory': self.HomeDirectory,
+    #         'HomeDirectoryMappings': [
+    #             { 
+    #                 'Entry': mapping.Entry,
+    #                 'Target': mapping.Target,
+    #                 'Type': mapping.get('Type')
+    #             } for mapping in self.HomeDirectoryMappings
+    #         ],
+    #         'HomeDirectoryType': self.HomeDirectoryType,
+    #         'Policy': self.Policy,
+    #         'PosixProfile': { 
+    #             'Uid': self.PosixProfile.Uid,
+    #             'Gid': self.PosixProfile.Gid,
+    #             'SecondaryGids': self.PosixProfile.SecondaryGids
+    #         },
+    #         'Role': self.Role,
+    #         'SshPublicKeys': [
+    #             {
+    #                 'DateImported': key.DateImported,
+    #                 'SshPublicKeyBody': key.SshPublicKeyBody,
+    #                 'SshPublicKeyId': key.SshPublicKeyId
+    #             } for key in self.SshPublicKeys
+    #         ],
+    #         'Tags': self.Tags,
+    #         'UserName': self.UserName
+    #     }
