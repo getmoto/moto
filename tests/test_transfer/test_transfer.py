@@ -5,6 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.transfer.types import HomeDirectoryMapping
 
 
 @pytest.fixture(name="client")
@@ -15,11 +16,12 @@ def fixture_transfer_client():
 
 @mock_aws
 def test_create_describe_and_delete_user(client):
+    home_directory_mapping: HomeDirectoryMapping = {"Entry": "/directory1", "Target": "/bucket_name/home/mydirectory"}
     connection = client.create_user(
         HomeDirectory="/Users/mock_user",
         HomeDirectoryType="PATH",
         HomeDirectoryMappings=[
-            {"Entry": "/directory1", "Target": "/bucket_name/home/mydirectory"}
+           home_directory_mapping 
         ],
         Policy="MockPolicy",
         PosixProfile={
@@ -63,13 +65,14 @@ def test_create_describe_and_delete_user(client):
 
 @mock_aws
 def test_import_and_delete_ssh_public_key(client):
+    home_directory_mapping: HomeDirectoryMapping = {"Entry": "/directory1", "Target": "/bucket_name/home/mydirectory"}
     server_id = "123467890ABCDEFGHIJ"
     user_name = "test_user"
     client.create_user(
         HomeDirectory="/Users/mock_user",
         HomeDirectoryType="PATH",
         HomeDirectoryMappings=[
-            {"Entry": "/directory1", "Target": "/bucket_name/home/mydirectory"}
+            home_directory_mapping
         ],
         Policy="MockPolicy",
         PosixProfile={
