@@ -1205,7 +1205,7 @@ class SageMakerResponse(BaseResponse):
             compilation_job_name=compilation_job_name,
         )
         return json.dumps({})
-      
+
     def create_domain(self) -> str:
         domain_name = self._get_param("DomainName")
         auth_mode = self._get_param("AuthMode")

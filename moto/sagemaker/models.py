@@ -110,11 +110,11 @@ PAGINATION_MODEL = {
         "unique_attribute": "arn",
     },
     "list_domains": {
-          "input_token": "next_token",
-          "limit_key": "max_results",
-          "limit_default": 100,
-          "unique_attribute": "arn",
-      },
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -1648,6 +1648,7 @@ class ClusterNode(BaseObject):
             "LaunchTime": self.launch_time,
             "InstanceStatus": {"Status": self.status, "Message": "message"},
         }
+
 
 class CompilationJob(BaseObject):
     def __init__(
