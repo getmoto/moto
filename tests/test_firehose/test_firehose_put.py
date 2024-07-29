@@ -1,5 +1,7 @@
 """Unit tests verifying put-related delivery stream APIs."""
 
+import re
+
 import boto3
 
 from moto import mock_aws
@@ -143,3 +145,6 @@ def test_put_record_batch_extended_s3_destination():
         Bucket=bucket_name, Key=bucket_objects["Contents"][0]["Key"]
     )
     assert response["Body"].read() == b"onetwothree"
+    assert re.match(
+        r"^[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{2}/", bucket_objects["Contents"][0]["Key"]
+    )
