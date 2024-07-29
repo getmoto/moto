@@ -75,8 +75,6 @@ class RDSResponse(BaseResponse):
                 "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
             ).lower(),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
-            "region": self.region,
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
@@ -132,8 +130,6 @@ class RDSResponse(BaseResponse):
                 "PreferredMaintenanceWindow"
             ),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
-            "region": self.region,
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
@@ -211,7 +207,6 @@ class RDSResponse(BaseResponse):
             "network_type": self._get_param("NetworkType"),
             "port": self._get_param("Port"),
             "parameter_group": self._get_param("DBClusterParameterGroupName"),
-            "region": self.region,
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
             "enable_http_endpoint": self._get_bool_param("EnableHttpEndpoint"),
             "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
