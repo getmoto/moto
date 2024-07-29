@@ -86,7 +86,7 @@ class TransferBackend(BaseBackend):
                     'SshPublicKeyBody': ssh_public_key_body,
                     'DateImported': date_imported
                 }
-                self.server_users[server_id][i]['SshPublicKeys'].append(key)
+                user.SshPublicKeys.append(key)
                 return server_id, ssh_public_key_id, user_name
         raise UserNotFound(user_name=user_name, server_id=server_id)
 
@@ -101,8 +101,8 @@ class TransferBackend(BaseBackend):
         for i, user in enumerate(self.server_users[server_id]):
             if user.UserName == user_name:
                 for j, key in enumerate(self.server_users[server_id][i].SshPublicKeys):
-                    if key.SshPublicKeyId == ssh_public_key_id:
-                        del self.server_users[server_id][i].SshPublicKeys[j]
+                    if key['SshPublicKeyId'] == ssh_public_key_id:
+                        del user.SshPublicKeys[j]
                         return
                 raise PublicKeyNotFound(user_name=user_name, server_id=server_id, ssh_public_key_id=ssh_public_key_id)
         raise UserNotFound(user_name=user_name, server_id=server_id) 

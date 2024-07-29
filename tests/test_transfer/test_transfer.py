@@ -70,18 +70,41 @@ def test_create_describe_and_delete_user(client):
        
 
 @mock_aws
-@pytest.mark.skip(reason="TODO")
-def test_import_ssh_public_key():
-    client = boto3.client("transfer", region_name="us-east-2")
-    resp = client.import_ssh_public_key()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-@pytest.mark.skip(reason="TODO")
-def test_delete_ssh_public_key():
-    client = boto3.client("transfer", region_name="us-east-1")
-    resp = client.delete_ssh_public_key()
-
-    raise Exception("NotYetImplemented")
+def test_import_and_delete_ssh_public_key(client):
+    server_id = "123467890ABCDEFGHIJ"
+    user_name = "test_user" 
+    client.create_user(
+        HomeDirectory="/Users/mock_user",
+        HomeDirectoryType="PATH",
+        HomeDirectoryMappings=[{ "Entry": "/directory1", "Target": "/bucket_name/home/mydirectory" }],
+        Policy="MockPolicy",
+        PosixProfile={
+            'Uid': 0,
+            'Gid': 1,
+        },
+        Role="TransferFamilyAdministrator",
+        ServerId=server_id,
+        SshPublicKeyBody="ED25519",
+        Tags=[{'Key': 'Owner', 'Value': 'MotoUser1337'}],
+        UserName=user_name
+    )
+    client.import_ssh_public_key(
+        ServerId=server_id,
+        SshPublicKeyBody="RSA",
+        UserName=user_name,
+    )
+    connection = client.describe_user(
+        UserName=user_name,
+        ServerId=server_id
+    )
+    assert connection["User"]["SshPublicKeys"][-1]["SshPublicKeyBody"] == "RSA"
+    client.delete_ssh_public_key(
+        ServerId=server_id,
+        UserName=user_name,
+        SshPublicKeyId=connection["User"]["SshPublicKeys"][-1]["SshPublicKeyId"],
+    )
+    connection = client.describe_user(
+        UserName=user_name,
+        ServerId=server_id
+    )
+    assert connection["User"]["SshPublicKeys"][-1]["SshPublicKeyBody"] == "ED25519"
