@@ -68,37 +68,42 @@ def test_invoke_endpoint_async():
 
     sagemaker_result = {
         "results": [
+            {"data": json.dumps({"first": "output"})},
             {
-                "Body": "first body",
-                "ContentType": "text/xml",
-                "InvokedProductionVariant": "prod",
-                "CustomAttributes": "my_attr",
+                "is_failure": True,
+                "data": "second failure",
             },
-            {"Body": "second body"},
         ]
     }
     requests.post(
-        f"http://{base_url}/moto-api/static/sagemaker/endpoint-results",
+        f"http://{base_url}/moto-api/static/sagemaker/async-endpoint-results",
         json=sagemaker_result,
     )
 
     # Return the first item from the list
     body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
     first_output_location = body["OutputLocation"]
+    first_failure_location = body["FailureLocation"]
 
     # Same input -> same output
     body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
     assert body["OutputLocation"] == first_output_location
+    assert body["FailureLocation"] == first_failure_location
+
+    s3 = boto3.client("s3", "us-east-1")
+    bucket_name, obj = bucket_and_name_from_url(first_output_location)
+    resp = s3.get_object(Bucket=bucket_name, Key=obj)
+    resp = json.loads(resp["Body"].read().decode("utf-8"))
+    assert resp == {"first": "output"}
 
     # Different input -> second item
     body = client.invoke_endpoint_async(
         EndpointName="asdf", InputLocation="asf", InferenceId="sth"
     )
-    second_output_location = body["OutputLocation"]
+    second_failure_location = body["FailureLocation"]
     assert body["InferenceId"] == "sth"
 
-    s3 = boto3.client("s3", "us-east-1")
-    bucket_name, obj = bucket_and_name_from_url(second_output_location)
+    bucket_name, obj = bucket_and_name_from_url(second_failure_location)
     resp = s3.get_object(Bucket=bucket_name, Key=obj)
-    resp = json.loads(resp["Body"].read().decode("utf-8"))
-    assert resp["Body"] == "second body"
+    resp = resp["Body"].read().decode("utf-8")
+    assert resp == "second failure"
