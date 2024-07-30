@@ -1205,3 +1205,58 @@ class SageMakerResponse(BaseResponse):
             compilation_job_name=compilation_job_name,
         )
         return json.dumps({})
+
+    def create_domain(self) -> str:
+        domain_name = self._get_param("DomainName")
+        auth_mode = self._get_param("AuthMode")
+        default_user_settings = self._get_param("DefaultUserSettings")
+        domain_settings = self._get_param("DomainSettings")
+        subnet_ids = self._get_param("SubnetIds")
+        vpc_id = self._get_param("VpcId")
+        tags = self._get_param("Tags")
+        app_network_access_type = self._get_param("AppNetworkAccessType")
+        home_efs_file_system_kms_key_id = self._get_param("HomeEfsFileSystemKmsKeyId")
+        kms_key_id = self._get_param("KmsKeyId")
+        app_security_group_management = self._get_param("AppSecurityGroupManagement")
+        default_space_settings = self._get_param("DefaultSpaceSettings")
+        resp = self.sagemaker_backend.create_domain(
+            domain_name=domain_name,
+            auth_mode=auth_mode,
+            default_user_settings=default_user_settings,
+            domain_settings=domain_settings,
+            subnet_ids=subnet_ids,
+            vpc_id=vpc_id,
+            tags=tags,
+            app_network_access_type=app_network_access_type,
+            home_efs_file_system_kms_key_id=home_efs_file_system_kms_key_id,
+            kms_key_id=kms_key_id,
+            app_security_group_management=app_security_group_management,
+            default_space_settings=default_space_settings,
+        )
+        return json.dumps(resp)
+
+    def describe_domain(self) -> str:
+        domain_id = self._get_param("DomainId")
+        domain_description = self.sagemaker_backend.describe_domain(
+            domain_id=domain_id,
+        )
+        return json.dumps(domain_description)
+
+    def list_domains(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        domains, next_token = self.sagemaker_backend.list_domains(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        domain_summaries = [domain.summary() for domain in domains]
+        return json.dumps(dict(Domains=domain_summaries, NextToken=next_token))
+
+    def delete_domain(self) -> str:
+        domain_id = self._get_param("DomainId")
+        retention_policy = self._get_param("RetentionPolicy")
+        self.sagemaker_backend.delete_domain(
+            domain_id=domain_id,
+            retention_policy=retention_policy,
+        )
+        return json.dumps(dict())

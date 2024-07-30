@@ -109,6 +109,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "arn",
     },
+    "list_domains": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -1992,6 +1998,101 @@ class AutoMLJob(BaseObject):
         }
 
 
+class Domain(BaseObject):
+    def __init__(
+        self,
+        domain_name: str,
+        auth_mode: str,
+        default_user_settings: Dict[str, Any],
+        subnet_ids: List[str],
+        vpc_id: str,
+        account_id: str,
+        region_name: str,
+        domain_settings: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        app_network_access_type: Optional[str],
+        home_efs_file_system_kms_key_id: Optional[str],
+        kms_key_id: Optional[str],
+        app_security_group_management: Optional[str],
+        default_space_settings: Optional[Dict[str, Any]],
+    ):
+        self.domain_name = domain_name
+        if domain_name in sagemaker_backends[account_id][region_name].domains:
+            raise ResourceInUseException(
+                message=f"Resource Already Exists: Domain with name {domain_name} already exists. Choose a different name."
+            )
+        self.auth_mode = auth_mode
+        self.default_user_settings = default_user_settings
+        self.subnet_ids = subnet_ids
+        self.vpc_id = vpc_id
+        self.account_id = account_id
+        self.region_name = region_name
+        self.domain_settings = domain_settings
+        self.tags = tags
+        self.app_network_access_type = (
+            app_network_access_type if app_network_access_type else "PublicInternetOnly"
+        )
+        self.home_efs_file_system_kms_key_id = (
+            home_efs_file_system_kms_key_id
+            if home_efs_file_system_kms_key_id
+            else kms_key_id
+        )
+        self.kms_key_id = kms_key_id
+        self.app_security_group_management = app_security_group_management
+        self.default_space_settings = default_space_settings
+
+        self.id = f"d-{domain_name}"
+        self.arn = arn_formatter("domain", self.id, account_id, region_name)
+        self.home_efs_file_system_id = f"{domain_name}-efs-id"
+        self.single_sign_on_managed_application_instance_id = f"{domain_name}-sso-id"
+        self.single_sign_on_managed_application_arn = arn_formatter(
+            "sso", f"application/{domain_name}/apl-{domain_name}", account_id, ""
+        )
+        self.status = "InService"
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.failure_reason = ""
+        self.security_group_id_for_domain_boundary = f"sg-{domain_name}"
+        self.url = f"{domain_name}.{region_name}.sagemaker.test.com"
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "DomainArn": self.arn,
+            "DomainId": self.id,
+            "DomainName": self.domain_name,
+            "HomeEfsFileSystemId": self.home_efs_file_system_id,
+            "SingleSignOnManagedApplicationInstanceId": self.single_sign_on_managed_application_instance_id,
+            "SingleSignOnApplicationArn": self.single_sign_on_managed_application_arn,
+            "Status": self.status,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+            "FailureReason": self.failure_reason,
+            "SecurityGroupIdForDomainBoundary": self.security_group_id_for_domain_boundary,
+            "AuthMode": self.auth_mode,
+            "DefaultUserSettings": self.default_user_settings,
+            "DomainSetting": self.domain_settings,
+            "AppNetworkAccessType": self.app_network_access_type,
+            "HomeEfsFileSystemKmsKeyId": self.home_efs_file_system_kms_key_id,
+            "SubnetIds": self.subnet_ids,
+            "Url": self.url,
+            "VpcId": self.vpc_id,
+            "KmsKeyId": self.kms_key_id,
+            "AppSecurityGroupManagement": self.app_security_group_management,
+            "DefaultSpaceSettings": self.default_space_settings,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "DomainArn": self.arn,
+            "DomainId": self.id,
+            "DomainName": self.domain_name,
+            "Status": self.status,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+            "Url": self.url,
+        }
+
+
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids: List[str], subnets: List[str]):
         self.security_group_ids = security_group_ids
@@ -2388,6 +2489,7 @@ class SageMakerModelBackend(BaseBackend):
         self.clusters: Dict[str, Cluster] = {}
         self.auto_ml_jobs: Dict[str, AutoMLJob] = {}
         self.compilation_jobs: Dict[str, CompilationJob] = {}
+        self.domains: Dict[str, Domain] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2520,6 +2622,7 @@ class SageMakerModelBackend(BaseBackend):
             "cluster": self.clusters,
             "automl-job": self.auto_ml_jobs,
             "compilation-job": self.compilation_jobs,
+            "domain": self.domains,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -4654,6 +4757,57 @@ class SageMakerModelBackend(BaseBackend):
             )
         del self.compilation_jobs[compilation_job_name]
         return
+
+    def create_domain(
+        self,
+        domain_name: str,
+        auth_mode: str,
+        default_user_settings: Dict[str, Any],
+        subnet_ids: List[str],
+        vpc_id: str,
+        domain_settings: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        app_network_access_type: Optional[str],
+        home_efs_file_system_kms_key_id: Optional[str],
+        kms_key_id: Optional[str],
+        app_security_group_management: Optional[str],
+        default_space_settings: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        domain = Domain(
+            domain_name=domain_name,
+            auth_mode=auth_mode,
+            default_user_settings=default_user_settings,
+            subnet_ids=subnet_ids,
+            vpc_id=vpc_id,
+            domain_settings=domain_settings,
+            tags=tags,
+            app_network_access_type=app_network_access_type,
+            home_efs_file_system_kms_key_id=home_efs_file_system_kms_key_id,
+            kms_key_id=kms_key_id,
+            app_security_group_management=app_security_group_management,
+            default_space_settings=default_space_settings,
+            region_name=self.region_name,
+            account_id=self.account_id,
+        )
+        self.domains[domain.id] = domain
+        return {"DomainArn": domain.arn, "Url": domain.url}
+
+    def describe_domain(self, domain_id: str) -> Dict[str, Any]:
+        if domain_id not in self.domains:
+            raise ValidationError(message=f"Could not find domain '{domain_id}'.")
+        return self.domains[domain_id].describe()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_domains(self) -> List[Domain]:
+        return list(self.domains.values())
+
+    def delete_domain(
+        self, domain_id: str, retention_policy: Optional[Dict[str, str]]
+    ) -> None:
+        # 'retention_policy' parameter is not used
+        if domain_id not in self.domains:
+            raise ValidationError(message=f"Could not find domain '{domain_id}'.")
+        del self.domains[domain_id]
 
 
 class FakeExperiment(BaseObject):
