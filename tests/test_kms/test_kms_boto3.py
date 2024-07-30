@@ -135,6 +135,39 @@ def test_create_multi_region_key():
 
 
 @mock_aws
+def test_create_multi_region_configuration_key():
+    region_to_replicate_from = "us-east-1"
+    region_to_replicate_to = "us-west-1"
+    from_region_client = boto3.client("kms", region_name=region_to_replicate_from)
+    to_region_client = boto3.client("kms", region_name=region_to_replicate_to)
+
+    response = from_region_client.create_key(
+        Policy="my policy",
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+        MultiRegion=True,
+        Tags=[{"TagKey": "project", "TagValue": "moto"}],
+    )
+    key_id = response["KeyMetadata"]["KeyId"]
+
+    with pytest.raises(to_region_client.exceptions.NotFoundException):
+        to_region_client.describe_key(KeyId=key_id)
+
+    # with mock.patch.object(rsa, "generate_private_key", return_value=""):
+    replica_response = from_region_client.replicate_key(
+        KeyId=key_id, ReplicaRegion=region_to_replicate_to
+    )
+    print("Goes here second")
+    print("replicate response ", replica_response["ReplicaKeyMetadata"]["MultiRegionConfiguration"])
+
+    to_region_client.describe_key(KeyId=key_id)
+    from_region_client.describe_key(KeyId=key_id)
+
+
+    assert True == False
+
+
+@mock_aws
 def test_non_multi_region_keys_should_not_have_multi_region_properties():
     conn = boto3.client("kms", region_name="us-east-1")
     key = conn.create_key(
