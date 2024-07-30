@@ -3663,7 +3663,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -8420,6 +8426,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -10407,7 +10422,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -14020,7 +14041,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -16651,7 +16678,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -22086,6 +22119,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -24693,6 +24735,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "imagebuilder": {
                 "Value": "imagebuilder",
                 "endpoint": {
@@ -25081,6 +25132,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28305,7 +28365,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -31747,6 +31813,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "rosa": {
+                "Value": "rosa"
               },
               "route53": {
                 "Value": "route53",
@@ -37312,7 +37381,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -40144,6 +40219,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "braket": {
                 "Value": "braket",
                 "endpoint": {
@@ -42650,7 +42734,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -49052,6 +49142,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -51183,7 +51282,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "billingconductor": {
                 "Value": "billingconductor",
@@ -61745,6 +61850,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -62145,7 +62259,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "braket": {
                 "Value": "braket",

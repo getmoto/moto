@@ -1024,6 +1024,243 @@ class SageMakerResponse(BaseResponse):
             dict(NextToken=next_token, ClusterNodeSummaries=cluster_node_summaries)
         )
 
+    def create_auto_ml_job_v2(self) -> str:
+        auto_ml_job_name = self._get_param("AutoMLJobName")
+        auto_ml_job_input_data_config = self._get_param("AutoMLJobInputDataConfig")
+        output_data_config = self._get_param("OutputDataConfig")
+        auto_ml_problem_type_config = self._get_param("AutoMLProblemTypeConfig")
+        role_arn = self._get_param("RoleArn")
+        tags = self._get_param("Tags")
+        security_config = self._get_param("SecurityConfig")
+        auto_ml_job_objective = self._get_param("AutoMLJobObjective")
+        model_deploy_config = self._get_param("ModelDeployConfig")
+        data_split_config = self._get_param("DataSplitConfig")
+        auto_ml_job_arn = self.sagemaker_backend.create_auto_ml_job_v2(
+            auto_ml_job_name=auto_ml_job_name,
+            auto_ml_job_input_data_config=auto_ml_job_input_data_config,
+            output_data_config=output_data_config,
+            auto_ml_problem_type_config=auto_ml_problem_type_config,
+            role_arn=role_arn,
+            tags=tags,
+            security_config=security_config,
+            auto_ml_job_objective=auto_ml_job_objective,
+            model_deploy_config=model_deploy_config,
+            data_split_config=data_split_config,
+        )
+        return json.dumps(dict(AutoMLJobArn=auto_ml_job_arn))
+
+    def describe_auto_ml_job_v2(self) -> str:
+        auto_ml_job_name = self._get_param("AutoMLJobName")
+        auto_ml_job_description = self.sagemaker_backend.describe_auto_ml_job_v2(
+            auto_ml_job_name=auto_ml_job_name,
+        )
+        return json.dumps(auto_ml_job_description)
+
+    def list_auto_ml_jobs(self) -> str:
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        name_contains = self._get_param("NameContains")
+        status_equals = self._get_param("StatusEquals")
+        sort_order = self._get_param("SortOrder")
+        sort_by = self._get_param("SortBy")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        auto_ml_jobs, next_token = self.sagemaker_backend.list_auto_ml_jobs(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            last_modified_time_after=last_modified_time_after,
+            last_modified_time_before=last_modified_time_before,
+            name_contains=name_contains,
+            status_equals=status_equals,
+            sort_order=sort_order,
+            sort_by=sort_by,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        auto_ml_job_summaries = [auto_ml_job.summary() for auto_ml_job in auto_ml_jobs]
+        return json.dumps(
+            dict(AutoMLJobSummaries=auto_ml_job_summaries, NextToken=next_token)
+        )
+
+    def stop_auto_ml_job(self) -> str:
+        auto_ml_job_name = self._get_param("AutoMLJobName")
+        self.sagemaker_backend.stop_auto_ml_job(
+            auto_ml_job_name=auto_ml_job_name,
+        )
+        return json.dumps(dict())
+
+    def list_endpoints(self) -> str:
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        status_equals = self._get_param("StatusEquals")
+        endpoints, next_token = self.sagemaker_backend.list_endpoints(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            next_token=next_token,
+            max_results=max_results,
+            name_contains=name_contains,
+            creation_time_before=creation_time_before,
+            creation_time_after=creation_time_after,
+            last_modified_time_before=last_modified_time_before,
+            last_modified_time_after=last_modified_time_after,
+            status_equals=status_equals,
+        )
+        endpoint_summaries = [endpoint.summary() for endpoint in endpoints]
+        return json.dumps(dict(Endpoints=endpoint_summaries, NextToken=next_token))
+
+    def list_endpoint_configs(self) -> str:
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        endpoint_configs, next_token = self.sagemaker_backend.list_endpoint_configs(
+            sort_by=sort_by,
+            sort_order=sort_order,
+            next_token=next_token,
+            max_results=max_results,
+            name_contains=name_contains,
+            creation_time_before=creation_time_before,
+            creation_time_after=creation_time_after,
+        )
+        endpoint_summaries = [
+            endpoint_config.summary() for endpoint_config in endpoint_configs
+        ]
+        return json.dumps(
+            dict(EndpointConfigs=endpoint_summaries, NextToken=next_token)
+        )
+
+    def create_compilation_job(self) -> str:
+        compilation_job_name = self._get_param("CompilationJobName")
+        role_arn = self._get_param("RoleArn")
+        model_package_version_arn = self._get_param("ModelPackageVersionArn")
+        input_config = self._get_param("InputConfig")
+        output_config = self._get_param("OutputConfig")
+        vpc_config = self._get_param("VpcConfig")
+        stopping_condition = self._get_param("StoppingCondition")
+        tags = self._get_param("Tags")
+        compilation_job_arn = self.sagemaker_backend.create_compilation_job(
+            compilation_job_name=compilation_job_name,
+            role_arn=role_arn,
+            model_package_version_arn=model_package_version_arn,
+            input_config=input_config,
+            output_config=output_config,
+            vpc_config=vpc_config,
+            stopping_condition=stopping_condition,
+            tags=tags,
+        )
+        return json.dumps(dict(CompilationJobArn=compilation_job_arn))
+
+    def describe_compilation_job(self) -> str:
+        compilation_job_name = self._get_param("CompilationJobName")
+        compilation_job_description = self.sagemaker_backend.describe_compilation_job(
+            compilation_job_name=compilation_job_name,
+        )
+        return json.dumps(compilation_job_description)
+
+    def list_compilation_jobs(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        name_contains = self._get_param("NameContains")
+        status_equals = self._get_param("StatusEquals")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        compilation_jobs, next_token = self.sagemaker_backend.list_compilation_jobs(
+            next_token=next_token,
+            max_results=max_results,
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            last_modified_time_after=last_modified_time_after,
+            last_modified_time_before=last_modified_time_before,
+            name_contains=name_contains,
+            status_equals=status_equals,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        compilation_job_summaries = [x.summary() for x in compilation_jobs]
+        return json.dumps(
+            dict(
+                CompilationJobSummaries=compilation_job_summaries, NextToken=next_token
+            )
+        )
+
+    def delete_compilation_job(self) -> str:
+        compilation_job_name = self._get_param("CompilationJobName")
+        self.sagemaker_backend.delete_compilation_job(
+            compilation_job_name=compilation_job_name,
+        )
+        return json.dumps({})
+
+    def create_domain(self) -> str:
+        domain_name = self._get_param("DomainName")
+        auth_mode = self._get_param("AuthMode")
+        default_user_settings = self._get_param("DefaultUserSettings")
+        domain_settings = self._get_param("DomainSettings")
+        subnet_ids = self._get_param("SubnetIds")
+        vpc_id = self._get_param("VpcId")
+        tags = self._get_param("Tags")
+        app_network_access_type = self._get_param("AppNetworkAccessType")
+        home_efs_file_system_kms_key_id = self._get_param("HomeEfsFileSystemKmsKeyId")
+        kms_key_id = self._get_param("KmsKeyId")
+        app_security_group_management = self._get_param("AppSecurityGroupManagement")
+        default_space_settings = self._get_param("DefaultSpaceSettings")
+        resp = self.sagemaker_backend.create_domain(
+            domain_name=domain_name,
+            auth_mode=auth_mode,
+            default_user_settings=default_user_settings,
+            domain_settings=domain_settings,
+            subnet_ids=subnet_ids,
+            vpc_id=vpc_id,
+            tags=tags,
+            app_network_access_type=app_network_access_type,
+            home_efs_file_system_kms_key_id=home_efs_file_system_kms_key_id,
+            kms_key_id=kms_key_id,
+            app_security_group_management=app_security_group_management,
+            default_space_settings=default_space_settings,
+        )
+        return json.dumps(resp)
+
+    def describe_domain(self) -> str:
+        domain_id = self._get_param("DomainId")
+        domain_description = self.sagemaker_backend.describe_domain(
+            domain_id=domain_id,
+        )
+        return json.dumps(domain_description)
+
+    def list_domains(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        domains, next_token = self.sagemaker_backend.list_domains(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        domain_summaries = [domain.summary() for domain in domains]
+        return json.dumps(dict(Domains=domain_summaries, NextToken=next_token))
+
+    def delete_domain(self) -> str:
+        domain_id = self._get_param("DomainId")
+        retention_policy = self._get_param("RetentionPolicy")
+        self.sagemaker_backend.delete_domain(
+            domain_id=domain_id,
+            retention_policy=retention_policy,
+        )
+        return json.dumps(dict())
+
     def create_model_explainability_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
         model_explainability_baseline_config = self._get_param(
@@ -1094,5 +1331,3 @@ class SageMakerResponse(BaseResponse):
         job_definition_name = self._get_param("JobDefinitionName")
         self.sagemaker_backend.delete_model_explainability_job_definition(
             job_definition_name=job_definition_name,
-        )
-        return json.dumps(dict())
