@@ -2098,7 +2098,7 @@ class Domain(BaseObject):
             "Url": self.url,
         }
 
-  
+
 class ModelExplainabilityJobDefinition(BaseObject):
     def __init__(
         self,

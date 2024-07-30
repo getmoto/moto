@@ -1331,3 +1331,5 @@ class SageMakerResponse(BaseResponse):
         job_definition_name = self._get_param("JobDefinitionName")
         self.sagemaker_backend.delete_model_explainability_job_definition(
             job_definition_name=job_definition_name,
+        )
+        return json.dumps(dict())
