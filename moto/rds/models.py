@@ -1538,7 +1538,7 @@ class DBProxy(RDSBaseModel):
         super().__init__(backend)
         self.db_proxy_name = db_proxy_name
         self.engine_family = engine_family
-        if self.engine_family not in ["MYSQL", "POSTGRESQ", "SQLSERVER"]:
+        if self.engine_family not in ["MYSQL", "POSTGRESQL", "SQLSERVER"]:
             raise InvalidParameterValue("Provided EngineFamily is not valid.")
         self.auth = auth
         self.role_arn = role_arn
