@@ -5,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
-from moto.transfer.types import HomeDirectoryMapping
+from moto.transfer.types import UserHomeDirectoryMapping
 
 
 @pytest.fixture(name="client")
@@ -13,10 +13,17 @@ def fixture_transfer_client():
     with mock_aws():
         yield boto3.client("transfer", region_name="us-east-1")
 
+@mock_aws
+def test_create_describer_and_delete_server(client):
+    connnection = client.create_server()
+    connnection = client.describe_server()
+    rconnnectionesp = client.delete_server()
+    raise Exception("NotYetImplemented")
+
 
 @mock_aws
 def test_create_describe_and_delete_user(client):
-    home_directory_mapping: HomeDirectoryMapping = {
+    home_directory_mapping: UserHomeDirectoryMapping = {
         "Entry": "/directory1",
         "Target": "/bucket_name/home/mydirectory",
     }
@@ -66,7 +73,7 @@ def test_create_describe_and_delete_user(client):
 
 @mock_aws
 def test_import_and_delete_ssh_public_key(client):
-    home_directory_mapping: HomeDirectoryMapping = {
+    home_directory_mapping: UserHomeDirectoryMapping = {
         "Entry": "/directory1",
         "Target": "/bucket_name/home/mydirectory",
     }

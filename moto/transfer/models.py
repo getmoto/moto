@@ -5,9 +5,9 @@ from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
-from moto.transfer.types import PosixProfile
+from moto.transfer.types import UserPosixProfile
 
-from .types import HomeDirectoryMapping, HomeDirectoryType, SshPublicKey, User
+from .types import ServerDomain, ServerEndpointDetails, ServerEndpointType, ServerIdentityProviderDetails, ServerIdentityProviderType, ServerProtocols, ServerS3StorageOptions, ServerWorkflowDetails, UserHomeDirectoryMapping, UserHomeDirectoryType, UserSshPublicKey, User, Server
 
 
 class TransferBackend(BaseBackend):
@@ -15,15 +15,66 @@ class TransferBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
+        self.servers: Dict[str, Server] = {}
         self.server_users: Dict[str, List[User]] = {}
+
+
+    def create_server(
+            self, 
+            certificate: Optional[str], 
+            domain: Optional[ServerDomain], 
+            endpoint_details: Optional[ServerEndpointDetails], 
+            endpoint_type: Optional[ServerEndpointType], 
+            host_key: str, 
+            identity_provider_details:  Optional[ServerIdentityProviderDetails], 
+            identity_provider_type: Optional[ServerIdentityProviderType], 
+            logging_role: Optional[str], 
+            post_authentication_login_banner: Optional[str],
+            pre_authentication_login_banner: Optional[str],
+            protocols: Optional[List[ServerProtocols]],
+            protocol_details: Optional[str],
+            security_policy_name: Optional[str],
+            tags: Optional[List[Dict[str, str]]], 
+            workflow_details: Optional[ServerWorkflowDetails], 
+            structured_log_destinations: Optional[List[str]], 
+            s3_storage_options: Optional[ServerS3StorageOptions]
+        ):
+        server_id = ""
+        Server(
+            Certificate=certificate,
+            Domain=domain,
+            EndpointDetails=endpoint_details,
+            EndpointType=endpoint_type,
+            HostKeyFingerprint=host_key,
+            IdentityProviderDetails=identity_provider_details,
+            IdentityProviderType=identity_provider_type,
+            LoggingRole=logging_role,
+            PostAuthenticationLoginBanner=post_authentication_login_banner,
+            PreAuthenticationLoginBanner=pre_authentication_login_banner,
+            ProtocolDetails=protocol_details,
+            Protocols=protocols,
+            S3StorageOptions=s3_storage_options,
+            SecurityPolicyName=security_policy_name,
+            StructuredLogDestinations=structured_log_destinations,
+            Tags=tags,
+            WorkflowDetails=workflow_details
+        )
+        
+        return server_id
+
+
+    def delete_server(self, server_id):
+        # implement here
+        return 
+    
 
     def create_user(
         self,
         home_directory: Optional[str],
-        home_directory_type: Optional[HomeDirectoryType],
-        home_directory_mappings: List[HomeDirectoryMapping],
+        home_directory_type: Optional[UserHomeDirectoryType],
+        home_directory_mappings: List[UserHomeDirectoryMapping],
         policy: Optional[str],
-        posix_profile: Optional[PosixProfile],
+        posix_profile: Optional[UserPosixProfile],
         role: str,
         server_id: str,
         ssh_public_key_body: Optional[str],
@@ -31,7 +82,7 @@ class TransferBackend(BaseBackend):
         user_name: str,
     ) -> Tuple[str, str]:
         if ssh_public_key_body:
-            ssh_public_keys: List[SshPublicKey] = [
+            ssh_public_keys: List[UserSshPublicKey] = [
                 {
                     "DateImported": datetime.now().strftime("%Y%m%d%H%M%S"),
                     "SshPublicKeyBody": ssh_public_key_body,
@@ -80,7 +131,7 @@ class TransferBackend(BaseBackend):
                 ssh_public_key_id = (
                     f"{server_id}:{user_name}:public_key:{date_imported}"
                 )
-                key: SshPublicKey = {
+                key: UserSshPublicKey = {
                     "SshPublicKeyId": ssh_public_key_id,
                     "SshPublicKeyBody": ssh_public_key_body,
                     "DateImported": date_imported,
@@ -107,5 +158,10 @@ class TransferBackend(BaseBackend):
                 )
         raise UserNotFound(user_name=user_name, server_id=server_id)
 
+    def describe_server(self, server_id):
+        if server_id in self.servers:
+            ServerNotFound(server_id=server_id)
+        return self.servers[server_id]
+    
 
 transfer_backends = BackendDict(TransferBackend, "transfer")

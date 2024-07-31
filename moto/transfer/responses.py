@@ -72,3 +72,40 @@ class TransferResponse(BaseResponse):
             user_name=params.get("UserName"),
         )
         return json.dumps(dict())
+    
+    def create_server(self):
+        params = json.loads(self.body)
+        server_id = self.transfer_backend.create_server(
+            certificate=params.get("Certificate"),
+            domain=params.get("Domain"),
+            endpoint_details=params.get("EndpointDetails"),
+            endpoint_type=params.get("EndpointType"),
+            host_key=params.get("HostKey"),
+            identity_provider_details=params.get("HostKey"),
+            identity_provider_type=params.get("IdentityProviderType"),
+            logging_role=params.get("LoggingRole"),
+            post_authentication_login_banner=params.get("PostAuthenticationLoginBanner"),
+            pre_authentication_login_banner=params.get("PreAuthenticationLoginBanner"),
+            protocols=params.get("Protocols"),
+            protocol_details=params.get("ProtocolDetails"),
+            security_policy_name=params.get("SecurityPolicyName"),
+            tags=params.get("Tags"),
+            workflow_details=params.get("WorkflowDetails"),
+            structured_log_destinations=params.get("StructuredLogDestinations"),
+            s3_storage_options=params.get("S3StorageOptions"),
+        )
+        return json.dumps(dict(ServerId=server_id))
+    
+    def describe_server(self):
+        params = json.loads(self.body)
+        server = self.transfer_backend.describe_server(
+            server_id=params.get("ServerId"),
+        )
+        return json.dumps(dict(Server=server))
+
+    def delete_server(self):
+        params = json.loads(self.body)
+        self.transfer_backend.delete_server(
+            server_id=params.get("ServerId"),
+        )
+        return json.dumps(dict())    
