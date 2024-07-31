@@ -7,7 +7,21 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
 from moto.transfer.types import UserPosixProfile
 
-from .types import ServerDomain, ServerEndpointDetails, ServerEndpointType, ServerIdentityProviderDetails, ServerIdentityProviderType, ServerProtocols, ServerS3StorageOptions, ServerWorkflowDetails, UserHomeDirectoryMapping, UserHomeDirectoryType, UserSshPublicKey, User, Server
+from .types import (
+    Server,
+    ServerDomain,
+    ServerEndpointDetails,
+    ServerEndpointType,
+    ServerIdentityProviderDetails,
+    ServerIdentityProviderType,
+    ServerProtocols,
+    ServerS3StorageOptions,
+    ServerWorkflowDetails,
+    User,
+    UserHomeDirectoryMapping,
+    UserHomeDirectoryType,
+    UserSshPublicKey,
+)
 
 
 class TransferBackend(BaseBackend):
@@ -18,25 +32,25 @@ class TransferBackend(BaseBackend):
         self.servers: Dict[str, Server] = {}
 
     def create_server(
-            self, 
-            certificate: Optional[str], 
-            domain: Optional[ServerDomain], 
-            endpoint_details: Optional[ServerEndpointDetails], 
-            endpoint_type: Optional[ServerEndpointType], 
-            host_key: str, 
-            identity_provider_details:  Optional[ServerIdentityProviderDetails], 
-            identity_provider_type: Optional[ServerIdentityProviderType], 
-            logging_role: Optional[str], 
-            post_authentication_login_banner: Optional[str],
-            pre_authentication_login_banner: Optional[str],
-            protocols: Optional[List[ServerProtocols]],
-            protocol_details: Optional[str],
-            security_policy_name: Optional[str],
-            tags: Optional[List[Dict[str, str]]], 
-            workflow_details: Optional[ServerWorkflowDetails], 
-            structured_log_destinations: Optional[List[str]], 
-            s3_storage_options: Optional[ServerS3StorageOptions]
-        ):
+        self,
+        certificate: Optional[str],
+        domain: Optional[ServerDomain],
+        endpoint_details: Optional[ServerEndpointDetails],
+        endpoint_type: Optional[ServerEndpointType],
+        host_key: str,
+        identity_provider_details: Optional[ServerIdentityProviderDetails],
+        identity_provider_type: Optional[ServerIdentityProviderType],
+        logging_role: Optional[str],
+        post_authentication_login_banner: Optional[str],
+        pre_authentication_login_banner: Optional[str],
+        protocols: Optional[List[ServerProtocols]],
+        protocol_details: Optional[str],
+        security_policy_name: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
+        workflow_details: Optional[ServerWorkflowDetails],
+        structured_log_destinations: Optional[List[str]],
+        s3_storage_options: Optional[ServerS3StorageOptions],
+    ):
         server = Server(
             Certificate=certificate,
             Domain=domain,
@@ -54,7 +68,7 @@ class TransferBackend(BaseBackend):
             SecurityPolicyName=security_policy_name,
             StructuredLogDestinations=structured_log_destinations,
             Tags=tags,
-            WorkflowDetails=workflow_details
+            WorkflowDetails=workflow_details,
         )
         server_id = server.ServerId
         self.servers[server_id] = server
@@ -70,7 +84,7 @@ class TransferBackend(BaseBackend):
             ServerNotFound(server_id=server_id)
         del self.servers[server_id]
         return
-    
+
     def create_user(
         self,
         home_directory: Optional[str],
@@ -162,5 +176,6 @@ class TransferBackend(BaseBackend):
                     ssh_public_key_id=ssh_public_key_id,
                 )
         raise UserNotFound(user_name=user_name, server_id=server_id)
-    
+
+
 transfer_backends = BackendDict(TransferBackend, "transfer")

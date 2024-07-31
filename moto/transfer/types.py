@@ -71,8 +71,8 @@ class ServerDomain(str, Enum):
 
 
 class ServerEndpointType(str, Enum):
-    PUBLIC = "PUBLIC" 
-    VPC = "VPC" 
+    PUBLIC = "PUBLIC"
+    VPC = "VPC"
     VPC_ENDPOINT = "VPC_ENDPOINT"
 
 
@@ -84,31 +84,32 @@ class ServerIdentityProviderSftpAuthenticationMethods(str, Enum):
 
 
 class ServerIdentityProviderType(str, Enum):
-    SERVICE_MANAGED = 'SERVICE_MANAGED'
-    API_GATEWAY = 'API_GATEWAY'
-    AWS_DIRECTORY_SERVICE = 'AWS_DIRECTORY_SERVICE'
-    AWS_LAMBDA = 'AWS_LAMBDA'
+    SERVICE_MANAGED = "SERVICE_MANAGED"
+    API_GATEWAY = "API_GATEWAY"
+    AWS_DIRECTORY_SERVICE = "AWS_DIRECTORY_SERVICE"
+    AWS_LAMBDA = "AWS_LAMBDA"
 
 
 class ServerProtocols(str, Enum):
-    SFTP = 'SFTP'
-    FTP = 'FTP'
-    FTPS = 'FTPS'
-    AS2 = 'AS2'
+    SFTP = "SFTP"
+    FTP = "FTP"
+    FTPS = "FTPS"
+    AS2 = "AS2"
 
 
 class ServerState(str, Enum):
-    OFFLINE = 'OFFLINE'
-    ONLINE = 'ONLINE'
-    STARTING = 'STARTING'
-    STOPPING = 'STOPPING'
-    START_FAILED = 'START_FAILED'
-    STOP_FAILED = 'STOP_FAILED'
+    OFFLINE = "OFFLINE"
+    ONLINE = "ONLINE"
+    STARTING = "STARTING"
+    STOPPING = "STOPPING"
+    START_FAILED = "START_FAILED"
+    STOP_FAILED = "STOP_FAILED"
 
 
 class ServerS3StorageDirectoryListingOptimization(str, Enum):
-    ENABLED = 'ENABLED'
-    DISABLED = 'DISABLED'
+    ENABLED = "ENABLED"
+    DISABLED = "DISABLED"
+
 
 class ServerProtocolDetails(TypedDict):
     PassiveIp: str
@@ -144,7 +145,7 @@ class ServerWorkflowDetails(TypedDict):
 
 
 class ServerS3StorageOptions(TypedDict):
-    DirectoryListingOptimization: ServerS3StorageDirectoryListingOptimization 
+    DirectoryListingOptimization: ServerS3StorageDirectoryListingOptimization
 
 
 @dataclass
@@ -178,4 +179,4 @@ class Server(BaseModel):
             self.ServerId = f"{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
             self.Arn = f"arn:aws:transfer:{self.ServerId}"
 
-    to_dict=asdict
+    to_dict = asdict

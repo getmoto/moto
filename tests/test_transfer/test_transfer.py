@@ -13,6 +13,7 @@ def fixture_transfer_client():
     with mock_aws():
         yield boto3.client("transfer", region_name="us-east-1")
 
+
 @mock_aws
 def test_create_describer_and_delete_server(client):
     connnection = client.create_server()
