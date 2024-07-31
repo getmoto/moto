@@ -164,15 +164,15 @@ class Server(BaseModel):
     Protocols: Optional[List[ServerProtocols]]
     S3StorageOptions: Optional[ServerS3StorageOptions]
     SecurityPolicyName: Optional[str]
-    State: Optional[ServerState]
     StructuredLogDestinations: Optional[List[str]]
-    Tags: Optional[List[Dict[str, str]]]
-    UserCount: Optional[int]
     WorkflowDetails: Optional[ServerWorkflowDetails]
     Arn: str = field(default="", init=False)
     As2ServiceManagedEgressIpAddresses: Optional[List[str]] = ["0.0.0.0"]
     ServerId: str = field(default="", init=False)
-    Users: List[User] = []
+    State: Optional[ServerState] = ServerState.ONLINE
+    Tags: List[Dict[str, str]] = field(default_factory=list)
+    UserCount: Optional[int] = 0
+    _users: List[User] = field(default=[], repr=False)
 
     def __post_init__(self) -> None:
         if self.Arn == "":

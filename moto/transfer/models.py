@@ -67,7 +67,7 @@ class TransferBackend(BaseBackend):
             S3StorageOptions=s3_storage_options,
             SecurityPolicyName=security_policy_name,
             StructuredLogDestinations=structured_log_destinations,
-            Tags=tags,
+            Tags=(tags or []),
             WorkflowDetails=workflow_details,
         )
         server_id = server.ServerId
@@ -119,13 +119,14 @@ class TransferBackend(BaseBackend):
             Tags=(tags or []),
             UserName=user_name,
         )
-        self.servers[server_id].Users.append(user)
+        self.servers[server_id]._users.append(user)
+        self.servers[server_id].UserCount += 1
         return server_id, user_name
 
     def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for user in self.servers[server_id].Users:
+        for user in self.servers[server_id]._users:
             if user.UserName == user_name:
                 return server_id, user
         raise UserNotFound(user_name=user_name, server_id=server_id)
@@ -133,9 +134,10 @@ class TransferBackend(BaseBackend):
     def delete_user(self, server_id: str, user_name: str) -> None:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for i, user in enumerate(self.servers[server_id].Users):
+        for i, user in enumerate(self.servers[server_id]._users):
             if user.UserName == user_name:
-                del self.server_users[server_id][i]
+                del self.servers[server_id]._users[i]
+                self.servers[server_id].UserCount -= 1
                 return
         raise UserNotFound(server_id=server_id, user_name=user_name)
 
@@ -144,7 +146,7 @@ class TransferBackend(BaseBackend):
     ) -> Tuple[str, str, str]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for user in self.servers[server_id].Users:
+        for user in self.servers[server_id]._users:
             if user.UserName == user_name:
                 date_imported = datetime.now().strftime("%Y%m%d%H%M%S")
                 ssh_public_key_id = (
@@ -164,9 +166,9 @@ class TransferBackend(BaseBackend):
     ) -> None:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for i, user in enumerate(self.servers[server_id].Users):
+        for i, user in enumerate(self.servers[server_id]._users):
             if user.UserName == user_name:
-                for j, key in enumerate(self.servers[server_id].Users[i].SshPublicKeys):
+                for j, key in enumerate(self.servers[server_id]._users[i].SshPublicKeys):
                     if key["SshPublicKeyId"] == ssh_public_key_id:
                         del user.SshPublicKeys[j]
                         return
