@@ -16,7 +16,6 @@ class TransferBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.servers: Dict[str, Server] = {}
-        self.server_users: Dict[str, List[User]] = {}
 
     def create_server(
             self, 
@@ -38,7 +37,6 @@ class TransferBackend(BaseBackend):
             structured_log_destinations: Optional[List[str]], 
             s3_storage_options: Optional[ServerS3StorageOptions]
         ):
-        server_id = "TODO"
         server = Server(
             Certificate=certificate,
             Domain=domain,
@@ -58,13 +56,20 @@ class TransferBackend(BaseBackend):
             Tags=tags,
             WorkflowDetails=workflow_details
         )
+        server_id = server.ServerId
         self.servers[server_id] = server
         return server_id
 
+    def describe_server(self, server_id):
+        if server_id in self.servers:
+            ServerNotFound(server_id=server_id)
+        return self.servers[server_id]
+
     def delete_server(self, server_id):
+        if server_id in self.servers:
+            ServerNotFound(server_id=server_id)
         del self.servers[server_id]
-        del self.server_users[server_id]
-        return 
+        return
     
     def create_user(
         self,
@@ -100,13 +105,13 @@ class TransferBackend(BaseBackend):
             Tags=(tags or []),
             UserName=user_name,
         )
-        self.server_users.setdefault(server_id, []).append(user)
+        self.servers[server_id].Users.append(user)
         return server_id, user_name
 
     def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for user in self.server_users[server_id]:
+        for user in self.servers[server_id].Users:
             if user.UserName == user_name:
                 return server_id, user
         raise UserNotFound(user_name=user_name, server_id=server_id)
@@ -114,7 +119,7 @@ class TransferBackend(BaseBackend):
     def delete_user(self, server_id: str, user_name: str) -> None:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for i, user in enumerate(self.server_users[server_id]):
+        for i, user in enumerate(self.servers[server_id].Users):
             if user.UserName == user_name:
                 del self.server_users[server_id][i]
                 return
@@ -125,7 +130,7 @@ class TransferBackend(BaseBackend):
     ) -> Tuple[str, str, str]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for i, user in enumerate(self.server_users[server_id]):
+        for user in self.servers[server_id].Users:
             if user.UserName == user_name:
                 date_imported = datetime.now().strftime("%Y%m%d%H%M%S")
                 ssh_public_key_id = (
@@ -143,11 +148,11 @@ class TransferBackend(BaseBackend):
     def delete_ssh_public_key(
         self, server_id: str, ssh_public_key_id: str, user_name: str
     ) -> None:
-        if server_id not in self.server_users:
+        if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
-        for i, user in enumerate(self.server_users[server_id]):
+        for i, user in enumerate(self.servers[server_id].Users):
             if user.UserName == user_name:
-                for j, key in enumerate(self.server_users[server_id][i].SshPublicKeys):
+                for j, key in enumerate(self.servers[server_id].Users[i].SshPublicKeys):
                     if key["SshPublicKeyId"] == ssh_public_key_id:
                         del user.SshPublicKeys[j]
                         return
@@ -157,11 +162,5 @@ class TransferBackend(BaseBackend):
                     ssh_public_key_id=ssh_public_key_id,
                 )
         raise UserNotFound(user_name=user_name, server_id=server_id)
-
-    def describe_server(self, server_id):
-        if server_id in self.servers:
-            ServerNotFound(server_id=server_id)
-        return self.servers[server_id]
     
-
 transfer_backends = BackendDict(TransferBackend, "transfer")

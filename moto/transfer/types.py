@@ -146,9 +146,9 @@ class ServerWorkflowDetails(TypedDict):
 class ServerS3StorageOptions(TypedDict):
     DirectoryListingOptimization: ServerS3StorageDirectoryListingOptimization 
 
+
 @dataclass
 class Server(BaseModel):
-    As2ServiceManagedEgressIpAddresses: Optional[List[str]]
     Certificate: Optional[str]
     Domain: Optional[ServerDomain]
     EndpointDetails: Optional[ServerEndpointDetails]
@@ -163,16 +163,19 @@ class Server(BaseModel):
     Protocols: Optional[List[ServerProtocols]]
     S3StorageOptions: Optional[ServerS3StorageOptions]
     SecurityPolicyName: Optional[str]
-    ServerId: str
     State: Optional[ServerState]
     StructuredLogDestinations: Optional[List[str]]
     Tags: Optional[List[Dict[str, str]]]
     UserCount: Optional[int]
     WorkflowDetails: Optional[ServerWorkflowDetails]
     Arn: str = field(default="", init=False)
+    As2ServiceManagedEgressIpAddresses: Optional[List[str]] = ["0.0.0.0"]
+    ServerId: str = field(default="", init=False)
+    Users: List[User] = []
 
     def __post_init__(self) -> None:
         if self.Arn == "":
-            self.Arn = f"arn:aws:transfer:{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.ServerId = f"{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.Arn = f"arn:aws:transfer:{self.ServerId}"
 
     to_dict=asdict
