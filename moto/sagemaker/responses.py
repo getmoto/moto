@@ -1260,3 +1260,76 @@ class SageMakerResponse(BaseResponse):
             retention_policy=retention_policy,
         )
         return json.dumps(dict())
+
+    def create_model_explainability_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        model_explainability_baseline_config = self._get_param(
+            "ModelExplainabilityBaselineConfig"
+        )
+        model_explainability_app_specification = self._get_param(
+            "ModelExplainabilityAppSpecification"
+        )
+        model_explainability_job_input = self._get_param("ModelExplainabilityJobInput")
+        model_explainability_job_output_config = self._get_param(
+            "ModelExplainabilityJobOutputConfig"
+        )
+        job_resources = self._get_param("JobResources")
+        network_config = self._get_param("NetworkConfig")
+        role_arn = self._get_param("RoleArn")
+        stopping_condition = self._get_param("StoppingCondition")
+        tags = self._get_param("Tags")
+        job_definition_arn = self.sagemaker_backend.create_model_explainability_job_definition(
+            job_definition_name=job_definition_name,
+            model_explainability_baseline_config=model_explainability_baseline_config,
+            model_explainability_app_specification=model_explainability_app_specification,
+            model_explainability_job_input=model_explainability_job_input,
+            model_explainability_job_output_config=model_explainability_job_output_config,
+            job_resources=job_resources,
+            network_config=network_config,
+            role_arn=role_arn,
+            stopping_condition=stopping_condition,
+            tags=tags,
+        )
+        return json.dumps(dict(JobDefinitionArn=job_definition_arn))
+
+    def describe_model_explainability_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        description = (
+            self.sagemaker_backend.describe_model_explainability_job_definition(
+                job_definition_name=job_definition_name,
+            )
+        )
+        return json.dumps(description)
+
+    def list_model_explainability_job_definitions(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        job_definitions, next_token = (
+            self.sagemaker_backend.list_model_explainability_job_definitions(
+                endpoint_name=endpoint_name,
+                sort_by=sort_by,
+                sort_order=sort_order,
+                next_token=next_token,
+                max_results=max_results,
+                name_contains=name_contains,
+                creation_time_before=creation_time_before,
+                creation_time_after=creation_time_after,
+            )
+        )
+        job_definition_summaries = [job.summary() for job in job_definitions]
+        return json.dumps(
+            dict(JobDefinitionSummaries=job_definition_summaries, NextToken=next_token)
+        )
+
+    def delete_model_explainability_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        self.sagemaker_backend.delete_model_explainability_job_definition(
+            job_definition_name=job_definition_name,
+        )
+        return json.dumps(dict())
