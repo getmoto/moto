@@ -5140,7 +5140,7 @@ class SageMakerModelBackend(BaseBackend):
         del self.model_explainability_job_definitions[job_definition_name]
         return
 
-def create_hyper_parameter_tuning_job(
+    def create_hyper_parameter_tuning_job(
         self,
         hyper_parameter_tuning_job_name: str,
         hyper_parameter_tuning_job_config: Dict[str, Any],
@@ -5256,7 +5256,7 @@ def create_hyper_parameter_tuning_job(
                 message=f"Could not find hyper parameter tuning job '{hyper_parameter_tuning_job_name}'."
             )
         del self.hyper_parameter_tuning_jobs[hyper_parameter_tuning_job_name]
-        return    
+        return
 
 
 class FakeExperiment(BaseObject):

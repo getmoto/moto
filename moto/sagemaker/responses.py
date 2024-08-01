@@ -1334,7 +1334,7 @@ class SageMakerResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-def create_hyper_parameter_tuning_job(self) -> str:
+    def create_hyper_parameter_tuning_job(self) -> str:
         hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
         hyper_parameter_tuning_job_config = self._get_param(
             "HyperParameterTuningJobConfig"
