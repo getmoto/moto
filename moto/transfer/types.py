@@ -140,8 +140,8 @@ class ServerWorkflowUpload(TypedDict):
 
 
 class ServerWorkflowDetails(TypedDict):
-    OnUpload: ServerWorkflowUpload
-    OnPartialUpload: ServerWorkflowUpload
+    OnUpload: List[ServerWorkflowUpload]
+    OnPartialUpload: List[ServerWorkflowUpload]
 
 
 class ServerS3StorageOptions(TypedDict):
@@ -167,16 +167,19 @@ class Server(BaseModel):
     StructuredLogDestinations: Optional[List[str]]
     WorkflowDetails: Optional[ServerWorkflowDetails]
     Arn: str = field(default="", init=False)
-    As2ServiceManagedEgressIpAddresses: Optional[List[str]] = ["0.0.0.0"]
+    As2ServiceManagedEgressIpAddresses: List[str] = field(default_factory=list)
     ServerId: str = field(default="", init=False)
     State: Optional[ServerState] = ServerState.ONLINE
     Tags: List[Dict[str, str]] = field(default_factory=list)
     UserCount: Optional[int] = 0
-    _users: List[User] = field(default=[], repr=False)
+    _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
         if self.Arn == "":
             self.ServerId = f"{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
             self.Arn = f"arn:aws:transfer:{self.ServerId}"
+            self.As2ServiceManagedEgressIpAddresses = ["0.0.0.0/0"]
+            self._users = []
+
 
     to_dict = asdict
