@@ -1333,7 +1333,7 @@ class SageMakerResponse(BaseResponse):
             job_definition_name=job_definition_name,
         )
         return json.dumps(dict())
-    
+
     def create_model_quality_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
         model_quality_baseline_config = self._get_param("ModelQualityBaselineConfig")
