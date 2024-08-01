@@ -78,7 +78,6 @@ class Key(CloudFormationModel):
         self.description = description or ""
         self.enabled = True
         self.multi_region = multi_region
-        # When the create_key() is called, the multi_region_configuration is set to the following below
         if self.multi_region:
             self.multi_region_configuration: dict = {
                 "MultiRegionKeyType": "PRIMARY",
