@@ -335,7 +335,7 @@ class KmsBackend(BaseBackend):
         # Using copy() instead of deepcopy(), as the latter results in exception:
         #    TypeError: cannot pickle '_cffi_backend.FFI' object
         # Since we only update top level properties, copy() should suffice.
-        replica_key = copy(self.keys[key_id])  # This is the primary key id
+        replica_key = copy(self.keys[key_id])
         replica_key.region = replica_region
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
 
