@@ -243,6 +243,12 @@
       "Resource Types": "AWS::Athena::WorkGroup",
       "Trigger type": "Configuration changes"
     },
+    "ATHENA_WORKGROUP_LOGGING_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::Athena::WorkGroup",
+      "Trigger type": "Configuration changes"
+    },
     "AURORA_LAST_BACKUP_RECOVERY_POINT_CREATED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -895,6 +901,12 @@
       "Resource Types": "AWS::CodeBuild::Project",
       "Trigger type": "Configuration changes"
     },
+    "CODEBUILD_REPORT_GROUP_ENCRYPTED_AT_REST": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::CodeBuild::ReportGroup",
+      "Trigger type": "Configuration changes"
+    },
     "CODEDEPLOY_AUTO_ROLLBACK_MONITOR_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -951,6 +963,12 @@
       "Resource Types": "AWS::CodePipeline::Pipeline",
       "Trigger type": "Configuration changes"
     },
+    "COGNITO_USER_POOL_ADVANCED_SECURITY_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::Cognito::UserPool",
+      "Trigger type": "Configuration changes"
+    },
     "CUSTOM_EVENTBUS_POLICY_ATTACHED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -979,6 +997,18 @@
       ],
       "Resource Types": "AWS::Logs::LogGroup",
       "Trigger type": "Periodic"
+    },
+    "DATASYNC_TASK_LOGGING_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "logLevel",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::DataSync::Task",
+      "Trigger type": "Configuration changes"
     },
     "DAX_ENCRYPTION_ENABLED": {
       "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
@@ -1900,6 +1930,12 @@
       "Resource Types": "AWS::EFS::AccessPoint",
       "Trigger type": "Configuration changes"
     },
+    "EFS_AUTOMATIC_BACKUPS_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::EFS::FileSystem",
+      "Trigger type": "Configuration changes"
+    },
     "EFS_ENCRYPTED_CHECK": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -2586,6 +2622,18 @@
       "Resource Types": "AWS::Events::Endpoint",
       "Trigger type": "Configuration changes"
     },
+    "GLUE_JOB_LOGGING_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::Glue::Job",
+      "Trigger type": "Configuration changes"
+    },
+    "GLUE_ML_TRANSFORM_ENCRYPTED_AT_REST": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::Glue::MLTransform",
+      "Trigger type": "Configuration changes"
+    },
     "GUARDDUTY_EKS_PROTECTION_AUDIT_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -2941,6 +2989,18 @@
       ],
       "Resource Types": "AWS::KinesisFirehose::DeliveryStream",
       "Trigger type": "Periodic"
+    },
+    "KINESIS_STREAM_BACKUP_RETENTION_CHECK": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "minimumBackupRetentionPeriod",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::Kinesis::Stream",
+      "Trigger type": "Configuration changes"
     },
     "KINESIS_STREAM_ENCRYPTED": {
       "AWS Region": "All supported AWS regions",
@@ -3391,6 +3451,12 @@
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Configuration changes"
     },
+    "RDS_AURORA_POSTGRESQL_LOGS_TO_CLOUDWATCH": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::RDS::DBCluster",
+      "Trigger type": "Configuration changes"
+    },
     "RDS_AUTOMATIC_MINOR_VERSION_UPGRADE_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -3565,6 +3631,18 @@
     "RDS_MULTI_AZ_SUPPORT": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
+      "Resource Types": "AWS::RDS::DBInstance",
+      "Trigger type": "Configuration changes"
+    },
+    "RDS_POSTGRESQL_LOGS_TO_CLOUDWATCH": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "logTypes",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
       "Resource Types": "AWS::RDS::DBInstance",
       "Trigger type": "Configuration changes"
     },
@@ -4818,6 +4896,18 @@
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::WAFRegional::WebACL",
+      "Trigger type": "Configuration changes"
+    },
+    "WORKSPACES_ROOT_VOLUME_ENCRYPTION_ENABLED": {
+      "AWS Region": "Only available in Asia Pacific (Mumbai), Africa (Cape Town), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::WorkSpaces::Workspace",
+      "Trigger type": "Configuration changes"
+    },
+    "WORKSPACES_USER_VOLUME_ENCRYPTION_ENABLED": {
+      "AWS Region": "Only available in Asia Pacific (Mumbai), Africa (Cape Town), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::WorkSpaces::Workspace",
       "Trigger type": "Configuration changes"
     }
   }
