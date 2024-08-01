@@ -2189,11 +2189,11 @@ class HyperParameterTuningJob(BaseObject):
         hyper_parameter_tuning_job_config: Dict[str, Any],
         region_name: str,
         account_id: str,
-        training_job_definition: Optional[dict[str, Any]],
-        training_job_definitions: Optional[list[dict[str, Any]]],
-        warm_start_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
-        autotune: Optional[dict[str, Any]],
+        training_job_definition: Optional[Dict[str, Any]],
+        training_job_definitions: Optional[List[Dict[str, Any]]],
+        warm_start_config: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        autotune: Optional[Dict[str, Any]],
     ):
         self.hyper_parameter_tuning_job_name = hyper_parameter_tuning_job_name
         if (
@@ -5144,11 +5144,11 @@ class SageMakerModelBackend(BaseBackend):
         self,
         hyper_parameter_tuning_job_name: str,
         hyper_parameter_tuning_job_config: Dict[str, Any],
-        training_job_definition: Optional[dict[str, Any]],
-        training_job_definitions: Optional[list[dict[str, Any]]],
-        warm_start_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
-        autotune: Optional[dict[str, Any]],
+        training_job_definition: Optional[Dict[str, Any]],
+        training_job_definitions: Optional[List[Dict[str, Any]]],
+        warm_start_config: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        autotune: Optional[Dict[str, Any]],
     ) -> str:
         hyper_parameter_tuning_job = HyperParameterTuningJob(
             hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
