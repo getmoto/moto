@@ -1333,3 +1333,100 @@ class SageMakerResponse(BaseResponse):
             job_definition_name=job_definition_name,
         )
         return json.dumps(dict())
+
+    def create_model_card(self) -> str:
+        model_card_name = self._get_param("ModelCardName")
+        security_config = self._get_param("SecurityConfig")
+        content = self._get_param("Content")
+        model_card_status = self._get_param("ModelCardStatus")
+        tags = self._get_param("Tags")
+        model_card_arn = self.sagemaker_backend.create_model_card(
+            model_card_name=model_card_name,
+            security_config=security_config,
+            content=content,
+            model_card_status=model_card_status,
+            tags=tags,
+        )
+        return json.dumps(dict(ModelCardArn=model_card_arn))
+
+    def list_model_cards(self) -> str:
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        max_results = self._get_param("MaxResults")
+        name_contains = self._get_param("NameContains")
+        model_card_status = self._get_param("ModelCardStatus")
+        next_token = self._get_param("NextToken")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        model_cards, next_token = self.sagemaker_backend.list_model_cards(
+            creation_time_after=creation_time_after,
+            creation_time_before=creation_time_before,
+            max_results=max_results,
+            name_contains=name_contains,
+            model_card_status=model_card_status,
+            next_token=next_token,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
+        model_card_summaries = [model_card.summary() for model_card in model_cards]
+        return json.dumps(
+            dict(ModelCardSummaries=model_card_summaries, NextToken=next_token)
+        )
+
+    def list_model_card_versions(self) -> str:
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        max_results = self._get_param("MaxResults")
+        model_card_name = self._get_param("ModelCardName")
+        model_card_status = self._get_param("ModelCardStatus")
+        next_token = self._get_param("NextToken")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        model_card_versions, next_token = (
+            self.sagemaker_backend.list_model_card_versions(
+                creation_time_after=creation_time_after,
+                creation_time_before=creation_time_before,
+                max_results=max_results,
+                model_card_name=model_card_name,
+                model_card_status=model_card_status,
+                next_token=next_token,
+                sort_by=sort_by,
+                sort_order=sort_order,
+            )
+        )
+        model_card_version_summaries = [
+            mcv.version_summary() for mcv in model_card_versions
+        ]
+        return json.dumps(
+            dict(
+                ModelCardVersionSummaryList=model_card_version_summaries,
+                NextToken=next_token,
+            )
+        )
+
+    def update_model_card(self) -> str:
+        model_card_name = self._get_param("ModelCardName")
+        content = self._get_param("Content")
+        model_card_status = self._get_param("ModelCardStatus")
+        model_card_arn = self.sagemaker_backend.update_model_card(
+            model_card_name=model_card_name,
+            content=content,
+            model_card_status=model_card_status,
+        )
+        return json.dumps(dict(ModelCardArn=model_card_arn))
+
+    def describe_model_card(self) -> str:
+        model_card_name = self._get_param("ModelCardName")
+        model_card_version = self._get_param("ModelCardVersion")
+        model_card_description = self.sagemaker_backend.describe_model_card(
+            model_card_name=model_card_name,
+            model_card_version=model_card_version,
+        )
+        return json.dumps(model_card_description)
+
+    def delete_model_card(self) -> str:
+        model_card_name = self._get_param("ModelCardName")
+        self.sagemaker_backend.delete_model_card(
+            model_card_name=model_card_name,
+        )
+        return json.dumps(dict())
