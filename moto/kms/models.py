@@ -80,16 +80,13 @@ class Key(CloudFormationModel):
         self.multi_region = multi_region
         # When the create_key() is called, the multi_region_configuration is set to the following below
         if self.multi_region:
-            print("Multi Region Enabled")
             self.multi_region_configuration: dict = {
-                "MultiRegionConfiguration": {
-                    "MultiRegionKeyType": "PRIMARY",
-                    "PrimaryKey": {
-                        "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
-                        "Region": self.region
-                    },
-                    "ReplicaKeys": []
+                "MultiRegionKeyType": "PRIMARY",
+                "PrimaryKey": {
+                    "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
+                    "Region": self.region
                 },
+                "ReplicaKeys": []
             }
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
@@ -338,7 +335,7 @@ class KmsBackend(BaseBackend):
         # Using copy() instead of deepcopy(), as the latter results in exception:
         #    TypeError: cannot pickle '_cffi_backend.FFI' object
         # Since we only update top level properties, copy() should suffice.
-        replica_key = copy(self.keys[key_id])
+        replica_key = copy(self.keys[key_id])  # This is the primary key id
         replica_key.region = replica_region
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
 
@@ -348,16 +345,12 @@ class KmsBackend(BaseBackend):
                 'Region': replica_region
             }
 
-            replica_key.multi_region_configuration["MultiRegionConfiguration"]["ReplicaKeys"].append(replica_payload)
+            replica_key.multi_region_configuration["ReplicaKeys"].append(replica_payload)
 
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
 
-        # TODO: Copy over the replica key data to the original key
         self.multi_region_configuration = deepcopy(replica_key.multi_region_configuration)
-
-        print("Replica Key", replica_key.multi_region_configuration)
-        print("Original Key", self.multi_region_configuration)
 
         return replica_key
 
@@ -380,7 +373,15 @@ class KmsBackend(BaseBackend):
         if r"alias/" in str(key_id).lower():
             key_id = self.get_key_id_from_alias(key_id)  # type: ignore[assignment]
 
-        # TODO: When describing key, need to make sure we add the multiregion configuration to it
+        key = self.keys[self.get_key_id(key_id)]
+
+        if key.multi_region:
+            if key.arn == key.multi_region_configuration["PrimaryKey"]["Arn"]:
+                return self.keys[self.get_key_id(key_id)]
+            else:
+                key.multi_region_configuration["MultiRegionKeyType"] = "REPLICA"
+                return key
+
         return self.keys[self.get_key_id(key_id)]
 
     def list_keys(self) -> Iterable[Key]:
