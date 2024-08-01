@@ -1,12 +1,17 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 
 @mock_aws
-def test_register_ca_certificate_simple():
+def test_register_ca_certificate_simple_invalid_cert():
+    """
+    Original test case with invalid cert.
+    """
     client = boto3.client("iot", region_name="us-east-1")
 
     resp = client.register_ca_certificate(
@@ -16,6 +21,38 @@ def test_register_ca_certificate_simple():
 
     assert "certificateArn" in resp
     assert "certificateId" in resp
+
+
+@pytest.fixture(name="make_cert")
+@mock_aws(config={"iot": {"use_valid_cert": True}})
+def fixture_make_cert():
+    """
+    Create a valid cert for testing
+    """
+    client = boto3.client("iot", region_name="us-east-1")
+    return client.create_keys_and_certificate(setAsActive=False)
+
+
+@mock_aws(config={"iot": {"use_valid_cert": True}})
+def test_register_ca_certificate_simple(make_cert):
+    if not settings.TEST_DECORATOR_MODE:
+        # Technically it doesn't have to be skipped
+        # in ServerMode the config is not set, so we'll compute the cert the old/invalid way
+        # But there are no assertions to actually verify the value of the computed cert
+        # This is just added here as a warning/reminder if this ever changes
+        raise SkipTest("Config cannot be easily set in ServerMode")
+
+    client = boto3.client("iot", region_name="us-east-1")
+    certInfo = make_cert
+
+    resp = client.register_ca_certificate(
+        caCertificate=certInfo["certificatePem"],
+        verificationCertificate="verification_certificate",
+    )
+
+    assert "certificateArn" in resp
+    assert "certificateId" in resp
+    assert resp["certificateId"] == certInfo["certificateId"]
 
 
 @mock_aws
@@ -76,6 +113,10 @@ def test_describe_ca_certificate_advanced():
 
 @mock_aws
 def test_list_certificates_by_ca():
+    """
+    test listing certificates by CA.  Don't use valid cert to make it simpler
+    for the test.
+    """
     client = boto3.client("iot", region_name="us-east-1")
 
     # create ca

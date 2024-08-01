@@ -1,7 +1,7 @@
 import datetime
 import inspect
 import re
-from gzip import decompress
+from gzip import compress, decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
 
@@ -401,6 +401,10 @@ def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, int, str]:
 
 def gzip_decompress(body: bytes) -> bytes:
     return decompress(body)
+
+
+def gzip_compress(body: bytes) -> bytes:
+    return compress(body)
 
 
 ISO_REGION_DOMAINS = {

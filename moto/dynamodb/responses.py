@@ -1227,3 +1227,41 @@ class DynamoHandler(BaseResponse):
         import_arn = self.body["ImportArn"]
         import_table = self.dynamodb_backend.describe_import(import_arn)
         return json.dumps({"ImportTableDescription": import_table.response()})
+
+    def export_table_to_point_in_time(self) -> str:
+        table_arn = self.body["TableArn"]
+        s3_bucket = self.body["S3Bucket"]
+        s3_prefix = self.body["S3Prefix"]
+        export_type = self.body.get("ExportType", "FULL_EXPORT")
+        export_format = self.body.get("ExportFormat", "DYNAMO_JSON")
+        s3_bucket_owner = self.body.get("S3BucketOwner")
+
+        export_table = self.dynamodb_backend.export_table(
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            table_arn=table_arn,
+            export_type=export_type,
+            export_format=export_format,
+            s3_bucket_owner=s3_bucket_owner,
+        )
+
+        return dynamo_json_dump({"ExportDescription": export_table.response()})
+
+    def describe_export(self) -> str:
+        export_arn = self.body["ExportArn"]
+        export_table = self.dynamodb_backend.describe_export(export_arn)
+        return json.dumps({"ExportDescription": export_table.response()})
+
+    def list_exports(self) -> str:
+        table_arn = self.body["TableArn"]
+        exports = self.dynamodb_backend.list_exports(table_arn)
+        response = []
+        for export_table in exports:
+            response.append(
+                {
+                    "ExportArn": export_table.arn,
+                    "ExportStatus": export_table.status,
+                    "ExportType": export_table.export_type,
+                }
+            )
+        return json.dumps({"ExportSummaries": response})

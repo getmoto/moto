@@ -191,3 +191,11 @@ def load_iam_aws_managed_policies() -> bool:
         is True
         or os.environ.get("MOTO_IAM_LOAD_MANAGED_POLICIES", "").lower() == "true"
     )
+
+
+#
+# NOTE:  Recommend the next major release to set this to True for proper
+# default behavior
+#
+def iot_use_valid_cert() -> bool:
+    return default_user_config.get("iot", {}).get("use_valid_cert", False)

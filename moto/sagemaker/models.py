@@ -103,6 +103,24 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "endpoint_config_arn",
     },
+    "list_compilation_jobs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_domains": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_model_explainability_job_definitions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
     "list_hyper_parameter_tuning_jobs": {
         "input_token": "next_token",
         "limit_key": "max_results",
@@ -1644,6 +1662,106 @@ class ClusterNode(BaseObject):
         }
 
 
+class CompilationJob(BaseObject):
+    def __init__(
+        self,
+        compilation_job_name: str,
+        role_arn: str,
+        region_name: str,
+        account_id: str,
+        output_config: Dict[str, Any],
+        stopping_condition: Dict[str, Any],
+        model_package_version_arn: Optional[str],
+        input_config: Optional[Dict[str, Any]],
+        vpc_config: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.compilation_job_name = compilation_job_name
+        if (
+            compilation_job_name
+            in sagemaker_backends[account_id][region_name].compilation_jobs
+        ):
+            raise ResourceInUseException(
+                message=f"Resource Already Exists: Compilation job with name {compilation_job_name} already exists. Choose a different name."
+            )
+        self.arn = arn_formatter(
+            "compilation-job", self.compilation_job_name, account_id, region_name
+        )
+        self.compilation_job_status = "COMPLETED"
+        self.compilation_start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.compilation_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.stopping_condition = stopping_condition
+        self.inference_image = "InferenceImage"
+        self.model_package_version_arn = model_package_version_arn
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.failure_reason = ""
+        self.model_artifacts = {"S3ModelArtifacts": output_config["S3OutputLocation"]}
+        self.model_digests = {
+            "ArtifactDigest": "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce"
+        }
+        self.role_arn = role_arn
+        self.input_config = input_config
+        if input_config and model_package_version_arn:
+            raise ValidationError(
+                message="InputConfig and ModelPackageVersionArn cannot be specified at the same time."
+            )
+        if not input_config and not model_package_version_arn:
+            raise ValidationError(
+                message="Either InputConfig or ModelPackageVersionArn must be specified."
+            )
+        self.output_config = output_config
+        self.vpc_config = vpc_config
+        self.derived_information = {"DerivedDataInputConfig": "DerivedDataInputConfig"}
+        self.tags = tags
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "CompilationJobName": self.compilation_job_name,
+            "CompilationJobArn": self.arn,
+            "CompilationJobStatus": self.compilation_job_status,
+            "CompilationStartTime": self.compilation_start_time,
+            "CompilationEndTime": self.compilation_end_time,
+            "StoppingCondition": self.stopping_condition,
+            "InferenceImage": self.inference_image,
+            "ModelPackageVersionArn": self.model_package_version_arn,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+            "FailureReason": self.failure_reason,
+            "ModelArtifacts": self.model_artifacts,
+            "ModelDigests": self.model_digests,
+            "RoleArn": self.role_arn,
+            "InputConfig": self.input_config,
+            "OutputConfig": self.output_config,
+            "VpcConfig": self.vpc_config,
+            "DerivedInformation": self.derived_information,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        summary = {
+            "CompilationJobName": self.compilation_job_name,
+            "CompilationJobArn": self.arn,
+            "CreationTime": self.creation_time,
+            "CompilationStartTime": self.compilation_start_time,
+            "CompilationEndTime": self.compilation_end_time,
+            "LastModifiedTime": self.last_modified_time,
+            "CompilationJobStatus": self.compilation_job_status,
+        }
+        if "TargetDevice" in self.output_config:
+            summary["CompilationTargetDevice"] = self.output_config["TargetDevice"]
+        else:
+            summary["CompilationTargetPlatformOs"] = self.output_config[
+                "TargetPlatform"
+            ]["Os"]
+            summary["CompilationTargetPlatformArch"] = self.output_config[
+                "TargetPlatform"
+            ]["Arch"]
+            summary["CompilationTargetPlatformAccelerator"] = self.output_config[
+                "TargetPlatform"
+            ]["Accelerator"]
+        return summary
+
+
 class AutoMLJob(BaseObject):
     def __init__(
         self,
@@ -1889,6 +2007,178 @@ class AutoMLJob(BaseObject):
             "LastModifiedTime": self.last_modified_time,
             "FailureReason": self.failure_reason,
             "PartialFailureReasons": self.partial_failure_reasons,
+        }
+
+
+class Domain(BaseObject):
+    def __init__(
+        self,
+        domain_name: str,
+        auth_mode: str,
+        default_user_settings: Dict[str, Any],
+        subnet_ids: List[str],
+        vpc_id: str,
+        account_id: str,
+        region_name: str,
+        domain_settings: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        app_network_access_type: Optional[str],
+        home_efs_file_system_kms_key_id: Optional[str],
+        kms_key_id: Optional[str],
+        app_security_group_management: Optional[str],
+        default_space_settings: Optional[Dict[str, Any]],
+    ):
+        self.domain_name = domain_name
+        if domain_name in sagemaker_backends[account_id][region_name].domains:
+            raise ResourceInUseException(
+                message=f"Resource Already Exists: Domain with name {domain_name} already exists. Choose a different name."
+            )
+        self.auth_mode = auth_mode
+        self.default_user_settings = default_user_settings
+        self.subnet_ids = subnet_ids
+        self.vpc_id = vpc_id
+        self.account_id = account_id
+        self.region_name = region_name
+        self.domain_settings = domain_settings
+        self.tags = tags
+        self.app_network_access_type = (
+            app_network_access_type if app_network_access_type else "PublicInternetOnly"
+        )
+        self.home_efs_file_system_kms_key_id = (
+            home_efs_file_system_kms_key_id
+            if home_efs_file_system_kms_key_id
+            else kms_key_id
+        )
+        self.kms_key_id = kms_key_id
+        self.app_security_group_management = app_security_group_management
+        self.default_space_settings = default_space_settings
+
+        self.id = f"d-{domain_name}"
+        self.arn = arn_formatter("domain", self.id, account_id, region_name)
+        self.home_efs_file_system_id = f"{domain_name}-efs-id"
+        self.single_sign_on_managed_application_instance_id = f"{domain_name}-sso-id"
+        self.single_sign_on_managed_application_arn = arn_formatter(
+            "sso", f"application/{domain_name}/apl-{domain_name}", account_id, ""
+        )
+        self.status = "InService"
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.failure_reason = ""
+        self.security_group_id_for_domain_boundary = f"sg-{domain_name}"
+        self.url = f"{domain_name}.{region_name}.sagemaker.test.com"
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "DomainArn": self.arn,
+            "DomainId": self.id,
+            "DomainName": self.domain_name,
+            "HomeEfsFileSystemId": self.home_efs_file_system_id,
+            "SingleSignOnManagedApplicationInstanceId": self.single_sign_on_managed_application_instance_id,
+            "SingleSignOnApplicationArn": self.single_sign_on_managed_application_arn,
+            "Status": self.status,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+            "FailureReason": self.failure_reason,
+            "SecurityGroupIdForDomainBoundary": self.security_group_id_for_domain_boundary,
+            "AuthMode": self.auth_mode,
+            "DefaultUserSettings": self.default_user_settings,
+            "DomainSetting": self.domain_settings,
+            "AppNetworkAccessType": self.app_network_access_type,
+            "HomeEfsFileSystemKmsKeyId": self.home_efs_file_system_kms_key_id,
+            "SubnetIds": self.subnet_ids,
+            "Url": self.url,
+            "VpcId": self.vpc_id,
+            "KmsKeyId": self.kms_key_id,
+            "AppSecurityGroupManagement": self.app_security_group_management,
+            "DefaultSpaceSettings": self.default_space_settings,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "DomainArn": self.arn,
+            "DomainId": self.id,
+            "DomainName": self.domain_name,
+            "Status": self.status,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+            "Url": self.url,
+        }
+
+
+class ModelExplainabilityJobDefinition(BaseObject):
+    def __init__(
+        self,
+        job_definition_name: str,
+        model_explainability_baseline_config: Optional[Dict[str, Any]],
+        model_explainability_app_specification: Dict[str, Any],
+        model_explainability_job_input: Dict[str, Any],
+        model_explainability_job_output_config: Dict[str, Any],
+        job_resources: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]],
+        role_arn: str,
+        stopping_condition: Optional[Dict[str, Any]],
+        region_name: str,
+        account_id: str,
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.job_definition_name = job_definition_name
+        if (
+            job_definition_name
+            in sagemaker_backends[account_id][
+                region_name
+            ].model_explainability_job_definitions
+        ):
+            raise ResourceInUseException(
+                message=f"Resource Already Exists: ModelExplainabilityJobDefinition with name {job_definition_name} already exists. Choose a different name."
+            )
+        self.model_explainability_baseline_config = model_explainability_baseline_config
+        self.model_explainability_app_specification = (
+            model_explainability_app_specification
+        )
+        self.model_explainability_job_input = model_explainability_job_input
+        self.model_explainability_job_output_config = (
+            model_explainability_job_output_config
+        )
+        self.job_resources = job_resources
+        self.network_config = network_config
+        self.role_arn = role_arn
+        self.stopping_condition = stopping_condition
+        self.region_name = region_name
+        self.account_id = account_id
+        self.tags = tags
+
+        self.arn = arn_formatter(
+            "model-explainability-job-definition",
+            job_definition_name,
+            self.account_id,
+            self.region_name,
+        )
+        self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.endpoint_name = model_explainability_job_input["EndpointInput"][
+            "EndpointName"
+        ]
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "JobDefinitionArn": self.arn,
+            "JobDefinitionName": self.job_definition_name,
+            "CreationTime": self.creation_time,
+            "ModelExplainabilityBaselineConfig": self.model_explainability_baseline_config,
+            "ModelExplainabilityAppSpecification": self.model_explainability_app_specification,
+            "ModelExplainabilityJobInput": self.model_explainability_job_input,
+            "ModelExplainabilityJobOutputConfig": self.model_explainability_job_output_config,
+            "JobResources": self.job_resources,
+            "NetworkConfig": self.network_config,
+            "RoleArn": self.role_arn,
+            "StoppingConditions": self.stopping_condition,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "MonitoringJobDefinitionName": self.job_definition_name,
+            "MonitoringJobDefinitionArn": self.arn,
+            "CreationTime": self.creation_time,
+            "EndpointName": self.endpoint_name,
         }
 
 
@@ -2420,6 +2710,11 @@ class SageMakerModelBackend(BaseBackend):
         self.feature_groups: Dict[str, FeatureGroup] = {}
         self.clusters: Dict[str, Cluster] = {}
         self.auto_ml_jobs: Dict[str, AutoMLJob] = {}
+        self.compilation_jobs: Dict[str, CompilationJob] = {}
+        self.domains: Dict[str, Domain] = {}
+        self.model_explainability_job_definitions: Dict[
+            str, ModelExplainabilityJobDefinition
+        ] = {}
         self.hyper_parameter_tuning_jobs: Dict[str, HyperParameterTuningJob] = {}
 
     @staticmethod
@@ -2552,6 +2847,9 @@ class SageMakerModelBackend(BaseBackend):
             "model-package-group": self.model_package_groups,
             "cluster": self.clusters,
             "automl-job": self.auto_ml_jobs,
+            "compilation-job": self.compilation_jobs,
+            "domain": self.domains,
+            "model-explainability-job-definition": self.model_explainability_job_definitions,
             "hyper-parameter-tuning-job": self.hyper_parameter_tuning_jobs,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
@@ -4584,7 +4882,265 @@ class SageMakerModelBackend(BaseBackend):
             )
         return endpoint_configs
 
-    def create_hyper_parameter_tuning_job(
+    def create_compilation_job(
+        self,
+        compilation_job_name: str,
+        role_arn: str,
+        output_config: Dict[str, Any],
+        stopping_condition: Dict[str, Any],
+        model_package_version_arn: Optional[str],
+        input_config: Optional[Dict[str, Any]],
+        vpc_config: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> str:
+        compilation_job = CompilationJob(
+            compilation_job_name=compilation_job_name,
+            role_arn=role_arn,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            model_package_version_arn=model_package_version_arn,
+            input_config=input_config,
+            output_config=output_config,
+            vpc_config=vpc_config,
+            stopping_condition=stopping_condition,
+            tags=tags,
+        )
+        self.compilation_jobs[compilation_job_name] = compilation_job
+        return compilation_job.arn
+
+    def describe_compilation_job(self, compilation_job_name: str) -> Dict[str, Any]:
+        if compilation_job_name not in self.compilation_jobs:
+            raise ResourceNotFound(
+                message=f"Could not find compilation job '{compilation_job_name}'."
+            )
+        compilation_job = self.compilation_jobs[compilation_job_name]
+        return compilation_job.describe()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_compilation_jobs(
+        self,
+        creation_time_after: Optional[str],
+        creation_time_before: Optional[str],
+        last_modified_time_after: Optional[str],
+        last_modified_time_before: Optional[str],
+        name_contains: Optional[str],
+        status_equals: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+    ) -> List[CompilationJob]:
+        compilation_jobs = list(self.compilation_jobs.values())
+        if name_contains:
+            compilation_jobs = [
+                i for i in compilation_jobs if name_contains in i.compilation_job_name
+            ]
+        if creation_time_before:
+            compilation_jobs = [
+                i
+                for i in compilation_jobs
+                if i.creation_time < str(creation_time_before)
+            ]
+        if creation_time_after:
+            compilation_jobs = [
+                i
+                for i in compilation_jobs
+                if i.creation_time > str(creation_time_after)
+            ]
+        if last_modified_time_before:
+            compilation_jobs = [
+                i
+                for i in compilation_jobs
+                if i.last_modified_time < str(last_modified_time_before)
+            ]
+        if creation_time_after:
+            compilation_jobs = [
+                i
+                for i in compilation_jobs
+                if i.last_modified_time > str(last_modified_time_after)
+            ]
+        if status_equals:
+            compilation_jobs = [
+                i for i in compilation_jobs if i.compilation_job_status == status_equals
+            ]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            compilation_jobs = sorted(
+                compilation_jobs, key=lambda x: x.compilation_job_name, reverse=reverse
+            )
+        if sort_by == "Status":
+            compilation_jobs = sorted(
+                compilation_jobs,
+                key=lambda x: x.compilation_job_status,
+                reverse=reverse,
+            )
+        if sort_by == "CreationTime" or sort_by is None:
+            compilation_jobs = sorted(
+                compilation_jobs, key=lambda x: x.creation_time, reverse=reverse
+            )
+        return compilation_jobs
+
+    def delete_compilation_job(self, compilation_job_name: str) -> None:
+        if compilation_job_name not in self.compilation_jobs:
+            raise ResourceNotFound(
+                message=f"Could not find compilation job '{compilation_job_name}'."
+            )
+        del self.compilation_jobs[compilation_job_name]
+        return
+
+    def create_domain(
+        self,
+        domain_name: str,
+        auth_mode: str,
+        default_user_settings: Dict[str, Any],
+        subnet_ids: List[str],
+        vpc_id: str,
+        domain_settings: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        app_network_access_type: Optional[str],
+        home_efs_file_system_kms_key_id: Optional[str],
+        kms_key_id: Optional[str],
+        app_security_group_management: Optional[str],
+        default_space_settings: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        domain = Domain(
+            domain_name=domain_name,
+            auth_mode=auth_mode,
+            default_user_settings=default_user_settings,
+            subnet_ids=subnet_ids,
+            vpc_id=vpc_id,
+            domain_settings=domain_settings,
+            tags=tags,
+            app_network_access_type=app_network_access_type,
+            home_efs_file_system_kms_key_id=home_efs_file_system_kms_key_id,
+            kms_key_id=kms_key_id,
+            app_security_group_management=app_security_group_management,
+            default_space_settings=default_space_settings,
+            region_name=self.region_name,
+            account_id=self.account_id,
+        )
+        self.domains[domain.id] = domain
+        return {"DomainArn": domain.arn, "Url": domain.url}
+
+    def describe_domain(self, domain_id: str) -> Dict[str, Any]:
+        if domain_id not in self.domains:
+            raise ValidationError(message=f"Could not find domain '{domain_id}'.")
+        return self.domains[domain_id].describe()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_domains(self) -> List[Domain]:
+        return list(self.domains.values())
+
+    def delete_domain(
+        self, domain_id: str, retention_policy: Optional[Dict[str, str]]
+    ) -> None:
+        # 'retention_policy' parameter is not used
+        if domain_id not in self.domains:
+            raise ValidationError(message=f"Could not find domain '{domain_id}'.")
+        del self.domains[domain_id]
+
+    def create_model_explainability_job_definition(
+        self,
+        job_definition_name: str,
+        model_explainability_baseline_config: Optional[Dict[str, Any]],
+        model_explainability_app_specification: Dict[str, Any],
+        model_explainability_job_input: Dict[str, Any],
+        model_explainability_job_output_config: Dict[str, Any],
+        job_resources: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]],
+        role_arn: str,
+        stopping_condition: Optional[Dict[str, Any]],
+        tags: List[Dict[str, str]],
+    ) -> str:
+        model_explainability_job_definition = ModelExplainabilityJobDefinition(
+            job_definition_name=job_definition_name,
+            model_explainability_baseline_config=model_explainability_baseline_config,
+            model_explainability_app_specification=model_explainability_app_specification,
+            model_explainability_job_input=model_explainability_job_input,
+            model_explainability_job_output_config=model_explainability_job_output_config,
+            job_resources=job_resources,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            network_config=network_config,
+            role_arn=role_arn,
+            stopping_condition=stopping_condition,
+            tags=tags,
+        )
+        self.model_explainability_job_definitions[
+            model_explainability_job_definition.job_definition_name
+        ] = model_explainability_job_definition
+        return model_explainability_job_definition.arn
+
+    def describe_model_explainability_job_definition(
+        self, job_definition_name: str
+    ) -> Dict[str, Any]:
+        if job_definition_name not in self.model_explainability_job_definitions:
+            raise ResourceNotFound(
+                message=f"Could not find model explainability job definition with name '{job_definition_name}'."
+            )
+        return self.model_explainability_job_definitions[job_definition_name].describe()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_explainability_job_definitions(
+        self,
+        endpoint_name: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+        name_contains: Optional[str],
+        creation_time_before: Optional[str],
+        creation_time_after: Optional[str],
+    ) -> List[ModelExplainabilityJobDefinition]:
+        model_explainability_job_definitions = list(
+            self.model_explainability_job_definitions.values()
+        )
+        if endpoint_name:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if endpoint_name == i.endpoint_name
+            ]
+        if name_contains:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if name_contains in i.job_definition_name
+            ]
+        if creation_time_before:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if i.creation_time < str(creation_time_before)
+            ]
+        if creation_time_after:
+            model_explainability_job_definitions = [
+                i
+                for i in model_explainability_job_definitions
+                if i.creation_time > str(creation_time_after)
+            ]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            model_explainability_job_definitions = sorted(
+                model_explainability_job_definitions,
+                key=lambda x: x.job_definition_name,
+                reverse=reverse,
+            )
+        if sort_by == "CreationTime" or sort_by is None:
+            model_explainability_job_definitions = sorted(
+                model_explainability_job_definitions,
+                key=lambda x: x.creation_time,
+                reverse=reverse,
+            )
+        return model_explainability_job_definitions
+
+    def delete_model_explainability_job_definition(
+        self, job_definition_name: str
+    ) -> None:
+        if job_definition_name not in self.model_explainability_job_definitions:
+            raise ResourceNotFound(
+                message=f"Could not find model explainability job definition with name '{job_definition_name}'."
+            )
+        del self.model_explainability_job_definitions[job_definition_name]
+        return
+
+def create_hyper_parameter_tuning_job(
         self,
         hyper_parameter_tuning_job_name: str,
         hyper_parameter_tuning_job_config: Dict[str, Any],
@@ -4700,7 +5256,7 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find hyper parameter tuning job '{hyper_parameter_tuning_job_name}'."
             )
         del self.hyper_parameter_tuning_jobs[hyper_parameter_tuning_job_name]
-        return
+        return    
 
 
 class FakeExperiment(BaseObject):
