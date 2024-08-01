@@ -3,8 +3,9 @@ import os
 import random
 import re
 import string
+from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from typing import Any, DefaultDict, Dict, Iterable, List, Optional, Union, cast
 
 from dateutil.tz import tzutc
 
@@ -16,6 +17,7 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import (
     AWSValidationException,
+    ConflictException,
     MissingModel,
     ResourceInUseException,
     ResourceNotFound,
@@ -23,6 +25,7 @@ from .exceptions import (
 )
 from .utils import (
     arn_formatter,
+    filter_model_cards,
     get_pipeline_execution_from_arn,
     get_pipeline_from_name,
     get_pipeline_name_from_execution_arn,
@@ -132,6 +135,18 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "arn",
+    },
+    "list_model_cards": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "model_card_arn",
+    },
+    "list_model_card_versions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "model_card_arn",
     },
 }
 
@@ -1061,6 +1076,78 @@ class ModelPackageGroup(BaseObject):
             "ModelPackageGroupStatus",
         ]
         return {k: v for k, v in response_object.items() if k in response_values}
+
+
+class FakeModelCard(BaseObject):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        model_card_name: str,
+        model_card_version: int,
+        content: str,
+        model_card_status: str,
+        security_config: Optional[Dict[str, str]] = None,
+        tags: Optional[List[Dict[str, Any]]] = None,
+        creation_time: Optional[str] = None,
+        last_modified_time: Optional[str] = None,
+    ) -> None:
+        # user_profile_name = "faker-user"
+        # domain_id = "fake-domain"
+        # user_profile_arn = arn_formatter("user-profile", f"{domain_id}/{user_profile_name}", account_id, region_name)
+        datetime_now = str(datetime.now(tzutc()))
+        self.model_card_arn = arn_formatter(
+            "model-card", model_card_name, account_id, region_name
+        )
+        self.model_card_name = model_card_name
+        self.model_card_version = model_card_version
+        self.content = content
+        self.model_card_status = model_card_status
+        # self.created_by = {
+        #     "UserProfileArn": user_profile_arn,
+        #     "UserProfileName": user_profile_name,
+        #     "DomainId": domain_id,
+        # }
+        # self.last_modified_by = self.created_by
+        self.creation_time = creation_time if creation_time else datetime_now
+        self.last_modified_time = (
+            last_modified_time if last_modified_time else datetime_now
+        )
+        self.security_config = security_config
+        self.tags = tags
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "ModelCardArn": self.model_card_arn,
+            "ModelCardName": self.model_card_name,
+            "ModelCardVersion": self.model_card_version,
+            "Content": self.content,
+            "ModelCardStatus": self.model_card_status,
+            "SecurityConfig": self.security_config,
+            "CreationTime": self.creation_time,
+            "CreatedBy": {},
+            "LastModifiedTime": self.creation_time,
+            "LastModifiedBy": {},
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "ModelCardName": self.model_card_name,
+            "ModelCardArn": self.model_card_arn,
+            "ModelCardStatus": self.model_card_status,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+        }
+
+    def version_summary(self) -> Dict[str, Any]:
+        return {
+            "ModelCardName": self.model_card_name,
+            "ModelCardArn": self.model_card_arn,
+            "ModelCardStatus": self.model_card_status,
+            "ModelCardVersion": self.model_card_version,
+            "CreationTime": self.creation_time,
+            "LastModifiedTime": self.last_modified_time,
+        }
 
 
 class FeatureGroup(BaseObject):
@@ -2780,6 +2867,7 @@ class SageMakerModelBackend(BaseBackend):
         self.notebook_instance_lifecycle_configurations: Dict[
             str, FakeSageMakerNotebookInstanceLifecycleConfig
         ] = {}
+        self.model_cards: DefaultDict[str, List[FakeModelCard]] = defaultdict(list)
         self.model_package_groups: Dict[str, ModelPackageGroup] = {}
         self.model_packages: Dict[str, ModelPackage] = {}
         self.model_package_name_mapping: Dict[str, str] = {}
@@ -2929,6 +3017,7 @@ class SageMakerModelBackend(BaseBackend):
             "model-explainability-job-definition": self.model_explainability_job_definitions,
             "hyper-parameter-tuning-job": self.hyper_parameter_tuning_jobs,
             "model-quality-job-definition": self.model_quality_job_definitions,
+            "model-card": self.model_cards,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -2936,6 +3025,8 @@ class SageMakerModelBackend(BaseBackend):
         except KeyError:
             message = f"Could not find {target_resource} with name {target_name}"
             raise ValidationError(message=message)
+        if isinstance(resource, list):
+            return resource[0]
         return resource
 
     def add_tags(self, arn: str, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -5436,6 +5527,148 @@ class SageMakerModelBackend(BaseBackend):
             )
         del self.model_quality_job_definitions[job_definition_name]
         return
+
+    def create_model_card(
+        self,
+        model_card_name: str,
+        security_config: Optional[Dict[str, str]],
+        content: str,
+        model_card_status: str,
+        tags: Optional[List[Dict[str, str]]],
+        model_card_version: Optional[int] = None,
+        creation_time: Optional[str] = None,
+        last_modified_time: Optional[str] = None,
+    ) -> str:
+        if model_card_name in self.model_cards:
+            raise ConflictException(f"Modelcard {model_card_name} already exists")
+
+        if not model_card_version:
+            model_card_version = 1
+
+        # implement here
+        model_card = FakeModelCard(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            model_card_name=model_card_name,
+            model_card_version=model_card_version,
+            content=content,
+            model_card_status=model_card_status,
+            security_config=security_config,
+            tags=tags,
+        )
+
+        self.model_cards[model_card_name].append(model_card)
+        return model_card.model_card_arn
+
+    def update_model_card(
+        self, model_card_name: str, content: str, model_card_status: str
+    ) -> str:
+        if model_card_name not in self.model_cards:
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist.")
+
+        datetime_now = str(datetime.now(tzutc()))
+
+        first_version = self.model_cards[model_card_name][0]
+        creation_time = first_version.creation_time
+
+        most_recent_version = self.model_cards[model_card_name][-1]
+        next_version = most_recent_version.model_card_version + 1
+        security_config = most_recent_version.security_config
+        tags = most_recent_version.tags
+
+        model_card = FakeModelCard(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            model_card_name=model_card_name,
+            model_card_version=next_version,
+            security_config=security_config,
+            content=content,
+            model_card_status=model_card_status,
+            tags=tags,
+            creation_time=creation_time,
+            last_modified_time=datetime_now,
+        )
+
+        self.model_cards[model_card_name].append(model_card)
+        return model_card.model_card_arn
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_cards(
+        self,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        name_contains: Optional[str],
+        model_card_status: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+    ) -> List[FakeModelCard]:
+        model_cards = self.model_cards
+
+        return filter_model_cards(
+            model_cards,
+            creation_time_after,
+            creation_time_before,
+            name_contains,
+            model_card_status,
+            sort_by,
+            sort_order,
+        )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_card_versions(
+        self,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        model_card_name: str,
+        model_card_status: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+    ) -> List[FakeModelCard]:
+        if model_card_name not in self.model_cards:
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
+
+        versions = self.model_cards[model_card_name]
+        if creation_time_after:
+            versions = [
+                v for v in versions if v.last_modified_time > str(creation_time_after)
+            ]
+        if creation_time_before:
+            versions = [
+                v for v in versions if v.last_modified_time < str(creation_time_before)
+            ]
+        if model_card_status:
+            versions = [v for v in versions if v.model_card_status == model_card_status]
+
+        reverse = sort_order == "Descending"
+
+        return sorted(versions, key=lambda x: x.model_card_version, reverse=reverse)
+
+    def describe_model_card(
+        self, model_card_name: str, model_card_version: int
+    ) -> Dict[str, Any]:
+        if model_card_name not in self.model_cards:
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
+
+        versions = self.model_cards[model_card_name]
+        if model_card_version:
+            filtered = [
+                v for v in versions if v.model_card_version == model_card_version
+            ]
+            if filtered:
+                version = filtered[0]
+                return version.describe()
+            else:
+                raise ResourceNotFound(
+                    f"Modelcard with name {model_card_name} and version: {model_card_version} does not exist"
+                )
+        return versions[-1].describe()
+
+    def delete_model_card(self, model_card_name: str) -> None:
+        # implement here
+        if model_card_name not in self.model_cards:
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
+
+        del self.model_cards[model_card_name]
 
 
 class FakeExperiment(BaseObject):
