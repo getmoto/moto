@@ -1,6 +1,5 @@
 import os
 import uuid
-from time import sleep
 from unittest import SkipTest, mock
 
 import boto3
@@ -474,9 +473,11 @@ def test_request_certificate_with_optional_arguments():
     )
 
     # Verify SAN's are still the same, even after the Certificate is validated
-    sleep(2)
+    waiter = client.get_waiter("certificate_validated")
+    waiter.wait(CertificateArn=arn_1, WaiterConfig={"Delay": 1})
+
     for opt in validation_options:
-        opt["ValidationStatus"] = "ISSUED"
+        opt["ValidationStatus"] = "SUCCESS"
     cert = client.describe_certificate(CertificateArn=arn_1)["Certificate"]
     assert cert["DomainValidationOptions"] == validation_options
 
