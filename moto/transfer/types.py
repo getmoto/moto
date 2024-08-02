@@ -176,9 +176,10 @@ class Server(BaseModel):
 
     def __post_init__(self) -> None:
         if self.Arn == "":
-            self.ServerId = f"{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
             self.Arn = f"arn:aws:transfer:{self.ServerId}"
-            self.As2ServiceManagedEgressIpAddresses = ["0.0.0.0/0"]
-            self._users = []
+        if self.ServerId == "":
+            self.ServerId = f"{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        if self.As2ServiceManagedEgressIpAddresses == []:
+            self.As2ServiceManagedEgressIpAddresses.append("0.0.0.0/0")
 
     to_dict = asdict
