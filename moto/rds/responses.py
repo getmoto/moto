@@ -1,42 +1,22 @@
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
-from moto.neptune.responses import (
-    CREATE_GLOBAL_CLUSTER_TEMPLATE,
-    DELETE_GLOBAL_CLUSTER_TEMPLATE,
-    DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE,
-    REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE,
-    NeptuneResponse,
-)
 
 from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
 
 
 class RDSResponse(BaseResponse):
-    def __init__(self) -> None:
-        super().__init__(service_name="rds")
-        # Neptune and RDS share a HTTP endpoint RDS is the lucky guy that catches all requests
-        # So we have to determine whether we can handle an incoming request here, or whether it needs redirecting to Neptune
-        self.neptune = NeptuneResponse()
-
     @property
     def backend(self) -> RDSBackend:
         return rds_backends[self.current_account][self.region]
 
-    def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        # Because some requests are send through to Neptune, we have to prepare the NeptuneResponse-class
-        self.neptune.setup_class(request, full_url, headers)
-        return super()._dispatch(request, full_url, headers)
-
-    def __getattribute__(self, name: str) -> Any:
-        if name in ["create_db_cluster", "create_global_cluster"]:
-            if self._get_param("Engine") == "neptune":
-                return object.__getattribute__(self.neptune, name)
-        return object.__getattribute__(self, name)
+    @property
+    def global_backend(self) -> RDSBackend:
+        """Return backend instance of the region that stores Global Clusters"""
+        return rds_backends[self.current_account]["us-east-1"]
 
     def _get_db_kwargs(self) -> Dict[str, Any]:
         args = {
@@ -756,13 +736,13 @@ class RDSResponse(BaseResponse):
         return template.render(options=options, marker=None)
 
     def describe_global_clusters(self) -> str:
-        clusters = self.backend.describe_global_clusters()
+        clusters = self.global_backend.describe_global_clusters()
         template = self.response_template(DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters)
 
     def create_global_cluster(self) -> str:
         params = self._get_params()
-        cluster = self.backend.create_global_cluster(
+        cluster = self.global_backend.create_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
             source_db_cluster_identifier=params.get("SourceDBClusterIdentifier"),
             engine=params.get("Engine"),
@@ -775,7 +755,7 @@ class RDSResponse(BaseResponse):
 
     def delete_global_cluster(self) -> str:
         params = self._get_params()
-        cluster = self.backend.delete_global_cluster(
+        cluster = self.global_backend.delete_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
         )
         template = self.response_template(DELETE_GLOBAL_CLUSTER_TEMPLATE)
@@ -1699,3 +1679,53 @@ DESCRIBE_DB_PROXIES_TEMPLATE = """<DescribeDBProxiesResponse xmlns="http://rds.a
     </ResponseMetadata>
 </DescribeDBProxiesResponse>
 """
+
+CREATE_GLOBAL_CLUSTER_TEMPLATE = """<CreateGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <CreateGlobalClusterResult>
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  </CreateGlobalClusterResult>
+</CreateGlobalClusterResponse>"""
+
+DELETE_GLOBAL_CLUSTER_TEMPLATE = """<DeleteGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DeleteGlobalClusterResult>
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  </DeleteGlobalClusterResult>
+</DeleteGlobalClusterResponse>"""
+
+DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE = """<DescribeGlobalClustersResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeGlobalClustersResult>
+    <GlobalClusters>
+{% for cluster in clusters %}
+    <GlobalClusterMember>
+        {{ cluster.to_xml() }}
+        </GlobalClusterMember>
+{% endfor %}
+    </GlobalClusters>
+  </DescribeGlobalClustersResult>
+</DescribeGlobalClustersResponse>"""
+
+REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE = """<RemoveFromGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <RemoveFromGlobalClusterResult>
+  {% if cluster %}
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  {% endif %}
+  </RemoveFromGlobalClusterResult>
+</RemoveFromGlobalClusterResponse>"""

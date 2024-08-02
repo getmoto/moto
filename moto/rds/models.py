@@ -3,6 +3,7 @@ import os
 import re
 import string
 from collections import OrderedDict, defaultdict
+from functools import lru_cache
 from re import compile as re_compile
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -13,7 +14,6 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
-from moto.neptune.models import NeptuneBackend, neptune_backends
 from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
 
 from .exceptions import (
@@ -137,7 +137,9 @@ class GlobalCluster(RDSBaseModel):
         self.global_cluster_identifier = global_cluster_identifier
         self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
         self.engine = engine
-        self.engine_version = engine_version or "5.7.mysql_aurora.2.11.2"
+        self.engine_version = engine_version or DBCluster.default_engine_version(
+            self.engine
+        )
         self.storage_encrypted = (
             storage_encrypted and storage_encrypted.lower() == "true"
         )
@@ -249,7 +251,11 @@ class DBCluster(RDSBaseModel):
             )
         self.master_username = kwargs.get("master_username")
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
-        if not self.master_username and self.global_cluster_identifier:
+        if (
+            not self.master_username
+            and self.global_cluster_identifier
+            or self.engine == "neptune"
+        ):
             pass
         elif not self.master_username:
             raise InvalidParameterValue(
@@ -265,7 +271,10 @@ class DBCluster(RDSBaseModel):
                 f"{self.region}b",
                 f"{self.region}c",
             ]
-        self.parameter_group = kwargs.get("parameter_group") or "default.aurora8.0"
+        default_pg = (
+            "default.neptune1.3" if self.engine == "neptune" else "default.aurora8.0"
+        )
+        self.parameter_group = kwargs.get("parameter_group") or default_pg
         self.subnet_group = kwargs.get("db_subnet_group_name") or "default"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
@@ -539,6 +548,7 @@ class DBCluster(RDSBaseModel):
             "aurora-mysql": "5.7.mysql_aurora.2.07.2",
             "aurora-postgresql": "12.7",
             "mysql": "8.0.23",
+            "neptune": "1.3.2.1",
             "postgres": "13.4",
         }[engine]
 
@@ -549,6 +559,7 @@ class DBCluster(RDSBaseModel):
             "aurora-mysql": 3306,
             "aurora-postgresql": 5432,
             "mysql": 3306,
+            "neptune": 8182,
             "postgres": 5432,
         }[engine]
 
@@ -566,6 +577,7 @@ class DBCluster(RDSBaseModel):
             "aurora-mysql": {"gp2": 20, "io1": 100, "standard": 10},
             "aurora-postgresql": {"gp2": 20, "io1": 100, "standard": 10},
             "mysql": {"gp2": 20, "io1": 100, "standard": 5},
+            "neptune": {"gp2": 0, "io1": 0, "standard": 0},
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
         }[engine][storage_type]
 
@@ -1651,24 +1663,18 @@ class RDSBackend(BaseBackend):
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
 
     def reset(self) -> None:
-        self.neptune.reset()
         super().reset()
 
-    @property
-    def neptune(self) -> NeptuneBackend:
-        return neptune_backends[self.account_id][self.region_name]
+    @lru_cache()
+    def db_cluster_options(self, engine) -> List[Dict[str, Any]]:  # type: ignore
+        from moto.rds.utils import decode_orderable_db_instance
 
-    @property
-    def db_cluster_options(self) -> List[Dict[str, Any]]:  # type: ignore
-        if self._db_cluster_options is None:
-            from moto.rds.utils import decode_orderable_db_instance
-
-            decoded_options = load_resource(
-                __name__, "resources/cluster_options/aurora-postgresql.json"
-            )
-            self._db_cluster_options = [
-                decode_orderable_db_instance(option) for option in decoded_options
-            ]
+        decoded_options = load_resource(
+            __name__, f"resources/cluster_options/{engine}.json"
+        )
+        self._db_cluster_options = [
+            decode_orderable_db_instance(option) for option in decoded_options
+        ]
         return self._db_cluster_options
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
@@ -2290,23 +2296,7 @@ class RDSBackend(BaseBackend):
         cluster = DBCluster(self, **kwargs)
         self.clusters[cluster_id] = cluster
 
-        if (
-            cluster.global_cluster_identifier
-            and cluster.global_cluster_identifier in self.global_clusters
-        ):
-            global_cluster = self.global_clusters[cluster.global_cluster_identifier]
-
-            # Main DB cluster, does RW on global cluster
-            setattr(cluster, "is_writer", True)
-            # self.clusters[cluster_id] = cluster
-            global_cluster.members.append(cluster)
-
-        # search all backend to check if global cluster named global_cluster_identifier exists
-        # anywhere else
-        if (
-            cluster.global_cluster_identifier
-            and cluster.global_cluster_identifier not in self.global_clusters
-        ):
+        if cluster.global_cluster_identifier:
             for regional_backend in rds_backends[self.account_id]:
                 if (
                     cluster.global_cluster_identifier
@@ -2316,6 +2306,12 @@ class RDSBackend(BaseBackend):
                         regional_backend
                     ].global_clusters[cluster.global_cluster_identifier]
                     global_cluster.members.append(cluster)
+                    if len(global_cluster.members) == 1:
+                        # primary cluster
+                        setattr(cluster, "is_writer", True)
+                    else:
+                        # secondary cluster(s)
+                        setattr(cluster, "is_writer", False)
 
         if cluster.replication_source_identifier:
             cluster_identifier = cluster.replication_source_identifier
@@ -2329,14 +2325,13 @@ class RDSBackend(BaseBackend):
     def modify_db_cluster(self, kwargs: Dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
 
-        if cluster_id in self.neptune.clusters:
-            return self.neptune.modify_db_cluster(kwargs)  # type: ignore
-
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
         kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier")
         for k, v in kwargs.items():
+            if k == "db_cluster_parameter_group_name":
+                k = "parameter_group"
             if v is not None:
                 setattr(cluster, k, v)
 
@@ -2426,17 +2421,13 @@ class RDSBackend(BaseBackend):
         self, cluster_identifier: Optional[str] = None, filters: Any = None
     ) -> List[DBCluster]:
         clusters = self.clusters
-        clusters_neptune = self.neptune.clusters
         if cluster_identifier:
             filters = merge_filters(filters, {"db-cluster-id": [cluster_identifier]})
         if filters:
             clusters = self._filter_resources(clusters, filters, DBCluster)
-            clusters_neptune = self._filter_resources(
-                clusters_neptune, filters, DBCluster
-            )
-        if cluster_identifier and not (clusters or clusters_neptune):
+        if cluster_identifier and not clusters:
             raise DBClusterNotFoundError(cluster_identifier)
-        return list(clusters.values()) + list(clusters_neptune.values())  # type: ignore
+        return list(clusters.values())  # type: ignore
 
     def describe_db_cluster_snapshots(
         self,
@@ -2475,13 +2466,10 @@ class RDSBackend(BaseBackend):
             if snapshot_name:
                 self.create_auto_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
-        if cluster_identifier in self.neptune.clusters:
-            return self.neptune.delete_db_cluster(cluster_identifier)  # type: ignore
         raise DBClusterNotFoundError(cluster_identifier)
 
     def start_db_cluster(self, cluster_identifier: str) -> DBCluster:
         if cluster_identifier not in self.clusters:
-            return self.neptune.start_db_cluster(cluster_identifier)  # type: ignore
             raise DBClusterNotFoundError(cluster_identifier)
         cluster = self.clusters[cluster_identifier]
         if cluster.status != "stopped":
@@ -2605,8 +2593,6 @@ class RDSBackend(BaseBackend):
             elif resource_type == "cluster":  # Cluster
                 if resource_name in self.clusters:
                     return self.clusters[resource_name].get_tags()
-                if resource_name in self.neptune.clusters:
-                    return self.neptune.clusters[resource_name].get_tags()
             elif resource_type == "es":  # Event Subscription
                 if resource_name in self.event_subscriptions:
                     return self.event_subscriptions[resource_name].get_tags()
@@ -2669,8 +2655,6 @@ class RDSBackend(BaseBackend):
             elif resource_type == "cluster":
                 if resource_name in self.clusters:
                     self.clusters[resource_name].remove_tags(tag_keys)
-                if resource_name in self.neptune.clusters:
-                    self.neptune.clusters[resource_name].remove_tags(tag_keys)
             elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     self.cluster_snapshots[resource_name].remove_tags(tag_keys)
@@ -2715,8 +2699,6 @@ class RDSBackend(BaseBackend):
             elif resource_type == "cluster":
                 if resource_name in self.clusters:
                     return self.clusters[resource_name].add_tags(tags)
-                if resource_name in self.neptune.clusters:
-                    return self.neptune.clusters[resource_name].add_tags(tags)
             elif resource_type == "cluster-snapshot":  # DB Cluster Snapshot
                 if resource_name in self.cluster_snapshots:
                     return self.cluster_snapshots[resource_name].add_tags(tags)
@@ -2771,16 +2753,14 @@ class RDSBackend(BaseBackend):
         """
         Only the Aurora-Postgresql and Neptune-engine is currently implemented
         """
-        if engine == "neptune":
-            return self.neptune.describe_orderable_db_instance_options(engine_version)
-        if engine == "aurora-postgresql":
+        if engine in ["aurora-postgresql", "neptune"]:
             if engine_version:
                 return [
                     option
-                    for option in self.db_cluster_options
+                    for option in self.db_cluster_options(engine)
                     if option["EngineVersion"] == engine_version
                 ]
-            return self.db_cluster_options
+            return self.db_cluster_options(engine)
         return []
 
     def create_db_cluster_parameter_group(
@@ -2853,16 +2833,9 @@ class RDSBackend(BaseBackend):
         return global_cluster
 
     def describe_global_clusters(self) -> List[GlobalCluster]:
-        return (
-            list(self.global_clusters.values())
-            + self.neptune.describe_global_clusters()  # type: ignore
-        )
+        return list(self.global_clusters.values())
 
     def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
-        try:
-            return self.neptune.delete_global_cluster(global_cluster_identifier)  # type: ignore
-        except:  # noqa: E722 Do not use bare except
-            pass  # It's not a Neptune Global Cluster - assume it's an RDS cluster instead
         global_cluster = self.global_clusters[global_cluster_identifier]
         if global_cluster.members:
             raise InvalidGlobalClusterStateFault(global_cluster.global_cluster_arn)
