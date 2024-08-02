@@ -68,8 +68,8 @@ def test_create_key():
     )
 
     assert (
-            key["KeyMetadata"]["Arn"]
-            == f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:key/{key['KeyMetadata']['KeyId']}"
+        key["KeyMetadata"]["Arn"]
+        == f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:key/{key['KeyMetadata']['KeyId']}"
     )
     assert key["KeyMetadata"]["AWSAccountId"] == ACCOUNT_ID
     assert key["KeyMetadata"]["CustomerMasterKeySpec"] == "SYMMETRIC_DEFAULT"
@@ -142,7 +142,9 @@ def test_create_multi_region_configuration_key():
 
     from_region_client = boto3.client("kms", region_name=region_to_replicate_from)
     to_region_client_us_west_1 = boto3.client("kms", region_name=region_to_replicate_to)
-    to_region_client_us_west_2 = boto3.client("kms", region_name=region_to_replicate_to_second_region)
+    to_region_client_us_west_2 = boto3.client(
+        "kms", region_name=region_to_replicate_to_second_region
+    )
 
     response = from_region_client.create_key(
         Policy="my policy",
@@ -170,19 +172,46 @@ def test_create_multi_region_configuration_key():
     replica_key_third_id = third_replica_response["ReplicaKeyMetadata"]["KeyId"]
 
     from_region_describe_key = from_region_client.describe_key(KeyId=key_id)
-    to_region_describe_key = to_region_client_us_west_1.describe_key(KeyId=replica_key_id)
-    to_region_describe_key_second_replica = to_region_client_us_west_2.describe_key(KeyId=replica_key_second_id)
-    to_region_describe_key_third_replica = to_region_client_us_west_2.describe_key(KeyId=replica_key_third_id)
+    to_region_describe_key = to_region_client_us_west_1.describe_key(
+        KeyId=replica_key_id
+    )
+    to_region_describe_key_second_replica = to_region_client_us_west_2.describe_key(
+        KeyId=replica_key_second_id
+    )
+    to_region_describe_key_third_replica = to_region_client_us_west_2.describe_key(
+        KeyId=replica_key_third_id
+    )
 
     assert from_region_describe_key["KeyMetadata"]["MultiRegion"] is True
     assert to_region_describe_key["KeyMetadata"]["MultiRegion"] is True
     assert to_region_describe_key_second_replica["KeyMetadata"]["MultiRegion"] is True
-    assert from_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"]["MultiRegionKeyType"] == "PRIMARY"
-    assert to_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"]["MultiRegionKeyType"] == "REPLICA"
-    assert (to_region_describe_key_second_replica["KeyMetadata"]["MultiRegionConfiguration"]["MultiRegionKeyType"] ==
-            "REPLICA")
+    assert (
+        from_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"][
+            "MultiRegionKeyType"
+        ]
+        == "PRIMARY"
+    )
+    assert (
+        to_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"][
+            "MultiRegionKeyType"
+        ]
+        == "REPLICA"
+    )
+    assert (
+        to_region_describe_key_second_replica["KeyMetadata"][
+            "MultiRegionConfiguration"
+        ]["MultiRegionKeyType"]
+        == "REPLICA"
+    )
     # This test below tests the expected failure of making a replica in an already existing region.
-    assert len(to_region_describe_key_third_replica["KeyMetadata"]["MultiRegionConfiguration"]["ReplicaKeys"]) == 2
+    assert (
+        len(
+            to_region_describe_key_third_replica["KeyMetadata"][
+                "MultiRegionConfiguration"
+            ]["ReplicaKeys"]
+        )
+        == 2
+    )
 
 
 @mock_aws
@@ -316,10 +345,10 @@ def test__create_alias__can_create_multiple_aliases_for_same_key_id():
     for name in alias_names:
         alias_arn = f"arn:aws:kms:us-east-1:{ACCOUNT_ID}:{name}"
         assert {
-                   "AliasName": name,
-                   "AliasArn": alias_arn,
-                   "TargetKeyId": key_id,
-               } in aliases
+            "AliasName": name,
+            "AliasArn": alias_arn,
+            "TargetKeyId": key_id,
+        } in aliases
 
 
 @mock_aws
@@ -343,10 +372,10 @@ def test_list_aliases():
         arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{full_name}"
         target_key_id = default_alias_target_keys[name]
         assert {
-                   "AliasName": full_name,
-                   "AliasArn": arn,
-                   "TargetKeyId": target_key_id,
-               } in aliases
+            "AliasName": full_name,
+            "AliasArn": arn,
+            "TargetKeyId": target_key_id,
+        } in aliases
 
 
 @mock_aws
@@ -362,10 +391,10 @@ def test_list_aliases_for_key_id():
     aliases = client.list_aliases(KeyId=key_id)["Aliases"]
     assert len(aliases) == 1
     assert {
-               "AliasName": my_alias,
-               "AliasArn": alias_arn,
-               "TargetKeyId": key_id,
-           } in aliases
+        "AliasName": my_alias,
+        "AliasArn": alias_arn,
+        "TargetKeyId": key_id,
+    } in aliases
 
 
 @mock_aws
@@ -386,10 +415,10 @@ def test_list_aliases_for_key_arn():
     for alias in [id_alias, arn_alias]:
         alias_arn = f"arn:aws:kms:{region}:{ACCOUNT_ID}:{alias}"
         assert {
-                   "AliasName": alias,
-                   "AliasArn": alias_arn,
-                   "TargetKeyId": key_id,
-               } in aliases
+            "AliasName": alias,
+            "AliasArn": alias_arn,
+            "TargetKeyId": key_id,
+        } in aliases
 
 
 @pytest.mark.parametrize(
@@ -671,11 +700,11 @@ def test_list_resource_tags_after_untagging():
 @pytest.mark.parametrize(
     "kwargs,expected_key_length",
     (
-            (dict(KeySpec="AES_256"), 32),
-            (dict(KeySpec="AES_128"), 16),
-            (dict(NumberOfBytes=64), 64),
-            (dict(NumberOfBytes=1), 1),
-            (dict(NumberOfBytes=1024), 1024),
+        (dict(KeySpec="AES_256"), 32),
+        (dict(KeySpec="AES_128"), 16),
+        (dict(NumberOfBytes=64), 64),
+        (dict(NumberOfBytes=1), 1),
+        (dict(NumberOfBytes=1024), 1024),
     ),
 )
 @mock_aws
@@ -963,8 +992,8 @@ def test__create_alias__raises_if_alias_has_restricted_characters(name):
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == f"1 validation error detected: Value '{name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$"
+        err["Message"]
+        == f"1 validation error detected: Value '{name}' at 'aliasName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9:/_-]+$"
     )
 
 
@@ -1030,8 +1059,8 @@ def test__create_alias__raises_if_duplicate():
     err = ex.value.response["Error"]
     assert err["Code"] == "AlreadyExistsException"
     assert (
-            err["Message"]
-            == f"An alias with the name arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/my-alias already exists"
+        err["Message"]
+        == f"An alias with the name arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/my-alias already exists"
     )
 
 
@@ -1071,8 +1100,8 @@ def test__delete_alias__raises_if_alias_is_not_found():
     err = ex.value.response["Error"]
     assert err["Code"] == "NotFoundException"
     assert (
-            err["Message"]
-            == f"Alias arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/unknown-alias is not found."
+        err["Message"]
+        == f"Alias arn:aws:kms:us-east-1:{ACCOUNT_ID}:alias/unknown-alias is not found."
     )
 
 
@@ -1180,8 +1209,8 @@ def test_sign_invalid_signing_algorithm():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
+        err["Message"]
+        == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
     )
 
 
@@ -1274,7 +1303,7 @@ def test_sign_and_verify_digest_message_type_RSA(key_spec, signing_algorithm):
     ),
 )
 def test_fail_verify_digest_message_type_RSA(
-        signing_algorithm, another_signing_algorithm
+    signing_algorithm, another_signing_algorithm
 ):
     client = boto3.client("kms", region_name="us-west-1")
 
@@ -1369,7 +1398,7 @@ def test_sign_and_verify_digest_message_type_ECDSA(key_spec, signing_algorithm):
     ],
 )
 def test_invalid_signing_algorithm_for_key_spec_type_ECDSA(
-        key_spec, signing_algorithm, valid_signing_algorithms
+    key_spec, signing_algorithm, valid_signing_algorithms
 ):
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1462,8 +1491,8 @@ def test_sign_invalid_key_usage():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == f"1 validation error detected: Value '{key_id}' at 'KeyId' failed to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
+        err["Message"]
+        == f"1 validation error detected: Value '{key_id}' at 'KeyId' failed to satisfy constraint: Member must point to a key with usage: 'SIGN_VERIFY'"
     )
 
 
@@ -1484,8 +1513,8 @@ def test_sign_invalid_message():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+        err["Message"]
+        == "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
 
 
@@ -1565,8 +1594,8 @@ def test_verify_invalid_signing_algorithm():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
+        err["Message"]
+        == "1 validation error detected: Value 'INVALID' at 'SigningAlgorithm' failed to satisfy constraint: Member must satisfy enum value set: ['RSASSA_PKCS1_V1_5_SHA_256', 'RSASSA_PKCS1_V1_5_SHA_384', 'RSASSA_PKCS1_V1_5_SHA_512', 'RSASSA_PSS_SHA_256', 'RSASSA_PSS_SHA_384', 'RSASSA_PSS_SHA_512']"
     )
 
 
@@ -1591,8 +1620,8 @@ def test_verify_invalid_message():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
+        err["Message"]
+        == "1 validation error detected: Value at 'Message' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
 
 
@@ -1619,8 +1648,8 @@ def test_verify_empty_signature():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
-            err["Message"]
-            == "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
+        err["Message"]
+        == "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
 
 
@@ -1633,8 +1662,8 @@ def test_get_public_key():
 
     assert "PublicKey" in public_key_response
     assert (
-            public_key_response["SigningAlgorithms"]
-            == key["KeyMetadata"]["SigningAlgorithms"]
+        public_key_response["SigningAlgorithms"]
+        == key["KeyMetadata"]["SigningAlgorithms"]
     )
     assert "EncryptionAlgorithms" not in public_key_response
 

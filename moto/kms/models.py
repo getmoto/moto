@@ -28,13 +28,13 @@ from .utils import (
 
 class Grant(BaseModel):
     def __init__(
-            self,
-            key_id: str,
-            name: str,
-            grantee_principal: str,
-            operations: List[str],
-            constraints: Dict[str, Any],
-            retiring_principal: str,
+        self,
+        key_id: str,
+        name: str,
+        grantee_principal: str,
+        operations: List[str],
+        constraints: Dict[str, Any],
+        retiring_principal: str,
     ):
         self.key_id = key_id
         self.name = name
@@ -59,14 +59,14 @@ class Grant(BaseModel):
 
 class Key(CloudFormationModel):
     def __init__(
-            self,
-            policy: Optional[str],
-            key_usage: str,
-            key_spec: str,
-            description: str,
-            account_id: str,
-            region: str,
-            multi_region: bool = False,
+        self,
+        policy: Optional[str],
+        key_usage: str,
+        key_spec: str,
+        description: str,
+        account_id: str,
+        region: str,
+        multi_region: bool = False,
     ):
         self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()
@@ -83,9 +83,9 @@ class Key(CloudFormationModel):
                 "MultiRegionKeyType": "PRIMARY",
                 "PrimaryKey": {
                     "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
-                    "Region": self.region
+                    "Region": self.region,
                 },
-                "ReplicaKeys": []
+                "ReplicaKeys": [],
             }
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
@@ -100,12 +100,12 @@ class Key(CloudFormationModel):
         self.grants: Dict[str, Grant] = dict()
 
     def add_grant(
-            self,
-            name: str,
-            grantee_principal: str,
-            operations: List[str],
-            constraints: Dict[str, Any],
-            retiring_principal: str,
+        self,
+        name: str,
+        grantee_principal: str,
+        operations: List[str],
+        constraints: Dict[str, Any],
+        retiring_principal: str,
     ) -> Grant:
         grant = Grant(
             self.id,
@@ -215,7 +215,9 @@ class Key(CloudFormationModel):
             }
         }
         if key_dict["KeyMetadata"]["MultiRegion"]:
-            key_dict["KeyMetadata"]["MultiRegionConfiguration"] = self.multi_region_configuration
+            key_dict["KeyMetadata"]["MultiRegionConfiguration"] = (
+                self.multi_region_configuration
+            )
         if self.key_state == "PendingDeletion":
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
@@ -234,12 +236,12 @@ class Key(CloudFormationModel):
 
     @classmethod
     def create_from_cloudformation_json(  # type: ignore[misc]
-            cls,
-            resource_name: str,
-            cloudformation_json: Any,
-            account_id: str,
-            region_name: str,
-            **kwargs: Any,
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
     ) -> "Key":
         kms_backend = kms_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
@@ -291,13 +293,13 @@ class KmsBackend(BaseBackend):
         return None
 
     def create_key(
-            self,
-            policy: Optional[str],
-            key_usage: str,
-            key_spec: str,
-            description: str,
-            tags: Optional[List[Dict[str, str]]],
-            multi_region: bool = False,
+        self,
+        policy: Optional[str],
+        key_usage: str,
+        key_spec: str,
+        description: str,
+        tags: Optional[List[Dict[str, str]]],
+        multi_region: bool = False,
     ) -> Key:
         """
         The provided Policy currently does not need to be valid. If it is valid, Moto will perform authorization checks on key-related operations, just like AWS does.
@@ -340,20 +342,22 @@ class KmsBackend(BaseBackend):
 
         if replica_key.multi_region:
             existing_replica = any(
-                replica['Region'] == replica_region for replica in replica_key.multi_region_configuration["ReplicaKeys"]
+                replica["Region"] == replica_region
+                for replica in replica_key.multi_region_configuration["ReplicaKeys"]
             )
 
             if not existing_replica:
-                replica_payload = {
-                    'Arn': replica_key.arn,
-                    'Region': replica_region
-                }
-                replica_key.multi_region_configuration["ReplicaKeys"].append(replica_payload)
+                replica_payload = {"Arn": replica_key.arn, "Region": replica_region}
+                replica_key.multi_region_configuration["ReplicaKeys"].append(
+                    replica_payload
+                )
 
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
 
-        self.multi_region_configuration = deepcopy(replica_key.multi_region_configuration)
+        self.multi_region_configuration = deepcopy(
+            replica_key.multi_region_configuration
+        )
 
         return replica_key
 
@@ -486,7 +490,7 @@ class KmsBackend(BaseBackend):
             return unix_time(self.keys[key_id].deletion_date)
 
     def encrypt(
-            self, key_id: str, plaintext: bytes, encryption_context: Dict[str, str]
+        self, key_id: str, plaintext: bytes, encryption_context: Dict[str, str]
     ) -> Tuple[bytes, str]:
         key_id = self.any_id_to_key_id(key_id)
 
@@ -500,7 +504,7 @@ class KmsBackend(BaseBackend):
         return ciphertext_blob, arn
 
     def decrypt(
-            self, ciphertext_blob: bytes, encryption_context: Dict[str, str]
+        self, ciphertext_blob: bytes, encryption_context: Dict[str, str]
     ) -> Tuple[bytes, str]:
         plaintext, key_id = decrypt(
             master_keys=self.keys,
@@ -511,11 +515,11 @@ class KmsBackend(BaseBackend):
         return plaintext, arn
 
     def re_encrypt(
-            self,
-            ciphertext_blob: bytes,
-            source_encryption_context: Dict[str, str],
-            destination_key_id: str,
-            destination_encryption_context: Dict[str, str],
+        self,
+        ciphertext_blob: bytes,
+        source_encryption_context: Dict[str, str],
+        destination_key_id: str,
+        destination_encryption_context: Dict[str, str],
     ) -> Tuple[bytes, str, str]:
         destination_key_id = self.any_id_to_key_id(destination_key_id)
 
@@ -531,11 +535,11 @@ class KmsBackend(BaseBackend):
         return new_ciphertext_blob, decrypting_arn, encrypting_arn
 
     def generate_data_key(
-            self,
-            key_id: str,
-            encryption_context: Dict[str, str],
-            number_of_bytes: int,
-            key_spec: str,
+        self,
+        key_id: str,
+        encryption_context: Dict[str, str],
+        number_of_bytes: int,
+        key_spec: str,
     ) -> Tuple[bytes, bytes, str]:
         key_id = self.any_id_to_key_id(key_id)
 
@@ -586,13 +590,13 @@ class KmsBackend(BaseBackend):
         )
 
     def create_grant(
-            self,
-            key_id: str,
-            grantee_principal: str,
-            operations: List[str],
-            name: str,
-            constraints: Dict[str, Any],
-            retiring_principal: str,
+        self,
+        key_id: str,
+        grantee_principal: str,
+        operations: List[str],
+        name: str,
+        constraints: Dict[str, Any],
+        retiring_principal: str,
     ) -> Tuple[str, str]:
         key = self.describe_key(key_id)
         grant = key.add_grant(
@@ -636,7 +640,7 @@ class KmsBackend(BaseBackend):
             )
 
     def __ensure_valid_signing_algorithm(
-            self, key: Key, signing_algorithm: str
+        self, key: Key, signing_algorithm: str
     ) -> None:
         if signing_algorithm not in key.signing_algorithms:
             raise ValidationException(
@@ -661,7 +665,7 @@ class KmsBackend(BaseBackend):
             )
 
     def sign(
-            self, key_id: str, message: bytes, signing_algorithm: str
+        self, key_id: str, message: bytes, signing_algorithm: str
     ) -> Tuple[str, bytes, str]:
         """
         Sign message using generated private key.
@@ -678,7 +682,7 @@ class KmsBackend(BaseBackend):
         return key.arn, signature, signing_algorithm
 
     def verify(
-            self, key_id: str, message: bytes, signature: bytes, signing_algorithm: str
+        self, key_id: str, message: bytes, signature: bytes, signing_algorithm: str
     ) -> Tuple[str, bool, str]:
         """
         Verify message using public key from generated private key.
