@@ -1,2 +1,3 @@
-Neptune service is handle by the RDS service backend in `moto/moto/rds`
-Neptune test suite is in `moto/tests/neptune`
+Neptune service is handled by the RDS service backend located [here](../rds).
+
+Neptune service has a dedicated test suite located [here](../../tests/test_neptune).
