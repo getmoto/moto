@@ -4158,6 +4158,36 @@ def test_initiate_auth_USER_PASSWORD_AUTH():
 
 
 @mock_aws
+def test_initiate_auth_USER_PASSWORD_AUTH_when_sms_mfa_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = user_authentication_flow(conn)
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    password = result["password"]
+    client_id = result["client_id"]
+
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert result["PreferredMfaSetting"] == "SMS_MFA"
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
+    )
+
+    assert result["ChallengeName"] == "SMS_MFA"
+    assert result["ChallengeParameters"] == {}
+    assert result["Session"] is not None
+
+
+@mock_aws
 def test_initiate_auth_invalid_auth_flow():
     conn = boto3.client("cognito-idp", "us-west-2")
     result = user_authentication_flow(conn)
