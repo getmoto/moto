@@ -171,7 +171,7 @@ class Server(BaseModel):
     ServerId: str = field(default="", init=False)
     State: Optional[ServerState] = ServerState.ONLINE
     Tags: List[Dict[str, str]] = field(default_factory=list)
-    UserCount: Optional[int] = 0
+    UserCount: int = field(default=0)
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
