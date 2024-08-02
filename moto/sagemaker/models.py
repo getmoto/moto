@@ -127,6 +127,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "arn",
     },
+    "list_model_quality_job_definitions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -2315,6 +2321,76 @@ class HyperParameterTuningJob(BaseObject):
         }
 
 
+class ModelQualityJobDefinition(BaseObject):
+    def __init__(
+        self,
+        job_definition_name: str,
+        model_quality_baseline_config: Optional[Dict[str, Any]],
+        model_quality_app_specification: Dict[str, Any],
+        model_quality_job_input: Dict[str, Any],
+        model_quality_job_output_config: Dict[str, Any],
+        job_resources: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]],
+        role_arn: str,
+        stopping_condition: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+        region_name: str,
+        account_id: str,
+    ):
+        self.region_name = region_name
+        self.account_id = account_id
+        self.job_definition_name = job_definition_name
+        if (
+            job_definition_name
+            in sagemaker_backends[account_id][region_name].model_quality_job_definitions
+        ):
+            raise ResourceInUseException(
+                message=f"Resource Already Exists: Model Quality Job Definition with name {job_definition_name} already exists. Choose a different name."
+            )
+        self.model_quality_baseline_config = model_quality_baseline_config
+        self.model_quality_app_specification = model_quality_app_specification
+        self.model_quality_job_input = model_quality_job_input
+        self.model_quality_job_output_config = model_quality_job_output_config
+        self.job_resources = job_resources
+        self.network_config = network_config
+        self.role_arn = role_arn
+        self.stopping_condition = stopping_condition
+        self.tags = tags or []
+        self.arn = arn_formatter(
+            "model-quality-job-definition",
+            self.job_definition_name,
+            account_id,
+            region_name,
+        )
+        self.creation_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.endpoint_name = self.model_quality_job_input["EndpointInput"][
+            "EndpointName"
+        ]
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "JobDefinitionArn": self.arn,
+            "JobDefinitionName": self.job_definition_name,
+            "CreationTime": self.creation_time,
+            "ModelQualityBaselineConfig": self.model_quality_baseline_config,
+            "ModelQualityAppSpecification": self.model_quality_app_specification,
+            "ModelQualityJobInput": self.model_quality_job_input,
+            "ModelQualityJobOutputConfig": self.model_quality_job_output_config,
+            "JobResources": self.job_resources,
+            "NetworkConfig": self.network_config,
+            "RoleArn": self.role_arn,
+            "StoppingCondition": self.stopping_condition,
+        }
+
+    def summary(self) -> Dict[str, Any]:
+        return {
+            "MonitoringJobDefinitionName": self.job_definition_name,
+            "MonitoringJobDefinitionArn": self.arn,
+            "CreationTime": self.creation_time,
+            "EndpointName": self.endpoint_name,
+        }
+
+
 class VpcConfig(BaseObject):
     def __init__(self, security_group_ids: List[str], subnets: List[str]):
         self.security_group_ids = security_group_ids
@@ -2716,6 +2792,7 @@ class SageMakerModelBackend(BaseBackend):
             str, ModelExplainabilityJobDefinition
         ] = {}
         self.hyper_parameter_tuning_jobs: Dict[str, HyperParameterTuningJob] = {}
+        self.model_quality_job_definitions: Dict[str, ModelQualityJobDefinition] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2851,6 +2928,7 @@ class SageMakerModelBackend(BaseBackend):
             "domain": self.domains,
             "model-explainability-job-definition": self.model_explainability_job_definitions,
             "hyper-parameter-tuning-job": self.hyper_parameter_tuning_jobs,
+            "model-quality-job-definition": self.model_quality_job_definitions,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -5256,6 +5334,107 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find hyper parameter tuning job '{hyper_parameter_tuning_job_name}'."
             )
         del self.hyper_parameter_tuning_jobs[hyper_parameter_tuning_job_name]
+        return
+
+    def create_model_quality_job_definition(
+        self,
+        job_definition_name: str,
+        model_quality_baseline_config: Optional[Dict[str, Any]],
+        model_quality_app_specification: Dict[str, Any],
+        model_quality_job_input: Dict[str, Any],
+        model_quality_job_output_config: Dict[str, Any],
+        job_resources: Dict[str, Any],
+        network_config: Optional[Dict[str, Any]],
+        role_arn: str,
+        stopping_condition: Optional[Dict[str, Any]],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> str:
+        model_quality_job_definition = ModelQualityJobDefinition(
+            job_definition_name=job_definition_name,
+            model_quality_baseline_config=model_quality_baseline_config,
+            model_quality_app_specification=model_quality_app_specification,
+            model_quality_job_input=model_quality_job_input,
+            model_quality_job_output_config=model_quality_job_output_config,
+            job_resources=job_resources,
+            network_config=network_config,
+            role_arn=role_arn,
+            stopping_condition=stopping_condition,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            tags=tags,
+        )
+        self.model_quality_job_definitions[job_definition_name] = (
+            model_quality_job_definition
+        )
+        return model_quality_job_definition.arn
+
+    def describe_model_quality_job_definition(
+        self, job_definition_name: str
+    ) -> Dict[str, Any]:
+        if job_definition_name not in self.model_quality_job_definitions:
+            raise ResourceNotFound(
+                message=f"Could not find model quality job definition '{job_definition_name}'."
+            )
+        return self.model_quality_job_definitions[job_definition_name].describe()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_model_quality_job_definitions(
+        self,
+        endpoint_name: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
+        name_contains: Optional[str],
+        creation_time_before: Optional[str],
+        creation_time_after: Optional[str],
+    ) -> List[ModelQualityJobDefinition]:
+        model_quality_job_definitions = list(
+            self.model_quality_job_definitions.values()
+        )
+        if endpoint_name:
+            model_quality_job_definitions = [
+                i
+                for i in model_quality_job_definitions
+                if endpoint_name == i.endpoint_name
+            ]
+        if name_contains:
+            model_quality_job_definitions = [
+                i
+                for i in model_quality_job_definitions
+                if name_contains in i.job_definition_name
+            ]
+        if creation_time_before:
+            model_quality_job_definitions = [
+                i
+                for i in model_quality_job_definitions
+                if i.creation_time < str(creation_time_before)
+            ]
+        if creation_time_after:
+            model_quality_job_definitions = [
+                i
+                for i in model_quality_job_definitions
+                if i.creation_time > str(creation_time_after)
+            ]
+        reverse = sort_order == "Descending"
+        if sort_by == "Name":
+            model_quality_job_definitions = sorted(
+                model_quality_job_definitions,
+                key=lambda x: x.job_definition_name,
+                reverse=reverse,
+            )
+        if sort_by == "CreationTime" or sort_by is None:
+            model_quality_job_definitions = sorted(
+                model_quality_job_definitions,
+                key=lambda x: x.creation_time,
+                reverse=reverse,
+            )
+        return model_quality_job_definitions
+
+    def delete_model_quality_job_definition(self, job_definition_name: str) -> None:
+        if job_definition_name not in self.model_quality_job_definitions:
+            raise ResourceNotFound(
+                message=f"Could not find model quality job definition '{job_definition_name}'."
+            )
+        del self.model_quality_job_definitions[job_definition_name]
         return
 
 
