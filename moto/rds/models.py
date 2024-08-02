@@ -3,6 +3,7 @@ import os
 import re
 import string
 from collections import OrderedDict, defaultdict
+from functools import lru_cache
 from re import compile as re_compile
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -1664,6 +1665,7 @@ class RDSBackend(BaseBackend):
     def reset(self) -> None:
         super().reset()
 
+    @lru_cache()
     def db_cluster_options(self, engine) -> List[Dict[str, Any]]:  # type: ignore
         from moto.rds.utils import decode_orderable_db_instance
 
