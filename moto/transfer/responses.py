@@ -73,7 +73,7 @@ class TransferResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def create_server(self):
+    def create_server(self) -> str:
         params = json.loads(self.body)
         server_id = self.transfer_backend.create_server(
             certificate=params.get("Certificate"),
@@ -98,7 +98,7 @@ class TransferResponse(BaseResponse):
         )
         return json.dumps(dict(ServerId=server_id))
 
-    def describe_server(self):
+    def describe_server(self) -> str:
         params = json.loads(self.body)
         server = self.transfer_backend.describe_server(
             server_id=params.get("ServerId"),
@@ -107,7 +107,7 @@ class TransferResponse(BaseResponse):
         del server["_users"]
         return json.dumps(dict(Server=server))
 
-    def delete_server(self):
+    def delete_server(self) -> str:
         params = json.loads(self.body)
         self.transfer_backend.delete_server(
             server_id=params.get("ServerId"),
