@@ -4162,10 +4162,12 @@ def test_initiate_auth_USER_PASSWORD_AUTH_when_sms_mfa_enabled():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     result = user_authentication_flow(conn)
+
     user_pool_id = result["user_pool_id"]
     username = result["username"]
     password = result["password"]
     client_id = result["client_id"]
+    secret_hash = result["secret_hash"]
 
     conn.admin_set_user_mfa_preference(
         Username=username,
@@ -4185,6 +4187,22 @@ def test_initiate_auth_USER_PASSWORD_AUTH_when_sms_mfa_enabled():
     assert result["ChallengeName"] == "SMS_MFA"
     assert result["ChallengeParameters"] == {}
     assert result["Session"] is not None
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="SMS_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SMS_MFA_CODE": "123456",
+            "USERNAME": username,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
 
 @mock_aws
