@@ -1333,3 +1333,79 @@ class SageMakerResponse(BaseResponse):
             job_definition_name=job_definition_name,
         )
         return json.dumps(dict())
+
+    def create_hyper_parameter_tuning_job(self) -> str:
+        hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
+        hyper_parameter_tuning_job_config = self._get_param(
+            "HyperParameterTuningJobConfig"
+        )
+        training_job_definition = self._get_param("TrainingJobDefinition")
+        training_job_definitions = self._get_param("TrainingJobDefinitions")
+        warm_start_config = self._get_param("WarmStartConfig")
+        tags = self._get_param("Tags")
+        autotune = self._get_param("Autotune")
+        hyper_parameter_tuning_job_arn = (
+            self.sagemaker_backend.create_hyper_parameter_tuning_job(
+                hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
+                hyper_parameter_tuning_job_config=hyper_parameter_tuning_job_config,
+                training_job_definition=training_job_definition,
+                training_job_definitions=training_job_definitions,
+                warm_start_config=warm_start_config,
+                tags=tags,
+                autotune=autotune,
+            )
+        )
+        return json.dumps(
+            dict(HyperParameterTuningJobArn=hyper_parameter_tuning_job_arn)
+        )
+
+    def describe_hyper_parameter_tuning_job(self) -> str:
+        hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
+        hyper_parameter_tuning_job_description = (
+            self.sagemaker_backend.describe_hyper_parameter_tuning_job(
+                hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
+            )
+        )
+        return json.dumps(hyper_parameter_tuning_job_description)
+
+    def list_hyper_parameter_tuning_jobs(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        sort_by = self._get_param("SortBy")
+        sort_order = self._get_param("SortOrder")
+        name_contains = self._get_param("NameContains")
+        creation_time_after = self._get_param("CreationTimeAfter")
+        creation_time_before = self._get_param("CreationTimeBefore")
+        last_modified_time_after = self._get_param("LastModifiedTimeAfter")
+        last_modified_time_before = self._get_param("LastModifiedTimeBefore")
+        status_equals = self._get_param("StatusEquals")
+        hyper_parameter_tuning_jobs, next_token = (
+            self.sagemaker_backend.list_hyper_parameter_tuning_jobs(
+                next_token=next_token,
+                max_results=max_results,
+                sort_by=sort_by,
+                sort_order=sort_order,
+                name_contains=name_contains,
+                creation_time_after=creation_time_after,
+                creation_time_before=creation_time_before,
+                last_modified_time_after=last_modified_time_after,
+                last_modified_time_before=last_modified_time_before,
+                status_equals=status_equals,
+            )
+        )
+        hyper_parameter_tuning_job_summaries = [
+            job.summary() for job in hyper_parameter_tuning_jobs
+        ]
+        return json.dumps(
+            dict(
+                HyperParameterTuningJobSummaries=hyper_parameter_tuning_job_summaries,
+                NextToken=next_token,
+            )
+        )
+
+    def delete_hyper_parameter_tuning_job(self) -> str:
+        hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
+        self.sagemaker_backend.delete_hyper_parameter_tuning_job(
+            hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
+        )
+        return json.dumps(dict())
