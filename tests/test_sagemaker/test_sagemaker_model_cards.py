@@ -194,9 +194,6 @@ def test_list_model_cards_advanced():
     assert resp[0].get("ModelCardName") == "my-fourth-model-card"
 
 
-str(datetime.now())
-
-
 @mock_aws
 def test_list_model_card_versions_basic():
     client = boto3.client("sagemaker", region_name="us-east-1")
