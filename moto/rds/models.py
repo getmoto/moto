@@ -2296,19 +2296,6 @@ class RDSBackend(BaseBackend):
         cluster = DBCluster(self, **kwargs)
         self.clusters[cluster_id] = cluster
 
-        # if (
-        #     cluster.global_cluster_identifier
-        #     and cluster.global_cluster_identifier in self.global_clusters
-        # ):
-        #     global_cluster = self.global_clusters[cluster.global_cluster_identifier]
-        #
-        #     # Main DB cluster, does RW on global cluster
-        #     setattr(cluster, "is_writer", True)
-        #     # self.clusters[cluster_id] = cluster
-        #     global_cluster.members.append(cluster)
-
-        # search all backend to check if global cluster named global_cluster_identifier exists
-        # anywhere else
         if cluster.global_cluster_identifier:
             for regional_backend in rds_backends[self.account_id]:
                 if (
