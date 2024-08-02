@@ -146,13 +146,18 @@ if TYPE_CHECKING:
     from moto.xray.models import XRayBackend
 
 
-ALT_SERVICE_NAMES = {"lambda": "awslambda", "moto_api": "moto_api._internal"}
+ALT_SERVICE_NAMES = {
+    "lambda": "awslambda",
+    "moto_api": "moto_api._internal",
+    "neptune": "rds",
+}
 ALT_BACKEND_NAMES = {
     "moto_api._internal": "moto_api",
     "awslambda": "lambda",
     "awslambda_simple": "lambda_simple",
     "dynamodb_v20111205": "dynamodb",
     "elasticbeanstalk": "eb",
+    "neptune": "rds",
 }
 
 
