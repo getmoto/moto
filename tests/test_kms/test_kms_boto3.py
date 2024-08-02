@@ -153,20 +153,26 @@ def test_create_multi_region_configuration_key():
     )
     key_id = response["KeyMetadata"]["KeyId"]
 
-    replica_response = from_region_client.replicate_key(
+    first_replica_response = from_region_client.replicate_key(
         KeyId=key_id, ReplicaRegion=region_to_replicate_to
     )
 
-    replica_response_second_replica = from_region_client.replicate_key(
+    second_replica_response = from_region_client.replicate_key(
         KeyId=key_id, ReplicaRegion=region_to_replicate_to_second_region
     )
 
-    replica_key_id = replica_response["ReplicaKeyMetadata"]["KeyId"]
-    replica_key_second_id = replica_response_second_replica["ReplicaKeyMetadata"]["KeyId"]
+    third_replica_response = from_region_client.replicate_key(
+        KeyId=key_id, ReplicaRegion=region_to_replicate_to_second_region
+    )
+
+    replica_key_id = first_replica_response["ReplicaKeyMetadata"]["KeyId"]
+    replica_key_second_id = second_replica_response["ReplicaKeyMetadata"]["KeyId"]
+    replica_key_third_id = third_replica_response["ReplicaKeyMetadata"]["KeyId"]
 
     from_region_describe_key = from_region_client.describe_key(KeyId=key_id)
     to_region_describe_key = to_region_client_us_west_1.describe_key(KeyId=replica_key_id)
     to_region_describe_key_second_replica = to_region_client_us_west_2.describe_key(KeyId=replica_key_second_id)
+    to_region_describe_key_third_replica = to_region_client_us_west_2.describe_key(KeyId=replica_key_third_id)
 
     assert from_region_describe_key["KeyMetadata"]["MultiRegion"] is True
     assert to_region_describe_key["KeyMetadata"]["MultiRegion"] is True
@@ -175,6 +181,8 @@ def test_create_multi_region_configuration_key():
     assert to_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"]["MultiRegionKeyType"] == "REPLICA"
     assert (to_region_describe_key_second_replica["KeyMetadata"]["MultiRegionConfiguration"]["MultiRegionKeyType"] ==
             "REPLICA")
+    # This test below tests the expected failure of making a replica in an already existing region.
+    assert len(to_region_describe_key_third_replica["KeyMetadata"]["MultiRegionConfiguration"]["ReplicaKeys"]) == 2
 
 
 @mock_aws

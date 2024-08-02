@@ -339,12 +339,16 @@ class KmsBackend(BaseBackend):
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
 
         if replica_key.multi_region:
-            replica_payload = {
-                'Arn': replica_key.arn,
-                'Region': replica_region
-            }
+            existing_replica = any(
+                replica['Region'] == replica_region for replica in replica_key.multi_region_configuration["ReplicaKeys"]
+            )
 
-            replica_key.multi_region_configuration["ReplicaKeys"].append(replica_payload)
+            if not existing_replica:
+                replica_payload = {
+                    'Arn': replica_key.arn,
+                    'Region': replica_region
+                }
+                replica_key.multi_region_configuration["ReplicaKeys"].append(replica_payload)
 
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
