@@ -1092,9 +1092,6 @@ class FakeModelCard(BaseObject):
         creation_time: Optional[str] = None,
         last_modified_time: Optional[str] = None,
     ) -> None:
-        # user_profile_name = "faker-user"
-        # domain_id = "fake-domain"
-        # user_profile_arn = arn_formatter("user-profile", f"{domain_id}/{user_profile_name}", account_id, region_name)
         datetime_now = str(datetime.now(tzutc()))
         self.model_card_arn = arn_formatter(
             "model-card", model_card_name, account_id, region_name
@@ -1103,12 +1100,6 @@ class FakeModelCard(BaseObject):
         self.model_card_version = model_card_version
         self.content = content
         self.model_card_status = model_card_status
-        # self.created_by = {
-        #     "UserProfileArn": user_profile_arn,
-        #     "UserProfileName": user_profile_name,
-        #     "DomainId": domain_id,
-        # }
-        # self.last_modified_by = self.created_by
         self.creation_time = creation_time if creation_time else datetime_now
         self.last_modified_time = (
             last_modified_time if last_modified_time else datetime_now
@@ -5664,7 +5655,6 @@ class SageMakerModelBackend(BaseBackend):
         return versions[-1].describe()
 
     def delete_model_card(self, model_card_name: str) -> None:
-        # implement here
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
 
