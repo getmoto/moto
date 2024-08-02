@@ -4144,11 +4144,30 @@ def test_initiate_auth_REFRESH_TOKEN():
 @mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH():
     conn = boto3.client("cognito-idp", "us-west-2")
+
     result = user_authentication_flow(conn)
+
+    user_pool_id = result["user_pool_id"]
+    client_id = result["client_id"]
+    username = result["username"]
+    password = result["password"]
+
+    # user_authentication_flow enables software token mfa so disable it
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaSettings={"Enabled": False, "PreferredMfa": False},
+    )
+
+    # ensure no mfa settings are set so no challenge is returned on initiate_auth
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 0
+    assert result["PreferredMfaSetting"] == ""
+
     result = conn.initiate_auth(
-        ClientId=result["client_id"],
+        ClientId=client_id,
         AuthFlow="USER_PASSWORD_AUTH",
-        AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
     )
 
     assert result["AuthenticationResult"]["AccessToken"] is not None
