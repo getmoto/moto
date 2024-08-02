@@ -14,6 +14,7 @@ from .types import (
     ServerEndpointType,
     ServerIdentityProviderDetails,
     ServerIdentityProviderType,
+    ServerProtocolDetails,
     ServerProtocols,
     ServerS3StorageOptions,
     ServerWorkflowDetails,
@@ -44,13 +45,13 @@ class TransferBackend(BaseBackend):
         post_authentication_login_banner: Optional[str],
         pre_authentication_login_banner: Optional[str],
         protocols: Optional[List[ServerProtocols]],
-        protocol_details: Optional[str],
+        protocol_details: Optional[ServerProtocolDetails],
         security_policy_name: Optional[str],
         tags: Optional[List[Dict[str, str]]],
         workflow_details: Optional[ServerWorkflowDetails],
         structured_log_destinations: Optional[List[str]],
         s3_storage_options: Optional[ServerS3StorageOptions],
-    ):
+    ) -> str:
         server = Server(
             Certificate=certificate,
             Domain=domain,
