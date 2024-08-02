@@ -110,6 +110,8 @@ def test_create_describe_and_delete_server(client, server):
 
     # TODO describe call attributes that are not just params
 
+    assert "_users" not in described_server
+
     connection = client.delete_server(ServerId=server_id) 
 
     assert server_id not in connection

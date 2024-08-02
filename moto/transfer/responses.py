@@ -103,7 +103,9 @@ class TransferResponse(BaseResponse):
         server = self.transfer_backend.describe_server(
             server_id=params.get("ServerId"),
         )
-        return json.dumps(dict(Server=server.to_dict()))
+        server = server.to_dict().copy()
+        del server["_users"]
+        return json.dumps(dict(Server=server))
 
     def delete_server(self):
         params = json.loads(self.body)
