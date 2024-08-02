@@ -75,13 +75,13 @@ class TransferBackend(BaseBackend):
         return server_id
 
     def describe_server(self, server_id):
-        if server_id in self.servers:
+        if server_id not in self.servers:
             ServerNotFound(server_id=server_id)
         server = self.servers[server_id]
         return server
 
     def delete_server(self, server_id):
-        if server_id in self.servers:
+        if server_id not in self.servers:
             ServerNotFound(server_id=server_id)
         del self.servers[server_id]
         return
