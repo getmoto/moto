@@ -169,7 +169,9 @@ class TransferBackend(BaseBackend):
             raise ServerNotFound(server_id=server_id)
         for i, user in enumerate(self.servers[server_id]._users):
             if user.UserName == user_name:
-                for j, key in enumerate(self.servers[server_id]._users[i].SshPublicKeys):
+                for j, key in enumerate(
+                    self.servers[server_id]._users[i].SshPublicKeys
+                ):
                     if key["SshPublicKeyId"] == ssh_public_key_id:
                         del user.SshPublicKeys[j]
                         return

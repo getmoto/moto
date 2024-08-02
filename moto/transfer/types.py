@@ -181,5 +181,4 @@ class Server(BaseModel):
             self.As2ServiceManagedEgressIpAddresses = ["0.0.0.0/0"]
             self._users = []
 
-
     to_dict = asdict
