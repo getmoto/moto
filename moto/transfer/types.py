@@ -39,7 +39,7 @@ class User(BaseModel):
     home_directory: Optional[str]
     home_directory_type: Optional[UserHomeDirectoryType]
     policy: Optional[str]
-    posix_profile: Optional[UserPosixProfile]
+    posix_profile: Optinal[UserPosixProfile]
     role: str
     user_name: str
     arn: str = field(default="", init=False)
@@ -52,7 +52,7 @@ class User(BaseModel):
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(self):
-        user =  {
+        user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
             "Policy": self.policy,
@@ -66,26 +66,30 @@ class User(BaseModel):
                     "Type": mapping.get("type")
                 } for mapping in self.home_directory_mappings
             ],
-            "SshPublicKeys": [
-                {
-                    "DateImported": key.get("date_imported"),
-                    "SshPublicKeyBody": key.get("ssh_public_key_body"),
-                    "SshPublicKeyId": key.get("ssh_public_key_id"),
-                } for key in self.ssh_public_keys
-            ],
             "Tags": self.tags
         }
         if self.posix_profile:
-            user = {
-                **user,
-                **{
+            user.update(
+                {
                     "PosixProfile": {
                         "Uid": self.posix_profile.get("uid"),
                         "Gid": self.posix_profile.get("gid"),
                         "SecondaryGids": self.posix_profile.get("secondary_gids")
                     }
                 }
-            }
+            )
+        if len(self.ssh_public_keys) > 0:
+            user.update(
+                {
+                    "SshPublicKeys": [
+                        {
+                            "DateImported": key.get("date_imported"),
+                            "SshPublicKeyBody": key.get("ssh_public_key_body"),
+                            "SshPublicKeyId": key.get("ssh_public_key_id"),
+                        } for key in self.ssh_public_keys
+                    ]
+                }
+            )
         return user
 
 
@@ -223,7 +227,7 @@ class Server(BaseModel):
             "Certificate": self.certificate,
             "Domain": self.domain,
             "EndpointType": self.endpoint_type,
-            "HostKeyFingerPrint": self.host_key_fingerprint,
+            "HostKeyFingerprint": self.host_key_fingerprint,
             "IdentityProviderType": self.identity_provider_type,
             "LoggingRole": self.logging_role,
             "PostAuthenticationLoginBanner": self.post_authentication_login_banner,
@@ -238,10 +242,9 @@ class Server(BaseModel):
             "Tags": self.tags,
             "UserCount": self.user_count
         }
-        if self.endpoint_details:
-            server = {
-                **server, 
-                **{
+        if self.endpoint_details is not None:
+            server.update(
+                {
                     "EndpointDetails": {
                         "AddressAllocationIds": self.endpoint_details.get("address_allocation_ids"),
                         "SubnetIds": self.endpoint_details.get("subnet_ids"),
@@ -250,11 +253,10 @@ class Server(BaseModel):
                         "SecurityGroupIds": self.endpoint_details.get("security_group_ids"),
                     }
                 }
-            }
-        if self.identity_provider_details:
-            server = {
-                **server,
-                **{
+            )
+        if self.identity_provider_details is not None:
+            server.update(
+                {
                     "IdentityProviderDetails": {
                         "Url": self.identity_provider_details.get("url"),
                         "InvocationRole": self.identity_provider_details.get("invocation_role"),
@@ -263,11 +265,10 @@ class Server(BaseModel):
                         "SftpAuthenticationMethods": self.identity_provider_details.get("sftp_authentication_methods"),
                     }
                 }
-            }
-        if self.protocol_details:
-            server = {
-                **server,
-                **{
+            )
+        if self.protocol_details is not None:
+            server.update(
+                {
                     "ProtocolDetails": {
                         "PassiveIp": self.protocol_details.get("passive_ip"),
                         "TlsSessionResumptionMode": self.protocol_details.get("tls_session_resumption_mode"),
@@ -275,30 +276,32 @@ class Server(BaseModel):
                         "As2Transports": self.protocol_details.get("as2_transports")
                     }
                 }
-            }
-        if self.s3_storage_options:
-            server = {
-                **server,
-                **{
+            )
+        if self.s3_storage_options is not None:
+            server.update(
+                {
                     "S3StorageOptions": {
                         "DirectoryListingOptimization": self.s3_storage_options.get("directory_listing_optimization")
                     }
                 }
-            }
-        if self.workflow_details:
-            server = {
-                **server,
-                **{
+            )
+        if self.workflow_details is not None:
+            server.update(
+                {
                     "WorkflowDetails": {
-                        "OnUpload": {
-                            "WorkflowId": self.workflow_details["on_upload"].get("worflow_id"),
-                            "ExecutionRole": self.workflow_details["on_upload"].get("execution_role"),
-                        },
-                        "OnPartialUpload": {
-                            "WorkflowId": self.workflow_details["on_partial_upload"].get("worflow_id"),
-                            "ExecutionRole": self.workflow_details["on_partial_upload"].get("execution_role"),
-                        } 
+                        "OnUpload": [
+                            {
+                                "WorkflowId": workflow.get("worflow_id"),
+                                "ExecutionRole": workflow.get("execution_role"),
+                            } for workflow in self.workflow_details.get("on_upload")
+                        ],
+                        "OnPartialUpload":[
+                            {
+                                "WorkflowId": workflow.get("worflow_id"),
+                                "ExecutionRole": workflow.get("execution_role"),
+                            } for workflow in self.workflow_details.get("on_partial_upload")
+                        ]
                     }
                 }
-            } 
+            ) 
         return server

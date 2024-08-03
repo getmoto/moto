@@ -239,6 +239,8 @@ def test_import_and_delete_ssh_public_key(client, server):
         UserName=user_name,
     )
     connection = client.describe_user(UserName=user_name, ServerId=server_id)
+    print("BIG USER")
+    print(connection)
     assert connection["User"]["SshPublicKeys"][-1]["SshPublicKeyBody"] == "RSA"
     client.delete_ssh_public_key(
         ServerId=server_id,
