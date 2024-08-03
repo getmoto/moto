@@ -1945,6 +1945,23 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
+            if (
+                user.software_token_mfa_enabled
+                and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
+            ):
+                return {
+                    "ChallengeName": "SOFTWARE_TOKEN_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
+            if user.sms_mfa_enabled and user.preferred_mfa_setting == "SMS_MFA":
+                return {
+                    "ChallengeName": "SMS_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
             access_token, expires_in = user_pool.create_access_token(
                 client_id, username
             )

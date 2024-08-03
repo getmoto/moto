@@ -4144,16 +4144,125 @@ def test_initiate_auth_REFRESH_TOKEN():
 @mock_aws
 def test_initiate_auth_USER_PASSWORD_AUTH():
     conn = boto3.client("cognito-idp", "us-west-2")
+
     result = user_authentication_flow(conn)
+
+    user_pool_id = result["user_pool_id"]
+    client_id = result["client_id"]
+    username = result["username"]
+    password = result["password"]
+
+    # user_authentication_flow enables software token mfa so disable it
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SoftwareTokenMfaSettings={"Enabled": False, "PreferredMfa": False},
+    )
+
+    # ensure no mfa settings are set so no challenge is returned on initiate_auth
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert len(result["UserMFASettingList"]) == 0
+    assert result["PreferredMfaSetting"] == ""
+
     result = conn.initiate_auth(
-        ClientId=result["client_id"],
+        ClientId=client_id,
         AuthFlow="USER_PASSWORD_AUTH",
-        AuthParameters={"USERNAME": result["username"], "PASSWORD": result["password"]},
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
     )
 
     assert result["AuthenticationResult"]["AccessToken"] is not None
     assert result["AuthenticationResult"]["IdToken"] is not None
     assert result["AuthenticationResult"]["RefreshToken"] is not None
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
+@mock_aws
+def test_initiate_auth_USER_PASSWORD_AUTH_when_software_token_mfa_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = user_authentication_flow(conn)
+
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    password = result["password"]
+    client_id = result["client_id"]
+    secret_hash = result["secret_hash"]
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert result["PreferredMfaSetting"] == "SOFTWARE_TOKEN_MFA"
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
+    )
+
+    assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
+    assert result["ChallengeParameters"] == {}
+    assert result["Session"] is not None
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="SOFTWARE_TOKEN_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": "123456",
+            "USERNAME": username,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
+    assert result["AuthenticationResult"]["TokenType"] == "Bearer"
+
+
+@mock_aws
+def test_initiate_auth_USER_PASSWORD_AUTH_when_sms_mfa_enabled():
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    result = user_authentication_flow(conn)
+
+    user_pool_id = result["user_pool_id"]
+    username = result["username"]
+    password = result["password"]
+    client_id = result["client_id"]
+    secret_hash = result["secret_hash"]
+
+    conn.admin_set_user_mfa_preference(
+        Username=username,
+        UserPoolId=user_pool_id,
+        SMSMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+
+    result = conn.admin_get_user(UserPoolId=user_pool_id, Username=username)
+    assert result["PreferredMfaSetting"] == "SMS_MFA"
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": password},
+    )
+
+    assert result["ChallengeName"] == "SMS_MFA"
+    assert result["ChallengeParameters"] == {}
+    assert result["Session"] is not None
+
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="SMS_MFA",
+        Session=result["Session"],
+        ChallengeResponses={
+            "SMS_MFA_CODE": "123456",
+            "USERNAME": username,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    assert result["AuthenticationResult"]["IdToken"] != ""
+    assert result["AuthenticationResult"]["AccessToken"] != ""
+    assert result["AuthenticationResult"]["RefreshToken"] != ""
     assert result["AuthenticationResult"]["TokenType"] == "Bearer"
 
 
