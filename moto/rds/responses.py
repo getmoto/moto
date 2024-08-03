@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
@@ -255,20 +255,7 @@ class RDSResponse(BaseResponse):
                 db_instance_identifier, filters=filter_dict
             )
         )
-        marker = self._get_param("Marker")
-        all_ids = [instance.db_instance_identifier for instance in all_instances]
-        if marker:
-            start = all_ids.index(marker) + 1
-        else:
-            start = 0
-        page_size = self._get_int_param(
-            "MaxRecords", 50
-        )  # the default is 100, but using 50 to make testing easier
-        instances_resp = all_instances[start : start + page_size]
-        next_marker = None
-        if len(all_instances) > start + page_size:
-            next_marker = instances_resp[-1].db_instance_identifier
-
+        instances_resp, next_marker = self._paginate(all_instances)
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
         return template.render(databases=instances_resp, marker=next_marker)
 
@@ -485,9 +472,8 @@ class RDSResponse(BaseResponse):
 
     def describe_option_groups(self) -> str:
         kwargs = self._get_option_group_kwargs()
-        kwargs["max_records"] = self._get_int_param("MaxRecords")
-        kwargs["marker"] = self._get_param("Marker")
         option_groups = self.backend.describe_option_groups(kwargs)
+        option_groups, _ = self._paginate(option_groups)
         template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
         return template.render(option_groups=option_groups)
 
@@ -542,9 +528,8 @@ class RDSResponse(BaseResponse):
 
     def describe_db_parameter_groups(self) -> str:
         kwargs = self._get_db_parameter_group_kwargs()
-        kwargs["max_records"] = self._get_int_param("MaxRecords")
-        kwargs["marker"] = self._get_param("Marker")
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
+        db_parameter_groups, _ = self._paginate(db_parameter_groups)
         template = self.response_template(DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
         return template.render(db_parameter_groups=db_parameter_groups)
 
@@ -903,6 +888,29 @@ class RDSResponse(BaseResponse):
         )
         template = self.response_template(CREATE_DB_PROXY_TEMPLATE)
         return template.render(dbproxy=db_proxy)
+
+    def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
+        from moto.rds.exceptions import InvalidParameterValue
+
+        marker = self._get_param("Marker")
+        # Default was originally set to 50 instead of 100 for ease of testing.  Should fix.
+        page_size = self._get_int_param("MaxRecords", 50)
+        if page_size < 20 or page_size > 100:
+            msg = (
+                f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"
+            )
+            raise InvalidParameterValue(msg)
+        all_resources = list(resources)
+        all_ids = [resource.name for resource in all_resources]
+        if marker:
+            start = all_ids.index(marker) + 1
+        else:
+            start = 0
+        paginated_resources = all_resources[start : start + page_size]
+        next_marker = None
+        if len(all_resources) > start + page_size:
+            next_marker = paginated_resources[-1].name
+        return paginated_resources, next_marker
 
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
