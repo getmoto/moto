@@ -1127,18 +1127,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             database = rds_backend.create_db_instance(db_kwargs)
         return database
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return self.tags
-
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        new_keys = [tag_set["Key"] for tag_set in tags]
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in new_keys]
-        self.tags.extend(tags)
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> None:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["Key"] not in tag_keys]
-
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
         backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
