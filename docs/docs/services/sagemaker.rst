@@ -53,7 +53,7 @@ sagemaker
 - [ ] create_mlflow_tracking_server
 - [X] create_model
 - [ ] create_model_bias_job_definition
-- [X] create_model_card
+- [ ] create_model_card
 - [ ] create_model_card_export_job
 - [ ] create_model_explainability_job_definition
 - [X] create_model_package
@@ -110,7 +110,7 @@ sagemaker
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
 - [ ] delete_model_bias_job_definition
-- [X] delete_model_card
+- [ ] delete_model_card
 - [ ] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
@@ -169,7 +169,7 @@ sagemaker
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
 - [ ] describe_model_bias_job_definition
-- [X] describe_model_card
+- [ ] describe_model_card
 - [ ] describe_model_card_export_job
 - [ ] describe_model_explainability_job_definition
 - [X] describe_model_package
@@ -246,8 +246,8 @@ sagemaker
 - [ ] list_mlflow_tracking_servers
 - [ ] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
-- [X] list_model_card_versions
-- [X] list_model_cards
+- [ ] list_model_card_versions
+- [ ] list_model_cards
 - [ ] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [X] list_model_package_groups
@@ -338,7 +338,7 @@ sagemaker
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
 - [ ] update_mlflow_tracking_server
-- [X] update_model_card
+- [ ] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
