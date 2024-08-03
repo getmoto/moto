@@ -2104,24 +2104,6 @@ class RDSBackend(BaseBackend):
         self, option_group_kwargs: Dict[str, Any]
     ) -> List["OptionGroup"]:
         option_group_list = []
-
-        if option_group_kwargs["marker"]:
-            marker = option_group_kwargs["marker"]
-        else:
-            marker = 0
-        if option_group_kwargs["max_records"]:
-            if (
-                option_group_kwargs["max_records"] < 20
-                or option_group_kwargs["max_records"] > 100
-            ):
-                raise RDSClientError(
-                    "InvalidParameterValue",
-                    "Invalid value for max records. Must be between 20 and 100",
-                )
-            max_records = option_group_kwargs["max_records"]
-        else:
-            max_records = 100
-
         for option_group in self.option_groups.values():
             if (
                 option_group_kwargs["name"]
@@ -2143,7 +2125,7 @@ class RDSBackend(BaseBackend):
                 option_group_list.append(option_group)
         if not len(option_group_list):
             raise OptionGroupNotFoundFaultError(option_group_kwargs["name"])
-        return option_group_list[marker : max_records + marker]
+        return option_group_list
 
     @staticmethod
     def describe_option_group_options(
@@ -2235,24 +2217,6 @@ class RDSBackend(BaseBackend):
         self, db_parameter_group_kwargs: Dict[str, Any]
     ) -> List["DBParameterGroup"]:
         db_parameter_group_list = []
-
-        if db_parameter_group_kwargs.get("marker"):
-            marker = db_parameter_group_kwargs["marker"]
-        else:
-            marker = 0
-        if db_parameter_group_kwargs.get("max_records"):
-            if (
-                db_parameter_group_kwargs["max_records"] < 20
-                or db_parameter_group_kwargs["max_records"] > 100
-            ):
-                raise RDSClientError(
-                    "InvalidParameterValue",
-                    "Invalid value for max records. Must be between 20 and 100",
-                )
-            max_records = db_parameter_group_kwargs["max_records"]
-        else:
-            max_records = 100
-
         for db_parameter_group in self.db_parameter_groups.values():
             if not db_parameter_group_kwargs.get(
                 "name"
@@ -2260,8 +2224,7 @@ class RDSBackend(BaseBackend):
                 db_parameter_group_list.append(db_parameter_group)
             else:
                 continue
-
-        return db_parameter_group_list[marker : max_records + marker]
+        return db_parameter_group_list
 
     def modify_db_parameter_group(
         self,
