@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.12
 -----
-Docker Digest for 5.0.12: <autopopulateddigest>
+Docker Digest for 5.0.12: _sha256:e1bde8f908f2fdf0878c8e4398561badd016b51b4d9fd8dcb9f4daef936a4427_
 
     General:
         * The MotoProxy can now be run on Windows
