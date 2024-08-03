@@ -88,7 +88,7 @@ def filter_model_cards(
     else:
         filtered_cards = {k: v for k, v in model_cards.items()}
 
-    result: list[FakeModelCard] = []
+    result: List[FakeModelCard] = []
     for _, versions in filtered_cards.items():
         filtered_versions = versions
 
