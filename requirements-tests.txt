@@ -1,4 +1,5 @@
 coverage
+pycognito
 pytest
 pytest-cov
 pytest-order
