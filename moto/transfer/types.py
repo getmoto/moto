@@ -37,13 +37,13 @@ class UserSshPublicKey(TypedDict):
 @dataclass
 class User(BaseModel):
     home_directory: Optional[str]
+    home_directory_mappings: Optional[List[UserHomeDirectoryMapping]]
     home_directory_type: Optional[UserHomeDirectoryType]
     policy: Optional[str]
     posix_profile: Optional[UserPosixProfile]
     role: str
     user_name: str
     arn: str = field(default="", init=False)
-    home_directory_mappings: List[UserHomeDirectoryMapping] = field(default_factory=list)
     ssh_public_keys: List[UserSshPublicKey] = field(default_factory=list)
     tags: List[Dict[str, str]] = field(default_factory=list)
 
@@ -291,13 +291,13 @@ class Server(BaseModel):
                     "WorkflowDetails": {
                         "OnUpload": [
                             {
-                                "WorkflowId": workflow.get("worflow_id"),
+                                "WorkflowId": workflow.get("workflow_id"),
                                 "ExecutionRole": workflow.get("execution_role"),
                             } for workflow in self.workflow_details.get("on_upload")
                         ],
                         "OnPartialUpload":[
                             {
-                                "WorkflowId": workflow.get("worflow_id"),
+                                "WorkflowId": workflow.get("workflow_id"),
                                 "ExecutionRole": workflow.get("execution_role"),
                             } for workflow in self.workflow_details.get("on_partial_upload")
                         ]

@@ -1,9 +1,10 @@
 """Handles incoming transfer requests, invokes methods, returns responses."""
 
 import json
+from typing import List
 
 from moto.core.responses import BaseResponse
-from moto.transfer.types import ServerEndpointDetails, ServerIdentityProviderDetails, ServerProtocolDetails, ServerS3StorageOptions, ServerWorkflowDetails, UserPosixProfile
+from moto.transfer.types import ServerEndpointDetails, ServerIdentityProviderDetails, ServerProtocolDetails, ServerS3StorageOptions, ServerWorkflowDetails, UserHomeDirectoryMapping, UserPosixProfile
 
 from .models import TransferBackend, transfer_backends
 
@@ -20,6 +21,15 @@ class TransferResponse(BaseResponse):
 
     def create_user(self) -> str:
         params = json.loads(self.body)
+        home_directory_mappings = params.get("HomeDirectoryMappings")
+        if home_directory_mappings is not None and len(home_directory_mappings) > 0:
+            home_directory_mappings: List[UserHomeDirectoryMapping] = [
+                {
+                    "entry": mapping.get("Entry"),
+                    "target": mapping.get("Target"),
+                    "type": mapping.get("Type")
+                } for mapping in home_directory_mappings
+            ]
         posix_profile = params.get("PosixProfile")
         if posix_profile is not None:
             posix_profile: UserPosixProfile = {
@@ -30,7 +40,7 @@ class TransferResponse(BaseResponse):
         server_id, user_name = self.transfer_backend.create_user(
             home_directory=params.get("HomeDirectory"),
             home_directory_type=params.get("HomeDirectoryType"),
-            home_directory_mappings=params.get("HomeDirectoryMappings"),
+            home_directory_mappings=home_directory_mappings,
             policy=params.get("Policy"),
             posix_profile=posix_profile,
             role=params.get("Role"),
@@ -120,14 +130,14 @@ class TransferResponse(BaseResponse):
                 "on_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
-                        "execution_role": workflow.get("WorkflowId")
-                    } for workflow in (workflow_details.get("ExecutionRole") or [])
+                        "execution_role": workflow.get("ExecutionRole")
+                    } for workflow in (workflow_details.get("OnUpload") or [])
                 ],
                 "on_partial_upload": [                    
                     {
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole")
-                    } for workflow in (workflow_details.get("on_partial_upload") or [])
+                    } for workflow in (workflow_details.get("OnPartialUpload") or [])
                 ]
             }
 
