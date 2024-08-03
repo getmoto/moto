@@ -70,11 +70,6 @@ the sha256 of the DER certificate to ensure correct behavior for tests that
 use valid certificates.  To enable the correct
 certificate ID generation algorithm, set `"iot": {"use_valid_cert": True}`
 
-In the next major release we recommend changing the default to `True`
-which would a breaking change for tests that do not use valid certificates.
-For future compatiblity, update any existing code that does not use real
-certificates to explicitly set `use_valid_cert` to `False`
-
 
 Configuring MotoServer
 ----------------------
