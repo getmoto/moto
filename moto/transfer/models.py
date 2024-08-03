@@ -53,25 +53,25 @@ class TransferBackend(BaseBackend):
         s3_storage_options: Optional[ServerS3StorageOptions],
     ) -> str:
         server = Server(
-            Certificate=certificate,
-            Domain=domain,
-            EndpointDetails=endpoint_details,
-            EndpointType=endpoint_type,
-            HostKeyFingerprint=host_key,
-            IdentityProviderDetails=identity_provider_details,
-            IdentityProviderType=identity_provider_type,
-            LoggingRole=logging_role,
-            PostAuthenticationLoginBanner=post_authentication_login_banner,
-            PreAuthenticationLoginBanner=pre_authentication_login_banner,
-            ProtocolDetails=protocol_details,
-            Protocols=protocols,
-            S3StorageOptions=s3_storage_options,
-            SecurityPolicyName=security_policy_name,
-            StructuredLogDestinations=structured_log_destinations,
-            Tags=(tags or []),
-            WorkflowDetails=workflow_details,
+            certificate=certificate,
+            domain=domain,
+            endpoint_details=endpoint_details,
+            endpoint_type=endpoint_type,
+            host_key_fingerprint=host_key,
+            identity_provider_details=identity_provider_details,
+            identity_provider_type=identity_provider_type,
+            logging_role=logging_role,
+            post_authentication_login_banner=post_authentication_login_banner,
+            pre_authentication_login_banner=pre_authentication_login_banner,
+            protocol_details=protocol_details,
+            protocols=protocols,
+            s3_storage_options=s3_storage_options,
+            security_policy_name=security_policy_name,
+            structured_log_destinations=structured_log_destinations,
+            tags=(tags or []),
+            workflow_details=workflow_details,
         )
-        server_id = server.ServerId
+        server_id = server.server_id
         self.servers[server_id] = server
         return server_id
 
@@ -111,25 +111,25 @@ class TransferBackend(BaseBackend):
                 }
             ]
         user = User(
-            HomeDirectory=home_directory,
-            HomeDirectoryMappings=home_directory_mappings,
-            HomeDirectoryType=home_directory_type,
-            Policy=policy,
-            PosixProfile=posix_profile,
-            Role=role,
-            SshPublicKeys=ssh_public_keys,
-            Tags=(tags or []),
-            UserName=user_name,
+            home_directory=home_directory,
+            home_directory_mappings=home_directory_mappings,
+            home_directory_type=home_directory_type,
+            policy=policy,
+            posix_profile=posix_profile,
+            role=role,
+            ssh_public_keys=ssh_public_keys,
+            tags=(tags or []),
+            user_name=user_name,
         )
         self.servers[server_id]._users.append(user)
-        self.servers[server_id].UserCount += 1
+        self.servers[server_id].user_count += 1
         return server_id, user_name
 
     def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:
-            if user.UserName == user_name:
+            if user.user_name == user_name:
                 return server_id, user
         raise UserNotFound(user_name=user_name, server_id=server_id)
 
@@ -137,9 +137,9 @@ class TransferBackend(BaseBackend):
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for i, user in enumerate(self.servers[server_id]._users):
-            if user.UserName == user_name:
+            if user.user_name == user_name:
                 del self.servers[server_id]._users[i]
-                self.servers[server_id].UserCount -= 1
+                self.servers[server_id].user_count -= 1
                 return
         raise UserNotFound(server_id=server_id, user_name=user_name)
 
@@ -149,7 +149,7 @@ class TransferBackend(BaseBackend):
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:
-            if user.UserName == user_name:
+            if user.user_name == user_name:
                 date_imported = datetime.now().strftime("%Y%m%d%H%M%S")
                 ssh_public_key_id = (
                     f"{server_id}:{user_name}:public_key:{date_imported}"
@@ -159,7 +159,7 @@ class TransferBackend(BaseBackend):
                     "SshPublicKeyBody": ssh_public_key_body,
                     "DateImported": date_imported,
                 }
-                user.SshPublicKeys.append(key)
+                user.ssh_public_keys.append(key)
                 return server_id, ssh_public_key_id, user_name
         raise UserNotFound(user_name=user_name, server_id=server_id)
 
@@ -169,12 +169,12 @@ class TransferBackend(BaseBackend):
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for i, user in enumerate(self.servers[server_id]._users):
-            if user.UserName == user_name:
+            if user.user_name == user_name:
                 for j, key in enumerate(
-                    self.servers[server_id]._users[i].SshPublicKeys
+                    self.servers[server_id]._users[i].ssh_public_keys
                 ):
                     if key["SshPublicKeyId"] == ssh_public_key_id:
-                        del user.SshPublicKeys[j]
+                        del user.ssh_public_keys[j]
                         return
                 raise PublicKeyNotFound(
                     user_name=user_name,

@@ -17,41 +17,77 @@ class UserHomeDirectoryMappingType(str, Enum):
 
 
 class UserHomeDirectoryMapping(TypedDict):
-    Entry: str
-    Target: str
-    Type: Optional[UserHomeDirectoryMappingType]
+    entry: str
+    target: str
+    type: Optional[UserHomeDirectoryMappingType]
 
 
 class UserPosixProfile(TypedDict):
-    Uid: int
-    Gid: int
-    SecondaryGids: Optional[List[int]]
+    uid: int
+    gid: int
+    secondary_gids: Optional[List[int]]
 
 
 class UserSshPublicKey(TypedDict):
-    DateImported: str
-    SshPublicKeyBody: str
-    SshPublicKeyId: str
+    date_imported: str
+    ssh_public_key_body: str
+    ssh_public_key_id: str
 
 
 @dataclass
 class User(BaseModel):
-    HomeDirectory: Optional[str]
-    HomeDirectoryType: Optional[UserHomeDirectoryType]
-    Policy: Optional[str]
-    PosixProfile: Optional[UserPosixProfile]
-    Role: str
-    UserName: str
-    Arn: str = field(default="", init=False)
-    HomeDirectoryMappings: List[UserHomeDirectoryMapping] = field(default_factory=list)
-    SshPublicKeys: List[UserSshPublicKey] = field(default_factory=list)
-    Tags: List[Dict[str, str]] = field(default_factory=list)
+    home_directory: Optional[str]
+    home_directory_type: Optional[UserHomeDirectoryType]
+    policy: Optional[str]
+    posix_profile: Optional[UserPosixProfile]
+    role: str
+    user_name: str
+    arn: str = field(default="", init=False)
+    home_directory_mappings: List[UserHomeDirectoryMapping] = field(default_factory=list)
+    ssh_public_keys: List[UserSshPublicKey] = field(default_factory=list)
+    tags: List[Dict[str, str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        if self.Arn == "":
-            self.Arn = f"arn:aws:transfer:{self.UserName}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        if self.arn == "":
+            self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    to_dict = asdict
+    def to_dict(self):
+        user =  {
+            "HomeDirectory": self.home_directory,
+            "HomeDirectoryType": self.home_directory_type,
+            "Policy": self.policy,
+            "Role": self.role,
+            "UserName": self.user_name,
+            "Arn": self.arn,
+            "HomeDirectoryMappings": [
+                {
+                    "Entry": mapping.get("entry"),
+                    "Target": mapping.get("target"),
+                    "Type": mapping.get("type")
+                } for mapping in self.home_directory_mappings
+            ],
+            "SshPublicKeys": [
+                {
+                    "DateImported": key.get("date_imported"),
+                    "SshPublicKeyBody": key.get("ssh_public_key_body"),
+                    "SshPublicKeyId": key.get("ssh_public_key_id"),
+                } for key in self.ssh_public_keys
+            ],
+            "Tags": self.tags
+        }
+        if self.posix_profile:
+            user = {
+                **user,
+                **{
+                    "PosixProfile": {
+                        "Uid": self.posix_profile.get("uid"),
+                        "Gid": self.posix_profile.get("gid"),
+                        "SecondaryGids": self.posix_profile.get("secondary_gids")
+                    }
+                }
+            }
+        return user
+
 
 
 class ServerProtocolTlsSessionResumptionMode(str, Enum):
@@ -112,74 +148,157 @@ class ServerS3StorageDirectoryListingOptimization(str, Enum):
 
 
 class ServerProtocolDetails(TypedDict):
-    PassiveIp: str
-    TlsSessionResumptionMode: ServerProtocolTlsSessionResumptionMode
-    SetStatOption: ServerSetStatOption
-    As2Transports: List[Literal["HTTP"]]
+    passive_ip: str
+    tls_session_resumption_mode: ServerProtocolTlsSessionResumptionMode
+    set_stat_option: ServerSetStatOption
+    as2_transports: List[Literal["HTTP"]]
 
 
 class ServerEndpointDetails(TypedDict):
-    AddressAllocationIds: List[str]
-    SubnetIds: List[str]
-    VpcEndpointId: str
-    VpcId: str
-    SecurityGroupIds: List[str]
+    address_allocation_ids: List[str]
+    subnet_ids: List[str]
+    vpc_endpoint_id: str
+    vpc_id: str
+    security_group_ids: List[str]
 
 
 class ServerIdentityProviderDetails(TypedDict):
-    Url: str
-    InvocationRole: str
-    DirectoryId: str
-    Function: str
-    SftpAuthenticationMethods: ServerIdentityProviderSftpAuthenticationMethods
+    url: str
+    invocation_role: str
+    directory_id: str
+    function: str
+    sftp_authentication_methods: ServerIdentityProviderSftpAuthenticationMethods
 
 
 class ServerWorkflowUpload(TypedDict):
-    WorkflowId: str
-    ExecutionRole: str
+    workflow_id: str
+    execution_role: str
 
 
 class ServerWorkflowDetails(TypedDict):
-    OnUpload: List[ServerWorkflowUpload]
-    OnPartialUpload: List[ServerWorkflowUpload]
+    on_upload: List[ServerWorkflowUpload]
+    on_partial_upload: List[ServerWorkflowUpload]
 
 
 class ServerS3StorageOptions(TypedDict):
-    DirectoryListingOptimization: ServerS3StorageDirectoryListingOptimization
+    directory_listing_optimization: ServerS3StorageDirectoryListingOptimization
 
 
 @dataclass
 class Server(BaseModel):
-    Certificate: Optional[str]
-    Domain: Optional[ServerDomain]
-    EndpointDetails: Optional[ServerEndpointDetails]
-    EndpointType: Optional[ServerEndpointType]
-    HostKeyFingerprint: Optional[str]
-    IdentityProviderDetails: Optional[ServerIdentityProviderDetails]
-    IdentityProviderType: Optional[ServerIdentityProviderType]
-    LoggingRole: Optional[str]
-    PostAuthenticationLoginBanner: Optional[str]
-    PreAuthenticationLoginBanner: Optional[str]
-    ProtocolDetails: Optional[ServerProtocolDetails]
-    Protocols: Optional[List[ServerProtocols]]
-    S3StorageOptions: Optional[ServerS3StorageOptions]
-    SecurityPolicyName: Optional[str]
-    StructuredLogDestinations: Optional[List[str]]
-    WorkflowDetails: Optional[ServerWorkflowDetails]
-    Arn: str = field(default="", init=False)
-    As2ServiceManagedEgressIpAddresses: List[str] = field(default_factory=list)
-    ServerId: str = field(default="", init=False)
-    State: Optional[ServerState] = ServerState.ONLINE
-    Tags: List[Dict[str, str]] = field(default_factory=list)
-    UserCount: int = field(default=0)
+    certificate: Optional[str]
+    domain: Optional[ServerDomain]
+    endpoint_details: Optional[ServerEndpointDetails]
+    endpoint_type: Optional[ServerEndpointType]
+    host_key_fingerprint: Optional[str]
+    identity_provider_details: Optional[ServerIdentityProviderDetails]
+    identity_provider_type: Optional[ServerIdentityProviderType]
+    logging_role: Optional[str]
+    post_authentication_login_banner: Optional[str]
+    pre_authentication_login_banner: Optional[str]
+    protocol_details: Optional[ServerProtocolDetails]
+    protocols: Optional[List[ServerProtocols]]
+    s3_storage_options: Optional[ServerS3StorageOptions]
+    security_policy_name: Optional[str]
+    structured_log_destinations: Optional[List[str]]
+    workflow_details: Optional[ServerWorkflowDetails]
+    arn: str = field(default="", init=False)
+    as2_service_managed_egress_ip_addresses: List[str] = field(default_factory=list)
+    server_id: str = field(default="", init=False)
+    state: Optional[ServerState] = ServerState.ONLINE
+    tags: List[Dict[str, str]] = field(default_factory=list)
+    user_count: int = field(default=0)
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
-        if self.Arn == "":
-            self.Arn = f"arn:aws:transfer:{self.ServerId}"
-        if self.ServerId == "":
-            self.ServerId = f"{self.IdentityProviderType}:{self.ServerId}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        if self.As2ServiceManagedEgressIpAddresses == []:
-            self.As2ServiceManagedEgressIpAddresses.append("0.0.0.0/0")
+        if self.arn == "":
+            self.arn = f"arn:aws:transfer:{self.server_id}"
+        if self.server_id == "":
+            self.server_id = f"{self.identity_provider_type}:{self.server_id}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        if self.as2_service_managed_egress_ip_addresses == []:
+            self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    to_dict = asdict
+    def to_dict(self):
+        server =  {
+            "Certificate": self.certificate,
+            "Domain": self.domain,
+            "EndpointType": self.endpoint_type,
+            "HostKeyFingerPrint": self.host_key_fingerprint,
+            "IdentityProviderType": self.identity_provider_type,
+            "LoggingRole": self.logging_role,
+            "PostAuthenticationLoginBanner": self.post_authentication_login_banner,
+            "PreAuthenticationLoginBanner": self.pre_authentication_login_banner,
+            "Protocols": self.protocols,
+            "SecurityPolicyName": self.security_policy_name,
+            "StructuredLogDestinations": self.structured_log_destinations,
+            "Arn": self.arn,
+            "As2ServiceManagedEgressIpAddresses": self.as2_service_managed_egress_ip_addresses,
+            "ServerId": self.server_id,
+            "State": self.state,
+            "Tags": self.tags,
+            "UserCount": self.user_count
+        }
+        if self.endpoint_details:
+            server = {
+                **server, 
+                **{
+                    "EndpointDetails": {
+                        "AddressAllocationIds": self.endpoint_details.get("address_allocation_ids"),
+                        "SubnetIds": self.endpoint_details.get("subnet_ids"),
+                        "VpcEndpointId": self.endpoint_details.get("vpc_endpoint_id"),
+                        "VpcId": self.endpoint_details.get("vpc_id"),
+                        "SecurityGroupIds": self.endpoint_details.get("security_group_ids"),
+                    }
+                }
+            }
+        if self.identity_provider_details:
+            server = {
+                **server,
+                **{
+                    "IdentityProviderDetails": {
+                        "Url": self.identity_provider_details.get("url"),
+                        "InvocationRole": self.identity_provider_details.get("invocation_role"),
+                        "DirectoryId": self.identity_provider_details.get("directory_id"),
+                        "Function": self.identity_provider_details.get("function"),
+                        "SftpAuthenticationMethods": self.identity_provider_details.get("sftp_authentication_methods"),
+                    }
+                }
+            }
+        if self.protocol_details:
+            server = {
+                **server,
+                **{
+                    "ProtocolDetails": {
+                        "PassiveIp": self.protocol_details.get("passive_ip"),
+                        "TlsSessionResumptionMode": self.protocol_details.get("tls_session_resumption_mode"),
+                        "SetStatOption": self.protocol_details.get("set_stat_option"),
+                        "As2Transports": self.protocol_details.get("as2_transports")
+                    }
+                }
+            }
+        if self.s3_storage_options:
+            server = {
+                **server,
+                **{
+                    "S3StorageOptions": {
+                        "DirectoryListingOptimization": self.s3_storage_options.get("directory_listing_optimization")
+                    }
+                }
+            }
+        if self.workflow_details:
+            server = {
+                **server,
+                **{
+                    "WorkflowDetails": {
+                        "OnUpload": {
+                            "WorkflowId": self.workflow_details["on_upload"].get("worflow_id"),
+                            "ExecutionRole": self.workflow_details["on_upload"].get("execution_role"),
+                        },
+                        "OnPartialUpload": {
+                            "WorkflowId": self.workflow_details["on_partial_upload"].get("worflow_id"),
+                            "ExecutionRole": self.workflow_details["on_partial_upload"].get("execution_role"),
+                        } 
+                    }
+                }
+            } 
+        return server
