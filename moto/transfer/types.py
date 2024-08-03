@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Literal, Optional, TypedDict
@@ -63,10 +63,11 @@ class User(BaseModel):
                 {
                     "Entry": mapping.get("entry"),
                     "Target": mapping.get("target"),
-                    "Type": mapping.get("type")
-                } for mapping in self.home_directory_mappings
+                    "Type": mapping.get("type"),
+                }
+                for mapping in self.home_directory_mappings
             ],
-            "Tags": self.tags
+            "Tags": self.tags,
         }
         if self.posix_profile:
             user.update(
@@ -74,7 +75,7 @@ class User(BaseModel):
                     "PosixProfile": {
                         "Uid": self.posix_profile.get("uid"),
                         "Gid": self.posix_profile.get("gid"),
-                        "SecondaryGids": self.posix_profile.get("secondary_gids")
+                        "SecondaryGids": self.posix_profile.get("secondary_gids"),
                     }
                 }
             )
@@ -86,12 +87,12 @@ class User(BaseModel):
                             "DateImported": key.get("date_imported"),
                             "SshPublicKeyBody": key.get("ssh_public_key_body"),
                             "SshPublicKeyId": key.get("ssh_public_key_id"),
-                        } for key in self.ssh_public_keys
+                        }
+                        for key in self.ssh_public_keys
                     ]
                 }
             )
         return user
-
 
 
 class ServerProtocolTlsSessionResumptionMode(str, Enum):
@@ -223,7 +224,7 @@ class Server(BaseModel):
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
     def to_dict(self):
-        server =  {
+        server = {
             "Certificate": self.certificate,
             "Domain": self.domain,
             "EndpointType": self.endpoint_type,
@@ -240,17 +241,21 @@ class Server(BaseModel):
             "ServerId": self.server_id,
             "State": self.state,
             "Tags": self.tags,
-            "UserCount": self.user_count
+            "UserCount": self.user_count,
         }
         if self.endpoint_details is not None:
             server.update(
                 {
                     "EndpointDetails": {
-                        "AddressAllocationIds": self.endpoint_details.get("address_allocation_ids"),
+                        "AddressAllocationIds": self.endpoint_details.get(
+                            "address_allocation_ids"
+                        ),
                         "SubnetIds": self.endpoint_details.get("subnet_ids"),
                         "VpcEndpointId": self.endpoint_details.get("vpc_endpoint_id"),
                         "VpcId": self.endpoint_details.get("vpc_id"),
-                        "SecurityGroupIds": self.endpoint_details.get("security_group_ids"),
+                        "SecurityGroupIds": self.endpoint_details.get(
+                            "security_group_ids"
+                        ),
                     }
                 }
             )
@@ -259,10 +264,16 @@ class Server(BaseModel):
                 {
                     "IdentityProviderDetails": {
                         "Url": self.identity_provider_details.get("url"),
-                        "InvocationRole": self.identity_provider_details.get("invocation_role"),
-                        "DirectoryId": self.identity_provider_details.get("directory_id"),
+                        "InvocationRole": self.identity_provider_details.get(
+                            "invocation_role"
+                        ),
+                        "DirectoryId": self.identity_provider_details.get(
+                            "directory_id"
+                        ),
                         "Function": self.identity_provider_details.get("function"),
-                        "SftpAuthenticationMethods": self.identity_provider_details.get("sftp_authentication_methods"),
+                        "SftpAuthenticationMethods": self.identity_provider_details.get(
+                            "sftp_authentication_methods"
+                        ),
                     }
                 }
             )
@@ -271,9 +282,11 @@ class Server(BaseModel):
                 {
                     "ProtocolDetails": {
                         "PassiveIp": self.protocol_details.get("passive_ip"),
-                        "TlsSessionResumptionMode": self.protocol_details.get("tls_session_resumption_mode"),
+                        "TlsSessionResumptionMode": self.protocol_details.get(
+                            "tls_session_resumption_mode"
+                        ),
                         "SetStatOption": self.protocol_details.get("set_stat_option"),
-                        "As2Transports": self.protocol_details.get("as2_transports")
+                        "As2Transports": self.protocol_details.get("as2_transports"),
                     }
                 }
             )
@@ -281,7 +294,9 @@ class Server(BaseModel):
             server.update(
                 {
                     "S3StorageOptions": {
-                        "DirectoryListingOptimization": self.s3_storage_options.get("directory_listing_optimization")
+                        "DirectoryListingOptimization": self.s3_storage_options.get(
+                            "directory_listing_optimization"
+                        )
                     }
                 }
             )
@@ -293,15 +308,19 @@ class Server(BaseModel):
                             {
                                 "WorkflowId": workflow.get("workflow_id"),
                                 "ExecutionRole": workflow.get("execution_role"),
-                            } for workflow in self.workflow_details.get("on_upload")
+                            }
+                            for workflow in self.workflow_details.get("on_upload")
                         ],
-                        "OnPartialUpload":[
+                        "OnPartialUpload": [
                             {
                                 "WorkflowId": workflow.get("workflow_id"),
                                 "ExecutionRole": workflow.get("execution_role"),
-                            } for workflow in self.workflow_details.get("on_partial_upload")
-                        ]
+                            }
+                            for workflow in self.workflow_details.get(
+                                "on_partial_upload"
+                            )
+                        ],
                     }
                 }
-            ) 
+            )
         return server

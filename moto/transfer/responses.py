@@ -4,7 +4,15 @@ import json
 from typing import List
 
 from moto.core.responses import BaseResponse
-from moto.transfer.types import ServerEndpointDetails, ServerIdentityProviderDetails, ServerProtocolDetails, ServerS3StorageOptions, ServerWorkflowDetails, UserHomeDirectoryMapping, UserPosixProfile
+from moto.transfer.types import (
+    ServerEndpointDetails,
+    ServerIdentityProviderDetails,
+    ServerProtocolDetails,
+    ServerS3StorageOptions,
+    ServerWorkflowDetails,
+    UserHomeDirectoryMapping,
+    UserPosixProfile,
+)
 
 from .models import TransferBackend, transfer_backends
 
@@ -27,15 +35,16 @@ class TransferResponse(BaseResponse):
                 {
                     "entry": mapping.get("Entry"),
                     "target": mapping.get("Target"),
-                    "type": mapping.get("Type")
-                } for mapping in home_directory_mappings
+                    "type": mapping.get("Type"),
+                }
+                for mapping in home_directory_mappings
             ]
         posix_profile = params.get("PosixProfile")
         if posix_profile is not None:
             posix_profile: UserPosixProfile = {
                 "gid": posix_profile.get("Gid"),
                 "uid": posix_profile.get("Uid"),
-                "secondary_gids": posix_profile.get("SecondaryGids")
+                "secondary_gids": posix_profile.get("SecondaryGids"),
             }
         server_id, user_name = self.transfer_backend.create_user(
             home_directory=params.get("HomeDirectory"),
@@ -100,7 +109,7 @@ class TransferResponse(BaseResponse):
                 "subnet_ids": endpoint_details.get("SubnetIds"),
                 "vpc_endpoint_id": endpoint_details.get("VpcEndpointId"),
                 "vpc_id": endpoint_details.get("VpcId"),
-                "security_group_ids": endpoint_details.get("SecurityGroupIds")
+                "security_group_ids": endpoint_details.get("SecurityGroupIds"),
             }
         identity_provider_details = params.get("IdentityProviderDetails")
         if identity_provider_details is not None:
@@ -109,20 +118,26 @@ class TransferResponse(BaseResponse):
                 "invocation_role": identity_provider_details.get("InvocationRole"),
                 "directory_id": identity_provider_details.get("DirectoryId"),
                 "function": identity_provider_details.get("Function"),
-                "sftp_authentication_methods": identity_provider_details.get("SftpAuthenticationMethods")
+                "sftp_authentication_methods": identity_provider_details.get(
+                    "SftpAuthenticationMethods"
+                ),
             }
         protocol_details = params.get("ProtocolDetails")
         if protocol_details is not None:
             protocol_details: ServerProtocolDetails = {
                 "passive_ip": protocol_details.get("PassiveIp"),
-                "tls_session_resumption_mode": protocol_details.get("TlsSessionResumptionMode"),
+                "tls_session_resumption_mode": protocol_details.get(
+                    "TlsSessionResumptionMode"
+                ),
                 "set_stat_option": protocol_details.get("SetStatOption"),
-                "as2_transports": protocol_details.get("As2Transports"), 
+                "as2_transports": protocol_details.get("As2Transports"),
             }
         s3_storage_options = params.get("S3StorageOptions")
         if s3_storage_options is not None:
             s3_storage_options: ServerS3StorageOptions = {
-                "directory_listing_optimization": s3_storage_options.get("DirectoryListingOptimization")
+                "directory_listing_optimization": s3_storage_options.get(
+                    "DirectoryListingOptimization"
+                )
             }
         workflow_details = params.get("WorkflowDetails")
         if workflow_details is not None:
@@ -130,15 +145,17 @@ class TransferResponse(BaseResponse):
                 "on_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
-                        "execution_role": workflow.get("ExecutionRole")
-                    } for workflow in (workflow_details.get("OnUpload") or [])
+                        "execution_role": workflow.get("ExecutionRole"),
+                    }
+                    for workflow in (workflow_details.get("OnUpload") or [])
                 ],
-                "on_partial_upload": [                    
+                "on_partial_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
-                        "execution_role": workflow.get("ExecutionRole")
-                    } for workflow in (workflow_details.get("OnPartialUpload") or [])
-                ]
+                        "execution_role": workflow.get("ExecutionRole"),
+                    }
+                    for workflow in (workflow_details.get("OnPartialUpload") or [])
+                ],
             }
 
         server_id = self.transfer_backend.create_server(
