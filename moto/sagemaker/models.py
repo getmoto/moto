@@ -4869,7 +4869,6 @@ class SageMakerModelBackend(BaseBackend):
         auto_ml_job = self.auto_ml_jobs[auto_ml_job_name]
         auto_ml_job.auto_ml_job_status = "Stopped"
         auto_ml_job.auto_ml_job_secondary_status = "Stopped"
-        return
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_endpoints(
@@ -5062,7 +5061,6 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find compilation job '{compilation_job_name}'."
             )
         del self.compilation_jobs[compilation_job_name]
-        return
 
     def create_domain(
         self,
@@ -5216,7 +5214,6 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find model explainability job definition with name '{job_definition_name}'."
             )
         del self.model_explainability_job_definitions[job_definition_name]
-        return
 
     def create_hyper_parameter_tuning_job(
         self,
@@ -5334,7 +5331,6 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find hyper parameter tuning job '{hyper_parameter_tuning_job_name}'."
             )
         del self.hyper_parameter_tuning_jobs[hyper_parameter_tuning_job_name]
-        return
 
     def create_model_quality_job_definition(
         self,
@@ -5435,7 +5431,6 @@ class SageMakerModelBackend(BaseBackend):
                 message=f"Could not find model quality job definition '{job_definition_name}'."
             )
         del self.model_quality_job_definitions[job_definition_name]
-        return
 
 
 class FakeExperiment(BaseObject):
