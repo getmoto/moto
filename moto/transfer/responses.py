@@ -3,7 +3,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from moto.transfer.types import ServerEndpointDetails, ServerIdentityProviderDetails, ServerProtocolDetails, ServerWorkflowDetails, UserPosixProfile
+from moto.transfer.types import ServerEndpointDetails, ServerIdentityProviderDetails, ServerProtocolDetails, ServerS3StorageOptions, ServerWorkflowDetails, UserPosixProfile
 
 from .models import TransferBackend, transfer_backends
 
@@ -83,22 +83,6 @@ class TransferResponse(BaseResponse):
 
     def create_server(self) -> str:
         params = json.loads(self.body)
-        workflow_details = params.get("WorkflowDetails")
-        if workflow_details is not None:
-            workflow_details: ServerWorkflowDetails = {
-                "on_upload": [
-                    {
-                        "workflow_id": workflow.get("WorkflowId"),
-                        "execution_role": workflow.get("WorkflowId")
-                    } for workflow in (workflow_details.get("ExecutionRole") or [])
-                ],
-                "on_partial_upload": [                    
-                    {
-                        "workflow_id": workflow.get("WorkflowId"),
-                        "execution_role": workflow.get("ExecutionRole")
-                    } for workflow in (workflow_details.get("on_partial_upload") or [])
-                ]
-            }
         endpoint_details = params.get("EndpointDetails")
         if endpoint_details is not None:
             endpoint_details: ServerEndpointDetails = {
@@ -125,6 +109,28 @@ class TransferResponse(BaseResponse):
                 "set_stat_option": protocol_details.get("SetStatOption"),
                 "as2_transports": protocol_details.get("As2Transports"), 
             }
+        s3_storage_options = params.get("S3StorageOptions")
+        if s3_storage_options is not None:
+            s3_storage_options: ServerS3StorageOptions = {
+                "directory_listing_optimization": s3_storage_options.get("DirectoryListingOptimization")
+            }
+        workflow_details = params.get("WorkflowDetails")
+        if workflow_details is not None:
+            workflow_details: ServerWorkflowDetails = {
+                "on_upload": [
+                    {
+                        "workflow_id": workflow.get("WorkflowId"),
+                        "execution_role": workflow.get("WorkflowId")
+                    } for workflow in (workflow_details.get("ExecutionRole") or [])
+                ],
+                "on_partial_upload": [                    
+                    {
+                        "workflow_id": workflow.get("WorkflowId"),
+                        "execution_role": workflow.get("ExecutionRole")
+                    } for workflow in (workflow_details.get("on_partial_upload") or [])
+                ]
+            }
+
         server_id = self.transfer_backend.create_server(
             certificate=params.get("Certificate"),
             domain=params.get("Domain"),
@@ -142,7 +148,7 @@ class TransferResponse(BaseResponse):
             protocol_details=protocol_details,
             security_policy_name=params.get("SecurityPolicyName"),
             structured_log_destinations=params.get("StructuredLogDestinations"),
-            s3_storage_options=params.get("S3StorageOptions"),
+            s3_storage_options=s3_storage_options,
             tags=params.get("Tags"),
             workflow_details=workflow_details,
         )

@@ -39,7 +39,7 @@ class User(BaseModel):
     home_directory: Optional[str]
     home_directory_type: Optional[UserHomeDirectoryType]
     policy: Optional[str]
-    posix_profile: Optinal[UserPosixProfile]
+    posix_profile: Optional[UserPosixProfile]
     role: str
     user_name: str
     arn: str = field(default="", init=False)
