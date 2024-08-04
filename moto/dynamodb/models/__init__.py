@@ -19,6 +19,7 @@ from moto.dynamodb.exceptions import (
     ItemSizeToUpdateTooLarge,
     MockValidationException,
     MultipleTransactionsException,
+    PointInTimeRecoveryUnavailable,
     ResourceInUseException,
     ResourceNotFoundException,
     SourceTableNotFoundException,
@@ -1014,12 +1015,24 @@ class DynamoDBBackend(BaseBackend):
         Only exports one file following DYNAMODB_JSON format to the s3 location. Other files aren't created.
         Incremental export is also not supported.
         """
+        table = next(
+            (t for t in self.tables.values() if t.table_arn == table_arn), None
+        )
+        if not table:
+            raise TableNotFoundException(name=table_arn)
+        if (
+            table.continuous_backups["PointInTimeRecoveryDescription"][
+                "PointInTimeRecoveryStatus"
+            ]
+            != "ENABLED"
+        ):
+            raise PointInTimeRecoveryUnavailable(name=table_arn.split("/")[-1])
         table_export = TableExport(
             s3_bucket=s3_bucket,
             s3_prefix=s3_prefix,
             region_name=self.region_name,
             account_id=s3_bucket_owner if s3_bucket_owner else self.account_id,
-            table_arn=table_arn,
+            table=table,
             export_format=export_format,
             export_type=export_type,
         )
@@ -1033,7 +1046,7 @@ class DynamoDBBackend(BaseBackend):
     def list_exports(self, table_arn: str) -> List[TableExport]:
         exports = []
         for export_arn in self.table_exports:
-            if self.table_exports[export_arn].table_arn == table_arn:
+            if self.table_exports[export_arn].table.table_arn == table_arn:
                 exports.append(self.table_exports[export_arn])
         return exports
 
