@@ -18,14 +18,14 @@ class TableExport(Thread):
         s3_prefix: str,
         region_name: str,
         account_id: str,
-        table_arn: str,
+        table: "Table",
         export_format: str,
         export_type: str,
     ):
         super().__init__()
         self.partition = get_partition(region_name)
-        self.table_arn = table_arn
-        self.arn = f"arn:{self.partition}:dynamodb:{region_name}:{account_id}:table/{table_arn}/import/{str(uuid4()).replace('-', '')}"
+        self.table = table
+        self.arn = f"arn:{self.partition}:dynamodb:{region_name}:{account_id}:table/{table.table_arn}/import/{str(uuid4()).replace('-', '')}"
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix
         self.status = "IN_PROGRESS"
@@ -36,15 +36,11 @@ class TableExport(Thread):
 
         self.failure_code: Optional[str] = None
         self.failure_message: Optional[str] = None
-        self.table_name: str = ""
         self.item_count = 0
         self.processed_bytes = 0
         self.error_count = 0
 
     def run(self) -> None:
-        from moto.dynamodb.models import dynamodb_backends
-
-        dynamodb_backend = dynamodb_backends[self.account_id][self.region_name]
         try:
             from moto.s3.models import s3_backends
 
@@ -57,40 +53,21 @@ class TableExport(Thread):
             self.failure_message = "The specified bucket does not exist"
             return
 
-        for key in dynamodb_backend.tables:
-            if dynamodb_backend.tables[key].table_arn == self.table_arn:
-                self.table_name = key
-        if not self.table_name:
-            self.status = "FAILED"
-            self.failure_code = "DynamoDBTableNotFound"
-            self.failure_message = "The specified table does not exist"
-            return
-        table = dynamodb_backend.tables[self.table_name]
-        if (
-            table.continuous_backups["PointInTimeRecoveryDescription"][
-                "PointInTimeRecoveryStatus"
-            ]
-            != "ENABLED"
-        ):
-            self.status = "FAILED"
-            self.failure_code = "PointInTimeRecoveryUnavailable"
-            self.failure_message = "Point in time recovery not enabled for table"
-            return
         try:
-            self._backup_to_s3_file(s3_backend, table)
+            self._backup_to_s3_file(s3_backend)
         except Exception as e:
             self.status = "FAILED"
             self.failure_code = "UNKNOWN"
             self.failure_message = str(e)
 
-    def _backup_to_s3_file(self, s3_backend: "S3Backend", table: "Table") -> None:
-        backup = []
-        for item in table.all_items():
-            json_item = item.to_json()
-            backup.append(json_item)
+    def _backup_to_s3_file(self, s3_backend: "S3Backend") -> None:
+        backup = ""
+        for item in self.table.all_items():
+            json_item = item.to_json(root_attr_name="Item")
+            backup += json.dumps(json_item) + "\n"
             self.processed_bytes += len(json_item)
-        self.item_count = len(backup)
-        content = gzip_compress(json.dumps(backup).encode("utf-8"))
+            self.item_count += 1
+        content = gzip_compress(backup.encode("utf-8"))
         s3_backend.put_object(
             bucket_name=self.s3_bucket,
             key_name=f"{self.s3_prefix}/AWSDynamoDB/{str(uuid4())}/data/{str(uuid4())}.gz",

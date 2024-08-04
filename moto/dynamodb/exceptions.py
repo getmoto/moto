@@ -327,6 +327,14 @@ class TableNotFoundException(JsonRESTError):
         super().__init__(err, f"Table not found: {name}")
 
 
+class PointInTimeRecoveryUnavailable(JsonRESTError):
+    def __init__(self, name: str):
+        err = ERROR_TYPE_PREFIX + "PointInTimeRecoveryUnavailableException"
+        super().__init__(
+            err, f"Point in time recovery is not enabled for table '{name}'"
+        )
+
+
 class SourceTableNotFoundException(JsonRESTError):
     def __init__(self, source_table_name: str):
         er = ERROR_TYPE_PREFIX + "SourceTableNotFoundException"
