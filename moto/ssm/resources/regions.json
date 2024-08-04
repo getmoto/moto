@@ -1048,7 +1048,7 @@
                   "Value": "api.mediatailor.af-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -1182,6 +1182,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -5078,7 +5087,7 @@
                   "Value": "api.mediatailor.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -5293,6 +5302,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -7637,7 +7649,7 @@
                   "Value": "api.mediatailor.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -9494,7 +9506,7 @@
                   "Value": "api.mediatailor.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -11564,7 +11576,7 @@
                   "Value": "api.mediatailor.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -13224,7 +13236,7 @@
                   "Value": "api.mediatailor.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -15372,7 +15384,7 @@
                   "Value": "api.mediatailor.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -15572,6 +15584,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -18075,7 +18090,7 @@
                   "Value": "api.mediatailor.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -20116,6 +20131,15 @@
               "privatelink": {
                 "Value": "privatelink"
               },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ram": {
                 "Value": "ram",
                 "endpoint": {
@@ -21338,7 +21362,7 @@
                   "Value": "api.mediatailor.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -23295,7 +23319,7 @@
                   "Value": "api.mediatailor.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -24863,6 +24887,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "notifications": {
+                "Value": "notifications"
               },
               "oam": {
                 "Value": "oam",
@@ -29780,7 +29807,7 @@
                   "Value": "api.mediatailor.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -29998,6 +30025,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -31733,6 +31763,15 @@
               "privatelink": {
                 "Value": "privatelink"
               },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ram": {
                 "Value": "ram",
                 "endpoint": {
@@ -32667,6 +32706,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dax": {
+                "Value": "dax",
+                "endpoint": {
+                  "Value": "dax.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "detective": {
                 "Value": "detective",
                 "endpoint": {
@@ -33411,7 +33459,7 @@
                   "Value": "api.mediatailor.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -35305,6 +35353,15 @@
               "privatelink": {
                 "Value": "privatelink"
               },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ram": {
                 "Value": "ram",
                 "endpoint": {
@@ -36090,6 +36147,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "dax": {
+                "Value": "dax",
+                "endpoint": {
+                  "Value": "dax.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "directconnect": {
@@ -38814,7 +38880,7 @@
                   "Value": "api.mediatailor.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -39059,6 +39125,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -43687,7 +43756,7 @@
                   "Value": "api.mediatailor.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -46665,7 +46734,7 @@
                   "Value": "api.mediatailor.me-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -50111,7 +50180,7 @@
                   "Value": "api.mediatailor.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -52925,7 +52994,7 @@
                   "Value": "api.mediatailor.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -55733,7 +55802,7 @@
                   "Value": "api.mediatailor.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -57666,6 +57735,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -58355,7 +58433,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime": {
                 "Value": "chime"
@@ -59291,6 +59375,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -63782,7 +63875,7 @@
                   "Value": "api.mediatailor.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
