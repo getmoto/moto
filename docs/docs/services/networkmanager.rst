@@ -25,10 +25,10 @@ networkmanager
 - [ ] create_connect_peer
 - [ ] create_connection
 - [X] create_core_network
-- [ ] create_device
+- [X] create_device
 - [X] create_global_network
-- [ ] create_link
-- [ ] create_site
+- [X] create_link
+- [X] create_site
 - [ ] create_site_to_site_vpn_attachment
 - [ ] create_transit_gateway_peering
 - [ ] create_transit_gateway_route_table_attachment
@@ -38,12 +38,12 @@ networkmanager
 - [ ] delete_connection
 - [X] delete_core_network
 - [ ] delete_core_network_policy_version
-- [ ] delete_device
+- [X] delete_device
 - [ ] delete_global_network
-- [ ] delete_link
+- [X] delete_link
 - [ ] delete_peering
 - [ ] delete_resource_policy
-- [ ] delete_site
+- [X] delete_site
 - [ ] deregister_transit_gateway
 - [X] describe_global_networks
 - [ ] disassociate_connect_peer
@@ -60,9 +60,9 @@ networkmanager
 - [ ] get_core_network_change_set
 - [ ] get_core_network_policy
 - [ ] get_customer_gateway_associations
-- [ ] get_devices
+- [X] get_devices
 - [ ] get_link_associations
-- [ ] get_links
+- [X] get_links
 - [ ] get_network_resource_counts
 - [ ] get_network_resource_relationships
 - [ ] get_network_resources
@@ -71,7 +71,7 @@ networkmanager
 - [ ] get_resource_policy
 - [ ] get_route_analysis
 - [ ] get_site_to_site_vpn_attachment
-- [ ] get_sites
+- [X] get_sites
 - [ ] get_transit_gateway_connect_peer_associations
 - [ ] get_transit_gateway_peering
 - [ ] get_transit_gateway_registrations
@@ -83,7 +83,7 @@ networkmanager
 - [X] list_core_networks
 - [ ] list_organization_service_access_status
 - [ ] list_peerings
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] put_core_network_policy
 - [ ] put_resource_policy
 - [ ] register_transit_gateway

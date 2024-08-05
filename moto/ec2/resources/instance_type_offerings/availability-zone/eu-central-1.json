@@ -7840,6 +7840,10 @@
   "Location": "eu-central-1c"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "eu-central-1c"
  },

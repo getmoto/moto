@@ -1,6 +1,8 @@
 import logging
 import os
+from functools import wraps
 
+from moto import mock_aws
 from moto.core.config import default_user_config
 
 # Disable extra logging for tests
@@ -22,3 +24,27 @@ os.environ["MOTO_EC2_LOAD_DEFAULT_AMIS"] = "false"
 
 # Don't reset boto3 Session, as it's unnecessarily slow
 default_user_config["core"]["reset_boto3_session"] = False
+
+
+def allow_aws_request() -> bool:
+    return os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
+
+
+def aws_verified(func):
+    """
+    Function that is verified to work against AWS.
+    Can be run against AWS at any time by setting:
+      MOTO_TEST_ALLOW_AWS_REQUEST=true
+
+    If this environment variable is not set, the function runs in a `mock_aws` context.
+    """
+
+    @wraps(func)
+    def pagination_wrapper(**kwargs):
+        if allow_aws_request():
+            return func(**kwargs)
+        else:
+            with mock_aws():
+                return func(**kwargs)
+
+    return pagination_wrapper

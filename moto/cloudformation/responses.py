@@ -367,6 +367,13 @@ class CloudFormationResponse(BaseResponse):
             stack_body = self._get_stack_from_s3_url(template_url)
 
         incoming_params = self._get_list_prefix("Parameters.member")
+        for param in incoming_params:
+            if param.get("use_previous_value") == "true" and param.get(
+                "parameter_value"
+            ):
+                raise ValidationError(
+                    message=f"Invalid input for parameter key {param['parameter_key']}. Cannot specify usePreviousValue as true and non empty value for a parameter"
+                )
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.

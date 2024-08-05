@@ -1034,6 +1034,46 @@ def test_get_resources_sagemaker_cluster():
 
 
 @mock_aws
+def test_get_resources_sagemaker_automljob():
+    sagemaker = boto3.client("sagemaker", region_name="us-east-1")
+    sagemaker.create_auto_ml_job_v2(
+        AutoMLJobName="testautomljob",
+        AutoMLJobInputDataConfig=[
+            {
+                "ChannelType": "training",
+                "ContentType": "ContentType",
+                "CompressionType": "None",
+                "DataSource": {
+                    "S3DataSource": {"S3DataType": "S3Prefix", "S3Uri": "s3://data"}
+                },
+            },
+        ],
+        OutputDataConfig={"KmsKeyId": "kms", "S3OutputPath": "s3://output"},
+        AutoMLProblemTypeConfig={
+            "ImageClassificationJobConfig": {
+                "CompletionCriteria": {
+                    "MaxCandidates": 123,
+                    "MaxRuntimePerTrainingJobInSeconds": 123,
+                    "MaxAutoMLJobRuntimeInSeconds": 123,
+                }
+            },
+        },
+        RoleArn="arn:aws:iam::123456789012:role/FakeRole",
+        Tags=[
+            {"Key": "sagemakerkey", "Value": "sagemakervalue"},
+        ],
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["sagemaker"])
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "sagemakerkey", "Value": "sagemakervalue"} in resp[
+        "ResourceTagMappingList"
+    ][0]["Tags"]
+
+
+@mock_aws
 def test_tag_resources_sagemaker():
     sagemaker = boto3.client("sagemaker", region_name="us-east-1")
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")

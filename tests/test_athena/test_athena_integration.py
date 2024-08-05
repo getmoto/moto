@@ -7,7 +7,8 @@ import pytest
 import requests
 
 from moto import settings
-from tests.test_athena import athena_aws_verified
+from tests import allow_aws_request
+from tests.test_s3 import s3_aws_verified
 
 DATA = ""
 DATA += json.dumps({"k1": "r1_v1", "k2": "r1_v2", "k3": 1}) + "\n"
@@ -72,9 +73,9 @@ COLUMN_INFO = [
 ]
 
 
-@athena_aws_verified
+@s3_aws_verified
 @pytest.mark.aws_verified
-def test_athena_csv_result(bucket_name=None, is_aws: bool = False):
+def test_athena_csv_result(bucket_name=None):
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("No point in testing this outside of decorators")
 
@@ -102,7 +103,7 @@ OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat'
 LOCATION 's3://{bucket_name}/input/'; """
     get_query_results(CREATE_TABLE, athena, config, context)
 
-    if not is_aws:
+    if not allow_aws_request():
         athena_result = {
             "results": [
                 {

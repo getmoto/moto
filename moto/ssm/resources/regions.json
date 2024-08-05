@@ -1048,7 +1048,7 @@
                   "Value": "api.mediatailor.af-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -1182,6 +1182,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -3663,7 +3672,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -5072,7 +5087,7 @@
                   "Value": "api.mediatailor.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -5287,6 +5302,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -7631,7 +7649,7 @@
                   "Value": "api.mediatailor.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -8419,6 +8437,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -9479,7 +9506,7 @@
                   "Value": "api.mediatailor.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -9513,6 +9540,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10398,7 +10434,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -11534,7 +11576,7 @@
                   "Value": "api.mediatailor.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -13194,7 +13236,7 @@
                   "Value": "api.mediatailor.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -13219,6 +13261,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14002,7 +14053,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -14913,15 +14970,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector-scan": {
                 "Value": "inspector-scan",
                 "endpoint": {
@@ -15336,7 +15384,7 @@
                   "Value": "api.mediatailor.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -15536,6 +15584,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -16642,7 +16693,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -18033,7 +18090,7 @@
                   "Value": "api.mediatailor.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -19978,6 +20035,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -20064,6 +20130,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -21287,7 +21362,7 @@
                   "Value": "api.mediatailor.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -21312,6 +21387,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22054,6 +22138,15 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23226,7 +23319,7 @@
                   "Value": "api.mediatailor.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -23329,6 +23422,15 @@
                 "Value": "oam",
                 "endpoint": {
                   "Value": "oam.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24657,6 +24759,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "imagebuilder": {
                 "Value": "imagebuilder",
                 "endpoint": {
@@ -24759,6 +24870,27 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "notifications": {
+                "Value": "notifications"
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -24781,6 +24913,15 @@
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25023,6 +25164,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "stepfunctions": {
                 "Value": "stepfunctions",
                 "endpoint": {
@@ -25193,6 +25343,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -25838,15 +25997,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26609,6 +26759,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -27252,15 +27411,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.cn-northwest-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28242,7 +28392,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -29651,7 +29807,7 @@
                   "Value": "api.mediatailor.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -29869,6 +30025,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -31202,6 +31361,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-containers": {
+                "Value": "emr-containers",
+                "endpoint": {
+                  "Value": "emr-containers.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -31517,6 +31685,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -31585,6 +31762,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -31666,6 +31852,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "rosa": {
+                "Value": "rosa"
               },
               "route53": {
                 "Value": "route53",
@@ -32517,6 +32706,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dax": {
+                "Value": "dax",
+                "endpoint": {
+                  "Value": "dax.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "detective": {
                 "Value": "detective",
                 "endpoint": {
@@ -33261,7 +33459,7 @@
                   "Value": "api.mediatailor.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -35155,6 +35353,15 @@
               "privatelink": {
                 "Value": "privatelink"
               },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ram": {
                 "Value": "ram",
                 "endpoint": {
@@ -35942,6 +36149,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dax": {
+                "Value": "dax",
+                "endpoint": {
+                  "Value": "dax.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "directconnect": {
                 "Value": "directconnect",
                 "endpoint": {
@@ -36423,6 +36639,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37222,7 +37447,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -38124,15 +38355,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -38658,7 +38880,7 @@
                   "Value": "api.mediatailor.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -38903,6 +39125,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -40058,6 +40283,15 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42569,7 +42803,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -43516,7 +43756,7 @@
                   "Value": "api.mediatailor.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -45092,6 +45332,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -46485,7 +46734,7 @@
                   "Value": "api.mediatailor.me-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -46510,6 +46759,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48953,6 +49211,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -49913,7 +50180,7 @@
                   "Value": "api.mediatailor.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -50007,6 +50274,15 @@
                 "Value": "oam",
                 "endpoint": {
                   "Value": "oam.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51075,7 +51351,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "billingconductor": {
                 "Value": "billingconductor",
@@ -52142,15 +52424,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -52721,7 +52994,7 @@
                   "Value": "api.mediatailor.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -52791,15 +53064,6 @@
                 "Value": "migrationhubstrategy",
                 "endpoint": {
                   "Value": "migrationhub-strategy.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mobile": {
-                "Value": "mobile",
-                "endpoint": {
-                  "Value": "mobile.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55538,7 +55802,7 @@
                   "Value": "api.mediatailor.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -57471,6 +57735,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -58160,7 +58433,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime": {
                 "Value": "chime"
@@ -59096,6 +59375,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60602,15 +60890,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -61664,6 +61943,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -62064,7 +62352,13 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "braket": {
                 "Value": "braket",
@@ -63074,15 +63368,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -63590,7 +63875,7 @@
                   "Value": "api.mediatailor.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -63660,15 +63945,6 @@
                 "Value": "migrationhubstrategy",
                 "endpoint": {
                   "Value": "migrationhub-strategy.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mobile": {
-                "Value": "mobile",
-                "endpoint": {
-                  "Value": "mobile.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
