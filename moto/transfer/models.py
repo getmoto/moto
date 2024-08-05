@@ -55,7 +55,6 @@ class TransferBackend(BaseBackend):
         server = Server(
             certificate=certificate,
             domain=domain,
-            endpoint_details=endpoint_details,
             endpoint_type=endpoint_type,
             host_key_fingerprint=host_key,
             identity_provider_details=identity_provider_details,
@@ -70,7 +69,72 @@ class TransferBackend(BaseBackend):
             structured_log_destinations=structured_log_destinations,
             tags=(tags or []),
             workflow_details=workflow_details,
-        )
+        )        
+        if endpoint_details is not None:
+            endpoint_details = {
+                "address_allocation_ids": endpoint_details.get(
+                    "AddressAllocationIds"
+                ),
+                "subnet_ids": endpoint_details.get("SubnetIds"),
+                "vpc_endpoint_id": endpoint_details.get("VpcEndpointId"),
+                "vpc_id": endpoint_details.get("VpcId"),
+                "security_group_ids": endpoint_details.get(
+                    "SecurityGroupIds"
+                ),
+            }
+            server.endpoint_details = endpoint_details
+        if identity_provider_details is not None:
+            identity_provider_details = {
+                "url": identity_provider_details.get("Url"),
+                "invocation_role": identity_provider_details.get(
+                    "InvocationRole"
+                ),
+                "directory_id": identity_provider_details.get(
+                    "DirectoryId"
+                ),
+                "function": identity_provider_details.get("Function"),
+                "sftp_authentication_methods": identity_provider_details.get(
+                    "SftpAuthenticationMethods"
+                ),
+            }
+            server.identity_provider_details = identity_provider_details
+        if protocol_details is not None:
+            protocol_details = {
+                "passive_ip": protocol_details.get("PassiveIp"),
+                "tls_session_resumption_mode": protocol_details.get(
+                    "TlsSessionResumptionMode"
+                ),
+                "set_stat_option": protocol_details.get("SetStatOption"),
+                "as2_transports": protocol_details.get("As2Transports"),
+            }
+            server.protocol_details = protocol_details
+        if s3_storage_options is not None:
+            server.s3_storage_options = {
+                "directory_listing_optimization": s3_storage_options.get(
+                    "DirectoryListingOptimization"
+                )
+            }
+        if workflow_details is not None:
+            server.workflow_details = {
+                "on_upload": [
+                    {
+                        "workflow_id": workflow.get("WorkflowId"),
+                        "execution_role": workflow.get("ExecutionRole"),
+                    }
+                    for workflow in (
+                        workflow_details.get("OnUpload") or []
+                    )
+                ],
+                "on_partial_upload": [
+                    {
+                        "workflow_id": workflow.get("WorkflowId"),
+                        "execution_role": workflow.get("ExecutionRole"),
+                    }
+                    for workflow in (
+                        workflow_details.get("OnPartialUpload") or []
+                    )
+                ],
+            }
         server_id = server.server_id
         self.servers[server_id] = server
         return server_id
@@ -104,14 +168,29 @@ class TransferBackend(BaseBackend):
             ServerNotFound(server_id=server_id)
         user = User(
             home_directory=home_directory,
-            home_directory_mappings=home_directory_mappings,
             home_directory_type=home_directory_type,
             policy=policy,
-            posix_profile=posix_profile,
             role=role,
             tags=(tags or []),
             user_name=user_name,
         )
+        if (len(home_directory_mappings) > 0):
+            home_directory_mappings = [
+                {
+                    "entry": mapping.get("Entry"),
+                    "target": mapping.get("Target"),
+                    "type": mapping.get("Type"),
+                }
+                for mapping in home_directory_mappings
+            ]
+            user.home_directory_mappings = home_directory_mappings
+        if posix_profile is not None:
+            posix_profile = {
+                "gid": posix_profile.get("Gid"),
+                "uid": posix_profile.get("Uid"),
+                "secondary_gids": posix_profile.get("SecondaryGids"),
+            }
+            user.posix_profile = posix_profile
         if ssh_public_key_body is not None:
             now = datetime.now().strftime("%Y%m%d%H%M%S")
             ssh_public_keys: List[UserSshPublicKey] = [

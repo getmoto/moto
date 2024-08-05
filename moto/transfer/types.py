@@ -37,13 +37,13 @@ class UserSshPublicKey(TypedDict):
 @dataclass
 class User(BaseModel):
     home_directory: Optional[str]
-    home_directory_mappings: Optional[List[UserHomeDirectoryMapping]]
     home_directory_type: Optional[UserHomeDirectoryType]
     policy: Optional[str]
-    posix_profile: Optional[UserPosixProfile]
     role: str
     user_name: str
     arn: str = field(default="", init=False)
+    home_directory_mappings: List[UserHomeDirectoryMapping] = field(default_factory=list)
+    posix_profile: UserPosixProfile = field(default_factory=dict)
     ssh_public_keys: List[UserSshPublicKey] = field(default_factory=list)
     tags: List[Dict[str, str]] = field(default_factory=list)
 
@@ -196,26 +196,26 @@ class ServerS3StorageOptions(TypedDict):
 class Server(BaseModel):
     certificate: Optional[str]
     domain: Optional[ServerDomain]
-    endpoint_details: Optional[ServerEndpointDetails]
     endpoint_type: Optional[ServerEndpointType]
     host_key_fingerprint: Optional[str]
-    identity_provider_details: Optional[ServerIdentityProviderDetails]
     identity_provider_type: Optional[ServerIdentityProviderType]
     logging_role: Optional[str]
     post_authentication_login_banner: Optional[str]
     pre_authentication_login_banner: Optional[str]
-    protocol_details: Optional[ServerProtocolDetails]
     protocols: Optional[List[ServerProtocols]]
-    s3_storage_options: Optional[ServerS3StorageOptions]
     security_policy_name: Optional[str]
     structured_log_destinations: Optional[List[str]]
-    workflow_details: Optional[ServerWorkflowDetails]
     arn: str = field(default="", init=False)
     as2_service_managed_egress_ip_addresses: List[str] = field(default_factory=list)
+    endpoint_details: ServerEndpointDetails = field(default_factory=dict)
+    identity_provider_details: ServerIdentityProviderDetails = field(default_factory=dict)
+    protocol_details: ServerProtocolDetails = field(default_factory=dict)
+    s3_storage_options: ServerS3StorageOptions = field(default_factory=dict)
     server_id: str = field(default="", init=False)
     state: Optional[ServerState] = ServerState.ONLINE
     tags: List[Dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
+    workflow_details: ServerWorkflowDetails = field(default_factory=dict)
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
