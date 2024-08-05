@@ -162,10 +162,12 @@ def test_create_describe_and_delete_user(client, server):
     connection = client.create_user(
         HomeDirectory="/Users/mock_user",
         HomeDirectoryType="PATH",
-        HomeDirectoryMappings=[{
-        "Entry": "/directory1",
-        "Target": "/bucket_name/home/mydirectory",
-    }],
+        HomeDirectoryMappings=[
+            {
+                "Entry": "/directory1",
+                "Target": "/bucket_name/home/mydirectory",
+            }
+        ],
         Policy="MockPolicy",
         PosixProfile={
             "Uid": 0,
@@ -213,10 +215,12 @@ def test_import_and_delete_ssh_public_key(client, server):
     client.create_user(
         HomeDirectory="/Users/mock_user",
         HomeDirectoryType="PATH",
-        HomeDirectoryMappings=[{
-        "Entry": "/directory1",
-        "Target": "/bucket_name/home/mydirectory",
-    }],
+        HomeDirectoryMappings=[
+            {
+                "Entry": "/directory1",
+                "Target": "/bucket_name/home/mydirectory",
+            }
+        ],
         Policy="MockPolicy",
         PosixProfile={
             "Uid": 0,
