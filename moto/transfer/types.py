@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional
 
 from moto.core.common_models import BaseModel
 
@@ -16,24 +16,6 @@ class UserHomeDirectoryMappingType(str, Enum):
     DIRECTORY = "DIRECTORY"
 
 
-class UserHomeDirectoryMapping(TypedDict):
-    entry: str
-    target: str
-    type: Optional[UserHomeDirectoryMappingType]
-
-
-class UserPosixProfile(TypedDict):
-    uid: int
-    gid: int
-    secondary_gids: Optional[List[int]]
-
-
-class UserSshPublicKey(TypedDict):
-    date_imported: str
-    ssh_public_key_body: str
-    ssh_public_key_id: str
-
-
 @dataclass
 class User(BaseModel):
     home_directory: Optional[str]
@@ -42,11 +24,9 @@ class User(BaseModel):
     role: str
     user_name: str
     arn: str = field(default="", init=False)
-    home_directory_mappings: List[UserHomeDirectoryMapping] = field(
-        default_factory=list
-    )
-    posix_profile: UserPosixProfile = field(default_factory=dict)
-    ssh_public_keys: List[UserSshPublicKey] = field(default_factory=list)
+    home_directory_mappings: List[Dict[str, str]] = field(default_factory=list)
+    posix_profile: Dict[str, Any] = field(default_factory=dict)
+    ssh_public_keys: List[Dict[str, str]] = field(default_factory=list)
     tags: List[Dict[str, str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -157,43 +137,6 @@ class ServerS3StorageDirectoryListingOptimization(str, Enum):
 AS2_TRANSPORTS_TYPE = List[Literal["HTTP"]]
 
 
-class ServerProtocolDetails(TypedDict):
-    passive_ip: str
-    tls_session_resumption_mode: ServerProtocolTlsSessionResumptionMode
-    set_stat_option: ServerSetStatOption
-    as2_transports: AS2_TRANSPORTS_TYPE
-
-
-class ServerEndpointDetails(TypedDict):
-    address_allocation_ids: List[str]
-    subnet_ids: List[str]
-    vpc_endpoint_id: str
-    vpc_id: str
-    security_group_ids: List[str]
-
-
-class ServerIdentityProviderDetails(TypedDict):
-    url: str
-    invocation_role: str
-    directory_id: str
-    function: str
-    sftp_authentication_methods: ServerIdentityProviderSftpAuthenticationMethods
-
-
-class ServerWorkflowUpload(TypedDict):
-    workflow_id: str
-    execution_role: str
-
-
-class ServerWorkflowDetails(TypedDict):
-    on_upload: List[ServerWorkflowUpload]
-    on_partial_upload: List[ServerWorkflowUpload]
-
-
-class ServerS3StorageOptions(TypedDict):
-    directory_listing_optimization: ServerS3StorageDirectoryListingOptimization
-
-
 @dataclass
 class Server(BaseModel):
     certificate: Optional[str]
@@ -209,17 +152,15 @@ class Server(BaseModel):
     structured_log_destinations: Optional[List[str]]
     arn: str = field(default="", init=False)
     as2_service_managed_egress_ip_addresses: List[str] = field(default_factory=list)
-    endpoint_details: ServerEndpointDetails = field(default_factory=dict)
-    identity_provider_details: ServerIdentityProviderDetails = field(
-        default_factory=dict
-    )
-    protocol_details: ServerProtocolDetails = field(default_factory=dict)
-    s3_storage_options: ServerS3StorageOptions = field(default_factory=dict)
+    endpoint_details: Dict[str, Any] = field(default_factory=dict)
+    identity_provider_details: Dict[str, Any] = field(default_factory=dict)
+    protocol_details: Dict[str, Any] = field(default_factory=dict)
+    s3_storage_options: Dict[str, str] = field(default_factory=dict)
     server_id: str = field(default="", init=False)
     state: Optional[ServerState] = ServerState.ONLINE
     tags: List[Dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
-    workflow_details: ServerWorkflowDetails = field(default_factory=dict)
+    workflow_details: Dict[str, Any] = field(default_factory=dict)
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
@@ -285,7 +226,7 @@ class Server(BaseModel):
                 }
             )
         if self.protocol_details is not None:
-            protocol_details: ServerProtocolDetails = {}
+            protocol_details: Dict[str, Any] = {}
             passive_ip: str = self.protocol_details.get("passive_ip")
             if passive_ip is not None:
                 protocol_details["PassiveIp"] = passive_ip
@@ -308,16 +249,18 @@ class Server(BaseModel):
                 protocol_details["As2Transports"] = as2_transports
             server.update({"ProtocolDetails": protocol_details})
         if self.s3_storage_options is not None:
-            s3_storage_options: ServerS3StorageOptions = {
-                "S3StorageOptions": {
-                    "DirectoryListingOptimization": self.s3_storage_options.get(
-                        "directory_listing_optimization"
-                    )
+            directory_listing_optimization: ServerS3StorageDirectoryListingOptimization = self.s3_storage_options.get(
+                "directory_listing_optimization"
+            )
+            server.update(
+                {
+                    "S3StorageOptions": {
+                        "DirectoryListingOptimization": directory_listing_optimization
+                    }
                 }
-            }
-            server.update(s3_storage_options)
+            )
         if self.workflow_details is not None:
-            workflow_details: ServerWorkflowDetails = {"WorkflowDetails": {}}
+            workflow_details: Dict[str, Any] = {"WorkflowDetails": {}}
             on_upload = self.workflow_details.get("on_upload")
             if on_upload is not None:
                 workflow_details["WorkflowDetails"]["OnUpload"] = [

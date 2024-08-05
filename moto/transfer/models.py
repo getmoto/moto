@@ -1,27 +1,19 @@
 """TransferBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
-from moto.transfer.types import UserPosixProfile
 
 from .types import (
     Server,
     ServerDomain,
-    ServerEndpointDetails,
     ServerEndpointType,
-    ServerIdentityProviderDetails,
     ServerIdentityProviderType,
-    ServerProtocolDetails,
     ServerProtocols,
-    ServerS3StorageOptions,
-    ServerWorkflowDetails,
     User,
-    UserHomeDirectoryMapping,
     UserHomeDirectoryType,
-    UserSshPublicKey,
 )
 
 
@@ -36,21 +28,21 @@ class TransferBackend(BaseBackend):
         self,
         certificate: Optional[str],
         domain: Optional[ServerDomain],
-        endpoint_details: Optional[ServerEndpointDetails],
+        endpoint_details: Optional[Dict[str, Any]],
         endpoint_type: Optional[ServerEndpointType],
         host_key: str,
-        identity_provider_details: Optional[ServerIdentityProviderDetails],
+        identity_provider_details: Optional[Dict[str, Any]],
         identity_provider_type: Optional[ServerIdentityProviderType],
         logging_role: Optional[str],
         post_authentication_login_banner: Optional[str],
         pre_authentication_login_banner: Optional[str],
         protocols: Optional[List[ServerProtocols]],
-        protocol_details: Optional[ServerProtocolDetails],
+        protocol_details: Optional[Dict[str, Any]],
         security_policy_name: Optional[str],
         tags: Optional[List[Dict[str, str]]],
-        workflow_details: Optional[ServerWorkflowDetails],
+        workflow_details: Optional[Dict[str, Any]],
         structured_log_destinations: Optional[List[str]],
-        s3_storage_options: Optional[ServerS3StorageOptions],
+        s3_storage_options: Optional[Dict[str, str]],
     ) -> str:
         server = Server(
             certificate=certificate,
@@ -143,9 +135,9 @@ class TransferBackend(BaseBackend):
         self,
         home_directory: Optional[str],
         home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: List[UserHomeDirectoryMapping],
+        home_directory_mappings: List[Dict[str, str]],
         policy: Optional[str],
-        posix_profile: Optional[UserPosixProfile],
+        posix_profile: Optional[Dict[str, Any]],
         role: str,
         server_id: str,
         ssh_public_key_body: Optional[str],
@@ -181,7 +173,7 @@ class TransferBackend(BaseBackend):
             user.posix_profile = posix_profile
         if ssh_public_key_body is not None:
             now = datetime.now().strftime("%Y%m%d%H%M%S")
-            ssh_public_keys: List[UserSshPublicKey] = [
+            ssh_public_keys = [
                 {
                     "date_imported": now,
                     "ssh_public_key_body": ssh_public_key_body,
@@ -222,7 +214,7 @@ class TransferBackend(BaseBackend):
                 ssh_public_key_id = (
                     f"{server_id}:{user_name}:public_key:{date_imported}"
                 )
-                key: UserSshPublicKey = {
+                key = {
                     "ssh_public_key_id": ssh_public_key_id,
                     "ssh_public_key_body": ssh_public_key_body,
                     "date_imported": date_imported,
