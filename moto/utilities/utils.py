@@ -1,4 +1,5 @@
 import hashlib
+import inspect
 import json
 import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
@@ -123,3 +124,36 @@ class LowercaseDict(MutableMapping[str, Any]):
 
     def _keytransform(self, key: str) -> str:
         return key.lower()
+
+
+def snake_to_camel_case(s: str) -> str:
+    parts = s.split("_")
+    return parts[0] + "".join(part.capitalize() for part in parts[1:])
+
+
+def dict_to_camel_case(dictionary: Dict[str, Any]) -> Dict[str, Any]:
+    result = {}
+    for key, value in dictionary.items():
+        camel_case = snake_to_camel_case(key)
+        if isinstance(value, dict):
+            value = dict_to_camel_case(value)
+        elif isinstance(value, List[dict]):
+            value = [dict_to_camel_case(item) for item in value]
+        result[camel_case] = value
+    return result
+
+
+def dataclass_to_camel_case_dict(obj: object) -> dict:
+    result = {}
+    for attr, value in inspect.getmembers(obj):
+        # Exclude private and method attributes
+        if not attr.startswith("_") and not inspect.ismethod(
+            value
+        ):
+            camel_case = snake_to_camel_case(attr)
+            if isinstance(value, Dict[str,Any]):
+                value = dict_to_camel_case(value)
+            elif isinstance(value, List[Dict[str,Any]]):
+                value = [dict_to_camel_case(item) for item in value]
+            result[camel_case] = value
+    return result

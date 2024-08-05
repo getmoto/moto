@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Dict, List, Literal, Optional, TypedDict
 
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import dataclass_to_camel_case_dict
 
 
 class UserHomeDirectoryType(str, Enum):
@@ -51,48 +52,7 @@ class User(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self) -> Dict[str, Any]:
-        user = {
-            "HomeDirectory": self.home_directory,
-            "HomeDirectoryType": self.home_directory_type,
-            "Policy": self.policy,
-            "Role": self.role,
-            "UserName": self.user_name,
-            "Arn": self.arn,
-            "HomeDirectoryMappings": [
-                {
-                    "Entry": mapping.get("entry"),
-                    "Target": mapping.get("target"),
-                    "Type": mapping.get("type"),
-                }
-                for mapping in self.home_directory_mappings
-            ],
-            "Tags": self.tags,
-        }
-        if self.posix_profile:
-            user.update(
-                {
-                    "PosixProfile": {
-                        "Uid": self.posix_profile.get("uid"),
-                        "Gid": self.posix_profile.get("gid"),
-                        "SecondaryGids": self.posix_profile.get("secondary_gids"),
-                    }
-                }
-            )
-        if len(self.ssh_public_keys) > 0:
-            user.update(
-                {
-                    "SshPublicKeys": [
-                        {
-                            "DateImported": key.get("date_imported"),
-                            "SshPublicKeyBody": key.get("ssh_public_key_body"),
-                            "SshPublicKeyId": key.get("ssh_public_key_id"),
-                        }
-                        for key in self.ssh_public_keys
-                    ]
-                }
-            )
-        return user
+    to_dict = dataclass_to_camel_case_dict
 
 
 class ServerProtocolTlsSessionResumptionMode(str, Enum):
@@ -226,111 +186,4 @@ class Server(BaseModel):
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    def to_dict(self) -> Dict[str, Any]:
-        server = {
-            "Certificate": self.certificate,
-            "Domain": self.domain,
-            "EndpointType": self.endpoint_type,
-            "HostKeyFingerprint": self.host_key_fingerprint,
-            "IdentityProviderType": self.identity_provider_type,
-            "LoggingRole": self.logging_role,
-            "PostAuthenticationLoginBanner": self.post_authentication_login_banner,
-            "PreAuthenticationLoginBanner": self.pre_authentication_login_banner,
-            "Protocols": self.protocols,
-            "SecurityPolicyName": self.security_policy_name,
-            "StructuredLogDestinations": self.structured_log_destinations,
-            "Arn": self.arn,
-            "As2ServiceManagedEgressIpAddresses": self.as2_service_managed_egress_ip_addresses,
-            "ServerId": self.server_id,
-            "State": self.state,
-            "Tags": self.tags,
-            "UserCount": self.user_count,
-        }
-        if self.endpoint_details is not None:
-            server.update(
-                {
-                    "EndpointDetails": {
-                        "AddressAllocationIds": self.endpoint_details.get(
-                            "address_allocation_ids"
-                        ),
-                        "SubnetIds": self.endpoint_details.get("subnet_ids"),
-                        "VpcEndpointId": self.endpoint_details.get("vpc_endpoint_id"),
-                        "VpcId": self.endpoint_details.get("vpc_id"),
-                        "SecurityGroupIds": self.endpoint_details.get(
-                            "security_group_ids"
-                        ),
-                    }
-                }
-            )
-        if self.identity_provider_details is not None:
-            server.update(
-                {
-                    "IdentityProviderDetails": {
-                        "Url": self.identity_provider_details.get("url"),
-                        "InvocationRole": self.identity_provider_details.get(
-                            "invocation_role"
-                        ),
-                        "DirectoryId": self.identity_provider_details.get(
-                            "directory_id"
-                        ),
-                        "Function": self.identity_provider_details.get("function"),
-                        "SftpAuthenticationMethods": self.identity_provider_details.get(
-                            "sftp_authentication_methods"
-                        ),
-                    }
-                }
-            )
-        if self.protocol_details is not None:
-            protocol_details: ServerProtocolDetails = {}
-            passive_ip: str = self.protocol_details.get("passive_ip")
-            if passive_ip is not None:
-                protocol_details["PassiveIp"] = passive_ip
-            tls_session_resumption_mode: ServerProtocolTlsSessionResumptionMode = (
-                self.protocol_details.get("tls_session_resumption_mode")
-            )
-            if tls_session_resumption_mode is not None:
-                protocol_details["TlsSessionResumptionMode"] = (
-                    tls_session_resumption_mode
-                )
-            set_stat_option: ServerSetStatOption = self.protocol_details.get(
-                "set_stat_option"
-            )
-            if set_stat_option is not None:
-                protocol_details["SetStatOption"] = set_stat_option
-            as2_transports: AS2_TRANSPORTS_TYPE = self.protocol_details.get(
-                "as2_transports"
-            )
-            if as2_transports is not None:
-                protocol_details["As2Transports"] = as2_transports
-            server.update({"ProtocolDetails": protocol_details})
-        if self.s3_storage_options is not None:
-            s3_storage_options: ServerS3StorageOptions = {
-                "S3StorageOptions": {
-                    "DirectoryListingOptimization": self.s3_storage_options.get(
-                        "directory_listing_optimization"
-                    )
-                }
-            }
-            server.update(s3_storage_options)
-        if self.workflow_details is not None:
-            workflow_details: ServerWorkflowDetails = {"WorkflowDetails": {}}
-            on_upload = self.workflow_details.get("on_upload")
-            if on_upload is not None:
-                workflow_details["WorkflowDetails"]["OnUpload"] = [
-                    {
-                        "WorkflowId": workflow.get("workflow_id"),
-                        "ExecutionRole": workflow.get("execution_role"),
-                    }
-                    for workflow in on_upload
-                ]
-            on_partial_upload = self.workflow_details.get("on_partial_upload")
-            if on_partial_upload is not None:
-                workflow_details["WorkflowDetails"]["OnPartialUpload"] = [
-                    {
-                        "WorkflowId": workflow.get("workflow_id"),
-                        "ExecutionRole": workflow.get("execution_role"),
-                    }
-                    for workflow in on_partial_upload
-                ]
-            server.update(workflow_details)
-        return server
+    to_dict = dataclass_to_camel_case_dict
