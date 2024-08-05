@@ -30,8 +30,9 @@ class TransferResponse(BaseResponse):
     def create_user(self) -> str:
         params = json.loads(self.body)
         home_directory_mappings_from_request = params.get("HomeDirectoryMappings")
+        home_directory_mappings: List[UserHomeDirectoryMapping]
         if home_directory_mappings_from_request is not None and len(home_directory_mappings_from_request) > 0:
-            home_directory_mappings: List[UserHomeDirectoryMapping] = [
+            home_directory_mappings = [
                 {
                     "entry": mapping.get("Entry"),
                     "target": mapping.get("Target"),
@@ -40,8 +41,9 @@ class TransferResponse(BaseResponse):
                 for mapping in home_directory_mappings
             ]
         posix_profile_from_request = params.get("PosixProfile")
+        posix_profile: UserPosixProfile
         if posix_profile_from_request is not None:
-            posix_profile: UserPosixProfile = {
+            posix_profile = {
                 "gid": posix_profile.get("Gid"),
                 "uid": posix_profile.get("Uid"),
                 "secondary_gids": posix_profile.get("SecondaryGids"),
@@ -103,8 +105,9 @@ class TransferResponse(BaseResponse):
     def create_server(self) -> str:
         params = json.loads(self.body)
         endpoint_details_from_request = params.get("EndpointDetails")
+        endpoint_details: ServerEndpointDetails
         if endpoint_details_from_request is not None:
-            endpoint_details: ServerEndpointDetails = {
+            endpoint_details = {
                 "address_allocation_ids": endpoint_details.get("AddressAllocationIds"),
                 "subnet_ids": endpoint_details.get("SubnetIds"),
                 "vpc_endpoint_id": endpoint_details.get("VpcEndpointId"),
@@ -112,8 +115,9 @@ class TransferResponse(BaseResponse):
                 "security_group_ids": endpoint_details.get("SecurityGroupIds"),
             }
         identity_provider_details_from_request = params.get("IdentityProviderDetails")
+        identity_provider_details: ServerIdentityProviderDetails 
         if identity_provider_details_from_request is not None:
-            identity_provider_details: ServerIdentityProviderDetails = {
+            identity_provider_details = {
                 "url": identity_provider_details.get("Url"),
                 "invocation_role": identity_provider_details.get("InvocationRole"),
                 "directory_id": identity_provider_details.get("DirectoryId"),
@@ -123,8 +127,9 @@ class TransferResponse(BaseResponse):
                 ),
             }
         protocol_details_from_request = params.get("ProtocolDetails")
+        protocol_details: ServerProtocolDetails
         if protocol_details_from_request is not None:
-            protocol_details: ServerProtocolDetails = {
+            protocol_details = {
                 "passive_ip": protocol_details.get("PassiveIp"),
                 "tls_session_resumption_mode": protocol_details.get(
                     "TlsSessionResumptionMode"
@@ -133,15 +138,17 @@ class TransferResponse(BaseResponse):
                 "as2_transports": protocol_details.get("As2Transports"),
             }
         s3_storage_options_from_request = params.get("S3StorageOptions")
+        s3_storage_options: ServerS3StorageOptions
         if s3_storage_options_from_request is not None:
-            s3_storage_options: ServerS3StorageOptions = {
+            s3_storage_options = {
                 "directory_listing_optimization": s3_storage_options.get(
                     "DirectoryListingOptimization"
                 )
             }
         workflow_details_from_request = params.get("WorkflowDetails")
+        workflow_details: ServerWorkflowDetails
         if workflow_details_from_request is not None:
-            workflow_details: ServerWorkflowDetails = {
+            workflow_details = {
                 "on_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
