@@ -65,8 +65,7 @@ class SageMakerResponse(BaseResponse):
             volume_size_in_gb=self._get_param("VolumeSizeInGB"),
             accelerator_types=self._get_param("AcceleratorTypes"),
             default_code_repository=self._get_param("DefaultCodeRepository"),
-            additional_code_repositories=self._get_param(
-                "AdditionalCodeRepositories"),
+            additional_code_repositories=self._get_param("AdditionalCodeRepositories"),
             root_access=self._get_param("RootAccess"),
         )
         return 200, {}, json.dumps({"NotebookInstanceArn": sagemaker_notebook.arn})
@@ -150,14 +149,12 @@ class SageMakerResponse(BaseResponse):
         return (
             200,
             {},
-            json.dumps(
-                {"EndpointConfigArn": endpoint_config.endpoint_config_arn}),
+            json.dumps({"EndpointConfigArn": endpoint_config.endpoint_config_arn}),
         )
 
     def describe_endpoint_config(self) -> str:
         endpoint_config_name = self._get_param("EndpointConfigName")
-        response = self.sagemaker_backend.describe_endpoint_config(
-            endpoint_config_name)
+        response = self.sagemaker_backend.describe_endpoint_config(endpoint_config_name)
         return json.dumps(response)
 
     def delete_endpoint_config(self) -> TYPE_RESPONSE:
@@ -200,16 +197,14 @@ class SageMakerResponse(BaseResponse):
 
     def describe_processing_job(self) -> str:
         processing_job_name = self._get_param("ProcessingJobName")
-        response = self.sagemaker_backend.describe_processing_job(
-            processing_job_name)
+        response = self.sagemaker_backend.describe_processing_job(processing_job_name)
         return json.dumps(response)
 
     def create_transform_job(self) -> TYPE_RESPONSE:
         transform_job = self.sagemaker_backend.create_transform_job(
             transform_job_name=self._get_param("TransformJobName"),
             model_name=self._get_param("ModelName"),
-            max_concurrent_transforms=self._get_param(
-                "MaxConcurrentTransforms"),
+            max_concurrent_transforms=self._get_param("MaxConcurrentTransforms"),
             model_client_config=self._get_param("ModelClientConfig"),
             max_payload_in_mb=self._get_param("MaxPayloadInMB"),
             batch_strategy=self._get_param("BatchStrategy"),
@@ -246,8 +241,7 @@ class SageMakerResponse(BaseResponse):
             vpc_config=self._get_param("VpcConfig"),
             stopping_condition=self._get_param("StoppingCondition"),
             tags=self._get_param("Tags"),
-            enable_network_isolation=self._get_param(
-                "EnableNetworkIsolation", False),
+            enable_network_isolation=self._get_param("EnableNetworkIsolation", False),
             enable_inter_container_traffic_encryption=self._get_param(
                 "EnableInterContainerTrafficEncryption", False
             ),
@@ -256,10 +250,8 @@ class SageMakerResponse(BaseResponse):
             ),
             checkpoint_config=self._get_param("CheckpointConfig"),
             debug_hook_config=self._get_param("DebugHookConfig"),
-            debug_rule_configurations=self._get_param(
-                "DebugRuleConfigurations"),
-            tensor_board_output_config=self._get_param(
-                "TensorBoardOutputConfig"),
+            debug_rule_configurations=self._get_param("DebugRuleConfigurations"),
+            tensor_board_output_config=self._get_param("TensorBoardOutputConfig"),
             experiment_config=self._get_param("ExperimentConfig"),
         )
         response = {
@@ -269,8 +261,7 @@ class SageMakerResponse(BaseResponse):
 
     def describe_training_job(self) -> str:
         training_job_name = self._get_param("TrainingJobName")
-        response = self.sagemaker_backend.describe_training_job(
-            training_job_name)
+        response = self.sagemaker_backend.describe_training_job(training_job_name)
         return json.dumps(response)
 
     def create_notebook_instance_lifecycle_config(self) -> TYPE_RESPONSE:
@@ -445,8 +436,7 @@ class SageMakerResponse(BaseResponse):
 
     def describe_trial_component(self) -> str:
         trial_component_name = self._get_param("TrialComponentName")
-        response = self.sagemaker_backend.describe_trial_component(
-            trial_component_name)
+        response = self.sagemaker_backend.describe_trial_component(trial_component_name)
         return json.dumps(response)
 
     def associate_trial_component(self) -> TYPE_RESPONSE:
@@ -475,11 +465,9 @@ class SageMakerResponse(BaseResponse):
             parameters=self._get_param("Parameters"),
             parameters_to_remove=self._get_param("ParametersToRemove"),
             input_artifacts=self._get_param("InputArtifacts"),
-            input_artifacts_to_remove=self._get_param(
-                "InputArtifactsToRemove"),
+            input_artifacts_to_remove=self._get_param("InputArtifactsToRemove"),
             output_artifacts=self._get_param("OutputArtifacts"),
-            output_artifacts_to_remove=self._get_param(
-                "OutputArtifactsToRemove"),
+            output_artifacts_to_remove=self._get_param("OutputArtifactsToRemove"),
         )
         return 200, {}, json.dumps(response)
 
@@ -535,8 +523,7 @@ class SageMakerResponse(BaseResponse):
             pipeline_description=self._get_param("PipelineDescription"),
             role_arn=self._get_param("RoleArn"),
             tags=self._get_param("Tags"),
-            parallelism_configuration=self._get_param(
-                "ParallelismConfiguration"),
+            parallelism_configuration=self._get_param("ParallelismConfiguration"),
         )
         response = {
             "PipelineArn": pipeline.pipeline_arn,
@@ -561,8 +548,7 @@ class SageMakerResponse(BaseResponse):
             ),
             pipeline_description=self._get_param("PipelineDescription"),
             role_arn=self._get_param("RoleArn"),
-            parallelism_configuration=self._get_param(
-                "ParallelismConfiguration"),
+            parallelism_configuration=self._get_param("ParallelismConfiguration"),
         )
 
         response = {"PipelineArn": pipeline_arn}
@@ -588,8 +574,7 @@ class SageMakerResponse(BaseResponse):
             )
 
         if sort_by not in allowed_sort_by:
-            errors.append(format_enum_error(
-                sort_by, "SortBy", allowed_sort_by))
+            errors.append(format_enum_error(sort_by, "SortBy", allowed_sort_by))
         if sort_order not in allowed_sort_order:
             errors.append(
                 format_enum_error(sort_order, "SortOrder", allowed_sort_order)
@@ -635,8 +620,7 @@ class SageMakerResponse(BaseResponse):
             )
 
         if sort_by not in allowed_sort_by:
-            errors.append(format_enum_error(
-                sort_by, "sortBy", allowed_sort_by))
+            errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
         if sort_order not in allowed_sort_order:
             errors.append(
                 format_enum_error(sort_order, "sortOrder", allowed_sort_order)
@@ -644,8 +628,7 @@ class SageMakerResponse(BaseResponse):
 
         if status_equals and status_equals not in allowed_status_equals:
             errors.append(
-                format_enum_error(
-                    status_equals, "statusEquals", allowed_status_equals)
+                format_enum_error(status_equals, "statusEquals", allowed_status_equals)
             )
 
         if errors != []:
@@ -659,8 +642,7 @@ class SageMakerResponse(BaseResponse):
             creation_time_after=self._get_param("CreationTimeAfter"),
             creation_time_before=self._get_param("CreationTimeBefore"),
             last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
-            last_modified_time_before=self._get_param(
-                "LastModifiedTimeBefore"),
+            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
@@ -690,8 +672,7 @@ class SageMakerResponse(BaseResponse):
             )
 
         if sort_by not in allowed_sort_by:
-            errors.append(format_enum_error(
-                sort_by, "sortBy", allowed_sort_by))
+            errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
         if sort_order not in allowed_sort_order:
             errors.append(
                 format_enum_error(sort_order, "sortOrder", allowed_sort_order)
@@ -699,8 +680,7 @@ class SageMakerResponse(BaseResponse):
 
         if status_equals and status_equals not in allowed_status_equals:
             errors.append(
-                format_enum_error(
-                    status_equals, "statusEquals", allowed_status_equals)
+                format_enum_error(status_equals, "statusEquals", allowed_status_equals)
             )
 
         if errors != []:
@@ -714,8 +694,7 @@ class SageMakerResponse(BaseResponse):
             creation_time_after=self._get_param("CreationTimeAfter"),
             creation_time_before=self._get_param("CreationTimeBefore"),
             last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
-            last_modified_time_before=self._get_param(
-                "LastModifiedTimeBefore"),
+            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
@@ -745,8 +724,7 @@ class SageMakerResponse(BaseResponse):
             )
 
         if sort_by not in allowed_sort_by:
-            errors.append(format_enum_error(
-                sort_by, "sortBy", allowed_sort_by))
+            errors.append(format_enum_error(sort_by, "sortBy", allowed_sort_by))
         if sort_order not in allowed_sort_order:
             errors.append(
                 format_enum_error(sort_order, "sortOrder", allowed_sort_order)
@@ -754,8 +732,7 @@ class SageMakerResponse(BaseResponse):
 
         if status_equals and status_equals not in allowed_status_equals:
             errors.append(
-                format_enum_error(
-                    status_equals, "statusEquals", allowed_status_equals)
+                format_enum_error(status_equals, "statusEquals", allowed_status_equals)
             )
 
         if errors != []:
@@ -769,8 +746,7 @@ class SageMakerResponse(BaseResponse):
             creation_time_after=self._get_param("CreationTimeAfter"),
             creation_time_before=self._get_param("CreationTimeBefore"),
             last_modified_time_after=self._get_param("LastModifiedTimeAfter"),
-            last_modified_time_before=self._get_param(
-                "LastModifiedTimeBefore"),
+            last_modified_time_before=self._get_param("LastModifiedTimeBefore"),
             name_contains=self._get_param("NameContains"),
             status_equals=status_equals,
         )
@@ -778,8 +754,7 @@ class SageMakerResponse(BaseResponse):
 
     def update_endpoint_weights_and_capacities(self) -> TYPE_RESPONSE:
         endpoint_name = self._get_param("EndpointName")
-        desired_weights_and_capacities = self._get_param(
-            "DesiredWeightsAndCapacities")
+        desired_weights_and_capacities = self._get_param("DesiredWeightsAndCapacities")
         endpoint_arn = self.sagemaker_backend.update_endpoint_weights_and_capacities(
             endpoint_name=endpoint_name,
             desired_weights_and_capacities=desired_weights_and_capacities,
@@ -874,8 +849,7 @@ class SageMakerResponse(BaseResponse):
         model_package_arn = self._get_param("ModelPackageArn")
         model_approval_status = self._get_param("ModelApprovalStatus")
         approval_dexcription = self._get_param("ApprovalDescription")
-        customer_metadata_properties = self._get_param(
-            "CustomerMetadataProperties")
+        customer_metadata_properties = self._get_param("CustomerMetadataProperties")
         customer_metadata_properties_to_remove = self._get_param(
             "CustomerMetadataPropertiesToRemove", []
         )
@@ -898,17 +872,14 @@ class SageMakerResponse(BaseResponse):
         model_package_description = self._get_param("ModelPackageDescription")
         inference_specification = self._get_param("InferenceSpecification")
         validation_specification = self._get_param("ValidationSpecification")
-        source_algorithm_specification = self._get_param(
-            "SourceAlgorithmSpecification")
-        certify_for_marketplace = self._get_param(
-            "CertifyForMarketplace", False)
+        source_algorithm_specification = self._get_param("SourceAlgorithmSpecification")
+        certify_for_marketplace = self._get_param("CertifyForMarketplace", False)
         tags = self._get_param("Tags")
         model_approval_status = self._get_param("ModelApprovalStatus")
         metadata_properties = self._get_param("MetadataProperties")
         model_metrics = self._get_param("ModelMetrics")
         client_token = self._get_param("ClientToken")
-        customer_metadata_properties = self._get_param(
-            "CustomerMetadataProperties")
+        customer_metadata_properties = self._get_param("CustomerMetadataProperties")
         drift_check_baselines = self._get_param("DriftCheckBaselines")
         domain = self._get_param("Domain")
         task = self._get_param("Task")
@@ -1033,8 +1004,7 @@ class SageMakerResponse(BaseResponse):
         cluster_name = self._get_param("ClusterName")
         creation_time_after = self._get_param("CreationTimeAfter")
         creation_time_before = self._get_param("CreationTimeBefore")
-        instance_group_name_contains = self._get_param(
-            "InstanceGroupNameContains")
+        instance_group_name_contains = self._get_param("InstanceGroupNameContains")
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         sort_by = self._get_param("SortBy")
@@ -1063,13 +1033,10 @@ class SageMakerResponse(BaseResponse):
         stopping_condition = self._get_param("StoppingCondition")
         environment = self._get_param("Environment", {})
         network_config = self._get_param("NetworkConfig", {})
-        model_bias_baseline_config = self._get_param(
-            "ModelBiasBaselineConfig", {})
-        model_bias_app_specification = self._get_param(
-            "ModelBiasAppSpecification")
+        model_bias_baseline_config = self._get_param("ModelBiasBaselineConfig", {})
+        model_bias_app_specification = self._get_param("ModelBiasAppSpecification")
         model_bias_job_input = self._get_param("ModelBiasJobInput")
-        model_bias_job_output_config = self._get_param(
-            "ModelBiasJobOutputConfig")
+        model_bias_job_output_config = self._get_param("ModelBiasJobOutputConfig")
 
         response = self.sagemaker_backend.create_model_bias_job_definition(
             account_id=account_id,
@@ -1089,30 +1056,25 @@ class SageMakerResponse(BaseResponse):
 
     def list_model_bias_job_definitions(self) -> str:
         result, next_token = self.sagemaker_backend.list_model_bias_job_definitions()
-        return json.dumps({
-            "JobDefinitionSummaries": result,
-            "NextToken": next_token
-        })
+        return json.dumps({"JobDefinitionSummaries": result, "NextToken": next_token})
 
     def describe_model_bias_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
         job_definition = self.sagemaker_backend.describe_model_bias_job_definition(
-            job_definition_name)
+            job_definition_name
+        )
         return json.dumps(job_definition)
 
     def delete_model_bias_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
-        self.sagemaker_backend.delete_model_bias_job_definition(
-            job_definition_name)
+        self.sagemaker_backend.delete_model_bias_job_definition(job_definition_name)
         return json.dumps({})
 
     def create_auto_ml_job_v2(self) -> str:
         auto_ml_job_name = self._get_param("AutoMLJobName")
-        auto_ml_job_input_data_config = self._get_param(
-            "AutoMLJobInputDataConfig")
+        auto_ml_job_input_data_config = self._get_param("AutoMLJobInputDataConfig")
         output_data_config = self._get_param("OutputDataConfig")
-        auto_ml_problem_type_config = self._get_param(
-            "AutoMLProblemTypeConfig")
+        auto_ml_problem_type_config = self._get_param("AutoMLProblemTypeConfig")
         role_arn = self._get_param("RoleArn")
         tags = self._get_param("Tags")
         security_config = self._get_param("SecurityConfig")
@@ -1163,8 +1125,7 @@ class SageMakerResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        auto_ml_job_summaries = [auto_ml_job.summary()
-                                 for auto_ml_job in auto_ml_jobs]
+        auto_ml_job_summaries = [auto_ml_job.summary() for auto_ml_job in auto_ml_jobs]
         return json.dumps(
             dict(AutoMLJobSummaries=auto_ml_job_summaries, NextToken=next_token)
         )
@@ -1300,11 +1261,9 @@ class SageMakerResponse(BaseResponse):
         vpc_id = self._get_param("VpcId")
         tags = self._get_param("Tags")
         app_network_access_type = self._get_param("AppNetworkAccessType")
-        home_efs_file_system_kms_key_id = self._get_param(
-            "HomeEfsFileSystemKmsKeyId")
+        home_efs_file_system_kms_key_id = self._get_param("HomeEfsFileSystemKmsKeyId")
         kms_key_id = self._get_param("KmsKeyId")
-        app_security_group_management = self._get_param(
-            "AppSecurityGroupManagement")
+        app_security_group_management = self._get_param("AppSecurityGroupManagement")
         default_space_settings = self._get_param("DefaultSpaceSettings")
         resp = self.sagemaker_backend.create_domain(
             domain_name=domain_name,
@@ -1356,8 +1315,7 @@ class SageMakerResponse(BaseResponse):
         model_explainability_app_specification = self._get_param(
             "ModelExplainabilityAppSpecification"
         )
-        model_explainability_job_input = self._get_param(
-            "ModelExplainabilityJobInput")
+        model_explainability_job_input = self._get_param("ModelExplainabilityJobInput")
         model_explainability_job_output_config = self._get_param(
             "ModelExplainabilityJobOutputConfig"
         )
@@ -1412,8 +1370,7 @@ class SageMakerResponse(BaseResponse):
         )
         job_definition_summaries = [job.summary() for job in job_definitions]
         return json.dumps(
-            dict(JobDefinitionSummaries=job_definition_summaries,
-                 NextToken=next_token)
+            dict(JobDefinitionSummaries=job_definition_summaries, NextToken=next_token)
         )
 
     def delete_model_explainability_job_definition(self) -> str:
@@ -1424,8 +1381,7 @@ class SageMakerResponse(BaseResponse):
         return json.dumps(dict())
 
     def create_hyper_parameter_tuning_job(self) -> str:
-        hyper_parameter_tuning_job_name = self._get_param(
-            "HyperParameterTuningJobName")
+        hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
         hyper_parameter_tuning_job_config = self._get_param(
             "HyperParameterTuningJobConfig"
         )
@@ -1450,8 +1406,7 @@ class SageMakerResponse(BaseResponse):
         )
 
     def describe_hyper_parameter_tuning_job(self) -> str:
-        hyper_parameter_tuning_job_name = self._get_param(
-            "HyperParameterTuningJobName")
+        hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
         hyper_parameter_tuning_job_description = (
             self.sagemaker_backend.describe_hyper_parameter_tuning_job(
                 hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
@@ -1495,8 +1450,7 @@ class SageMakerResponse(BaseResponse):
         )
 
     def delete_hyper_parameter_tuning_job(self) -> str:
-        hyper_parameter_tuning_job_name = self._get_param(
-            "HyperParameterTuningJobName")
+        hyper_parameter_tuning_job_name = self._get_param("HyperParameterTuningJobName")
         self.sagemaker_backend.delete_hyper_parameter_tuning_job(
             hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
         )
@@ -1504,14 +1458,12 @@ class SageMakerResponse(BaseResponse):
 
     def create_model_quality_job_definition(self) -> str:
         job_definition_name = self._get_param("JobDefinitionName")
-        model_quality_baseline_config = self._get_param(
-            "ModelQualityBaselineConfig")
+        model_quality_baseline_config = self._get_param("ModelQualityBaselineConfig")
         model_quality_app_specification = self._get_param(
             "ModelQualityAppSpecification"
         )
         model_quality_job_input = self._get_param("ModelQualityJobInput")
-        model_quality_job_output_config = self._get_param(
-            "ModelQualityJobOutputConfig")
+        model_quality_job_output_config = self._get_param("ModelQualityJobOutputConfig")
         job_resources = self._get_param("JobResources")
         network_config = self._get_param("NetworkConfig")
         role_arn = self._get_param("RoleArn")
@@ -1561,8 +1513,7 @@ class SageMakerResponse(BaseResponse):
         )
         job_definition_summaries = [x.summary() for x in job_definitions]
         return json.dumps(
-            dict(JobDefinitionSummaries=job_definition_summaries,
-                 NextToken=next_token)
+            dict(JobDefinitionSummaries=job_definition_summaries, NextToken=next_token)
         )
 
     def delete_model_quality_job_definition(self) -> str:
@@ -1606,8 +1557,7 @@ class SageMakerResponse(BaseResponse):
             sort_by=sort_by,
             sort_order=sort_order,
         )
-        model_card_summaries = [model_card.summary()
-                                for model_card in model_cards]
+        model_card_summaries = [model_card.summary() for model_card in model_cards]
         return json.dumps(
             dict(ModelCardSummaries=model_card_summaries, NextToken=next_token)
         )

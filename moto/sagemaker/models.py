@@ -153,7 +153,7 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "arn",
-    }
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -606,8 +606,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         # using the name for most of its operations.
         endpoint_name = resource_name.split("/")[-1]
 
-        sagemaker_backends[account_id][region_name].delete_endpoint(
-            endpoint_name)
+        sagemaker_backends[account_id][region_name].delete_endpoint(endpoint_name)
 
 
 class FakeEndpointConfig(BaseObject, CloudFormationModel):
@@ -640,8 +639,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             if "InstanceType" in production_variant.keys():
                 self.validate_instance_type(production_variant["InstanceType"])
             elif "ServerlessConfig" in production_variant.keys():
-                self.validate_serverless_config(
-                    production_variant["ServerlessConfig"])
+                self.validate_serverless_config(production_variant["ServerlessConfig"])
             else:
                 message = f"Invalid Keys for ProductionVariant: received {production_variant.keys()} but expected it to contain one of {['InstanceType', 'ServerlessConfig']}"
                 raise ValidationError(message=message)
@@ -1358,8 +1356,7 @@ class ModelPackage(BaseObject):
     ) -> None:
         if customer_metadata_properties_to_remove is not None:
             for customer_metadata_property in customer_metadata_properties_to_remove:
-                self.customer_metadata_properties.pop(
-                    customer_metadata_property, None)
+                self.customer_metadata_properties.pop(customer_metadata_property, None)
 
     def add_additional_inference_specifications(
         self, additional_inference_specifications_to_add: Optional[List[Any]]
@@ -1622,8 +1619,7 @@ class Cluster(BaseObject):
             )
         self.instance_groups = instance_groups
         for instance_group in instance_groups:
-            self.valid_cluster_node_instance_types(
-                instance_group["InstanceType"])
+            self.valid_cluster_node_instance_types(instance_group["InstanceType"])
             if not instance_group["LifeCycleConfig"]["SourceS3Uri"].startswith(
                 "s3://sagemaker-"
             ):
@@ -1632,8 +1628,7 @@ class Cluster(BaseObject):
                 )
         self.vpc_config = vpc_config
         self.tags = tags or []
-        self.arn = arn_formatter(
-            "cluster", self.cluster_name, account_id, region_name)
+        self.arn = arn_formatter("cluster", self.cluster_name, account_id, region_name)
         self.status = "InService"
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.failure_message = ""
@@ -1791,8 +1786,7 @@ class CompilationJob(BaseObject):
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.failure_reason = ""
-        self.model_artifacts = {
-            "S3ModelArtifacts": output_config["S3OutputLocation"]}
+        self.model_artifacts = {"S3ModelArtifacts": output_config["S3OutputLocation"]}
         self.model_digests = {
             "ArtifactDigest": "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce"
         }
@@ -1808,8 +1802,7 @@ class CompilationJob(BaseObject):
             )
         self.output_config = output_config
         self.vpc_config = vpc_config
-        self.derived_information = {
-            "DerivedDataInputConfig": "DerivedDataInputConfig"}
+        self.derived_information = {"DerivedDataInputConfig": "DerivedDataInputConfig"}
         self.tags = tags
 
     def describe(self) -> Dict[str, Any]:
@@ -1980,8 +1973,7 @@ class AutoMLJob(BaseObject):
             )
         self.output_data_config = output_data_config
         self.data_split_config = (
-            data_split_config if data_split_config else {
-                "ValidationFraction": 0.2}
+            data_split_config if data_split_config else {"ValidationFraction": 0.2}
         )
         self.tags = tags or []
         self.arn = arn_formatter(
@@ -1989,8 +1981,7 @@ class AutoMLJob(BaseObject):
         )
         self.creation_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.end_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        self.last_modified_time = str(
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        self.last_modified_time = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         self.failure_reason = ""
         self.partial_failure_reasons = [{"PartialFailureMessage": ""}]
         self.best_candidate = {
@@ -2873,25 +2864,21 @@ class SageMakerModelBackend(BaseBackend):
         self.notebook_instance_lifecycle_configurations: Dict[
             str, FakeSageMakerNotebookInstanceLifecycleConfig
         ] = {}
-        self.model_cards: DefaultDict[str,
-                                      List[FakeModelCard]] = defaultdict(list)
+        self.model_cards: DefaultDict[str, List[FakeModelCard]] = defaultdict(list)
         self.model_package_groups: Dict[str, ModelPackageGroup] = {}
         self.model_packages: Dict[str, ModelPackage] = {}
         self.model_package_name_mapping: Dict[str, str] = {}
         self.feature_groups: Dict[str, FeatureGroup] = {}
         self.clusters: Dict[str, Cluster] = {}
-        self.model_bias_job_definitions: Dict[str,
-                                              FakeModelBiasJobDefinition] = {}
+        self.model_bias_job_definitions: Dict[str, FakeModelBiasJobDefinition] = {}
         self.auto_ml_jobs: Dict[str, AutoMLJob] = {}
         self.compilation_jobs: Dict[str, CompilationJob] = {}
         self.domains: Dict[str, Domain] = {}
         self.model_explainability_job_definitions: Dict[
             str, ModelExplainabilityJobDefinition
         ] = {}
-        self.hyper_parameter_tuning_jobs: Dict[str,
-                                               HyperParameterTuningJob] = {}
-        self.model_quality_job_definitions: Dict[str,
-                                                 ModelQualityJobDefinition] = {}
+        self.hyper_parameter_tuning_jobs: Dict[str, HyperParameterTuningJob] = {}
+        self.model_quality_job_definitions: Dict[str, ModelQualityJobDefinition] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2974,8 +2961,7 @@ class SageMakerModelBackend(BaseBackend):
         model = self._models.get(model_name)
         if model:
             return model
-        arn = arn_formatter("model", model_name,
-                            self.account_id, self.region_name)
+        arn = arn_formatter("model", model_name, self.account_id, self.region_name)
         raise ValidationError(message=f"Could not find model '{arn}'.")
 
     def list_models(self) -> Iterable[Model]:
@@ -3034,8 +3020,7 @@ class SageMakerModelBackend(BaseBackend):
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
-            resource = resources.get(target_resource).get(
-                target_name)  # type: ignore
+            resource = resources.get(target_resource).get(target_name)  # type: ignore
         except KeyError:
             message = f"Could not find {target_resource} with name {target_name}"
             raise ValidationError(message=message)
@@ -3055,8 +3040,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def delete_tags(self, arn: str, tag_keys: List[str]) -> None:
         resource = self._get_resource_from_arn(arn)
-        resource.tags = [
-            tag for tag in resource.tags if tag["Key"] not in tag_keys]
+        resource.tags = [tag for tag in resource.tags if tag["Key"] not in tag_keys]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_experiments(self) -> List["FakeExperiment"]:
@@ -3186,8 +3170,7 @@ class SageMakerModelBackend(BaseBackend):
             ]
 
             for trial_component_summary in trial_component_summaries:
-                result["Results"].append(
-                    {"TrialComponent": trial_component_summary})
+                result["Results"].append({"TrialComponent": trial_component_summary})
         return result
 
     def delete_experiment(self, experiment_name: str) -> None:
@@ -3217,16 +3200,14 @@ class SageMakerModelBackend(BaseBackend):
         try:
             return self.trials[trial_name].response_object
         except KeyError:
-            arn = FakeTrial.arn_formatter(
-                trial_name, self.account_id, self.region_name)
+            arn = FakeTrial.arn_formatter(trial_name, self.account_id, self.region_name)
             raise ValidationError(message=f"Could not find trial '{arn}'.")
 
     def delete_trial(self, trial_name: str) -> None:
         try:
             del self.trials[trial_name]
         except KeyError:
-            arn = FakeTrial.arn_formatter(
-                trial_name, self.account_id, self.region_name)
+            arn = FakeTrial.arn_formatter(trial_name, self.account_id, self.region_name)
             raise ValidationError(
                 message=f"Could not find trial configuration '{arn}'."
             )
@@ -3305,8 +3286,7 @@ class SageMakerModelBackend(BaseBackend):
             arn = FakeTrialComponent.arn_formatter(
                 trial_component_name, self.account_id, self.region_name
             )
-            raise ValidationError(
-                message=f"Could not find trial component '{arn}'.")
+            raise ValidationError(message=f"Could not find trial component '{arn}'.")
 
     def _update_trial_component_details(
         self, trial_component_name: str, details_json: str
@@ -3329,8 +3309,7 @@ class SageMakerModelBackend(BaseBackend):
         self, trial_name: str, trial_component_name: str
     ) -> Dict[str, str]:
         if trial_name in self.trials.keys():
-            self.trials[trial_name].trial_components.extend(
-                [trial_component_name])
+            self.trials[trial_name].trial_components.extend([trial_component_name])
         else:
             raise ResourceNotFound(
                 message=f"Trial 'arn:{get_partition(self.region_name)}:sagemaker:{self.region_name}:{self.account_id}:experiment-trial/{trial_name}' does not exist."
@@ -3385,8 +3364,7 @@ class SageMakerModelBackend(BaseBackend):
             arn = FakeTrialComponent.arn_formatter(
                 trial_component_name, self.account_id, self.region_name
             )
-            raise ValidationError(
-                message=f"Could not find trial component '{arn}'")
+            raise ValidationError(message=f"Could not find trial component '{arn}'")
 
         if status:
             trial_component.status = status
@@ -3524,8 +3502,7 @@ class SageMakerModelBackend(BaseBackend):
                 instances, key=lambda x: x.creation_time, reverse=reverse
             )
         if sort_by == "Status":
-            instances = sorted(
-                instances, key=lambda x: x.status, reverse=reverse)
+            instances = sorted(instances, key=lambda x: x.status, reverse=reverse)
         return instances
 
     def create_notebook_instance_lifecycle_config(
@@ -3650,14 +3627,12 @@ class SageMakerModelBackend(BaseBackend):
         self, endpoint_name: str, endpoint_config_name: str, tags: List[Dict[str, str]]
     ) -> FakeEndpoint:
         try:
-            endpoint_config = self.describe_endpoint_config(
-                endpoint_config_name)
+            endpoint_config = self.describe_endpoint_config(endpoint_config_name)
         except KeyError:
             arn = FakeEndpointConfig.arn_formatter(
                 endpoint_config_name, self.account_id, self.region_name
             )
-            raise ValidationError(
-                message=f"Could not find endpoint_config '{arn}'.")
+            raise ValidationError(message=f"Could not find endpoint_config '{arn}'.")
 
         endpoint = FakeEndpoint(
             account_id=self.account_id,
@@ -3725,8 +3700,7 @@ class SageMakerModelBackend(BaseBackend):
             arn = FakeProcessingJob.arn_formatter(
                 processing_job_name, self.account_id, self.region_name
             )
-            raise ValidationError(
-                message=f"Could not find processing job '{arn}'.")
+            raise ValidationError(message=f"Could not find processing job '{arn}'.")
 
     def create_pipeline(
         self,
@@ -3899,8 +3873,7 @@ class SageMakerModelBackend(BaseBackend):
         pipeline_execution = get_pipeline_execution_from_arn(
             self.pipelines, pipeline_execution_arn
         )
-        pipeline_name = get_pipeline_name_from_execution_arn(
-            pipeline_execution_arn)
+        pipeline_name = get_pipeline_name_from_execution_arn(pipeline_execution_arn)
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
 
         return {
@@ -3952,8 +3925,7 @@ class SageMakerModelBackend(BaseBackend):
                 if starting_index > len(self.pipelines):
                     raise ValueError  # invalid next_token
             except ValueError:
-                raise AWSValidationException(
-                    'Invalid pagination token because "{0}".')
+                raise AWSValidationException('Invalid pagination token because "{0}".')
         else:
             starting_index = 0
 
@@ -4038,8 +4010,7 @@ class SageMakerModelBackend(BaseBackend):
                 if starting_index > len(self.processing_jobs):
                     raise ValueError  # invalid next_token
             except ValueError:
-                raise AWSValidationException(
-                    'Invalid pagination token because "{0}".')
+                raise AWSValidationException('Invalid pagination token because "{0}".')
         else:
             starting_index = 0
 
@@ -4162,8 +4133,7 @@ class SageMakerModelBackend(BaseBackend):
                 if starting_index > len(self.transform_jobs):
                     raise ValueError  # invalid next_token
             except ValueError:
-                raise AWSValidationException(
-                    'Invalid pagination token because "{0}".')
+                raise AWSValidationException('Invalid pagination token because "{0}".')
         else:
             starting_index = 0
 
@@ -4312,8 +4282,7 @@ class SageMakerModelBackend(BaseBackend):
                 if starting_index > len(self.training_jobs):
                     raise ValueError  # invalid next_token
             except ValueError:
-                raise AWSValidationException(
-                    'Invalid pagination token because "{0}".')
+                raise AWSValidationException('Invalid pagination token because "{0}".')
         else:
             starting_index = 0
 
@@ -4505,8 +4474,7 @@ class SageMakerModelBackend(BaseBackend):
     def describe_model_package_group(
         self, model_package_group_name: str
     ) -> ModelPackageGroup:
-        model_package_group = self.model_package_groups.get(
-            model_package_group_name)
+        model_package_group = self.model_package_groups.get(model_package_group_name)
         if model_package_group is None:
             model_package_group_arn = arn_formatter(
                 region_name=self.region_name,
@@ -4542,8 +4510,7 @@ class SageMakerModelBackend(BaseBackend):
         if model_package_group_name is not None:
             model_package_type = "Versioned"
             if re.match(ARN_PARTITION_REGEX, model_package_group_name):
-                model_package_group_name = model_package_group_name.split(
-                    "/")[-1]
+                model_package_group_name = model_package_group_name.split("/")[-1]
         model_package_summary_list = list(
             filter(
                 lambda x: (
@@ -4591,8 +4558,7 @@ class SageMakerModelBackend(BaseBackend):
         )
         model_package = self.model_packages.get(model_package_name_mapped)
         if model_package is None:
-            raise ValidationError(
-                f"Model package {model_package_name} not found")
+            raise ValidationError(f"Model package {model_package_name} not found")
         return model_package
 
     def update_model_package(
@@ -4610,8 +4576,7 @@ class SageMakerModelBackend(BaseBackend):
         model_package = self.model_packages.get(model_package_name_mapped)
 
         if model_package is None:
-            raise ValidationError(
-                f"Model package {model_package_arn} not found")
+            raise ValidationError(f"Model package {model_package_arn} not found")
 
         model_package.set_model_approval_status(model_approval_status)
         model_package.approval_description = approval_description
@@ -4796,8 +4761,7 @@ class SageMakerModelBackend(BaseBackend):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
-            raise ValidationError(
-                message=f"Could not find cluster '{cluster_name}'.")
+            raise ValidationError(message=f"Could not find cluster '{cluster_name}'.")
         return cluster.describe()
 
     def delete_cluster(self, cluster_name: str) -> str:
@@ -4805,8 +4769,7 @@ class SageMakerModelBackend(BaseBackend):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
-            raise ValidationError(
-                message=f"Could not find cluster '{cluster_name}'.")
+            raise ValidationError(message=f"Could not find cluster '{cluster_name}'.")
         arn = cluster.arn
 
         del self.clusters[cluster_name]
@@ -4817,8 +4780,7 @@ class SageMakerModelBackend(BaseBackend):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
-            raise ValidationError(
-                message=f"Could not find cluster '{cluster_name}'.")
+            raise ValidationError(message=f"Could not find cluster '{cluster_name}'.")
         if node_id in cluster.nodes:
             return cluster.nodes[node_id].describe()
         else:
@@ -4848,11 +4810,9 @@ class SageMakerModelBackend(BaseBackend):
             ]
         reverse = sort_order == "Descending"
         if sort_by == "Name":
-            clusters = sorted(
-                clusters, key=lambda x: x.cluster_name, reverse=reverse)
+            clusters = sorted(clusters, key=lambda x: x.cluster_name, reverse=reverse)
         if sort_by == "CreationTime" or sort_by is None:
-            clusters = sorted(
-                clusters, key=lambda x: x.creation_time, reverse=reverse)
+            clusters = sorted(clusters, key=lambda x: x.creation_time, reverse=reverse)
         return clusters
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -4869,8 +4829,7 @@ class SageMakerModelBackend(BaseBackend):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
-            raise ValidationError(
-                message=f"Could not find cluster '{cluster_name}'.")
+            raise ValidationError(message=f"Could not find cluster '{cluster_name}'.")
         nodes_list = list(cluster.nodes.values())
 
         if instance_group_name_contains:
@@ -4935,20 +4894,19 @@ class SageMakerModelBackend(BaseBackend):
     def list_model_bias_job_definitions(self) -> List[Dict[str, str]]:
         return [job.summary_object for job in self.model_bias_job_definitions.values()]
 
-    def describe_model_bias_job_definition(self, job_definition_name: str) -> Dict[str, Any]:
-        job_definition = self.model_bias_job_definitions.get(
-            job_definition_name)
+    def describe_model_bias_job_definition(
+        self, job_definition_name: str
+    ) -> Dict[str, Any]:
+        job_definition = self.model_bias_job_definitions.get(job_definition_name)
         if job_definition is None:
-            raise ResourceNotFound(
-                f"Job definition {job_definition_name} not found")
+            raise ResourceNotFound(f"Job definition {job_definition_name} not found")
         return job_definition.response_object
 
     def delete_model_bias_job_definition(self, job_definition_name: str) -> None:
         if job_definition_name in self.model_bias_job_definitions:
             del self.model_bias_job_definitions[job_definition_name]
         else:
-            raise ResourceNotFound(
-                f"Job definition {job_definition_name} not found")
+            raise ResourceNotFound(f"Job definition {job_definition_name} not found")
 
     def create_auto_ml_job_v2(
         self,
@@ -5068,11 +5026,9 @@ class SageMakerModelBackend(BaseBackend):
     ) -> List[FakeEndpoint]:
         endpoints = list(self.endpoints.values())
         if name_contains:
-            endpoints = [
-                i for i in endpoints if name_contains in i.endpoint_name]
+            endpoints = [i for i in endpoints if name_contains in i.endpoint_name]
         if status_equals:
-            endpoints = [
-                i for i in endpoints if status_equals == i.endpoint_status]
+            endpoints = [i for i in endpoints if status_equals == i.endpoint_status]
         if creation_time_before:
             endpoints = [
                 i for i in endpoints if i.creation_time < str(creation_time_before)
@@ -5284,8 +5240,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def describe_domain(self, domain_id: str) -> Dict[str, Any]:
         if domain_id not in self.domains:
-            raise ValidationError(
-                message=f"Could not find domain '{domain_id}'.")
+            raise ValidationError(message=f"Could not find domain '{domain_id}'.")
         return self.domains[domain_id].describe()
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -5297,8 +5252,7 @@ class SageMakerModelBackend(BaseBackend):
     ) -> None:
         # 'retention_policy' parameter is not used
         if domain_id not in self.domains:
-            raise ValidationError(
-                message=f"Could not find domain '{domain_id}'.")
+            raise ValidationError(message=f"Could not find domain '{domain_id}'.")
         del self.domains[domain_id]
 
     def create_model_explainability_job_definition(
@@ -5453,8 +5407,7 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time_before: Optional[str],
         status_equals: Optional[str],
     ) -> List[HyperParameterTuningJob]:
-        hyper_parameter_tuning_jobs = list(
-            self.hyper_parameter_tuning_jobs.values())
+        hyper_parameter_tuning_jobs = list(self.hyper_parameter_tuning_jobs.values())
         if name_contains:
             hyper_parameter_tuning_jobs = [
                 i
@@ -5633,8 +5586,7 @@ class SageMakerModelBackend(BaseBackend):
         last_modified_time: Optional[str] = None,
     ) -> str:
         if model_card_name in self.model_cards:
-            raise ConflictException(
-                f"Modelcard {model_card_name} already exists")
+            raise ConflictException(f"Modelcard {model_card_name} already exists")
 
         if not model_card_version:
             model_card_version = 1
@@ -5658,8 +5610,7 @@ class SageMakerModelBackend(BaseBackend):
         self, model_card_name: str, content: str, model_card_status: str
     ) -> str:
         if model_card_name not in self.model_cards:
-            raise ResourceNotFound(
-                f"Modelcard {model_card_name} does not exist.")
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist.")
 
         datetime_now = str(datetime.now(tzutc()))
 
@@ -5720,8 +5671,7 @@ class SageMakerModelBackend(BaseBackend):
         sort_order: Optional[str],
     ) -> List[FakeModelCard]:
         if model_card_name not in self.model_cards:
-            raise ResourceNotFound(
-                f"Modelcard {model_card_name} does not exist")
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
 
         versions = self.model_cards[model_card_name]
         if creation_time_after:
@@ -5733,8 +5683,7 @@ class SageMakerModelBackend(BaseBackend):
                 v for v in versions if v.last_modified_time < str(creation_time_before)
             ]
         if model_card_status:
-            versions = [
-                v for v in versions if v.model_card_status == model_card_status]
+            versions = [v for v in versions if v.model_card_status == model_card_status]
 
         reverse = sort_order == "Descending"
 
@@ -5744,8 +5693,7 @@ class SageMakerModelBackend(BaseBackend):
         self, model_card_name: str, model_card_version: int
     ) -> Dict[str, Any]:
         if model_card_name not in self.model_cards:
-            raise ResourceNotFound(
-                f"Modelcard {model_card_name} does not exist")
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
 
         versions = self.model_cards[model_card_name]
         if model_card_version:
@@ -5763,8 +5711,7 @@ class SageMakerModelBackend(BaseBackend):
 
     def delete_model_card(self, model_card_name: str) -> None:
         if model_card_name not in self.model_cards:
-            raise ResourceNotFound(
-                f"Modelcard {model_card_name} does not exist")
+            raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
 
         del self.model_cards[model_card_name]
 
@@ -5809,8 +5756,7 @@ class FakeTrial(BaseObject):
         trial_components: List[str],
     ):
         self.trial_name = trial_name
-        self.trial_arn = FakeTrial.arn_formatter(
-            trial_name, account_id, region_name)
+        self.trial_arn = FakeTrial.arn_formatter(trial_name, account_id, region_name)
         self.tags = tags
         self.trial_components = trial_components
         self.experiment_name = experiment_name
@@ -5871,8 +5817,7 @@ class FakeTrialComponent(BaseObject):
         self.input_artifacts = input_artifacts if input_artifacts is not None else {}
         self.output_artifacts = output_artifacts if output_artifacts is not None else {}
         self.metadata_properties = metadata_properties
-        self.metrics: Dict[str,
-                           Dict[str, Union[str, int, METRIC_STEP_TYPE]]] = {}
+        self.metrics: Dict[str, Dict[str, Union[str, int, METRIC_STEP_TYPE]]] = {}
         self.sources: List[Dict[str, str]] = []
 
     @property
@@ -5905,8 +5850,7 @@ class FakeTrialComponent(BaseObject):
                 sum(map(lambda value: (value - mean) ** 2, metrics_steps_values))
                 / count
             ) ** 0.5
-            timestamp_int: int = cast(
-                int, self.metrics[metrics_name]["Timestamp"])
+            timestamp_int: int = cast(int, self.metrics[metrics_name]["Timestamp"])
             metrics_response_object = {
                 "MetricName": metrics_name,
                 "SourceArn": self.trial_component_arn,
@@ -5984,7 +5928,9 @@ class FakeModelBiasJobDefinition(BaseObject):
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region: str) -> str:
-        return f"arn:aws:sagemaker:{region}:{account_id}:model-bias-job-definition/{name}"
+        return (
+            f"arn:aws:sagemaker:{region}:{account_id}:model-bias-job-definition/{name}"
+        )
 
     @property
     def summary_object(self) -> Dict[str, str]:
@@ -5992,7 +5938,9 @@ class FakeModelBiasJobDefinition(BaseObject):
             "MonitoringJobDefinitionName": self.job_definition_name,
             "MonitoringJobDefinitionArn": self.job_definition_arn,
             "CreationTime": self.creation_time,
-            "EndpointName": self.model_bias_job_input.get('EndpointInput', {}).get('EndpointName', 'EndpointName'),
+            "EndpointName": self.model_bias_job_input.get("EndpointInput", {}).get(
+                "EndpointName", "EndpointName"
+            ),
         }
 
 
