@@ -301,9 +301,7 @@ class Server(BaseModel):
                 }
             )
         if self.workflow_details is not None:
-            workflow_details = {
-                "WorkflowDetails": {}
-            }
+            workflow_details = {"WorkflowDetails": {}}
             on_upload = self.workflow_details.get("on_upload")
             if on_upload is not None:
                 workflow_details["WorkflowDetails"]["OnUpload"] = [
