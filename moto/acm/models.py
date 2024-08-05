@@ -123,6 +123,7 @@ class CertBundle(BaseModel):
         arn: Optional[str] = None,
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
+        cert_authority_arn: Optional[str] = None,
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -132,6 +133,7 @@ class CertBundle(BaseModel):
         self.tags = TagHolder()
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
+        self.cert_authority_arn = cert_authority_arn
         self.in_use_by: List[str] = []
 
         # Takes care of PEM checking
@@ -158,6 +160,7 @@ class CertBundle(BaseModel):
         account_id: str,
         region: str,
         sans: Optional[List[str]] = None,
+        cert_authority_arn: Optional[str] = None,
     ) -> "CertBundle":
         unique_sans: Set[str] = set(sans) if sans else set()
 
@@ -213,8 +216,9 @@ class CertBundle(BaseModel):
         return cls(
             certificate=cert_armored,
             private_key=private_key,
-            cert_type="AMAZON_ISSUED",
+            cert_type="PRIVATE" if cert_authority_arn is not None else "AMAZON_ISSUED",
             cert_status="PENDING_VALIDATION",
+            cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
         )
@@ -357,9 +361,13 @@ class CertBundle(BaseModel):
             }
         }
 
+        if self.cert_authority_arn is not None:
+            result["Certificate"]["CertificateAuthorityArn"] = self.cert_authority_arn
+
         domain_names = set(sans + [self.common_name])
         validation_options = []
 
+        domain_name_status = "SUCCESS" if self.status == "ISSUED" else self.status
         for san in domain_names:
             resource_record = {
                 "Name": f"_d930b28be6c5927595552b219965053e.{san}.",
@@ -370,13 +378,14 @@ class CertBundle(BaseModel):
                 {
                     "DomainName": san,
                     "ValidationDomain": san,
-                    "ValidationStatus": self.status,
+                    "ValidationStatus": domain_name_status,
                     "ValidationMethod": "DNS",
                     "ResourceRecord": resource_record,
                 }
             )
 
-        result["Certificate"]["DomainValidationOptions"] = validation_options
+        if self.type == "AMAZON_ISSUED":
+            result["Certificate"]["DomainValidationOptions"] = validation_options
 
         if self.type == "IMPORTED":
             result["Certificate"]["ImportedAt"] = datetime_to_epoch(self.created_at)
@@ -404,6 +413,8 @@ class CertBundle(BaseModel):
 
 
 class AWSCertificateManagerBackend(BaseBackend):
+    MIN_PASSPHRASE_LEN = 4
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._certificates: Dict[str, CertBundle] = {}
@@ -512,6 +523,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         idempotency_token: str,
         subject_alt_names: List[str],
         tags: List[Dict[str, str]],
+        cert_authority_arn: Optional[str] = None,
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
@@ -526,6 +538,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             account_id=self.account_id,
             region=self.region_name,
             sans=subject_alt_names,
+            cert_authority_arn=cert_authority_arn,
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
@@ -551,9 +564,17 @@ class AWSCertificateManagerBackend(BaseBackend):
     def export_certificate(
         self, certificate_arn: str, passphrase: str
     ) -> Tuple[str, str, str]:
+        if len(passphrase) < self.MIN_PASSPHRASE_LEN:
+            raise AWSValidationException(
+                "Value at 'passphrase' failed to satisfy constraint: Member must have length greater than or equal to %s"
+                % (self.MIN_PASSPHRASE_LEN)
+            )
         passphrase_bytes = base64.standard_b64decode(passphrase)
         cert_bundle = self.get_certificate(certificate_arn)
-
+        if cert_bundle.type != "PRIVATE":
+            raise AWSValidationException(
+                "Certificate ARN: %s is not a private certificate" % (certificate_arn)
+            )
         certificate = cert_bundle.cert.decode()
         certificate_chain = cert_bundle.chain.decode()
         private_key = cert_bundle.serialize_pk(passphrase_bytes)

@@ -32,7 +32,7 @@ dynamodb
 - [X] describe_continuous_backups
 - [ ] describe_contributor_insights
 - [X] describe_endpoints
-- [ ] describe_export
+- [X] describe_export
 - [ ] describe_global_table
 - [ ] describe_global_table_settings
 - [X] describe_import
@@ -67,7 +67,7 @@ dynamodb
 
 - [X] list_backups
 - [ ] list_contributor_insights
-- [ ] list_exports
+- [X] list_exports
 - [ ] list_global_tables
 - [ ] list_imports
 - [X] list_tables

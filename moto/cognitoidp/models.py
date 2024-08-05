@@ -538,8 +538,22 @@ class CognitoIdpUserPool(BaseModel):
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
-            "username" if token_use == "access" else "cognito:username": username,
         }
+        username_is_email = "email" in self.extended_config.get(
+            "UsernameAttributes", []
+        )
+        if token_use == "access":
+            if username_is_email:
+                payload["username"] = payload["sub"]
+            else:
+                payload["username"] = username
+        if token_use == "id":
+            if username_is_email:
+                payload["cognito:username"] = payload["sub"]
+                payload["email"] = username
+            else:
+                payload["cognito:username"] = username
+
         payload.update(extra_data or {})
         headers = {"kid": "dummy", "alg": "RS256"}  # KID as present in jwks-public.json
 
@@ -1942,6 +1956,23 @@ class CognitoIdpBackend(BaseBackend):
                 return {
                     "ChallengeName": "NEW_PASSWORD_REQUIRED",
                     "ChallengeParameters": {"USERNAME": user.username},
+                    "Session": session,
+                }
+
+            if (
+                user.software_token_mfa_enabled
+                and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
+            ):
+                return {
+                    "ChallengeName": "SOFTWARE_TOKEN_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
+            if user.sms_mfa_enabled and user.preferred_mfa_setting == "SMS_MFA":
+                return {
+                    "ChallengeName": "SMS_MFA",
+                    "ChallengeParameters": {},
                     "Session": session,
                 }
 

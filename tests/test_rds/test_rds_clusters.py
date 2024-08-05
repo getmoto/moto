@@ -1090,6 +1090,11 @@ def test_modify_db_cluster_snapshot_attribute():
         AttributeName="restore",
         ValuesToRemove=["test"],
     )
+    resp = conn.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier="g-1",
+        AttributeName="restore",
+        ValuesToAdd=["test3"],
+    )
     assert (
         resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
         == "g-1"
@@ -1102,7 +1107,7 @@ def test_modify_db_cluster_snapshot_attribute():
     )
     assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
         "AttributeValues"
-    ] == ["test2"]
+    ] == ["test2", "test3"]
 
 
 @mock_aws

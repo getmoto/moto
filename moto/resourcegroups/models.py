@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import BadRequestException
 
@@ -246,7 +246,7 @@ class ResourceGroupsBackend(BaseBackend):
             if not isinstance(stack_identifier, str):
                 raise invalid_json_exception
             if not re.match(
-                r"^arn:aws:cloudformation:[a-z]{2}-[a-z]+-[0-9]+:[0-9]+:stack/[-0-9A-z]+/[-0-9a-f]+$",
+                rf"{ARN_PARTITION_REGEX}:cloudformation:[a-z]{{2}}-[a-z]+-[0-9]+:[0-9]+:stack/[-0-9A-z]+/[-0-9a-f]+$",
                 stack_identifier,
             ):
                 raise BadRequestException(
