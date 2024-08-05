@@ -5,13 +5,13 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from tests import aws_verified
 
-from . import kms_aws_verified
 from .test_kms_boto3 import PLAINTEXT_VECTORS, _get_encoded_value
 
 
 @pytest.mark.aws_verified
-@kms_aws_verified
+@aws_verified
 def test_encrypt_key_with_empty_content():
     client_kms = boto3.client("kms", region_name="ap-northeast-1")
     metadata = client_kms.create_key()["KeyMetadata"]
@@ -27,7 +27,7 @@ def test_encrypt_key_with_empty_content():
 
 
 @pytest.mark.aws_verified
-@kms_aws_verified
+@aws_verified
 def test_encrypt_key_with_large_content():
     client_kms = boto3.client("kms", region_name="ap-northeast-1")
     metadata = client_kms.create_key()["KeyMetadata"]
