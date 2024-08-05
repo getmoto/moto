@@ -51,7 +51,7 @@ class User(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, any]:
         user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
@@ -223,7 +223,7 @@ class Server(BaseModel):
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, any]:
         server = {
             "Certificate": self.certificate,
             "Domain": self.domain,
