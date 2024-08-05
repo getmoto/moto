@@ -38,15 +38,15 @@ class TransferResponse(BaseResponse):
                     "target": mapping.get("Target"),
                     "type": mapping.get("Type"),
                 }
-                for mapping in home_directory_mappings
+                for mapping in home_directory_mappings_from_request
             ]
         posix_profile_from_request = params.get("PosixProfile")
         posix_profile: UserPosixProfile
         if posix_profile_from_request is not None:
             posix_profile = {
-                "gid": posix_profile.get("Gid"),
-                "uid": posix_profile.get("Uid"),
-                "secondary_gids": posix_profile.get("SecondaryGids"),
+                "gid": posix_profile_from_request.get("Gid"),
+                "uid": posix_profile_from_request.get("Uid"),
+                "secondary_gids": posix_profile_from_request.get("SecondaryGids"),
             }
         server_id, user_name = self.transfer_backend.create_user(
             home_directory=params.get("HomeDirectory"),
@@ -108,21 +108,21 @@ class TransferResponse(BaseResponse):
         endpoint_details: ServerEndpointDetails
         if endpoint_details_from_request is not None:
             endpoint_details = {
-                "address_allocation_ids": endpoint_details.get("AddressAllocationIds"),
-                "subnet_ids": endpoint_details.get("SubnetIds"),
-                "vpc_endpoint_id": endpoint_details.get("VpcEndpointId"),
-                "vpc_id": endpoint_details.get("VpcId"),
-                "security_group_ids": endpoint_details.get("SecurityGroupIds"),
+                "address_allocation_ids": endpoint_details_from_request.get("AddressAllocationIds"),
+                "subnet_ids": endpoint_details_from_request.get("SubnetIds"),
+                "vpc_endpoint_id": endpoint_details_from_request.get("VpcEndpointId"),
+                "vpc_id": endpoint_details_from_request.get("VpcId"),
+                "security_group_ids": endpoint_details_from_request.get("SecurityGroupIds"),
             }
         identity_provider_details_from_request = params.get("IdentityProviderDetails")
         identity_provider_details: ServerIdentityProviderDetails 
         if identity_provider_details_from_request is not None:
             identity_provider_details = {
-                "url": identity_provider_details.get("Url"),
-                "invocation_role": identity_provider_details.get("InvocationRole"),
-                "directory_id": identity_provider_details.get("DirectoryId"),
-                "function": identity_provider_details.get("Function"),
-                "sftp_authentication_methods": identity_provider_details.get(
+                "url": identity_provider_details_from_request.get("Url"),
+                "invocation_role": identity_provider_details_from_request.get("InvocationRole"),
+                "directory_id": identity_provider_details_from_request.get("DirectoryId"),
+                "function": identity_provider_details_from_request.get("Function"),
+                "sftp_authentication_methods": identity_provider_details_from_request.get(
                     "SftpAuthenticationMethods"
                 ),
             }
@@ -130,18 +130,18 @@ class TransferResponse(BaseResponse):
         protocol_details: ServerProtocolDetails
         if protocol_details_from_request is not None:
             protocol_details = {
-                "passive_ip": protocol_details.get("PassiveIp"),
-                "tls_session_resumption_mode": protocol_details.get(
+                "passive_ip": protocol_details_from_request.get("PassiveIp"),
+                "tls_session_resumption_mode": protocol_details_from_request.get(
                     "TlsSessionResumptionMode"
                 ),
-                "set_stat_option": protocol_details.get("SetStatOption"),
-                "as2_transports": protocol_details.get("As2Transports"),
+                "set_stat_option": protocol_details_from_request.get("SetStatOption"),
+                "as2_transports": protocol_details_from_request.get("As2Transports"),
             }
         s3_storage_options_from_request = params.get("S3StorageOptions")
         s3_storage_options: ServerS3StorageOptions
         if s3_storage_options_from_request is not None:
             s3_storage_options = {
-                "directory_listing_optimization": s3_storage_options.get(
+                "directory_listing_optimization": s3_storage_options_from_request.get(
                     "DirectoryListingOptimization"
                 )
             }
@@ -154,14 +154,14 @@ class TransferResponse(BaseResponse):
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole"),
                     }
-                    for workflow in (workflow_details.get("OnUpload") or [])
+                    for workflow in (workflow_details_from_request.get("OnUpload") or [])
                 ],
                 "on_partial_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole"),
                     }
-                    for workflow in (workflow_details.get("OnPartialUpload") or [])
+                    for workflow in (workflow_details_from_request.get("OnPartialUpload") or [])
                 ],
             }
 
