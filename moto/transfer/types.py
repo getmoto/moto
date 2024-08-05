@@ -301,26 +301,26 @@ class Server(BaseModel):
                 }
             )
         if self.workflow_details is not None:
-            server.update(
-                {
-                    "WorkflowDetails": {
-                        "OnUpload": [
-                            {
-                                "WorkflowId": workflow.get("workflow_id"),
-                                "ExecutionRole": workflow.get("execution_role"),
-                            }
-                            for workflow in self.workflow_details.get("on_upload")
-                        ],
-                        "OnPartialUpload": [
-                            {
-                                "WorkflowId": workflow.get("workflow_id"),
-                                "ExecutionRole": workflow.get("execution_role"),
-                            }
-                            for workflow in self.workflow_details.get(
-                                "on_partial_upload"
-                            )
-                        ],
+            workflow_details = {
+                "WorkflowDetails": {}
+            }
+            on_upload = self.workflow_details.get("on_upload")
+            if on_upload is not None:
+                workflow_details["WorkflowDetails"]["OnUpload"] = [
+                    {
+                        "WorkflowId": workflow.get("workflow_id"),
+                        "ExecutionRole": workflow.get("execution_role"),
                     }
-                }
-            )
+                    for workflow in on_upload
+                ]
+            on_partial_upload = self.workflow_details.get("on_partial_upload")
+            if on_partial_upload is not None:
+                workflow_details["WorkflowDetails"]["OnPartialUpload"] = [
+                    {
+                        "WorkflowId": workflow.get("workflow_id"),
+                        "ExecutionRole": workflow.get("execution_role"),
+                    }
+                    for workflow in on_partial_upload
+                ]
+            server.update(workflow_details)
         return server
