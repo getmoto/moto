@@ -33,14 +33,16 @@ class User(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self) -> Dict[
-        str, 
+    def to_dict(
+        self,
+    ) -> Dict[
+        str,
         Union[
             str,
-            Dict[str, List[Dict[str, str]]], 
-            Dict[str, List[str]], 
-            List[Dict[str, str]]
-        ]
+            Dict[str, List[Dict[str, str]]],
+            Dict[str, List[str]],
+            List[Dict[str, str]],
+        ],
     ]:
         user = {
             "HomeDirectory": self.home_directory,
@@ -163,12 +165,14 @@ class Server(BaseModel):
     endpoint_details: Dict[str, str] = field(default_factory=dict)
     identity_provider_details: Dict[str, str] = field(default_factory=dict)
     protocol_details: Dict[str, str] = field(default_factory=dict)
-    s3_storage_options: Dict[str, Dict[str,str]] = field(default_factory=dict)
+    s3_storage_options: Dict[str, Dict[str, str]] = field(default_factory=dict)
     server_id: str = field(default="", init=False)
     state: Optional[ServerState] = ServerState.ONLINE
     tags: List[Dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
-    workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = field(default_factory=dict)
+    workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = field(
+        default_factory=dict
+    )
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
@@ -268,7 +272,9 @@ class Server(BaseModel):
                 }
             )
         if self.workflow_details is not None:
-            workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = {"WorkflowDetails": {}}
+            workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = {
+                "WorkflowDetails": {}
+            }
             on_upload = self.workflow_details.get("on_upload")
             if on_upload is not None:
                 workflow_details["WorkflowDetails"]["OnUpload"] = [
