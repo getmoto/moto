@@ -681,20 +681,25 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-        # sagemaker cluster
-        if (
-            not resource_type_filters
-            or "sagemaker" in resource_type_filters
-            or "sagemaker:cluster" in resource_type_filters
-        ):
-            for sagemaker_cluster in self.sagemaker_backend.clusters.values():
-                tags = self.sagemaker_backend.list_tags(sagemaker_cluster.arn)[0]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": sagemaker_cluster.arn,
-                    "Tags": tags,
-                }
+        # sagemaker cluster and automljob
+        sagemaker_resource_map: Dict[str, Dict[str, Any]] = {
+            "sagemaker:cluster": self.sagemaker_backend.clusters,
+            "sagemaker:automl-job": self.sagemaker_backend.auto_ml_jobs,
+        }
+        for resource_type, resource_source in sagemaker_resource_map.items():
+            if (
+                not resource_type_filters
+                or "sagemaker" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resource_source.values():
+                    tags = self.sagemaker_backend.list_tags(resource.arn)[0]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": resource.arn,
+                        "Tags": tags,
+                    }
 
     def _get_tag_keys_generator(self) -> Iterator[str]:
         # Look at

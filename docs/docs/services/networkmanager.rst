@@ -83,7 +83,7 @@ networkmanager
 - [X] list_core_networks
 - [ ] list_organization_service_access_status
 - [ ] list_peerings
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] put_core_network_policy
 - [ ] put_resource_policy
 - [ ] register_transit_gateway

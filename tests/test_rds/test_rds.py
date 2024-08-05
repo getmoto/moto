@@ -2780,6 +2780,11 @@ def test_modify_db_snapshot_attribute():
         AttributeName="restore",
         ValuesToRemove=["Test"],
     )
+    resp = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier="snapshot-1",
+        AttributeName="restore",
+        ValuesToAdd=["Test3"],
+    )
 
     assert (
         resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0]["AttributeName"]
@@ -2787,7 +2792,7 @@ def test_modify_db_snapshot_attribute():
     )
     assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0][
         "AttributeValues"
-    ] == ["Test2"]
+    ] == ["Test2", "Test3"]
 
 
 def validation_helper(exc):

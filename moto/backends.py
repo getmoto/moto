@@ -94,7 +94,6 @@ if TYPE_CHECKING:
     from moto.meteringmarketplace.models import MeteringMarketplaceBackend
     from moto.moto_api._internal.models import MotoAPIBackend
     from moto.mq.models import MQBackend
-    from moto.neptune.models import NeptuneBackend
     from moto.networkmanager.models import NetworkManagerBackend
     from moto.opensearch.models import OpenSearchServiceBackend
     from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
@@ -147,13 +146,18 @@ if TYPE_CHECKING:
     from moto.xray.models import XRayBackend
 
 
-ALT_SERVICE_NAMES = {"lambda": "awslambda", "moto_api": "moto_api._internal"}
+ALT_SERVICE_NAMES = {
+    "lambda": "awslambda",
+    "moto_api": "moto_api._internal",
+    "neptune": "rds",
+}
 ALT_BACKEND_NAMES = {
     "moto_api._internal": "moto_api",
     "awslambda": "lambda",
     "awslambda_simple": "lambda_simple",
     "dynamodb_v20111205": "dynamodb",
     "elasticbeanstalk": "eb",
+    "neptune": "rds",
 }
 
 
@@ -556,7 +560,7 @@ def get_backend(name: "Literal['moto_api']") -> "BackendDict[MotoAPIBackend]": .
 @overload
 def get_backend(name: "Literal['mq']") -> "BackendDict[MQBackend]": ...
 @overload
-def get_backend(name: "Literal['neptune']") -> "BackendDict[NeptuneBackend]": ...
+def get_backend(name: "Literal['neptune']") -> "BackendDict[RDSBackend]": ...
 @overload
 def get_backend(
     name: "Literal['networkmanager']",

@@ -32,7 +32,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .utils import _BASE_EVENT_MESSAGE, PAGINATION_MODEL, EventMessageType
 
@@ -1675,7 +1675,9 @@ class EventsBackend(BaseBackend):
         destination: Dict[str, Any],
     ) -> Dict[str, Any]:
         event_bus_arn = destination["Arn"]
-        event_bus_arn_pattern = r"^arn:aws:events:[a-zA-Z0-9-]+:\d{12}:event-bus/"
+        event_bus_arn_pattern = (
+            rf"{ARN_PARTITION_REGEX}:events:[a-zA-Z0-9-]+:\d{{12}}:event-bus/"
+        )
         if not re.match(event_bus_arn_pattern, event_bus_arn):
             raise ValidationException(
                 "Parameter Destination.Arn is not valid. Reason: Must contain an event bus ARN."
