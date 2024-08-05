@@ -152,11 +152,14 @@ class ServerS3StorageDirectoryListingOptimization(str, Enum):
     DISABLED = "DISABLED"
 
 
+AS2_TRANSPORTS_TYPE = List[Literal["HTTP"]]
+
+
 class ServerProtocolDetails(TypedDict):
     passive_ip: str
     tls_session_resumption_mode: ServerProtocolTlsSessionResumptionMode
     set_stat_option: ServerSetStatOption
-    as2_transports: List[Literal["HTTP"]]
+    as2_transports: AS2_TRANSPORTS_TYPE
 
 
 class ServerEndpointDetails(TypedDict):
@@ -278,32 +281,39 @@ class Server(BaseModel):
                 }
             )
         if self.protocol_details is not None:
-            protocol_details = {"ProtocolDetails": {}}
-            passive_ip = self.protocol_details.get("passive_ip")
+            protocol_details: ServerProtocolDetails = {}
+            passive_ip: str = self.protocol_details.get("passive_ip")
             if passive_ip is not None:
-                protocol_details["ProtocolDetails"]["PassiveIp"] = passive_ip
-            tls_session_resumption_mode = self.protocol_details.get("tls_session_resumption_mode")
-            if tls_session_resumption_mode is not None:
-                protocol_details["ProtocolDetails"]["TlsSessionResumptionMode"] = tls_session_resumption_mode
-            set_stat_option = self.protocol_details.get("set_stat_option")
-            if set_stat_option is not None:
-                protocol_details["ProtocolDetails"]["SetStatOption"] = set_stat_option 
-            as2_transports = self.protocol_details.get("as2_transports")
-            if as2_transports is not None:
-                protocol_details["ProtocolDetails"]["As2Transports"] = as2_transports
-            server.update(protocol_details)
-        if self.s3_storage_options is not None:
-            server.update(
-                {
-                    "S3StorageOptions": {
-                        "DirectoryListingOptimization": self.s3_storage_options.get(
-                            "directory_listing_optimization"
-                        )
-                    }
-                }
+                protocol_details["PassiveIp"] = passive_ip
+            tls_session_resumption_mode: ServerProtocolTlsSessionResumptionMode = (
+                self.protocol_details.get("tls_session_resumption_mode")
             )
+            if tls_session_resumption_mode is not None:
+                protocol_details["TlsSessionResumptionMode"] = (
+                    tls_session_resumption_mode
+                )
+            set_stat_option: ServerSetStatOption = self.protocol_details.get(
+                "set_stat_option"
+            )
+            if set_stat_option is not None:
+                protocol_details["SetStatOption"] = set_stat_option
+            as2_transports: AS2_TRANSPORTS_TYPE = self.protocol_details.get(
+                "as2_transports"
+            )
+            if as2_transports is not None:
+                protocol_details["As2Transports"] = as2_transports
+            server.update({"ProtocolDetails": protocol_details})
+        if self.s3_storage_options is not None:
+            s3_storage_options: ServerS3StorageOptions = {
+                "S3StorageOptions": {
+                    "DirectoryListingOptimization": self.s3_storage_options.get(
+                        "directory_listing_optimization"
+                    )
+                }
+            }
+            server.update(s3_storage_options)
         if self.workflow_details is not None:
-            workflow_details = {"WorkflowDetails": {}}
+            workflow_details: ServerWorkflowDetails = {"WorkflowDetails": {}}
             on_upload = self.workflow_details.get("on_upload")
             if on_upload is not None:
                 workflow_details["WorkflowDetails"]["OnUpload"] = [
