@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Union
 
 from moto.core.common_models import BaseModel
 
@@ -25,7 +25,7 @@ class User(BaseModel):
     user_name: str
     arn: str = field(default="", init=False)
     home_directory_mappings: List[Dict[str, str]] = field(default_factory=list)
-    posix_profile: Dict[str, Any] = field(default_factory=dict)
+    posix_profile: Dict[str, Union[str, List[str]]] = field(default_factory=dict)
     ssh_public_keys: List[Dict[str, str]] = field(default_factory=list)
     tags: List[Dict[str, str]] = field(default_factory=list)
 
@@ -33,7 +33,7 @@ class User(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Union[str, Dict[str, List[Dict[str, str]], Union[str, List[str]]], List[Dict[str, str]]]]:
         user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
@@ -152,10 +152,10 @@ class Server(BaseModel):
     structured_log_destinations: Optional[List[str]]
     arn: str = field(default="", init=False)
     as2_service_managed_egress_ip_addresses: List[str] = field(default_factory=list)
-    endpoint_details: Dict[str, Any] = field(default_factory=dict)
-    identity_provider_details: Dict[str, Any] = field(default_factory=dict)
-    protocol_details: Dict[str, Any] = field(default_factory=dict)
-    s3_storage_options: Dict[str, str] = field(default_factory=dict)
+    endpoint_details: Dict[str, str] = field(default_factory=dict)
+    identity_provider_details: Dict[str, str] = field(default_factory=dict)
+    protocol_details: Dict[str, str] = field(default_factory=dict)
+    s3_storage_options: Dict[str, Dict[str,str]] = field(default_factory=dict)
     server_id: str = field(default="", init=False)
     state: Optional[ServerState] = ServerState.ONLINE
     tags: List[Dict[str, str]] = field(default_factory=list)
@@ -226,7 +226,7 @@ class Server(BaseModel):
                 }
             )
         if self.protocol_details is not None:
-            protocol_details: Dict[str, Any] = {}
+            protocol_details: Dict[str, str] = {}
             passive_ip: str = self.protocol_details.get("passive_ip")
             if passive_ip is not None:
                 protocol_details["PassiveIp"] = passive_ip
@@ -260,7 +260,7 @@ class Server(BaseModel):
                 }
             )
         if self.workflow_details is not None:
-            workflow_details: Dict[str, Any] = {"WorkflowDetails": {}}
+            workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = {"WorkflowDetails": {}}
             on_upload = self.workflow_details.get("on_upload")
             if on_upload is not None:
                 workflow_details["WorkflowDetails"]["OnUpload"] = [
