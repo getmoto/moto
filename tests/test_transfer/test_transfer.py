@@ -166,6 +166,7 @@ def test_create_describe_and_delete_user(client, server):
             {
                 "Entry": "/directory1",
                 "Target": "/bucket_name/home/mydirectory",
+                # Type is optional
             }
         ],
         Policy="MockPolicy",

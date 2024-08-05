@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from moto.core.common_models import BaseModel
 
@@ -24,8 +24,12 @@ class User(BaseModel):
     role: str
     user_name: str
     arn: str = field(default="", init=False)
-    home_directory_mappings: List[Dict[str, str]] = field(default_factory=list)
-    posix_profile: Dict[str, Union[str, List[str]]] = field(default_factory=dict)
+    home_directory_mappings: List[Dict[str, Optional[str]]] = field(
+        default_factory=list
+    )
+    posix_profile: Dict[str, Optional[Union[str, List[str]]]] = field(
+        default_factory=dict
+    )
     ssh_public_keys: List[Dict[str, str]] = field(default_factory=list)
     tags: List[Dict[str, str]] = field(default_factory=list)
 
@@ -35,15 +39,7 @@ class User(BaseModel):
 
     def to_dict(
         self,
-    ) -> Dict[
-        str,
-        Union[
-            str,
-            Dict[str, List[Dict[str, str]]],
-            Dict[str, List[str]],
-            List[Dict[str, str]],
-        ],
-    ]:
+    ) -> Dict[str, Any]:  # type: ignore[misc]
         user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
@@ -59,43 +55,23 @@ class User(BaseModel):
                 }
                 for mapping in self.home_directory_mappings
             ],
+            "SshPublicKeys": [
+                {
+                    "DateImported": key.get("date_imported"),
+                    "SshPublicKeyBody": key.get("ssh_public_key_body"),
+                    "SshPublicKeyId": key.get("ssh_public_key_id"),
+                }
+                for key in self.ssh_public_keys
+            ],
+            "PosixProfile": {
+                "Uid": self.posix_profile.get("uid"),
+                "Gid": self.posix_profile.get("gid"),
+                "SecondaryGids": self.posix_profile.get("secondary_gids"),
+            },
             "Tags": self.tags,
         }
-        if self.posix_profile:
-            user.update(
-                {
-                    "PosixProfile": {
-                        "Uid": self.posix_profile.get("uid"),
-                        "Gid": self.posix_profile.get("gid"),
-                        "SecondaryGids": self.posix_profile.get("secondary_gids"),
-                    }
-                }
-            )
-        if len(self.ssh_public_keys) > 0:
-            user.update(
-                {
-                    "SshPublicKeys": [
-                        {
-                            "DateImported": key.get("date_imported"),
-                            "SshPublicKeyBody": key.get("ssh_public_key_body"),
-                            "SshPublicKeyId": key.get("ssh_public_key_id"),
-                        }
-                        for key in self.ssh_public_keys
-                    ]
-                }
-            )
+
         return user
-
-
-class ServerProtocolTlsSessionResumptionMode(str, Enum):
-    DISABLED = "DISABLED"
-    ENABLED = "ENABLED"
-    ENFORCED = "ENFORCED"
-
-
-class ServerSetStatOption(str, Enum):
-    DEFAULT = "DEFAULT"
-    ENABLE_NO_OP = "ENABLE_NO_OP"
 
 
 class ServerDomain(str, Enum):
@@ -139,11 +115,6 @@ class ServerState(str, Enum):
     STOP_FAILED = "STOP_FAILED"
 
 
-class ServerS3StorageDirectoryListingOptimization(str, Enum):
-    ENABLED = "ENABLED"
-    DISABLED = "DISABLED"
-
-
 AS2_TRANSPORTS_TYPE = List[Literal["HTTP"]]
 
 
@@ -165,14 +136,12 @@ class Server(BaseModel):
     endpoint_details: Dict[str, str] = field(default_factory=dict)
     identity_provider_details: Dict[str, str] = field(default_factory=dict)
     protocol_details: Dict[str, str] = field(default_factory=dict)
-    s3_storage_options: Dict[str, Dict[str, str]] = field(default_factory=dict)
+    s3_storage_options: Dict[str, Optional[str]] = field(default_factory=dict)
     server_id: str = field(default="", init=False)
     state: Optional[ServerState] = ServerState.ONLINE
     tags: List[Dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
-    workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = field(
-        default_factory=dict
-    )
+    workflow_details: Dict[str, List[Dict[str, str]]] = field(default_factory=dict)
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
@@ -183,7 +152,29 @@ class Server(BaseModel):
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
+        on_upload = []
+        on_partial_upload = []
+        if self.workflow_details is not None:
+            on_upload_workflows = self.workflow_details.get("on_upload")
+
+            if on_upload_workflows is not None:
+                for workflow in on_upload_workflows:
+                    workflow_id = workflow.get("workflow_id")
+                    execution_role = workflow.get("execution_role")
+                    if workflow_id and execution_role:
+                        on_upload.append(
+                            {"WorkflowId": workflow_id, "ExecutionRole": execution_role}
+                        )
+            on_partial_upload_workflows = self.workflow_details.get("on_partial_upload")
+            if on_partial_upload_workflows is not None:
+                for workflow in on_partial_upload_workflows:
+                    workflow_id = workflow.get("workflow_id")
+                    execution_role = workflow.get("execution_role")
+                    if workflow_id and execution_role:
+                        on_partial_upload.append(
+                            {"WorkflowId": workflow_id, "ExecutionRole": execution_role}
+                        )
         server = {
             "Certificate": self.certificate,
             "Domain": self.domain,
@@ -202,96 +193,40 @@ class Server(BaseModel):
             "State": self.state,
             "Tags": self.tags,
             "UserCount": self.user_count,
-        }
-        if self.endpoint_details is not None:
-            server.update(
-                {
-                    "EndpointDetails": {
-                        "AddressAllocationIds": self.endpoint_details.get(
-                            "address_allocation_ids"
-                        ),
-                        "SubnetIds": self.endpoint_details.get("subnet_ids"),
-                        "VpcEndpointId": self.endpoint_details.get("vpc_endpoint_id"),
-                        "VpcId": self.endpoint_details.get("vpc_id"),
-                        "SecurityGroupIds": self.endpoint_details.get(
-                            "security_group_ids"
-                        ),
-                    }
-                }
-            )
-        if self.identity_provider_details is not None:
-            server.update(
-                {
-                    "IdentityProviderDetails": {
-                        "Url": self.identity_provider_details.get("url"),
-                        "InvocationRole": self.identity_provider_details.get(
-                            "invocation_role"
-                        ),
-                        "DirectoryId": self.identity_provider_details.get(
-                            "directory_id"
-                        ),
-                        "Function": self.identity_provider_details.get("function"),
-                        "SftpAuthenticationMethods": self.identity_provider_details.get(
-                            "sftp_authentication_methods"
-                        ),
-                    }
-                }
-            )
-        if self.protocol_details is not None:
-            protocol_details: Dict[str, str] = {}
-            passive_ip: str = self.protocol_details.get("passive_ip")
-            if passive_ip is not None:
-                protocol_details["PassiveIp"] = passive_ip
-            tls_session_resumption_mode: ServerProtocolTlsSessionResumptionMode = (
-                self.protocol_details.get("tls_session_resumption_mode")
-            )
-            if tls_session_resumption_mode is not None:
-                protocol_details["TlsSessionResumptionMode"] = (
-                    tls_session_resumption_mode
+            "EndpointDetails": {
+                "AddressAllocationIds": self.endpoint_details.get(
+                    "address_allocation_ids"
+                ),
+                "SubnetIds": self.endpoint_details.get("subnet_ids"),
+                "VpcEndpointId": self.endpoint_details.get("vpc_endpoint_id"),
+                "VpcId": self.endpoint_details.get("vpc_id"),
+                "SecurityGroupIds": self.endpoint_details.get("security_group_ids"),
+            },
+            "IdentityProviderDetails": {
+                "Url": self.identity_provider_details.get("url"),
+                "InvocationRole": self.identity_provider_details.get("invocation_role"),
+                "DirectoryId": self.identity_provider_details.get("directory_id"),
+                "Function": self.identity_provider_details.get("function"),
+                "SftpAuthenticationMethods": self.identity_provider_details.get(
+                    "sftp_authentication_methods"
+                ),
+            },
+            "ProtocolDetails": {
+                "PassiveIp": self.protocol_details.get("passive_ip"),
+                "TlsSessionResumptionMode": self.protocol_details.get(
+                    "tls_session_resumption_mode"
+                ),
+                "SetStatOption": self.protocol_details.get("set_stat_option"),
+                "As2Transports": self.protocol_details.get("as2_transports"),
+            },
+            "S3StorageOptions": {
+                "DirectoryListingOptimization": self.s3_storage_options.get(
+                    "directory_listing_optimization"
                 )
-            set_stat_option: ServerSetStatOption = self.protocol_details.get(
-                "set_stat_option"
-            )
-            if set_stat_option is not None:
-                protocol_details["SetStatOption"] = set_stat_option
-            as2_transports: AS2_TRANSPORTS_TYPE = self.protocol_details.get(
-                "as2_transports"
-            )
-            if as2_transports is not None:
-                protocol_details["As2Transports"] = as2_transports
-            server.update({"ProtocolDetails": protocol_details})
-        if self.s3_storage_options is not None:
-            directory_listing_optimization: ServerS3StorageDirectoryListingOptimization = self.s3_storage_options.get(
-                "directory_listing_optimization"
-            )
-            server.update(
-                {
-                    "S3StorageOptions": {
-                        "DirectoryListingOptimization": directory_listing_optimization
-                    }
-                }
-            )
-        if self.workflow_details is not None:
-            workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = {
-                "WorkflowDetails": {}
-            }
-            on_upload = self.workflow_details.get("on_upload")
-            if on_upload is not None:
-                workflow_details["WorkflowDetails"]["OnUpload"] = [
-                    {
-                        "WorkflowId": workflow.get("workflow_id"),
-                        "ExecutionRole": workflow.get("execution_role"),
-                    }
-                    for workflow in on_upload
-                ]
-            on_partial_upload = self.workflow_details.get("on_partial_upload")
-            if on_partial_upload is not None:
-                workflow_details["WorkflowDetails"]["OnPartialUpload"] = [
-                    {
-                        "WorkflowId": workflow.get("workflow_id"),
-                        "ExecutionRole": workflow.get("execution_role"),
-                    }
-                    for workflow in on_partial_upload
-                ]
-            server.update(workflow_details)
+            },
+            "WorkflowDetails": {
+                "OnUpload": on_upload,
+                "OnPartialUpload": on_partial_upload,
+            },
+        }
         return server

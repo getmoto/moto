@@ -42,25 +42,21 @@ class TransferBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         workflow_details: Optional[Dict[str, Any]],
         structured_log_destinations: Optional[List[str]],
-        s3_storage_options: Optional[Dict[str, str]],
+        s3_storage_options: Optional[Dict[str, Optional[str]]],
     ) -> str:
         server = Server(
             certificate=certificate,
             domain=domain,
             endpoint_type=endpoint_type,
             host_key_fingerprint=host_key,
-            identity_provider_details=identity_provider_details,
             identity_provider_type=identity_provider_type,
             logging_role=logging_role,
             post_authentication_login_banner=post_authentication_login_banner,
             pre_authentication_login_banner=pre_authentication_login_banner,
-            protocol_details=protocol_details,
             protocols=protocols,
-            s3_storage_options=s3_storage_options,
             security_policy_name=security_policy_name,
             structured_log_destinations=structured_log_destinations,
             tags=(tags or []),
-            workflow_details=workflow_details,
         )
         if endpoint_details is not None:
             endpoint_details = {
@@ -135,7 +131,7 @@ class TransferBackend(BaseBackend):
         self,
         home_directory: Optional[str],
         home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: List[Dict[str, str]],
+        home_directory_mappings: List[Dict[str, Optional[str]]],
         policy: Optional[str],
         posix_profile: Optional[Dict[str, Any]],
         role: str,
@@ -155,15 +151,14 @@ class TransferBackend(BaseBackend):
             user_name=user_name,
         )
         if len(home_directory_mappings) > 0:
-            home_directory_mappings = [
-                {
-                    "entry": mapping.get("Entry"),
-                    "target": mapping.get("Target"),
-                    "type": mapping.get("Type"),
-                }
-                for mapping in home_directory_mappings
-            ]
-            user.home_directory_mappings = home_directory_mappings
+            for mapping in home_directory_mappings:
+                user.home_directory_mappings.append(
+                    {
+                        "entry": mapping.get("Entry"),
+                        "target": mapping.get("Target"),
+                        "type": mapping.get("Type"),
+                    }
+                )
         if posix_profile is not None:
             posix_profile = {
                 "gid": posix_profile.get("Gid"),
