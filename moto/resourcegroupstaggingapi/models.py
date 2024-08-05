@@ -681,10 +681,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
-        # sagemaker cluster and automljob
+        # sagemaker cluster, automljob, compilation-job, domain, model-explainability-job-definition, model-quality-job-definition, and hyper-parameter-tuning-job currently supported
         sagemaker_resource_map: Dict[str, Dict[str, Any]] = {
             "sagemaker:cluster": self.sagemaker_backend.clusters,
             "sagemaker:automl-job": self.sagemaker_backend.auto_ml_jobs,
+            "sagemaker:compilation-job": self.sagemaker_backend.compilation_jobs,
+            "sagemaker:domain": self.sagemaker_backend.domains,
+            "sagemaker:model-explainability-job-definition": self.sagemaker_backend.model_explainability_job_definitions,
+            "sagemaker:model-quality-job-definition": self.sagemaker_backend.model_quality_job_definitions,
+            "sagemaker:hyper-parameter-tuning-job": self.sagemaker_backend.hyper_parameter_tuning_jobs,
         }
         for resource_type, resource_source in sagemaker_resource_map.items():
             if (
