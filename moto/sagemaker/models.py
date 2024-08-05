@@ -153,7 +153,7 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "arn",
-    }
+    },
 }
 
 METRIC_INFO_TYPE = Dict[str, Union[str, int, float, datetime]]
@@ -2870,8 +2870,7 @@ class SageMakerModelBackend(BaseBackend):
         self.model_package_name_mapping: Dict[str, str] = {}
         self.feature_groups: Dict[str, FeatureGroup] = {}
         self.clusters: Dict[str, Cluster] = {}
-        self.data_quality_job_definitions: Dict[str,
-                                                FakeDataQualityJobDefinition] = {}
+        self.data_quality_job_definitions: Dict[str, FakeDataQualityJobDefinition] = {}
         self.auto_ml_jobs: Dict[str, AutoMLJob] = {}
         self.compilation_jobs: Dict[str, CompilationJob] = {}
         self.domains: Dict[str, Domain] = {}
@@ -5699,22 +5698,23 @@ class SageMakerModelBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_data_quality_job_definitions(self) -> List[Dict[str, str]]:
-        return [job.summary_object for job in self.data_quality_job_definitions.values()]
+        return [
+            job.summary_object for job in self.data_quality_job_definitions.values()
+        ]
 
-    def describe_data_quality_job_definition(self, job_definition_name: str) -> Dict[str, Any]:
-        job_definition = self.data_quality_job_definitions.get(
-            job_definition_name)
+    def describe_data_quality_job_definition(
+        self, job_definition_name: str
+    ) -> Dict[str, Any]:
+        job_definition = self.data_quality_job_definitions.get(job_definition_name)
         if job_definition is None:
-            raise ResourceNotFound(
-                f"Job definition {job_definition_name} not found")
+            raise ResourceNotFound(f"Job definition {job_definition_name} not found")
         return job_definition.response_object
 
     def delete_data_quality_job_definition(self, job_definition_name: str) -> None:
         if job_definition_name in self.data_quality_job_definitions:
             del self.data_quality_job_definitions[job_definition_name]
         else:
-            raise ResourceNotFound(
-                f"Job definition {job_definition_name} not found")
+            raise ResourceNotFound(f"Job definition {job_definition_name} not found")
 
 
 class FakeDataQualityJobDefinition(BaseObject):
@@ -5775,7 +5775,6 @@ class FakeDataQualityJobDefinition(BaseObject):
             "CreationTime": self.creation_time,
             "EndpointName": "EndpointName",
         }
-
 
 
 class FakeExperiment(BaseObject):
