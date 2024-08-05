@@ -33,7 +33,15 @@ class User(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(self) -> Dict[str, Union[str, Dict[str, List[Dict[str, str]], Union[str, List[str]]], List[Dict[str, str]]]]:
+    def to_dict(self) -> Dict[
+        str, 
+        Union[
+            str,
+            Dict[str, List[Dict[str, str]]], 
+            Dict[str, List[str]], 
+            List[Dict[str, str]]
+        ]
+    ]:
         user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
@@ -160,7 +168,7 @@ class Server(BaseModel):
     state: Optional[ServerState] = ServerState.ONLINE
     tags: List[Dict[str, str]] = field(default_factory=list)
     user_count: int = field(default=0)
-    workflow_details: Dict[str, Any] = field(default_factory=dict)
+    workflow_details: Dict[str, Dict[str, List[Dict[str, str]]]] = field(default_factory=dict)
     _users: List[User] = field(default_factory=list, repr=False)
 
     def __post_init__(self) -> None:
@@ -171,7 +179,7 @@ class Server(BaseModel):
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict:
         server = {
             "Certificate": self.certificate,
             "Domain": self.domain,
