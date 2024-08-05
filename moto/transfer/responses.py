@@ -31,7 +31,10 @@ class TransferResponse(BaseResponse):
         params = json.loads(self.body)
         home_directory_mappings_from_request = params.get("HomeDirectoryMappings")
         home_directory_mappings: List[UserHomeDirectoryMapping]
-        if home_directory_mappings_from_request is not None and len(home_directory_mappings_from_request) > 0:
+        if (
+            home_directory_mappings_from_request is not None
+            and len(home_directory_mappings_from_request) > 0
+        ):
             home_directory_mappings = [
                 {
                     "entry": mapping.get("Entry"),
@@ -108,19 +111,27 @@ class TransferResponse(BaseResponse):
         endpoint_details: ServerEndpointDetails
         if endpoint_details_from_request is not None:
             endpoint_details = {
-                "address_allocation_ids": endpoint_details_from_request.get("AddressAllocationIds"),
+                "address_allocation_ids": endpoint_details_from_request.get(
+                    "AddressAllocationIds"
+                ),
                 "subnet_ids": endpoint_details_from_request.get("SubnetIds"),
                 "vpc_endpoint_id": endpoint_details_from_request.get("VpcEndpointId"),
                 "vpc_id": endpoint_details_from_request.get("VpcId"),
-                "security_group_ids": endpoint_details_from_request.get("SecurityGroupIds"),
+                "security_group_ids": endpoint_details_from_request.get(
+                    "SecurityGroupIds"
+                ),
             }
         identity_provider_details_from_request = params.get("IdentityProviderDetails")
-        identity_provider_details: ServerIdentityProviderDetails 
+        identity_provider_details: ServerIdentityProviderDetails
         if identity_provider_details_from_request is not None:
             identity_provider_details = {
                 "url": identity_provider_details_from_request.get("Url"),
-                "invocation_role": identity_provider_details_from_request.get("InvocationRole"),
-                "directory_id": identity_provider_details_from_request.get("DirectoryId"),
+                "invocation_role": identity_provider_details_from_request.get(
+                    "InvocationRole"
+                ),
+                "directory_id": identity_provider_details_from_request.get(
+                    "DirectoryId"
+                ),
                 "function": identity_provider_details_from_request.get("Function"),
                 "sftp_authentication_methods": identity_provider_details_from_request.get(
                     "SftpAuthenticationMethods"
@@ -154,14 +165,18 @@ class TransferResponse(BaseResponse):
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole"),
                     }
-                    for workflow in (workflow_details_from_request.get("OnUpload") or [])
+                    for workflow in (
+                        workflow_details_from_request.get("OnUpload") or []
+                    )
                 ],
                 "on_partial_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole"),
                     }
-                    for workflow in (workflow_details_from_request.get("OnPartialUpload") or [])
+                    for workflow in (
+                        workflow_details_from_request.get("OnPartialUpload") or []
+                    )
                 ],
             }
 
