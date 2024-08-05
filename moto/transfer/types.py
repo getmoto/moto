@@ -278,18 +278,20 @@ class Server(BaseModel):
                 }
             )
         if self.protocol_details is not None:
-            server.update(
-                {
-                    "ProtocolDetails": {
-                        "PassiveIp": self.protocol_details.get("passive_ip"),
-                        "TlsSessionResumptionMode": self.protocol_details.get(
-                            "tls_session_resumption_mode"
-                        ),
-                        "SetStatOption": self.protocol_details.get("set_stat_option"),
-                        "As2Transports": self.protocol_details.get("as2_transports"),
-                    }
-                }
-            )
+            protocol_details = {"ProtocolDetails": {}}
+            passive_ip = self.protocol_details.get("passive_ip")
+            if passive_ip is not None:
+                protocol_details["ProtocolDetails"]["PassiveIp"] = passive_ip
+            tls_session_resumption_mode = self.protocol_details.get("tls_session_resumption_mode")
+            if tls_session_resumption_mode is not None:
+                protocol_details["ProtocolDetails"]["TlsSessionResumptionMode"] = tls_session_resumption_mode
+            set_stat_option = self.protocol_details.get("set_stat_option")
+            if set_stat_option is not None:
+                protocol_details["ProtocolDetails"]["SetStatOption"] = set_stat_option 
+            as2_transports = self.protocol_details.get("as2_transports")
+            if as2_transports is not None:
+                protocol_details["ProtocolDetails"]["As2Transports"] = as2_transports
+            server.update(protocol_details)
         if self.s3_storage_options is not None:
             server.update(
                 {
