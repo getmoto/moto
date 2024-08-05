@@ -3775,8 +3775,7 @@ class SageMakerModelBackend(BaseBackend):
                 if attr_key == "pipeline_definition_s3_location":
                     self.pipelines[
                         pipeline_name
-                        # type: ignore
-                    ].pipeline_definition = load_pipeline_definition_from_s3(
+                    ].pipeline_definition = load_pipeline_definition_from_s3(  # type: ignore
                         attr_value,
                         self.account_id,
                         partition=self.partition,
