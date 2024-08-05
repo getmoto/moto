@@ -1,18 +1,8 @@
 """Handles incoming transfer requests, invokes methods, returns responses."""
 
 import json
-from typing import List
 
 from moto.core.responses import BaseResponse
-from moto.transfer.types import (
-    ServerEndpointDetails,
-    ServerIdentityProviderDetails,
-    ServerProtocolDetails,
-    ServerS3StorageOptions,
-    ServerWorkflowDetails,
-    UserHomeDirectoryMapping,
-    UserPosixProfile,
-)
 
 from .models import TransferBackend, transfer_backends
 

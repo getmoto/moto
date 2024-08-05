@@ -42,7 +42,9 @@ class User(BaseModel):
     role: str
     user_name: str
     arn: str = field(default="", init=False)
-    home_directory_mappings: List[UserHomeDirectoryMapping] = field(default_factory=list)
+    home_directory_mappings: List[UserHomeDirectoryMapping] = field(
+        default_factory=list
+    )
     posix_profile: UserPosixProfile = field(default_factory=dict)
     ssh_public_keys: List[UserSshPublicKey] = field(default_factory=list)
     tags: List[Dict[str, str]] = field(default_factory=list)
@@ -208,7 +210,9 @@ class Server(BaseModel):
     arn: str = field(default="", init=False)
     as2_service_managed_egress_ip_addresses: List[str] = field(default_factory=list)
     endpoint_details: ServerEndpointDetails = field(default_factory=dict)
-    identity_provider_details: ServerIdentityProviderDetails = field(default_factory=dict)
+    identity_provider_details: ServerIdentityProviderDetails = field(
+        default_factory=dict
+    )
     protocol_details: ServerProtocolDetails = field(default_factory=dict)
     s3_storage_options: ServerS3StorageOptions = field(default_factory=dict)
     server_id: str = field(default="", init=False)

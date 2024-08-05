@@ -69,29 +69,21 @@ class TransferBackend(BaseBackend):
             structured_log_destinations=structured_log_destinations,
             tags=(tags or []),
             workflow_details=workflow_details,
-        )        
+        )
         if endpoint_details is not None:
             endpoint_details = {
-                "address_allocation_ids": endpoint_details.get(
-                    "AddressAllocationIds"
-                ),
+                "address_allocation_ids": endpoint_details.get("AddressAllocationIds"),
                 "subnet_ids": endpoint_details.get("SubnetIds"),
                 "vpc_endpoint_id": endpoint_details.get("VpcEndpointId"),
                 "vpc_id": endpoint_details.get("VpcId"),
-                "security_group_ids": endpoint_details.get(
-                    "SecurityGroupIds"
-                ),
+                "security_group_ids": endpoint_details.get("SecurityGroupIds"),
             }
             server.endpoint_details = endpoint_details
         if identity_provider_details is not None:
             identity_provider_details = {
                 "url": identity_provider_details.get("Url"),
-                "invocation_role": identity_provider_details.get(
-                    "InvocationRole"
-                ),
-                "directory_id": identity_provider_details.get(
-                    "DirectoryId"
-                ),
+                "invocation_role": identity_provider_details.get("InvocationRole"),
+                "directory_id": identity_provider_details.get("DirectoryId"),
                 "function": identity_provider_details.get("Function"),
                 "sftp_authentication_methods": identity_provider_details.get(
                     "SftpAuthenticationMethods"
@@ -121,18 +113,14 @@ class TransferBackend(BaseBackend):
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole"),
                     }
-                    for workflow in (
-                        workflow_details.get("OnUpload") or []
-                    )
+                    for workflow in (workflow_details.get("OnUpload") or [])
                 ],
                 "on_partial_upload": [
                     {
                         "workflow_id": workflow.get("WorkflowId"),
                         "execution_role": workflow.get("ExecutionRole"),
                     }
-                    for workflow in (
-                        workflow_details.get("OnPartialUpload") or []
-                    )
+                    for workflow in (workflow_details.get("OnPartialUpload") or [])
                 ],
             }
         server_id = server.server_id
@@ -174,7 +162,7 @@ class TransferBackend(BaseBackend):
             tags=(tags or []),
             user_name=user_name,
         )
-        if (len(home_directory_mappings) > 0):
+        if len(home_directory_mappings) > 0:
             home_directory_mappings = [
                 {
                     "entry": mapping.get("Entry"),
