@@ -275,7 +275,6 @@ class KmsBackend(BaseBackend):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
         self.keys: Dict[str, Key] = {}
         self.key_to_aliases: Dict[str, Set[str]] = defaultdict(set)
-        self.multi_region_configuration: dict = {"MultiRegionConfiguration": {}}
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
     def _generate_default_keys(self, alias_name: str) -> Optional[str]:
