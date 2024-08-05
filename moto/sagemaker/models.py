@@ -4870,7 +4870,7 @@ class SageMakerModelBackend(BaseBackend):
         model_bias_app_specification: Optional[Dict[str, Any]] = None,
         model_bias_job_input: Optional[Dict[str, Any]] = None,
         model_bias_job_output_config: Optional[Dict[str, Any]] = None,
-    ) -> dict[str, str]:
+    ) -> Dict[str, str]:
         job_definition = FakeModelBiasJobDefinition(
             account_id=account_id,
             region_name=self.region_name,
