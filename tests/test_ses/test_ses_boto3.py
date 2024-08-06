@@ -7,8 +7,7 @@ import pytest
 from botocore.exceptions import ClientError, ParamValidationError
 
 from moto import mock_aws
-
-from . import ses_aws_verified
+from tests import aws_verified
 
 
 @mock_aws
@@ -1314,7 +1313,7 @@ def test_render_template():
 
 
 @pytest.mark.aws_verified
-@ses_aws_verified
+@aws_verified
 def test_render_template__advanced():
     conn = boto3.client("ses", region_name="us-east-1")
 

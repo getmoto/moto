@@ -57,3 +57,28 @@ def test_state_machine_with_input():
         "failure",
         exec_input=json.dumps(_input),
     )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_state_machine_with_json_regex():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Don't need to test this in ServerMode")
+
+    _input = {"Parameters": [{"Name": "/eggs/cooked/like", "Value": "poached"}]}
+    _output = {
+        "Parameters": [{"Name": "/eggs/cooked/like", "Value": "poached"}],
+        "parameterTransforms": {"eggs": ["poached"]},
+    }
+
+    def _verify_result(client, execution, execution_arn):
+        assert execution["input"] == json.dumps(_input)
+        assert json.loads(execution["output"]) == _output
+        return True
+
+    verify_execution_result(
+        _verify_result,
+        "SUCCEEDED",
+        "json_regex",
+        exec_input=json.dumps(_input),
+    )

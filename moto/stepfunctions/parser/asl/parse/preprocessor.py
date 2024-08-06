@@ -17,9 +17,7 @@ from moto.stepfunctions.parser.asl.component.common.catch.catcher_decl import (
 from moto.stepfunctions.parser.asl.component.common.catch.catcher_props import (
     CatcherProps,
 )
-from moto.stepfunctions.parser.asl.component.common.cause_decl import CauseDecl
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
-from moto.stepfunctions.parser.asl.component.common.error_decl import ErrorDecl
 from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name import (
     CustomErrorName,
 )
@@ -173,6 +171,9 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.re
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.reader_config_decl import (
     ReaderConfig,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.reader_config_props import (
+    ReaderConfigProps,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_selector import (
     ItemSelector,
 )
@@ -185,14 +186,22 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.item
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.iterator.iterator_decl import (
     IteratorDecl,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.label import Label
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.max_concurrency import (
     MaxConcurrency,
+    MaxConcurrencyPath,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.mode import (
     Mode,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.state_map import (
     StateMap,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.tolerated_failure import (
+    ToleratedFailureCount,
+    ToleratedFailureCountPath,
+    ToleratedFailurePercentage,
+    ToleratedFailurePercentagePath,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_parallel.branches_decl import (
     BranchesDecl,
@@ -205,6 +214,18 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resou
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.state_task_factory import (
     state_task_for,
+)
+from moto.stepfunctions.parser.asl.component.state.fail.cause_decl import CauseDecl
+from moto.stepfunctions.parser.asl.component.state.fail.cause_path import (
+    CausePath,
+    CausePathIntrinsicFunction,
+    CausePathJsonPath,
+)
+from moto.stepfunctions.parser.asl.component.state.fail.error_decl import ErrorDecl
+from moto.stepfunctions.parser.asl.component.state.fail.error_path import (
+    ErrorPath,
+    ErrorPathIntrinsicFunction,
+    ErrorPathJsonPath,
 )
 from moto.stepfunctions.parser.asl.component.state.fail.state_fail import (
     StateFail,
@@ -527,11 +548,35 @@ class Preprocessor(ASLParserVisitor):
 
     def visitError_decl(self, ctx: ASLParser.Error_declContext) -> ErrorDecl:
         error = self._inner_string_of(parse_tree=ctx.keyword_or_string())
-        return ErrorDecl(error=error)
+        return ErrorDecl(value=error)
+
+    def visitError_path_decl_path(
+        self, ctx: ASLParser.Error_path_decl_pathContext
+    ) -> ErrorPath:
+        path: str = self._inner_string_of(parse_tree=ctx.STRINGPATH())
+        return ErrorPathJsonPath(value=path)
+
+    def visitError_path_decl_intrinsic(
+        self, ctx: ASLParser.Error_path_decl_intrinsicContext
+    ) -> ErrorPath:
+        intrinsic_func: str = self._inner_string_of(parse_tree=ctx.intrinsic_func())
+        return ErrorPathIntrinsicFunction(value=intrinsic_func)
 
     def visitCause_decl(self, ctx: ASLParser.Cause_declContext) -> CauseDecl:
         cause = self._inner_string_of(parse_tree=ctx.keyword_or_string())
-        return CauseDecl(cause=cause)
+        return CauseDecl(value=cause)
+
+    def visitCause_path_decl_path(
+        self, ctx: ASLParser.Cause_path_decl_pathContext
+    ) -> CausePath:
+        path: str = self._inner_string_of(parse_tree=ctx.STRINGPATH())
+        return CausePathJsonPath(value=path)
+
+    def visitCause_path_decl_intrinsic(
+        self, ctx: ASLParser.Cause_path_decl_intrinsicContext
+    ) -> CausePath:
+        intrinsic_func: str = self._inner_string_of(parse_tree=ctx.intrinsic_func())
+        return CausePathIntrinsicFunction(value=intrinsic_func)
 
     def visitSeconds_decl(self, ctx: ASLParser.Seconds_declContext) -> Seconds:
         return Seconds(seconds=int(ctx.INT().getText()))
@@ -550,6 +595,12 @@ class Preprocessor(ASLParserVisitor):
         self, ctx: ASLParser.Max_concurrency_declContext
     ) -> MaxConcurrency:
         return MaxConcurrency(num=int(ctx.INT().getText()))
+
+    def visitMax_concurrency_path_decl(
+        self, ctx: ASLParser.Max_concurrency_path_declContext
+    ):
+        max_concurrency_path: str = self._inner_string_of(parse_tree=ctx.STRINGPATH())
+        return MaxConcurrencyPath(max_concurrency_path=max_concurrency_path)
 
     def visitMode_decl(self, ctx: ASLParser.Mode_declContext) -> Mode:
         mode_type: int = self.visit(ctx.mode_type())
@@ -617,7 +668,7 @@ class Preprocessor(ASLParserVisitor):
                     f"Expected a States declaration at '{ctx.getText()}'."
                 ),
             ),
-            processor_config=props.get(typ=ProcessorConfig),
+            processor_config=props.get(typ=ProcessorConfig) or ProcessorConfig(),
         )
 
     def visitIterator_decl(self, ctx: ASLParser.Iterator_declContext) -> IteratorDecl:
@@ -639,6 +690,7 @@ class Preprocessor(ASLParserVisitor):
                     f"Expected a States declaration at '{ctx.getText()}'."
                 ),
             ),
+            processor_config=props.get(typ=ProcessorConfig) or ProcessorConfig(),
         )
 
     def visitItem_selector_decl(
@@ -669,7 +721,7 @@ class Preprocessor(ASLParserVisitor):
     def visitReader_config_decl(
         self, ctx: ASLParser.Reader_config_declContext
     ) -> ReaderConfig:
-        props = TypedProps()
+        props = ReaderConfigProps()
         for child in ctx.children:
             cmp = self.visit(child)
             props.add(cmp)
@@ -680,7 +732,7 @@ class Preprocessor(ASLParserVisitor):
                     f"Expected a InputType declaration at '{ctx.getText()}'."
                 ),
             ),
-            max_items=props.get(typ=MaxItemsDecl),
+            max_items_decl=props.get(typ=MaxItemsDecl),
             csv_header_location=props.get(CSVHeaderLocation),
             csv_headers=props.get(CSVHeaders),
         )
@@ -716,6 +768,34 @@ class Preprocessor(ASLParserVisitor):
 
     def visitMax_items_decl(self, ctx: ASLParser.Max_items_declContext) -> MaxItems:
         return MaxItems(max_items=int(ctx.INT().getText()))
+
+    def visitTolerated_failure_count_decl(
+        self, ctx: ASLParser.Tolerated_failure_count_declContext
+    ) -> ToleratedFailureCount:
+        count = int(ctx.INT().getText())
+        return ToleratedFailureCount(tolerated_failure_count=count)
+
+    def visitTolerated_failure_count_path_decl(
+        self, ctx: ASLParser.Tolerated_failure_count_path_declContext
+    ) -> ToleratedFailureCountPath:
+        path: str = self._inner_string_of(parse_tree=ctx.STRINGPATH())
+        return ToleratedFailureCountPath(tolerated_failure_count_path=path)
+
+    def visitTolerated_failure_percentage_decl(
+        self, ctx: ASLParser.Tolerated_failure_percentage_declContext
+    ) -> ToleratedFailurePercentage:
+        percentage = float(ctx.NUMBER().getText())
+        return ToleratedFailurePercentage(tolerated_failure_percentage=percentage)
+
+    def visitTolerated_failure_percentage_path_decl(
+        self, ctx: ASLParser.Tolerated_failure_percentage_path_declContext
+    ) -> ToleratedFailurePercentagePath:
+        path: str = self._inner_string_of(parse_tree=ctx.STRINGPATH())
+        return ToleratedFailurePercentagePath(tolerate_failure_percentage_path=path)
+
+    def visitLabel_decl(self, ctx: ASLParser.Label_declContext) -> Label:
+        label = self._inner_string_of(parse_tree=ctx.keyword_or_string())
+        return Label(label=label)
 
     def visitRetry_decl(self, ctx: ASLParser.Retry_declContext) -> RetryDecl:
         retriers: List[RetrierDecl] = list()

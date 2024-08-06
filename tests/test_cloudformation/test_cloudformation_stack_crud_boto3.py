@@ -15,8 +15,7 @@ from moto import mock_aws, settings
 from moto.cloudformation import cloudformation_backends
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
-from tests import EXAMPLE_AMI_ID
-from tests.test_cloudformation import cloudformation_aws_verified
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 TEST_STACK_NAME = "test_stack"
 REGION_NAME = "us-east-1"
@@ -1373,7 +1372,7 @@ def test_update_stack_deleted_resources_can_reference_deleted_resources():
 
 
 @pytest.mark.aws_verified
-@cloudformation_aws_verified()
+@aws_verified
 def test_update_stack_with_previous_value():
     name = f"update-stack-with-previous-value-{str(uuid.uuid4())[0:6]}"
     bucket_name = str(uuid.uuid4())

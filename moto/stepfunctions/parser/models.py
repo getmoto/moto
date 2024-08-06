@@ -67,15 +67,13 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         try:
             AmazonStateLanguageParser.parse(definition)
         except ASLParserException as asl_parser_exception:
-            invalid_definition = InvalidDefinition()
-            invalid_definition.message = repr(asl_parser_exception)
-            raise invalid_definition
+            raise InvalidDefinition(message=repr(asl_parser_exception))
         except Exception as exception:
             exception_name = exception.__class__.__name__
             exception_args = list(exception.args)
-            invalid_definition = InvalidDefinition()
-            invalid_definition.message = f"Error={exception_name} Args={exception_args} in definition '{definition}'."
-            raise invalid_definition
+            raise InvalidDefinition(
+                message=f"Error={exception_name} Args={exception_args} in definition '{definition}'."
+            )
 
     def create_state_machine(
         self,

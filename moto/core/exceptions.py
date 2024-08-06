@@ -125,7 +125,7 @@ class JsonRESTError(RESTError):
     def relative_error_type(self) -> str:
         # https://smithy.io/2.0/aws/protocols/aws-json-1_1-protocol.html
         # If a # character is present, then take only the contents after the first # character in the value
-        return self.error_type.split("#")[-1]
+        return (self.error_type.split("#")[-1]) if self.error_type else ""
 
     def get_body(self, *args: Any, **kwargs: Any) -> str:
         return self.description

@@ -1,5 +1,6 @@
 import csv
 import io
+import itertools
 from collections import OrderedDict
 
 from moto.stepfunctions.parser.api import HistoryEventType, MapRunFailedEventDetails
@@ -32,6 +33,9 @@ class ResourceOutputTransformerCSV(ResourceOutputTransformer):
         csv_file = io.StringIO(resource_value)
         csv_reader = csv.reader(csv_file)
 
+        max_items: int = reader_config["MaxItemsValue"]
+        csv_reader_slice = itertools.islice(csv_reader, max_items)
+
         location = reader_config["CSVHeaderLocation"]
         if location == CSVHeaderLocationOutput.FIRST_ROW:
             headers = next(csv_reader)
@@ -55,7 +59,7 @@ class ResourceOutputTransformerCSV(ResourceOutputTransformer):
             raise FailureEventException(failure_event=failure_event)
 
         transformed_outputs = list()
-        for row in csv_reader:
+        for row in csv_reader_slice:
             transformed_output = dict()
             for i, header in enumerate(headers):
                 transformed_output[header] = row[i] if i < len(row) else ""
