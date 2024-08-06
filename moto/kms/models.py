@@ -1,7 +1,7 @@
 import json
 import os
 from collections import defaultdict
-from copy import copy, deepcopy
+from copy import copy
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -79,7 +79,7 @@ class Key(CloudFormationModel):
         self.enabled = True
         self.multi_region = multi_region
         if self.multi_region:
-            self.multi_region_configuration: dict = {
+            self.multi_region_configuration: dict[str, Any] = {
                 "MultiRegionKeyType": "PRIMARY",
                 "PrimaryKey": {
                     "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
@@ -354,9 +354,7 @@ class KmsBackend(BaseBackend):
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
 
-        self.multi_region_configuration = deepcopy(
-            replica_key.multi_region_configuration
-        )
+        self.multi_region_configuration = copy(replica_key.multi_region_configuration)
 
         return replica_key
 
