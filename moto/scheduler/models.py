@@ -27,6 +27,7 @@ class Schedule(BaseModel):
         kms_key_arn: Optional[str],
         start_date: Optional[str],
         end_date: Optional[str],
+        action_after_completion: Optional[str],
     ):
         self.name = name
         self.group_name = group_name
@@ -40,6 +41,7 @@ class Schedule(BaseModel):
         self.kms_key_arn = kms_key_arn
         self.start_date = start_date
         self.end_date = end_date
+        self.action_after_completion = action_after_completion
         self.creation_date = self.last_modified_date = unix_time()
 
     @staticmethod
@@ -61,6 +63,7 @@ class Schedule(BaseModel):
             "ScheduleExpressionTimezone": self.schedule_expression_timezone,
             "FlexibleTimeWindow": self.flexible_time_window,
             "Target": self.target,
+            "ActionAfterCompletion": self.action_after_completion,
             "State": self.state,
             "KmsKeyArn": self.kms_key_arn,
             "StartDate": self.start_date,
@@ -153,6 +156,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         start_date: str,
         state: str,
         target: Dict[str, Any],
+        action_after_completion: Optional[str],
     ) -> Schedule:
         """
         The ClientToken parameter is not yet implemented
@@ -174,6 +178,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
             kms_key_arn=kms_key_arn,
             start_date=start_date,
             end_date=end_date,
+            action_after_completion=action_after_completion,
         )
         group.add_schedule(schedule)
         return schedule

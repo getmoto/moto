@@ -1,17 +1,13 @@
 import os
 import uuid
-from time import sleep
 from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
-from moto.acm.models import AWS_ROOT_CA
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
@@ -28,11 +24,19 @@ SERVER_COMMON_NAME = "*.moto.com"
 SERVER_CRT_BAD = get_resource("star_moto_com-bad.pem")
 SERVER_KEY = get_resource("star_moto_com.key")
 BAD_ARN = f"arn:aws:acm:us-east-2:{ACCOUNT_ID}:certificate/_0000000-0000-0000-0000-000000000000"
+CERT_AUTH_ARN = f"arn:aws:acm-pca:eu-central-1:{ACCOUNT_ID}:certificate-authority/12345678-1234-1234-1234-123456789012"
 
 
 def _import_cert(client):
     response = client.import_certificate(
         Certificate=SERVER_CRT, PrivateKey=SERVER_KEY, CertificateChain=CA_CRT
+    )
+    return response["CertificateArn"]
+
+
+def _pca_cert(client):
+    response = client.request_certificate(
+        DomainName=SERVER_COMMON_NAME, CertificateAuthorityArn=CERT_AUTH_ARN
     )
     return response["CertificateArn"]
 
@@ -163,7 +167,7 @@ def test_delete_certificate():
 @mock_aws
 def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
-    arn = _import_cert(client)
+    arn = client.request_certificate(DomainName=SERVER_COMMON_NAME)["CertificateArn"]
 
     try:
         resp = client.describe_certificate(CertificateArn=arn)
@@ -171,10 +175,10 @@ def test_describe_certificate():
         pytest.skip("This test requires 64-bit time_t")
     assert resp["Certificate"]["CertificateArn"] == arn
     assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
-    assert resp["Certificate"]["Issuer"] == "Moto"
+    assert resp["Certificate"]["Issuer"] == "Amazon"
     assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
-    assert resp["Certificate"]["Status"] == "ISSUED"
-    assert resp["Certificate"]["Type"] == "IMPORTED"
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
+    assert resp["Certificate"]["Type"] == "AMAZON_ISSUED"
     assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
     assert "Options" in resp["Certificate"]
 
@@ -194,25 +198,76 @@ def test_describe_certificate_with_bad_arn():
 
 
 @mock_aws
-def test_export_certificate():
+def test_describe_certificate_with_imported_cert():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
-    resp = client.export_certificate(CertificateArn=arn, Passphrase="pass")
-    assert resp["Certificate"] == SERVER_CRT.decode()
-    assert resp["CertificateChain"] == CA_CRT.decode() + "\n" + AWS_ROOT_CA.decode()
+    try:
+        resp = client.describe_certificate(CertificateArn=arn)
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
+    assert resp["Certificate"]["Issuer"] == "Moto"
+    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
+    assert resp["Certificate"]["Status"] == "ISSUED"
+    assert resp["Certificate"]["Type"] == "IMPORTED"
+    assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
+    assert "Options" in resp["Certificate"]
+
+    assert "DomainValidationOptions" not in resp["Certificate"]
+
+
+@mock_aws
+def test_describe_certificate_with_pca_cert():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _pca_cert(client)
+    try:
+        resp = client.describe_certificate(CertificateArn=arn)
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
+    assert resp["Certificate"]["CertificateArn"] == arn
+    assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
+    assert resp["Certificate"]["Issuer"] == "Amazon"
+    assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
+    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
+    assert resp["Certificate"]["Type"] == "PRIVATE"
+    assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
+    assert "Options" in resp["Certificate"]
+    assert resp["Certificate"]["CertificateAuthorityArn"] == CERT_AUTH_ARN
+    assert "DomainValidationOptions" not in resp["Certificate"]
+
+
+@mock_aws
+def test_export_certificate_with_pca_cert():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _pca_cert(client)
+    resp = client.export_certificate(CertificateArn=arn, Passphrase="passphrase")
+    assert "CertificateChain" in resp
+    assert "Certificate" in resp
     assert "PrivateKey" in resp
 
-    key = serialization.load_pem_private_key(
-        bytes(resp["PrivateKey"], "utf-8"), password=b"pass", backend=default_backend()
-    )
 
-    private_key = key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=serialization.NoEncryption(),
-    )
-    assert private_key == SERVER_KEY
+@mock_aws
+def test_export_certificate_with_imported_cert():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    with pytest.raises(ClientError) as err:
+        client.export_certificate(CertificateArn=arn, Passphrase="passphrase")
+    assert err.value.response["Error"]["Code"] == "ValidationException"
+    assert "is not a private certificate" in err.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_export_certificate_with_short_passphrase():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _pca_cert(client)
+
+    with pytest.raises(ClientError) as err:
+        client.export_certificate(CertificateArn=arn, Passphrase="")
+    assert err.value.response["Error"]["Code"] == "ValidationException"
+    assert "passphrase" in err.value.response["Error"]["Message"]
 
 
 @mock_aws
@@ -418,9 +473,11 @@ def test_request_certificate_with_optional_arguments():
     )
 
     # Verify SAN's are still the same, even after the Certificate is validated
-    sleep(2)
+    waiter = client.get_waiter("certificate_validated")
+    waiter.wait(CertificateArn=arn_1, WaiterConfig={"Delay": 1})
+
     for opt in validation_options:
-        opt["ValidationStatus"] = "ISSUED"
+        opt["ValidationStatus"] = "SUCCESS"
     cert = client.describe_certificate(CertificateArn=arn_1)["Certificate"]
     assert cert["DomainValidationOptions"] == validation_options
 
@@ -468,6 +525,17 @@ def test_request_certificate_with_optional_arguments():
     arn_4 = resp["CertificateArn"]
 
     assert arn_1 != arn_4  # if tags are matched, ACM would have returned same arn
+
+
+@mock_aws
+def test_request_certificate_with_certificate_authority():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    resp = client.request_certificate(
+        DomainName="example.com",
+        CertificateAuthorityArn="arn:aws:acm-pca:eu-central-1:123456789012:certificate-authority/12345678-1234-1234-1234-123456789012",
+    )
+    assert "CertificateArn" in resp
 
 
 @mock_aws

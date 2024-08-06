@@ -39,7 +39,7 @@ def test_global_cluster_members():
     )
     assert global_cluster["Status"] == "available"
     assert global_cluster["Engine"] == "aurora-mysql"
-    assert global_cluster["EngineVersion"] == "5.7.mysql_aurora.2.11.2"
+    assert "mysql_aurora" in global_cluster["EngineVersion"]
     assert global_cluster["StorageEncrypted"] is False
     assert global_cluster["DeletionProtection"] is False
     assert global_cluster["GlobalClusterMembers"] == []

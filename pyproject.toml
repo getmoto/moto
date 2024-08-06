@@ -2,6 +2,14 @@
 requires = ["setuptools >= 40.6.0"]
 build-backend = "setuptools.build_meta"
 
+[tool.pytest.ini_options]
+addopts = "--color=yes"
+markers = [
+    "network: requires network connection",
+    "requires_docker: requires running docker",
+    "aws_verified: Verified against AWS, and should be able to run against AWS",
+]
+
 [tool.ruff.lint]
 ignore = ["E501"]
 extend-select = ["I", "T201", "T203"]

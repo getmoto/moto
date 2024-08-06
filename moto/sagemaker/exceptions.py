@@ -45,6 +45,10 @@ class ResourceInUseException(AWSError):
     TYPE = "ResourceInUse"
 
 
+class ConflictException(AWSError):
+    TYPE = "ConflictException"
+
+
 class ResourceNotFound(JsonRESTError):
     def __init__(self, message: str):
         super().__init__(__class__.__name__, message)  # type: ignore

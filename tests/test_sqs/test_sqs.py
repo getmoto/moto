@@ -22,8 +22,7 @@ from moto.sqs.models import (
     Queue,
 )
 from moto.utilities.distutils_version import LooseVersion
-
-from . import sqs_aws_verified
+from tests import aws_verified
 
 TEST_POLICY = """
 {
@@ -3337,7 +3336,7 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
     )
 
 
-@sqs_aws_verified
+@aws_verified
 @pytest.mark.aws_verified
 @pytest.mark.parametrize(
     "queue_config", [{"FifoQueue": "true"}, {"FifoQueue": "true", "DelaySeconds": "10"}]

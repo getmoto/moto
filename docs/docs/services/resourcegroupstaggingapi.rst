@@ -22,7 +22,7 @@ resourcegroupstaggingapi
 - [ ] start_report_creation
 - [X] tag_resources
   
-        Only DynamoDB, Logs and RDS resources are currently supported
+        Only DynamoDB, Logs, RDS, and SageMaker resources are currently supported
         
 
 - [ ] untag_resources

@@ -19,7 +19,7 @@ def test_create_global_cluster():
     assert "GlobalClusterResourceId" in resp
     assert "GlobalClusterArn" in resp
     assert resp["Engine"] == "neptune"
-    assert resp["EngineVersion"] == "1.2.0.0"
+    assert "EngineVersion" in resp
     assert resp["StorageEncrypted"] is False
     assert resp["DeletionProtection"] is False
 

@@ -4,8 +4,7 @@ import boto3
 import pytest
 
 from moto import mock_aws
-
-from . import timestreamwrite_aws_verified
+from tests import aws_verified
 
 
 @mock_aws
@@ -68,7 +67,7 @@ def test_list_tagging_for_database_with_tags():
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_tag_and_untag_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_name = "db_" + str(uuid4())[0:6]

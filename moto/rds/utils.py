@@ -51,6 +51,7 @@ class DbInstanceEngine(str, Enum):
 class ClusterEngine(str, Enum):
     AURORA_POSTGRESQL = "aurora-postgresql"
     AURORA_MYSQL = "aurora-mysql"
+    NEPTUNE = "neptune"
     RDS_POSTGRESQL = "postgres"
     RDS_MYSQL = "mysql"
 

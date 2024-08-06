@@ -46,9 +46,9 @@ class CertificateAuthority(BaseModel):
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
 
-        common_name = self.certificate_authority_configuration.get("Subject", {}).get(
-            "CommonName", "Moto.org"
-        )
+        self.common_name = self.certificate_authority_configuration.get(
+            "Subject", {}
+        ).get("CommonName", "Moto.org")
         self.key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
             public_exponent=65537, key_size=2048
         )
@@ -60,7 +60,7 @@ class CertificateAuthority(BaseModel):
         )
         self.certificate: Optional[Certificate] = None
         self.certificate_chain: Optional[bytes] = None
-        self.csr = self.generate_csr(common_name)
+        self.csr = self.generate_csr(self.common_name)
 
         self.issued_certificates: Dict[str, bytes] = dict()
 
@@ -116,7 +116,9 @@ class CertificateAuthority(BaseModel):
 
     def issue_certificate(self, csr_bytes: bytes) -> str:
         cert = cryptography.x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
-        new_cert = self.generate_cert(common_name="", subject=cert.subject)
+        new_cert = self.generate_cert(
+            common_name=self.common_name, subject=cert.subject
+        )
         cert_id = str(mock_random.uuid4()).replace("-", "")
         cert_arn = f"arn:{get_partition(self.region_name)}:acm-pca:{self.region_name}:{self.account_id}:certificate-authority/{self.id}/certificate/{cert_id}"
         self.issued_certificates[cert_arn] = new_cert

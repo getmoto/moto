@@ -1,42 +1,22 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
-from moto.neptune.responses import (
-    CREATE_GLOBAL_CLUSTER_TEMPLATE,
-    DELETE_GLOBAL_CLUSTER_TEMPLATE,
-    DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE,
-    REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE,
-    NeptuneResponse,
-)
 
 from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
 
 
 class RDSResponse(BaseResponse):
-    def __init__(self) -> None:
-        super().__init__(service_name="rds")
-        # Neptune and RDS share a HTTP endpoint RDS is the lucky guy that catches all requests
-        # So we have to determine whether we can handle an incoming request here, or whether it needs redirecting to Neptune
-        self.neptune = NeptuneResponse()
-
     @property
     def backend(self) -> RDSBackend:
         return rds_backends[self.current_account][self.region]
 
-    def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        # Because some requests are send through to Neptune, we have to prepare the NeptuneResponse-class
-        self.neptune.setup_class(request, full_url, headers)
-        return super()._dispatch(request, full_url, headers)
-
-    def __getattribute__(self, name: str) -> Any:
-        if name in ["create_db_cluster", "create_global_cluster"]:
-            if self._get_param("Engine") == "neptune":
-                return object.__getattribute__(self.neptune, name)
-        return object.__getattribute__(self, name)
+    @property
+    def global_backend(self) -> RDSBackend:
+        """Return backend instance of the region that stores Global Clusters"""
+        return rds_backends[self.current_account]["us-east-1"]
 
     def _get_db_kwargs(self) -> Dict[str, Any]:
         args = {
@@ -75,8 +55,6 @@ class RDSResponse(BaseResponse):
                 "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
             ).lower(),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
-            "region": self.region,
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
@@ -132,8 +110,6 @@ class RDSResponse(BaseResponse):
                 "PreferredMaintenanceWindow"
             ),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
-            "region": self.region,
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
@@ -211,7 +187,6 @@ class RDSResponse(BaseResponse):
             "network_type": self._get_param("NetworkType"),
             "port": self._get_param("Port"),
             "parameter_group": self._get_param("DBClusterParameterGroupName"),
-            "region": self.region,
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
             "enable_http_endpoint": self._get_bool_param("EnableHttpEndpoint"),
             "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
@@ -280,20 +255,7 @@ class RDSResponse(BaseResponse):
                 db_instance_identifier, filters=filter_dict
             )
         )
-        marker = self._get_param("Marker")
-        all_ids = [instance.db_instance_identifier for instance in all_instances]
-        if marker:
-            start = all_ids.index(marker) + 1
-        else:
-            start = 0
-        page_size = self._get_int_param(
-            "MaxRecords", 50
-        )  # the default is 100, but using 50 to make testing easier
-        instances_resp = all_instances[start : start + page_size]
-        next_marker = None
-        if len(all_instances) > start + page_size:
-            next_marker = instances_resp[-1].db_instance_identifier
-
+        instances_resp, next_marker = self._paginate(all_instances)
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
         return template.render(databases=instances_resp, marker=next_marker)
 
@@ -510,9 +472,8 @@ class RDSResponse(BaseResponse):
 
     def describe_option_groups(self) -> str:
         kwargs = self._get_option_group_kwargs()
-        kwargs["max_records"] = self._get_int_param("MaxRecords")
-        kwargs["marker"] = self._get_param("Marker")
         option_groups = self.backend.describe_option_groups(kwargs)
+        option_groups, _ = self._paginate(option_groups)
         template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
         return template.render(option_groups=option_groups)
 
@@ -567,9 +528,8 @@ class RDSResponse(BaseResponse):
 
     def describe_db_parameter_groups(self) -> str:
         kwargs = self._get_db_parameter_group_kwargs()
-        kwargs["max_records"] = self._get_int_param("MaxRecords")
-        kwargs["marker"] = self._get_param("Marker")
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
+        db_parameter_groups, _ = self._paginate(db_parameter_groups)
         template = self.response_template(DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
         return template.render(db_parameter_groups=db_parameter_groups)
 
@@ -761,13 +721,13 @@ class RDSResponse(BaseResponse):
         return template.render(options=options, marker=None)
 
     def describe_global_clusters(self) -> str:
-        clusters = self.backend.describe_global_clusters()
+        clusters = self.global_backend.describe_global_clusters()
         template = self.response_template(DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters)
 
     def create_global_cluster(self) -> str:
         params = self._get_params()
-        cluster = self.backend.create_global_cluster(
+        cluster = self.global_backend.create_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
             source_db_cluster_identifier=params.get("SourceDBClusterIdentifier"),
             engine=params.get("Engine"),
@@ -780,7 +740,7 @@ class RDSResponse(BaseResponse):
 
     def delete_global_cluster(self) -> str:
         params = self._get_params()
-        cluster = self.backend.delete_global_cluster(
+        cluster = self.global_backend.delete_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
         )
         template = self.response_template(DELETE_GLOBAL_CLUSTER_TEMPLATE)
@@ -928,6 +888,29 @@ class RDSResponse(BaseResponse):
         )
         template = self.response_template(CREATE_DB_PROXY_TEMPLATE)
         return template.render(dbproxy=db_proxy)
+
+    def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
+        from moto.rds.exceptions import InvalidParameterValue
+
+        marker = self._get_param("Marker")
+        # Default was originally set to 50 instead of 100 for ease of testing.  Should fix.
+        page_size = self._get_int_param("MaxRecords", 50)
+        if page_size < 20 or page_size > 100:
+            msg = (
+                f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"
+            )
+            raise InvalidParameterValue(msg)
+        all_resources = list(resources)
+        all_ids = [resource.name for resource in all_resources]
+        if marker:
+            start = all_ids.index(marker) + 1
+        else:
+            start = 0
+        paginated_resources = all_resources[start : start + page_size]
+        next_marker = None
+        if len(all_resources) > start + page_size:
+            next_marker = paginated_resources[-1].name
+        return paginated_resources, next_marker
 
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
@@ -1704,3 +1687,53 @@ DESCRIBE_DB_PROXIES_TEMPLATE = """<DescribeDBProxiesResponse xmlns="http://rds.a
     </ResponseMetadata>
 </DescribeDBProxiesResponse>
 """
+
+CREATE_GLOBAL_CLUSTER_TEMPLATE = """<CreateGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <CreateGlobalClusterResult>
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  </CreateGlobalClusterResult>
+</CreateGlobalClusterResponse>"""
+
+DELETE_GLOBAL_CLUSTER_TEMPLATE = """<DeleteGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DeleteGlobalClusterResult>
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  </DeleteGlobalClusterResult>
+</DeleteGlobalClusterResponse>"""
+
+DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE = """<DescribeGlobalClustersResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeGlobalClustersResult>
+    <GlobalClusters>
+{% for cluster in clusters %}
+    <GlobalClusterMember>
+        {{ cluster.to_xml() }}
+        </GlobalClusterMember>
+{% endfor %}
+    </GlobalClusters>
+  </DescribeGlobalClustersResult>
+</DescribeGlobalClustersResponse>"""
+
+REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE = """<RemoveFromGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <RemoveFromGlobalClusterResult>
+  {% if cluster %}
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  {% endif %}
+  </RemoveFromGlobalClusterResult>
+</RemoveFromGlobalClusterResponse>"""
