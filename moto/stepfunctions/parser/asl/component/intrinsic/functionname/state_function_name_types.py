@@ -25,5 +25,5 @@ class StatesFunctionNameType(Enum):
     StringSplit = ASLIntrinsicLexer.StringSplit
     UUID = ASLIntrinsicLexer.UUID
 
-    def name(self) -> str:  # noqa  # pylint: disable=function-redefined
-        return ASLIntrinsicLexer.literalNames[self.value][1:-1]
+    def name(self) -> str:  # pylint: disable=function-redefined
+        return ASLIntrinsicLexer.symbolicNames[self.value][1:-1]

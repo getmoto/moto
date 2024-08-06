@@ -15,11 +15,11 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.iter
     IterationWorker,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.job import (
-    Job,
+    JobClosed,
     JobPool,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.max_concurrency import (
-    MaxConcurrency,
+    DEFAULT_MAX_CONCURRENCY_VALUE,
 )
 from moto.stepfunctions.parser.asl.component.states import States
 from moto.stepfunctions.parser.asl.eval.environment import Environment
@@ -79,7 +79,7 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
 
         number_of_workers = (
             len(input_items)
-            if max_concurrency == MaxConcurrency.DEFAULT
+            if max_concurrency == DEFAULT_MAX_CONCURRENCY_VALUE
             else max_concurrency
         )
         for _ in range(number_of_workers):
@@ -91,7 +91,7 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
         if worker_exception is not None:
             raise worker_exception
 
-        closed_jobs: List[Job] = self._job_pool.get_closed_jobs()
+        closed_jobs: List[JobClosed] = self._job_pool.get_closed_jobs()
         outputs: List[Any] = [closed_job.job_output for closed_job in closed_jobs]
 
         env.stack.append(outputs)
