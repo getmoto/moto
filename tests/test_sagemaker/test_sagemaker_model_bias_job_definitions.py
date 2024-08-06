@@ -60,8 +60,9 @@ def test_create_model_bias_job():
 def test_describe_model_bias_job():
     client = boto3.client("sagemaker", region_name="us-east-1")
 
+    job_name = "test-model-bias-job"
     client.create_model_bias_job_definition(
-        JobDefinitionName="test-bias-job",
+        JobDefinitionName=job_name,
         RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/SageMakerRole",
         ModelBiasAppSpecification={
             "ImageUri": f"{ACCOUNT_ID}.dkr.ecr.us-west-2.amazonaws.com/my-image:latest",
@@ -101,10 +102,12 @@ def test_describe_model_bias_job():
             "EnableNetworkIsolation": False,
         },
     )
-    response = client.describe_model_bias_job_definition(
-        JobDefinitionName="test-bias-job"
+    response = client.describe_model_bias_job_definition(JobDefinitionName=job_name)
+    assert response["JobDefinitionName"] == job_name
+    assert (
+        response["JobDefinitionArn"]
+        == f"arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:model-bias-job-definition/{job_name}"
     )
-    assert response["JobDefinitionName"] == "test-bias-job"
 
 
 @mock_aws

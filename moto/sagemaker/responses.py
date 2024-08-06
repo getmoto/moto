@@ -1070,6 +1070,52 @@ class SageMakerResponse(BaseResponse):
         self.sagemaker_backend.delete_model_bias_job_definition(job_definition_name)
         return json.dumps({})
 
+    def create_data_quality_job_definition(self) -> str:
+        account_id = self.current_account
+        job_definition_name = self._get_param("JobDefinitionName")
+        tags = self._get_param("Tags", [])
+        role_arn = self._get_param("RoleArn")
+        job_resources = self._get_param("JobResources")
+        stopping_condition = self._get_param("StoppingCondition")
+        environment = self._get_param("Environment", {})
+        network_config = self._get_param("NetworkConfig", {})
+        data_quality_baseline_config = self._get_param("DataQualityBaselineConfig", {})
+        data_quality_app_specification = self._get_param("DataQualityAppSpecification")
+        data_quality_job_input = self._get_param("DataQualityJobInput")
+        data_quality_job_output_config = self._get_param("DataQualityJobOutputConfig")
+
+        response = self.sagemaker_backend.create_data_quality_job_definition(
+            account_id=account_id,
+            job_definition_name=job_definition_name,
+            tags=tags,
+            role_arn=role_arn,
+            job_resources=job_resources,
+            stopping_condition=stopping_condition,
+            environment=environment,
+            network_config=network_config,
+            data_quality_baseline_config=data_quality_baseline_config,
+            data_quality_app_specification=data_quality_app_specification,
+            data_quality_job_input=data_quality_job_input,
+            data_quality_job_output_config=data_quality_job_output_config,
+        )
+        return json.dumps(response)
+
+    def list_data_quality_job_definitions(self) -> str:
+        result, next_token = self.sagemaker_backend.list_data_quality_job_definitions()
+        return json.dumps({"JobDefinitionSummaries": result, "NextToken": next_token})
+
+    def describe_data_quality_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        job_definition = self.sagemaker_backend.describe_data_quality_job_definition(
+            job_definition_name
+        )
+        return json.dumps(job_definition)
+
+    def delete_data_quality_job_definition(self) -> str:
+        job_definition_name = self._get_param("JobDefinitionName")
+        self.sagemaker_backend.delete_data_quality_job_definition(job_definition_name)
+        return json.dumps({})
+
     def create_auto_ml_job_v2(self) -> str:
         auto_ml_job_name = self._get_param("AutoMLJobName")
         auto_ml_job_input_data_config = self._get_param("AutoMLJobInputDataConfig")
