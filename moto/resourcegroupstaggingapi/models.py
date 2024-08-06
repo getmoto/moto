@@ -690,6 +690,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "sagemaker:model-explainability-job-definition": self.sagemaker_backend.model_explainability_job_definitions,
             "sagemaker:model-quality-job-definition": self.sagemaker_backend.model_quality_job_definitions,
             "sagemaker:hyper-parameter-tuning-job": self.sagemaker_backend.hyper_parameter_tuning_jobs,
+            "sagemaker:model-bias-defintion": self.sagemaker_backend.model_bias_job_definitions,
+            "sagemaker:data-quality-job-definition": self.sagemaker_backend.data_quality_job_definitions,
         }
         for resource_type, resource_source in sagemaker_resource_map.items():
             if (

@@ -5794,7 +5794,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         data_quality_job_output_config: Optional[Dict[str, Any]] = None,
     ):
         self.job_definition_name = job_definition_name
-        self.job_definition_arn = FakeDataQualityJobDefinition.arn_formatter(
+        self.arn = FakeDataQualityJobDefinition.arn_formatter(
             job_definition_name, account_id, region_name
         )
         self.tags = tags
@@ -5814,13 +5814,15 @@ class FakeDataQualityJobDefinition(BaseObject):
     @property
     def response_object(self) -> Dict[str, str]:
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["JobDefinitionArn"] = response.pop("Arn")
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"JobDefinitionArn": self.job_definition_arn}
+        return {"JobDefinitionArn": self.arn}
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region: str) -> str:
@@ -5830,7 +5832,7 @@ class FakeDataQualityJobDefinition(BaseObject):
     def summary_object(self) -> Dict[str, str]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
-            "MonitoringJobDefinitionArn": self.job_definition_arn,
+            "MonitoringJobDefinitionArn": self.arn,
             "CreationTime": self.creation_time,
             "EndpointName": "EndpointName",
         }
@@ -6018,7 +6020,7 @@ class FakeModelBiasJobDefinition(BaseObject):
         model_bias_job_output_config: Optional[Dict[str, Any]] = None,
     ):
         self.job_definition_name = job_definition_name
-        self.job_definition_arn = FakeModelBiasJobDefinition.arn_formatter(
+        self.arn = FakeModelBiasJobDefinition.arn_formatter(
             job_definition_name, account_id, region_name
         )
         self.tags = tags
@@ -6038,13 +6040,15 @@ class FakeModelBiasJobDefinition(BaseObject):
     @property
     def response_object(self) -> Dict[str, str]:
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["JobDefinitionArn"] = response.pop("Arn")
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"JobDefinitionArn": self.job_definition_arn}
+        return {"JobDefinitionArn": self.arn}
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region: str) -> str:
@@ -6056,7 +6060,7 @@ class FakeModelBiasJobDefinition(BaseObject):
     def summary_object(self) -> Dict[str, str]:
         return {
             "MonitoringJobDefinitionName": self.job_definition_name,
-            "MonitoringJobDefinitionArn": self.job_definition_arn,
+            "MonitoringJobDefinitionArn": self.arn,
             "CreationTime": self.creation_time,
             "EndpointName": self.model_bias_job_input.get("EndpointInput", {}).get(
                 "EndpointName", "EndpointName"
