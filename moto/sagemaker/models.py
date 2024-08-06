@@ -5677,7 +5677,7 @@ class SageMakerModelBackend(BaseBackend):
         data_quality_app_specification: Optional[Dict[str, Any]] = None,
         data_quality_job_input: Optional[Dict[str, Any]] = None,
         data_quality_job_output_config: Optional[Dict[str, Any]] = None,
-    ) -> dict[str, str]:
+    ) -> Dict[str, str]:
         job_definition = FakeDataQualityJobDefinition(
             account_id=account_id,
             region_name=self.region_name,
