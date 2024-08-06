@@ -1,3 +1,5 @@
+import logging
+
 from botocore.exceptions import ClientError
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
@@ -21,9 +23,12 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 
+LOG = logging.getLogger(__name__)
+
 
 class StateTaskServiceAwsSdk(StateTaskServiceCallback):
-    _NORMALISED_SERVICE_NAMES = {"dynamodb": "DynamoDb"}
+    # Defines bindings of lower-cased service names to the StepFunctions service name included in error messages.
+    _SERVICE_ERROR_NAMES = {"dynamodb": "DynamoDb", "sfn": "Sfn"}
 
     def from_state_props(self, state_props: StateProps) -> None:
         super().from_state_props(state_props=state_props)
@@ -32,11 +37,19 @@ class StateTaskServiceAwsSdk(StateTaskServiceCallback):
         return f"{self.resource.service_name}:{self.resource.api_name}"
 
     @staticmethod
-    def _normalise_service_name(service_name: str) -> str:
+    def _normalise_service_error_name(service_name: str) -> str:
+        # Computes the normalised service error name for the given service.
+
+        # Return the explicit binding if one exists.
         service_name_lower = service_name.lower()
-        if service_name_lower in StateTaskServiceAwsSdk._NORMALISED_SERVICE_NAMES:
-            return StateTaskServiceAwsSdk._NORMALISED_SERVICE_NAMES[service_name_lower]
-        return service_name_lower
+        if service_name_lower in StateTaskServiceAwsSdk._SERVICE_ERROR_NAMES:
+            return StateTaskServiceAwsSdk._SERVICE_ERROR_NAMES[service_name_lower]
+
+        # Revert to returning the resource's service name and log the missing binding.
+        LOG.error(
+            f"No normalised service error name for aws-sdk integration was found for service: '{service_name}'"
+        )
+        return service_name
 
     @staticmethod
     def _normalise_exception_name(norm_service_name: str, ex: Exception) -> str:
@@ -62,7 +75,7 @@ class StateTaskServiceAwsSdk(StateTaskServiceCallback):
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
         if isinstance(ex, ClientError):
-            norm_service_name: str = self._normalise_service_name(
+            norm_service_name: str = self._normalise_service_error_name(
                 self.resource.api_name
             )
             error: str = self._normalise_exception_name(norm_service_name, ex)
