@@ -1,4 +1,3 @@
-    "{0}/$": EMRResponse.dispatch,
 from .responses import ElasticMapReduceResponse
 
 url_bases = [
