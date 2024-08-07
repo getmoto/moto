@@ -2836,6 +2836,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_mode: Optional[str] = None,
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
+        provided_version_id: Optional[str] = None,
     ) -> None:
         bucket = self.get_bucket(dest_bucket_name)
         if src_key.name == dest_key_name and src_key.bucket_name == dest_bucket_name:
@@ -2851,11 +2852,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     encryption,
                     mdirective == "REPLACE",
                     website_redirect_location,
-                    bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
-                    src_key._version_id and bucket.is_versioned,
+                    bucket.encryption,
                 )
             ):
-                raise CopyObjectMustChangeSomething
+                if not bucket.is_versioned or not provided_version_id:
+                    raise CopyObjectMustChangeSomething
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,
