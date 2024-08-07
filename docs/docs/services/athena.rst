@@ -30,7 +30,7 @@ athena
 - [ ] delete_named_query
 - [ ] delete_notebook
 - [ ] delete_prepared_statement
-- [ ] delete_work_group
+- [X] delete_work_group
 - [ ] export_notebook
 - [ ] get_calculation_execution
 - [ ] get_calculation_execution_code

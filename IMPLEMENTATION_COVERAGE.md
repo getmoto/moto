@@ -434,7 +434,7 @@
 
 ## athena
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
@@ -452,7 +452,7 @@
 - [ ] delete_named_query
 - [ ] delete_notebook
 - [ ] delete_prepared_statement
-- [ ] delete_work_group
+- [X] delete_work_group
 - [ ] export_notebook
 - [ ] get_calculation_execution
 - [ ] get_calculation_execution_code
