@@ -48,19 +48,6 @@ S3_POLICY = {
 
 
 @pytest.fixture()
-def account_id():
-    if allow_aws_request:
-        identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
-        yield identity["Account"]
-    else:
-        with mock_aws():
-            identity = boto3.client(
-                "sts", region_name="us-east-1"
-            ).get_caller_identity()
-            yield identity["Account"]
-
-
-@pytest.fixture()
 def logs():
     if allow_aws_request:
         yield boto3.client("logs", region_name="us-east-1")
