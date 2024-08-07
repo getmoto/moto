@@ -1,5 +1,6 @@
 import json
 import os
+import typing
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
@@ -79,7 +80,7 @@ class Key(CloudFormationModel):
         self.enabled = True
         self.multi_region = multi_region
         if self.multi_region:
-            self.multi_region_configuration: dict[str, Any] = {
+            self.multi_region_configuration: typing.Dict[str, Any] = {
                 "MultiRegionKeyType": "PRIMARY",
                 "PrimaryKey": {
                     "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
