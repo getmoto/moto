@@ -18,7 +18,7 @@ class MessageAttributesInvalid(RESTError):
 
 
 class QueueDoesNotExist(RESTError):
-    code = 400
+    code = 404
 
     def __init__(self) -> None:
         super().__init__(
