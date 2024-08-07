@@ -535,7 +535,6 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(REMOVE_AUTO_SCALING_POLICY)
         return template.render()
 
-    @generate_boto3_response("GetBlockPublicAccessConfiguration")
     def get_block_public_access_configuration(self):
         access = self.backend.get_block_public_access_configuration()
         template = self.response_template(
@@ -1450,27 +1449,29 @@ PUT_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE = """<PutBlockPublicAccessConfigu
   </ResponseMetadata>
 </PutBlockPublicAccessConfigurationResponse>"""
 
-GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE = """<GetBlockPublicAccessConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
-  <GetBlockPublicAccessConfigurationResult>
-    <BlockPublicAccessConfiguration>
-      <BlockPublicSecurityGroupRules>
-        {{block_public_security_group_rules}}
-      </BlockPublicSecurityGroupRules>
-      <BlockPublicSecurityGroupRuleRanges>
-        {% for rule_range in permitted_public_security_group_rule_ranges %}
-          <BlockPublicSecurityGroupRuleRange>
-            <MinRange>{{rule_range['min_range']}}</MinRange>
-            <MaxRange>{{rule_range['max_range']}}</MaxRange>      
-          </BlockPublicSecurityGroupRuleRange>
-        {% endfor %}
-      </BlockPublicSecurityGroupRuleRanges>
-    </BlockPublicAccessConfiguration>
-    <BlockPublicAccessConfigurationMetadata>
-      <CreationDateTime>{{creation_date_time}}</CreationDateTime>
-      <CreatedByArn>{{created_by_arn}}</CreationByArn>
-    </BlockPublicAccessConfigurationMetadata>
-  </GetBlockPublicAccessConfigurationResult>
-  <ResponseMetadata>
-    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
-  </ResponseMetadata>
-</GetBlockPublicAccessConfigurationResponse>"""
+GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE = """
+  <GetBlockPublicAccessConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+    <GetBlockPublicAccessConfigurationResult>
+      <BlockPublicAccessConfiguration>
+        <BlockPublicSecurityGroupRules>
+          {{block_public_security_group_rules}}
+        </BlockPublicSecurityGroupRules>
+        <BlockPublicSecurityGroupRuleRanges>
+          {% for rule_range in permitted_public_security_group_rule_ranges %}
+            <BlockPublicSecurityGroupRuleRange>
+              <MinRange>{{rule_range['min_range']}}</MinRange>
+              <MaxRange>{{rule_range['max_range']}}</MaxRange>      
+            </BlockPublicSecurityGroupRuleRange>
+          {% endfor %}
+        </BlockPublicSecurityGroupRuleRanges>
+      </BlockPublicAccessConfiguration>
+      <BlockPublicAccessConfigurationMetadata>
+        <CreationDateTime>{{creation_date_time}}</CreationDateTime>
+        <CreatedByArn>{{created_by_arn}}</CreationByArn>
+      </BlockPublicAccessConfigurationMetadata>
+    </GetBlockPublicAccessConfigurationResult>
+    <ResponseMetadata>
+      <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+    </ResponseMetadata>
+  </GetBlockPublicAccessConfigurationResponse>
+"""

@@ -569,6 +569,23 @@ class FakeBlockPublicAccessConfiguration(BaseModel):
         }
         self.metadata = {"creation_date_time": datetime.now(), "created_by_arn": "TODO"}
 
+    # def to_dict(self):
+    #     {
+    #         "BlockPublicAccessConfiguration": {
+    #             "BlockPublicSecurityGroupRules": self.configuration.get("block_public_security_group_rules"),
+    #             "PermittedPublicSecurityGroupRuleRanges": [
+    #                 {
+    #                     "MinRanges": rule_range.get("min_ranges"),
+    #                     "MaxRanges": rule_range.get("max_ranges")
+    #                 } for rule_range in self.configuration.get("permitted_public_security_group_rule_ranges")
+    #             ] 
+    #         },
+    #         "BlockPublicAccessConfigurationMetadata": {
+    #             "CreationDateTime": self.metadata.get("creation_date_time"),
+    #             "CreatedByArn": self.metadata.get("created_by_arn")
+    #         }
+    #     }
+
 
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
