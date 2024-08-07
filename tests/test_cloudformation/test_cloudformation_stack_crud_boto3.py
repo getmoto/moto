@@ -239,16 +239,16 @@ dummy_output_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Stack 1",
     "Resources": {
-        "Instance": {
-            "Type": "AWS::EC2::Instance",
-            "Properties": {"ImageId": EXAMPLE_AMI_ID},
+        "mybucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {"Tags": [{"Key": "type", "Value": "testbucket"}]},
         }
     },
     "Outputs": {
         "StackVPC": {
             "Description": "The ID of the VPC",
             "Value": "VPCID",
-            "Export": {"Name": "My VPC ID"},
+            "Export": {"Name": "My-VPC-ID"},
         }
     },
 }
@@ -259,7 +259,7 @@ dummy_import_template = {
         "Queue": {
             "Type": "AWS::SQS::Queue",
             "Properties": {
-                "QueueName": {"Fn::ImportValue": "My VPC ID"},
+                "QueueName": {"Fn::ImportValue": "My-VPC-ID"},
                 "VisibilityTimeout": 60,
             },
         }
@@ -2325,23 +2325,33 @@ def test_stack_events():
     assert exp_metadata.get("HTTPStatusCode") == 400
 
 
-@mock_aws
+@pytest.mark.aws_verified
+@aws_verified
 def test_list_exports():
     cf_client = boto3.client("cloudformation", region_name=REGION_NAME)
     cf_resource = boto3.resource("cloudformation", region_name=REGION_NAME)
+    stack_name = f"mototest-with-exports-{str(uuid.uuid4())[0:6]}"
     stack = cf_resource.create_stack(
-        StackName=TEST_STACK_NAME, TemplateBody=dummy_output_template_json
+        StackName=stack_name, TemplateBody=dummy_output_template_json
     )
+    waiter = cf_client.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
     output_value = "VPCID"
-    exports = cf_client.list_exports()["Exports"]
+    try:
+        assert len(stack.outputs) == 1
+        assert stack.outputs[0]["OutputKey"] == "StackVPC"
+        assert stack.outputs[0]["OutputValue"] == output_value
+        assert stack.outputs[0]["Description"] == "The ID of the VPC"
+        assert stack.outputs[0]["ExportName"] == "My-VPC-ID"
 
-    assert len(stack.outputs) == 1
-    assert stack.outputs[0]["OutputValue"] == output_value
+        exports = cf_client.list_exports()["Exports"]
 
-    assert len(exports) == 1
-    assert exports[0]["ExportingStackId"] == stack.stack_id
-    assert exports[0]["Name"] == "My VPC ID"
-    assert exports[0]["Value"] == output_value
+        assert len(exports) == 1
+        assert exports[0]["ExportingStackId"] == stack.stack_id
+        assert exports[0]["Name"] == "My-VPC-ID"
+        assert exports[0]["Value"] == output_value
+    finally:
+        cf_client.delete_stack(StackName=stack_name)
 
 
 @mock_aws

@@ -825,6 +825,9 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
           <member>
             <OutputKey>{{ output.key }}</OutputKey>
             <OutputValue>{{ output.value }}</OutputValue>
+            {% for export in stack.exports if export.value == output.value %}
+                <ExportName>{{ export.name }}</ExportName>
+            {% endfor %}
             {% if output.description %}<Description>{{ output.description }}</Description>{% endif %}
           </member>
         {% endfor %}
