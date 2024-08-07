@@ -550,49 +550,13 @@ class FakeSecurityConfiguration(CloudFormationModel):
         emr_backend.delete_security_configuration(name)
 
 
-class FakeBlockPublicAccessConfiguration(BaseModel):
-    def __init__(
-        self,
-        block_public_security_group_rules: bool,
-        permitted_public_security_group_rule_ranges: List[Dict[str, int]] = [],
-    ) -> None:
-        super().__init__()
-        self.configuration = {
-            "block_public_security_group_rules": block_public_security_group_rules,
-            "permitted_public_security_group_rule_ranges": [
-                {
-                    "min_range": rule_range.get("MinRange"),
-                    "max_range": rule_range.get("MaxRange"),
-                }
-                for rule_range in permitted_public_security_group_rule_ranges
-            ],
-        }
-        self.metadata = {"creation_date_time": datetime.now(), "created_by_arn": "TODO"}
-
-    # def to_dict(self):
-    #     {
-    #         "BlockPublicAccessConfiguration": {
-    #             "BlockPublicSecurityGroupRules": self.configuration.get("block_public_security_group_rules"),
-    #             "PermittedPublicSecurityGroupRuleRanges": [
-    #                 {
-    #                     "MinRanges": rule_range.get("min_ranges"),
-    #                     "MaxRanges": rule_range.get("max_ranges")
-    #                 } for rule_range in self.configuration.get("permitted_public_security_group_rule_ranges")
-    #             ] 
-    #         },
-    #         "BlockPublicAccessConfigurationMetadata": {
-    #             "CreationDateTime": self.metadata.get("creation_date_time"),
-    #             "CreatedByArn": self.metadata.get("created_by_arn")
-    #         }
-    #     }
-
-
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.clusters: Dict[str, FakeCluster] = {}
         self.instance_groups: Dict[str, FakeInstanceGroup] = {}
         self.security_configurations: Dict[str, FakeSecurityConfiguration] = {}
+        self.block_public_access_configuration: Dict[str, Any] = {}  # type: ignore [misc]
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
@@ -922,18 +886,32 @@ class ElasticMapReduceBackend(BaseBackend):
             )
         del self.security_configurations[name]
 
-    def get_block_public_access_configuration(self) -> Optional[FakeBlockPublicAccessConfiguration]:
-        return self.block_access_configuration
+    def get_block_public_access_configuration(
+        self,
+    ) -> Dict[str, Any]:  # type ignore[misc]
+        return self.block_public_access_configuration
 
-    def put_block_public_access_configuration(self, block_public_access_configuration) -> None:
-        self.block_access_configuration = FakeBlockPublicAccessConfiguration(
-            block_public_security_group_rules=block_public_access_configuration.get(
-                "BlockPublicSecurityGroupRules"
-            ),
-            permitted_public_security_group_rule_ranges=block_public_access_configuration.get(
-                "PermittedPublicSecurityGroupRuleRanges"
-            ),
-        )
+    def put_block_public_access_configuration(
+        self,
+        block_public_security_group_rules: bool,
+        rule_ranges: Optional[List[Dict[str, int]]],
+    ) -> None:
+        self.block_public_access_configuration = {
+            "block_public_access_configuration": {
+                "block_public_security_group_rules": block_public_security_group_rules,
+                "permitted_public_security_group_rule_ranges": [
+                    {
+                        "min_range": rule_range.get("MinRange"),
+                        "max_range": rule_range.get("MaxRange"),
+                    }
+                    for rule_range in rule_ranges or []
+                ],
+            },
+            "block_public_access_configuration_metadata": {
+                "creation_date_time": datetime.now(),
+                "created_by_arn": "TODO",
+            },
+        }
         return
 
 

@@ -535,24 +535,36 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(REMOVE_AUTO_SCALING_POLICY)
         return template.render()
 
-    def get_block_public_access_configuration(self):
-        access = self.backend.get_block_public_access_configuration()
+    @generate_boto3_response("GetBlockPublicAccessConfiguration")
+    def get_block_public_access_configuration(self) -> str:
+        configuration = self.backend.get_block_public_access_configuration()
+        config = configuration.get("block_public_access_configuration") or {}
+        metadata =  configuration.get("block_public_access_configuration_metadata") or {}
         template = self.response_template(
             GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
         )
         return template.render(
-            block_public_security_group_rules=access.configuration.get("block_public_security_group_rules"),
-            permitted_public_security_group_rule_ranges=access.configuration.get("block_public_security_group_rules"),
-            creation_date_time=access.metadata.get("creation_date_time"),
-            created_by_arn=access.metadata.get("created_by_arn"),
+            block_public_security_group_rules=config.get(
+                "block_public_security_group_rules"
+            ),
+            permitted_public_security_group_rule_ranges=config.get(
+                "permitted_public_security_group_rule_ranges"
+            ),
+            creation_date_time=metadata.get("creation_date_time"),
+            created_by_arn=metadata.get("created_by_arn"),
         )
 
     @generate_boto3_response("PutBlockPublicAccessConfiguration")
-    def put_block_public_access_configuration(self):
+    def put_block_public_access_configuration(self) -> str:
         params = self._get_params()
-        block_public_access_configuration = params.get("BlockPublicAccessConfiguration")
+        block_public_access_configuration = params.get("BlockPublicAccessConfiguration") or {}
         self.backend.put_block_public_access_configuration(
-          block_public_access_configuration=block_public_access_configuration
+            block_public_security_group_rules=block_public_access_configuration.get(
+                "BlockPublicSecurityGroupRules"
+            ) or True,
+            rule_ranges=block_public_access_configuration.get(
+                "PermittedPublicSecurityGroupRuleRanges"
+            ),
         )
         template = self.response_template(
             PUT_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
