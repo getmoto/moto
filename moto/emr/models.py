@@ -549,28 +549,25 @@ class FakeSecurityConfiguration(CloudFormationModel):
         name = properties.get("Name") or resource_name
         emr_backend.delete_security_configuration(name)
 
- 
+
 class FakeBlockPublicAccessConfiguration(BaseModel):
     def __init__(
-            self,
-            block_public_security_group_rules: bool,
-            permitted_public_security_group_rule_ranges: List[Dict[str, int]] = []
-        ) -> None:
+        self,
+        block_public_security_group_rules: bool,
+        permitted_public_security_group_rule_ranges: List[Dict[str, int]] = [],
+    ) -> None:
         super().__init__()
         self.configuration = {
             "block_public_security_group_rules": block_public_security_group_rules,
             "permitted_public_security_group_rule_ranges": [
                 {
-                    'min_range': rule_range.get('MinRange'),
-                    'max_range': rule_range.get('MaxRange'), 
+                    "min_range": rule_range.get("MinRange"),
+                    "max_range": rule_range.get("MaxRange"),
                 }
                 for rule_range in permitted_public_security_group_rule_ranges
-            ]
+            ],
         }
-        self.metadata = {
-            "creation_date_time": datetime.now(),
-            "created_by_arn": "TODO"
-        }
+        self.metadata = {"creation_date_time": datetime.now(), "created_by_arn": "TODO"}
 
 
 class ElasticMapReduceBackend(BaseBackend):
@@ -910,13 +907,17 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def get_block_public_access_configuration(self):
         return self.public_access_configuration or {}
-    
+
     def put_block_public_access_configuration(self, block_public_access_configuration):
         self.block_access_configuration = FakeBlockPublicAccessConfiguration(
-            block_public_security_group_rules = block_public_access_configuration.get("BlockPublicSecurityGroupRules"),
-            permitted_public_security_group_rule_ranges = block_public_access_configuration.get("PermittedPublicSecurityGroupRuleRanges")
+            block_public_security_group_rules=block_public_access_configuration.get(
+                "BlockPublicSecurityGroupRules"
+            ),
+            permitted_public_security_group_rule_ranges=block_public_access_configuration.get(
+                "PermittedPublicSecurityGroupRuleRanges"
+            ),
         )
         return
-    
+
 
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

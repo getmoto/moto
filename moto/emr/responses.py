@@ -540,16 +540,22 @@ class ElasticMapReduceResponse(BaseResponse):
         access = self.backend.get_block_public_access_configuration()
         config = access.get("config") or {}
         metadata = access.get("metadata") or {}
-        block_public_security_group_rules = config.get("block_public_security_group_rules")
-        permitted_public_security_group_rule_ranges = config.get("permitted_public_security_group_rule_ranges")
+        block_public_security_group_rules = config.get(
+            "block_public_security_group_rules"
+        )
+        permitted_public_security_group_rule_ranges = config.get(
+            "permitted_public_security_group_rule_ranges"
+        )
         creation_date_time = metadata.get("creation_date_time")
         created_by_arn = metadata.get("created_by_arn")
-        template = self.response_template(GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE)
+        template = self.response_template(
+            GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
+        )
         return template.render(
             block_public_security_group_rule=block_public_security_group_rules,
             permitted_public_security_group_rule_ranges=permitted_public_security_group_rule_ranges,
             creation_date_time=creation_date_time,
-            created_by_arn=created_by_arn
+            created_by_arn=created_by_arn,
         )
 
     @generate_boto3_response("PutBlockPublicAccessConfiguration")
@@ -557,11 +563,18 @@ class ElasticMapReduceResponse(BaseResponse):
         params = self._get_params()
         block_public_access_configuration = params.get("BlockPublicAccessConfiguration")
         self.backend.put_block_public_access_configuration(
-            block_public_security_group_rules=block_public_access_configuration.get("block_public_security_group_rules"),
-            permitted_public_security_group_rule_ranges=block_public_access_configuration.get("permitted_public_security_group_rule_ranges")
+            block_public_security_group_rules=block_public_access_configuration.get(
+                "block_public_security_group_rules"
+            ),
+            permitted_public_security_group_rule_ranges=block_public_access_configuration.get(
+                "permitted_public_security_group_rule_ranges"
+            ),
         )
-        template = self.response_template(PUT_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE)
+        template = self.response_template(
+            PUT_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
+        )
         return template.render()
+
 
 ADD_INSTANCE_GROUPS_TEMPLATE = """<AddInstanceGroupsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <AddInstanceGroupsResult>
