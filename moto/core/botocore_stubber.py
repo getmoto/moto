@@ -7,7 +7,8 @@ from botocore.awsrequest import AWSResponse
 import moto.backend_index as backend_index
 from moto.core.base_backend import BackendDict
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.config import passthrough_service, passthrough_url
+from moto.core.config import passthrough_service, passthrough_url, service_whitelisted
+from moto.core.exceptions import ServiceNotWhitelisted
 from moto.core.utils import get_equivalent_url_in_aws_domain
 
 
@@ -55,6 +56,9 @@ class BotocoreStubber:
             if pattern.match(clean_url):
                 if passthrough_service(service):
                     return None
+
+                if not service_whitelisted(service):
+                    raise ServiceNotWhitelisted(service)
 
                 import moto.backends as backends
                 from moto.core import DEFAULT_ACCOUNT_ID
