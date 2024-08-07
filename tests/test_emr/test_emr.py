@@ -28,7 +28,7 @@ def test_put_and_get_block_public_access_configuration(client):
     )
 
     connection = client.get_block_public_access_configuration()
-    assert connection["BlockPublicAccessConfiguration"]["BlockPublicSecurityGroupRules"] == True
+    assert connection["BlockPublicAccessConfiguration"]["BlockPublicSecurityGroupRules"]
     assert connection["BlockPublicAccessConfiguration"]["PermittedPublicSecurityGroupRuleRanges"][0]["MinRange"] == 10
     assert connection["BlockPublicAccessConfiguration"]["PermittedPublicSecurityGroupRuleRanges"][0]["MinRange"] == 100
     assert isinstance(connection["BlockPublicAccessConfigurationMetadata"]["CreatedByArn"], str)
