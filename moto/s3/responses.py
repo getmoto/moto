@@ -1683,6 +1683,13 @@ class S3Response(BaseResponse):
             )
 
             if key_to_copy is not None:
+                if "x-amz-copy-source-if-none-match" in request.headers:
+                    requested_etag = request.headers["x-amz-copy-source-if-none-match"]
+                    if requested_etag in [key_to_copy.etag, key_to_copy.etag[1:-1]]:
+                        raise PreconditionFailed(
+                            failed_condition="x-amz-copy-source-If-None-Match"
+                        )
+
                 if key_to_copy.storage_class in ARCHIVE_STORAGE_CLASSES:
                     if (
                         key_to_copy.response_dict.get("x-amz-restore") is None
@@ -1713,8 +1720,11 @@ class S3Response(BaseResponse):
                     lock_mode=lock_mode,
                     lock_legal_status=legal_hold,
                     lock_until=lock_until,
+                    provided_version_id=src_version_id,
                 )
             else:
+                if src_version_id:
+                    raise MissingVersion()
                 raise MissingKey(key=src_key)
 
             new_key: FakeKey = self.backend.get_object(bucket_name, key_name)  # type: ignore
