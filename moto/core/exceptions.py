@@ -200,3 +200,15 @@ class InvalidToken(AWSError):
 
     def __init__(self, message: str = "Invalid token"):
         super().__init__(f"Invalid Token: {message}", "InvalidToken")
+
+
+class ServiceNotWhitelisted(Exception):
+    def __init__(self, service_name: str):
+        from moto.settings import default_user_config
+
+        services_whitelisted = default_user_config.get("core", {}).get(
+            "service_whitelist"
+        )
+        super().__init__(
+            f"Service {service_name} not whitelisted. Only services {services_whitelisted} are allowed."
+        )

@@ -20,6 +20,7 @@ If you are using the decorators, some options are configurable within the decora
                 "services": ["dynamodb"]
             },
             "reset_boto3_session": True,
+            "service_whitelist": None,
         },
         "iam": {"load_aws_managed_policies": False},
         "stepfunctions": {"execute_state_machine": True},
@@ -51,6 +52,17 @@ If the first test in your test suite is mocked, the default `Session` created in
 That is why Moto resets the `boto3-Session`, to make sure that it is recreated with the correct credentials (either fake or mocked) everytime. It does come at a cost though, as instantiating a new boto3-Session is an expensive operation.
 
 If all of your tests use Moto, and you never want to reach out to AWS, you can choose to _not_ reset the `boto3-session`. New boto3-clients that are created will reuse the `boto3-Session` (with fake credentials), making Moto much more performant.
+
+Whitelist Services
+-------------------
+The `mock_aws` decorator will allow requests to all supported services. If you want to restrict this to only specific services, you can configure a service whitelist.
+For example, if you only want your application to use DynamoDB and S3:
+
+```
+mock_aws(config={"core": {"service_whitelist": ["dynamodb", "s3"]}})
+```
+
+If the application under test tries to access any other services, Moto will throw a `ServiceNotWhitelisted`-exception.
 
 AWS Managed Policies
 --------------------
