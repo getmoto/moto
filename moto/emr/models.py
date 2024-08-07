@@ -905,10 +905,10 @@ class ElasticMapReduceBackend(BaseBackend):
             )
         del self.security_configurations[name]
 
-    def get_block_public_access_configuration(self):
-        return self.public_access_configuration or {}
+    def get_block_public_access_configuration(self) -> Optional[FakeBlockPublicAccessConfiguration]:
+        return self.block_access_configuration
 
-    def put_block_public_access_configuration(self, block_public_access_configuration):
+    def put_block_public_access_configuration(self, block_public_access_configuration) -> None:
         self.block_access_configuration = FakeBlockPublicAccessConfiguration(
             block_public_security_group_rules=block_public_access_configuration.get(
                 "BlockPublicSecurityGroupRules"
