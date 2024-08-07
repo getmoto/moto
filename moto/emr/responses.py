@@ -539,7 +539,7 @@ class ElasticMapReduceResponse(BaseResponse):
     def get_block_public_access_configuration(self) -> str:
         configuration = self.backend.get_block_public_access_configuration()
         config = configuration.get("block_public_access_configuration") or {}
-        metadata =  configuration.get("block_public_access_configuration_metadata") or {}
+        metadata = configuration.get("block_public_access_configuration_metadata") or {}
         template = self.response_template(
             GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
         )
@@ -557,11 +557,14 @@ class ElasticMapReduceResponse(BaseResponse):
     @generate_boto3_response("PutBlockPublicAccessConfiguration")
     def put_block_public_access_configuration(self) -> str:
         params = self._get_params()
-        block_public_access_configuration = params.get("BlockPublicAccessConfiguration") or {}
+        block_public_access_configuration = (
+            params.get("BlockPublicAccessConfiguration") or {}
+        )
         self.backend.put_block_public_access_configuration(
             block_public_security_group_rules=block_public_access_configuration.get(
                 "BlockPublicSecurityGroupRules"
-            ) or True,
+            )
+            or True,
             rule_ranges=block_public_access_configuration.get(
                 "PermittedPublicSecurityGroupRuleRanges"
             ),
