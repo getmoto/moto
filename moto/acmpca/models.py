@@ -102,7 +102,7 @@ class CertificateAuthority(BaseModel):
 
         return cert.public_bytes(serialization.Encoding.PEM)
 
-    def _ca_csr(self, issuer) -> bytes:
+    def _ca_csr(self, issuer: x509.Name) -> bytes:
         csr = (
             x509.CertificateSigningRequestBuilder()
             .subject_name(issuer)
@@ -118,7 +118,9 @@ class CertificateAuthority(BaseModel):
         csr = x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
         extensions = self._x509_extensions(csr, template_arn)
         new_cert = self.generate_cert(
-            subject=csr.subject, public_key=csr.public_key(), extensions=extensions
+            subject=csr.subject,
+            public_key=csr.public_key(),  # type: ignore[arg-type]
+            extensions=extensions,
         )
 
         cert_id = str(mock_random.uuid4()).replace("-", "")
@@ -215,7 +217,7 @@ class CertificateAuthority(BaseModel):
         if cn:
             extensions.append(
                 (
-                    x509.SubjectAlternativeName([x509.DNSName(cn[0].value)]),
+                    x509.SubjectAlternativeName([x509.DNSName(cn[0].value)]),  # type: ignore[arg-type]
                     False,
                 ),
             )
