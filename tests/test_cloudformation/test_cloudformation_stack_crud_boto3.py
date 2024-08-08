@@ -5,13 +5,15 @@ import sys
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
+from unittest.mock import MagicMock
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ValidationError
 
 from moto import mock_aws, settings
 from moto.cloudformation import cloudformation_backends
+from moto.cloudformation.utils import generate_stack_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
 from tests import EXAMPLE_AMI_ID
@@ -2460,6 +2462,95 @@ def test_create_and_update_stack_with_unknown_resource():
             cf.update_stack(
                 StackName=TEST_STACK_NAME, TemplateBody=json.dumps(new_template)
             )
+
+
+@mock_aws
+def test_valid_change_set_name(self):
+    try:
+        change_set_id, stack_id = self.your_class_instance.create_change_set(
+            stack_name=TEST_STACK_NAME,
+            change_set_name="valid-change-set-name",
+            template=dummy_template,
+            parameters={"param1": "value1"},
+            description="Test Change Set",
+            change_set_type="CREATE",
+        )
+        self.assertTrue(change_set_id.startswith("change-set-id"))
+        self.assertTrue(stack_id.startswith("stack-id"))
+    except ValidationError:
+        self.fail("ValidationError raised for valid change set name")
+
+
+def test_invalid_change_set_name_starting_char(self):
+    with self.assertRaises(ValidationError):
+        self.your_class_instance.create_change_set(
+            stack_name=TEST_STACK_NAME,
+            change_set_name="1invalid-change-set-name",
+            template=dummy_template,
+            parameters={"param1": "value1"},
+            description="Test Change Set",
+            change_set_type="CREATE",
+        )
+
+
+def test_invalid_change_set_name_length(self):
+    long_name = "a" * 129  # Exceeds the 128 character limit
+    with self.assertRaises(ValidationError):
+        self.your_class_instance.create_change_set(
+            stack_name=TEST_STACK_NAME,
+            change_set_name=long_name,
+            template=dummy_template,
+            parameters={"param1": "value1"},
+            description="Test Change Set",
+            change_set_type="CREATE",
+        )
+
+
+def test_invalid_change_set_name_special_chars(self):
+    with self.assertRaises(ValidationError):
+        self.your_class_instance.create_change_set(
+            stack_name=TEST_STACK_NAME,
+            change_set_name="invalid@name",
+            template=dummy_template,
+            parameters={"param1": "value1"},
+            description="Test Change Set",
+            change_set_type="CREATE",
+        )
+
+
+def test_stack_creation_on_new_change_set(self):
+    self.your_class_instance.create_change_set(
+        stack_name=TEST_STACK_NAME,
+        change_set_name="valid-change-set",
+        template=dummy_template,
+        parameters={"param1": "value1"},
+        description="Test Change Set",
+        change_set_type="CREATE",
+    )
+    stack_id = generate_stack_id(TEST_STACK_NAME, REGION_NAME, "123456789012")
+    self.assertIn(stack_id, self.your_class_instance.stacks)
+    self.assertEqual(self.your_class_instance.stacks[stack_id].name, TEST_STACK_NAME)
+
+
+def test_update_change_set(self):
+    self.your_class_instance.stacks = {
+        generate_stack_id(TEST_STACK_NAME, REGION_NAME, "123456789012"): MagicMock(
+            name="stack",
+            has_template=MagicMock(return_value=True),
+            has_parameters=MagicMock(return_value=True),
+        )
+    }
+    change_set_id, stack_id = self.your_class_instance.create_change_set(
+        stack_name=TEST_STACK_NAME,
+        change_set_name="update-change-set",
+        template=dummy_update_template,
+        parameters={"KeyName": "valid-key"},
+        description="Update Test Change Set",
+        change_set_type="UPDATE",
+    )
+    self.assertEqual(
+        self.your_class_instance.change_sets[change_set_id].status, "CREATE_COMPLETE"
+    )
 
 
 def get_role_name():

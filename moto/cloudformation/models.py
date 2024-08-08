@@ -28,9 +28,9 @@ from .utils import (
     generate_stackset_arn,
     generate_stackset_id,
     get_stack_from_s3_url,
+    validate_create_change_set,
     validate_template_cfn_lint,
     yaml_tag_constructor,
-    validate_create_change_set,
 )
 
 
