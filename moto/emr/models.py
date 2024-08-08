@@ -896,6 +896,12 @@ class ElasticMapReduceBackend(BaseBackend):
         block_public_security_group_rules: bool,
         rule_ranges: Optional[List[Dict[str, int]]],
     ) -> None:
+        from moto.sts import sts_backends
+
+        sts_backend = sts_backends[self.account_id]["global"]
+        _, user_arn, _ = sts_backend.get_caller_identity(
+            self.account_id, region=self.region_name
+        )
         self.block_public_access_configuration = {
             "block_public_access_configuration": {
                 "block_public_security_group_rules": block_public_security_group_rules,
@@ -909,7 +915,7 @@ class ElasticMapReduceBackend(BaseBackend):
             },
             "block_public_access_configuration_metadata": {
                 "creation_date_time": datetime.now(),
-                "created_by_arn": "arn:aws:iam::123456789012:user/johndoe",
+                "created_by_arn": user_arn,
             },
         }
         return
