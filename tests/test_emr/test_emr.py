@@ -1,5 +1,7 @@
 """Unit tests for emr-supported APIs."""
 
+from datetime import datetime
+
 import boto3
 import pytest
 
@@ -43,6 +45,9 @@ def test_put_and_get_block_public_access_configuration(client):
     assert isinstance(
         connection["BlockPublicAccessConfigurationMetadata"]["CreatedByArn"], str
     )
+
+    # botocore automatically parses timestamps into datetimes
     assert isinstance(
-        connection["BlockPublicAccessConfigurationMetadata"]["CreationDateTime"], int
+        connection["BlockPublicAccessConfigurationMetadata"]["CreationDateTime"],
+        datetime,
     )

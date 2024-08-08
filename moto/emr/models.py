@@ -1,4 +1,3 @@
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -909,7 +908,7 @@ class ElasticMapReduceBackend(BaseBackend):
                 ],
             },
             "block_public_access_configuration_metadata": {
-                "creation_date_time": time.time_ns(),
+                "creation_date_time": datetime.now(),
                 "created_by_arn": "arn:aws:iam::123456789012:user/johndoe",
             },
         }
