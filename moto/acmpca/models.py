@@ -61,22 +61,34 @@ class CertificateAuthority(BaseModel):
         self.issued_certificates: Dict[str, bytes] = dict()
 
         subject = self.certificate_authority_configuration.get("Subject", {})
-        common_name = subject.get("CommonName", "getmoto.org")
-        country = subject.get("Country", "IN")
-        state = subject.get("State", "GA")
-        organisation = subject.get("Organization", "Moto")
-        organisation_unit = subject.get("OrganizationalUnit", "Testing")
-        self.issuer = x509.Name(
-            [
-                x509.NameAttribute(x509.NameOID.COUNTRY_NAME, country),
-                x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, state),
-                x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, organisation),
+        name_attributes = []
+        if "Country" in subject:
+            name_attributes.append(
+                x509.NameAttribute(x509.NameOID.COUNTRY_NAME, subject["Country"])
+            )
+        if "State" in subject:
+            name_attributes.append(
                 x509.NameAttribute(
-                    x509.NameOID.ORGANIZATIONAL_UNIT_NAME, organisation_unit
-                ),
-                x509.NameAttribute(x509.NameOID.COMMON_NAME, common_name),
-            ]
-        )
+                    x509.NameOID.STATE_OR_PROVINCE_NAME, subject["State"]
+                )
+            )
+        if "Organization" in subject:
+            name_attributes.append(
+                x509.NameAttribute(
+                    x509.NameOID.ORGANIZATION_NAME, subject["Organization"]
+                )
+            )
+        if "OrganizationalUnit" in subject:
+            name_attributes.append(
+                x509.NameAttribute(
+                    x509.NameOID.ORGANIZATIONAL_UNIT_NAME, subject["OrganizationalUnit"]
+                )
+            )
+        if "CommonName" in subject:
+            name_attributes.append(
+                x509.NameAttribute(x509.NameOID.COMMON_NAME, subject["CommonName"])
+            )
+        self.issuer = x509.Name(name_attributes)
         self.csr = self._ca_csr(self.issuer)
 
     def generate_cert(
