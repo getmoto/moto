@@ -1,6 +1,6 @@
 import os
 import string
-from typing import Any, List
+from typing import Any, List, Dict, Optional
 from urllib.parse import urlparse
 
 import yaml
@@ -8,6 +8,7 @@ import yaml
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition
 
+from .exceptions import ValidationError
 
 def generate_stack_id(stack_name: str, region: str, account: str) -> str:
     random_id = random.uuid4()
@@ -134,3 +135,25 @@ def get_stack_from_s3_url(template_url: str, account_id: str, partition: str) ->
 
     key = s3_backends[account_id][partition].get_object(bucket_name, key_name)
     return key.value.decode("utf-8")  # type: ignore[union-attr]
+
+def validate_create_change_set(
+    stack_name: str,
+    change_set_name: str,
+    template: str,
+    parameters: Dict[str, str],
+    description: str,
+    change_set_type: str,
+    notification_arns: Optional[List[str]] = None,
+    tags: Optional[Dict[str, str]] = None,
+    role_arn: Optional[str] = None,
+):
+    if not (change_set_name and change_set_name[0].isalpha()):
+        raise ValidationError(f"Invalid change set name: {change_set_name}")
+
+    if not all(c.isalnum() or c == '-' for c in change_set_name):
+        raise ValidationError(f"Invalid change set name: {change_set_name}")
+
+    if len(change_set_name) > 128:
+        raise ValidationError(f"Change set name exceeds 128 characters: {change_set_name}")
+
+    # Additional validations can be added here later
