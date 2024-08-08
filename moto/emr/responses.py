@@ -1471,18 +1471,18 @@ GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE = """
         <BlockPublicSecurityGroupRules>
           {{block_public_security_group_rules}}
         </BlockPublicSecurityGroupRules>
-        <BlockPublicSecurityGroupRuleRanges>
+        <PermittedPublicSecurityGroupRuleRanges>
           {% for rule_range in permitted_public_security_group_rule_ranges %}
-            <BlockPublicSecurityGroupRuleRange>
+            <member>
               <MinRange>{{rule_range['min_range']}}</MinRange>
               <MaxRange>{{rule_range['max_range']}}</MaxRange>      
-            </BlockPublicSecurityGroupRuleRange>
+            </member>
           {% endfor %}
-        </BlockPublicSecurityGroupRuleRanges>
+        </PermittedPublicSecurityGroupRuleRanges>
       </BlockPublicAccessConfiguration>
       <BlockPublicAccessConfigurationMetadata>
         <CreationDateTime>{{creation_date_time}}</CreationDateTime>
-        <CreatedByArn>{{created_by_arn}}</CreationByArn>
+        <CreatedByArn>{{created_by_arn}}</CreatedByArn>
       </BlockPublicAccessConfigurationMetadata>
     </GetBlockPublicAccessConfigurationResult>
     <ResponseMetadata>

@@ -21,7 +21,7 @@ def test_put_and_get_block_public_access_configuration(client):
         BlockPublicAccessConfiguration={
             "BlockPublicSecurityGroupRules": True,
             "PermittedPublicSecurityGroupRuleRanges": [
-                {"MinRange": 10, "MaxRange": 100},
+                {"MinRange": 22, "MaxRange": 443},
             ],
         }
     )
@@ -32,13 +32,13 @@ def test_put_and_get_block_public_access_configuration(client):
         connection["BlockPublicAccessConfiguration"][
             "PermittedPublicSecurityGroupRuleRanges"
         ][0]["MinRange"]
-        == 10
+        == 22
     )
     assert (
         connection["BlockPublicAccessConfiguration"][
             "PermittedPublicSecurityGroupRuleRanges"
-        ][0]["MinRange"]
-        == 100
+        ][0]["MaxRange"]
+        == 443
     )
     assert isinstance(
         connection["BlockPublicAccessConfigurationMetadata"]["CreatedByArn"], str
