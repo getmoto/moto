@@ -63,11 +63,13 @@ class CertificateAuthority(BaseModel):
         subject = self.certificate_authority_configuration.get("Subject", {})
         common_name = subject.get("CommonName", "getmoto.org")
         country = subject.get("Country", "IN")
+        state = subject.get("State", "GA")
         organisation = subject.get("Organization", "Moto")
-        organisation_unit = subject.get("OrganizationUnit", "Test")
+        organisation_unit = subject.get("OrganizationalUnit", "Testing")
         self.issuer = x509.Name(
             [
                 x509.NameAttribute(x509.NameOID.COUNTRY_NAME, country),
+                x509.NameAttribute(x509.NameOID.STATE_OR_PROVINCE_NAME, state),
                 x509.NameAttribute(x509.NameOID.ORGANIZATION_NAME, organisation),
                 x509.NameAttribute(
                     x509.NameOID.ORGANIZATIONAL_UNIT_NAME, organisation_unit
