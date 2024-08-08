@@ -107,13 +107,11 @@ class DynamoDBBackend(BaseBackend):
         return table
 
     def delete_table(self, name: str) -> Table:
-        if name not in self.tables:
-            raise ResourceNotFoundException
-        table_for_deletion = self.tables.get(name)
+        table_for_deletion = self.get_table(name)
         if isinstance(table_for_deletion, Table):
             if table_for_deletion.deletion_protection_enabled:
                 raise DeletionProtectedException(name)
-        return self.tables.pop(name)
+        return self.tables.pop(table_for_deletion.name)
 
     def describe_endpoints(self) -> List[Dict[str, Union[int, str]]]:
         return [
@@ -166,10 +164,12 @@ class DynamoDBBackend(BaseBackend):
         return tables, None
 
     def describe_table(self, name: str) -> Dict[str, Any]:
-        # We can't use get_table() here, because the error message is slightly different for this operation
-        if name not in self.tables:
+        # Error message is slightly different for this operation
+        try:
+            table = self.get_table(name)
+        except ResourceNotFoundException:
             raise ResourceNotFoundException(table_name=name)
-        return self.tables[name].describe(base_key="Table")
+        return table.describe(base_key="Table")
 
     def update_table(
         self,
@@ -185,52 +185,30 @@ class DynamoDBBackend(BaseBackend):
         if attr_definitions:
             table.attr = attr_definitions
         if global_index:
-            table = self.update_table_global_indexes(name, global_index)
+            self.update_table_global_indexes(table, global_index)
         if throughput:
-            table = self.update_table_throughput(name, throughput)
+            table.throughput = throughput
         if billing_mode:
-            table = self.update_table_billing_mode(name, billing_mode)
+            table.billing_mode = billing_mode
         if stream_spec:
-            table = self.update_table_streams(name, stream_spec)
+            self.update_table_streams(table, stream_spec)
         if deletion_protection_enabled:
-            table = self.update_table_deletion_protection_enabled(
-                name, deletion_protection_enabled
-            )
-        return table
-
-    def update_table_throughput(self, name: str, throughput: Dict[str, int]) -> Table:
-        table = self.tables[name]
-        table.throughput = throughput
-        return table
-
-    def update_table_billing_mode(self, name: str, billing_mode: str) -> Table:
-        table = self.tables[name]
-        table.billing_mode = billing_mode
-        return table
-
-    def update_table_deletion_protection_enabled(
-        self, name: str, deletion_protection_enabled: bool
-    ) -> Table:
-        table = self.tables[name]
-        table.deletion_protection_enabled = deletion_protection_enabled
+            table.deletion_protection_enabled = deletion_protection_enabled
         return table
 
     def update_table_streams(
-        self, name: str, stream_specification: Dict[str, Any]
-    ) -> Table:
-        table = self.tables[name]
+        self, table: Table, stream_specification: Dict[str, Any]
+    ) -> None:
         if (
             stream_specification.get("StreamEnabled")
             or stream_specification.get("StreamViewType")
         ) and table.latest_stream_label:
             raise StreamAlreadyEnabledException
         table.set_stream_specification(stream_specification)
-        return table
 
     def update_table_global_indexes(
-        self, name: str, global_index_updates: List[Dict[str, Any]]
-    ) -> Table:
-        table = self.tables[name]
+        self, table: Table, global_index_updates: List[Dict[str, Any]]
+    ) -> None:
         gsis_by_name = dict((i.name, i) for i in table.global_indexes)
         for gsi_update in global_index_updates:
             gsi_to_create = gsi_update.get("Create")
@@ -268,7 +246,6 @@ class DynamoDBBackend(BaseBackend):
                 )
 
         table.global_indexes = list(gsis_by_name.values())
-        return table
 
     def put_item(
         self,
@@ -347,9 +324,17 @@ class DynamoDBBackend(BaseBackend):
             return table.schema
 
     def get_table(self, table_name: str) -> Table:
-        if table_name not in self.tables:
+        table = next(
+            (
+                t
+                for t in self.tables.values()
+                if t.name == table_name or t.table_arn == table_name
+            ),
+            None,
+        )
+        if not table:
             raise ResourceNotFoundException()
-        return self.tables[table_name]
+        return table
 
     def get_item(
         self,
@@ -587,8 +572,9 @@ class DynamoDBBackend(BaseBackend):
         return table.delete_item(hash_value, range_value)
 
     def update_time_to_live(self, table_name: str, ttl_spec: Dict[str, Any]) -> None:
-        table = self.tables.get(table_name)
-        if table is None:
+        try:
+            table = self.get_table(table_name)
+        except ResourceNotFoundException:
             raise JsonRESTError("ResourceNotFound", "Table not found")
 
         if "Enabled" not in ttl_spec or "AttributeName" not in ttl_spec:
@@ -604,8 +590,9 @@ class DynamoDBBackend(BaseBackend):
         table.ttl["AttributeName"] = ttl_spec["AttributeName"]
 
     def describe_time_to_live(self, table_name: str) -> Dict[str, Any]:
-        table = self.tables.get(table_name)
-        if table is None:
+        try:
+            table = self.get_table(table_name)
+        except ResourceNotFoundException:
             raise JsonRESTError("ResourceNotFound", "Table not found")
 
         return table.ttl
@@ -786,7 +773,12 @@ class DynamoDBBackend(BaseBackend):
     def list_backups(self, table_name: str) -> List[Backup]:
         backups = list(self.backups.values())
         if table_name is not None:
-            backups = [backup for backup in backups if backup.table.name == table_name]
+            backups = [
+                backup
+                for backup in backups
+                if backup.table.name == table_name
+                or backup.table.table_arn == table_name
+            ]
         return backups
 
     def create_backup(self, table_name: str, backup_name: str) -> Backup:
