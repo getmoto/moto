@@ -461,12 +461,10 @@ def test_end_entity_certificate_issuance():
     )
     builder = cryptography.x509.verification.PolicyBuilder().store(store)
     verifier = builder.build_server_verifier(DNSName("bezoscorp.com"))
-    assert (
-        verifier.verify(
-            cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8")), []
-        )
-        == 2
+    chain = verifier.verify(
+        cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8")), []
     )
+    assert len(chain) == 2
 
 
 @mock_aws
