@@ -4,11 +4,10 @@ import base64
 import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-import cryptography.hazmat.primitives.asymmetric.rsa
-import cryptography.x509
+from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.x509 import Certificate, NameOID, load_pem_x509_certificate
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -17,7 +16,11 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import InvalidS3ObjectAclInCrlConfiguration, ResourceNotFoundException
+from .exceptions import (
+    InvalidS3ObjectAclInCrlConfiguration,
+    InvalidStateException,
+    ResourceNotFoundException,
+)
 
 
 class CertificateAuthority(BaseModel):
@@ -46,83 +49,192 @@ class CertificateAuthority(BaseModel):
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
 
-        self.common_name = self.certificate_authority_configuration.get(
-            "Subject", {}
-        ).get("CommonName", "Moto.org")
-        self.key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
-            public_exponent=65537, key_size=2048
-        )
+        self.key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         self.password = str(mock_random.uuid4()).encode("utf-8")
         self.private_bytes = self.key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.BestAvailableEncryption(self.password),
         )
-        self.certificate: Optional[Certificate] = None
+        self.certificate: Optional[x509.Certificate] = None
         self.certificate_chain: Optional[bytes] = None
-        self.csr = self.generate_csr(self.common_name)
-
         self.issued_certificates: Dict[str, bytes] = dict()
 
-    def generate_cert(self, common_name: str, subject: cryptography.x509.Name) -> bytes:
-        issuer = cryptography.x509.Name(
-            [  # C = US, O = Amazon, OU = Server CA 1B, CN = Amazon
-                cryptography.x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-                cryptography.x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Amazon"),
-                cryptography.x509.NameAttribute(
-                    NameOID.ORGANIZATIONAL_UNIT_NAME, "Server CA 1B"
-                ),
-                cryptography.x509.NameAttribute(NameOID.COMMON_NAME, common_name),
-            ]
-        )
-        cert = (
-            cryptography.x509.CertificateBuilder()
+        subject = self.certificate_authority_configuration.get("Subject", {})
+        name_attributes = []
+        if "Country" in subject:
+            name_attributes.append(
+                x509.NameAttribute(x509.NameOID.COUNTRY_NAME, subject["Country"])
+            )
+        if "State" in subject:
+            name_attributes.append(
+                x509.NameAttribute(
+                    x509.NameOID.STATE_OR_PROVINCE_NAME, subject["State"]
+                )
+            )
+        if "Organization" in subject:
+            name_attributes.append(
+                x509.NameAttribute(
+                    x509.NameOID.ORGANIZATION_NAME, subject["Organization"]
+                )
+            )
+        if "OrganizationalUnit" in subject:
+            name_attributes.append(
+                x509.NameAttribute(
+                    x509.NameOID.ORGANIZATIONAL_UNIT_NAME, subject["OrganizationalUnit"]
+                )
+            )
+        if "CommonName" in subject:
+            name_attributes.append(
+                x509.NameAttribute(x509.NameOID.COMMON_NAME, subject["CommonName"])
+            )
+        self.issuer = x509.Name(name_attributes)
+        self.csr = self._ca_csr(self.issuer)
+
+    def generate_cert(
+        self,
+        subject: x509.Name,
+        public_key: rsa.RSAPublicKey,
+        extensions: List[Tuple[x509.ExtensionType, bool]],
+    ) -> bytes:
+        builder = (
+            x509.CertificateBuilder()
             .subject_name(subject)
-            .issuer_name(issuer)
-            .public_key(self.key.public_key())
-            .serial_number(cryptography.x509.random_serial_number())
+            .issuer_name(self.issuer)
+            .public_key(public_key)
+            .serial_number(x509.random_serial_number())
             .not_valid_before(utcnow())
             .not_valid_after(utcnow() + datetime.timedelta(days=365))
-            .sign(self.key, hashes.SHA512(), default_backend())
         )
+
+        for extension, critical in extensions:
+            builder = builder.add_extension(extension, critical)
+
+        cert = builder.sign(self.key, hashes.SHA512(), default_backend())
 
         return cert.public_bytes(serialization.Encoding.PEM)
 
-    def generate_csr(self, common_name: str) -> bytes:
+    def _ca_csr(self, issuer: x509.Name) -> bytes:
         csr = (
-            cryptography.x509.CertificateSigningRequestBuilder()
-            .subject_name(
-                cryptography.x509.Name(
-                    [
-                        cryptography.x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-                        cryptography.x509.NameAttribute(
-                            NameOID.STATE_OR_PROVINCE_NAME, "California"
-                        ),
-                        cryptography.x509.NameAttribute(
-                            NameOID.LOCALITY_NAME, "San Francisco"
-                        ),
-                        cryptography.x509.NameAttribute(
-                            NameOID.ORGANIZATION_NAME, "My Company"
-                        ),
-                        cryptography.x509.NameAttribute(
-                            NameOID.COMMON_NAME, common_name
-                        ),
-                    ]
-                )
+            x509.CertificateSigningRequestBuilder()
+            .subject_name(issuer)
+            .add_extension(
+                x509.BasicConstraints(ca=True, path_length=None),
+                critical=True,
             )
             .sign(self.key, hashes.SHA256())
         )
         return csr.public_bytes(serialization.Encoding.PEM)
 
-    def issue_certificate(self, csr_bytes: bytes) -> str:
-        cert = cryptography.x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
+    def issue_certificate(self, csr_bytes: bytes, template_arn: Optional[str]) -> str:
+        csr = x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
+        extensions = self._x509_extensions(csr, template_arn)
         new_cert = self.generate_cert(
-            common_name=self.common_name, subject=cert.subject
+            subject=csr.subject,
+            public_key=csr.public_key(),  # type: ignore[arg-type]
+            extensions=extensions,
         )
+
         cert_id = str(mock_random.uuid4()).replace("-", "")
         cert_arn = f"arn:{get_partition(self.region_name)}:acm-pca:{self.region_name}:{self.account_id}:certificate-authority/{self.id}/certificate/{cert_id}"
         self.issued_certificates[cert_arn] = new_cert
         return cert_arn
+
+    def _x509_extensions(
+        self, csr: x509.CertificateSigningRequest, template_arn: Optional[str]
+    ) -> List[Tuple[x509.ExtensionType, bool]]:
+        """
+        Uses a PCA certificate template ARN to return a list of X.509 extensions.
+        These extensions are part of the constructed certificate.
+
+        See https://docs.aws.amazon.com/privateca/latest/userguide/UsingTemplates.html
+        """
+        extensions = []
+
+        if template_arn == "arn:aws:acm-pca:::template/RootCACertificate/V1":
+            extensions.extend(
+                [
+                    (
+                        x509.BasicConstraints(ca=True, path_length=None),
+                        True,
+                    ),
+                    (
+                        x509.KeyUsage(
+                            crl_sign=True,
+                            key_cert_sign=True,
+                            digital_signature=True,
+                            content_commitment=False,
+                            key_encipherment=False,
+                            data_encipherment=False,
+                            key_agreement=False,
+                            encipher_only=False,
+                            decipher_only=False,
+                        ),
+                        True,
+                    ),
+                    (
+                        x509.SubjectKeyIdentifier.from_public_key(csr.public_key()),
+                        False,
+                    ),
+                ]
+            )
+
+        elif template_arn in (
+            "arn:aws:acm-pca:::template/EndEntityCertificate/V1",
+            None,
+        ):
+            extensions.extend(
+                [
+                    (
+                        x509.BasicConstraints(ca=False, path_length=None),
+                        True,
+                    ),
+                    (
+                        x509.AuthorityKeyIdentifier.from_issuer_public_key(
+                            self.key.public_key()
+                        ),
+                        False,
+                    ),
+                    (
+                        x509.SubjectKeyIdentifier.from_public_key(csr.public_key()),
+                        False,
+                    ),
+                    (
+                        x509.KeyUsage(
+                            crl_sign=False,
+                            key_cert_sign=False,
+                            digital_signature=True,
+                            content_commitment=False,
+                            key_encipherment=True,
+                            data_encipherment=False,
+                            key_agreement=False,
+                            encipher_only=False,
+                            decipher_only=False,
+                        ),
+                        True,
+                    ),
+                    (
+                        x509.ExtendedKeyUsage(
+                            [
+                                x509.ExtendedKeyUsageOID.SERVER_AUTH,
+                                x509.ExtendedKeyUsageOID.CLIENT_AUTH,
+                            ]
+                        ),
+                        False,
+                    ),
+                ]
+            )
+
+        cn = csr.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
+        if cn:
+            extensions.append(
+                (
+                    x509.SubjectAlternativeName([x509.DNSName(cn[0].value)]),  # type: ignore[arg-type]
+                    False,
+                ),
+            )
+
+        return extensions
 
     def get_certificate(self, certificate_arn: str) -> bytes:
         return self.issued_certificates[certificate_arn]
@@ -171,7 +283,7 @@ class CertificateAuthority(BaseModel):
     def import_certificate_authority_certificate(
         self, certificate: bytes, certificate_chain: Optional[bytes]
     ) -> None:
-        self.certificate = load_pem_x509_certificate(certificate)
+        self.certificate = x509.load_pem_x509_certificate(certificate)
         self.certificate_chain = certificate_chain
         self.status = "ACTIVE"
         self.updated_at = unix_time()
@@ -243,6 +355,8 @@ class ACMPCABackend(BaseBackend):
         self, certificate_authority_arn: str
     ) -> Tuple[bytes, Optional[bytes]]:
         ca = self.describe_certificate_authority(certificate_authority_arn)
+        if ca.status != "ACTIVE":
+            raise InvalidStateException(certificate_authority_arn)
         return ca.certificate_bytes, ca.certificate_chain
 
     def get_certificate_authority_csr(self, certificate_authority_arn: str) -> bytes:
@@ -273,13 +387,15 @@ class ACMPCABackend(BaseBackend):
         ca = self.describe_certificate_authority(certificate_authority_arn)
         ca.status = "DELETED"
 
-    def issue_certificate(self, certificate_authority_arn: str, csr: bytes) -> str:
+    def issue_certificate(
+        self, certificate_authority_arn: str, csr: bytes, template_arn: Optional[str]
+    ) -> str:
         """
-        The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, TemplateArn, Validity, ValidityNotBefore, IdempotencyToken
+        The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, Validity, ValidityNotBefore, IdempotencyToken
         Some fields of the resulting certificate will have default values, instead of using the CSR
         """
         ca = self.describe_certificate_authority(certificate_authority_arn)
-        certificate_arn = ca.issue_certificate(csr)
+        certificate_arn = ca.issue_certificate(csr, template_arn)
         return certificate_arn
 
     def get_certificate(
