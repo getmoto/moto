@@ -1139,6 +1139,8 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
         return utcfromtimestamp(value).replace(tzinfo=datetime.timezone.utc).isoformat()
     elif vtype == "string":
         return str(value)
+    elif vtype == "structure":
+        return ""
     elif value is None:
         return "null"
     else:
