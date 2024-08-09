@@ -58,9 +58,10 @@ Whitelist Services
 The `mock_aws` decorator will allow requests to all supported services. If you want to restrict this to only specific services, you can configure a service whitelist.
 For example, if you only want your application to use DynamoDB and S3:
 
-```
-mock_aws(config={"core": {"service_whitelist": ["dynamodb", "s3"]}})
-```
+.. sourcecode:: python
+
+    @mock_aws(config={"core": {"service_whitelist": ["dynamodb", "s3"]}})
+
 
 If the application under test tries to access any other services, Moto will throw a `ServiceNotWhitelisted`-exception.
 
