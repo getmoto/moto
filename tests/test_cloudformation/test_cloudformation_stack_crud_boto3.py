@@ -1067,7 +1067,7 @@ def test_get_template_summary_for_stack_created_by_changeset_execution():
     conn.create_change_set(
         StackName="stack_from_changeset",
         TemplateBody=json.dumps(dummy_template3),
-        ChangeSetName="test_changeset",
+        ChangeSetName="test-changeset",
         ChangeSetType="CREATE",
     )
     with pytest.raises(
@@ -1075,7 +1075,7 @@ def test_get_template_summary_for_stack_created_by_changeset_execution():
         match="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks",
     ):
         conn.get_template_summary(StackName="stack_from_changeset")
-    conn.execute_change_set(ChangeSetName="test_changeset")
+    conn.execute_change_set(ChangeSetName="test-changeset")
     result = conn.get_template_summary(StackName="stack_from_changeset")
     assert result["ResourceTypes"] == ["AWS::EC2::VPC"]
     assert result["Version"] == "2010-09-09"
@@ -2460,6 +2460,65 @@ def test_create_and_update_stack_with_unknown_resource():
             cf.update_stack(
                 StackName=TEST_STACK_NAME, TemplateBody=json.dumps(new_template)
             )
+
+
+@mock_aws
+def test_valid_change_set_name():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    change_set_name = "valid-change-set-name"
+    create_change_set_response = cf.create_change_set(
+        StackName=TEST_STACK_NAME,
+        ChangeSetName=change_set_name,
+        TemplateBody=json.dumps(dummy_template),
+        Description="Test Change Set",
+        ChangeSetType="CREATE",
+    )
+
+    change_set_id = create_change_set_response.get("Id")
+
+    assert change_set_id.startswith(
+        f"arn:aws:cloudformation:{REGION_NAME}:{ACCOUNT_ID}:changeSet/{change_set_name}/"
+    )
+
+
+@mock_aws
+def test_invalid_change_set_name_starting_char():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    with pytest.raises(ClientError):
+        cf.create_change_set(
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="1invalid-change-set-name",
+            TemplateBody=json.dumps(dummy_template),
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
+        )
+
+
+@mock_aws
+def test_invalid_change_set_name_length():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    long_name = "a" * 129  # Exceeds the 128 character limit
+    with pytest.raises(ClientError):
+        cf.create_change_set(
+            StackName=TEST_STACK_NAME,
+            ChangeSetName=long_name,
+            TemplateBody=json.dumps(dummy_template),
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
+        )
+
+
+@mock_aws
+def test_invalid_change_set_name_special_chars():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    with pytest.raises(ClientError):
+        cf.create_change_set(
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="invalid@name",
+            TemplateBody=json.dumps(dummy_template),
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
+        )
 
 
 def get_role_name():
