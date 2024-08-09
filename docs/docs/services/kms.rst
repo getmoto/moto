@@ -16,7 +16,7 @@ kms
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
-- [ ] create_alias
+- [X] create_alias
 - [ ] create_custom_key_store
 - [X] create_grant
 - [X] create_key
@@ -47,7 +47,7 @@ kms
 - [X] generate_data_key
 - [ ] generate_data_key_pair
 - [ ] generate_data_key_pair_without_plaintext
-- [ ] generate_data_key_without_plaintext
+- [X] generate_data_key_without_plaintext
 - [ ] generate_mac
 - [ ] generate_random
 - [X] get_key_policy
@@ -55,7 +55,7 @@ kms
 - [ ] get_parameters_for_import
 - [X] get_public_key
 - [ ] import_key_material
-- [ ] list_aliases
+- [X] list_aliases
 - [X] list_grants
 - [ ] list_key_policies
 - [ ] list_key_rotations
@@ -78,7 +78,7 @@ kms
 
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_alias
+- [X] update_alias
 - [ ] update_custom_key_store
 - [X] update_key_description
 - [ ] update_primary_region

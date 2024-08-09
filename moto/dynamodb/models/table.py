@@ -324,7 +324,7 @@ class Table(CloudFormationModel):
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
             )
-            kms.add_alias(key.id, ddb_alias)
+            kms.create_alias(key.id, ddb_alias)
         ebs_key = kms.describe_key(ddb_alias)
         return ebs_key.arn
 
