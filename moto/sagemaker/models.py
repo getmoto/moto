@@ -3179,6 +3179,23 @@ class SageMakerModelBackend(BaseBackend):
 
             for trial_component_summary in trial_component_summaries:
                 result["Results"].append({"TrialComponent": trial_component_summary})
+
+        if resource == "ModelPackageGroup":
+            package_groups = [
+                {
+                    "ModelPackageGroupArn": group.model_package_group_arn,
+                    "ModelPackageGroupDescription": group.model_package_group_description,
+                    "CreationTime": group.creation_time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "ModelPackageGroupName": group.model_package_group_name,
+                    "ModelPackageGroupStatus": group.model_package_group_status,
+                    "Tags": group.tags,
+                }
+                for group in self.model_package_groups.values()
+                if evaluate_search_expression(group)
+            ]
+
+            for group in package_groups:
+                result["Results"].append({"ModelPackageGroup": group})
         return result
 
     def delete_experiment(self, experiment_name: str) -> None:
