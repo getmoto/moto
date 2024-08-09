@@ -10,9 +10,10 @@ class SageMakerRuntimeBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.async_results: Dict[str, Dict[str, str]] = {}
+        self.async_results: Dict[str, Dict[str, tuple[str, str]]] = {}
         self.results: Dict[str, Dict[bytes, Tuple[str, str, str, str]]] = {}
         self.results_queue: List[Tuple[str, str, str, str]] = []
+        self.async_results_queue: List[Tuple[bool, str]] = []
 
     def invoke_endpoint(
         self, endpoint_name: str, unique_repr: bytes
@@ -65,35 +66,68 @@ class SageMakerRuntimeBackend(BaseBackend):
             )
         return self.results[endpoint_name][unique_repr]
 
-    def invoke_endpoint_async(self, endpoint_name: str, input_location: str) -> str:
+    def invoke_endpoint_async(
+        self, endpoint_name: str, input_location: str
+    ) -> tuple[str, str]:
+        """
+        This call will return static data by default.
+
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `get_query_results` will take the first result from that queue. Subsequent requests using the same details will return the same result. Other requests using a different QueryExecutionId will take the next result from the queue, or return static data if the queue is empty.
+
+        Configuring this queue by making an HTTP request to `/moto-api/static/sagemaker/async-endpoint-results`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            expected_results = {
+                "account_id": "123456789012",  # This is the default - can be omitted
+                "region": "us-east-1",  # This is the default - can be omitted
+                "results": [
+                    {
+                        "data": json.dumps({"first": "output"}),
+                    },
+                    {
+                        "is_failure": True,
+                        "data": "second inference failed",
+                    },
+                    # other results as required
+                ],
+            }
+            requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/sagemaker/async-endpoint-results",
+                json=expected_results,
+            )
+
+            client = boto3.client("sagemaker", region_name="us-east-1")
+            details = client.invoke_endpoint(EndpointName="asdf", Body="qwer")
+
+        """
         if endpoint_name not in self.async_results:
             self.async_results[endpoint_name] = {}
         if input_location in self.async_results[endpoint_name]:
             return self.async_results[endpoint_name][input_location]
-        if self.results_queue:
-            body, _type, variant, attrs = self.results_queue.pop(0)
+        if self.async_results_queue:
+            is_failure, data = self.async_results_queue.pop(0)
         else:
-            body = "body"
-            _type = "content_type"
-            variant = "invoked_production_variant"
-            attrs = "custom_attributes"
-        json_data = {
-            "Body": body,
-            "ContentType": _type,
-            "InvokedProductionVariant": variant,
-            "CustomAttributes": attrs,
-        }
-        output = json.dumps(json_data).encode("utf-8")
+            is_failure = False
+            data = json.dumps({"default": "response"})
 
         output_bucket = f"sagemaker-output-{random.uuid4()}"
         output_location = "response.json"
+        failure_location = "failure.json"
+        result_location = failure_location if is_failure else output_location
         from moto.s3.models import s3_backends
 
         s3_backend = s3_backends[self.account_id][self.partition]
         s3_backend.create_bucket(output_bucket, region_name=self.region_name)
-        s3_backend.put_object(output_bucket, output_location, value=output)
+        s3_backend.put_object(
+            output_bucket, result_location, value=data.encode("utf-8")
+        )
+
         self.async_results[endpoint_name][input_location] = (
-            f"s3://{output_bucket}/{output_location}"
+            f"s3://{output_bucket}/{output_location}",
+            f"s3://{output_bucket}/{failure_location}",
         )
         return self.async_results[endpoint_name][input_location]
 
