@@ -107,7 +107,8 @@ class CertificateAuthority(BaseModel):
         if "OrganizationalUnit" in self.subject:
             name_attributes.append(
                 x509.NameAttribute(
-                    x509.NameOID.ORGANIZATIONAL_UNIT_NAME, self.subject["OrganizationalUnit"]
+                    x509.NameOID.ORGANIZATIONAL_UNIT_NAME,
+                    self.subject["OrganizationalUnit"],
                 )
             )
         if "CommonName" in self.subject:
