@@ -288,7 +288,7 @@ class KmsBackend(BaseBackend):
                 "Default key",
                 None,
             )
-            self.add_alias(key.id, alias_name)
+            self.create_alias(key.id, alias_name)
             return key.id
         return None
 
@@ -430,9 +430,12 @@ class KmsBackend(BaseBackend):
 
         return False
 
-    def add_alias(self, target_key_id: str, alias_name: str) -> None:
+    def create_alias(self, target_key_id: str, alias_name: str) -> None:
         raw_key_id = self.get_key_id(target_key_id)
         self.key_to_aliases[raw_key_id].add(alias_name)
+
+    def update_alias(self, target_key_id: str, alias_name: str) -> None:
+        self.create_alias(target_key_id, alias_name)
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
@@ -440,7 +443,7 @@ class KmsBackend(BaseBackend):
             if alias_name in aliases:
                 aliases.remove(alias_name)
 
-    def get_all_aliases(self) -> Dict[str, Set[str]]:
+    def list_aliases(self) -> Dict[str, Set[str]]:
         return self.key_to_aliases
 
     def get_key_id_from_alias(self, alias_name: str) -> Optional[str]:
@@ -557,6 +560,11 @@ class KmsBackend(BaseBackend):
         )
 
         return plaintext, ciphertext_blob, arn
+
+    def generate_data_key_without_plaintext(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'generate_data_key'
+        pass
 
     def list_resource_tags(self, key_id_or_arn: str) -> Dict[str, List[Dict[str, str]]]:
         key_id = self.get_key_id(key_id_or_arn)

@@ -246,7 +246,10 @@ class KmsResponse(BaseResponse):
             )
 
         self._validate_cmk_id(target_key_id)
-        self.kms_backend.add_alias(target_key_id, alias_name)
+        if update:
+            self.kms_backend.update_alias(target_key_id, alias_name)
+        else:
+            self.kms_backend.create_alias(target_key_id, alias_name)
 
         return json.dumps(None)
 
@@ -273,7 +276,7 @@ class KmsResponse(BaseResponse):
 
         response_aliases = []
 
-        backend_aliases = self.kms_backend.get_all_aliases()
+        backend_aliases = self.kms_backend.list_aliases()
         for target_key_id, aliases in backend_aliases.items():
             for alias_name in aliases:
                 # TODO: add creation date and last updated in response_aliases

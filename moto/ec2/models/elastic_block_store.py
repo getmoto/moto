@@ -547,6 +547,6 @@ class EBSBackend:
                 description="Default master key that protects my EBS volumes when no other key is defined",
                 tags=None,
             )
-            kms.add_alias(key.id, ebs_alias)
+            kms.create_alias(key.id, ebs_alias)
         ebs_key = kms.describe_key(ebs_alias)
         return ebs_key.arn
