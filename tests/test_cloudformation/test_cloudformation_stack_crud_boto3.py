@@ -1069,7 +1069,7 @@ def test_get_template_summary_for_stack_created_by_changeset_execution():
     conn.create_change_set(
         StackName="stack_from_changeset",
         TemplateBody=json.dumps(dummy_template3),
-        ChangeSetName="test_changeset",
+        ChangeSetName="test-changeset",
         ChangeSetType="CREATE",
     )
     with pytest.raises(
@@ -1077,7 +1077,7 @@ def test_get_template_summary_for_stack_created_by_changeset_execution():
         match="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks",
     ):
         conn.get_template_summary(StackName="stack_from_changeset")
-    conn.execute_change_set(ChangeSetName="test_changeset")
+    conn.execute_change_set(ChangeSetName="test-changeset")
     result = conn.get_template_summary(StackName="stack_from_changeset")
     assert result["ResourceTypes"] == ["AWS::EC2::VPC"]
     assert result["Version"] == "2010-09-09"
@@ -2465,9 +2465,10 @@ def test_create_and_update_stack_with_unknown_resource():
 
 
 @mock_aws
-def test_valid_change_set_name(self):
+def test_valid_change_set_name():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
     try:
-        change_set_id, stack_id = self.your_class_instance.create_change_set(
+        change_set_id, stack_id = cf.create_change_set(
             stack_name=TEST_STACK_NAME,
             change_set_name="valid-change-set-name",
             template=dummy_template,
@@ -2475,15 +2476,17 @@ def test_valid_change_set_name(self):
             description="Test Change Set",
             change_set_type="CREATE",
         )
-        self.assertTrue(change_set_id.startswith("change-set-id"))
-        self.assertTrue(stack_id.startswith("stack-id"))
+        assert change_set_id.startswith("change-set-id")
+        assert stack_id.startswith("stack-id")
     except ValidationError:
-        self.fail("ValidationError raised for valid change set name")
+        assert False, "ValidationError raised for valid change set name"
 
 
-def test_invalid_change_set_name_starting_char(self):
-    with self.assertRaises(ValidationError):
-        self.your_class_instance.create_change_set(
+@mock_aws
+def test_invalid_change_set_name_starting_char():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    with pytest.raises(ValidationError):
+        cf.create_change_set(
             stack_name=TEST_STACK_NAME,
             change_set_name="1invalid-change-set-name",
             template=dummy_template,
@@ -2493,10 +2496,12 @@ def test_invalid_change_set_name_starting_char(self):
         )
 
 
-def test_invalid_change_set_name_length(self):
+@mock_aws
+def test_invalid_change_set_name_length():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
     long_name = "a" * 129  # Exceeds the 128 character limit
-    with self.assertRaises(ValidationError):
-        self.your_class_instance.create_change_set(
+    with pytest.raises(ValidationError):
+        cf.create_change_set(
             stack_name=TEST_STACK_NAME,
             change_set_name=long_name,
             template=dummy_template,
@@ -2506,9 +2511,11 @@ def test_invalid_change_set_name_length(self):
         )
 
 
-def test_invalid_change_set_name_special_chars(self):
-    with self.assertRaises(ValidationError):
-        self.your_class_instance.create_change_set(
+@mock_aws
+def test_invalid_change_set_name_special_chars():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    with pytest.raises(ValidationError):
+        cf.create_change_set(
             stack_name=TEST_STACK_NAME,
             change_set_name="invalid@name",
             template=dummy_template,
@@ -2518,8 +2525,10 @@ def test_invalid_change_set_name_special_chars(self):
         )
 
 
-def test_stack_creation_on_new_change_set(self):
-    self.your_class_instance.create_change_set(
+@mock_aws
+def test_stack_creation_on_new_change_set():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_change_set(
         stack_name=TEST_STACK_NAME,
         change_set_name="valid-change-set",
         template=dummy_template,
@@ -2528,19 +2537,21 @@ def test_stack_creation_on_new_change_set(self):
         change_set_type="CREATE",
     )
     stack_id = generate_stack_id(TEST_STACK_NAME, REGION_NAME, "123456789012")
-    self.assertIn(stack_id, self.your_class_instance.stacks)
-    self.assertEqual(self.your_class_instance.stacks[stack_id].name, TEST_STACK_NAME)
+    assert stack_id in cf.stacks
+    assert cf.stacks[stack_id].name == TEST_STACK_NAME
 
 
-def test_update_change_set(self):
-    self.your_class_instance.stacks = {
+@mock_aws
+def test_update_change_set():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.stacks = {
         generate_stack_id(TEST_STACK_NAME, REGION_NAME, "123456789012"): MagicMock(
             name="stack",
             has_template=MagicMock(return_value=True),
             has_parameters=MagicMock(return_value=True),
         )
     }
-    change_set_id, stack_id = self.your_class_instance.create_change_set(
+    change_set_id, stack_id = cf.create_change_set(
         stack_name=TEST_STACK_NAME,
         change_set_name="update-change-set",
         template=dummy_update_template,
@@ -2548,9 +2559,7 @@ def test_update_change_set(self):
         description="Update Test Change Set",
         change_set_type="UPDATE",
     )
-    self.assertEqual(
-        self.your_class_instance.change_sets[change_set_id].status, "CREATE_COMPLETE"
-    )
+    assert cf.change_sets[change_set_id].status == "CREATE_COMPLETE"
 
 
 def get_role_name():
