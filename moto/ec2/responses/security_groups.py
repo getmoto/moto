@@ -280,13 +280,19 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
             <item>
                 <fromPort>{{ rule.from_port if rule.from_port is not none else -1 }}</fromPort>
                 <toPort>{{ rule.to_port if rule.to_port is not none else -1 }}</toPort>
-                <cidrIpv4>{{ ip_range['CidrIp'] }}</cidrIpv4>
+                {% if ip_range['CidrIp'] %}<cidrIpv4>{{ ip_range['CidrIp'] }}</cidrIpv4>{% endif %}
+                {% if ip_range['CidrIpv6'] %}<cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>{% endif %}
                 <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
                 <groupId>{{ rule.group_id }}</groupId>
                 <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-                <description>{{ ip_range['Description'] }}</description>
+                {% if ip_range['Description'] %}<description>{{ ip_range['Description'] }}</description>{% endif %}
                 <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
                 <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+                {% if (rule.source_groups | length) > 0 %}
+                <referencedGroupInfo>
+                  <groupId>{{ rule.source_groups[0]['GroupId'] }}</groupId><userId>{{ rule.source_groups[0]['OwnerId'] }}</userId>
+                </referencedGroupInfo>
+                {% endif %}
                 <tagSet>
                 {% for tag in rule.get_tags() %}
                     <item>
@@ -297,6 +303,31 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
                 </tagSet> 
             </item>
           {% endfor %}
+          {% if rule.ip_ranges | length == 0 %}
+            <item>
+                <fromPort>{{ rule.from_port if rule.from_port is not none else -1 }}</fromPort>
+                <toPort>{{ rule.to_port if rule.to_port is not none else -1 }}</toPort>
+                <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+                {% if rule.prefix_list_ids | length > 0 %}<prefixListId>{{ rule.prefix_list_ids[0]['PrefixListId'] }}</prefixListId>{% endif %}
+                <groupId>{{ rule.group_id }}</groupId>
+                <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+                <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
+                <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+                {% if (rule.source_groups | length) > 0 %}
+                <referencedGroupInfo>
+                  <groupId>{{ rule.source_groups[0]['GroupId'] }}</groupId><userId>{{ rule.source_groups[0]['OwnerId'] }}</userId>
+                </referencedGroupInfo>
+                {% endif %}
+                <tagSet>
+                {% for tag in rule.get_tags() %}
+                    <item>
+                      <key>{{ tag.key }}</key>
+                      <value>{{ tag.value }}</value>
+                    </item>
+                {% endfor %}
+                </tagSet> 
+            </item>
+          {% endif %}
         {% endfor %}
   </securityGroupRuleSet>
 </DescribeSecurityGroupRulesResponse>"""
@@ -319,7 +350,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
              <vpcId>{{ group.vpc_id }}</vpcId>
              {% endif %}
              <ipPermissions>
-               {% for rule in group.ingress_rules %}
+               {% for rule in group.flattened_ingress_rules %}
                     <item>
                        <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
                        {% if rule.from_port is not none %}
@@ -384,7 +415,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
                 {% endfor %}
              </ipPermissions>
              <ipPermissionsEgress>
-               {% for rule in group.egress_rules %}
+               {% for rule in group.flattened_egress_rules %}
                     <item>
                        <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
                        {% if rule.from_port is not none %}
