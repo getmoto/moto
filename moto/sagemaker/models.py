@@ -4764,7 +4764,7 @@ class SageMakerModelBackend(BaseBackend):
         return cluster.arn
 
     def describe_cluster(self, cluster_name: str) -> Dict[str, Any]:
-        if cluster_name.startswith("arn:aws:sagemaker:"):
+        if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
@@ -4772,7 +4772,7 @@ class SageMakerModelBackend(BaseBackend):
         return cluster.describe()
 
     def delete_cluster(self, cluster_name: str) -> str:
-        if cluster_name.startswith("arn:aws:sagemaker:"):
+        if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
@@ -4783,7 +4783,7 @@ class SageMakerModelBackend(BaseBackend):
         return arn
 
     def describe_cluster_node(self, cluster_name: str, node_id: str) -> Dict[str, Any]:
-        if cluster_name.startswith("arn:aws:sagemaker:"):
+        if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
@@ -4832,7 +4832,7 @@ class SageMakerModelBackend(BaseBackend):
         sort_by: Optional[str],
         sort_order: Optional[str],
     ) -> List[ClusterNode]:
-        if cluster_name.startswith("arn:aws:sagemaker:"):
+        if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
         cluster = self.clusters.get(cluster_name)
         if not cluster:
@@ -6052,9 +6052,7 @@ class FakeModelBiasJobDefinition(BaseObject):
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region: str) -> str:
-        return (
-            f"arn:aws:sagemaker:{region}:{account_id}:model-bias-job-definition/{name}"
-        )
+        return f"arn:{get_partition(region)}:sagemaker:{region}:{account_id}:model-bias-job-definition/{name}"
 
     @property
     def summary_object(self) -> Dict[str, str]:
