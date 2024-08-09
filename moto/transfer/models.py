@@ -131,7 +131,7 @@ class TransferBackend(BaseBackend):
         self,
         home_directory: Optional[str],
         home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: List[Dict[str, Optional[str]]],
+        home_directory_mappings: Optional[List[Dict[str, Optional[str]]]],
         policy: Optional[str],
         posix_profile: Optional[Dict[str, Any]],
         role: str,
@@ -150,7 +150,7 @@ class TransferBackend(BaseBackend):
             tags=(tags or []),
             user_name=user_name,
         )
-        if len(home_directory_mappings) > 0:
+        if home_directory_mappings:
             for mapping in home_directory_mappings:
                 user.home_directory_mappings.append(
                     {
