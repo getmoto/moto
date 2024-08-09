@@ -118,6 +118,7 @@ COMPARISON_FUNCS = {
     "=": EQ_FUNCTION,
     "NE": NE_FUNCTION,
     "!=": NE_FUNCTION,
+    "<>": NE_FUNCTION,
     "LE": LE_FUNCTION,
     "<=": LE_FUNCTION,
     "LT": LT_FUNCTION,
