@@ -2469,12 +2469,12 @@ def test_valid_change_set_name():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     try:
         change_set_id, stack_id = cf.create_change_set(
-            stack_name=TEST_STACK_NAME,
-            change_set_name="valid-change-set-name",
-            template=dummy_template,
-            parameters={"param1": "value1"},
-            description="Test Change Set",
-            change_set_type="CREATE",
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="valid-change-set-name",
+            TemplateBody=dummy_template,
+            Parameters={"param1": "value1"},
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
         )
         assert change_set_id.startswith("change-set-id")
         assert stack_id.startswith("stack-id")
@@ -2487,12 +2487,12 @@ def test_invalid_change_set_name_starting_char():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     with pytest.raises(ValidationError):
         cf.create_change_set(
-            stack_name=TEST_STACK_NAME,
-            change_set_name="1invalid-change-set-name",
-            template=dummy_template,
-            parameters={"param1": "value1"},
-            description="Test Change Set",
-            change_set_type="CREATE",
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="1invalid-change-set-name",
+            TemplateBody=dummy_template,
+            Parameters={"param1": "value1"},
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
         )
 
 
@@ -2502,12 +2502,12 @@ def test_invalid_change_set_name_length():
     long_name = "a" * 129  # Exceeds the 128 character limit
     with pytest.raises(ValidationError):
         cf.create_change_set(
-            stack_name=TEST_STACK_NAME,
-            change_set_name=long_name,
-            template=dummy_template,
-            parameters={"param1": "value1"},
-            description="Test Change Set",
-            change_set_type="CREATE",
+            StackName=TEST_STACK_NAME,
+            ChangeSetName=long_name,
+            TemplateBody=dummy_template,
+            Parameters={"param1": "value1"},
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
         )
 
 
@@ -2516,12 +2516,12 @@ def test_invalid_change_set_name_special_chars():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     with pytest.raises(ValidationError):
         cf.create_change_set(
-            stack_name=TEST_STACK_NAME,
-            change_set_name="invalid@name",
-            template=dummy_template,
-            parameters={"param1": "value1"},
-            description="Test Change Set",
-            change_set_type="CREATE",
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="invalid@name",
+            TemplateBody=dummy_template,
+            Parameters={"param1": "value1"},
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
         )
 
 
@@ -2529,12 +2529,12 @@ def test_invalid_change_set_name_special_chars():
 def test_stack_creation_on_new_change_set():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     cf.create_change_set(
-        stack_name=TEST_STACK_NAME,
-        change_set_name="valid-change-set",
-        template=dummy_template,
-        parameters={"param1": "value1"},
-        description="Test Change Set",
-        change_set_type="CREATE",
+        StackName=TEST_STACK_NAME,
+        ChangeSetName="valid-change-set",
+        TemplateBody=dummy_template,
+        Parameters={"param1": "value1"},
+        Description="Test Change Set",
+        ChangeSetType="CREATE",
     )
     stack_id = generate_stack_id(TEST_STACK_NAME, REGION_NAME, "123456789012")
     assert stack_id in cf.stacks
@@ -2552,12 +2552,12 @@ def test_update_change_set():
         )
     }
     change_set_id, stack_id = cf.create_change_set(
-        stack_name=TEST_STACK_NAME,
-        change_set_name="update-change-set",
-        template=dummy_update_template,
-        parameters={"KeyName": "valid-key"},
-        description="Update Test Change Set",
-        change_set_type="UPDATE",
+        StackName=TEST_STACK_NAME,
+        ChangeSetName="update-change-set",
+        TemplateBody=dummy_update_template,
+        Parameters={"KeyName": "valid-key"},
+        Description="Update Test Change Set",
+        ChangeSetType="UPDATE",
     )
     assert cf.change_sets[change_set_id].status == "CREATE_COMPLETE"
 
