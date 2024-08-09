@@ -394,6 +394,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         for nic in self.nics.values():
             nic.stop()
+            if nic.delete_on_termination:
+                nic.delete()
 
         self.teardown_defaults()
 
@@ -538,6 +540,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     device_index=device_index,
                     public_ip_auto_assign=nic.get("AssociatePublicIpAddress", False),
                     group_ids=group_ids,
+                    delete_on_termination=nic.get("DeleteOnTermination") == "true",
                 )
 
             self.attach_eni(use_nic, device_index)

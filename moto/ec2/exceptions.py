@@ -170,7 +170,7 @@ class InvalidNetworkInterfaceIdError(EC2ClientError):
     def __init__(self, eni_id: str):
         super().__init__(
             "InvalidNetworkInterfaceID.NotFound",
-            f"The network interface ID '{eni_id}' does not exist",
+            f"The networkInterface ID '{eni_id}' does not exist",
         )
 
 
