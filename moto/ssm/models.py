@@ -1187,7 +1187,9 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
-        self.ssm_prefix = f"arn:aws:ssm:{self.region_name}:{self.account_id}:parameter"
+        self.ssm_prefix = (
+            f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
+        )
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str

@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 from .models import ElasticTranscoderBackend, elastictranscoder_backends
 
@@ -45,7 +46,7 @@ class ElasticTranscoderResponse(BaseResponse):
         thumbnail_config = self._get_param("ThumbnailConfig")
         if not role:
             return self.err("Role cannot be blank")
-        if not re.match("^arn:aws:iam::[0-9]+:role/.+", role):
+        if not re.match(f"{ARN_PARTITION_REGEX}:iam::[0-9]+:role/.+", role):
             return self.err(f"Role ARN is invalid: {role}")
         if not output_bucket and not content_config:
             return self.err(
