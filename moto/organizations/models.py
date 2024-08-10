@@ -88,6 +88,35 @@ class FakeAccount(BaseModel):
         self.attached_policies: List[FakePolicy] = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
+        role_name = kwargs.get("RoleName", "OrganizationAccountAccessRole")
+
+        from moto.iam import iam_backends
+        from moto.iam.exceptions import EntityAlreadyExists
+
+        trust_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": f"arn:aws:iam::{self.master_account_id}:root"},
+                    "Action": "sts:AssumeRole",
+                }
+            ],
+        }
+        iam = iam_backends[self.id]["global"]
+        try:
+            iam.create_role(
+                role_name=role_name,
+                assume_role_policy_document=json.dumps(trust_policy),
+                path="",
+                permissions_boundary=None,
+                description="",
+                tags=[],
+                max_session_duration="3600",
+            )
+        except EntityAlreadyExists:
+            pass
+
     @property
     def arn(self) -> str:
         partition = get_partition(self.region)
