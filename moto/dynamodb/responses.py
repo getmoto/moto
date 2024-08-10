@@ -965,7 +965,11 @@ class DynamoHandler(BaseResponse):
         return dynamo_json_dump(item_dict)
 
     def _get_expr_attr_values(self) -> Dict[str, Dict[str, str]]:
-        values = self.body.get("ExpressionAttributeValues", {})
+        values = self.body.get("ExpressionAttributeValues")
+        if values is None:
+            return {}
+        if len(values) == 0:
+            raise MockValidationException("ExpressionAttributeValues must not be empty")
         for key in values.keys():
             if not key.startswith(":"):
                 raise MockValidationException(
