@@ -1,10 +1,10 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -80,8 +80,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.desired_number_of_domain_controllers = 0
         self.sso_enabled = False
         self.stage = "Active"
-        self.launch_time = datetime.now(timezone.utc).isoformat()
-        self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
+        self.launch_time = unix_time()
+        self.stage_last_updated_date_time = unix_time()
 
         if self.directory_type == "ADConnector":
             self.security_group_id = self.create_security_group(
