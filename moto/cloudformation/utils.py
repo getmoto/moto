@@ -1,6 +1,6 @@
 import os
 import string
-from typing import Any, Dict, List, Optional
+from typing import Any, List
 from urllib.parse import urlparse
 
 import yaml
@@ -138,17 +138,7 @@ def get_stack_from_s3_url(template_url: str, account_id: str, partition: str) ->
     return key.value.decode("utf-8")  # type: ignore[union-attr]
 
 
-def validate_create_change_set(
-    stack_name: str,
-    change_set_name: str,
-    template: str,
-    parameters: Dict[str, str],
-    description: str,
-    change_set_type: str,
-    notification_arns: Optional[List[str]] = None,
-    tags: Optional[Dict[str, str]] = None,
-    role_arn: Optional[str] = None,
-) -> Any:
+def validate_create_change_set(change_set_name: str) -> None:
     if not (change_set_name and change_set_name[0].isalpha()):
         raise ValidationError(f"Invalid change set name: {change_set_name}")
 

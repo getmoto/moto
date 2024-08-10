@@ -1006,17 +1006,7 @@ class CloudFormationBackend(BaseBackend):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
     ) -> Tuple[str, str]:
-        validate_create_change_set(
-            stack_name,
-            change_set_name,
-            template,
-            parameters,
-            description,
-            change_set_type,
-            notification_arns,
-            tags,
-            role_arn,
-        )
+        validate_create_change_set(stack_name)
         if change_set_type == "UPDATE":
             for stack in self.stacks.values():
                 if stack.name == stack_name:

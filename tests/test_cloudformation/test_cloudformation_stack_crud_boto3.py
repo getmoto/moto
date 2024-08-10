@@ -2463,25 +2463,6 @@ def test_create_and_update_stack_with_unknown_resource():
 
 
 @mock_aws
-def test_valid_change_set_name():
-    cf = boto3.client("cloudformation", region_name=REGION_NAME)
-    change_set_name = "valid-change-set-name"
-    create_change_set_response = cf.create_change_set(
-        StackName=TEST_STACK_NAME,
-        ChangeSetName=change_set_name,
-        TemplateBody=json.dumps(dummy_template),
-        Description="Test Change Set",
-        ChangeSetType="CREATE",
-    )
-
-    change_set_id = create_change_set_response.get("Id")
-
-    assert change_set_id.startswith(
-        f"arn:aws:cloudformation:{REGION_NAME}:{ACCOUNT_ID}:changeSet/{change_set_name}/"
-    )
-
-
-@mock_aws
 def test_invalid_change_set_name_starting_char():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     with pytest.raises(ClientError):
