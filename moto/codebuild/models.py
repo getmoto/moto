@@ -6,7 +6,7 @@ from dateutil import parser
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
@@ -98,24 +98,38 @@ class CodeBuild(BaseModel):
         account_id: str,
         region: str,
         project_name: str,
+        description: Optional[str],
         project_source: Dict[str, Any],
         artifacts: Dict[str, Any],
         environment: Dict[str, Any],
         serviceRole: str = "some_role",
+        tags: Optional[List[Dict[str, str]]] = None,
+        cache: Optional[Dict[str, Any]] = None,
+        timeout: Optional[int] = 0,
+        queued_timeout: Optional[int] = 0,
+        source_version: Optional[str] = None,
+        logs_config: Optional[Dict[str, Any]] = None,
+        vpc_config: Optional[Dict[str, Any]] = None,
     ):
-        current_date = iso_8601_datetime_with_milliseconds()
+        self.arn = f"arn:{get_partition(region)}:codebuild:{region}:{account_id}:project/{project_name}"
+        self.service_role = serviceRole
+        self.tags = tags
+        current_date = unix_time()
         self.project_metadata: Dict[str, Any] = dict()
 
         self.project_metadata["name"] = project_name
-        self.project_metadata["arn"] = (
-            f"arn:{get_partition(region)}:codebuild:{region}:{account_id}:project/{project_name}"
-        )
+        if description:
+            self.project_metadata["description"] = description
+        self.project_metadata["arn"] = self.arn
         self.project_metadata["encryptionKey"] = (
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:alias/aws/s3"
         )
-        self.project_metadata["serviceRole"] = (
-            f"arn:{get_partition(region)}:iam::{account_id}:role/service-role/{serviceRole}"
-        )
+        if serviceRole.startswith("arn:"):
+            self.project_metadata["serviceRole"] = serviceRole
+        else:
+            self.project_metadata["serviceRole"] = (
+                f"arn:{get_partition(region)}:iam::{account_id}:role/service-role/{serviceRole}"
+            )
         self.project_metadata["lastModifiedDate"] = current_date
         self.project_metadata["created"] = current_date
         self.project_metadata["badge"] = dict()
@@ -125,10 +139,16 @@ class CodeBuild(BaseModel):
         self.project_metadata["environment"] = environment
         self.project_metadata["artifacts"] = artifacts
         self.project_metadata["source"] = project_source
-        self.project_metadata["cache"] = dict()
-        self.project_metadata["cache"]["type"] = "NO_CACHE"
-        self.project_metadata["timeoutInMinutes"] = ""
-        self.project_metadata["queuedTimeoutInMinutes"] = ""
+        self.project_metadata["cache"] = cache or {"type": "NO_CACHE"}
+        self.project_metadata["timeoutInMinutes"] = timeout or 0
+        self.project_metadata["queuedTimeoutInMinutes"] = queued_timeout or 0
+        self.project_metadata["tags"] = tags
+        if source_version:
+            self.project_metadata["sourceVersion"] = source_version
+        if logs_config:
+            self.project_metadata["logsConfig"] = logs_config
+        if vpc_config:
+            self.project_metadata["vpcConfig"] = vpc_config
 
 
 class CodeBuildBackend(BaseBackend):
@@ -142,23 +162,35 @@ class CodeBuildBackend(BaseBackend):
     def create_project(
         self,
         project_name: str,
+        description: Optional[str],
         project_source: Dict[str, Any],
         artifacts: Dict[str, Any],
         environment: Dict[str, Any],
         service_role: str,
+        tags: Optional[List[Dict[str, str]]],
+        cache: Optional[Dict[str, Any]],
+        timeout: Optional[int],
+        queued_timeout: Optional[int],
+        source_version: Optional[str],
+        logs_config: Optional[Dict[str, Any]],
+        vpc_config: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        # required in other functions that don't
-        self.project_name = project_name
-        self.service_role = service_role
-
         self.codebuild_projects[project_name] = CodeBuild(
             self.account_id,
             self.region_name,
-            project_name,
-            project_source,
-            artifacts,
-            environment,
-            service_role,
+            project_name=project_name,
+            description=description,
+            project_source=project_source,
+            artifacts=artifacts,
+            environment=environment,
+            serviceRole=service_role,
+            tags=tags,
+            cache=cache,
+            timeout=timeout,
+            queued_timeout=queued_timeout,
+            source_version=source_version,
+            logs_config=logs_config,
+            vpc_config=vpc_config,
         )
 
         # empty build history
@@ -174,12 +206,24 @@ class CodeBuildBackend(BaseBackend):
 
         return projects
 
+    def batch_get_projects(self, names: List[str]) -> List[Dict[str, Any]]:
+        result = []
+        for name in names:
+            if name in self.codebuild_projects:
+                result.append(self.codebuild_projects[name].project_metadata)
+            elif name.startswith("arn:"):
+                for project in self.codebuild_projects.values():
+                    if name == project.arn:
+                        result.append(project.project_metadata)
+        return result
+
     def start_build(
         self,
         project_name: str,
         source_version: Optional[str] = None,
         artifact_override: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        project = self.codebuild_projects[project_name]
         build_id = f"{project_name}:{mock_random.uuid4()}"
 
         # construct a new build
@@ -190,7 +234,7 @@ class CodeBuildBackend(BaseBackend):
             source_version,
             artifact_override,
             build_id,
-            self.service_role,
+            project.service_role,
         )
 
         self.build_history[project_name].append(build_id)
