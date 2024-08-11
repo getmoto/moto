@@ -20,6 +20,7 @@ from moto.dynamodb.exceptions import (
     MockValidationException,
     MultipleTransactionsException,
     PointInTimeRecoveryUnavailable,
+    PolicyNotFoundException,
     ResourceInUseException,
     ResourceNotFoundException,
     SourceTableNotFoundException,
@@ -34,6 +35,7 @@ from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import (
     Backup,
     GlobalSecondaryIndex,
+    ResourcePolicy,
     RestoredPITTable,
     RestoredTable,
     Table,
@@ -56,6 +58,7 @@ class DynamoDBBackend(BaseBackend):
         self.backups: Dict[str, Backup] = OrderedDict()
         self.table_imports: Dict[str, TableImport] = {}
         self.table_exports: Dict[str, TableExport] = {}
+        self.resource_policies: Dict[str, ResourcePolicy] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1041,6 +1044,57 @@ class DynamoDBBackend(BaseBackend):
             if self.table_exports[export_arn].table.table_arn == table_arn:
                 exports.append(self.table_exports[export_arn])
         return exports
+
+    def put_resource_policy(
+        self, resource_arn: str, policy_doc: str, expected_revision_id: Optional[str]
+    ) -> ResourcePolicy:
+        table_name = resource_arn.split("/")[-1]
+        if table_name not in self.tables:
+            raise ResourceNotFoundException(table_name=table_name)
+        if current_policy := self.resource_policies.get(resource_arn):
+            if expected_revision_id == "NO_POLICY":
+                raise PolicyNotFoundException(
+                    f"Resource-based policy not found for the provided ResourceArn: Requested policy update expecting none to be present for table {table_name}, but a policy exists with revision id {current_policy.revision_id}."
+                )
+            if (
+                expected_revision_id
+                and current_policy.revision_id != expected_revision_id
+            ):
+                raise PolicyNotFoundException(
+                    f"Resource-based policy not found for the provided ResourceArn: Requested update for policy with revision id {expected_revision_id}, but the policy associated to target table {table_name} has revision id {current_policy.revision_id}."
+                )
+            if current_policy.policy_doc == policy_doc:
+                return current_policy
+        policy = ResourcePolicy(
+            resource_arn=resource_arn,
+            policy_doc=policy_doc,
+        )
+        self.resource_policies[resource_arn] = policy
+        return policy
+
+    def get_resource_policy(self, resource_arn: str) -> ResourcePolicy:
+        table_name = resource_arn.split("/")[-1]
+        if table_name not in self.tables:
+            raise ResourceNotFoundException(table_name=table_name)
+        if resource_arn not in self.resource_policies:
+            raise PolicyNotFoundException(
+                f"Resource-based policy not found for the provided ResourceArn: {resource_arn}"
+            )
+        return self.resource_policies[resource_arn]
+
+    def delete_resource_policy(
+        self, resource_arn: str, expected_revision_id: Optional[str]
+    ) -> None:
+        table_name = resource_arn.split("/")[-1]
+        if table_name not in self.tables or not (
+            policy := self.resource_policies.get(resource_arn)
+        ):
+            raise ResourceNotFoundException(table_name=table_name)
+        if expected_revision_id and policy.revision_id != expected_revision_id:
+            raise PolicyNotFoundException(
+                f"Resource-based policy not found for the provided ResourceArn: Requested update for policy with revision id {expected_revision_id}, but the policy associated to target table {table_name} has revision id {policy.revision_id}."
+            )
+        self.resource_policies.pop(resource_arn)
 
 
 dynamodb_backends = BackendDict(DynamoDBBackend, "dynamodb")

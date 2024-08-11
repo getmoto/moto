@@ -1269,3 +1269,26 @@ class DynamoHandler(BaseResponse):
                 }
             )
         return json.dumps({"ExportSummaries": response})
+
+    def put_resource_policy(self) -> str:
+        policy = self.dynamodb_backend.put_resource_policy(
+            resource_arn=self.body.get("ResourceArn"),
+            policy_doc=self.body.get("Policy"),
+            expected_revision_id=self.body.get("ExpectedRevisionId"),
+        )
+        return json.dumps({"RevisionId": policy.revision_id})
+
+    def get_resource_policy(self) -> str:
+        policy = self.dynamodb_backend.get_resource_policy(
+            resource_arn=self.body.get("ResourceArn")
+        )
+        return json.dumps(
+            {"Policy": policy.policy_doc, "RevisionId": policy.revision_id}
+        )
+
+    def delete_resource_policy(self) -> str:
+        self.dynamodb_backend.delete_resource_policy(
+            resource_arn=self.body.get("ResourceArn"),
+            expected_revision_id=self.body.get("ExpectedRevisionId"),
+        )
+        return "{}"
