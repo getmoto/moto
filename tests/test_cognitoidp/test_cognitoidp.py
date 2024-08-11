@@ -3224,14 +3224,14 @@ def test_forgot_password_user_with_all_recovery_attributes():
         UserPoolId=user_pool_id,
         Username=username,
         UserAttributes=[
-            {"Name": "email", "Value": "test@moto.com"},
+            {"Name": "email", "Value": "test@m***"},
             {"Name": "phone_number", "Value": "555555555"},
         ],
     )
 
     result = conn.forgot_password(ClientId=client_id, Username=username)
 
-    assert result["CodeDeliveryDetails"]["Destination"] == "test@moto.com"
+    assert result["CodeDeliveryDetails"]["Destination"] == "t***@m***"
     assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
     assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
@@ -3251,6 +3251,8 @@ def test_forgot_password_user_with_all_recovery_attributes():
 
 @mock_aws
 def test_forgot_password_nonexistent_user_or_user_without_attributes():
+    # Whether this fails against AWS or not depends on a setting
+    # https://github.com/aws/aws-aspnet-cognito-identity-provider/issues/179#issuecomment-871051383
     conn = boto3.client("cognito-idp", "us-west-2")
     user_pool_id = conn.create_user_pool(
         PoolName=str(uuid.uuid4()),
@@ -3263,6 +3265,7 @@ def test_forgot_password_nonexistent_user_or_user_without_attributes():
     )["UserPoolClient"]["ClientId"]
     user_without_attributes = str(uuid.uuid4())
     nonexistent_user = str(uuid.uuid4())
+
     conn.admin_create_user(UserPoolId=user_pool_id, Username=user_without_attributes)
     for user in user_without_attributes, nonexistent_user:
         result = conn.forgot_password(ClientId=client_id, Username=user)
@@ -3284,6 +3287,37 @@ def test_forgot_password_nonexistent_user_or_user_without_attributes():
         assert result["CodeDeliveryDetails"]["Destination"] == "+*******9934"
         assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "SMS"
         assert result["CodeDeliveryDetails"]["AttributeName"] == "phone_number"
+
+
+@cognitoidp_aws_verified(recovery=[{"Name": "verified_email", "Priority": 1}])
+@pytest.mark.aws_verified
+def test_forgot_password_with_email_delivery_details(
+    user_pool=None, user_pool_client=None
+):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    user_without_attributes = str(uuid.uuid4())
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user_without_attributes,
+        UserAttributes=[
+            {"Name": "email", "Value": "test@test.com"},
+            {"Name": "email_verified", "Value": "True"},
+        ],
+    )
+    conn.admin_set_user_password(
+        UserPoolId=user_pool_id,
+        Username=user_without_attributes,
+        Password="secretP2ss!",
+        Permanent=True,
+    )
+
+    result = conn.forgot_password(ClientId=client_id, Username=user_without_attributes)
+    assert result["CodeDeliveryDetails"]["Destination"] == "t***@t***"
+    assert result["CodeDeliveryDetails"]["DeliveryMedium"] == "EMAIL"
+    assert result["CodeDeliveryDetails"]["AttributeName"] == "email"
 
 
 @mock_aws
@@ -3938,18 +3972,76 @@ def test_list_resource_servers_multi_page():
             )
 
 
-@mock_aws
-def test_sign_up():
+@cognitoidp_aws_verified()
+@pytest.mark.aws_verified
+def test_sign_up(user_pool=None, user_pool_client=None):
     conn = boto3.client("cognito-idp", "us-west-2")
-    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
-    client_id = conn.create_user_pool_client(
-        UserPoolId=user_pool_id, ClientName=str(uuid.uuid4())
-    )["UserPoolClient"]["ClientId"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
     username = str(uuid.uuid4())
     password = "P2$Sword"
     result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
     assert result["UserConfirmed"] is False
     assert result["UserSub"] is not None
+    assert "CodeDeliveryDetails" not in result
+
+
+@cognitoidp_aws_verified(recovery=[{"Name": "verified_email", "Priority": 1}])
+@pytest.mark.aws_verified
+def test_sign_up_with_unverified_email(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = "P2$Sword"
+    result = conn.sign_up(
+        ClientId=client_id,
+        Username=username,
+        Password=password,
+        UserAttributes=[{"Name": "email", "Value": "test@test.com"}],
+    )
+    assert result["UserConfirmed"] is False
+    assert result["UserSub"] is not None
+    assert "CodeDeliveryDetails" not in result
+
+
+@cognitoidp_aws_verified(
+    recovery=[{"Name": "verified_email", "Priority": 1}], verified_attributes=["email"]
+)
+@pytest.mark.aws_verified
+def test_sign_up_with_verified_email(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = "P2$Sword"
+    result = conn.sign_up(
+        ClientId=client_id,
+        Username=username,
+        Password=password,
+        UserAttributes=[{"Name": "email", "Value": "test@test.com"}],
+    )
+    assert result["UserConfirmed"] is False
+    assert result["UserSub"] is not None
+    assert result["CodeDeliveryDetails"] == {
+        "Destination": "t***@t***",
+        "DeliveryMedium": "EMAIL",
+        "AttributeName": "email",
+    }
+
+
+@cognitoidp_aws_verified(
+    recovery=[{"Name": "verified_email", "Priority": 1}], verified_attributes=["email"]
+)
+@pytest.mark.aws_verified
+def test_sign_up_with_verified_but_not_supplied_email(
+    user_pool=None, user_pool_client=None
+):
+    conn = boto3.client("cognito-idp", "us-west-2")
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    password = "P2$Sword"
+    result = conn.sign_up(ClientId=client_id, Username=username, Password=password)
+    assert result["UserConfirmed"] is False
+    assert result["UserSub"] is not None
+    assert "CodeDeliveryDetails" not in result
 
 
 @mock_aws

@@ -1674,13 +1674,14 @@ class CognitoIdpBackend(BaseBackend):
             )
             user.confirmation_code = confirmation_code
 
-        code_delivery_details = {
-            "Destination": username + "@h***.com"
-            if not user
-            else user.attribute_lookup.get("email", username + "@h***.com"),
-            "DeliveryMedium": "EMAIL",
-            "AttributeName": "email",
-        }
+        code_delivery_details = self._get_code_delivery_details(
+            recovery_settings, user, username
+        )
+        return confirmation_code, {"CodeDeliveryDetails": code_delivery_details}
+
+    def _get_code_delivery_details(
+        self, recovery_settings: Any, user: Optional[CognitoIdpUser], username: str
+    ) -> Dict[str, str]:
         selected_recovery = min(
             recovery_settings["RecoveryMechanisms"],
             key=lambda recovery_mechanism: recovery_mechanism["Priority"],
@@ -1688,14 +1689,24 @@ class CognitoIdpBackend(BaseBackend):
         if selected_recovery["Name"] == "admin_only":
             raise NotAuthorizedError("Contact administrator to reset password.")
         if selected_recovery["Name"] == "verified_phone_number":
-            code_delivery_details = {
-                "Destination": "+*******9934"
-                if not user
-                else user.attribute_lookup.get("phone_number", "+*******9934"),
+            number = "+*******9934"
+            if user and "phone_number" in user.attribute_lookup:
+                number = user.attribute_lookup["phone_number"]
+            return {
+                "Destination": number,
                 "DeliveryMedium": "SMS",
                 "AttributeName": "phone_number",
             }
-        return confirmation_code, {"CodeDeliveryDetails": code_delivery_details}
+        else:
+            email = username + "@h***.com"
+            if user and "email" in user.attribute_lookup:
+                first, second = user.attribute_lookup["email"].split("@")
+                email = f"{first[0]}***@{second[0]}***"
+            return {
+                "Destination": email,
+                "DeliveryMedium": "EMAIL",
+                "AttributeName": "email",
+            }
 
     def change_password(
         self, access_token: str, previous_password: str, proposed_password: str
@@ -1796,7 +1807,7 @@ class CognitoIdpBackend(BaseBackend):
         username: str,
         password: str,
         attributes: List[Dict[str, str]],
-    ) -> CognitoIdpUser:
+    ) -> Tuple[CognitoIdpUser, Any]:
         user_pool = None
         for p in self.user_pools.values():
             if client_id in p.clients:
@@ -1858,7 +1869,27 @@ class CognitoIdpBackend(BaseBackend):
             status=UserStatus.UNCONFIRMED,
         )
         user_pool.users[user.username] = user
-        return user
+
+        has_email = "email" in user.attribute_lookup
+        has_phone = "phone_number" in user.attribute_lookup
+        verified_attributes = user_pool.extended_config.get(
+            "AutoVerifiedAttributes", []
+        )
+        email_verified = (
+            "email_verified" in user.attribute_lookup or "email" in verified_attributes
+        )
+        phone_verified = (
+            "phone_number_verified" in user.attribute_lookup
+            or "phone_number" in verified_attributes
+        )
+        if (has_email and email_verified) or (has_phone and phone_verified):
+            recovery_settings = user_pool.extended_config["AccountRecoverySetting"]
+            details = self._get_code_delivery_details(
+                recovery_settings=recovery_settings, user=user, username=user.username
+            )
+            return user, details
+        else:
+            return user, None
 
     def confirm_sign_up(self, client_id: str, username: str) -> str:
         user_pool = None
@@ -2229,7 +2260,7 @@ class RegionAgnosticBackend:
         username: str,
         password: str,
         attributes: List[Dict[str, str]],
-    ) -> CognitoIdpUser:
+    ) -> Tuple[CognitoIdpUser, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.sign_up(client_id, username, password, attributes)
 
