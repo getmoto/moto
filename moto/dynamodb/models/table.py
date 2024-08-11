@@ -1198,3 +1198,10 @@ class RestoredPITTable(Table):
             "RestoreInProgress": False,
         }
         return result
+
+
+class ResourcePolicy:
+    def __init__(self, resource_arn: str, policy_doc: str):
+        self.resource_arn = resource_arn
+        self.policy_doc = policy_doc
+        self.revision_id = str(int(unix_time_millis()))

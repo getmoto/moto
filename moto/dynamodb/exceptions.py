@@ -395,3 +395,11 @@ class DeletionProtectedException(MockValidationException):
     def __init__(self, table_name: str):
         msg = f"1 validation error detected: Table '{table_name}' can't be deleted while DeletionProtectionEnabled is set to True"
         super().__init__(msg)
+
+
+class PolicyNotFoundException(DynamodbException):
+    error_type = ERROR_TYPE_PREFIX + "PolicyNotFoundException"
+
+    def __init__(self, message: str):
+        super().__init__(PolicyNotFoundException.error_type, message=message)
+        self.exception_msg = message
