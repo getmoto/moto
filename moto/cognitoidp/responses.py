@@ -588,18 +588,19 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
-        user = self._get_region_agnostic_backend().sign_up(
+        user, code_delivery_details = self._get_region_agnostic_backend().sign_up(
             client_id=client_id,
             username=username,
             password=password,
             attributes=self._get_param("UserAttributes", []),
         )
-        return json.dumps(
-            {
-                "UserConfirmed": user.status == UserStatus["CONFIRMED"],
-                "UserSub": user.id,
-            }
-        )
+        response = {
+            "UserConfirmed": user.status == UserStatus["CONFIRMED"],
+            "UserSub": user.id,
+        }
+        if code_delivery_details:
+            response["CodeDeliveryDetails"] = code_delivery_details
+        return json.dumps(response)
 
     def confirm_sign_up(self) -> str:
         client_id = self._get_param("ClientId")

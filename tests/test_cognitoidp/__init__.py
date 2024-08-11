@@ -12,6 +12,8 @@ def cognitoidp_aws_verified(
     read_attributes=None,
     explicit_auth_flows=None,
     generate_secret=False,
+    recovery=None,
+    verified_attributes=None,
 ):
     """
     Function that is verified to work against AWS.
@@ -35,6 +37,12 @@ def cognitoidp_aws_verified(
                 userpool_args = {}
                 if username_attributes:
                     userpool_args["UsernameAttributes"] = username_attributes
+                if recovery:
+                    userpool_args["AccountRecoverySetting"] = {
+                        "RecoveryMechanisms": recovery
+                    }
+                if verified_attributes:
+                    userpool_args["AutoVerifiedAttributes"] = verified_attributes
                 user_pool = conn.create_user_pool(PoolName=pool_name, **userpool_args)
                 pool_id = user_pool["UserPool"]["Id"]
                 pool_client_kwargs = {}
