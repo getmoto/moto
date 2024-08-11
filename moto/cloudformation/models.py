@@ -28,6 +28,7 @@ from .utils import (
     generate_stackset_arn,
     generate_stackset_id,
     get_stack_from_s3_url,
+    validate_create_change_set,
     validate_template_cfn_lint,
     yaml_tag_constructor,
 )
@@ -1007,6 +1008,7 @@ class CloudFormationBackend(BaseBackend):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
     ) -> Tuple[str, str]:
+        validate_create_change_set(change_set_name)
         if change_set_type == "UPDATE":
             for stack in self.stacks.values():
                 if stack.name == stack_name:
