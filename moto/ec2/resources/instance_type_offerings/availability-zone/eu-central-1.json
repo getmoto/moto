@@ -2372,6 +2372,10 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "eu-central-1a"
  },
