@@ -50,31 +50,35 @@ class QLDBBackend(BaseBackend):
     def create_ledger(
         self,
         name: str,
-        tags: Dict[str, str],
+        tags: Optional[Dict[str, str]],
         permissions_mode: str,
-        deletion_protection: bool,
-        kms_key: str,
+        deletion_protection: Optional[bool],
+        kms_key: Optional[str],
     ) -> Tuple[
         str,
-        Optional[str],
-        Optional[str],
-        Optional[datetime],
         str,
-        bool,
-        Optional[str],
+        str,
+        datetime,
+        str,
+        Optional[bool],
+        str,
     ]:
         if name in self.ledgers:
             raise LedgerNameAlreadyTakenException(name)
+        kms_key_arn = self._get_kms_key_arn(kms_key or name)
         encryption_description = {
-            "kms_key_arn": self._get_kms_key_arn(kms_key),
+            "kms_key_arn": kms_key_arn,
             "encryption_status": "ENABLED",
             "inaccessible_kms_key_date_time": datetime.now(),
         }
+        arn = f"arn:aws:qldb:us-east-1:123456789012:ledger/{name}"
+        creation_date_time = datetime.now()
+        state = "ACTIVE"
         ledger = {
             "name": name,
-            "arn": "TODO",
-            "creation_date_time": datetime.now(),
-            "state": "ACTIVE",
+            "arn": arn,
+            "state": state,
+            "creation_date_time": creation_date_time,
             "permissions_mode": permissions_mode,
             "deletion_protection": deletion_protection,
             "encryption_description": encryption_description,
@@ -83,12 +87,12 @@ class QLDBBackend(BaseBackend):
         self.ledgers[name] = ledger
         return (
             name,
-            ledger.get("arn"),
-            ledger.get("state"),
-            ledger.get("creation_date_time"),
+            arn,
+            state,
+            creation_date_time,
             permissions_mode,
             deletion_protection,
-            encryption_description.get("kms_key_arn"),
+            kms_key_arn,
         )
 
     def delete_ledger(self, name: str) -> None:

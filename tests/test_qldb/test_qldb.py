@@ -1,6 +1,7 @@
 """Unit tests for qldb-supported APIs."""
 
 import boto3
+import pytest
 
 from moto import mock_aws
 
@@ -8,49 +9,21 @@ from moto import mock_aws
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-@mock_aws
-def test_describe_ledger():
-    client = boto3.client("qldb", region_name="eu-west-1")
-    resp = client.describe_ledger()
-
-    raise Exception("NotYetImplemented")
+@pytest.fixture(name="client")
+def fixture_transfer_client():
+    with mock_aws():
+        yield boto3.client("qldb", region_name="us-east-1")
 
 
 @mock_aws
-def test_create_ledger():
-    client = boto3.client("qldb", region_name="us-east-2")
-    resp = client.create_ledger()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_delete_ledger():
-    client = boto3.client("qldb", region_name="eu-west-1")
-    resp = client.delete_ledger()
-
-    raise Exception("NotYetImplemented")
+def test_create_describe_update_and_delete_ledger(client):
+    connection = client.create_ledger()
+    connection = client.describe_ledger()
+    connection = client.update_ledger()
+    connection = client.delete_ledger()
 
 
 @mock_aws
-def test_update_ledger():
-    client = boto3.client("qldb", region_name="us-east-2")
-    resp = client.update_ledger()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_tag_resource():
-    client = boto3.client("qldb", region_name="ap-southeast-1")
+def test_tag_resource_and_list_tags_for_resource(client):
     resp = client.tag_resource()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_list_tags_for_resource():
-    client = boto3.client("qldb", region_name="eu-west-1")
     resp = client.list_tags_for_resource()
-
-    raise Exception("NotYetImplemented")
