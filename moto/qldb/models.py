@@ -18,8 +18,6 @@ class QLDBBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.ledgers: Dict[str, Any] = dict()  # type ignore[misc]
 
-    # add methods from here
-
     def describe_ledger(
         self, name: str
     ) -> Tuple[

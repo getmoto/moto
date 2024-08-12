@@ -13,7 +13,7 @@ from moto.mediapackage.exceptions import ClientError
 
 
 @pytest.fixture(name="client")
-def fixture_transfer_client():
+def fixture_qldb_client():
     with mock_aws():
         yield boto3.client("qldb", region_name="us-east-1")
 
@@ -25,7 +25,6 @@ def test_create_describe_update_and_delete_ledger(client):
     kms_key = "mock_key"
     connection = client.create_ledger(
         Name=name,
-        Tags=tags,
         PermissionsMode=permissions_mode,
         DeletionProtection=True,
         KmsKey=kms_key,
