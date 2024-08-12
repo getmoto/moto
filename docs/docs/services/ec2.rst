@@ -92,7 +92,6 @@ ec2
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
 - [ ] create_ipam
-- [ ] create_ipam_external_resource_verification_token
 - [ ] create_ipam_pool
 - [ ] create_ipam_resource_discovery
 - [ ] create_ipam_scope
@@ -173,7 +172,6 @@ ec2
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
 - [ ] delete_ipam
-- [ ] delete_ipam_external_resource_verification_token
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_resource_discovery
 - [ ] delete_ipam_scope
@@ -311,7 +309,6 @@ ec2
 - [X] describe_instances
 - [X] describe_internet_gateways
 - [ ] describe_ipam_byoasn
-- [ ] describe_ipam_external_resource_verification_tokens
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations

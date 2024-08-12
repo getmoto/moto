@@ -45,7 +45,7 @@ class QLDBBackend(BaseBackend):
         )
 
     def _get_kms_key_arn(self, key: str) -> str:
-        return f"arn:awskms:us-east-1:123456789012:key/{key}"
+        return f"arn:aws:kms:us-east-1:123456789012:key/{key}"
 
     def create_ledger(
         self,
