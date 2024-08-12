@@ -12,6 +12,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     TypeVar,
 )
 from uuid import uuid4
@@ -381,7 +382,7 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
                 )
                 BackendDict._instances.append(self)  # type: ignore[misc]
 
-    def iter_backends(self) -> Iterator[tuple[str, str, BaseBackend]]:
+    def iter_backends(self) -> Iterator[Tuple[str, str, BaseBackend]]:
         """
         Iterate over a flattened view of all base backends in a BackendDict.
         Each record is a tuple of account id, region name, and the base backend within that account and region.
