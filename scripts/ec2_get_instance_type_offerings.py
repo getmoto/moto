@@ -11,6 +11,7 @@ Note that you will get the following error if a region is not available to you:
 """
 
 import boto3
+import gzip
 import json
 import os
 import subprocess
@@ -81,7 +82,7 @@ def main():
 
                 print("Writing data to {0}".format(dest))
                 with open(dest, "w+") as open_file:
-                    json.dump(instances, open_file, indent=1)
+                    open_file.write(gzip.compress(json.dumps(instances, sort_keys=True, indent=1).encode("utf-8")))
             except Exception as e:
                 print("Unable to write data to {0}".format(dest))
                 print(e)

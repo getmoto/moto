@@ -26,7 +26,7 @@ if "MOTO_AMIS_PATH" in environ:
     with open(environ["MOTO_AMIS_PATH"], "r", encoding="utf-8") as f:
         AMIS: List[Dict[str, Any]] = json.load(f)
 else:
-    AMIS = load_resource(__name__, "../resources/amis.json")
+    AMIS = load_resource(__name__, "../resources/amis.json.gz")
 
 
 class Ami(TaggedEC2Resource):
@@ -177,7 +177,7 @@ class AmiBackend:
                         List[Dict[str, Any]],
                         load_resource(
                             __name__,
-                            f"../resources/{path}/{self.region_name}.json",  # type: ignore[attr-defined]
+                            f"../resources/{path}/{self.region_name}.json.gz",  # type: ignore[attr-defined]
                         ),
                     )
                     for ami in latest_amis:

@@ -1,4 +1,5 @@
 import boto3
+import gzip
 import json
 import os
 import subprocess
@@ -55,11 +56,11 @@ def main():
             .decode()
             .strip()
         )
-        filename = "{}.json".format(path.split("/")[-1])
+        filename = "{}.json.gz".format(path.split("/")[-1])
         dest = os.path.join(root_dir, "moto/ssm/resources/{}".format(filename))
         print("Writing data to {0}".format(dest))
         with open(dest, "w") as open_file:
-            json.dump(tree, open_file, sort_keys=True, indent=2)
+            open_file.write(gzip.compress(json.dumps(tree, sort_keys=True, indent=1).encode("utf-8")))
 
 
 if __name__ == "__main__":

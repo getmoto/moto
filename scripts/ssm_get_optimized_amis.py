@@ -1,5 +1,6 @@
 import time
 import json
+import gzip
 from datetime import timezone
 from pathlib import Path
 
@@ -14,7 +15,7 @@ session = boto3.Session()
 
 
 def retrieve_by_path(client, path):
-    print("Attempting to retrieve data for path={}", path)
+    print(f"Attempting to retrieve data for path={path}")
     response = client.get_parameters_by_path(Path=path, Recursive=True)
     parameters = response["Parameters"]
     next_token = response["NextToken"]
@@ -29,12 +30,12 @@ def retrieve_by_path(client, path):
 
 
 def save_to_file(destination_path: str, params: dict):
-    print("Attempting to save data to {}", destination_path)
+    print(f"Attempting to save data to {destination_path}")
     file_path = Path(Path.cwd(), destination_path)
     file_path.parent.mkdir(exist_ok=True, parents=True)
 
-    with file_path.open("w") as fb:
-        json.dump(params, fb, sort_keys=True, indent=2)
+    with file_path.open("bw") as fb:
+        fb.write(gzip.compress(json.dumps(params, sort_keys=True, indent=1).encode("utf-8")))
 
 
 def retrieve_ec2_data(image_ids: list, region: str):
@@ -58,7 +59,7 @@ def main():
 
         # Retrieve default AMI values
         try:
-            print("Retrieving data for {}", region)
+            print(f"Retrieving data for {region}")
 
             parameters = retrieve_by_path(ssm_client, default_param_path)
 
@@ -87,12 +88,12 @@ def main():
 
             tree = convert_to_tree(parameters)
 
-            destination_path = f"moto/ssm/resources/ecs/optimized_amis/{region}.json"
+            destination_path = f"moto/ssm/resources/ecs/optimized_amis/{region}.json.gz"
             save_to_file(destination_path, tree)
 
             # Retrieve details about AMIs from EC2
             image_as_dicts = retrieve_ec2_data(image_ids, region)
-            destination_path = f"moto/ec2/resources/ecs/optimized_amis/{region}.json"
+            destination_path = f"moto/ec2/resources/ecs/optimized_amis/{region}.json.gz"
             save_to_file(destination_path, image_as_dicts)
 
             time.sleep(0.5)

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import gzip
 import json
 import os
 import subprocess
@@ -47,7 +48,7 @@ def main():
     dest = os.path.join(root_dir, "moto/ec2/resources/instance_types.json")
     print("Writing data to {0}".format(dest))
     with open(dest, "w") as open_file:
-        json.dump(result, open_file, sort_keys=True, indent=1)
+        open_file.write(gzip.compress(json.dumps(result, sort_keys=True, indent=1).encode("utf-8")))
 
 
 if __name__ == "__main__":

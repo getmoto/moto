@@ -2,11 +2,11 @@ include README.md LICENSE AUTHORS.md
 include requirements.txt requirements-dev.txt
 include moto/py.typed
 include moto/config/resources/aws_managed_rules.json
-include moto/ec2/resources/instance_types.json
-include moto/ec2/resources/instance_type_offerings/*/*.json
-include moto/ec2/resources/latest_amis/*.json
-include moto/ec2/resources/amis.json
-include moto/ec2/resources/ecs/optimized_amis/*.json
+include moto/ec2/resources/instance_types.json.gz
+include moto/ec2/resources/instance_type_offerings/*/*.json.gz
+include moto/ec2/resources/latest_amis/*.json.gz
+include moto/ec2/resources/amis.json.gz
+include moto/ec2/resources/ecs/optimized_amis/*.json.gz
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
 include moto/moto_api/_internal/*
@@ -14,9 +14,9 @@ include moto/moto_proxy/*
 include moto/moto_proxy/certs/__init__.py
 include moto/moto_proxy/certs/req.conf.tmpl
 include moto/rds/resources/cluster_options/*.json
-include moto/ssm/resources/*.json
-include moto/ssm/resources/ami-amazon-linux-latest/*.json
-include moto/ssm/resources/ecs/optimized_amis/*.json
+include moto/ssm/resources/*.json.gz
+include moto/ssm/resources/ami-amazon-linux-latest/*.json.gz
+include moto/ssm/resources/ecs/optimized_amis/*.json.gz
 include moto/support/resources/*.json
 recursive-include moto/moto_server *
 recursive-include tests *

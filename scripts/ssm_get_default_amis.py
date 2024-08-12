@@ -1,6 +1,5 @@
-import time
-
 import boto3
+import gzip
 import json
 import time
 import os
@@ -70,7 +69,7 @@ def main():
             )
             print("Writing data to {0}".format(dest))
             with open(dest, "w") as open_file:
-                json.dump(image_as_dicts, open_file, sort_keys=True, indent=2)
+                open_file.write(gzip.compress(json.dumps(image_as_dicts, sort_keys=True, indent=1).encode("utf-8")))
 
             time.sleep(0.5)
         except Exception as e:

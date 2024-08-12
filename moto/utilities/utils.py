@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import json
 import pkgutil
@@ -37,10 +38,15 @@ def str2bool(v: Any) -> Optional[bool]:
 def load_resource(package: str, resource: str) -> Any:
     """
     Open a file, and return the contents as JSON.
+    If the filename ends in .json.gz, it is assumed to be GZipped, and will be decompressed first.
     Usage:
     load_resource(__name__, "resources/file.json")
     """
-    return json.loads(pkgutil.get_data(package, resource))  # type: ignore
+    raw_bytes = pkgutil.get_data(package, resource)
+    if resource.endswith(".json.gz"):
+        return json.loads(gzip.decompress(raw_bytes))  # type: ignore
+    else:
+        return json.loads(raw_bytes)  # type: ignore
 
 
 def load_resource_as_str(package: str, resource: str) -> str:

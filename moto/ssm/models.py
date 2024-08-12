@@ -65,23 +65,24 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
                 self.latest_amis_loaded = True
         if key.startswith("/aws/service/global-infrastructure/regions"):
             if not self.latest_region_defaults_loaded:
-                self._load_tree_parameters(path="resources/regions.json")
+                self._load_tree_parameters(path="resources/regions.json.gz")
                 self.latest_region_defaults_loaded = True
         if key.startswith("/aws/service/global-infrastructure/services"):
             if not self.latest_service_defaults_loaded:
-                self._load_tree_parameters(path="resources/services.json")
+                self._load_tree_parameters(path="resources/services.json.gz")
                 self.latest_service_defaults_loaded = True
         if key.startswith("/aws/service/ecs/optimized-ami"):
             if not self.latest_ecs_amis_loaded:
                 self._load_tree_parameters(
-                    f"resources/ecs/optimized_amis/{self.region_name}.json"
+                    f"resources/ecs/optimized_amis/{self.region_name}.json.gz"
                 )
                 self.latest_ecs_amis_loaded = True
 
     def _load_latest_amis(self) -> None:
         try:
             latest_amis_linux = load_resource(
-                __name__, f"resources/ami-amazon-linux-latest/{self.region_name}.json"
+                __name__,
+                f"resources/ami-amazon-linux-latest/{self.region_name}.json.gz",
             )
         except FileNotFoundError:
             latest_amis_linux = []

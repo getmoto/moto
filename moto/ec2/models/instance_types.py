@@ -8,7 +8,7 @@ from ..exceptions import InvalidFilter, InvalidInstanceTypeError
 from ..utils import generic_filter
 
 INSTANCE_TYPES: Dict[str, Any] = load_resource(
-    __name__, "../resources/instance_types.json"
+    __name__, "../resources/instance_types.json.gz"
 )
 INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 
@@ -22,7 +22,7 @@ for _location_type in listdir(root / offerings_path):
         res = load_resource(__name__, full_path)
         for instance in res:
             instance["LocationType"] = _location_type
-        INSTANCE_TYPE_OFFERINGS[_location_type][_region.replace(".json", "")] = res
+        INSTANCE_TYPE_OFFERINGS[_location_type][_region.replace(".json.gz", "")] = res
 
 
 class InstanceType(Dict[str, Any]):
