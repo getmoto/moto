@@ -380,3 +380,12 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
                     additional_regions=self._additional_regions,
                 )
                 BackendDict._instances.append(self)  # type: ignore[misc]
+
+    def iter_backends(self) -> Iterator[tuple[str, str, BaseBackend]]:
+        """
+        Iterate over a flattened view of all base backends in a BackendDict.
+        Each record is a tuple of account id, region name, and the base backend within that account and region.
+        """
+        for account_id, account_specific_backend in self.items():
+            for region_name, backend in account_specific_backend.items():
+                yield account_id, region_name, backend
