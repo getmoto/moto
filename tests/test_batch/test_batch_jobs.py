@@ -1089,3 +1089,55 @@ def test_submit_job_invalid_name():
             jobName=too_long_job_name, jobQueue="arn", jobDefinition="job_def_name"
         )
     assert exc.match("ClientException")
+
+
+@mock_aws()
+def test_submit_job_with_parameters():
+    """
+    Test verifies that parameters can be passed when submiting a Job
+    """
+
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = str(uuid4())
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName=str(uuid4()),
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    job_definition_name = f"sleep_{str(uuid4())[0:6]}"
+
+    resp = batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": 512,
+            "command": ["sleep", "$seconds"],
+        },
+        parameters={"seconds": "5"},
+    )
+
+    resp = batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        parameters={"seconds": "10"},
+    )
+
+    job_id = resp["jobId"]
+
+    batch_client.describe_jobs(jobs=[job_id])
