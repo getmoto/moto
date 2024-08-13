@@ -6,7 +6,7 @@ import time
 from itertools import cycle
 from sys import platform
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import dateutil.parser
 
@@ -632,7 +632,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         return None
 
     def _add_parameters_to_command(
-        self, command: str | list[str], parameters: dict[str, str]
+        self, command: Union[str, List[str]], parameters: dict[str, str]
     ) -> list[str]:
         if isinstance(command, str):
             command = [command]
