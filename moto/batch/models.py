@@ -1,4 +1,3 @@
-import copy
 import datetime
 import logging
 import re
@@ -632,16 +631,17 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             return self.job_definition.timeout["attemptDurationSeconds"]
         return None
 
-    def _add_parameters_to_command(self, command: str | list[str], parameters: dict[str, str]) -> list[str]:
-        new_command = copy.deepcopy(command)
-        if isinstance(new_command, str):
-            new_command = [new_command]
+    def _add_parameters_to_command(
+        self, command: str | list[str], parameters: dict[str, str]
+    ) -> list[str]:
+        if isinstance(command, str):
+            command = [command]
 
-        for i, command_part in enumerate(new_command):
-            for param, value in parameters.items():
-                new_command[i] = command_part.replace(f"${param}", value)
-
-        return new_command
+        return [
+            command_part.replace(f"${param}", value)
+            for command_part in command
+            for param, value in parameters.items()
+        ]
 
     def run(self) -> None:
         """
