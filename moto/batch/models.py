@@ -632,8 +632,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         return None
 
     def _add_parameters_to_command(
-        self, command: Union[str, List[str]], parameters: dict[str, str]
-    ) -> list[str]:
+        self, command: Union[str, List[str]], parameters: Dict[str, str]
+    ) -> List[str]:
         if isinstance(command, str):
             command = [command]
 

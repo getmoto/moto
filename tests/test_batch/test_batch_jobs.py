@@ -1119,7 +1119,7 @@ def test_submit_job_with_parameters():
 
     job_definition_name = f"sleep_{str(uuid4())[0:6]}"
 
-    resp = batch_client.register_job_definition(
+    batch_client.register_job_definition(
         jobDefinitionName=job_definition_name,
         type="container",
         containerProperties={
