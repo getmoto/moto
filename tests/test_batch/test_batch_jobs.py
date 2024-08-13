@@ -1094,7 +1094,7 @@ def test_submit_job_invalid_name():
 @mock_aws()
 def test_submit_job_with_parameters():
     """
-    Test verifies that parameters can be passed when submiting a Job
+    Test verifies that parameters will be used when submitting a Job
     """
 
     ec2_client, iam_client, _, _, batch_client = _get_clients()
@@ -1131,13 +1131,12 @@ def test_submit_job_with_parameters():
         parameters={"seconds": "5"},
     )
 
-    resp = batch_client.submit_job(
+    job_id = batch_client.submit_job(
         jobName="test1",
         jobQueue=queue_arn,
         jobDefinition=job_definition_name,
         parameters={"seconds": "10"},
-    )
+    )["jobId"]
 
-    job_id = resp["jobId"]
-
-    batch_client.describe_jobs(jobs=[job_id])
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
+    assert job["parameters"] == {"seconds": "10"}
