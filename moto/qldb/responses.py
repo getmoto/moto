@@ -44,12 +44,17 @@ class QLDBResponse(BaseResponse):
         ) = self.qldb_backend.describe_ledger(
             name=name,
         )
+        creation_date_time_string = (
+            creation_date_time.strftime("%d/%m/%Y, %H:%M:%S")
+            if creation_date_time is not None
+            else ""
+        )
         return json.dumps(
             dict(
                 Name=name,
                 Arn=arn,
                 State=state,
-                CreationDateTime=creation_date_time.strftime("%d/%m/%Y, %H:%M:%S"),
+                CreationDateTime=creation_date_time_string,
                 PermissionsMode=permissions_mode,
                 DeletionProtection=deletion_protection,
                 EncryptionDescription=self._format_encryption_description(
@@ -116,12 +121,17 @@ class QLDBResponse(BaseResponse):
             deletion_protection=deletion_protection,
             kms_key=kms_key,
         )
+        creation_date_time_string = (
+            creation_date_time.strftime("%d/%m/%Y, %H:%M:%S")
+            if creation_date_time is not None
+            else ""
+        )
         return json.dumps(
             dict(
                 name=name,
                 arn=arn,
                 state=state,
-                creationDateTime=creation_date_time.strftime("%d/%m/%Y, %H:%M:%S"),
+                creationDateTime=creation_date_time_string,
                 deletionProtection=deletion_protection,
                 encryptionDescription=self._format_encryption_description(
                     encryption_description

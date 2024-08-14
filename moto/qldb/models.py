@@ -67,7 +67,9 @@ class QLDBBackend(BaseBackend):
         encryption_description = {
             "kms_key_arn": kms_key_arn,
             "encryption_status": "ENABLED",
-            "inaccessible_kms_key_date_time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
+            "inaccessible_kms_key_date_time": datetime.now().strftime(
+                "%d/%m/%Y, %H:%M:%S"
+            ),
         }
         arn = f"arn:aws:qldb:us-east-1:123456789012:ledger/{name}"
         creation_date_time = datetime.now()
