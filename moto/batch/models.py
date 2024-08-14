@@ -635,11 +635,15 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         if isinstance(command, str):
             command = [command]
 
-        return [
+        if not self.parameters:
+            return command
+
+        new_command = [
             command_part.replace(f"${param}", value)
             for command_part in command
             for param, value in self.parameters.items()
         ]
+        return new_command
 
     def run(self) -> None:
         """
