@@ -64,6 +64,11 @@ class ApiGatewayV2Response(BaseResponse):
 
     @staticmethod
     def get_api_without_id(*args: Any) -> TYPE_RESPONSE:
+        """
+        AWS is returning an empty response when apiId is an empty string. This is slightly odd and it seems an
+        outlier, therefore it was decided we could have a custom handler for this particular use case instead of
+        trying to make it work with the existing url-matcher.
+        """
         return 200, {}, "{}"
 
     def get_apis(self) -> TYPE_RESPONSE:
