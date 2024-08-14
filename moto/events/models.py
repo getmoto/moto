@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import re
 import sys
@@ -765,6 +766,10 @@ class Connection(BaseModel):
         self.auth_parameters = auth_parameters
         self.creation_time = unix_time()
         self.state = "AUTHORIZED"
+
+        hashing_obj = hashlib.sha256()
+        hashing_obj.update(json.dumps(self.auth_parameters, sort_keys=True).encode("utf-8"))
+        self.secret_arn = f"arn:aws:eventbridge:secretsmanager:{region_name}:{account_id}:secret:events/{authorization_type}-{hashing_obj.hexdigest()}"
 
         self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
 
