@@ -31,7 +31,7 @@ class QLDBBackend(BaseBackend):
     ]:
         if name not in self.ledgers:
             raise LedgerNotFoundException(name)
-        ledger = self.ledgers["name"]
+        ledger = self.ledgers[name]
         return (
             name,
             ledger.get("arn"),
@@ -67,7 +67,7 @@ class QLDBBackend(BaseBackend):
         encryption_description = {
             "kms_key_arn": kms_key_arn,
             "encryption_status": "ENABLED",
-            "inaccessible_kms_key_date_time": datetime.now(),
+            "inaccessible_kms_key_date_time": datetime.now().strftime("%d/%m/%Y, %H:%M:%S"),
         }
         arn = f"arn:aws:qldb:us-east-1:123456789012:ledger/{name}"
         creation_date_time = datetime.now()
@@ -111,7 +111,7 @@ class QLDBBackend(BaseBackend):
     ]:  # type: ignore[misc]
         if name not in self.ledgers:
             raise LedgerNotFoundException(name)
-        if deletion_protection:
+        if deletion_protection is not None:
             self.ledgers[name]["deletion_protection"] = deletion_protection
         if kms_key and "encryption_description" in self.ledgers[name]:
             self.ledgers[name]["encryption_description"]["kms_key_arn"] = (

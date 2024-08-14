@@ -32,8 +32,7 @@ class QLDBResponse(BaseResponse):
         }
 
     def describe_ledger(self) -> str:
-        params = json.loads(self.body)
-        name = params.get("Name")
+        name = self._get_param("name")
         (
             name,
             arn,
@@ -50,7 +49,7 @@ class QLDBResponse(BaseResponse):
                 Name=name,
                 Arn=arn,
                 State=state,
-                CreationDateTime=creation_date_time,
+                CreationDateTime=creation_date_time.strftime("%d/%m/%Y, %H:%M:%S"),
                 PermissionsMode=permissions_mode,
                 DeletionProtection=deletion_protection,
                 EncryptionDescription=self._format_encryption_description(
@@ -86,7 +85,7 @@ class QLDBResponse(BaseResponse):
                 Name=name,
                 Arn=arn,
                 State=state,
-                CreationDateTime=creation_date_time,
+                CreationDateTime=creation_date_time.strftime("%d/%m/%Y, %H:%M:%S"),
                 PermissionsMode=permissions_mode,
                 DeletionProtection=deletion_protection,
                 KmsKeyArn=kms_key_arn,
@@ -94,16 +93,15 @@ class QLDBResponse(BaseResponse):
         )
 
     def delete_ledger(self) -> str:
-        params = json.loads(self.body)
-        name = params.get("Name")
+        name = self._get_param("name")
         self.qldb_backend.delete_ledger(
             name=name,
         )
         return json.dumps(dict())
 
     def update_ledger(self) -> str:
+        name = self._get_param("name")
         params = json.loads(self.body)
-        name = params.get("Name")
         deletion_protection = params.get("DeletionProtection")
         kms_key = params.get("KmsKey")
         (
@@ -123,7 +121,7 @@ class QLDBResponse(BaseResponse):
                 name=name,
                 arn=arn,
                 state=state,
-                creationDateTime=creation_date_time,
+                creationDateTime=creation_date_time.strftime("%d/%m/%Y, %H:%M:%S"),
                 deletionProtection=deletion_protection,
                 encryptionDescription=self._format_encryption_description(
                     encryption_description
@@ -142,9 +140,8 @@ class QLDBResponse(BaseResponse):
         return json.dumps(dict())
 
     def list_tags_for_resource(self) -> str:
-        params = json.loads(self.body)
-        resource_arn = params.get("ResourceArn")
+        resource_arn = self._get_param("ResourceArn")
         tags = self.qldb_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps(dict(Tags=tags))

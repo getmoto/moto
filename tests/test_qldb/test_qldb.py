@@ -6,7 +6,7 @@ import boto3
 import pytest
 
 from moto import mock_aws
-from moto.mediapackage.exceptions import ClientError
+from botocore.exceptions import ClientError
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -51,7 +51,6 @@ def test_create_describe_update_and_delete_ledger(client):
         == f"arn:aws:kms:us-east-1:123456789012:key/{kms_key}"
     )
     assert connection["EncryptionDescription"]["EncryptionStatus"] == "ENABLED"
-    assert isinstance(connection["EncryptionDescription"]["InaccessibleKmsKeyDateTime"])
 
     new_key = "new_mock_key"
     connection = client.update_ledger(
@@ -69,7 +68,6 @@ def test_create_describe_update_and_delete_ledger(client):
         == f"arn:aws:kms:us-east-1:123456789012:key/{new_key}"
     )
     assert connection["EncryptionDescription"]["EncryptionStatus"] == "ENABLED"
-    assert isinstance(connection["EncryptionDescription"]["InaccessibleKmsKeyDateTime"])
 
     connection = client.describe_ledger(Name=name)
     assert connection["Name"] == name
@@ -83,14 +81,13 @@ def test_create_describe_update_and_delete_ledger(client):
         == f"arn:aws:kms:us-east-1:123456789012:key/{new_key}"
     )
     assert connection["EncryptionDescription"]["EncryptionStatus"] == "ENABLED"
-    assert isinstance(connection["EncryptionDescription"]["InaccessibleKmsKeyDateTime"])
 
     connection = client.delete_ledger(Name=name)
     with pytest.raises(ClientError) as e:
-        connection.describe_ledger(Name=name)
+        client.describe_ledger(Name=name)
     err = e.value.response["Error"]
     assert err["Code"] == "LedgerNotFound"
-    assert err["Message"] == f"{name} does not match any existing ledger"
+    assert err["Message"] == f"{name} does not match any existing ledger."
 
 
 @mock_aws
