@@ -2284,6 +2284,7 @@ def test_create_and_describe_connection():
     assert description["Description"] == "test description"
     assert description["AuthorizationType"] == "API_KEY"
     assert description["ConnectionState"] == "AUTHORIZED"
+    assert description["SecretArn"] is not None
     assert "CreationTime" in description
 
 
