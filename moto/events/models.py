@@ -776,9 +776,9 @@ class Connection(BaseModel):
             force_overwrite=False,
             secret_binary=None,
             description=f"Auth parameters for Eventbridge connection {connection_id}",
-            tags={},
+            tags=list(),
             kms_key_id=None,
-            client_request_token=None
+            client_request_token=None,
         )
         self.secret_arn = json.loads(secret).get("ARN")
         self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{connection_id}"
