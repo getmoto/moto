@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Any, Dict, List
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -122,7 +122,7 @@ class APIGatewayResponse(BaseResponse):
         return 200, {}, json.dumps(rest_api.to_dict())
 
     @staticmethod
-    def get_rest_api_without_id(*args) -> TYPE_RESPONSE:
+    def get_rest_api_without_id(*args: Any) -> TYPE_RESPONSE:
         return 200, {}, "{}"
 
     def put_rest_api(self) -> TYPE_RESPONSE:

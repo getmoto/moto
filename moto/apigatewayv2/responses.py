@@ -1,6 +1,7 @@
 """Handles incoming apigatewayv2 requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -62,7 +63,7 @@ class ApiGatewayV2Response(BaseResponse):
         return 200, {}, json.dumps(api.to_json())
 
     @staticmethod
-    def get_api_without_id(*args) -> TYPE_RESPONSE:
+    def get_api_without_id(*args: Any) -> TYPE_RESPONSE:
         return 200, {}, "{}"
 
     def get_apis(self) -> TYPE_RESPONSE:
