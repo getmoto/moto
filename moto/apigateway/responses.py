@@ -121,6 +121,10 @@ class APIGatewayResponse(BaseResponse):
         rest_api = self.backend.get_rest_api(function_id)
         return 200, {}, json.dumps(rest_api.to_dict())
 
+    @staticmethod
+    def get_rest_api_without_id(*args) -> TYPE_RESPONSE:
+        return 200, {}, "{}"
+
     def put_rest_api(self) -> TYPE_RESPONSE:
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
         mode = self._get_param("mode", "merge")

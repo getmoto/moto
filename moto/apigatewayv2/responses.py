@@ -61,6 +61,10 @@ class ApiGatewayV2Response(BaseResponse):
         api = self.apigatewayv2_backend.get_api(api_id=api_id)
         return 200, {}, json.dumps(api.to_json())
 
+    @staticmethod
+    def get_api_without_id(*args) -> TYPE_RESPONSE:
+        return 200, {}, "{}"
+
     def get_apis(self) -> TYPE_RESPONSE:
         apis = self.apigatewayv2_backend.get_apis()
         return 200, {}, json.dumps({"items": [a.to_json() for a in apis]})
