@@ -63,7 +63,7 @@ class ApiGatewayV2Response(BaseResponse):
         return 200, {}, json.dumps(api.to_json())
 
     @staticmethod
-    def get_api_without_id(*args: Any) -> TYPE_RESPONSE:
+    def get_api_without_id(*args: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         """
         AWS is returning an empty response when apiId is an empty string. This is slightly odd and it seems an
         outlier, therefore it was decided we could have a custom handler for this particular use case instead of
