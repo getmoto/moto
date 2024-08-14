@@ -499,7 +499,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped = False
         self.job_stopped_reason: Optional[str] = None
         self.depends_on = depends_on
-        self.parameters = parameters or {}
+        self.parameters = {**self.job_definition.parameters, **(parameters or {})}
         self.timeout = timeout
         self.all_jobs = all_jobs
         self.array_properties: Dict[str, Any] = array_properties
@@ -631,16 +631,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             return self.job_definition.timeout["attemptDurationSeconds"]
         return None
 
-    def _add_parameters_to_command(
-        self, command: Union[str, List[str]], parameters: Dict[str, str]
-    ) -> List[str]:
+    def _add_parameters_to_command(self, command: Union[str, List[str]]) -> List[str]:
         if isinstance(command, str):
             command = [command]
 
         return [
             command_part.replace(f"${param}", value)
             for command_part in command
-            for param, value in parameters.items()
+            for param, value in self.parameters.items()
         ]
 
     def run(self) -> None:
@@ -695,8 +693,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                             self._get_container_property(
                                 "command",
                                 '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
-                            ),
-                            {**self.job_definition.parameters, **self.parameters},
+                            )
                         ),
                         "environment": {
                             e["name"]: e["value"]
@@ -741,9 +738,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         {
                             "image": spec.get("image", "alpine:latest"),
                             "privileged": spec.get("privileged", False),
-                            "command": spec.get(
-                                "command",
-                                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                            "command": self._add_parameters_to_command(
+                                spec.get(
+                                    "command",
+                                    '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                                )
                             ),
                             "environment": {
                                 e["name"]: e["value"]

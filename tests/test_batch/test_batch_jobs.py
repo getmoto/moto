@@ -1128,15 +1128,15 @@ def test_submit_job_with_parameters():
             "memory": 512,
             "command": ["sleep", "$seconds"],
         },
-        parameters={"seconds": "5"},
+        parameters={"seconds": "0"},
     )
 
     job_id = batch_client.submit_job(
         jobName="test1",
         jobQueue=queue_arn,
         jobDefinition=job_definition_name,
-        parameters={"seconds": "10"},
+        parameters={"seconds": "0.1"},
     )["jobId"]
 
     job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
-    assert job["parameters"] == {"seconds": "10"}
+    assert job["parameters"] == {"seconds": "0.1"}
