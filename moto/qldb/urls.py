@@ -7,5 +7,5 @@ url_bases = [
 ]
 
 url_paths = {
-    "0/.*$": QLDBResponse.dispatch,
+    "{0}/.*$": QLDBResponse.dispatch,
 }
