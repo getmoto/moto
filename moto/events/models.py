@@ -7,7 +7,7 @@ from collections import OrderedDict
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
@@ -29,16 +29,30 @@ from moto.events.exceptions import (
     ValidationException,
 )
 from moto.moto_api._internal import mock_random as random
-from moto.secretsmanager import secretsmanager_backends
 from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
+from moto.utilities.utils import (
+    ARN_PARTITION_REGEX,
+    CamelToUnderscoresWalker,
+    get_partition,
+)
 
 from .utils import _BASE_EVENT_MESSAGE, PAGINATION_MODEL, EventMessageType
 
+if TYPE_CHECKING:
+    from moto.secretsmanager.models import SecretsManagerBackend
+
 # Sentinel to signal the absence of a field for `Exists` pattern matching
 UNDEFINED = object()
+
+
+def get_secrets_manager_backend(
+    account_id: str, region: str
+) -> "SecretsManagerBackend":
+    from moto.secretsmanager import secretsmanager_backends
+
+    return secretsmanager_backends[account_id][region]
 
 
 class Rule(CloudFormationModel):
@@ -768,15 +782,23 @@ class Connection(BaseModel):
         self.state = "AUTHORIZED"
 
         connection_id = f"{self.name}/{self.uuid}"
-        secretsmanager_backend = secretsmanager_backends[account_id][region_name]
+        secretsmanager_backend = get_secrets_manager_backend(account_id, region_name)
+        secret_value = {}
+        for key, value in self.auth_parameters.items():
+            if key == "InvocationHttpParameters":
+                secret_value.update({"InvocationHttpParameters": value})
+            else:
+                secret_value.update(value)
+        secret_value = CamelToUnderscoresWalker.parse(secret_value)
+
         secret = secretsmanager_backend.create_secret(
-            name=f"{connection_id}/auth",
-            secret_string=json.dumps(self.auth_parameters),
-            replica_regions=list(),
+            name=f"events!connection/{connection_id}/auth",
+            secret_string=json.dumps(secret_value),
+            replica_regions=[],
             force_overwrite=False,
             secret_binary=None,
             description=f"Auth parameters for Eventbridge connection {connection_id}",
-            tags=list(),
+            tags=[{"Key": "aws:secretsmanager:owningService", "Value": "events"}],
             kms_key_id=None,
             client_request_token=None,
         )
@@ -817,7 +839,6 @@ class Connection(BaseModel):
             - The original response also has:
                 - LastAuthorizedTime (number)
                 - LastModifiedTime (number)
-                - SecretArn (string)
                 - StateReason (string)
             - At the time of implementing this, there was no place where to set/get
             those attributes. That is why they are not in the response.
@@ -1841,6 +1862,16 @@ class EventsBackend(BaseBackend):
         connection = self.connections.pop(name, None)
         if not connection:
             raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
+
+        # Delete Secret
+        secretsmanager_backend = get_secrets_manager_backend(
+            self.account_id, self.region_name
+        )
+        secretsmanager_backend.delete_secret(
+            secret_id=connection.secret_arn,
+            recovery_window_in_days=None,
+            force_delete_without_recovery=True,
+        )
 
         return connection.describe_short()
 
