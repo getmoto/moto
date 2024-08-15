@@ -1171,6 +1171,8 @@ class AutoScalingBackend(BaseBackend):
                 "Valid requests must contain either LaunchTemplate, LaunchConfigurationName "
                 "or MixedInstancesPolicy parameter."
             )
+        if name not in self.autoscaling_groups:
+            raise ValidationError("AutoScalingGroup name not found - null")
 
         group = self.autoscaling_groups[name]
         group.update(
