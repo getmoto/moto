@@ -123,3 +123,36 @@ class LowercaseDict(MutableMapping[str, Any]):
 
     def _keytransform(self, key: str) -> str:
         return key.lower()
+
+
+class CamelToUnderscoresWalker:
+    """A class to convert the keys in dict/list hierarchical data structures from CamelCase to snake_case (underscores)"""
+
+    @staticmethod
+    def parse(x: Any) -> Any:  # type: ignore[misc]
+        if isinstance(x, dict):
+            return CamelToUnderscoresWalker.parse_dict(x)
+        elif isinstance(x, list):
+            return CamelToUnderscoresWalker.parse_list(x)
+        else:
+            return CamelToUnderscoresWalker.parse_scalar(x)
+
+    @staticmethod
+    def parse_dict(x: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+        from moto.core.utils import camelcase_to_underscores
+
+        temp = {}
+        for key in x.keys():
+            temp[camelcase_to_underscores(key)] = CamelToUnderscoresWalker.parse(x[key])
+        return temp
+
+    @staticmethod
+    def parse_list(x: Any) -> Any:  # type: ignore[misc]
+        temp = []
+        for i in x:
+            temp.append(CamelToUnderscoresWalker.parse(i))
+        return temp
+
+    @staticmethod
+    def parse_scalar(x: Any) -> Any:  # type: ignore[misc]
+        return x

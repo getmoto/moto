@@ -10,10 +10,9 @@ from moto.emr.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import CamelToUnderscoresWalker, get_partition
 
 from .utils import (
-    CamelToUnderscoresWalker,
     EmrSecurityGroupManager,
     random_cluster_id,
     random_instance_group_id,
