@@ -743,29 +743,20 @@
 
 ## bedrock-agent
 <details>
-<summary>18% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] associate_agent_knowledge_base
 - [X] create_agent
 - [ ] create_agent_action_group
 - [ ] create_agent_alias
 - [ ] create_data_source
-- [ ] create_flow
-- [ ] create_flow_alias
-- [ ] create_flow_version
 - [X] create_knowledge_base
-- [ ] create_prompt
-- [ ] create_prompt_version
 - [X] delete_agent
 - [ ] delete_agent_action_group
 - [ ] delete_agent_alias
 - [ ] delete_agent_version
 - [ ] delete_data_source
-- [ ] delete_flow
-- [ ] delete_flow_alias
-- [ ] delete_flow_version
 - [X] delete_knowledge_base
-- [ ] delete_prompt
 - [ ] disassociate_agent_knowledge_base
 - [X] get_agent
 - [ ] get_agent_action_group
@@ -773,27 +764,18 @@
 - [ ] get_agent_knowledge_base
 - [ ] get_agent_version
 - [ ] get_data_source
-- [ ] get_flow
-- [ ] get_flow_alias
-- [ ] get_flow_version
 - [ ] get_ingestion_job
 - [X] get_knowledge_base
-- [ ] get_prompt
 - [ ] list_agent_action_groups
 - [ ] list_agent_aliases
 - [ ] list_agent_knowledge_bases
 - [ ] list_agent_versions
 - [X] list_agents
 - [ ] list_data_sources
-- [ ] list_flow_aliases
-- [ ] list_flow_versions
-- [ ] list_flows
 - [ ] list_ingestion_jobs
 - [X] list_knowledge_bases
-- [ ] list_prompts
 - [X] list_tags_for_resource
 - [ ] prepare_agent
-- [ ] prepare_flow
 - [ ] start_ingestion_job
 - [X] tag_resource
 - [X] untag_resource
@@ -802,10 +784,7 @@
 - [ ] update_agent_alias
 - [ ] update_agent_knowledge_base
 - [ ] update_data_source
-- [ ] update_flow
-- [ ] update_flow_alias
 - [ ] update_knowledge_base
-- [ ] update_prompt
 </details>
 
 ## budgets
@@ -1193,13 +1172,13 @@
 
 ## codebuild
 <details>
-<summary>16% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] batch_delete_builds
 - [ ] batch_get_build_batches
 - [X] batch_get_builds
 - [ ] batch_get_fleets
-- [ ] batch_get_projects
+- [X] batch_get_projects
 - [ ] batch_get_report_groups
 - [ ] batch_get_reports
 - [ ] create_fleet
@@ -2129,7 +2108,7 @@
 
 ## dynamodb
 <details>
-<summary>63% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] batch_execute_statement
 - [X] batch_get_item
@@ -2139,7 +2118,7 @@
 - [X] create_table
 - [X] delete_backup
 - [X] delete_item
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] delete_table
 - [X] describe_backup
 - [X] describe_continuous_backups
@@ -2160,7 +2139,7 @@
 - [X] execute_transaction
 - [ ] export_table_to_point_in_time
 - [X] get_item
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [X] import_table
 - [X] list_backups
 - [ ] list_contributor_insights
@@ -2170,7 +2149,7 @@
 - [X] list_tables
 - [X] list_tags_of_resource
 - [X] put_item
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] query
 - [X] restore_table_from_backup
 - [X] restore_table_to_point_in_time
@@ -2292,7 +2271,6 @@
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
 - [ ] create_ipam
-- [ ] create_ipam_external_resource_verification_token
 - [ ] create_ipam_pool
 - [ ] create_ipam_resource_discovery
 - [ ] create_ipam_scope
@@ -2369,7 +2347,6 @@
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
 - [ ] delete_ipam
-- [ ] delete_ipam_external_resource_verification_token
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_resource_discovery
 - [ ] delete_ipam_scope
@@ -2494,7 +2471,6 @@
 - [X] describe_instances
 - [X] describe_internet_gateways
 - [ ] describe_ipam_byoasn
-- [ ] describe_ipam_external_resource_verification_tokens
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations
@@ -3305,7 +3281,7 @@
 
 ## emr
 <details>
-<summary>39% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -3326,7 +3302,7 @@
 - [X] describe_step
 - [ ] describe_studio
 - [ ] get_auto_termination_policy
-- [ ] get_block_public_access_configuration
+- [X] get_block_public_access_configuration
 - [ ] get_cluster_session_credentials
 - [ ] get_managed_scaling_policy
 - [ ] get_studio_session_mapping
@@ -3347,7 +3323,7 @@
 - [X] modify_instance_groups
 - [X] put_auto_scaling_policy
 - [ ] put_auto_termination_policy
-- [ ] put_block_public_access_configuration
+- [X] put_block_public_access_configuration
 - [ ] put_managed_scaling_policy
 - [X] remove_auto_scaling_policy
 - [ ] remove_auto_termination_policy
@@ -6011,12 +5987,36 @@
 - [ ] synthesize_speech
 </details>
 
+## qldb
+<details>
+<summary>30% implemented</summary>
+
+- [ ] cancel_journal_kinesis_stream
+- [X] create_ledger
+- [X] delete_ledger
+- [ ] describe_journal_kinesis_stream
+- [ ] describe_journal_s3_export
+- [X] describe_ledger
+- [ ] export_journal_to_s3
+- [ ] get_block
+- [ ] get_digest
+- [ ] get_revision
+- [ ] list_journal_kinesis_streams_for_ledger
+- [ ] list_journal_s3_exports
+- [ ] list_journal_s3_exports_for_ledger
+- [ ] list_ledgers
+- [X] list_tags_for_resource
+- [ ] stream_journal_to_kinesis
+- [X] tag_resource
+- [ ] untag_resource
+- [X] update_ledger
+- [ ] update_ledger_permissions_mode
+</details>
+
 ## quicksight
 <details>
-<summary>7% implemented</summary>
+<summary>8% implemented</summary>
 
-- [ ] batch_create_topic_reviewed_answer
-- [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
@@ -6139,7 +6139,6 @@
 - [ ] list_theme_versions
 - [ ] list_themes
 - [ ] list_topic_refresh_schedules
-- [ ] list_topic_reviewed_answers
 - [ ] list_topics
 - [ ] list_user_groups
 - [X] list_users
@@ -7209,7 +7208,7 @@
 
 ## sagemaker
 <details>
-<summary>29% implemented</summary>
+<summary>33% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -7226,7 +7225,7 @@
 - [ ] create_code_repository
 - [X] create_compilation_job
 - [ ] create_context
-- [ ] create_data_quality_job_definition
+- [X] create_data_quality_job_definition
 - [ ] create_device_fleet
 - [X] create_domain
 - [ ] create_edge_deployment_plan
@@ -7249,8 +7248,8 @@
 - [ ] create_labeling_job
 - [ ] create_mlflow_tracking_server
 - [X] create_model
-- [ ] create_model_bias_job_definition
-- [ ] create_model_card
+- [X] create_model_bias_job_definition
+- [X] create_model_card
 - [ ] create_model_card_export_job
 - [X] create_model_explainability_job_definition
 - [X] create_model_package
@@ -7285,7 +7284,7 @@
 - [ ] delete_code_repository
 - [X] delete_compilation_job
 - [ ] delete_context
-- [ ] delete_data_quality_job_definition
+- [X] delete_data_quality_job_definition
 - [ ] delete_device_fleet
 - [X] delete_domain
 - [ ] delete_edge_deployment_plan
@@ -7306,8 +7305,8 @@
 - [ ] delete_inference_experiment
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
-- [ ] delete_model_bias_job_definition
-- [ ] delete_model_card
+- [X] delete_model_bias_job_definition
+- [X] delete_model_card
 - [X] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
@@ -7340,7 +7339,7 @@
 - [ ] describe_code_repository
 - [X] describe_compilation_job
 - [ ] describe_context
-- [ ] describe_data_quality_job_definition
+- [X] describe_data_quality_job_definition
 - [ ] describe_device
 - [ ] describe_device_fleet
 - [X] describe_domain
@@ -7365,8 +7364,8 @@
 - [ ] describe_lineage_group
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
-- [ ] describe_model_bias_job_definition
-- [ ] describe_model_card
+- [X] describe_model_bias_job_definition
+- [X] describe_model_card
 - [ ] describe_model_card_export_job
 - [X] describe_model_explainability_job_definition
 - [X] describe_model_package
@@ -7415,7 +7414,7 @@
 - [ ] list_code_repositories
 - [X] list_compilation_jobs
 - [ ] list_contexts
-- [ ] list_data_quality_job_definitions
+- [X] list_data_quality_job_definitions
 - [ ] list_device_fleets
 - [ ] list_devices
 - [X] list_domains
@@ -7441,10 +7440,10 @@
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
 - [ ] list_mlflow_tracking_servers
-- [ ] list_model_bias_job_definitions
+- [X] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
-- [ ] list_model_card_versions
-- [ ] list_model_cards
+- [X] list_model_card_versions
+- [X] list_model_cards
 - [X] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [X] list_model_package_groups
@@ -7530,7 +7529,7 @@
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
 - [ ] update_mlflow_tracking_server
-- [ ] update_model_card
+- [X] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
@@ -8458,6 +8457,72 @@
 - [ ] update_vocabulary_filter
 </details>
 
+## transfer
+<details>
+<summary>13% implemented</summary>
+
+- [ ] create_access
+- [ ] create_agreement
+- [ ] create_connector
+- [ ] create_profile
+- [X] create_server
+- [X] create_user
+- [ ] create_workflow
+- [ ] delete_access
+- [ ] delete_agreement
+- [ ] delete_certificate
+- [ ] delete_connector
+- [ ] delete_host_key
+- [ ] delete_profile
+- [X] delete_server
+- [X] delete_ssh_public_key
+- [X] delete_user
+- [ ] delete_workflow
+- [ ] describe_access
+- [ ] describe_agreement
+- [ ] describe_certificate
+- [ ] describe_connector
+- [ ] describe_execution
+- [ ] describe_host_key
+- [ ] describe_profile
+- [ ] describe_security_policy
+- [X] describe_server
+- [X] describe_user
+- [ ] describe_workflow
+- [ ] import_certificate
+- [ ] import_host_key
+- [X] import_ssh_public_key
+- [ ] list_accesses
+- [ ] list_agreements
+- [ ] list_certificates
+- [ ] list_connectors
+- [ ] list_executions
+- [ ] list_host_keys
+- [ ] list_profiles
+- [ ] list_security_policies
+- [ ] list_servers
+- [ ] list_tags_for_resource
+- [ ] list_users
+- [ ] list_workflows
+- [ ] send_workflow_step_state
+- [ ] start_directory_listing
+- [ ] start_file_transfer
+- [ ] start_server
+- [ ] stop_server
+- [ ] tag_resource
+- [ ] test_connection
+- [ ] test_identity_provider
+- [ ] untag_resource
+- [ ] update_access
+- [ ] update_agreement
+- [ ] update_certificate
+- [ ] update_connector
+- [ ] update_host_key
+- [ ] update_profile
+- [ ] update_server
+- [ ] update_user
+</details>
+
 ## wafv2
 <details>
 <summary>38% implemented</summary>
@@ -8809,7 +8874,6 @@
 - qapps
 - qbusiness
 - qconnect
-- qldb
 - qldb-session
 - rbin
 - redshift-serverless
@@ -8851,7 +8915,6 @@
 - timestream-influxdb
 - timestream-query
 - tnb
-- transfer
 - translate
 - trustedadvisor
 - verifiedpermissions

@@ -29,7 +29,7 @@ sagemaker
 - [ ] create_code_repository
 - [X] create_compilation_job
 - [ ] create_context
-- [ ] create_data_quality_job_definition
+- [X] create_data_quality_job_definition
 - [ ] create_device_fleet
 - [X] create_domain
 - [ ] create_edge_deployment_plan
@@ -52,8 +52,8 @@ sagemaker
 - [ ] create_labeling_job
 - [ ] create_mlflow_tracking_server
 - [X] create_model
-- [ ] create_model_bias_job_definition
-- [ ] create_model_card
+- [X] create_model_bias_job_definition
+- [X] create_model_card
 - [ ] create_model_card_export_job
 - [X] create_model_explainability_job_definition
 - [X] create_model_package
@@ -88,7 +88,7 @@ sagemaker
 - [ ] delete_code_repository
 - [X] delete_compilation_job
 - [ ] delete_context
-- [ ] delete_data_quality_job_definition
+- [X] delete_data_quality_job_definition
 - [ ] delete_device_fleet
 - [X] delete_domain
 - [ ] delete_edge_deployment_plan
@@ -109,8 +109,8 @@ sagemaker
 - [ ] delete_inference_experiment
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
-- [ ] delete_model_bias_job_definition
-- [ ] delete_model_card
+- [X] delete_model_bias_job_definition
+- [X] delete_model_card
 - [X] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
@@ -143,7 +143,7 @@ sagemaker
 - [ ] describe_code_repository
 - [X] describe_compilation_job
 - [ ] describe_context
-- [ ] describe_data_quality_job_definition
+- [X] describe_data_quality_job_definition
 - [ ] describe_device
 - [ ] describe_device_fleet
 - [X] describe_domain
@@ -168,8 +168,8 @@ sagemaker
 - [ ] describe_lineage_group
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
-- [ ] describe_model_bias_job_definition
-- [ ] describe_model_card
+- [X] describe_model_bias_job_definition
+- [X] describe_model_card
 - [ ] describe_model_card_export_job
 - [X] describe_model_explainability_job_definition
 - [X] describe_model_package
@@ -218,7 +218,7 @@ sagemaker
 - [ ] list_code_repositories
 - [X] list_compilation_jobs
 - [ ] list_contexts
-- [ ] list_data_quality_job_definitions
+- [X] list_data_quality_job_definitions
 - [ ] list_device_fleets
 - [ ] list_devices
 - [X] list_domains
@@ -244,10 +244,10 @@ sagemaker
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
 - [ ] list_mlflow_tracking_servers
-- [ ] list_model_bias_job_definitions
+- [X] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
-- [ ] list_model_card_versions
-- [ ] list_model_cards
+- [X] list_model_card_versions
+- [X] list_model_cards
 - [X] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [X] list_model_package_groups
@@ -338,7 +338,7 @@ sagemaker
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
 - [ ] update_mlflow_tracking_server
-- [ ] update_model_card
+- [X] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
