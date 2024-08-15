@@ -5,6 +5,7 @@ url_bases = [r"https?://apigateway\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/restapis$": APIGatewayResponse.dispatch,
+    "{0}/restapis/$": APIGatewayResponse.get_rest_api_without_id,
     "{0}/restapis/(?P<function_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/resources$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers$": APIGatewayResponse.dispatch,

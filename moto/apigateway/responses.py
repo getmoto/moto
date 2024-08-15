@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Any, Dict, List
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -120,6 +120,14 @@ class APIGatewayResponse(BaseResponse):
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
         rest_api = self.backend.get_rest_api(function_id)
         return 200, {}, json.dumps(rest_api.to_dict())
+
+    def get_rest_api_without_id(self, *args: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        """
+        AWS is returning an empty response when restApiId is an empty string. This is slightly odd and it seems an
+        outlier, therefore it was decided we could have a custom handler for this particular use case instead of
+        trying to make it work with the existing url-matcher.
+        """
+        return 200, {}, "{}"
 
     def put_rest_api(self) -> TYPE_RESPONSE:
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
