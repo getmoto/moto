@@ -29,6 +29,7 @@ from moto.events.exceptions import (
     ValidationException,
 )
 from moto.moto_api._internal import mock_random as random
+from moto.secretsmanager import secretsmanager_backends
 from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -766,7 +767,21 @@ class Connection(BaseModel):
         self.creation_time = unix_time()
         self.state = "AUTHORIZED"
 
-        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
+        connection_id = f"{self.name}/{self.uuid}"
+        secretsmanager_backend = secretsmanager_backends[account_id][region_name]
+        secret = secretsmanager_backend.create_secret(
+            name=f"{connection_id}/auth",
+            secret_string=json.dumps(self.auth_parameters),
+            replica_regions=list(),
+            force_overwrite=False,
+            secret_binary=None,
+            description=f"Auth parameters for Eventbridge connection {connection_id}",
+            tags=list(),
+            kms_key_id=None,
+            client_request_token=None,
+        )
+        self.secret_arn = json.loads(secret).get("ARN")
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{connection_id}"
 
     def describe_short(self) -> Dict[str, Any]:
         """
@@ -818,6 +833,7 @@ class Connection(BaseModel):
             "CreationTime": self.creation_time,
             "Description": self.description,
             "Name": self.name,
+            "SecretArn": self.secret_arn,
         }
 
 
