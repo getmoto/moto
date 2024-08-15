@@ -293,6 +293,10 @@ def put_resource_policy(ddb, table_arn, action="dynamodb:*", revision_id=None):
         try:
             policy = ddb.get_resource_policy(ResourceArn=table_arn)
             assert policy["RevisionId"] == revision_id
+            if allow_aws_request():
+                # Policy is supposedly ready-  but may still complain that a ResourcePolicy update is in progress
+                # Hopefully AWS is ready afterwards
+                sleep(1)
             return revision_id
         except (ClientError, AssertionError):
             # Policy is not ready yet
