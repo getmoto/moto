@@ -56,6 +56,7 @@ class BatchSimpleBackend(BatchBackend):
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
+        parameters: Optional[Dict[str, str]] = None,
     ) -> Tuple[str, str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
@@ -76,6 +77,7 @@ class BatchSimpleBackend(BatchBackend):
             all_jobs=self._jobs,
             timeout=timeout,
             array_properties=array_properties,
+            parameters=parameters,
         )
 
         if "size" in array_properties:
@@ -93,6 +95,7 @@ class BatchSimpleBackend(BatchBackend):
                     timeout=timeout,
                     array_properties={"statusSummary": {}, "index": array_index},
                     provided_job_id=provided_job_id,
+                    parameters=parameters,
                 )
                 self._mark_job_as_finished(include_start_attempt=True, job=child_job)
                 child_jobs.append(child_job)
