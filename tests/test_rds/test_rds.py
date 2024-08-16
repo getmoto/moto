@@ -1291,6 +1291,7 @@ def test_restore_db_instance_to_point_in_time():
         == 1
     )
 
+
 @mock_aws
 def test_restore_db_instance_from_db_snapshot_and_override_params():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
