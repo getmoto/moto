@@ -889,12 +889,22 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         key = self.body["Key"]
         return_values = self.body.get("ReturnValues", "NONE")
-        update_expression = self.body.get("UpdateExpression", "").strip()
+        update_expression = self.body.get("UpdateExpression", None)
         attribute_updates = self.body.get("AttributeUpdates")
-        if update_expression and attribute_updates:
+        if update_expression is not None and attribute_updates:
             raise MockValidationException(
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
             )
+
+        if update_expression is not None:
+            update_expression = update_expression.strip()
+            if update_expression == "":
+                raise MockValidationException(
+                    "Invalid UpdateExpression: The expression can not be empty;"
+                )
+        else:
+            update_expression = ""
+
         return_values_on_condition_check_failure = self.body.get(
             "ReturnValuesOnConditionCheckFailure"
         )
