@@ -10,7 +10,7 @@ from .models import AppMeshBackend, appmesh_backends
 class AppMeshResponse(BaseResponse):
     """Handler for AppMesh requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="appmesh")
 
     @property
@@ -22,12 +22,15 @@ class AppMeshResponse(BaseResponse):
         params = json.loads(self.body)
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
-        spec = params.get("spec")
+        spec = params.get("spec") or {}
+        service_discovery = spec.get("serviceDiscovery")
+        egress_filter = spec.get("egressFilter")
         tags = params.get("tags")
         mesh = self.appmesh_backend.create_mesh(
             client_token=client_token,
             mesh_name=mesh_name,
-            spec=spec,
+            egress_filter=egress_filter,
+            service_discovery=service_discovery,
             tags=tags,
         )
         return json.dumps(dict(mesh=mesh.to_dict()))
@@ -36,11 +39,14 @@ class AppMeshResponse(BaseResponse):
         params = json.loads(self.body)
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
-        spec = params.get("spec")
+        spec = params.get("spec") or {}
+        service_discovery = spec.get("serviceDiscovery")
+        egress_filter = spec.get("egressFilter")
         mesh = self.appmesh_backend.update_mesh(
             client_token=client_token,
             mesh_name=mesh_name,
-            spec=spec,
+            service_discovery=service_discovery,
+            egress_filter=egress_filter
         )
         return json.dumps(dict(mesh=mesh.to_dict()))
 
@@ -61,6 +67,19 @@ class AppMeshResponse(BaseResponse):
             mesh_name=mesh_name,
         )
         return json.dumps(dict(mesh=mesh.to_dict()))
+    
+    def list_meshes(self) -> str:
+        params = self._get_params()
+        limit = params.get("limit")
+        next_token = params.get("nextToken")
+        meshes, next_token = self.appmesh_backend.list_meshes(
+            limit=limit,
+            next_token=next_token,
+        )
+        return json.dumps(
+            dict(meshes=[mesh.to_dict() for mesh in meshes], nextToken=next_token)
+        )
+
 
     def list_tags_for_resource(self) -> str:
         params = self._get_params()
@@ -83,15 +102,3 @@ class AppMeshResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(dict())
-
-    def list_meshes(self):
-        params = self._get_params()
-        limit = params.get("limit")
-        next_token = params.get("nextToken")
-        meshes, next_token = self.appmesh_backend.list_meshes(
-            limit=limit,
-            next_token=next_token,
-        )
-        return json.dumps(
-            dict(meshes=[mesh.to_dict() for mesh in meshes], nextToken=next_token)
-        )

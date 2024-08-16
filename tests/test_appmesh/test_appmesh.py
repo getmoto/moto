@@ -1,6 +1,7 @@
 """Unit tests for appmesh-supported APIs."""
 
 from collections import defaultdict
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -73,7 +74,7 @@ def test_create_list_update_describe_delete_mesh(client):
 
     # Change spec for mesh 1
     connection = client.update_mesh(
-        meshName="mesh1", 
+        meshName="mesh1",
         spec={
             "egressFilter": {"type": "ALLOW_ALL"},
             "serviceDiscovery": {"ipPreference": "IPv6_PREFERRED"},
@@ -101,7 +102,6 @@ def test_create_list_update_describe_delete_mesh(client):
     # TODO
     # assert mesh["metadata"]["meshOwner"] == ??
 
-    
     connection = client.delete_mesh(meshName="mesh2")
     mesh = connection.get("mesh")
     assert mesh is not None

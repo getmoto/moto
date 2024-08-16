@@ -8,52 +8,68 @@ from uuid import uuid4
 from moto.appmesh.exceptions import MeshNotFoundError
 from moto.core.base_backend import BackendDict, BaseBackend
 
+@dataclass
+class Metadata:
+    arn: str
+    mesh_owner: str
+    resource_owner: str
+    created_at: datetime = datetime.now()
+    last_updated_at: datetime = datetime.now()
+    uid: str = uuid4().hex
+    version: int = 1
+
+
+@dataclass
+class Spec:
+   egress_filter: Dict[Literal["type"], str]
+   service_discovery: Dict[Literal["ip_preference"], str]
+
 
 @dataclass
 class Mesh:
     mesh_name: str
-    metadata: Dict[str, Optional[Union[str, int, datetime]]]
-    spec: Dict[str, Optional[Dict[str, Optional[str]]]]
+    metadata: Metadata
+    spec: Spec
     status: Dict[Literal["status"], str]
     tags: List[Dict[str, str]]
 
     def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]
-        service_discovery = self.spec.get("service_discovery") or {}
-
         return {
             "meshName": self.mesh_name,
             "metadata": {
-                "arn": self.metadata.get("arn"),
-                "createdAt": self.metadata.get("created_at"),
-                "lastUpdatedAt": self.metadata.get("last_updated_at"),
-                "meshOwner": self.metadata.get("mesh_owner"),
-                "resourceOwner": self.metadata.get("resource_owner"),
-                "uid": self.metadata.get("uid"),
-                "version": self.metadata.get("version"),
+                "arn": self.metadata.arn,
+                "createdAt": self.metadata.created_at,
+                "lastUpdatedAt": self.metadata.last_updated_at,
+                "meshOwner": self.metadata.mesh_owner,
+                "resourceOwner": self.metadata.resource_owner,
+                "uid": self.metadata.uid,
+                "version": self.metadata.version,
             },
             "spec": {
-                "egressFilter": self.spec.get("egress_filter"),
+                "egressFilter": self.spec.egress_filter,
                 "serviceDiscovery": {
-                    "ipPreference": service_discovery.get("ip_preference")
+                    "ipPreference": self.spec.service_discovery.get("ip_preference")
                 },
             },
             "status": self.status,
         }
+
 
 PAGINATION_MODEL = {
     "list_meshes": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "mesh_name",
+        "unique_attribute": "meshName",
     },
     "list_tags_for_resource": {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 100,
-        "unique_attribute": "resource_arn",
+        "unique_attribute": "key",
     },
 }
+
 
 class AppMeshBackend(BaseBackend):
     """Implementation of AppMesh APIs."""
@@ -66,7 +82,8 @@ class AppMeshBackend(BaseBackend):
         self,
         client_token: Optional[str],
         mesh_name: str,
-        spec: Dict[str, Dict[str, str]],
+        egress_filter: Dict[Literal["type"], str], 
+        service_discovery: Dict[Literal["ipPreference"], str],
         tags: List[Dict[str, str]],
     ) -> Mesh:
         from moto.sts import sts_backends
@@ -78,25 +95,22 @@ class AppMeshBackend(BaseBackend):
         print("USER ID")
         print(user_id)
 
-        service_discovery = spec.get("serviceDiscovery") or {}
-        now = datetime.now()
+        metadata = Metadata(
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:{mesh_name}",
+            mesh_owner=user_id,
+            resource_owner=user_id
+        )
+        spec = Spec(
+            egress_filter=egress_filter,
+            service_discovery={
+                "ip_preference": service_discovery["ipPreference"]
+            }
+        )
         mesh = Mesh(
             mesh_name=mesh_name,
-            spec={
-                "egress_filter": spec.get("egressFilter"),
-                "service_discovery": {
-                    "ip_preference": service_discovery.get("ipPreference")
-                },
-            },
-            status="ACTIVE",
-            metadata={
-                "arn": f"arn:aws:appmesh:{self.region_name}:{self.account_id}:{mesh_name}",
-                "created_at": now,
-                "last_updated_at": now,
-                "mesh_owner": user_id,  # AppMesh uses IAM IDs
-                "uid": uuid4(),
-                "version": 1,
-            },
+            spec=spec,
+            status={"status": "ACTIVE"},
+            metadata=metadata,
             tags=tags,
         )
         self.meshes[mesh_name] = mesh
@@ -106,22 +120,29 @@ class AppMeshBackend(BaseBackend):
         self,
         client_token: Optional[str],
         mesh_name: str,
-        spec: Optional[Dict[str, Dict[str, str]]],
+        egress_filter: Optional[Dict[Literal["type"], str]],
+        service_discovery: Optional[Dict[Literal["ipPreference"], str]],
     ) -> Mesh:
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name)
-        if spec:
-            self.meshes[mesh_name].spec["egress_filter"] = spec.get("egressFilter")
-            self.meshes[mesh_name].spec["service_discovery"] = {
-                "ip_preference": (spec.get("serviceDiscovery") or {}).get(
-                    "ipPreference"
-                )
-            }
-            self.meshes[mesh_name].metadata["last_updated_at"] = datetime.now()
-            self.meshes[mesh_name].metadata["version"] += 1
+        updated = False
+        if egress_filter is not None:
+            self.meshes[mesh_name].spec.egress_filter = egress_filter
+            updated = True
+
+        new_ip_preference = (service_discovery or {}).get(
+            "ipPreference"
+        )
+        if new_ip_preference is not None:
+            self.meshes[mesh_name].spec.service_discovery["ip_preference"] = new_ip_preference
+            updated = True
+
+        if updated:
+            self.meshes[mesh_name].metadata.last_updated_at = datetime.now()
+            self.meshes[mesh_name].metadata.version += 1
         return self.meshes[mesh_name]
 
-    def describe_mesh(self, mesh_name: str, mesh_owner: str) -> Mesh:
+    def describe_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> Mesh:
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name)
         return self.meshes[mesh_name]
@@ -134,20 +155,30 @@ class AppMeshBackend(BaseBackend):
         del self.meshes[mesh_name]
         return mesh
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_meshes(self, limit: Optional[int], next_token: Optional[str]):
+        return [
+            {
+                "arn": mesh.metadata.arn,
+                "createdAt": mesh.metadata.created_at,
+                "lastUpdatedAt": mesh.metadata.last_updated_at,
+                "meshName": mesh.mesh_name,
+                "meshOwner": mesh.metadata.mesh_owner,
+                "resourceOwner": mesh.metadata.resource_owner,
+                "version": mesh.metadata.version,
+            }
+            for mesh in self.meshes.values()
+        ]
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_tags_for_resource(
         self, limit: int, next_token: str, resource_arn: str
     ) -> Tuple[str, List[Dict[str, str]]]:
-        # implement here
-        return next_token, tags
+        tags = [] # TODO
+        return tags
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]):
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         # implement here
         return
-
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_meshes(self, limit: Optional[int], next_token: Optional[str]):
-        return [mesh for mesh in self.meshes.values()]
-
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
