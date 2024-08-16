@@ -203,7 +203,7 @@ def _send_event_bridge_message(
         events_backend = events_backends[account_id][bucket.region_name]
         for event_bus in events_backend.event_buses.values():
             for rule in event_bus.rules.values():
-                rule.send_to_targets(event)
+                rule.send_to_targets(event, transform_input=False)
 
     except:  # noqa
         # This is an async action in AWS.
