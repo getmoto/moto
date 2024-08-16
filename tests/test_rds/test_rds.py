@@ -1262,6 +1262,34 @@ def test_restore_db_instance_to_point_in_time():
         )
         == 1
     )
+    # ensure another pit restore can be made
+    new_instance = conn.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier="db-primary-1",
+        TargetDBInstanceIdentifier="db-restore-2",
+    )["DBInstance"]
+    assert new_instance["DBInstanceIdentifier"] == "db-restore-2"
+    assert new_instance["DBInstanceClass"] == "db.m1.small"
+    assert new_instance["StorageType"] == "gp2"
+    assert new_instance["Engine"] == "postgres"
+    assert new_instance["DBName"] == "staging-postgres"
+    assert new_instance["DBParameterGroups"][0]["DBParameterGroupName"] == (
+        "default.postgres9.3"
+    )
+    assert new_instance["DBSecurityGroups"] == [
+        {"DBSecurityGroupName": "my_sg", "Status": "active"}
+    ]
+    assert new_instance["Endpoint"]["Port"] == 5432
+
+    # Verify it exists
+    assert len(conn.describe_db_instances()["DBInstances"]) == 3
+    assert (
+        len(
+            conn.describe_db_instances(DBInstanceIdentifier="db-restore-2")[
+                "DBInstances"
+            ]
+        )
+        == 1
+    )
 
 
 @mock_aws

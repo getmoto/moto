@@ -1881,7 +1881,8 @@ class RDSBackend(BaseBackend):
         # remove the db subnet group as it cannot be copied
         # and is not used in the restored instance
         source_dict = db_instance.__dict__
-        del source_dict["db_subnet_group"]
+        if "db_subnet_group" in source_dict:
+            del source_dict["db_subnet_group"]
 
         new_instance_props = copy.deepcopy(source_dict)
         new_instance_props.pop("backend")
