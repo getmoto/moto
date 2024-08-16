@@ -3865,6 +3865,31 @@ def test_error_when_providing_expression_and_nonexpression_params():
 
 
 @mock_aws
+def test_error_when_providing_empty_update_expression():
+    client = boto3.client("dynamodb", "eu-central-1")
+    table_name = "testtable"
+    client.create_table(
+        TableName=table_name,
+        KeySchema=[{"AttributeName": "pkey", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "pkey", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.update_item(
+            TableName=table_name,
+            Key={"pkey": {"S": "testrecord"}},
+            UpdateExpression="",
+            ExpressionAttributeValues={":order": {"SS": ["item"]}},
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "Invalid UpdateExpression: The expression can not be empty;"
+    )
+
+
+@mock_aws
 def test_attribute_item_delete():
     name = "TestTable"
     conn = boto3.client("dynamodb", region_name="eu-west-1")
