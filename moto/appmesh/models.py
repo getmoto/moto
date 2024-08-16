@@ -40,6 +40,20 @@ class Mesh:
             "status": self.status,
         }
 
+PAGINATION_MODEL = {
+    "list_meshes": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "mesh_name",
+    },
+    "list_tags_for_resource": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "resource_arn",
+    },
+}
 
 class AppMeshBackend(BaseBackend):
     """Implementation of AppMesh APIs."""
@@ -118,6 +132,7 @@ class AppMeshBackend(BaseBackend):
         del self.meshes[mesh_name]
         return mesh
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore 
     def list_tags_for_resource(
         self, limit: int, next_token: str, resource_arn: str
     ) -> Tuple[str, List[Dict[str, str]]]:
@@ -128,9 +143,9 @@ class AppMeshBackend(BaseBackend):
         # implement here
         return
 
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_meshes(self, limit: Optional[int], next_token: Optional[str]):
-        # implement here
-        return meshes, next_token
+        return [mesh for mesh in self.meshes.values()]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
