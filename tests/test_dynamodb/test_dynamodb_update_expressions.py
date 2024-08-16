@@ -222,4 +222,6 @@ def test_update_item_with_empty_expression(table_name=None):
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
-    assert err["Message"] == "Invalid UpdateExpression: The expression can not be empty;"
+    assert (
+        err["Message"] == "Invalid UpdateExpression: The expression can not be empty;"
+    )
