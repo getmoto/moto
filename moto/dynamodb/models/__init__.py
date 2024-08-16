@@ -437,6 +437,11 @@ class DynamoDBBackend(BaseBackend):
     ) -> Item:
         table = self.get_table(table_name)
 
+        if not update_expression:
+            raise MockValidationException(
+                "Invalid UpdateExpression: The expression can not be empty;"
+            )
+
         # Support spaces between operators in an update expression
         # E.g. `a = b + c` -> `a=b+c`
         if update_expression:
