@@ -116,5 +116,9 @@ class AppMeshBackend(BaseBackend):
         # implement here
         return
 
+    def list_meshes(self, limit, next_token):
+        # implement here
+        return meshes, next_token
+    
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

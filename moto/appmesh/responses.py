@@ -83,3 +83,13 @@ class AppMeshResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(dict())
+    
+    def list_meshes(self):
+        params = self._get_params()
+        limit = params.get("limit")
+        next_token = params.get("nextToken")
+        meshes, next_token = self.appmesh_backend.list_meshes(
+            limit=limit,
+            next_token=next_token,
+        )
+        return json.dumps(dict(meshes=[mesh.to_dict() for mesh in meshes], nextToken=next_token))
