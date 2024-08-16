@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
-from tests import aws_verified
+from tests import allow_aws_request, aws_verified
 
 RULES = [
     {"Name": "test1", "ScheduleExpression": "rate(5 minutes)"},
@@ -1584,14 +1584,17 @@ def test_delete_archive_error_unknown_archive():
     assert ex.response["Error"]["Message"] == f"Archive {name} does not exist."
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_archive_actual_events():
     # given
+    sts = boto3.client("sts", "us-east-1")
+    account_id = sts.get_caller_identity()["Account"]
     client = boto3.client("events", "eu-central-1")
     name = "test-archive"
     name_2 = "test-archive-no-match"
     name_3 = "test-archive-matches"
-    event_bus_arn = f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:event-bus/default"
+    event_bus_arn = f"arn:aws:events:eu-central-1:{account_id}:event-bus/default"
     event = {
         "Source": "source",
         "DetailType": "type",
@@ -1609,24 +1612,72 @@ def test_archive_actual_events():
         EventPattern=json.dumps({"detail-type": ["type"], "source": ["source"]}),
     )
 
+    # then
+    rules = client.list_rules()["Rules"]
+    assert len(rules) >= 3
+    for rule in rules:
+        assert rule["Name"] in [
+            f"Events-Archive-{name}",
+            f"Events-Archive-{name_2}",
+            f"Events-Archive-{name_3}",
+        ]
+        assert rule["ManagedBy"] == "prod.vhs.events.aws.internal"
+        if rule["Name"] == f"Events-Archive-{name}":
+            assert json.loads(rule["EventPattern"]) == {
+                "replay-name": [{"exists": False}]
+            }
+        if rule["Name"] == f"Events-Archive-{name_2}":
+            assert json.loads(rule["EventPattern"]) == {
+                "detail-type": ["type"],
+                "replay-name": [{"exists": False}],
+                "source": ["test"],
+            }
+        if rule["Name"] == f"Events-Archive-{name_3}":
+            assert json.loads(rule["EventPattern"]) == {
+                "detail-type": ["type"],
+                "replay-name": [{"exists": False}],
+                "source": ["source"],
+            }
+
+        targets = client.list_targets_by_rule(Rule=rule["Name"])["Targets"]
+        assert len(targets) == 1
+        assert targets[0]["Arn"] == "arn:aws:events:eu-central-1:::"
+
+        transformer = targets[0]["InputTransformer"]
+        assert transformer["InputPathsMap"] == {}
+
+        template = transformer["InputTemplate"]
+        assert '"archive-arn"' in template
+        assert '"event": <aws.events.event.json>' in template
+        assert '"ingestion-time": <aws.events.event.ingestion-time>' in template
+
     # when
     response = client.put_events(Entries=[event])
-
-    # then
     assert response["FailedEntryCount"] == 0
     assert len(response["Entries"]) == 1
 
-    response = client.describe_archive(ArchiveName=name)
-    assert response["EventCount"] == 1
-    assert response["SizeBytes"] > 0
+    # then
+    if not allow_aws_request():
+        # AWS doesn't (immediately) update the EventCount
+        # Only test this against Moto
+        response = client.describe_archive(ArchiveName=name)
+        assert response["EventCount"] == 1
+        assert response["SizeBytes"] > 0
 
-    response = client.describe_archive(ArchiveName=name_2)
-    assert response["EventCount"] == 0
-    assert response["SizeBytes"] == 0
+        response = client.describe_archive(ArchiveName=name_2)
+        assert response["EventCount"] == 0
+        assert response["SizeBytes"] == 0
 
-    response = client.describe_archive(ArchiveName=name_3)
-    assert response["EventCount"] == 1
-    assert response["SizeBytes"] > 0
+        response = client.describe_archive(ArchiveName=name_3)
+        assert response["EventCount"] == 1
+        assert response["SizeBytes"] > 0
+
+    client.delete_archive(ArchiveName=name)
+    client.delete_archive(ArchiveName=name_2)
+    client.delete_archive(ArchiveName=name_3)
+
+    rules = client.list_rules()["Rules"]
+    assert rules == []
 
 
 @mock_aws
