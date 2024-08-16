@@ -551,7 +551,7 @@ def test_describe_non_existent_database():
 def test_modify_db_instance():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
+        DBInstanceIdentifier="db-id",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
         Engine="postgres",
@@ -560,23 +560,22 @@ def test_modify_db_instance():
         Port=1234,
         DBSecurityGroups=["my_sg"],
     )
-    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert instances["DBInstances"][0]["AllocatedStorage"] == 10
+    inst = conn.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
+    assert inst["AllocatedStorage"] == 10
+    assert inst["EnabledCloudwatchLogsExports"] == []
+
     conn.modify_db_instance(
-        DBInstanceIdentifier="db-master-1",
+        DBInstanceIdentifier="db-id",
         AllocatedStorage=20,
         ApplyImmediately=True,
         VpcSecurityGroupIds=["sg-123456"],
+        CloudwatchLogsExportConfiguration={"EnableLogTypes": ["error"]},
     )
-    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert instances["DBInstances"][0]["AllocatedStorage"] == 20
-    assert instances["DBInstances"][0]["PreferredMaintenanceWindow"] == (
-        "wed:06:38-wed:07:08"
-    )
-    assert (
-        instances["DBInstances"][0]["VpcSecurityGroups"][0]["VpcSecurityGroupId"]
-        == "sg-123456"
-    )
+    inst = conn.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
+    assert inst["AllocatedStorage"] == 20
+    assert inst["PreferredMaintenanceWindow"] == "wed:06:38-wed:07:08"
+    assert inst["VpcSecurityGroups"][0]["VpcSecurityGroupId"] == "sg-123456"
+    assert inst["EnabledCloudwatchLogsExports"] == ["error"]
 
 
 @mock_aws
