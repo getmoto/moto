@@ -83,7 +83,7 @@ class AppMeshResponse(BaseResponse):
             tags=tags,
         )
         return json.dumps(dict())
-    
+
     def list_meshes(self):
         params = self._get_params()
         limit = params.get("limit")
@@ -92,4 +92,6 @@ class AppMeshResponse(BaseResponse):
             limit=limit,
             next_token=next_token,
         )
-        return json.dumps(dict(meshes=[mesh.to_dict() for mesh in meshes], nextToken=next_token))
+        return json.dumps(
+            dict(meshes=[mesh.to_dict() for mesh in meshes], nextToken=next_token)
+        )

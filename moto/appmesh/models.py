@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from uuid import uuid4
 
 from moto.appmesh.exceptions import MeshNotFoundError
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -54,43 +55,54 @@ class AppMeshBackend(BaseBackend):
         spec: Dict[str, Dict[str, str]],
         tags: List[Dict[str, str]],
     ) -> Mesh:
+        from moto.sts import sts_backends
+
+        sts_backend = sts_backends[self.account_id][self.region_name]
+        user_id, _, _ = sts_backend.get_caller_identity(
+            self.account_id, region=self.region_name
+        )
+
         service_discovery = spec.get("serviceDiscovery") or {}
         now = datetime.now()
         mesh = Mesh(
             mesh_name=mesh_name,
             spec={
                 "egress_filter": spec.get("egressFilter"),
-                "service_discovery": { 
+                "service_discovery": {
                     "ip_preference": service_discovery.get("ipPreference")
-                }
+                },
             },
             status="ACTIVE",
             metadata={
-                "arn": "TODO",
+                "arn": f"arn:aws:appmesh:{self.region_name}:{self.account_id}:{mesh_name}",
                 "created_at": now,
                 "last_updated_at": now,
-                "mesh_owner": "TODO",
-                "uid": "TODO",
-                "version": 1
+                "mesh_owner": user_id,  # AppMesh uses IAM IDs
+                "uid": uuid4(),
+                "version": 1,
             },
-            tags=tags
+            tags=tags,
         )
         self.meshes[mesh_name] = mesh
         return mesh
 
     def update_mesh(
-        self, 
-        client_token: Optional[str], 
-        mesh_name: str, 
-        spec: Optional[Dict[str, Dict[str, str]]]
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        spec: Optional[Dict[str, Dict[str, str]]],
     ) -> Mesh:
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name)
         if spec:
             self.meshes[mesh_name].spec["egress_filter"] = spec.get("egressFilter")
-            self.meshes[mesh_name].spec["service_discovery"] = { 
-                "ip_preference": (spec.get("serviceDiscovery") or {}).get("ipPreference")
+            self.meshes[mesh_name].spec["service_discovery"] = {
+                "ip_preference": (spec.get("serviceDiscovery") or {}).get(
+                    "ipPreference"
+                )
             }
+            self.meshes[mesh_name].metadata["last_updated_at"] = datetime.now()
+            self.meshes[mesh_name].metadata["version"] += 1
         return self.meshes[mesh_name]
 
     def describe_mesh(self, mesh_name: str, mesh_owner: str) -> Mesh:
@@ -119,6 +131,6 @@ class AppMeshBackend(BaseBackend):
     def list_meshes(self, limit: Optional[int], next_token: Optional[str]):
         # implement here
         return meshes, next_token
-    
+
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
