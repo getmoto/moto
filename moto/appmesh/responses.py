@@ -30,7 +30,7 @@ class AppMeshResponse(BaseResponse):
             spec=spec,
             tags=tags,
         )
-        return json.dumps(mesh.to_dict())
+        return json.dumps(dict(mesh=mesh.to_dict()))
 
     def update_mesh(self) -> str:
         params = json.loads(self.body)
@@ -42,7 +42,7 @@ class AppMeshResponse(BaseResponse):
             mesh_name=mesh_name,
             spec=spec,
         )
-        return json.dumps(mesh.to_dict())
+        return json.dumps(dict(mesh=mesh.to_dict()))
 
     def describe_mesh(self) -> str:
         params = self._get_params()

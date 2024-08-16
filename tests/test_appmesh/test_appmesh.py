@@ -1,5 +1,6 @@
 """Unit tests for appmesh-supported APIs."""
 
+from collections import defaultdict
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -18,6 +19,7 @@ def fixture_transfer_client():
 
 @mock_aws
 def test_create_list_update_describe_delete_mesh(client):
+    # Create first mesh
     connection = client.create_mesh(
         meshName="mesh1",
         spec={
@@ -26,15 +28,17 @@ def test_create_list_update_describe_delete_mesh(client):
         },
         tags=[{"key": "owner", "value": "moto"}],
     )
-    assert "mesh" in connection
-    mesh = connection["mesh"]
+    mesh = connection.get("mesh")
+    assert mesh is not None
     assert mesh["meshName"] == "mesh1"
     assert mesh["spec"]["egressFilter"]["type"] == "DROP_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_ONLY"
     assert mesh["status"]["status"] == "ACTIVE"
+    assert mesh["metadata"]["version"] == 1
     # TODO
     # assert mesh["metadata"]["meshOwner"] == ??
 
+    # Create second mesh
     connection = client.create_mesh(
         meshName="mesh2",
         spec={
@@ -43,19 +47,78 @@ def test_create_list_update_describe_delete_mesh(client):
         },
         tags=[{"key": "owner", "value": "moto"}],
     )
-    assert "mesh" in connection
-    mesh = connection["mesh"]
+    mesh = connection.get("mesh")
+    assert mesh is not None
     assert mesh["meshName"] == "mesh2"
     assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_PREFERRED"
     assert mesh["status"]["status"] == "ACTIVE"
+    assert mesh["metadata"]["version"] == 1
+    # TODO
+    # assert mesh["metadata"]["meshOwner"] == ??
+
+    # List all methods, expecting 2
+    connection = client.list_meshes()
+    meshes = connection.get("meshes")
+    assert meshes is not None
+    assert isinstance(meshes, list)
+    assert len(meshes) == 2
+    names_counted = defaultdict(int)
+    for mesh in meshes:
+        mesh_name = mesh.get("meshName")
+        if mesh_name:
+            names_counted[mesh_name] += 1
+    assert names_counted["mesh1"] == 1
+    assert names_counted["mesh2"] == 1
+
+    # Change spec for mesh 1
+    connection = client.update_mesh(
+        meshName="mesh1", 
+        spec={
+            "egressFilter": {"type": "ALLOW_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv6_PREFERRED"},
+        },
+    )
+    mesh = connection.get("mesh")
+    assert mesh is not None
+    assert mesh["meshName"] == "mesh1"
+    assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
+    assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv6_PREFERRED"
+    assert mesh["status"]["status"] == "ACTIVE"
+    assert mesh["metadata"]["version"] == 2
+    # TODO
+    # assert mesh["metadata"]["meshOwner"] == ??
+
+    # Describe mesh 1, should reflect changes
+    connection = client.describe_mesh(meshName="mesh1")
+    mesh = connection.get("mesh")
+    assert mesh is not None
+    assert mesh["meshName"] == "mesh1"
+    assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
+    assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv6_PREFERRED"
+    assert mesh["status"]["status"] == "ACTIVE"
+    assert mesh["metadata"]["version"] == 2
+    # TODO
+    # assert mesh["metadata"]["meshOwner"] == ??
+
+    
+    connection = client.delete_mesh(meshName="mesh2")
+    mesh = connection.get("mesh")
+    assert mesh is not None
+    assert mesh["meshName"] == "mesh2"
+    assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
+    assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_PREFERRED"
+    assert mesh["status"]["status"] == "DELETED"
     # TODO
     # assert mesh["metadata"]["meshOwner"] == ??
 
     connection = client.list_meshes()
-    connection = client.update_mesh()
-    connection = client.describe_mesh(meshName="mesh1")
-    connection = client.delete_mesh(meshName="mesh2")
+    meshes = connection.get("meshes")
+    assert meshes is not None
+    assert isinstance(meshes, list)
+    assert len(meshes) == 1
+    assert meshes[0]["meshName"] == "mesh1"
+
     with pytest.raises(ClientError) as e:
         client.describe_mesh(meshName="mesh2")
     err = e.value.response["Error"]

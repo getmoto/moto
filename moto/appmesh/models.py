@@ -75,6 +75,8 @@ class AppMeshBackend(BaseBackend):
         user_id, _, _ = sts_backend.get_caller_identity(
             self.account_id, region=self.region_name
         )
+        print("USER ID")
+        print(user_id)
 
         service_discovery = spec.get("serviceDiscovery") or {}
         now = datetime.now()
