@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from moto.appmesh.exceptions import MeshNotFoundError
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.utilities.paginator import paginate
 
 @dataclass
 class Metadata:
@@ -38,8 +39,8 @@ class Mesh:
             "meshName": self.mesh_name,
             "metadata": {
                 "arn": self.metadata.arn,
-                "createdAt": self.metadata.created_at,
-                "lastUpdatedAt": self.metadata.last_updated_at,
+                "createdAt": self.metadata.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
+                "lastUpdatedAt": self.metadata.last_updated_at.strftime("%d/%m/%Y, %H:%M:%S"),
                 "meshOwner": self.metadata.mesh_owner,
                 "resourceOwner": self.metadata.resource_owner,
                 "uid": self.metadata.uid,
@@ -88,12 +89,10 @@ class AppMeshBackend(BaseBackend):
     ) -> Mesh:
         from moto.sts import sts_backends
 
-        sts_backend = sts_backends[self.account_id][self.region_name]
+        sts_backend = sts_backends[self.account_id]["global"]
         user_id, _, _ = sts_backend.get_caller_identity(
             self.account_id, region=self.region_name
         )
-        print("USER ID")
-        print(user_id)
 
         metadata = Metadata(
             arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:{mesh_name}",
