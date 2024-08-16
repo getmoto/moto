@@ -1,6 +1,6 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from uuid import uuid4
@@ -21,8 +21,8 @@ class Metadata:
 
 @dataclass
 class Spec:
-   egress_filter: Dict[Literal["type"], str]
-   service_discovery: Dict[Literal["ip_preference"], str]
+   egress_filter: Dict[Literal["type"], Optional[str]]
+   service_discovery: Dict[Literal["ip_preference"], Optional[str]]
 
 
 @dataclass
@@ -82,8 +82,8 @@ class AppMeshBackend(BaseBackend):
         self,
         client_token: Optional[str],
         mesh_name: str,
-        egress_filter: Dict[Literal["type"], str], 
-        service_discovery: Dict[Literal["ipPreference"], str],
+        egress_filter_type: Optional[str], 
+        ip_preference: Optional[str],
         tags: List[Dict[str, str]],
     ) -> Mesh:
         from moto.sts import sts_backends
@@ -101,10 +101,8 @@ class AppMeshBackend(BaseBackend):
             resource_owner=user_id
         )
         spec = Spec(
-            egress_filter=egress_filter,
-            service_discovery={
-                "ip_preference": service_discovery["ipPreference"]
-            }
+            egress_filter={ "type": egress_filter_type},
+            service_discovery={ "ip_preference": ip_preference }
         )
         mesh = Mesh(
             mesh_name=mesh_name,
@@ -120,21 +118,18 @@ class AppMeshBackend(BaseBackend):
         self,
         client_token: Optional[str],
         mesh_name: str,
-        egress_filter: Optional[Dict[Literal["type"], str]],
-        service_discovery: Optional[Dict[Literal["ipPreference"], str]],
+        egress_filter_type: Optional[str],
+        ip_preference: Optional[str]
     ) -> Mesh:
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name)
         updated = False
-        if egress_filter is not None:
-            self.meshes[mesh_name].spec.egress_filter = egress_filter
+        if egress_filter_type is not None:
+            self.meshes[mesh_name].spec.egress_filter["type"] = egress_filter_type
             updated = True
 
-        new_ip_preference = (service_discovery or {}).get(
-            "ipPreference"
-        )
-        if new_ip_preference is not None:
-            self.meshes[mesh_name].spec.service_discovery["ip_preference"] = new_ip_preference
+        if ip_preference is not None:
+            self.meshes[mesh_name].spec.service_discovery["ip_preference"] = ip_preference
             updated = True
 
         if updated:
@@ -151,7 +146,7 @@ class AppMeshBackend(BaseBackend):
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name)
         self.meshes[mesh_name].status["status"] = "DELETED"
-        mesh = self.meshes[mesh_name].copy()
+        mesh = self.meshes[mesh_name]
         del self.meshes[mesh_name]
         return mesh
 

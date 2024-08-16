@@ -23,14 +23,14 @@ class AppMeshResponse(BaseResponse):
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
         spec = params.get("spec") or {}
-        service_discovery = spec.get("serviceDiscovery")
-        egress_filter = spec.get("egressFilter")
+        egress_filter_type = (spec.get("egressFilter") or {}).get("type")
+        ip_preference = (spec.get("serviceDiscovery") or {}).get("ip_preference")
         tags = params.get("tags")
         mesh = self.appmesh_backend.create_mesh(
             client_token=client_token,
             mesh_name=mesh_name,
-            egress_filter=egress_filter,
-            service_discovery=service_discovery,
+            egress_filter_type=egress_filter_type,
+            ip_preference=ip_preference,
             tags=tags,
         )
         return json.dumps(dict(mesh=mesh.to_dict()))
@@ -40,19 +40,19 @@ class AppMeshResponse(BaseResponse):
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
         spec = params.get("spec") or {}
-        service_discovery = spec.get("serviceDiscovery")
-        egress_filter = spec.get("egressFilter")
+        egress_filter_type = (spec.get("egressFilter") or {}).get("type")
+        ip_preference = (spec.get("serviceDiscovery") or {}).get("ipPreference")
         mesh = self.appmesh_backend.update_mesh(
             client_token=client_token,
             mesh_name=mesh_name,
-            service_discovery=service_discovery,
-            egress_filter=egress_filter
+            egress_filter_type=egress_filter_type,
+            ip_preference=ip_preference
         )
         return json.dumps(dict(mesh=mesh.to_dict()))
 
     def describe_mesh(self) -> str:
         params = self._get_params()
-        mesh_name = params.get("meshName")
+        mesh_name = params.get("meshName") or ""
         mesh_owner = params.get("meshOwner")
         mesh = self.appmesh_backend.describe_mesh(
             mesh_name=mesh_name,
@@ -77,7 +77,7 @@ class AppMeshResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(
-            dict(meshes=[mesh.to_dict() for mesh in meshes], nextToken=next_token)
+            dict(meshes=meshes, nextToken=next_token)
         )
 
 
