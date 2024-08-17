@@ -15,6 +15,7 @@ backend_url_patterns = [
         "applicationautoscaling",
         re.compile("https?://application-autoscaling\\.(.+)\\.amazonaws.com"),
     ),
+    ("appmesh", re.compile("https?://appmesh\\.(.+)\\.amazonaws\\.com")),
     ("appsync", re.compile("https?://appsync\\.(.+)\\.amazonaws\\.com")),
     ("athena", re.compile("https?://athena\\.(.+)\\.amazonaws\\.com")),
     ("autoscaling", re.compile("https?://autoscaling\\.(.+)\\.amazonaws\\.com")),

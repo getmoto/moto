@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from moto.apigatewayv2.models import ApiGatewayV2Backend
     from moto.appconfig.models import AppConfigBackend
     from moto.applicationautoscaling.models import ApplicationAutoscalingBackend
+    from moto.appmesh.models import AppMeshBackend
     from moto.appsync.models import AppSyncBackend
     from moto.athena.models import AthenaBackend
     from moto.autoscaling.models import AutoScalingBackend
@@ -192,6 +193,7 @@ SERVICE_NAMES = Union[
     "Literal['apigatewayv2']",
     "Literal['appconfig']",
     "Literal['applicationautoscaling']",
+    "Literal['appmesh']",
     "Literal['appsync']",
     "Literal['athena']",
     "Literal['autoscaling']",
@@ -357,6 +359,8 @@ def get_backend(name: "Literal['appconfig']") -> "BackendDict[AppConfigBackend]"
 def get_backend(
     name: "Literal['applicationautoscaling']",
 ) -> "BackendDict[ApplicationAutoscalingBackend]": ...
+@overload
+def get_backend(name: "Literal['appmesh']") -> "BackendDict[AppMeshBackend]": ...
 @overload
 def get_backend(name: "Literal['appsync']") -> "BackendDict[AppSyncBackend]": ...
 @overload
