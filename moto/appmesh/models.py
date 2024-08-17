@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional
 from uuid import uuid4
 
 from moto.appmesh.exceptions import MeshNotFoundError, ResourceNotFoundError
@@ -70,7 +70,7 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 100,
-        "unique_attribute": "key",
+        "unique_attribute": ["key", "value"],
     },
 }
 
@@ -178,9 +178,7 @@ class AppMeshBackend(BaseBackend):
         raise ResourceNotFoundError(resource_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_tags_for_resource(
-        self, limit: int, next_token: str, resource_arn: str
-    ):
+    def list_tags_for_resource(self, limit: int, next_token: str, resource_arn: str):
         return self._get_resource_with_arn(resource_arn=resource_arn).tags
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:

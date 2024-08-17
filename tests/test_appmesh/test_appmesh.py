@@ -128,5 +128,22 @@ def test_create_list_update_describe_delete_mesh(client):
 
 @mock_aws
 def test_tag_and_list_tags_for_resource(client):
-    connection = client.list_tags_for_resource()
-    connection = client.tag_resource()
+    connection = client.create_mesh(
+        meshName="mesh1",
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )
+    mesh = connection.get("mesh")
+    assert mesh is not None
+    arn = mesh["metadata"]["arn"]
+
+    client.tag_resource(
+        resourceArn=arn, tags=[{"key": "organization", "value": "moto"}]
+    )
+    connection = client.list_tags_for_resource(resourceArn=arn)
+    tags = connection["tags"]
+    assert tags[0] == {"key": "owner", "value": "moto"}
+    assert tags[1] == {"key": "organization", "value": "moto"}

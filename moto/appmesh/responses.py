@@ -81,7 +81,7 @@ class AppMeshResponse(BaseResponse):
         limit = params.get("limit")
         next_token = params.get("nextToken")
         resource_arn = params.get("resourceArn")
-        next_token, tags = self.appmesh_backend.list_tags_for_resource(
+        tags, next_token = self.appmesh_backend.list_tags_for_resource(
             limit=limit,
             next_token=next_token,
             resource_arn=resource_arn,
@@ -90,7 +90,7 @@ class AppMeshResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
-        resource_arn = params.get("resourceArn")
+        resource_arn = self._get_param("resourceArn")
         tags = params.get("tags")
         self.appmesh_backend.tag_resource(
             resource_arn=resource_arn,
