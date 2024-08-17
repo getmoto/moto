@@ -3,6 +3,104 @@ Moto Changelog
 
 5.0.12
 -----
+Docker Digest for 5.0.12: <autopopulateddigest>
+
+    General:
+        * Support for Python 3.13
+        * Moto now supports whitelisting which services can be used
+
+    New Services:
+        * AppMesh:
+            * create_mesh()
+            * delete_mesh()
+            * describe_mesh()
+            * list_meshes()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_mesh()
+
+        * Transfer:
+            * create_server()
+            * create_user()
+            * delete_server()
+            * delete_ssh_public_key()
+            * delete_user()
+            * describe_server()
+            * describe_user()
+            * import_ssh_public_key()
+
+    New Methods:
+        * Athena:
+            * delete_work_group()
+
+        * CodeBuild:
+            * batch_get_projects()
+
+        * DynamoDB:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+        * EMR:
+            * get_block_public_access_configuration()
+            * put_block_public_access_configuration()
+
+        * QLDB:
+            * create_ledger()
+            * delete_ledger()
+            * describe_ledger()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_ledger()
+
+        * SageMaker:
+            * create_data_quality_job_definition()
+            * create_model_bias_job_definition()
+            * create_model_card()
+            * delete_data_quality_job_definition()
+            * delete_model_bias_job_definition()
+            * delete_model_card()
+            * describe_data_quality_job_definition()
+            * describe_model_bias_job_definition()
+            * describe_model_card()
+            * list_data_quality_job_definitions()
+            * list_model_bias_job_definitions()
+            * list_model_cards()
+            * list_model_card_versions()
+
+    Miscellaneous:
+        * ACM-PCA: create_certificate_authority() now uses the provided Subject
+        * Athena: The default work group now has the correct configuration
+        * ApplicationAutoscaling - put_scheduled_action() now allows multiple actions per Namespace/Dimension/Id
+        * Autoscaling: update_group() now validates that the Group exists
+        * Batch: now supports parameters in Job commands
+        * CloudFormation: create_change_set() now validates the provided ChangeSetName
+        * CloudFormation: describe_stacks() now returns export names in the Outputs
+        * CloudFormation: AWS::Events::Rule's now also creates/deletes Targets 
+        * CloudWatch: get_metric_data() now returns everything when querying for Metric Insights Queries
+        * CodeBuild: create_project() now supports the parameter description, tags, cache, timeoutInMinutes, queuedTimeoutInMinutes, sourceVersion, logsConfig and vpcConfig
+        * CognitoIDP: sign_up() now returns CodeDeliveryDetails
+        * DynamoDB: export_table_to_point_in_time() now exports data in correct format
+        * DynamoDB: update_item() now validates an empty ExpressionAttributeValues and UpdateExpression
+        * DynamoDB: All applicable methods that accept a TableName-parameter now also accept the ARN of the table
+        * EC2: describe_security_group_rules() now correctly exposes rules with duplicate port/protocol values
+        * EC2: Terminating an instance now also terminates any NIC's
+        * EventBridge: create_connection() now creates a KMS Secret
+        * EventBridge: Messages are now formatted using the InputTemplate, if provided
+        * KMS: describe_key() now exposes the MultiRegionConfiguration-attribute
+        * Organizations: create_account() now comes preconfigured with an IAM role
+        * RDS: update_db_instance() now supports the CloudwatchLogsExportConfiguration-parameter
+        * ResourceGroupsTagging API now supports additional SageMaker resources
+          (CompilationJobs, Domains, ModelExplainabilityJobDefinition, ModelQualityJobDefinition, HyperParameterTuningJob)
+        * S3: copy_object() now respects the CopySourceIfNoneMatch-parameter
+        * SageMaker: search() now supports ModelPackageGroups
+        * StepFunctions now has improved JSONPath support
+        * StepFunctions now supports MaxItem/MaxItemPath/MaxConcurrencyPath
+        * StepFunctions now supports MaxAttempts with value 0
+
+
+5.0.12
+-----
 Docker Digest for 5.0.12: _sha256:e1bde8f908f2fdf0878c8e4398561badd016b51b4d9fd8dcb9f4daef936a4427_
 
     General:
