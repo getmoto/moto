@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.13
 -----
-Docker Digest for 5.0.13: <autopopulateddigest>
+Docker Digest for 5.0.13: _sha256:de97faba597d8f1bfb4dab1c7d562e1997ac5e0ba1186c4392430650b0f6bd4e_
 
     General:
         * Support for Python 3.13
