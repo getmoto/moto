@@ -1,9 +1,9 @@
 Moto Changelog
 ==============
 
-5.0.12
+5.0.13
 -----
-Docker Digest for 5.0.12: <autopopulateddigest>
+Docker Digest for 5.0.13: <autopopulateddigest>
 
     General:
         * Support for Python 3.13
