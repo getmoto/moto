@@ -24,7 +24,7 @@ class AppMeshResponse(BaseResponse):
         mesh_name = params.get("meshName")
         spec = params.get("spec") or {}
         egress_filter_type = (spec.get("egressFilter") or {}).get("type")
-        ip_preference = (spec.get("serviceDiscovery") or {}).get("ip_preference")
+        ip_preference = (spec.get("serviceDiscovery") or {}).get("ipPreference")
         tags = params.get("tags")
         mesh = self.appmesh_backend.create_mesh(
             client_token=client_token,
@@ -33,12 +33,12 @@ class AppMeshResponse(BaseResponse):
             ip_preference=ip_preference,
             tags=tags,
         )
-        return json.dumps(dict(mesh=mesh.to_dict()))
+        return json.dumps(mesh.to_dict())
 
     def update_mesh(self) -> str:
         params = json.loads(self.body)
         client_token = params.get("clientToken")
-        mesh_name = params.get("meshName")
+        mesh_name = self._get_param("meshName")
         spec = params.get("spec") or {}
         egress_filter_type = (spec.get("egressFilter") or {}).get("type")
         ip_preference = (spec.get("serviceDiscovery") or {}).get("ipPreference")
@@ -48,12 +48,11 @@ class AppMeshResponse(BaseResponse):
             egress_filter_type=egress_filter_type,
             ip_preference=ip_preference
         )
-        return json.dumps(dict(mesh=mesh.to_dict()))
+        return json.dumps(mesh.to_dict())
 
     def describe_mesh(self) -> str:
-        params = self._get_params()
-        mesh_name = params.get("meshName") or ""
-        mesh_owner = params.get("meshOwner")
+        mesh_name = self._get_param(param_name="meshName", if_none="")
+        mesh_owner = self._get_param("meshOwner")
         mesh = self.appmesh_backend.describe_mesh(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
@@ -61,12 +60,11 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(mesh.to_dict())
 
     def delete_mesh(self) -> str:
-        params = json.loads(self.body)
-        mesh_name = params.get("meshName")
+        mesh_name = self._get_param("meshName")
         mesh = self.appmesh_backend.delete_mesh(
             mesh_name=mesh_name,
         )
-        return json.dumps(dict(mesh=mesh.to_dict()))
+        return json.dumps(mesh.to_dict())
     
     def list_meshes(self) -> str:
         params = self._get_params()

@@ -154,8 +154,8 @@ class AppMeshBackend(BaseBackend):
         return [
             {
                 "arn": mesh.metadata.arn,
-                "createdAt": mesh.metadata.created_at,
-                "lastUpdatedAt": mesh.metadata.last_updated_at,
+                "createdAt": mesh.metadata.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
+                "lastUpdatedAt": mesh.metadata.last_updated_at.strftime("%d/%m/%Y, %H:%M:%S"),
                 "meshName": mesh.mesh_name,
                 "meshOwner": mesh.metadata.mesh_owner,
                 "resourceOwner": mesh.metadata.resource_owner,
