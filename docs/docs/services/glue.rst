@@ -29,6 +29,7 @@ glue
 - [ ] batch_get_table_optimizer
 - [X] batch_get_triggers
 - [ ] batch_get_workflows
+- [ ] batch_put_data_quality_statistic_annotation
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
 - [ ] cancel_data_quality_rule_recommendation_run
@@ -107,6 +108,8 @@ glue
 - [X] get_crawlers
 - [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
+- [ ] get_data_quality_model
+- [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
 - [ ] get_data_quality_rule_recommendation_run
 - [ ] get_data_quality_ruleset
@@ -181,6 +184,8 @@ glue
 - [ ] list_data_quality_rule_recommendation_runs
 - [ ] list_data_quality_ruleset_evaluation_runs
 - [ ] list_data_quality_rulesets
+- [ ] list_data_quality_statistic_annotations
+- [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
@@ -194,6 +199,7 @@ glue
 - [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
+- [ ] put_data_quality_profile_annotation
 - [ ] put_resource_policy
 - [X] put_schema_version_metadata
 - [ ] put_workflow_run_properties
