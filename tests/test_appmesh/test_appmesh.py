@@ -1,6 +1,7 @@
 """Unit tests for appmesh-supported APIs."""
 
 from collections import defaultdict
+from datetime import datetime
 
 import boto3
 import pytest
@@ -36,8 +37,11 @@ def test_create_list_update_describe_delete_mesh(client):
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_ONLY"
     assert mesh["status"]["status"] == "ACTIVE"
     assert mesh["metadata"]["version"] == 1
-    # TODO
-    # assert mesh["metadata"]["meshOwner"] == ??
+    assert isinstance(mesh["metadata"]["arn"], str)
+    assert isinstance(mesh["metadata"]["meshOwner"], str)
+    assert isinstance(mesh["metadata"]["resourceOwner"], str)
+    assert isinstance(mesh["metadata"]["createdAt"], datetime)
+    assert isinstance(mesh["metadata"]["lastUpdatedAt"], datetime)
 
     # Create second mesh
     connection = client.create_mesh(
@@ -55,8 +59,11 @@ def test_create_list_update_describe_delete_mesh(client):
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_PREFERRED"
     assert mesh["status"]["status"] == "ACTIVE"
     assert mesh["metadata"]["version"] == 1
-    # TODO
-    # assert mesh["metadata"]["meshOwner"] == ??
+    assert isinstance(mesh["metadata"]["arn"], str)
+    assert isinstance(mesh["metadata"]["meshOwner"], str)
+    assert isinstance(mesh["metadata"]["resourceOwner"], str)
+    assert isinstance(mesh["metadata"]["createdAt"], datetime)
+    assert isinstance(mesh["metadata"]["lastUpdatedAt"], datetime)
 
     # List all methods, expecting 2
     connection = client.list_meshes()
@@ -87,8 +94,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv6_PREFERRED"
     assert mesh["status"]["status"] == "ACTIVE"
     assert mesh["metadata"]["version"] == 2
-    # TODO
-    # assert mesh["metadata"]["meshOwner"] == ??
 
     # Describe mesh 1, should reflect changes
     connection = client.describe_mesh(meshName="mesh1")
@@ -99,8 +104,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv6_PREFERRED"
     assert mesh["status"]["status"] == "ACTIVE"
     assert mesh["metadata"]["version"] == 2
-    # TODO
-    # assert mesh["metadata"]["meshOwner"] == ??
 
     connection = client.delete_mesh(meshName="mesh2")
     mesh = connection.get("mesh")
@@ -109,8 +112,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_PREFERRED"
     assert mesh["status"]["status"] == "DELETED"
-    # TODO
-    # assert mesh["metadata"]["meshOwner"] == ??
 
     connection = client.list_meshes()
     meshes = connection.get("meshes")
