@@ -17,12 +17,15 @@ offerings_path = "../resources/instance_type_offerings"
 INSTANCE_TYPE_OFFERINGS: Dict[str, Any] = {}
 for _location_type in listdir(root / offerings_path):
     INSTANCE_TYPE_OFFERINGS[_location_type] = {}
-    for _region in listdir(root / offerings_path / _location_type):
-        full_path = offerings_path + "/" + _location_type + "/" + _region
+    for data_file in listdir(root / offerings_path / _location_type):
+        # data_file = {region}.{content_type}
+        # E.g.: us-east-1.json or eu-west-1.json.gz
+        full_path = offerings_path + "/" + _location_type + "/" + data_file
+        _region = data_file.split(".")[0]
         res = load_resource(__name__, full_path)
         for instance in res:
             instance["LocationType"] = _location_type
-        INSTANCE_TYPE_OFFERINGS[_location_type][_region.replace(".json", "")] = res
+        INSTANCE_TYPE_OFFERINGS[_location_type][_region] = res
 
 
 class InstanceType(Dict[str, Any]):

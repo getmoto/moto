@@ -1,7 +1,5 @@
 import datetime
 import enum
-import json
-import os
 import re
 import time
 import typing
@@ -15,7 +13,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import get_partition, md5_hash
+from moto.utilities.utils import get_partition, load_resource, md5_hash
 
 from ..settings import get_cognito_idp_user_pool_id_strategy
 from .exceptions import (
@@ -439,10 +437,8 @@ class CognitoIdpUserPool(BaseModel):
         self.access_tokens: Dict[str, Tuple[str, str]] = {}
         self.id_tokens: Dict[str, Tuple[str, str]] = {}
 
-        with open(
-            os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
-        ) as f:
-            self.json_web_key = jwk.RSAKey.import_key(json.loads(f.read()))
+        jwks_file = load_resource(__name__, "resources/jwks-private.json")
+        self.json_web_key = jwk.RSAKey.import_key(jwks_file)
 
     @property
     def backend(self) -> "CognitoIdpBackend":
