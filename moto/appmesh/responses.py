@@ -46,7 +46,7 @@ class AppMeshResponse(BaseResponse):
             client_token=client_token,
             mesh_name=mesh_name,
             egress_filter_type=egress_filter_type,
-            ip_preference=ip_preference
+            ip_preference=ip_preference,
         )
         return json.dumps(mesh.to_dict())
 
@@ -65,7 +65,7 @@ class AppMeshResponse(BaseResponse):
             mesh_name=mesh_name,
         )
         return json.dumps(mesh.to_dict())
-    
+
     def list_meshes(self) -> str:
         params = self._get_params()
         limit = params.get("limit")
@@ -74,10 +74,7 @@ class AppMeshResponse(BaseResponse):
             limit=limit,
             next_token=next_token,
         )
-        return json.dumps(
-            dict(meshes=meshes, nextToken=next_token)
-        )
-
+        return json.dumps(dict(meshes=meshes, nextToken=next_token))
 
     def list_tags_for_resource(self) -> str:
         params = self._get_params()

@@ -13,3 +13,11 @@ class MeshNotFoundError(MeshError):
             "MeshNotFound",
             f"There are no meshes with the name {mesh_name}.",
         )
+
+
+class ResourceNotFoundError(MeshError):
+    def __init__(self, resource_arn: str) -> None:
+        super().__init__(
+            "ResourceNotFound",
+            f"There are no mesh resources with the arn {resource_arn}.",
+        )
