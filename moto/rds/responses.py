@@ -37,6 +37,9 @@ class RDSResponse(BaseResponse):
             "enable_cloudwatch_logs_exports": self._get_params().get(
                 "EnableCloudwatchLogsExports"
             ),
+            "cloudwatch_logs_exports_config": self._get_params().get(
+                "CloudwatchLogsExportConfiguration"
+            ),
             "enable_iam_database_authentication": self._get_bool_param(
                 "EnableIAMDatabaseAuthentication"
             ),

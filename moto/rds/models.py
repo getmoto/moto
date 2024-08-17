@@ -999,6 +999,13 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             if value is not None:
                 setattr(self, key, value)
 
+        cwl_exports = db_kwargs.get("cloudwatch_logs_exports_config") or {}
+        for exp in cwl_exports.get("DisableLogTypes", []):
+            self.enabled_cloudwatch_logs_exports.remove(exp)
+        self.enabled_cloudwatch_logs_exports.extend(
+            cwl_exports.get("EnableLogTypes", [])
+        )
+
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
         return attr in ["Endpoint.Address", "Endpoint.Port"]
