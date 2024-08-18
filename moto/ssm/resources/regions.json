@@ -1636,6 +1636,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -3675,6 +3684,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10442,6 +10460,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -14061,6 +14088,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -16696,6 +16732,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20684,6 +20729,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -22152,6 +22206,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -22995,7 +23058,7 @@
                   "Value": "iot.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -28395,6 +28458,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35806,6 +35878,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -37450,6 +37531,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40297,6 +40387,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "braket": {
                 "Value": "braket",
                 "endpoint": {
@@ -42811,6 +42910,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -44610,6 +44718,15 @@
                 "Value": "appconfigdata",
                 "endpoint": {
                   "Value": "appconfigdata.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -49220,6 +49337,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -51359,6 +51485,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "billingconductor": {
                 "Value": "billingconductor",
                 "endpoint": {
@@ -52520,7 +52655,7 @@
                   "Value": "iot.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -53370,6 +53505,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.us-east-1.amazonaws.com"
                 }
               },
               "qldb": {
@@ -55478,7 +55619,7 @@
                   "Value": "iot.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -57240,6 +57381,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eks-auth": {
+                "Value": "eks-auth",
+                "endpoint": {
+                  "Value": "eks-auth.us-gov-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "elasticache": {
                 "Value": "elasticache",
                 "endpoint": {
@@ -57528,7 +57678,7 @@
                   "Value": "iot.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -57940,6 +58090,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58441,6 +58600,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chime": {
                 "Value": "chime"
               },
@@ -58792,6 +58960,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eks-auth": {
+                "Value": "eks-auth",
+                "endpoint": {
+                  "Value": "eks-auth.us-gov-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "elasticache": {
                 "Value": "elasticache",
                 "endpoint": {
@@ -59089,7 +59266,7 @@
                   "Value": "iot.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -59630,6 +59807,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60959,7 +61145,7 @@
                   "Value": "iot.us-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -62360,6 +62546,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "braket": {
                 "Value": "braket",
                 "endpoint": {
@@ -63473,7 +63668,7 @@
                   "Value": "iot.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
