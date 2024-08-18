@@ -1,3 +1,4 @@
+import gzip
 import hashlib
 import json
 import pkgutil
@@ -37,10 +38,18 @@ def str2bool(v: Any) -> Optional[bool]:
 def load_resource(package: str, resource: str) -> Any:
     """
     Open a file, and return the contents as JSON.
+    Will try to load a compressed version (resources/file.json.gz) first, if it exists.
     Usage:
     load_resource(__name__, "resources/file.json")
     """
-    return json.loads(pkgutil.get_data(package, resource))  # type: ignore
+    try:
+        compressed_resource = resource
+        if not resource.endswith(".gz"):
+            compressed_resource = f"{resource}.gz"
+        data = gzip.decompress(pkgutil.get_data(package, compressed_resource))  # type: ignore
+    except FileNotFoundError:
+        data = pkgutil.get_data(package, resource)  # type: ignore
+    return json.loads(data)
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
