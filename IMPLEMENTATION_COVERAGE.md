@@ -7101,7 +7101,7 @@
 
 ## s3
 <details>
-<summary>68% implemented</summary>
+<summary>71% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -7126,7 +7126,7 @@
 - [X] delete_object_tagging
 - [X] delete_objects
 - [X] delete_public_access_block
-- [ ] get_bucket_accelerate_configuration
+- [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [X] get_bucket_cors
@@ -7165,7 +7165,7 @@
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
 - [ ] list_directory_buckets
-- [ ] list_multipart_uploads
+- [X] list_multipart_uploads
 - [X] list_object_versions
 - [X] list_objects
 - [X] list_objects_v2
@@ -7189,7 +7189,7 @@
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
 - [X] put_bucket_versioning
-- [ ] put_bucket_website
+- [X] put_bucket_website
 - [X] put_object
 - [X] put_object_acl
 - [X] put_object_legal_hold
