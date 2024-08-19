@@ -1,3 +1,5 @@
+import uuid
+
 import boto3
 import botocore
 import pytest
@@ -209,6 +211,67 @@ def test_list_resource_record_set_unknown_type():
     err = ex.value.response["Error"]
     assert err["Code"] == "400"
     assert err["Message"] == "Bad Request"
+
+
+@mock_aws
+@pytest.mark.parametrize("invalid_char", [" ", "\t"])
+def test_list_resource_record_set_invalid_start_record_name(invalid_char):
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_name = f"{str(uuid.uuid4())[0:6]}.getmoto.com."
+    record_name = f"i{invalid_char}d.e.com."
+    zone = conn.create_hosted_zone(
+        Name=zone_name, CallerReference=f"creation of {zone_name}"
+    )["HostedZone"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.list_resource_record_sets(
+            HostedZoneId=zone["Id"], StartRecordName=record_name
+        )
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+    assert (
+        err["Message"]
+        == f"FATAL problem: UnsupportedCharacter (Value contains unsupported characters) encountered with '{invalid_char}'"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=zone["Id"],
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {"Name": record_name, "Type": "TXT"},
+                    }
+                ]
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidChangeBatch"
+    assert (
+        err["Message"]
+        == f"FATAL problem: UnsupportedCharacter (Value contains unsupported characters) encountered with '{invalid_char}'"
+    )
+
+
+@mock_aws
+@pytest.mark.parametrize("valid_char", ["*", ".", "\\t", "\ ", "国", "}", "\\ç"])
+def test_list_resource_record_set_valid_characters(valid_char):
+    """
+    Validation that we can use odd characters as part of the domain name
+    Moto does not have parity in domain name validation, but at least we are not _too_ strict
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_name = f"{str(uuid.uuid4())[0:6]}.getmoto.com."
+    record_name = f"i{valid_char}d.e.com."
+    zone = conn.create_hosted_zone(
+        Name=zone_name, CallerReference=f"creation of {zone_name}"
+    )["HostedZone"]
+
+    conn.list_resource_record_sets(HostedZoneId=zone["Id"], StartRecordName=record_name)
 
 
 @mock_aws
