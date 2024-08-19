@@ -1047,7 +1047,7 @@ class FakeBucket(CloudFormationModel):
         self.versioning_status: Optional[str] = None
         self.rules: List[LifecycleRule] = []
         self.policy: Optional[bytes] = None
-        self.website_configuration: Optional[Dict[str, Any]] = None
+        self.website_configuration: Optional[bytes] = None
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.cors: List[CorsRule] = []
         self.logging: Dict[str, Any] = {}
@@ -1883,6 +1883,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
 
+    def get_bucket_accelerate_configuration(self, bucket_name: str) -> Optional[str]:
+        bucket = self.get_bucket(bucket_name)
+        return bucket.accelerate_configuration
+
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
         self.get_bucket(bucket_name).versioning_status = status
 
@@ -2086,15 +2090,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_lifecycle()
 
-    def set_bucket_website_configuration(
-        self, bucket_name: str, website_configuration: Dict[str, Any]
+    def put_bucket_website(
+        self, bucket_name: str, website_configuration: bytes
     ) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.website_configuration = website_configuration
 
-    def get_bucket_website_configuration(
-        self, bucket_name: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_bucket_website_configuration(self, bucket_name: str) -> Optional[bytes]:
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
 
@@ -2558,7 +2560,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         return key
 
-    def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
+    def list_multipart_uploads(self, bucket_name: str) -> Dict[str, FakeMultipart]:
+        """
+        The delimiter and max-uploads parameters have not yet been implemented.
+        """
         bucket = self.get_bucket(bucket_name)
         return bucket.multiparts
 
