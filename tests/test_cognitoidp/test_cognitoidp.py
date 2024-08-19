@@ -5345,58 +5345,54 @@ def test_initiate_auth_with_invalid_user_pool():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-# Test will retrieve public key from cognito.amazonaws.com/.well-known/jwks.json,
-# which isnt mocked in ServerMode
-if not settings.TEST_SERVER_MODE:
+@mock_aws
+def test_idtoken_contains_kid_header():
+    # https://github.com/getmoto/moto/issues/3078
+    # Setup
+    cognito = boto3.client("cognito-idp", "us-west-2")
+    user_pool_id = cognito.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"][
+        "Id"
+    ]
+    client = cognito.create_user_pool_client(
+        UserPoolId=user_pool_id,
+        ExplicitAuthFlows=[
+            "ALLOW_ADMIN_USER_PASSWORD_AUTH",
+            "ALLOW_REFRESH_TOKEN_AUTH",
+            "ALLOW_ADMIN_NO_SRP_AUTH",
+        ],
+        AllowedOAuthFlows=["code", "implicit"],
+        ClientName=str(uuid.uuid4()),
+        CallbackURLs=["https://example.com"],
+    )
+    client_id = client["UserPoolClient"]["ClientId"]
+    username = str(uuid.uuid4())
+    temporary_password = "1TemporaryP@ssword"
+    cognito.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+    )
+    result = cognito.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
 
-    @mock_aws
-    def test_idtoken_contains_kid_header():
-        # https://github.com/getmoto/moto/issues/3078
-        # Setup
-        cognito = boto3.client("cognito-idp", "us-west-2")
-        user_pool_id = cognito.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"][
-            "Id"
-        ]
-        client = cognito.create_user_pool_client(
-            UserPoolId=user_pool_id,
-            ExplicitAuthFlows=[
-                "ALLOW_ADMIN_USER_PASSWORD_AUTH",
-                "ALLOW_REFRESH_TOKEN_AUTH",
-                "ALLOW_ADMIN_NO_SRP_AUTH",
-            ],
-            AllowedOAuthFlows=["code", "implicit"],
-            ClientName=str(uuid.uuid4()),
-            CallbackURLs=["https://example.com"],
-        )
-        client_id = client["UserPoolClient"]["ClientId"]
-        username = str(uuid.uuid4())
-        temporary_password = "1TemporaryP@ssword"
-        cognito.admin_create_user(
-            UserPoolId=user_pool_id,
-            Username=username,
-            TemporaryPassword=temporary_password,
-        )
-        result = cognito.admin_initiate_auth(
-            UserPoolId=user_pool_id,
-            ClientId=client_id,
-            AuthFlow="ADMIN_NO_SRP_AUTH",
-            AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
-        )
+    # A newly created user is forced to set a new password
+    # This sets a new password and logs the user in (creates tokens)
+    password = "1F@kePassword"
+    result = cognito.respond_to_auth_challenge(
+        Session=result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": password},
+    )
+    #
+    id_token = result["AuthenticationResult"]["IdToken"]
 
-        # A newly created user is forced to set a new password
-        # This sets a new password and logs the user in (creates tokens)
-        password = "1F@kePassword"
-        result = cognito.respond_to_auth_challenge(
-            Session=result["Session"],
-            ClientId=client_id,
-            ChallengeName="NEW_PASSWORD_REQUIRED",
-            ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": password},
-        )
-        #
-        id_token = result["AuthenticationResult"]["IdToken"]
-
-        # Verify the KID header is present in the token, and corresponds to the KID supplied by the public JWT
-        verify_kid_header(id_token)
+    # Verify the KID header is present in the token, and corresponds to the KID supplied by the public JWT
+    verify_kid_header(id_token)
 
 
 def verify_kid_header(token):
@@ -5417,6 +5413,12 @@ def verify_kid_header(token):
 
 
 def fetch_public_keys():
-    keys_url = "https://cognito-idp.us-west-2.amazonaws.com/someuserpoolid/.well-known/jwks.json"
-    response = requests.get(keys_url).json()
+    if settings.TEST_DECORATOR_MODE:
+        keys_url = "https://cognito-idp.us-west-2.amazonaws.com/someuserpoolid/.well-known/jwks.json"
+    else:
+        keys_url = "http://localhost:5000/someuserpoolid/.well-known/jwks.json"
+    headers = {
+        "Authorization": "AWS4-HMAC-SHA256 Credential=abcd/20010101/us-east-1/cognito-idp/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=...",
+    }
+    response = requests.get(keys_url, headers=headers).json()
     return response["keys"]

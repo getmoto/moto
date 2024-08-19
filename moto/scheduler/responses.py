@@ -1,10 +1,8 @@
 """Handles incoming scheduler requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 from urllib.parse import unquote
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import EventBridgeSchedulerBackend, scheduler_backends
@@ -119,28 +117,19 @@ class EventBridgeSchedulerResponse(BaseResponse):
         schedule_groups = self.scheduler_backend.list_schedule_groups()
         return json.dumps(dict(ScheduleGroups=[sg.to_dict() for sg in schedule_groups]))
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
         tags = self.scheduler_backend.list_tags_for_resource(resource_arn)
-        return 200, {}, json.dumps(tags)
+        return json.dumps(tags)
 
-    def tag_resource(self) -> TYPE_RESPONSE:
+    def tag_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
         tags = json.loads(self.body)["Tags"]
         self.scheduler_backend.tag_resource(resource_arn, tags)
-        return 200, {}, "{}"
+        return "{}"
 
-    def untag_resource(self) -> TYPE_RESPONSE:
+    def untag_resource(self) -> str:
         resource_arn = unquote(self.uri.split("?")[0].split("/tags/")[-1])
         tag_keys = self.querystring.get("TagKeys")
         self.scheduler_backend.untag_resource(resource_arn, tag_keys)  # type: ignore
-        return 200, {}, "{}"
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        super().setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.tag_resource()
-        elif request.method == "DELETE":
-            return self.untag_resource()
-        else:
-            return self.list_tags_for_resource()
+        return "{}"
