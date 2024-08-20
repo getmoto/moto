@@ -526,6 +526,14 @@ def test_snapshot_filters():
     assert snapshot1.id in [s["SnapshotId"] for s in snapshots]
     assert snapshot2.id in [s["SnapshotId"] for s in snapshots]
     assert snapshot3.id in [s["SnapshotId"] for s in snapshots]
+    #
+    # Create a copy with a KMS key, and filter on that
+    snapshot4 = client.copy_snapshot(
+        SourceSnapshotId=snapshot1.id,
+        SourceRegion="us-east-1",
+        KmsKeyId="newkmskey",
+    )["SnapshotId"]
+    verify_filter("kms-key-id", "newkmskey", expected=[snapshot4])
 
 
 @mock_aws

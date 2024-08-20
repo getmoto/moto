@@ -222,6 +222,7 @@ class Snapshot(TaggedEC2Resource):
         volume: Any,
         description: str,
         encrypted: bool = False,
+        kms_key_id: Optional[str] = None,
         owner_id: Optional[str] = None,
         from_ami: Optional[str] = None,
     ):
@@ -233,9 +234,10 @@ class Snapshot(TaggedEC2Resource):
         self.create_volume_permission_userids: Set[str] = set()
         self.ec2_backend = ec2_backend
         self.status = "completed"
-        self.encrypted = encrypted
+        self.encrypted = encrypted or (kms_key_id is not None)
         self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
+        self.kms_key_id = kms_key_id
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -252,6 +254,8 @@ class Snapshot(TaggedEC2Resource):
             return self.volume.size
         elif filter_name == "encrypted":
             return str(self.encrypted).lower()
+        elif filter_name == "kms-key-id":
+            return self.kms_key_id
         elif filter_name == "status":
             return self.status
         elif filter_name == "owner-id":
@@ -416,12 +420,18 @@ class EBSBackend:
     ) -> Snapshot:
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        params = [self, snapshot_id, volume, description, volume.encrypted]
+        params = {
+            "ec2_backend": self,
+            "snapshot_id": snapshot_id,
+            "volume": volume,
+            "description": description,
+            "encrypted": volume.encrypted,
+        }
         if owner_id:
-            params.append(owner_id)
+            params["owner_id"] = owner_id
         if from_ami:
-            params.append(from_ami)
-        snapshot = Snapshot(*params)  # type: ignore[arg-type]
+            params["from_ami"] = from_ami
+        snapshot = Snapshot(**params)  # type: ignore[arg-type]
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
@@ -463,7 +473,11 @@ class EBSBackend:
         return matches
 
     def copy_snapshot(
-        self, source_snapshot_id: str, source_region: str, description: str
+        self,
+        source_snapshot_id: str,
+        source_region: str,
+        description: str,
+        kms_key_id: Optional[str],
     ) -> Snapshot:
         from ..models import ec2_backends
 
@@ -478,6 +492,7 @@ class EBSBackend:
             volume=source_snapshot.volume,
             description=description,
             encrypted=source_snapshot.encrypted,
+            kms_key_id=kms_key_id,
         )
         self.snapshots[snapshot_id] = snapshot
         return snapshot
