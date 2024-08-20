@@ -1686,6 +1686,20 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     If this dependency is not installed, Moto will fall-back to the CRC32-computation when computing checksums.
 
+    _-_-_-_
+
+    S3 has two endpoint styles, where the bucket name can be either part of the domain (bucket.s3.amazonaws.com) or part of the path (s3.amazonaws.com/bucket).
+
+    If you're running MotoServer on a custom host, for instance on `http://moto.service:5000`, a CreateBucket-request then becomes `http://moto.service:5000/bucketname`.
+
+    However, because Moto tries to get the bucket-name from the domain first, it will think that 'moto' is the bucket name.
+
+    You can disable this behaviour with an environment variable, so that Moto will always look at the path instead:
+
+    .. sourcecode:: bash
+
+        S3_IGNORE_SUBDOMAIN_BUCKETNAME=true
+
     """
 
     def __init__(self, region_name: str, account_id: str):

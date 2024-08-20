@@ -198,6 +198,10 @@ Other languages:
 * `Javascript`_
 
 
+.. warning::
+
+    Note that we use `localhost` everywhere here - 127.0.0.1 is not an adequate replacement, and may not work.
+
 Use ServerMode using the decorators
 -------------------------------------
 
