@@ -275,10 +275,7 @@ def test_put_subscription_filter_with_firehose():
     # Create a S3 bucket.
     bucket_name = "firehosetestbucket"
     s3_client = boto3.client("s3", region_name=region_name)
-    s3_client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
-    )
+    s3_client.create_bucket(Bucket=bucket_name)
 
     # Create the Firehose delivery stream that uses that S3 bucket as
     # the destination.
