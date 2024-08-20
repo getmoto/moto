@@ -32,8 +32,10 @@ from .exceptions import (
     DuplicateTagKeys,
     HeadOnDeleteMarker,
     IllegalLocationConstraintException,
+    IncompatibleLocationConstraintException,
     InvalidContentMD5,
     InvalidContinuationToken,
+    InvalidLocationConstraintException,
     InvalidMaxPartArgument,
     InvalidMaxPartNumberArgument,
     InvalidNotificationARN,
@@ -736,27 +738,15 @@ class S3Response(BaseResponse):
                 result_folders.append(key)
         return result_keys, result_folders
 
-    def _body_contains_location_constraint(self, body: bytes) -> bool:
-        if body:
-            try:
-                xmltodict.parse(body)["CreateBucketConfiguration"]["LocationConstraint"]
-                return True
-            except KeyError:
-                pass
-        return False
-
-    def _create_bucket_configuration_is_empty(self, body: bytes) -> bool:
-        if body:
-            try:
-                create_bucket_configuration = xmltodict.parse(body)[
-                    "CreateBucketConfiguration"
+    def _get_location_constraint(self) -> Optional[str]:
+        try:
+            if self.body:
+                return xmltodict.parse(self.body)["CreateBucketConfiguration"][
+                    "LocationConstraint"
                 ]
-                del create_bucket_configuration["@xmlns"]
-                if len(create_bucket_configuration) == 0:
-                    return True
-            except KeyError:
-                pass
-        return False
+        except KeyError:
+            pass
+        return None
 
     def _parse_pab_config(self) -> Dict[str, Any]:
         parsed_xml = xmltodict.parse(self.body)
@@ -885,31 +875,20 @@ class S3Response(BaseResponse):
 
         else:
             # us-east-1, the default AWS region behaves a bit differently
-            # - you should not use it as a location constraint --> it fails
-            # - querying the location constraint returns None
-            # - LocationConstraint has to be specified if outside us-east-1
-            if (
-                self.region != DEFAULT_REGION_NAME
-                and not self._body_contains_location_constraint(self.body)
-            ):
-                raise IllegalLocationConstraintException()
-            if self.body:
-                if self._create_bucket_configuration_is_empty(self.body):
-                    raise MalformedXML()
-                try:
-                    forced_region = xmltodict.parse(self.body)[
-                        "CreateBucketConfiguration"
-                    ]["LocationConstraint"]
-
-                    if forced_region == DEFAULT_REGION_NAME:
-                        raise S3ClientError(
-                            "InvalidLocationConstraint",
-                            "The specified location-constraint is not valid",
-                        )
-                    else:
-                        self.region = forced_region
-                except KeyError:
-                    pass
+            # - you should not use any location constraint
+            location_constraint = self._get_location_constraint()
+            if self.region == DEFAULT_REGION_NAME:
+                # REGION = us-east-1 - we should never receive a LocationConstraint
+                if location_constraint:
+                    raise InvalidLocationConstraintException
+            else:
+                # Non-Standard region - the LocationConstraint must be equal to the actual region the request was send to
+                if not location_constraint:
+                    raise IllegalLocationConstraintException()
+                if location_constraint != self.region:
+                    raise IncompatibleLocationConstraintException(location_constraint)
+            if self.body and not location_constraint:
+                raise MalformedXML()
 
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, self.region)

@@ -24,7 +24,7 @@ from moto.core.utils import utcnow
 from moto.moto_api import state_manager
 from moto.s3.models import s3_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
-from tests import DEFAULT_ACCOUNT_ID
+from tests import DEFAULT_ACCOUNT_ID, aws_verified
 
 from . import s3_aws_verified
 
@@ -268,6 +268,27 @@ def test_create_existing_bucket():
     assert ex.value.response["Error"]["Code"] == "BucketAlreadyOwnedByYou"
     assert ex.value.response["Error"]["Message"] == (
         "Your previous request to create the named bucket succeeded and you already own it."
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "constraint", ["us-east-1", "us-east-2", "eu-central-1", "us-gov-east-2"]
+)
+def test_create_bucket_with_wrong_location_constraint(constraint):
+    client = boto3.client("s3", region_name="us-west-2")
+    kwargs = {
+        "Bucket": str(uuid.uuid4()),
+        "CreateBucketConfiguration": {"LocationConstraint": constraint},
+    }
+    with pytest.raises(ClientError) as ex:
+        client.create_bucket(**kwargs)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "IllegalLocationConstraintException"
+    assert (
+        err["Message"]
+        == f"The {constraint} location constraint is incompatible for the region specific endpoint this request was sent to."
     )
 
 
@@ -934,11 +955,9 @@ def test_put_chunked_with_v4_signature_in_body():
 
 @mock_aws
 def test_s3_object_in_private_bucket():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", "us-east-1")
     bucket = s3_resource.Bucket("test-bucket")
-    bucket.create(
-        ACL="private", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    bucket.create(ACL="private")
     bucket.put_object(ACL="private", Body=b"ABCD", Key="file.txt")
 
     s3_anonymous = boto3.resource("s3")
@@ -1580,7 +1599,8 @@ def test_bucket_create():
     )
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_bucket_create_force_us_east_1():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
@@ -1589,6 +1609,10 @@ def test_bucket_create_force_us_east_1():
             CreateBucketConfiguration={"LocationConstraint": DEFAULT_REGION_NAME},
         )
     assert exc.value.response["Error"]["Code"] == "InvalidLocationConstraint"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "The specified location-constraint is not valid"
+    )
 
 
 @mock_aws
@@ -2696,11 +2720,8 @@ def test_can_suspend_bucket_acceleration():
 @mock_aws
 def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     bucket_name = "some_bucket"
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket=bucket_name)
     resp = s3_client.put_bucket_accelerate_configuration(
         Bucket=bucket_name, AccelerateConfiguration={"Status": "Suspended"}
     )

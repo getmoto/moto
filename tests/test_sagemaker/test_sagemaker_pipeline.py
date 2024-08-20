@@ -26,7 +26,7 @@ TEST_REGION_NAME = "us-west-1"
 
 @contextmanager
 def setup_s3_pipeline_definition(bucket_name, object_key, pipeline_definition):
-    client = boto3.client("s3")
+    client = boto3.client("s3", TEST_REGION_NAME)
     client.create_bucket(
         Bucket=bucket_name,
         CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},

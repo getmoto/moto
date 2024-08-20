@@ -203,6 +203,26 @@ class IllegalLocationConstraintException(S3ClientError):
         )
 
 
+class IncompatibleLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self, location: str) -> None:
+        super().__init__(
+            "IllegalLocationConstraintException",
+            f"The {location} location constraint is incompatible for the region specific endpoint this request was sent to.",
+        )
+
+
+class InvalidLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidLocationConstraint",
+            "The specified location-constraint is not valid",
+        )
+
+
 class MalformedXML(S3ClientError):
     code = 400
 

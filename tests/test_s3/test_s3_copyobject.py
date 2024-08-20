@@ -392,12 +392,8 @@ def test_copy_object_with_versioning(bucket_name=None):
 def test_copy_object_from_unversioned_to_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    client.create_bucket(
-        Bucket="src", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
-    client.create_bucket(
-        Bucket="dest", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
+    client.create_bucket(Bucket="src")
+    client.create_bucket(Bucket="dest")
     client.put_bucket_versioning(
         Bucket="dest", VersioningConfiguration={"Status": "Enabled"}
     )
@@ -459,9 +455,7 @@ def test_copy_object_with_kms_encryption():
     kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
     kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
 
-    client.create_bucket(
-        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
+    client.create_bucket(Bucket="blah")
 
     client.put_object(Bucket="blah", Key="test1", Body=b"test1")
 
