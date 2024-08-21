@@ -133,9 +133,9 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                         group_id,
                         group_id,
                         group_id,
-                        vpc_id=subnet.vpc_id,
+                        vpc_id=self.subnet.vpc_id,
                     )
-                    self.ec2_backend.groups[subnet.vpc_id][group_id] = group
+                    self.ec2_backend.groups[self.subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
         if not group_ids:
