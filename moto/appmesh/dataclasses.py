@@ -25,8 +25,8 @@ class Metadata:
 
 @dataclass
 class PortMapping:
-    port: int
-    protocol: str
+    port: Optional[int]
+    protocol: Optional[str]
 
 
 @dataclass

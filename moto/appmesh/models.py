@@ -1,7 +1,7 @@
 """AppMeshBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from moto.appmesh.dataclasses import (
     Mesh,
@@ -183,22 +183,15 @@ class AppMeshBackend(BaseBackend):
         metadata = Metadata(
             mesh_owner=mesh_owner, resource_owner=mesh_owner, arn="TODO"
         )
-        spec = VirtualRouterSpec(
-            listeners=[
-                {
-                    "port_mapping": {
-                        "port": port_mapping.port,
-                        "protocol": port_mapping.protocol,
-                    }
-                }
-                for port_mapping in port_mappings
-            ]
-        )
+        listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
+            {"port_mapping": port_mapping} for port_mapping in port_mappings
+        ]
+        spec = VirtualRouterSpec(listeners=listeners)
         virtual_router = VirtualRouter(
             virtual_router_name=virtual_router_name,
             mesh_name=mesh_name,
             metadata=metadata,
-            status="ACTIVE",
+            status={"status": "ACTIVE"},
             spec=spec,
             tags=tags,
         )
@@ -220,17 +213,10 @@ class AppMeshBackend(BaseBackend):
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
         if virtual_router_name not in mesh.virtual_routers:
             raise VirtualRouterNotFoundError(virtual_router_name, mesh_name)
-        spec = VirtualRouterSpec(
-            listeners=[
-                {
-                    "port_mapping": {
-                        "port": port_mapping.port,
-                        "protocol": port_mapping.protocol,
-                    }
-                }
-                for port_mapping in port_mappings
-            ]
-        )
+        listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
+            {"port_mapping": port_mapping} for port_mapping in port_mappings
+        ]
+        spec = VirtualRouterSpec(listeners=listeners)
         virtual_router = mesh.virtual_routers[virtual_router_name]
         virtual_router.spec = spec
         virtual_router.metadata.last_updated_at = datetime.now()
@@ -247,7 +233,7 @@ class AppMeshBackend(BaseBackend):
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
         if virtual_router_name not in mesh.virtual_routers:
             raise VirtualRouterNotFoundError(virtual_router_name, mesh_name)
-        mesh.virtual_routers[virtual_router_name].status = "DELETED"
+        mesh.virtual_routers[virtual_router_name].status["status"] = "DELETED"
         virtual_router = mesh.virtual_routers[virtual_router_name]
         del mesh.virtual_routers[virtual_router_name]
         return virtual_router
