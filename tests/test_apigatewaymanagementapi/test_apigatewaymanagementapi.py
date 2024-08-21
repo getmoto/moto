@@ -14,8 +14,9 @@ from tests import DEFAULT_ACCOUNT_ID
 @mock_aws
 def test_delete_connection():
     if settings.TEST_SERVER_MODE and not is_werkzeug_2_3_x():
-        # URL matching changed between 2.2.x and 2.3.x
-        # 2.3.x has no problem matching the root path '/@connections', but 2.2.x refuses
+        # URL matching changed in 2.2.x - the root path '/@connections' cannot be found
+        # 2.1.x works, 2.2.x is broken, and 2.3.x (and 3.x) works again
+        # We could only skip 2.2.x - but only supporting >= 2.3.x is easier
         raise SkipTest("Can't test this in older werkzeug versions")
     client = boto3.client("apigatewaymanagementapi", region_name="eu-west-1")
     # NO-OP
@@ -54,3 +55,17 @@ def test_post_to_connection():
     if not settings.TEST_SERVER_MODE:
         backend = apigatewaymanagementapi_backends[DEFAULT_ACCOUNT_ID]["ap-southeast-1"]
         assert backend.connections["anything"].data == b"my first bytesmore bytes"
+
+
+@mock_aws
+def test_post_to_connection_using_endpoint_url():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only test this with decorators")
+    client = boto3.client(
+        "apigatewaymanagementapi",
+        "us-west-2",
+        endpoint_url="https://someapiid.execute-api.us-west-2.amazonaws.com/stage",
+    )
+
+    client.get_connection(ConnectionId="anything")
+    client.post_to_connection(ConnectionId="n/a", Data=b"some data")
