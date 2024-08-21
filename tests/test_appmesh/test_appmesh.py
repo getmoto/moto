@@ -200,10 +200,8 @@ def test_create_describe_list_update_delete_virtual_router(client):
     assert router2["spec"]["listeners"][0]["portMapping"]["port"] == 443
     assert router2["spec"]["listeners"][0]["portMapping"]["protocol"] == "http2"
     assert router2["status"]["status"] == "ACTIVE"
-    connection = client.list_virtual_routers(
-        meshName=mesh_name, meshOwner=mesh_owner
-    )
-    virtual_routers = connection.get('virtualRouters')
+    connection = client.list_virtual_routers(meshName=mesh_name, meshOwner=mesh_owner)
+    virtual_routers = connection.get("virtualRouters")
     assert virtual_routers is not None
     assert isinstance(virtual_routers, list)
     assert len(virtual_routers) == 2

@@ -69,7 +69,7 @@ class VirtualRouter:
                 ]
             },
             "status": self.status,
-            "virtualRouterName": self.virtual_router_name
+            "virtualRouterName": self.virtual_router_name,
         }
 
 
