@@ -11,6 +11,7 @@ from dateutil.tz import tzutc
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.utils import camelcase_to_underscores
 from moto.sagemaker import validators
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
@@ -3055,6 +3056,9 @@ class SageMakerModelBackend(BaseBackend):
         return list(self.experiments.values())
 
     def search(self, resource: Any = None, search_expression: Any = None) -> Any:
+        """
+        Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
+        """
         next_index = None
 
         valid_resources = [
@@ -3078,6 +3082,14 @@ class SageMakerModelBackend(BaseBackend):
                 f"An error occurred (ValidationException) when calling the Search operation: 1 validation error detected: Value '{resource}' at 'resource' failed to satisfy constraint: Member must satisfy enum value set: {valid_resources}"
             )
 
+        def compare_value(actual: Any, expected: Any, operator: str) -> bool:
+            # Defeault:  operator == "Equals"
+            if operator == "Contains":
+                return expected in actual
+            if operator == "NotEquals":
+                return expected != actual
+            return actual == expected
+
         def evaluate_search_expression(item: Any) -> bool:
             filters = None
             if search_expression is not None:
@@ -3085,43 +3097,39 @@ class SageMakerModelBackend(BaseBackend):
 
             if filters is not None:
                 for f in filters:
-                    if f["Operator"] == "Equals":
-                        if f["Name"].startswith("Tags."):
-                            key = f["Name"][5:]
-                            value = f["Value"]
+                    prop_key = camelcase_to_underscores(f["Name"])
+                    if f["Name"].startswith("Tags."):
+                        key = f["Name"][5:]
+                        value = f["Value"]
 
-                            if (
-                                len(
-                                    [
-                                        e
-                                        for e in item.tags
-                                        if e["Key"] == key and e["Value"] == value
-                                    ]
-                                )
-                                == 0
-                            ):
+                        if f["Operator"] == "Equals":
+                            if not [
+                                e
+                                for e in item.tags
+                                if e["Key"] == key and e["Value"] == value
+                            ]:
                                 return False
-                        if f["Name"] == "ExperimentName":
-                            experiment_name = f["Value"]
+                        return True
 
-                            if hasattr(item, "experiment_name"):
-                                if getattr(item, "experiment_name") != experiment_name:
-                                    return False
-                            else:
-                                raise ValidationError(
-                                    message="Unknown property name: ExperimentName"
-                                )
+                    elif f["Name"] == "TrialName":
+                        raise AWSValidationException(
+                            f"An error occurred (ValidationException) when calling the Search operation: Unknown property name: {f['Name']}"
+                        )
 
-                        if f["Name"] == "TrialName":
-                            raise AWSValidationException(
-                                f"An error occurred (ValidationException) when calling the Search operation: Unknown property name: {f['Name']}"
-                            )
+                    elif f["Name"] == "Parents.TrialName":
+                        trial_name = f["Value"]
+                        if getattr(item, "trial_name") != trial_name:
+                            return False
 
-                        if f["Name"] == "Parents.TrialName":
-                            trial_name = f["Value"]
-
-                            if getattr(item, "trial_name") != trial_name:
-                                return False
+                    elif hasattr(item, prop_key):
+                        if not compare_value(
+                            getattr(item, prop_key), f["Value"], f["Operator"]
+                        ):
+                            return False
+                    else:
+                        raise ValidationError(
+                            message=f"Unknown property name: {f['Name']}"
+                        )
 
             return True
 
