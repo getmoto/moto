@@ -151,40 +151,50 @@ def test_tag_and_list_tags_for_resource(client):
 
 
 @mock_aws
-def test_describe_virtual_router():
-    client = boto3.client("appmesh", region_name="us-east-2")
-    resp = client.describe_virtual_router()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_create_virtual_router():
-    client = boto3.client("appmesh", region_name="us-east-2")
-    resp = client.create_virtual_router()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_update_virtual_router():
-    client = boto3.client("appmesh", region_name="us-east-2")
-    resp = client.update_virtual_router()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_delete_virtual_router():
-    client = boto3.client("appmesh", region_name="us-east-2")
-    resp = client.delete_virtual_router()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_list_virtual_routers():
-    client = boto3.client("appmesh", region_name="us-east-2")
-    resp = client.list_virtual_routers()
-
-    raise Exception("NotYetImplemented")
+def test_create_describe_list_update_delete_virtual_router(client):
+    connection = client.create_mesh(
+        meshName="mesh1",
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )
+    assert "mesh" in connection
+    mesh = connection["mesh"]
+    assert "metadata" in mesh
+    mesh_owner = mesh["metadata"]["meshOwner"]
+    connection = client.create_virtual_router(
+        meshName="mesh1",
+        meshOwner=mesh_owner,
+        spec={
+            "listeners": [ 
+                { 
+                    "portMapping": { 
+                        "port": 80,
+                        "protocol": "http"
+                    }
+                }
+            ]
+        },
+        tags=[{"key": "router_traffic", "value": "http"}],
+    )
+    connection = client.create_virtual_router(
+        meshName="mesh1",
+        meshOwner=mesh_owner,
+        spec={
+            "listeners": [ 
+                { 
+                    "portMapping": { 
+                        "port": 443,
+                        "protocol": "http2"
+                    }
+                }
+            ]
+        },
+        tags=[{"key": "router_traffic", "value": "https"}],
+    )
+    connection = client.describe_virtual_router()
+    connection = client.update_virtual_router()
+    connection = client.delete_virtual_router()
+    connection = client.list_virtual_routers()
