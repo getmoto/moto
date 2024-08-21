@@ -112,7 +112,7 @@ def test_aws_integration_dynamodb_multiple_stages():
         f"https://{api_id}.execute-api.us-west-2.amazonaws.com/prod",
         json={"TableName": table_name, "Item": {"name": {"S": "the-key"}}},
     )
-    assert res.status_code == 400
+    assert res.status_code in [400, 404]
 
 
 @mock_aws

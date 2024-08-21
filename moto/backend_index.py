@@ -8,7 +8,7 @@ backend_url_patterns = [
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
     (
         "apigatewaymanagementapi",
-        re.compile("https?://execute-api\\.(.+)\\.amazonaws\\.com"),
+        re.compile("https?://(.+\\.)*execute-api\\.(.+)\\.amazonaws\\.com"),
     ),
     ("appconfig", re.compile("https?://appconfig\\.(.+)\\.amazonaws\\.com")),
     (
