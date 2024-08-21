@@ -2094,6 +2094,43 @@ def test_run_task_awsvpc_network():
 
 
 @mock_aws
+def test_run_task_awsvpc_network__unknown_sec_group():
+    # Setup
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2_client = boto3.client("ec2", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    setup_resources = setup_ecs(client, ec2)
+
+    # Execute
+    task = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [setup_resources[0].id],
+                "securityGroups": ["unknown_sg"],
+            }
+        },
+    )["tasks"][0]
+    eni_id = next(
+        t["value"]
+        for t in task["attachments"][0]["details"]
+        if t["name"] == "networkInterfaceId"
+    )
+
+    eni = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
+    # Unknown SecurityGroup is created for us
+    assert eni["Groups"] == [{"GroupId": "unknown_sg", "GroupName": "unknown_sg"}]
+
+
+@mock_aws
 def test_run_task_awsvpc_network_error():
     # Setup
     client = boto3.client("ecs", region_name=ECS_REGION)
