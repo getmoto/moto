@@ -422,6 +422,4 @@ class WAFV2Backend(BaseBackend):
         ]
 
 
-wafv2_backends = BackendDict(
-    WAFV2Backend, "waf-regional", additional_regions=PARTITION_NAMES
-)
+wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)
