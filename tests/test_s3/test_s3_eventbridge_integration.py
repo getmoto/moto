@@ -340,3 +340,26 @@ def test_delete_object_tagging_notification():
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectTagging"
+
+@mock_aws
+def test_storage_class_change_notifications():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+    bucket = s3_client.Bucket(bucket_name)
+    key = bucket.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+
+    # Change the storage class
+    key.storage_class = "GLACIER"
+
+    events = _get_send_events()
+    event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
+    assert event_names == ["ObjectCreated", "StorageClassChanged"]
+
+    # Sanity check - changing the storage class to the same value does not trigger the event
+    key.storage_class = "GLACIER"
+
+    events = _get_send_events()
+    event_names = [json.loads(e["message"])["detail"]["reason"] for e in events]
+    assert event_names == ["ObjectCreated", "StorageClassChanged"]
