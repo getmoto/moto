@@ -148,3 +148,43 @@ def test_tag_and_list_tags_for_resource(client):
     tags = connection["tags"]
     assert tags[0] == {"key": "owner", "value": "moto"}
     assert tags[1] == {"key": "organization", "value": "moto"}
+
+
+@mock_aws
+def test_describe_virtual_router():
+    client = boto3.client("appmesh", region_name="us-east-2")
+    resp = client.describe_virtual_router()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_create_virtual_router():
+    client = boto3.client("appmesh", region_name="us-east-2")
+    resp = client.create_virtual_router()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_update_virtual_router():
+    client = boto3.client("appmesh", region_name="us-east-2")
+    resp = client.update_virtual_router()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_virtual_router():
+    client = boto3.client("appmesh", region_name="us-east-2")
+    resp = client.delete_virtual_router()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_virtual_routers():
+    client = boto3.client("appmesh", region_name="us-east-2")
+    resp = client.list_virtual_routers()
+
+    raise Exception("NotYetImplemented")

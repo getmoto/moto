@@ -1,63 +1,19 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Literal, Optional
-from uuid import uuid4
+from typing import Dict, List, Optional
 
-from moto.appmesh.exceptions import MeshNotFoundError, ResourceNotFoundError
+from moto.appmesh.dataclasses import (
+    Mesh,
+    MeshSpec,
+    Metadata,
+    PortMapping,
+    VirtualRouter,
+    VirtualRouterSpec,
+)
+from moto.appmesh.exceptions import MeshNotFoundError, MeshOwnerDoesNotMatchError, ResourceNotFoundError
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
-
-
-@dataclass
-class Metadata:
-    arn: str
-    mesh_owner: str
-    resource_owner: str
-    created_at: datetime = datetime.now()
-    last_updated_at: datetime = datetime.now()
-    uid: str = uuid4().hex
-    version: int = 1
-
-
-@dataclass
-class Spec:
-    egress_filter: Dict[Literal["type"], Optional[str]]
-    service_discovery: Dict[Literal["ip_preference"], Optional[str]]
-
-
-@dataclass
-class Mesh:
-    mesh_name: str
-    metadata: Metadata
-    spec: Spec
-    status: Dict[Literal["status"], str]
-    tags: List[Dict[str, str]]
-
-    def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]
-        return {
-            "meshName": self.mesh_name,
-            "metadata": {
-                "arn": self.metadata.arn,
-                "createdAt": self.metadata.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
-                "lastUpdatedAt": self.metadata.last_updated_at.strftime(
-                    "%d/%m/%Y, %H:%M:%S"
-                ),
-                "meshOwner": self.metadata.mesh_owner,
-                "resourceOwner": self.metadata.resource_owner,
-                "uid": self.metadata.uid,
-                "version": self.metadata.version,
-            },
-            "spec": {
-                "egressFilter": self.spec.egress_filter,
-                "serviceDiscovery": {
-                    "ipPreference": self.spec.service_discovery.get("ip_preference")
-                },
-            },
-            "status": self.status,
-        }
-
 
 PAGINATION_MODEL = {
     "list_meshes": {
@@ -102,7 +58,7 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=user_id,
             resource_owner=user_id,
         )
-        spec = Spec(
+        spec = MeshSpec(
             egress_filter={"type": egress_filter_type},
             service_discovery={"ip_preference": ip_preference},
         )
@@ -186,6 +142,70 @@ class AppMeshBackend(BaseBackend):
             mesh = self._get_resource_with_arn(resource_arn=resource_arn)
             mesh.tags.extend(tags)
         return
+
+    def describe_virtual_router(
+        self, mesh_name: str, mesh_owner: str, virtual_router_name: str
+    ) -> VirtualRouter:
+        # implement here
+        return virtual_router
+
+    def create_virtual_router(
+        self,
+        client_token: str,
+        mesh_name: str,
+        mesh_owner: str,
+        port_mappings: List[PortMapping],
+        tags: List[Dict[str, str]],
+        virtual_router_name: str,
+    ) -> VirtualRouter:
+        if mesh_name not in self.meshes:
+            MeshNotFoundError(mesh_name=mesh_name)
+        mesh = self.meshes[mesh_name]
+        if mesh.metadata.mesh_owner != mesh_owner:
+            MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
+        metadata = Metadata(
+            mesh_owner=mesh_owner,
+            resource_owner=mesh_owner,
+            arn="TODO"
+        )
+        spec: VirtualRouterSpec = {
+            "listeners": [
+                { "port_mapping": port_mapping } for port_mapping in port_mappings
+            ]
+        }
+        virtual_router = VirtualRouter(
+            virtual_router_name=virtual_router_name,
+            mesh_name=mesh_name,
+            metadata=metadata,
+            status="ACTIVE",
+            spec=spec,
+            tags=tags
+        )
+        self.meshes[mesh_name].virtual_routers[virtual_router_name] = virtual_router
+        return virtual_router
+
+    def update_virtual_router(
+        self,
+        client_token: str,
+        mesh_name: str,
+        mesh_owner: str,
+        port_mappings: List[PortMapping],
+        virtual_router_name: str,
+    ) -> VirtualRouter:
+        # implement here
+        return virtual_router
+
+    def delete_virtual_router(
+        self, mesh_name: str, mesh_owner: str, virtual_router_name: str
+    ) -> VirtualRouter:
+        # implement here
+        return virtual_router
+
+    def list_virtual_routers(
+        self, limit: int, mesh_name: str, mesh_owner: str, next_token: str
+    ):
+        # implement here
+        return virtual_routers
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
