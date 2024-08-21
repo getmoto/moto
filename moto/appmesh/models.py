@@ -163,7 +163,7 @@ class AppMeshBackend(BaseBackend):
         if mesh.metadata.mesh_owner != mesh_owner:
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
         if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(virtual_router_name, mesh_name)
+            raise VirtualRouterNotFoundError(virtual_router_name=virtual_router_name, mesh_name=mesh_name)
         return mesh.virtual_routers[virtual_router_name]
 
     def create_virtual_router(
@@ -212,7 +212,7 @@ class AppMeshBackend(BaseBackend):
         if mesh.metadata.mesh_owner != mesh_owner:
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
         if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(virtual_router_name, mesh_name)
+            raise VirtualRouterNotFoundError(virtual_router_name=virtual_router_name, mesh_name=mesh_name)
         listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
             {"port_mapping": port_mapping} for port_mapping in port_mappings
         ]
@@ -232,7 +232,7 @@ class AppMeshBackend(BaseBackend):
         if mesh.metadata.mesh_owner != mesh_owner:
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
         if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(virtual_router_name, mesh_name)
+            raise VirtualRouterNotFoundError(virtual_router_name=virtual_router_name, mesh_name=mesh_name)
         mesh.virtual_routers[virtual_router_name].status["status"] = "DELETED"
         virtual_router = mesh.virtual_routers[virtual_router_name]
         del mesh.virtual_routers[virtual_router_name]
@@ -260,6 +260,7 @@ class AppMeshBackend(BaseBackend):
                 "meshOwner": virtual_router.metadata.mesh_owner,
                 "resourceOwner": virtual_router.metadata.resource_owner,
                 "version": virtual_router.metadata.version,
+                "virtualRouterName": virtual_router.virtual_router_name
             }
             for virtual_router in mesh.virtual_routers.values()
         ]

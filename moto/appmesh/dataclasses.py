@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 from uuid import uuid4
@@ -69,6 +69,7 @@ class VirtualRouter:
                 ]
             },
             "status": self.status,
+            "virtualRouterName": self.virtual_router_name
         }
 
 
@@ -79,7 +80,7 @@ class Mesh:
     spec: MeshSpec
     status: Status
     tags: List[Dict[str, str]]
-    virtual_routers: Dict[str, VirtualRouter] = {}
+    virtual_routers: Dict[str, VirtualRouter] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]
         return {

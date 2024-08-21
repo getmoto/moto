@@ -1,6 +1,5 @@
 """Exceptions raised by the appmesh service."""
 
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -36,5 +35,5 @@ class VirtualRouterNotFoundError(MeshError):
     def __init__(self, mesh_name: str, virtual_router_name: str) -> None:
         super().__init__(
             "VirtualRouterNotFound",
-            f"The mesh {mesh_name} does not have a virtaul router named {virtual_router_name}.",
+            f"The mesh {mesh_name} does not have a virtual router named {virtual_router_name}.",
         )

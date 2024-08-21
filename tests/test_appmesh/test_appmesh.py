@@ -165,42 +165,110 @@ def test_create_describe_list_update_delete_virtual_router(client):
     mesh = connection["mesh"]
     assert "metadata" in mesh
     mesh_owner = mesh["metadata"]["meshOwner"]
-    router1 = client.create_virtual_router(
+
+    ROUTER_1 = "router1"
+    ROUTER_2 = "router2"
+
+    connection = client.create_virtual_router(
         meshName=mesh_name,
         meshOwner=mesh_owner,
+        virtualRouterName=ROUTER_1,
         spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
         tags=[{"key": "router_traffic", "value": "http"}],
     )
-    router2 = client.create_virtual_router(
+    router1 = connection.get("virtualRouter")
+    assert router1 is not None
+    assert router1["meshName"] == mesh_name
+    assert router1["metadata"]["meshOwner"] == mesh_owner
+    assert router1["metadata"]["version"] == 1
+    assert router1["spec"]["listeners"][0]["portMapping"]["port"] == 80
+    assert router1["spec"]["listeners"][0]["portMapping"]["protocol"] == "http"
+    assert router1["status"]["status"] == "ACTIVE"
+
+    connection = client.create_virtual_router(
         meshName=mesh_name,
         meshOwner=mesh_owner,
+        virtualRouterName=ROUTER_2,
         spec={"listeners": [{"portMapping": {"port": 443, "protocol": "http2"}}]},
         tags=[{"key": "router_traffic", "value": "https"}],
     )
-    connection = client.list_virtual_routers(meshName=mesh_name, meshOwner=mesh_owner)
+    router2 = connection.get("virtualRouter")
+    assert router2 is not None
+    assert router2["meshName"] == mesh_name
+    assert router2["metadata"]["meshOwner"] == mesh_owner
+    assert router2["metadata"]["version"] == 1
+    assert router2["spec"]["listeners"][0]["portMapping"]["port"] == 443
+    assert router2["spec"]["listeners"][0]["portMapping"]["protocol"] == "http2"
+    assert router2["status"]["status"] == "ACTIVE"
+    connection = client.list_virtual_routers(
+        meshName=mesh_name, meshOwner=mesh_owner
+    )
+    virtual_routers = connection.get('virtualRouters')
+    assert virtual_routers is not None
+    assert isinstance(virtual_routers, list)
+    assert len(virtual_routers) == 2
+    names_counted = defaultdict(int)
+    for virtual_router in virtual_routers:
+        router_name = virtual_router.get("virtualRouterName")
+        if router_name:
+            names_counted[router_name] += 1
+    assert names_counted[ROUTER_1] == 1
+    assert names_counted[ROUTER_2] == 1
+
     connection = client.update_virtual_router(
         meshName=mesh_name,
         meshOwner=mesh_owner,
-        virtualRouterName=router2["virtualRouterName"],
+        virtualRouterName=ROUTER_2,
         spec={"listeners": [{"portMapping": {"port": 80, "protocol": "tcp"}}]},
     )
+    updated_router2 = connection.get("virtualRouter")
+    assert updated_router2 is not None
+    assert updated_router2["virtualRouterName"] == ROUTER_2
+    assert updated_router2["meshName"] == mesh_name
+    assert updated_router2["metadata"]["meshOwner"] == mesh_owner
+    assert updated_router2["metadata"]["version"] == 2
+    assert updated_router2["spec"]["listeners"][0]["portMapping"]["port"] == 80
+    assert updated_router2["spec"]["listeners"][0]["portMapping"]["protocol"] == "tcp"
+    assert updated_router2["status"]["status"] == "ACTIVE"
+
     connection = client.describe_virtual_router(
         meshName=mesh_name,
         meshOwner=mesh_owner,
-        virtualRouterName=router2["virtualRouterName"],
+        virtualRouterName=ROUTER_2,
     )
+    described_router2 = connection.get("virtualRouter")
+    assert described_router2 is not None
+    assert described_router2["virtualRouterName"] == ROUTER_2
+    assert described_router2["meshName"] == mesh_name
+    assert described_router2["metadata"]["meshOwner"] == mesh_owner
+    assert described_router2["metadata"]["version"] == 2
+    assert described_router2["spec"]["listeners"][0]["portMapping"]["port"] == 80
+    assert described_router2["spec"]["listeners"][0]["portMapping"]["protocol"] == "tcp"
+    assert described_router2["status"]["status"] == "ACTIVE"
+
     connection = client.delete_virtual_router(
         meshName=mesh_name,
         meshOwner=mesh_owner,
-        virtualRouterName=router1["virtualRouterName"],
+        virtualRouterName=ROUTER_1,
     )
-    with pytest.raises(ClientError) as e: 
-        connection = client.describe_virtual_router(
+    deleted_router1 = connection.get("virtualRouter")
+    assert deleted_router1 is not None
+    assert deleted_router1["virtualRouterName"] == ROUTER_1
+    assert deleted_router1["meshName"] == mesh_name
+    assert deleted_router1["metadata"]["meshOwner"] == mesh_owner
+    assert deleted_router1["metadata"]["version"] == 1
+    assert deleted_router1["spec"]["listeners"][0]["portMapping"]["port"] == 80
+    assert deleted_router1["spec"]["listeners"][0]["portMapping"]["protocol"] == "http"
+    assert deleted_router1["status"]["status"] == "DELETED"
+    with pytest.raises(ClientError) as e:
+        client.describe_virtual_router(
             meshName=mesh_name,
             meshOwner=mesh_owner,
-            virtualRouterName=router2["virtualRouterName"],
+            virtualRouterName=ROUTER_1,
         )
     err = e.value.response["Error"]
     assert err["Code"] == "VirtualRouterNotFound"
-    assert err["Message"] == f"The mesh {mesh_name} does not have a virtaul router named {router2["virtualRouterName"]}."
- 
+    assert (
+        err["Message"]
+        == f"The mesh {mesh_name} does not have a virtual router named {ROUTER_1}."
+    )
