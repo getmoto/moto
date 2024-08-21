@@ -720,6 +720,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         return self.launch_config.security_groups  # type: ignore[union-attr]
 
+    @property
+    def instance_tags(self) -> Dict[str, str]:
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.instance_tags
+        return {}
+
     def update(
         self,
         availability_zones: List[str],
@@ -815,6 +822,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self, count_needed: int, propagated_tags: Dict[str, str]
     ) -> None:
         propagated_tags[ASG_NAME_TAG] = self.name
+        propagated_tags.update(self.instance_tags)
 
         # VPCZoneIdentifier:
         # A comma-separated list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created.
