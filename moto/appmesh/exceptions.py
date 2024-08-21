@@ -1,6 +1,5 @@
 """Exceptions raised by the appmesh service."""
 
-from typing import Any
 
 from moto.core.exceptions import JsonRESTError
 

@@ -152,8 +152,9 @@ def test_tag_and_list_tags_for_resource(client):
 
 @mock_aws
 def test_create_describe_list_update_delete_virtual_router(client):
+    mesh_name = "mesh1"
     connection = client.create_mesh(
-        meshName="mesh1",
+        meshName=mesh_name,
         spec={
             "egressFilter": {"type": "DROP_ALL"},
             "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
@@ -164,37 +165,42 @@ def test_create_describe_list_update_delete_virtual_router(client):
     mesh = connection["mesh"]
     assert "metadata" in mesh
     mesh_owner = mesh["metadata"]["meshOwner"]
-    connection = client.create_virtual_router(
-        meshName="mesh1",
+    router1 = client.create_virtual_router(
+        meshName=mesh_name,
         meshOwner=mesh_owner,
-        spec={
-            "listeners": [ 
-                { 
-                    "portMapping": { 
-                        "port": 80,
-                        "protocol": "http"
-                    }
-                }
-            ]
-        },
+        spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
         tags=[{"key": "router_traffic", "value": "http"}],
     )
-    connection = client.create_virtual_router(
-        meshName="mesh1",
+    router2 = client.create_virtual_router(
+        meshName=mesh_name,
         meshOwner=mesh_owner,
-        spec={
-            "listeners": [ 
-                { 
-                    "portMapping": { 
-                        "port": 443,
-                        "protocol": "http2"
-                    }
-                }
-            ]
-        },
+        spec={"listeners": [{"portMapping": {"port": 443, "protocol": "http2"}}]},
         tags=[{"key": "router_traffic", "value": "https"}],
     )
-    connection = client.describe_virtual_router()
-    connection = client.update_virtual_router()
-    connection = client.delete_virtual_router()
-    connection = client.list_virtual_routers()
+    connection = client.list_virtual_routers(meshName=mesh_name, meshOwner=mesh_owner)
+    connection = client.update_virtual_router(
+        meshName=mesh_name,
+        meshOwner=mesh_owner,
+        virtualRouterName=router2["virtualRouterName"],
+        spec={"listeners": [{"portMapping": {"port": 80, "protocol": "tcp"}}]},
+    )
+    connection = client.describe_virtual_router(
+        meshName=mesh_name,
+        meshOwner=mesh_owner,
+        virtualRouterName=router2["virtualRouterName"],
+    )
+    connection = client.delete_virtual_router(
+        meshName=mesh_name,
+        meshOwner=mesh_owner,
+        virtualRouterName=router1["virtualRouterName"],
+    )
+    with pytest.raises(ClientError) as e: 
+        connection = client.describe_virtual_router(
+            meshName=mesh_name,
+            meshOwner=mesh_owner,
+            virtualRouterName=router2["virtualRouterName"],
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "VirtualRouterNotFound"
+    assert err["Message"] == f"The mesh {mesh_name} does not have a virtaul router named {router2["virtualRouterName"]}."
+ 
