@@ -197,6 +197,10 @@ backend_url_patterns = [
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
+        "timestreamquery",
+        re.compile("https?://query.timestream\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
         "timestreamwrite",
         re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com"),
     ),
