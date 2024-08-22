@@ -3,6 +3,19 @@
 import json
 from typing import Any, List
 
+from moto.appmesh.dataclasses.route import (
+    GrcpRouteRetryPolicy,
+    GrpcMetadata,
+    GrpcRoute,
+    GrpcRouteMatch,
+    Match,
+    Range,
+    RouteAction,
+    RouteActionWeightedTarget,
+    RouteSpec,
+    Timeout,
+    TimeValue,
+)
 from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.core.responses import BaseResponse
 
@@ -178,31 +191,126 @@ class AppMeshResponse(BaseResponse):
         )
         return json.dumps(dict(nextToken=next_token, virtualRouters=virtual_routers))
 
-    def create_route(self):
-        params = self._get_params()
+    def create_route(self) -> str:
+        params = json.loads(self.body)
         client_token = params.get("clientToken")
-        mesh_name = params.get("meshName")
-        mesh_owner = params.get("meshOwner")
-        route_name = params.get("routeName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        route_name = self._get_param("routeName")
         tags = params.get("tags")
-        virtual_router_name = params.get("virtualRouterName")
+        virtual_router_name = self._get_param("virtualRouterName")
 
-        spec = params.get("spec") or {}
-        priority = spec.get("priority") or {}
+        # Spec
+        _spec = params.get("spec") or {}
 
+        _grpc_route = _spec.get("grpcRoute")
+        # TODO
+        _http_route = _spec.get("httpRoute")
+        _http2_route = _spec.get("http2Route")
+        _tcp_route = _spec.get("tcpRoute")
+        grpc_route, http_route, http2_route, tcp_route = None, None, None, None
+        if _grpc_route is not None:
+            # action
+            weighted_targets = [
+                RouteActionWeightedTarget(
+                    port=target.get("port"),
+                    virtual_node=target.get("virtualNode"),
+                    weight=target.get("weight"),
+                )
+                for target in (_grpc_route.get("action") or {}).get("weightedTargets")
+                or []
+            ]
+            action = RouteAction(weighted_targets=weighted_targets)
+
+            # match
+            _route_match = _grpc_route.get("match")
+            route_match = None
+            if _route_match is not None:
+                metadata = []
+                for meta in _route_match.get("metadata") or []:
+                    _match = meta.get("match")
+                    if _match is not None:
+                        _range = _match.get("range")
+                        range = None
+                        if _range is not None:
+                            range = Range(
+                                start=_range.get("start"), end=_range.get("end")
+                            )
+                        match = Match(
+                            exact=_match.get("exact"),
+                            prefix=_match.get("prefix"),
+                            range=range,
+                            regex=_match.get("regex"),
+                            suffix=_match.get("suffix"),
+                        )
+                    metadatum = GrpcMetadata(
+                        invert=meta.get("invert"), match=match, name=meta.get("name")
+                    )
+                    metadata.append(metadatum)
+            route_match = GrpcRouteMatch(
+                metadata=metadata,
+                method_name=_route_match.get("methodName"),
+                port=_route_match.get("port"),
+                service_name=_route_match.get("serviceName"),
+            )
+
+            # retryPolicy
+            _retry_policy = _grpc_route.get("retryPolicy")
+            retry_policy = None
+            if _retry_policy is not None:
+                _per_retry_timeout = _retry_policy.get("perRetryTimeout")
+                per_retry_timeout = TimeValue(
+                    unit=_per_retry_timeout.get("unit"),
+                    value=_per_retry_timeout.get("value"),
+                )
+                retry_policy = GrcpRouteRetryPolicy(
+                    grpc_retry_events=_retry_policy.get("grpcRetryEvents"),
+                    http_retry_events=_retry_policy.get("httpRetryEvents"),
+                    max_retries=_retry_policy.get("maxRetries"),
+                    per_retry_timeout=per_retry_timeout,
+                    tcp_retry_events=_retry_policy.get("tcpRetryEvents"),
+                )
+
+            # timeout
+            _timeout = _grpc_route.get("timeout") or {}
+            timeout, idle, per_request = None, None, None
+            _idle = _timeout.get("idle")
+            if _idle is not None:
+                idle = TimeValue(unit=_idle.get("unit"), value=_idle.get("value"))
+            _per_request = _timeout.get("per_request")
+            if _per_request is not None:
+                per_request = TimeValue(
+                    unit=_per_request.get("unit"), value=_per_request.get("value")
+                )
+            timeout = Timeout(idle=idle, per_request=per_request)
+
+            # route
+            grpc_route = GrpcRoute(
+                action=action,
+                match=route_match,
+                retry_policy=retry_policy,
+                timeout=timeout,
+            )
+
+        route_spec = RouteSpec(
+            grpc_route=grpc_route,
+            http_route=http_route,
+            http2_route=http2_route,
+            priority=_spec.get("priority"),
+            tcp_route=tcp_route
+        )
         route = self.appmesh_backend.create_route(
             client_token=client_token,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             route_name=route_name,
-            spec=spec,
+            spec=route_spec,
             tags=tags,
             virtual_router_name=virtual_router_name,
         )
-        # TODO: adjust response
-        return json.dumps(dict(route=route))
+        return json.dumps(route.to_dict())
 
-    def describe_route(self):
+    def describe_route(self) -> str:
         params = self._get_params()
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
@@ -214,10 +322,9 @@ class AppMeshResponse(BaseResponse):
             route_name=route_name,
             virtual_router_name=virtual_router_name,
         )
-        # TODO: adjust response
-        return json.dumps(dict(route=route))
+        return json.dumps(route.to_dict())
 
-    def update_route(self):
+    def update_route(self) -> str:
         params = self._get_params()
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
@@ -233,10 +340,9 @@ class AppMeshResponse(BaseResponse):
             spec=spec,
             virtual_router_name=virtual_router_name,
         )
-        # TODO: adjust response
-        return json.dumps(dict(route=route))
+        return json.dumps(route.to_dict())
 
-    def delete_route(self):
+    def delete_route(self) -> str:
         params = self._get_params()
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
@@ -248,22 +354,20 @@ class AppMeshResponse(BaseResponse):
             route_name=route_name,
             virtual_router_name=virtual_router_name,
         )
-        # TODO: adjust response
-        return json.dumps(dict(route=route))
+        return json.dumps(route.to_dict())
 
-    def list_routes(self):
+    def list_routes(self) -> str:
         params = self._get_params()
         limit = params.get("limit")
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
         next_token = params.get("nextToken")
         virtual_router_name = params.get("virtualRouterName")
-        next_token, routes = self.appmesh_backend.list_routes(
+        routes, next_token = self.appmesh_backend.list_routes(
             limit=limit,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             next_token=next_token,
             virtual_router_name=virtual_router_name,
         )
-        # TODO: adjust response
         return json.dumps(dict(nextToken=next_token, routes=routes))

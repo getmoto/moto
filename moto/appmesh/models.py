@@ -7,6 +7,7 @@ from moto.appmesh.dataclasses.mesh import (
     Mesh,
     MeshSpec,
 )
+from moto.appmesh.dataclasses.route import Route
 from moto.appmesh.dataclasses.shared import Metadata
 from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
@@ -282,21 +283,21 @@ class AppMeshBackend(BaseBackend):
         spec,
         tags,
         virtual_router_name,
-    ):
+    ) -> Route:
         # implement here
         return route
 
-    def describe_route(self, mesh_name, mesh_owner, route_name, virtual_router_name):
+    def describe_route(self, mesh_name, mesh_owner, route_name, virtual_router_name) -> Route:
         # implement here
         return route
 
     def update_route(
         self, client_token, mesh_name, mesh_owner, route_name, spec, virtual_router_name
-    ):
+    ) -> Route:
         # implement here
         return route
 
-    def delete_route(self, mesh_name, mesh_owner, route_name, virtual_router_name):
+    def delete_route(self, mesh_name, mesh_owner, route_name, virtual_router_name) -> Route:
         # implement here
         return route
 

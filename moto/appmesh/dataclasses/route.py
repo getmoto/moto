@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 
-def clean_dict(obj: Dict[str, Any]):  # type: ignore[misc]
+def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
     return {
         key: value for key, value in obj.items() if value is not None and value != []
     }
@@ -22,11 +22,11 @@ class TimeValue:
 
 @dataclass
 class RouteActionWeightedTarget:
-    port: Optional[int] = field(default=None)
     virtual_node: str
     weight: int
+    port: Optional[int] = field(default=None)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {"port": self.port, "virtualNode": self.virtual_node, "weight": self.weight}
         )
@@ -36,7 +36,7 @@ class RouteActionWeightedTarget:
 class RouteAction:
     weighted_targets: List[RouteActionWeightedTarget]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {"weightedTargets": [target.to_dict() for target in self.weighted_targets]}
         )
@@ -57,7 +57,7 @@ class Match:
     regex: Optional[str]
     suffix: Optional[str]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "exact": self.exact,
@@ -75,7 +75,7 @@ class GrpcMetadata:
     match: Optional[Match]
     name: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "invert": self.invert,
@@ -104,10 +104,10 @@ class QueryParameterMatch:
 
 @dataclass
 class RouteMatchQueryParameter:
-    match: Optional[QueryParameterMatch] = field(default=None)
     name: str
+    match: Optional[QueryParameterMatch] = field(default=None)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {"match": (self.match or MissingField()).to_dict(), "name": self.name}
         )
@@ -123,7 +123,7 @@ class HttpRouteMatch:
     query_parameters: Optional[List[RouteMatchQueryParameter]] = field(default=None)
     scheme: Optional[str] = field(default=None)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "headers": [header.to_dict() for header in self.headers or []],
@@ -141,12 +141,12 @@ class HttpRouteMatch:
 
 @dataclass
 class RouteRetryPolicy:
-    http_retry_events: Optional[List[str]]
     max_retries: int
+    http_retry_events: Optional[List[str]]
     per_retry_timeout: TimeValue
     tcp_retry_events: Optional[List[str]]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "httpRetryEvents": self.http_retry_events or [],
@@ -162,7 +162,7 @@ class Timeout:
     idle: Optional[TimeValue] = field(default=None)
     per_request: Optional[TimeValue] = field(default=None)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "idle": (self.idle or MissingField).to_dict(),
@@ -178,7 +178,7 @@ class GrpcRouteMatch:
     port: Optional[int]
     service_name: Optional[str]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "metadata": [meta.to_dict() for meta in self.metadata or []],
@@ -191,13 +191,13 @@ class GrpcRouteMatch:
 
 @dataclass
 class GrcpRouteRetryPolicy:
-    grpc_retry_events: Optional[List[str]]
-    http_retry_events: Optional[List[str]]
     max_retries: int
     per_retry_timeout: TimeValue
+    grpc_retry_events: Optional[List[str]]
+    http_retry_events: Optional[List[str]]
     tcp_retry_events: Optional[List[str]]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "grpcRetryEvents": self.tcp_retry_events or [],
@@ -216,7 +216,7 @@ class GrpcRoute:
     retry_policy: Optional[GrcpRouteRetryPolicy]
     timeout: Optional[Timeout]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "action": self.action,
@@ -234,7 +234,7 @@ class HttpRoute:
     retry_policy: Optional[RouteRetryPolicy] = field(default=None)
     timeout: Optional[Timeout] = field(default=None)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "action": self.action,
@@ -257,7 +257,7 @@ class TCPRoute:
     match: Optional[TCPRouteMatch]
     timeout: Optional[Timeout]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict(
             {
                 "action": self.action,
@@ -269,18 +269,30 @@ class TCPRoute:
 
 @dataclass
 class RouteSpec:
-    grcp_route: Optional[GrpcRoute] = field(default=None)
+    priority: Optional[int]
+    grpc_route: Optional[GrpcRoute] = field(default=None)
     http_route: Optional[HttpRoute] = field(default=None)
     http2_route: Optional[HttpRoute] = field(default=None)
-    priority: Optional[int]
     tcp_route: Optional[TCPRoute] = field(default=None)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         spec = {
-            "grcpRoute": (self.grcp_route or MissingField()).to_dict(),
-            "httpRoute": (self.grcp_route or MissingField()).to_dict(),
-            "http2Route": (self.grcp_route or MissingField()).to_dict(),
+            "grpcRoute": (self.grpc_route or MissingField()).to_dict(),
+            "httpRoute": (self.http_route or MissingField()).to_dict(),
+            "http2Route": (self.http2_route or MissingField()).to_dict(),
             "priority": self.priority,
             "tcpRoute": (self.tcp_route or MissingField()).to_dict(),
         }
         return clean_dict(spec)
+
+@dataclass
+class Route:
+    client_token: Optional[str]
+    mesh_name: str
+    mesh_owner: str
+    route_name: str
+    spec: RouteSpec
+    tags: Optional[List[Dict[str, str]]]
+    virtual_router_name: str
+
+    # TODO def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
