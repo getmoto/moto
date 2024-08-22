@@ -291,6 +291,28 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_timestream_result(
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+        results = body.get("results", {})
+
+        for query in results:
+            moto_api_backend.set_timestream_result(
+                query=None if query == "null" else query,
+                query_results=results[query],
+                account_id=account_id,
+                region=region,
+            )
+        return 201, {}, ""
+
     def set_proxy_passthrough(
         self,
         request: Any,

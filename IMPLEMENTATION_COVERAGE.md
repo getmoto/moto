@@ -8481,6 +8481,27 @@
 - [ ] update_adapter
 </details>
 
+## timestream-query
+<details>
+<summary>40% implemented</summary>
+
+- [ ] cancel_query
+- [X] create_scheduled_query
+- [X] delete_scheduled_query
+- [ ] describe_account_settings
+- [X] describe_endpoints
+- [X] describe_scheduled_query
+- [ ] execute_scheduled_query
+- [ ] list_scheduled_queries
+- [ ] list_tags_for_resource
+- [ ] prepare_query
+- [X] query
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_account_settings
+- [X] update_scheduled_query
+</details>
+
 ## timestream-write
 <details>
 <summary>78% implemented</summary>
@@ -9010,7 +9031,6 @@
 - synthetics
 - taxsettings
 - timestream-influxdb
-- timestream-query
 - tnb
 - translate
 - trustedadvisor
