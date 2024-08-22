@@ -1,3 +1,4 @@
+import base64
 import copy
 import json
 import os
@@ -374,6 +375,18 @@ dummy_template_launch_template = {
                 "DesiredCapacity": "5",
             },
         },
+    },
+}
+
+template_with_base64 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "Tags": [{"Key": "baseencodedtag", "Value": {"Fn::Base64": "value"}}]
+            },
+        }
     },
 }
 
@@ -2593,6 +2606,27 @@ def test_invalid_change_set_name_special_chars():
             Description="Test Change Set",
             ChangeSetType="CREATE",
         )
+
+
+@pytest.mark.aws_verified
+@aws_verified
+def test_base64_function():
+    name = f"stack-{str(uuid.uuid4())[0:6]}"
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    sqs = boto3.client("sqs", REGION_NAME)
+    cf.create_stack(StackName=name, TemplateBody=json.dumps(template_with_base64))
+    waiter = cf.get_waiter("stack_create_complete")
+    waiter.wait(StackName=name)
+
+    qurl = sqs.list_queues(QueueNamePrefix=name)["QueueUrls"][0]
+
+    expected = base64.b64encode(b"value").decode("utf-8")
+    tags = sqs.list_queue_tags(QueueUrl=qurl)["Tags"]
+    assert tags == {"baseencodedtag": expected}
+
+    cf.delete_stack(StackName=name)
+    waiter = cf.get_waiter("stack_delete_complete")
+    waiter.wait(StackName=name)
 
 
 def get_role_name():
