@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+from tests.test_s3 import s3_aws_verified
 
 
 class TestBucketPolicy:
@@ -137,3 +138,38 @@ class TestBucketPolicy:
             ],
         }
         self.client.put_bucket_policy(Bucket="mybucket", Policy=json.dumps(policy))
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_deny_delete_policy(bucket_name=None):
+    client = boto3.client("s3", "us-east-1")
+
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyDelete",
+                "Effect": "Deny",
+                "Principal": "*",
+                "Action": "s3:DeleteObject",
+                "Resource": f"arn:aws:s3:::{bucket_name}/*",
+            }
+        ],
+    }
+    client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
+
+    client.put_object(Bucket=bucket_name, Key="obj", Body=b"")
+
+    with pytest.raises(ClientError):
+        client.delete_object(Bucket=bucket_name, Key="obj")
+
+    result = (
+        boto3.resource("s3", "us-east-1").Bucket(bucket_name).objects.all().delete()
+    )
+    assert result[0]["Errors"] == [
+        {"Key": "obj", "Code": "AccessDenied", "Message": "Access Denied"}
+    ]
+
+    # Delete Policy to make sure bucket can be emptied during teardown
+    client.delete_bucket_policy(Bucket=bucket_name)

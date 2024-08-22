@@ -2829,16 +2829,28 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             return False, None
 
     def delete_objects(
-        self, bucket_name: str, objects: List[Dict[str, Any]]
-    ) -> List[Tuple[str, Optional[str]]]:
-        deleted_objects = []
+        self,
+        bucket_name: str,
+        objects: List[Dict[str, Any]],
+        bypass_retention: bool = False,
+    ) -> Tuple[List[Tuple[str, Optional[str]]], List[str]]:
+        deleted = []
+        errors = []
         for object_ in objects:
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            self.delete_object(bucket_name, key_name, version_id=version_id)
-            deleted_objects.append((key_name, version_id))
-        return deleted_objects
+            try:
+                self.delete_object(
+                    bucket_name,
+                    key_name,
+                    version_id=version_id,
+                    bypass=bypass_retention,
+                )
+                deleted.append((key_name, version_id))
+            except AccessDeniedByLock:
+                errors.append(key_name)
+        return deleted, errors
 
     def copy_object(
         self,
