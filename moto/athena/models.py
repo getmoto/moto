@@ -62,6 +62,9 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         self.description = description
         self.configuration = configuration
 
+        if not configuration:
+             self.configuration = {}
+
         if "EnableMinimumEncryptionConfiguration" not in self.configuration:
             self.configuration["EnableMinimumEncryptionConfiguration"] = False
         if "EnforceWorkGroupConfiguration" not in self.configuration:
