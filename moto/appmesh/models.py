@@ -3,10 +3,12 @@
 from datetime import datetime
 from typing import Dict, List, Literal, Optional
 
-from moto.appmesh.dataclasses import (
+from moto.appmesh.dataclasses.mesh import (
     Mesh,
     MeshSpec,
-    Metadata,
+)
+from moto.appmesh.dataclasses.shared import Metadata
+from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
     VirtualRouter,
     VirtualRouterSpec,
@@ -271,25 +273,38 @@ class AppMeshBackend(BaseBackend):
             for virtual_router in mesh.virtual_routers.values()
         ]
 
-    def create_route(self, client_token, mesh_name, mesh_owner, route_name, spec, tags, virtual_router_name):
+    def create_route(
+        self,
+        client_token,
+        mesh_name,
+        mesh_owner,
+        route_name,
+        spec,
+        tags,
+        virtual_router_name,
+    ):
         # implement here
         return route
-    
+
     def describe_route(self, mesh_name, mesh_owner, route_name, virtual_router_name):
         # implement here
         return route
-    
-    def update_route(self, client_token, mesh_name, mesh_owner, route_name, spec, virtual_router_name):
+
+    def update_route(
+        self, client_token, mesh_name, mesh_owner, route_name, spec, virtual_router_name
+    ):
         # implement here
         return route
-    
+
     def delete_route(self, mesh_name, mesh_owner, route_name, virtual_router_name):
         # implement here
         return route
-    
-    def list_routes(self, limit, mesh_name, mesh_owner, next_token, virtual_router_name):
+
+    def list_routes(
+        self, limit, mesh_name, mesh_owner, next_token, virtual_router_name
+    ):
         # implement here
         return next_token, routes
-    
+
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

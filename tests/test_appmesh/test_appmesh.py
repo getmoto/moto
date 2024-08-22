@@ -271,6 +271,7 @@ def test_create_describe_list_update_delete_virtual_router(client):
         == f"The mesh {MESH_NAME} does not have a virtual router named {ROUTER_1}."
     )
 
+
 @mock_aws
 def test_create_describe_list_update_delete_route(client):
     MESH_NAME = "mock_mesh"
@@ -309,16 +310,16 @@ def test_create_describe_list_update_delete_route(client):
         meshName=MESH_NAME,
         virtualRouterName=ROUTER_NAME,
         routeName=ROUTE_1,
-        tags=[{"key": "license", "value": "apache" }],
-        spec=route_spec(ROUTE_1)
+        tags=[{"key": "license", "value": "apache"}],
+        spec=route_spec(ROUTE_1),
     )
     connection = client.create_route(
         meshOwner=mesh_owner,
         meshName=MESH_NAME,
         virtualRouterName=ROUTER_NAME,
         routeName=ROUTE_2,
-        tags=[{"key": "license", "value": "mit" }],
-        spec=route_spec(ROUTE_2)
+        tags=[{"key": "license", "value": "mit"}],
+        spec=route_spec(ROUTE_2),
     )
     connection = client.list_routes()
     connection = client.update_route()

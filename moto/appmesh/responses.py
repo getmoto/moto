@@ -3,7 +3,7 @@
 import json
 from typing import Any, List
 
-from moto.appmesh.dataclasses import PortMapping
+from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.core.responses import BaseResponse
 
 from .models import AppMeshBackend, appmesh_backends
@@ -177,16 +177,19 @@ class AppMeshResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(dict(nextToken=next_token, virtualRouters=virtual_routers))
-    
+
     def create_route(self):
         params = self._get_params()
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
         route_name = params.get("routeName")
-        spec = params.get("spec")
         tags = params.get("tags")
         virtual_router_name = params.get("virtualRouterName")
+
+        spec = params.get("spec") or {}
+        priority = spec.get("priority") or {}
+
         route = self.appmesh_backend.create_route(
             client_token=client_token,
             mesh_name=mesh_name,
@@ -198,7 +201,7 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(route=route))
-    
+
     def describe_route(self):
         params = self._get_params()
         mesh_name = params.get("meshName")
@@ -213,7 +216,7 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(route=route))
-    
+
     def update_route(self):
         params = self._get_params()
         client_token = params.get("clientToken")
@@ -232,7 +235,7 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(route=route))
-    
+
     def delete_route(self):
         params = self._get_params()
         mesh_name = params.get("meshName")
@@ -247,7 +250,7 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(route=route))
-    
+
     def list_routes(self):
         params = self._get_params()
         limit = params.get("limit")
