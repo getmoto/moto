@@ -37,3 +37,10 @@ class VirtualRouterNotFoundError(MeshError):
             "VirtualRouterNotFound",
             f"The mesh {mesh_name} does not have a virtual router named {virtual_router_name}.",
         )
+
+class RouteNotFoundError(MeshError):
+    def __init__(self, mesh_name: str, virtual_router_name: str, route_name: str) -> None:
+        super().__init__(
+            "RouteNotFound",
+            f"There is no route named {route_name} associated with router {virtual_router_name} in mesh {mesh_name}."
+        )

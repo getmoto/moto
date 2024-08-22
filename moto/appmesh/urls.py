@@ -13,4 +13,6 @@ url_paths = {
     "{0}/v20190125/tag$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouters/(?P<virtualRouterName>[^/]+)$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouters$": AppMeshResponse.dispatch,
+    "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouter/(?P<virtualRouterName>.*)/routes$": AppMeshResponse.dispatch,
+    "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouter/(?P<virtualRouterName>.*)/routes/(?P<routeName>[^/]+)$": AppMeshResponse.dispatch,
 }

@@ -177,3 +177,90 @@ class AppMeshResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(dict(nextToken=next_token, virtualRouters=virtual_routers))
+    
+    def create_route(self):
+        params = self._get_params()
+        client_token = params.get("clientToken")
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        route_name = params.get("routeName")
+        spec = params.get("spec")
+        tags = params.get("tags")
+        virtual_router_name = params.get("virtualRouterName")
+        route = self.appmesh_backend.create_route(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            route_name=route_name,
+            spec=spec,
+            tags=tags,
+            virtual_router_name=virtual_router_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(route=route))
+    
+    def describe_route(self):
+        params = self._get_params()
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        route_name = params.get("routeName")
+        virtual_router_name = params.get("virtualRouterName")
+        route = self.appmesh_backend.describe_route(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            route_name=route_name,
+            virtual_router_name=virtual_router_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(route=route))
+    
+    def update_route(self):
+        params = self._get_params()
+        client_token = params.get("clientToken")
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        route_name = params.get("routeName")
+        spec = params.get("spec")
+        virtual_router_name = params.get("virtualRouterName")
+        route = self.appmesh_backend.update_route(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            route_name=route_name,
+            spec=spec,
+            virtual_router_name=virtual_router_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(route=route))
+    
+    def delete_route(self):
+        params = self._get_params()
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        route_name = params.get("routeName")
+        virtual_router_name = params.get("virtualRouterName")
+        route = self.appmesh_backend.delete_route(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            route_name=route_name,
+            virtual_router_name=virtual_router_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(route=route))
+    
+    def list_routes(self):
+        params = self._get_params()
+        limit = params.get("limit")
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        next_token = params.get("nextToken")
+        virtual_router_name = params.get("virtualRouterName")
+        next_token, routes = self.appmesh_backend.list_routes(
+            limit=limit,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            next_token=next_token,
+            virtual_router_name=virtual_router_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(nextToken=next_token, routes=routes))
