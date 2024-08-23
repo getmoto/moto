@@ -129,7 +129,7 @@ def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[mis
     _idle = _timeout.get("idle")
     if _idle is not None:
         idle = TimeValue(unit=_idle.get("unit"), value=_idle.get("value"))
-    _per_request = _timeout.get("per_request")
+    _per_request = _timeout.get("perRequest")
     if _per_request is not None:
         per_request = TimeValue(
             unit=_per_request.get("unit"), value=_per_request.get("value")
