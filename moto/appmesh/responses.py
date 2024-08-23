@@ -1,22 +1,22 @@
 """Handles incoming appmesh requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, List
 
 from moto.appmesh.dataclasses.route import (
     GrcpRouteRetryPolicy,
-    GrpcMetadata,
     GrpcRoute,
-    GrpcRouteMatch,
-    Match,
-    Range,
-    RouteAction,
-    RouteActionWeightedTarget,
+    HttpRoute,
     RouteSpec,
-    Timeout,
     TimeValue,
 )
-from moto.appmesh.dataclasses.virtual_router import PortMapping
+from moto.appmesh.utils import (
+    get_action_from_route,
+    get_grpc_route_match,
+    get_http_match_from_route,
+    get_http_retry_policy_from_route,
+    get_timeout_from_route,
+    port_mappings_from_spec,
+)
 from moto.core.responses import BaseResponse
 
 from .models import AppMeshBackend, appmesh_backends
@@ -124,21 +124,12 @@ class AppMeshResponse(BaseResponse):
         )
         return json.dumps(virtual_router.to_dict())
 
-    def _port_mappings_from_spec(self, spec: Any) -> List[PortMapping]:
-        return [
-            PortMapping(
-                port=(listener.get("portMapping") or {}).get("port"),
-                protocol=(listener.get("portMapping") or {}).get("protocol"),
-            )
-            for listener in ((spec or {}).get("listeners") or [])
-        ]
-
     def create_virtual_router(self) -> str:
         params = json.loads(self.body)
         client_token = params.get("clientToken")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
-        port_mappings = self._port_mappings_from_spec(params.get("spec"))
+        port_mappings = port_mappings_from_spec(params.get("spec"))
         tags = params.get("tags")
         virtual_router_name = params.get("virtualRouterName")
         virtual_router = self.appmesh_backend.create_virtual_router(
@@ -156,7 +147,7 @@ class AppMeshResponse(BaseResponse):
         client_token = params.get("clientToken")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
-        port_mappings = self._port_mappings_from_spec(params.get("spec"))
+        port_mappings = port_mappings_from_spec(params.get("spec"))
         virtual_router_name = self._get_param("virtualRouterName")
         virtual_router = self.appmesh_backend.update_virtual_router(
             client_token=client_token,
@@ -211,59 +202,21 @@ class AppMeshResponse(BaseResponse):
         grpc_route, http_route, http2_route, tcp_route = None, None, None, None
         if _grpc_route is not None:
             # action
-            weighted_targets = [
-                RouteActionWeightedTarget(
-                    port=target.get("port"),
-                    virtual_node=target.get("virtualNode"),
-                    weight=target.get("weight"),
-                )
-                for target in (_grpc_route.get("action") or {}).get("weightedTargets")
-                or []
-            ]
-            action = RouteAction(weighted_targets=weighted_targets)
+            grpc_action = get_action_from_route(_grpc_route)
 
             # match
-            _route_match = _grpc_route.get("match")
-            route_match = None
-            if _route_match is not None:
-                metadata = []
-                for meta in _route_match.get("metadata") or []:
-                    _match = meta.get("match")
-                    if _match is not None:
-                        _range = _match.get("range")
-                        range = None
-                        if _range is not None:
-                            range = Range(
-                                start=_range.get("start"), end=_range.get("end")
-                            )
-                        match = Match(
-                            exact=_match.get("exact"),
-                            prefix=_match.get("prefix"),
-                            range=range,
-                            regex=_match.get("regex"),
-                            suffix=_match.get("suffix"),
-                        )
-                    metadatum = GrpcMetadata(
-                        invert=meta.get("invert"), match=match, name=meta.get("name")
-                    )
-                    metadata.append(metadatum)
-            route_match = GrpcRouteMatch(
-                metadata=metadata,
-                method_name=_route_match.get("methodName"),
-                port=_route_match.get("port"),
-                service_name=_route_match.get("serviceName"),
-            )
+            grpc_route_match = get_grpc_route_match(_grpc_route)
 
             # retryPolicy
             _retry_policy = _grpc_route.get("retryPolicy")
-            retry_policy = None
+            grpc_retry_policy = None
             if _retry_policy is not None:
                 _per_retry_timeout = _retry_policy.get("perRetryTimeout")
                 per_retry_timeout = TimeValue(
                     unit=_per_retry_timeout.get("unit"),
                     value=_per_retry_timeout.get("value"),
                 )
-                retry_policy = GrcpRouteRetryPolicy(
+                grpc_retry_policy = GrcpRouteRetryPolicy(
                     grpc_retry_events=_retry_policy.get("grpcRetryEvents"),
                     http_retry_events=_retry_policy.get("httpRetryEvents"),
                     max_retries=_retry_policy.get("maxRetries"),
@@ -272,32 +225,45 @@ class AppMeshResponse(BaseResponse):
                 )
 
             # timeout
-            _timeout = _grpc_route.get("timeout") or {}
-            timeout, idle, per_request = None, None, None
-            _idle = _timeout.get("idle")
-            if _idle is not None:
-                idle = TimeValue(unit=_idle.get("unit"), value=_idle.get("value"))
-            _per_request = _timeout.get("per_request")
-            if _per_request is not None:
-                per_request = TimeValue(
-                    unit=_per_request.get("unit"), value=_per_request.get("value")
-                )
-            timeout = Timeout(idle=idle, per_request=per_request)
+            grpc_timeout = get_timeout_from_route(_grpc_route)
 
             # route
             grpc_route = GrpcRoute(
-                action=action,
-                match=route_match,
-                retry_policy=retry_policy,
-                timeout=timeout,
+                action=grpc_action,
+                match=grpc_route_match,
+                retry_policy=grpc_retry_policy,
+                timeout=grpc_timeout,
             )
+
+        if _http_route is not None:
+            # action
+            http_action = get_action_from_route(_http_route)
+
+            # match
+            http_match = get_http_match_from_route(_http_route)
+
+            # retryPolicy
+            http_retry_policy = get_http_retry_policy_from_route(_http_route)
+
+            # timeout
+            http_timeout = get_timeout_from_route(_http_route)
+
+        http_route = HttpRoute(
+            action=http_action,
+            match=http_match,
+            http_retry_policy=http_retry_policy,
+            timeout=http_timeout,
+        )
+
+        # TODO http2_route
+        # TODO tcp_route
 
         route_spec = RouteSpec(
             grpc_route=grpc_route,
             http_route=http_route,
             http2_route=http2_route,
             priority=_spec.get("priority"),
-            tcp_route=tcp_route
+            tcp_route=tcp_route,
         )
         route = self.appmesh_backend.create_route(
             client_token=client_token,

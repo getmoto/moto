@@ -9,6 +9,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
+from .data import grpc_route_spec, http2_route_spec, http_route_spec, tcp_route_spec
+
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
@@ -305,13 +307,15 @@ def test_create_describe_list_update_delete_route(client):
 
     ROUTE_1 = "route1"
     ROUTE_2 = "route2"
+    ROUTE_3 = "route3"
+    ROUTE_4 = "route4"
     connection = client.create_route(
         meshOwner=mesh_owner,
         meshName=MESH_NAME,
         virtualRouterName=ROUTER_NAME,
         routeName=ROUTE_1,
         tags=[{"key": "license", "value": "apache"}],
-        spec=route_spec(ROUTE_1),
+        spec=grpc_route_spec,
     )
     connection = client.create_route(
         meshOwner=mesh_owner,
@@ -319,7 +323,23 @@ def test_create_describe_list_update_delete_route(client):
         virtualRouterName=ROUTER_NAME,
         routeName=ROUTE_2,
         tags=[{"key": "license", "value": "mit"}],
-        spec=route_spec(ROUTE_2),
+        spec=http_route_spec,
+    )
+    connection = client.create_route(
+        meshOwner=mesh_owner,
+        meshName=MESH_NAME,
+        virtualRouterName=ROUTER_NAME,
+        routeName=ROUTE_3,
+        tags=[{"key": "license", "value": "mpl"}],
+        spec=http2_route_spec,
+    )
+    connection = client.create_route(
+        meshOwner=mesh_owner,
+        meshName=MESH_NAME,
+        virtualRouterName=ROUTER_NAME,
+        routeName=ROUTE_4,
+        tags=[{"key": "license", "value": "bsd"}],
+        spec=tcp_route_spec,
     )
     connection = client.list_routes()
     connection = client.update_route()
