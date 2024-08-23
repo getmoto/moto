@@ -122,23 +122,24 @@ def validate_put_has_empty_keys(
             raise MockValidationException(msg.format(empty_key))
 
 
-def put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> bool:
+def validate_put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> None:
     # Example invalid attribute: [{'M': {'SS': {'NS': []}}}]
-    def _validate_attr(attr: Dict[str, Any]) -> bool:
-        if "NS" in attr and attr["NS"] == []:
-            return True
+    def _validate_attr(attr: Dict[str, Any]) -> None:
+        for set_type, error in [("NS", "number"), ("SS", "string")]:
+            if set_type in attr and attr[set_type] == []:
+                raise MockValidationException(
+                    f"One or more parameter values were invalid: An {error} set  may not be empty"
+                )
+
         else:
-            return any(
-                [_validate_attr(val) for val in attr.values() if isinstance(val, dict)]
-            )
+            for val in attr.values():
+                if isinstance(val, dict):
+                    _validate_attr(val)
 
     if table:
-        key_names = table.attribute_keys
-        attrs_to_check = [
-            val for attr, val in field_updates.items() if attr not in key_names
-        ]
-        return any([_validate_attr(attr) for attr in attrs_to_check])
-    return False
+        for attr, val in field_updates.items():
+            if attr not in table.attribute_keys:
+                _validate_attr(val)
 
 
 def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) -> None:
@@ -475,10 +476,7 @@ class DynamoHandler(BaseResponse):
 
         table = self.dynamodb_backend.get_table(name)
         validate_put_has_empty_keys(item, table)
-        if put_has_empty_attrs(item, table):
-            raise MockValidationException(
-                "One or more parameter values were invalid: An number set  may not be empty"
-            )
+        validate_put_has_empty_attrs(item, table)
         validate_put_has_gsi_keys_set_to_none(item, table)
 
         overwrite = "Expected" not in self.body

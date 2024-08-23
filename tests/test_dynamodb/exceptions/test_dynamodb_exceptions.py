@@ -694,24 +694,31 @@ def test_put_item_wrong_datatype():
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
 
-@mock_aws
-def test_put_item_empty_set():
+@dynamodb_aws_verified()
+@pytest.mark.aws_verified
+def test_put_item_empty_set(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    client.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "Key", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "Key", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    table = dynamodb.Table("test-table")
+
+    table = dynamodb.Table(table_name)
     with pytest.raises(ClientError) as exc:
-        table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
+        table.put_item(Item={"pk": "some-irrelevant_key", "attr2": {"SS": set([])}})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
         err["Message"]
         == "One or more parameter values were invalid: An number set  may not be empty"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName=table_name, Item={"pk": {"S": "foo"}, "stringSet": {"SS": []}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: An string set  may not be empty"
     )
 
 
