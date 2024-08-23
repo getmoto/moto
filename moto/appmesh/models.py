@@ -318,17 +318,17 @@ class AppMeshBackend(BaseBackend):
         mesh_owner: str, 
         route_name: str, 
         spec: RouteSpec, 
-        virtual_router_name: str
+        virtual_router_name: Optional[str]
     ) -> Route:
         # implement here
         return route
 
     def delete_route(
         self,
-        mesh_name: str, 
-        mesh_owner: str, 
-        route_name: str,
-        virtual_router_name: str
+        mesh_name: Optional[str], 
+        mesh_owner: Optional[str], 
+        route_name: Optional[str],
+        virtual_router_name: Optional[str]
     ) -> Route:
         # implement here
         return route
