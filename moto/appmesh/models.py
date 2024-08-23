@@ -320,7 +320,7 @@ class AppMeshBackend(BaseBackend):
         virtual_router_name: str
     ) -> Route:
         check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
-        return route
+        return self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name] 
 
     def update_route(
         self, 
@@ -332,6 +332,8 @@ class AppMeshBackend(BaseBackend):
         virtual_router_name: Optional[str]
     ) -> Route:
         check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
+        route = self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name]
+        route.spec = spec
         return route
 
     def delete_route(
@@ -341,7 +343,9 @@ class AppMeshBackend(BaseBackend):
         route_name: Optional[str],
         virtual_router_name: Optional[str]
     ) -> Route:
-        # implement here
+        check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
+        route = self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name] 
+        del self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name]
         return route
 
     @paginate(pagination_model=PAGINATION_MODEL)
