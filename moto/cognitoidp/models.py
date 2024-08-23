@@ -1553,8 +1553,26 @@ class CognitoIdpBackend(BaseBackend):
 
             user.password = new_password
             user.status = UserStatus.CONFIRMED
-            del self.sessions[session]
 
+            if user_pool.mfa_config == "ON":
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                if (
+                    mfas_can_setup
+                    and not user.software_token_mfa_enabled
+                    and not user.sms_mfa_enabled
+                ):
+                    return {
+                        "ChallengeName": "MFA_SETUP",
+                        "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
+                        "Session": session,
+                    }
+
+            del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "PASSWORD_VERIFIER":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
