@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from moto.appmesh.dataclasses.route import (
     GrpcMetadatum,
@@ -71,7 +71,7 @@ def get_grpc_route_match(route: Any) -> GrpcRouteMatch:  # type: ignore[misc]
     _route_match = route.get("match")
     metadata = None
     if _route_match is not None:
-        metadata = self._get_route_match_metadata(_route_match.get("metadata") or [])
+        metadata = get_route_match_metadata(_route_match.get("metadata") or [])
     return GrpcRouteMatch(
         metadata=metadata,
         method_name=_route_match.get("methodName"),
@@ -84,7 +84,7 @@ def get_http_match_from_route(route: Any) -> HttpRouteMatch:  # type: ignore[mis
     _route_match = route.get("match") or {}
     headers, path, query_parameters = None, None, None
     if _route_match is not None:
-        headers = self._get_route_match_metadata(_route_match.get("headers") or [])
+        headers = get_route_match_metadata(_route_match.get("headers") or [])
         _path = _route_match.get("path")
         if _path is not None:
             path = RouteMatchPath(exact=_path.get("exact"), regex=path.get("regex"))

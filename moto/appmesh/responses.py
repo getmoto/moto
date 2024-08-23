@@ -191,23 +191,17 @@ class AppMeshResponse(BaseResponse):
         tags = params.get("tags")
         virtual_router_name = self._get_param("virtualRouterName")
 
-        # Spec
         _spec = params.get("spec") or {}
 
         _grpc_route = _spec.get("grpcRoute")
-        # TODO
         _http_route = _spec.get("httpRoute")
         _http2_route = _spec.get("http2Route")
         _tcp_route = _spec.get("tcpRoute")
         grpc_route, http_route, http2_route, tcp_route = None, None, None, None
         if _grpc_route is not None:
-            # action
             grpc_action = get_action_from_route(_grpc_route)
-
-            # match
             grpc_route_match = get_grpc_route_match(_grpc_route)
 
-            # retryPolicy
             _retry_policy = _grpc_route.get("retryPolicy")
             grpc_retry_policy = None
             if _retry_policy is not None:
@@ -224,10 +218,8 @@ class AppMeshResponse(BaseResponse):
                     tcp_retry_events=_retry_policy.get("tcpRetryEvents"),
                 )
 
-            # timeout
             grpc_timeout = get_timeout_from_route(_grpc_route)
 
-            # route
             grpc_route = GrpcRoute(
                 action=grpc_action,
                 match=grpc_route_match,
@@ -236,24 +228,17 @@ class AppMeshResponse(BaseResponse):
             )
 
         if _http_route is not None:
-            # action
             http_action = get_action_from_route(_http_route)
-
-            # match
             http_match = get_http_match_from_route(_http_route)
-
-            # retryPolicy
             http_retry_policy = get_http_retry_policy_from_route(_http_route)
-
-            # timeout
             http_timeout = get_timeout_from_route(_http_route)
 
-        http_route = HttpRoute(
-            action=http_action,
-            match=http_match,
-            http_retry_policy=http_retry_policy,
-            timeout=http_timeout,
-        )
+            http_route = HttpRoute(
+                action=http_action,
+                match=http_match,
+                http_retry_policy=http_retry_policy,
+                timeout=http_timeout,
+            )
 
         # TODO http2_route
         # TODO tcp_route
