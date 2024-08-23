@@ -1,3 +1,4 @@
+import base64
 import collections.abc as collections_abc
 import copy
 import functools
@@ -244,6 +245,10 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
             for az in ("a", "b", "c", "d"):
                 result.append(f"{region}{az}")
             return result
+
+        if "Fn::Base64" in resource_json:
+            value = clean_json(resource_json["Fn::Base64"], resources_map)
+            return base64.b64encode(value.encode("utf-8")).decode("utf-8")
 
         if "Fn::ToJsonString" in resource_json:
             return json.dumps(
