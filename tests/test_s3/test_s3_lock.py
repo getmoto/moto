@@ -9,17 +9,27 @@ from botocore.config import Config
 from moto import mock_aws
 from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
+from tests.test_s3 import s3_aws_verified
 
 
-@mock_aws
-def test_locked_object():
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_locked_object(bucket_name=None):
     s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
 
-    bucket_name = "locked-bucket-test"
     key_name = "file.txt"
     seconds_lock = 2
 
-    s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    s3_client.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            "ObjectLockEnabled": "Enabled",
+            "Rule": {"DefaultRetention": {"Mode": "COMPLIANCE", "Days": 1}},
+        },
+    )
 
     until = utcnow() + datetime.timedelta(0, seconds_lock)
     s3_client.put_object(
@@ -33,19 +43,33 @@ def test_locked_object():
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
     version_id = versions_response["Versions"][0]["VersionId"]
 
-    deleted = False
-    try:
+    with pytest.raises(ClientError) as exc:
         s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-        deleted = True
-    except ClientError as exc:
-        assert exc.response["Error"]["Code"] == "AccessDenied"
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AccessDenied"
 
-    assert deleted is False
+    response = s3_client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": key_name, "VersionId": version_id},
+            ],
+        },
+    )
+    assert len(response["Errors"]) == 1
+    assert response["Errors"][0]["Key"] == key_name
+    assert response["Errors"][0]["Code"] == "AccessDenied"
 
-    # cleaning
-    time.sleep(seconds_lock)
-    s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-    s3_client.delete_bucket(Bucket=bucket_name)
+    response = s3_client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": key_name, "VersionId": version_id},
+            ],
+        },
+        BypassGovernanceRetention=True,
+    )
+    assert {"Key": key_name, "VersionId": version_id} in response["Deleted"]
 
 
 @mock_aws

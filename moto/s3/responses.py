@@ -28,7 +28,6 @@ from .exceptions import (
     AccessForbidden,
     BucketAccessDeniedError,
     BucketAlreadyExists,
-    BucketMustHaveLockeEnabled,
     DuplicateTagKeys,
     HeadOnDeleteMarker,
     IllegalLocationConstraintException,
@@ -769,9 +768,6 @@ class S3Response(BaseResponse):
         if "object-lock" in querystring:
             config = self._lock_config_from_body()
 
-            if not self.backend.get_bucket(bucket_name).object_lock_enabled:
-                raise BucketMustHaveLockeEnabled
-
             self.backend.put_object_lock_configuration(
                 bucket_name,
                 config.get("enabled"),  # type: ignore
@@ -1185,6 +1181,9 @@ class S3Response(BaseResponse):
     ) -> TYPE_RESPONSE:
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(self.body, strip_whitespace=False)
+        bypass_retention = (
+            self.headers.get("x-amz-bypass-governance-retention") == "True"
+        )
 
         objects = body_dict["Delete"].get("Object", [])
         if not isinstance(objects, list):
@@ -1195,17 +1194,32 @@ class S3Response(BaseResponse):
             raise MalformedXML()
 
         if authenticated:
-            deleted_objects = self.backend.delete_objects(bucket_name, objects)
+            objects_to_delete = []
             errors = []
+            for obj in objects:
+                from moto.iam.access_control import PermissionResult
+
+                bucket = self.backend.get_bucket(bucket_name)
+                perm = bucket.get_permission(
+                    "s3:DeleteObject", f"arn:aws:s3:::{bucket_name}/{obj['Key']}"
+                )
+                if perm == PermissionResult.DENIED:
+                    errors.append((obj["Key"], "AccessDenied", "Access Denied"))
+                else:
+                    objects_to_delete.append(obj)
+            deleted, errored = self.backend.delete_objects(
+                bucket_name, objects_to_delete, bypass_retention
+            )
+            errors.extend([(err, "AccessDenied", "Access Denied") for err in errored])
         else:
-            deleted_objects = []
+            deleted = []
             # [(key_name, errorcode, 'error message'), ..]
             errors = [(o["Key"], "AccessDenied", "Access Denied") for o in objects]
 
         return (
             200,
             {},
-            template.render(deleted=deleted_objects, delete_errors=errors),
+            template.render(deleted=deleted, delete_errors=errors),
         )
 
     def _handle_range_header(

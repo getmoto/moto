@@ -558,16 +558,6 @@ class BucketNeedsToBeNew(S3ClientError):
         super().__init__("InvalidBucket", "Bucket needs to be empty")
 
 
-class BucketMustHaveLockeEnabled(S3ClientError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "InvalidBucketState",
-            "Object Lock configuration cannot be enabled on existing buckets",
-        )
-
-
 class CopyObjectMustChangeSomething(S3ClientError):
     code = 400
 
