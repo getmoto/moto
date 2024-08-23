@@ -336,14 +336,23 @@ class AppMeshBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_routes(
         self, 
-        limit: int, 
+        limit: Optional[int], 
         mesh_name: str, 
-        mesh_owner: str, 
-        next_token: str, 
+        mesh_owner: Optional[str], 
+        next_token: Optional[str], 
         virtual_router_name: str
     ):
-        # implement here
-        return routes
+        if mesh_name not in self.meshes:
+            raise MeshNotFoundError(mesh_name=mesh_name)
+        mesh = self.meshes[mesh_name]
+        if mesh_owner is not None and mesh.metadata.mesh_owner != mesh_owner:
+            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
+        if virtual_router_name not in mesh.virtual_routers:
+            raise VirtualRouterNotFoundError(
+                virtual_router_name=virtual_router_name, mesh_name=mesh_name
+            )
+        virtual_router = mesh.virtual_routers[virtual_router_name]
+        return [route.metadata.to_dict() for route in virtual_router.routes.values()]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

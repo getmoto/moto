@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 
@@ -287,9 +288,35 @@ class RouteSpec:
 
 
 @dataclass
+class RouteMetadata:
+    arn: str
+    mesh_name: str
+    mesh_owner: str
+    resource_owner: str
+    route_name: str
+    virtual_router_name: str
+    created_at: datetime = datetime.now()
+    last_updated_at: datetime = datetime.now()
+    version: int = 1
+
+    def to_dict(self):
+        return {
+            'arn': self.arn,
+            'createdAt': self.created_at,
+            'lastUpdatedAt': self.last_updated_at,
+            'meshName': self.mesh_name,
+            'meshOwner': self.mesh_owner,
+            'resourceOwner': self.resource_owner,
+            'routeName': self.route_name,
+            'version': self.version,
+            'virtualRouterName': self.virtual_router_name
+        }
+
+@dataclass
 class Route:
     mesh_name: str
     mesh_owner: str
+    metadata: RouteMetadata 
     route_name: str
     spec: RouteSpec
     tags: Optional[List[Dict[str, str]]]

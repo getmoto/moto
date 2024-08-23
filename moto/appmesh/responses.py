@@ -333,12 +333,11 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(route.to_dict())
 
     def list_routes(self) -> str:
-        params = self._get_params()
-        limit = params.get("limit")
-        mesh_name = params.get("meshName")
-        mesh_owner = params.get("meshOwner")
-        next_token = params.get("nextToken")
-        virtual_router_name = params.get("virtualRouterName")
+        limit = self._get_param("limit")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        next_token = self._get_param("nextToken")
+        virtual_router_name = self._get_param("virtualRouterName")
         routes, next_token = self.appmesh_backend.list_routes(
             limit=limit,
             mesh_name=mesh_name,

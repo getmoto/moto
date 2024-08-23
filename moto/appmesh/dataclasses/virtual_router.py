@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional
 
 from moto.appmesh.dataclasses.mesh import Status
+from moto.appmesh.dataclasses.route import Route
 from moto.appmesh.dataclasses.shared import Metadata
 
 
@@ -20,6 +21,7 @@ class VirtualRouterSpec:
 class VirtualRouter:
     mesh_name: str
     metadata: Metadata
+    routes: Dict[str, Route]
     spec: VirtualRouterSpec
     status: Status
     virtual_router_name: str
