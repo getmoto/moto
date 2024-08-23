@@ -7,7 +7,7 @@ from moto.appmesh.dataclasses.mesh import (
     Mesh,
     MeshSpec,
 )
-from moto.appmesh.dataclasses.route import Route
+from moto.appmesh.dataclasses.route import Route, RouteSpec
 from moto.appmesh.dataclasses.shared import Metadata
 from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
@@ -42,6 +42,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "virtualRouterName",
     },
+    "list_routes": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": ["routeName"],
+    }
 }
 
 
@@ -276,40 +282,68 @@ class AppMeshBackend(BaseBackend):
 
     def create_route(
         self,
-        client_token,
-        mesh_name,
-        mesh_owner,
-        route_name,
-        spec,
-        tags,
-        virtual_router_name,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: str,
+        route_name: str,
+        spec: RouteSpec,
+        tags: Optional[List[Dict[str, str]]],
+        virtual_router_name: str,
     ) -> Route:
-        # implement here
+        route = Route(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            route_name=route_name,
+            spec=spec,
+            tags=tags,
+            virtual_router_name=virtual_router_name
+        )
+        # TODO add to virtual router
         return route
 
     def describe_route(
-        self, mesh_name, mesh_owner, route_name, virtual_router_name
+        self,
+        mesh_name: str, 
+        mesh_owner: str, 
+        route_name: str, 
+        virtual_router_name: str
     ) -> Route:
         # implement here
         return route
 
     def update_route(
-        self, client_token, mesh_name, mesh_owner, route_name, spec, virtual_router_name
+        self, 
+        client_token: Optional[str], 
+        mesh_name: str, 
+        mesh_owner: str, 
+        route_name: str, 
+        spec: RouteSpec, 
+        virtual_router_name: str
     ) -> Route:
         # implement here
         return route
 
     def delete_route(
-        self, mesh_name, mesh_owner, route_name, virtual_router_name
+        self,
+        mesh_name: str, 
+        mesh_owner: str, 
+        route_name: str,
+        virtual_router_name: str
     ) -> Route:
         # implement here
         return route
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_routes(
-        self, limit, mesh_name, mesh_owner, next_token, virtual_router_name
+        self, 
+        limit: int, 
+        mesh_name: str, 
+        mesh_owner: str, 
+        next_token: str, 
+        virtual_router_name: str
     ):
         # implement here
-        return next_token, routes
+        return routes
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

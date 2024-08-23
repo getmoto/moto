@@ -18,7 +18,7 @@ from moto.appmesh.dataclasses.route import (
 from moto.appmesh.dataclasses.virtual_router import PortMapping
 
 
-def port_mappings_from_spec(self, spec: Any) -> List[PortMapping]:  # type: ignore[misc]
+def port_mappings_from_spec(spec: Any) -> List[PortMapping]:  # type: ignore[misc]
     return [
         PortMapping(
             port=(listener.get("portMapping") or {}).get("port"),
@@ -87,7 +87,7 @@ def get_http_match_from_route(route: Any) -> HttpRouteMatch:  # type: ignore[mis
         headers = get_route_match_metadata(_route_match.get("headers") or [])
         _path = _route_match.get("path")
         if _path is not None:
-            path = RouteMatchPath(exact=_path.get("exact"), regex=path.get("regex"))
+            path = RouteMatchPath(exact=_path.get("exact"), regex=_path.get("regex"))
         _query_parameters = _route_match.get("queryParameters")
         if _query_parameters is not None:
             query_parameters = []

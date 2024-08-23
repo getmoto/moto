@@ -7,6 +7,8 @@ from moto.appmesh.dataclasses.route import (
     GrpcRoute,
     HttpRoute,
     RouteSpec,
+    TCPRoute,
+    TCPRouteMatch,
     TimeValue,
 )
 from moto.appmesh.utils import (
@@ -240,8 +242,31 @@ class AppMeshResponse(BaseResponse):
                 timeout=http_timeout,
             )
 
-        # TODO http2_route
-        # TODO tcp_route
+        if _http2_route is not None:
+            http2_action = get_action_from_route(_http2_route)
+            http2_match = get_http_match_from_route(_http2_route)
+            http2_retry_policy = get_http_retry_policy_from_route(_http2_route)
+            http2_timeout = get_timeout_from_route(_http2_route)
+
+            http2_route = HttpRoute(
+                action=http2_action,
+                match=http2_match,
+                http_retry_policy=http2_retry_policy,
+                timeout=http2_timeout,
+            )
+
+        if _tcp_route is not None:
+            tcp_action = get_action_from_route(_tcp_route)
+            tcp_timeout = get_timeout_from_route(_tcp_route)
+
+            _tcp_match = _tcp_route.get("match")
+            tcp_match = None
+            if _tcp_match is not None:
+                tcp_match = TCPRouteMatch(port=_tcp_match.get("port"))
+
+            tcp_route = TCPRoute(
+                action=tcp_action, match=tcp_match, timeout=tcp_timeout
+            )
 
         route_spec = RouteSpec(
             grpc_route=grpc_route,

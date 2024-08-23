@@ -165,8 +165,8 @@ class Timeout:
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
             {
-                "idle": (self.idle or MissingField).to_dict(),
-                "perRequest": (self.per_request or MissingField).to_dict(),
+                "idle": (self.idle or MissingField()).to_dict(),
+                "perRequest": (self.per_request or MissingField()).to_dict(),
             }
         )
 
@@ -288,7 +288,6 @@ class RouteSpec:
 
 @dataclass
 class Route:
-    client_token: Optional[str]
     mesh_name: str
     mesh_owner: str
     route_name: str
@@ -296,4 +295,11 @@ class Route:
     tags: Optional[List[Dict[str, str]]]
     virtual_router_name: str
 
-    # TODO def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
+        return clean_dict({
+            "meshName": self.mesh_name,
+            "routeName": self.route_name,
+            "spec": self.spec.to_dict(),
+            "tags": self.tags,
+            "virtualRouterName": self.virtual_router_name
+        })
