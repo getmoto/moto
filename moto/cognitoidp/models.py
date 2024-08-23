@@ -2074,7 +2074,12 @@ class CognitoIdpBackend(BaseBackend):
             # We shouldn't get here due to enum validation of auth_flow
             return None  # type: ignore[return-value]
 
-    def associate_software_token(self, access_token: str) -> Dict[str, str]:
+    def associate_software_token(self, access_token: str, session: str) -> Dict[str, str]:
+        if session:
+            if session in self.sessions:
+                return {"SecretCode": str(random.uuid4()), "Session": session}
+            raise NotAuthorizedError(session)
+
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
@@ -2084,10 +2089,19 @@ class CognitoIdpBackend(BaseBackend):
 
         raise NotAuthorizedError(access_token)
 
-    def verify_software_token(self, access_token: str) -> Dict[str, str]:
+    def verify_software_token(self, access_token: str, session: str) -> Dict[str, str]:
         """
         The parameter UserCode has not yet been implemented
         """
+        if session:
+            user_pool = self.sessions.get(session)
+            if not user_pool:
+                raise ResourceNotFoundError(session)
+
+            # TODO: Set token_verified on the user associated with this session
+
+            return {"Status": "SUCCESS"}
+
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
