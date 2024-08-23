@@ -7,7 +7,7 @@ from moto.appmesh.dataclasses.mesh import (
     Mesh,
     MeshSpec,
 )
-from moto.appmesh.dataclasses.route import Route, RouteSpec
+from moto.appmesh.dataclasses.route import Route, RouteMetadata, RouteSpec
 from moto.appmesh.dataclasses.shared import Metadata
 from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
@@ -20,6 +20,7 @@ from moto.appmesh.exceptions import (
     ResourceNotFoundError,
     VirtualRouterNotFoundError,
 )
+from moto.appmesh.utils import check_route_availability, check_route_validity, check_router_validity
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
 
@@ -290,15 +291,25 @@ class AppMeshBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         virtual_router_name: str,
     ) -> Route:
+        check_route_availability(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
+        metadata = RouteMetadata(
+            arn="TODO",
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            resource_owner=mesh_owner,
+            route_name=route_name,
+            virtual_router_name=virtual_router_name
+        )
         route = Route(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
+            metadata=metadata,
             route_name=route_name,
             spec=spec,
             tags=tags,
             virtual_router_name=virtual_router_name
         )
-        # TODO add to virtual router
+        self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name] = route
         return route
 
     def describe_route(
@@ -308,7 +319,7 @@ class AppMeshBackend(BaseBackend):
         route_name: str, 
         virtual_router_name: str
     ) -> Route:
-        # implement here
+        check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
         return route
 
     def update_route(
@@ -320,7 +331,7 @@ class AppMeshBackend(BaseBackend):
         spec: RouteSpec, 
         virtual_router_name: Optional[str]
     ) -> Route:
-        # implement here
+        check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
         return route
 
     def delete_route(
@@ -342,16 +353,8 @@ class AppMeshBackend(BaseBackend):
         next_token: Optional[str], 
         virtual_router_name: str
     ):
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name=mesh_name)
-        mesh = self.meshes[mesh_name]
-        if mesh_owner is not None and mesh.metadata.mesh_owner != mesh_owner:
-            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-        if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(
-                virtual_router_name=virtual_router_name, mesh_name=mesh_name
-            )
-        virtual_router = mesh.virtual_routers[virtual_router_name]
+        check_router_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
+        virtual_router = self.meshes[mesh_name].virtual_routers[virtual_router_name]
         return [route.metadata.to_dict() for route in virtual_router.routes.values()]
 
 

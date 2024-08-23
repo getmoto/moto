@@ -1,5 +1,6 @@
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
+from moto.appmesh.dataclasses.mesh import Mesh
 from moto.appmesh.dataclasses.route import (
     GrpcMetadatum,
     GrpcRouteMatch,
@@ -16,6 +17,7 @@ from moto.appmesh.dataclasses.route import (
     TimeValue,
 )
 from moto.appmesh.dataclasses.virtual_router import PortMapping
+from moto.appmesh.exceptions import MeshNotFoundError, MeshOwnerDoesNotMatchError, RouteNameAlreadyTakenError, RouteNotFoundError, VirtualRouterNotFoundError
 
 
 def port_mappings_from_spec(spec: Any) -> List[PortMapping]:  # type: ignore[misc]
@@ -139,3 +141,27 @@ def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[mis
         if idle is not None or per_request is not None
         else None
     )
+
+def check_router_validity(meshes: Dict[str, Mesh], mesh_name: str, mesh_owner: str, virtual_router_name: str) -> None:
+    if mesh_name not in meshes:
+        raise MeshNotFoundError(mesh_name=mesh_name)
+    mesh = meshes[mesh_name]
+    if mesh_owner is not None and mesh.metadata.mesh_owner != mesh_owner:
+        raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
+    if virtual_router_name not in mesh.virtual_routers:
+        raise VirtualRouterNotFoundError(
+            virtual_router_name=virtual_router_name, mesh_name=mesh_name
+        )
+    return
+
+def check_route_validity(meshes: Dict[str, Mesh], mesh_name: str, mesh_owner: str, virtual_router_name: str, route_name: str) -> None:
+    check_router_validity(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
+    if route_name not in meshes[mesh_name].virtual_routers[virtual_router_name].routes:
+        raise RouteNotFoundError(mesh_name=mesh_name, virtual_router_name=virtual_router_name, route_name=route_name)
+    return
+
+def check_route_availability(meshes: Dict[str, Mesh], mesh_name: str, mesh_owner: str, virtual_router_name: str, route_name: str) -> None:
+    check_router_validity(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
+    if route_name in meshes[mesh_name].virtual_routers[virtual_router_name].routes:
+        raise RouteNameAlreadyTakenError(mesh_name=mesh_name, virtual_router_name=virtual_router_name, route_name=route_name)
+    return

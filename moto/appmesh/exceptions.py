@@ -47,3 +47,12 @@ class RouteNotFoundError(MeshError):
             "RouteNotFound",
             f"There is no route named {route_name} associated with router {virtual_router_name} in mesh {mesh_name}.",
         )
+
+class RouteNameAlreadyTakenError(MeshError):
+    def __init__(
+        self, mesh_name: str, virtual_router_name: str, route_name: str
+    ) -> None:
+        super().__init__(
+            "RouteNameAlreadyTaken",
+            f"There is already a route named {route_name} associated with router {virtual_router_name} in mesh {mesh_name}.",
+        )
