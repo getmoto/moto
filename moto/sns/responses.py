@@ -3,7 +3,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, Tuple, Union
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.core.utils import camelcase_to_underscores
 
 from .exceptions import InvalidParameterValue, SNSNotFoundError
@@ -801,6 +801,14 @@ class SNSResponse(BaseResponse):
         self.backend.untag_resource(arn, tag_keys)
 
         return self.response_template(UNTAG_RESOURCE_TEMPLATE).render()
+
+    @staticmethod
+    def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        sns = SNSResponse()
+        sns.setup_class(request, full_url, headers)
+        key_name = full_url.split("/")[-1]
+        key = sns.backend._message_public_keys[key_name]
+        return 200, {}, key
 
 
 CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
