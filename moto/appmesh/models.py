@@ -359,7 +359,7 @@ class AppMeshBackend(BaseBackend):
     ):
         check_router_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
         virtual_router = self.meshes[mesh_name].virtual_routers[virtual_router_name]
-        return [route.metadata.to_dict() for route in virtual_router.routes.values()]
+        return [route.metadata.formatted_for_list_api() for route in virtual_router.routes.values()]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

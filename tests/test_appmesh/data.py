@@ -1,4 +1,5 @@
 grpc_route_spec = {
+    'priority': 1,
     'grpcRoute': {
         'action': {
             'weightedTargets': [
@@ -47,6 +48,7 @@ grpc_route_spec = {
 }
 
 http_route_spec = {
+    'priority': 2,
     'httpRoute': {
         'action': {
             'weightedTargets': [
@@ -98,6 +100,7 @@ http_route_spec = {
 }
 
 http2_route_spec = {
+    'priority': 3,
     'http2Route': {
         'action': {
             'weightedTargets': [
@@ -157,6 +160,7 @@ http2_route_spec = {
 }
 
 tcp_route_spec = {
+    'priority': 4,
     'tcpRoute': {
         'action': {
             'weightedTargets': [

@@ -2,6 +2,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from moto.appmesh.dataclasses.shared import Metadata
+
 
 def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
     return {
@@ -288,18 +290,12 @@ class RouteSpec:
 
 
 @dataclass
-class RouteMetadata:
-    arn: str
+class RouteMetadata(Metadata):
     mesh_name: str
-    mesh_owner: str
-    resource_owner: str
     route_name: str
     virtual_router_name: str
-    created_at: datetime = datetime.now()
-    last_updated_at: datetime = datetime.now()
-    version: int = 1
 
-    def to_dict(self):
+    def formatted_for_list_api(self):
         return {
             'arn': self.arn,
             'createdAt': self.created_at,
@@ -311,6 +307,18 @@ class RouteMetadata:
             'version': self.version,
             'virtualRouterName': self.virtual_router_name
         }
+    
+    def formatted_for_crud_apis(self):
+        return {
+            'arn': self.arn,
+            'createdAt': self.created_at,
+            'lastUpdatedAt': self.last_updated_at,
+            'meshOwner': self.mesh_owner,
+            'resourceOwner': self.resource_owner,
+            'uid': self.uid,
+            'version': self.version
+        }
+        
 
 @dataclass
 class Route:
@@ -325,6 +333,7 @@ class Route:
     def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "meshName": self.mesh_name,
+            "metadata": self.metadata.formatted_for_crud_apis(),
             "routeName": self.route_name,
             "spec": self.spec.to_dict(),
             "tags": self.tags,
