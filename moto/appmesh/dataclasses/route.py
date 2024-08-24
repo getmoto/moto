@@ -1,5 +1,4 @@
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from moto.appmesh.dataclasses.shared import Metadata
@@ -295,47 +294,49 @@ class RouteMetadata(Metadata):
     route_name: str
     virtual_router_name: str
 
-    def formatted_for_list_api(self):
+    def formatted_for_list_api(self) -> Dict[str, Any]: # type: ignore
         return {
-            'arn': self.arn,
-            'createdAt': self.created_at,
-            'lastUpdatedAt': self.last_updated_at,
-            'meshName': self.mesh_name,
-            'meshOwner': self.mesh_owner,
-            'resourceOwner': self.resource_owner,
-            'routeName': self.route_name,
-            'version': self.version,
-            'virtualRouterName': self.virtual_router_name
+            "arn": self.arn,
+            "createdAt": self.created_at,
+            "lastUpdatedAt": self.last_updated_at,
+            "meshName": self.mesh_name,
+            "meshOwner": self.mesh_owner,
+            "resourceOwner": self.resource_owner,
+            "routeName": self.route_name,
+            "version": self.version,
+            "virtualRouterName": self.virtual_router_name,
         }
-    
-    def formatted_for_crud_apis(self):
+
+    def formatted_for_crud_apis(self) -> Dict[str, Any]: # type: ignore
         return {
-            'arn': self.arn,
-            'createdAt': self.created_at,
-            'lastUpdatedAt': self.last_updated_at,
-            'meshOwner': self.mesh_owner,
-            'resourceOwner': self.resource_owner,
-            'uid': self.uid,
-            'version': self.version
+            "arn": self.arn,
+            "createdAt": self.created_at,
+            "lastUpdatedAt": self.last_updated_at,
+            "meshOwner": self.mesh_owner,
+            "resourceOwner": self.resource_owner,
+            "uid": self.uid,
+            "version": self.version,
         }
-        
+
 
 @dataclass
 class Route:
     mesh_name: str
     mesh_owner: str
-    metadata: RouteMetadata 
+    metadata: RouteMetadata
     route_name: str
     spec: RouteSpec
     tags: Optional[List[Dict[str, str]]]
     virtual_router_name: str
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
-        return clean_dict({
-            "meshName": self.mesh_name,
-            "metadata": self.metadata.formatted_for_crud_apis(),
-            "routeName": self.route_name,
-            "spec": self.spec.to_dict(),
-            "tags": self.tags,
-            "virtualRouterName": self.virtual_router_name
-        })
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return clean_dict(
+            {
+                "meshName": self.mesh_name,
+                "metadata": self.metadata.formatted_for_crud_apis(),
+                "routeName": self.route_name,
+                "spec": self.spec.to_dict(),
+                "tags": self.tags,
+                "virtualRouterName": self.virtual_router_name,
+            }
+        )

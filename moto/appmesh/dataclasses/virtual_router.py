@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional
 
 from moto.appmesh.dataclasses.mesh import Status
@@ -21,11 +21,11 @@ class VirtualRouterSpec:
 class VirtualRouter:
     mesh_name: str
     metadata: Metadata
-    routes: Dict[str, Route]
     spec: VirtualRouterSpec
     status: Status
     virtual_router_name: str
     tags: List[Dict[str, str]]
+    routes: Dict[str, Route] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]
         return {

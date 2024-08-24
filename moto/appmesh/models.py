@@ -20,7 +20,11 @@ from moto.appmesh.exceptions import (
     ResourceNotFoundError,
     VirtualRouterNotFoundError,
 )
-from moto.appmesh.utils import check_route_availability, check_route_validity, check_router_validity
+from moto.appmesh.utils import (
+    check_route_availability,
+    check_route_validity,
+    check_router_validity,
+)
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
 
@@ -48,7 +52,7 @@ PAGINATION_MODEL = {
         "limit_key": "limit",
         "limit_default": 100,
         "unique_attribute": ["routeName"],
-    }
+    },
 }
 
 
@@ -291,14 +295,20 @@ class AppMeshBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         virtual_router_name: str,
     ) -> Route:
-        check_route_availability(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
+        check_route_availability(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            route_name=route_name,
+            virtual_router_name=virtual_router_name,
+        )
         metadata = RouteMetadata(
             arn="TODO",
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             resource_owner=mesh_owner,
             route_name=route_name,
-            virtual_router_name=virtual_router_name
+            virtual_router_name=virtual_router_name,
         )
         route = Route(
             mesh_name=mesh_name,
@@ -307,59 +317,99 @@ class AppMeshBackend(BaseBackend):
             route_name=route_name,
             spec=spec,
             tags=tags,
-            virtual_router_name=virtual_router_name
+            virtual_router_name=virtual_router_name,
         )
-        self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name] = route
+        self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[
+            route_name
+        ] = route
         return route
 
     def describe_route(
-        self,
-        mesh_name: str, 
-        mesh_owner: str, 
-        route_name: str, 
-        virtual_router_name: str
+        self, mesh_name: str, mesh_owner: str, route_name: str, virtual_router_name: str
     ) -> Route:
-        check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
-        return self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name] 
+        check_route_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+            route_name=route_name,
+        )
+        return (
+            self.meshes[mesh_name]
+            .virtual_routers[virtual_router_name]
+            .routes[route_name]
+        )
 
     def update_route(
-        self, 
-        client_token: Optional[str], 
-        mesh_name: str, 
-        mesh_owner: str, 
-        route_name: str, 
-        spec: RouteSpec, 
-        virtual_router_name: Optional[str]
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: str,
+        route_name: str,
+        spec: RouteSpec,
+        virtual_router_name: str,
     ) -> Route:
-        check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
-        route = self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name]
+        check_route_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+            route_name=route_name,
+        )
+        route = (
+            self.meshes[mesh_name]
+            .virtual_routers[virtual_router_name]
+            .routes[route_name]
+        )
         route.spec = spec
         return route
 
     def delete_route(
         self,
-        mesh_name: Optional[str], 
-        mesh_owner: Optional[str], 
-        route_name: Optional[str],
-        virtual_router_name: Optional[str]
+        mesh_name: Optional[str],
+        mesh_owner: Optional[str],
+        route_name: str,
+        virtual_router_name: Optional[str],
     ) -> Route:
-        check_route_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name, route_name=route_name)
-        route = self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name] 
-        del self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[route_name]
+        check_route_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+            route_name=route_name,
+        )
+        route = (
+            self.meshes[mesh_name]
+            .virtual_routers[virtual_router_name]
+            .routes[route_name]
+        )
+        del (
+            self.meshes[mesh_name]
+            .virtual_routers[virtual_router_name]
+            .routes[route_name]
+        )
         return route
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_routes(
-        self, 
-        limit: Optional[int], 
-        mesh_name: str, 
-        mesh_owner: Optional[str], 
-        next_token: Optional[str], 
-        virtual_router_name: str
+        self,
+        limit: Optional[int],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        next_token: Optional[str],
+        virtual_router_name: str,
     ):
-        check_router_validity(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_router_name=virtual_router_name)
+        check_router_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+        )
         virtual_router = self.meshes[mesh_name].virtual_routers[virtual_router_name]
-        return [route.metadata.formatted_for_list_api() for route in virtual_router.routes.values()]
+        return [
+            route.metadata.formatted_for_list_api()
+            for route in virtual_router.routes.values()
+        ]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
