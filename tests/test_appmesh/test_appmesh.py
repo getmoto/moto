@@ -343,6 +343,20 @@ def test_create_describe_list_update_delete_route(client):
         spec=tcp_route_spec,
     )
     connection = client.list_routes()
+    routes = connection.get("routes")
+    assert routes is not None
+    assert isinstance(routes, list)
+    assert len(routes) == 4
+    names_counted = defaultdict(int)
+    for route in routes:
+        route_name = route.get("routeName")
+        if route_name:
+            names_counted[route_name] += 1
+    assert names_counted[ROUTE_1] == 1
+    assert names_counted[ROUTE_2] == 1
+    assert names_counted[ROUTE_3] == 1
+    assert names_counted[ROUTE_4] == 1
+ 
     connection = client.update_route()
     connection = client.describe_route()
     connection = client.delete_route()
