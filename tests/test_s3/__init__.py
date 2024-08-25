@@ -3,6 +3,7 @@ from functools import wraps
 from uuid import uuid4
 
 import boto3
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.s3.responses import DEFAULT_REGION_NAME
@@ -60,15 +61,23 @@ def s3_aws_verified(func):
 
 
 def empty_bucket(client, bucket_name):
+    # Delete any object lock config, if set before
+    try:
+        client.get_object_lock_configuration(Bucket=bucket_name)
+        kwargs = {"BypassGovernanceRetention": True}
+    except ClientError:
+        # No ObjectLock set
+        kwargs = {}
+
     versions = client.list_object_versions(Bucket=bucket_name).get("Versions", [])
     for key in versions:
         client.delete_object(
-            Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId")
+            Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId"), **kwargs
         )
     delete_markers = client.list_object_versions(Bucket=bucket_name).get(
         "DeleteMarkers", []
     )
     for key in delete_markers:
         client.delete_object(
-            Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId")
+            Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId"), **kwargs
         )
