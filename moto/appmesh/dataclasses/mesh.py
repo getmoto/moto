@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional
 
-from moto.appmesh.dataclasses.shared import Metadata
+from moto.appmesh.dataclasses.shared import Metadata, Status
 from moto.appmesh.dataclasses.virtual_router import VirtualRouter
 
 
@@ -9,9 +9,6 @@ from moto.appmesh.dataclasses.virtual_router import VirtualRouter
 class MeshSpec:
     egress_filter: Dict[Literal["type"], Optional[str]]
     service_discovery: Dict[Literal["ip_preference"], Optional[str]]
-
-
-Status = Dict[Literal["status"], str]
 
 
 @dataclass

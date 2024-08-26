@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional
 
-from moto.appmesh.dataclasses.mesh import Status
+from moto.appmesh.dataclasses.shared import Status
 from moto.appmesh.dataclasses.route import Route
 from moto.appmesh.dataclasses.shared import Metadata
 

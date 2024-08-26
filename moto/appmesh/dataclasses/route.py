@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from moto.appmesh.dataclasses.shared import Metadata
+from moto.appmesh.dataclasses.shared import Metadata, Status
 
 
 def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
@@ -328,6 +328,7 @@ class Route:
     spec: RouteSpec
     tags: Optional[List[Dict[str, str]]]
     virtual_router_name: str
+    status: Status = field(default={"status": "ACTIVE"})
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -336,6 +337,7 @@ class Route:
                 "metadata": self.metadata.formatted_for_crud_apis(),
                 "routeName": self.route_name,
                 "spec": self.spec.to_dict(),
+                "status": self.status,
                 "tags": self.tags,
                 "virtualRouterName": self.virtual_router_name,
             }

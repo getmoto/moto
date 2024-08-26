@@ -299,11 +299,6 @@ def test_create_describe_list_update_delete_route(client):
         spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
         tags=[{"key": "router_traffic", "value": "http"}],
     )
-    router = connection.get("virtualRouter")
-    assert router is not None
-    assert router["meshName"] == MESH_NAME
-    assert router["metadata"]["meshOwner"] == mesh_owner
-    assert router["virtualRouterName"] == ROUTER_NAME
 
     ROUTE_1 = "route1"
     ROUTE_2 = "route2"
@@ -318,6 +313,50 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "apache"}],
         spec=grpc_route_spec,
     )
+
+    assert "route" in connection
+    route = connection["route"]
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 1
+    grpc_route = spec["grpcRoute"]
+
+    # action assertions
+    assert len(grpc_route["action"]["weightedTargets"]) == 1
+    weighted_target = grpc_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 8080
+    assert weighted_target["virtualNode"] == "my-virtual-node"
+    assert weighted_target["weight"] == 50
+
+    # match assertions
+    assert len(grpc_route["match"]["metadata"]) == 1
+    metadata = grpc_route["match"]["metadata"][0]
+    assert metadata["invert"] is False
+    assert metadata["match"]["exact"] == "example-value"
+    assert metadata["name"] == "my-metadata-key"
+    assert grpc_route["match"]["methodName"] == "myMethod"
+    assert grpc_route["match"]["port"] == 8080
+    assert grpc_route["match"]["serviceName"] == "myService"
+
+    # retryPolicy assertions
+    assert grpc_route["retryPolicy"]["grpcRetryEvents"] == ["unavailable", "resource-exhausted"]
+    assert grpc_route["retryPolicy"]["httpRetryEvents"] == ["gateway-error"]
+    assert grpc_route["retryPolicy"]["maxRetries"] == 3
+    assert grpc_route["retryPolicy"]["perRetryTimeout"]["unit"] == "ms"
+    assert grpc_route["retryPolicy"]["perRetryTimeout"]["value"] == 200
+    assert grpc_route["retryPolicy"]["tcpRetryEvents"] == ["connection-error"]
+
+    # timeout assertions
+    assert grpc_route["timeout"]["idle"]["unit"] == "s"
+    assert grpc_route["timeout"]["idle"]["value"] == 60
+    assert grpc_route["timeout"]["perRequest"]["unit"] == "s"
+    assert grpc_route["timeout"]["perRequest"]["value"] == 5
+    router = connection.get("virtualRouter")
+    assert router is not None
+    assert router["meshName"] == MESH_NAME
+    assert router["metadata"]["meshOwner"] == mesh_owner
+    assert router["virtualRouterName"] == ROUTER_NAME
+
     connection = client.create_route(
         meshOwner=mesh_owner,
         meshName=MESH_NAME,
@@ -326,6 +365,45 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "mit"}],
         spec=http_route_spec,
     )
+    assert "route" in connection
+    route = connection["route"]
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 2
+    http_route = http_route_spec["httpRoute"]
+
+    # action assertions
+    assert len(http_route["action"]["weightedTargets"]) == 1
+    weighted_target = http_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 80
+    assert weighted_target["virtualNode"] == "web-server-node"
+    assert weighted_target["weight"] == 100
+
+    # match assertions
+    assert len(http_route["match"]["headers"]) == 1
+    header = http_route["match"]["headers"][0]
+    assert header["invert"] is True
+    assert header["match"]["prefix"] == "Bearer "
+    assert header["name"] == "Authorization"
+    assert http_route["match"]["method"] == "POST"
+    assert http_route["match"]["path"]["exact"] == "/login"
+    assert http_route["match"]["port"] == 80
+    assert http_route["match"]["queryParameters"] == []
+    assert http_route["match"]["scheme"] == "http"
+
+    # retryPolicy assertions
+    assert http_route["retryPolicy"]["httpRetryEvents"] == ["gateway-error", "client-error"]
+    assert http_route["retryPolicy"]["maxRetries"] == 0
+    assert http_route["retryPolicy"]["perRetryTimeout"]["unit"] == "ms"
+    assert http_route["retryPolicy"]["perRetryTimeout"]["value"] == 0
+    assert http_route["retryPolicy"]["tcpRetryEvents"] == ["connection-error"]
+
+    # timeout assertions
+    assert http_route["timeout"]["idle"]["unit"] == "s"
+    assert http_route["timeout"]["idle"]["value"] == 15
+    assert http_route["timeout"]["perRequest"]["unit"] == "s"
+    assert http_route["timeout"]["perRequest"]["value"] == 1
+
     connection = client.create_route(
         meshOwner=mesh_owner,
         meshName=MESH_NAME,
@@ -334,6 +412,49 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "mpl"}],
         spec=http2_route_spec,
     )
+    assert "route" in connection
+    route = connection["route"]
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 3
+    http2_route = spec["http2Route"]
+
+    # action assertions
+    assert len(http2_route["action"]["weightedTargets"]) == 1
+    weighted_target = http2_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 80
+    assert weighted_target["virtualNode"] == "web-server-node"
+    assert weighted_target["weight"] == 75
+
+    # match assertions
+    assert len(http2_route["match"]["headers"]) == 1
+    header = http2_route["match"]["headers"][0]
+    assert header["invert"] is False
+    assert header["match"]["exact"] == "application/json"
+    assert header["name"] == "Content-Type"
+    assert http2_route["match"]["method"] == "GET"
+    assert http2_route["match"]["path"]["exact"] == "/api/products"
+    assert http2_route["match"]["port"] == 80
+    assert http2_route["match"]["prefix"] == "/api"
+    assert len(http2_route["match"]["queryParameters"]) == 1
+    query_param = http2_route["match"]["queryParameters"][0]
+    assert query_param["match"]["exact"] == "electronics"
+    assert query_param["name"] == "category"
+    assert http2_route["match"]["scheme"] == "https"
+
+    # retryPolicy assertions
+    assert http2_route["retryPolicy"]["httpRetryEvents"] == ["server-error"]
+    assert http2_route["retryPolicy"]["maxRetries"] == 2
+    assert http2_route["retryPolicy"]["perRetryTimeout"]["unit"] == "ms"
+    assert http2_route["retryPolicy"]["perRetryTimeout"]["value"] == 500
+    assert http2_route["retryPolicy"]["tcpRetryEvents"] == ["connection-error"]
+
+    # timeout assertions
+    assert http2_route["timeout"]["idle"]["unit"] == "s"
+    assert http2_route["timeout"]["idle"]["value"] == 30
+    assert http2_route["timeout"]["perRequest"]["unit"] == "s"
+    assert http2_route["timeout"]["perRequest"]["value"] == 2
+
     connection = client.create_route(
         meshOwner=mesh_owner,
         meshName=MESH_NAME,
@@ -342,6 +463,27 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "bsd"}],
         spec=tcp_route_spec,
     )
+    assert "route" in connection
+    route = connection["route"]
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 4
+    tcp_route = tcp_route_spec["tcpRoute"]
+
+    # action assertions
+    assert len(tcp_route["action"]["weightedTargets"]) == 1
+    weighted_target = tcp_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 22
+    assert weighted_target["virtualNode"] == "ssh-server-node"
+    assert weighted_target["weight"] == 100
+
+    # match assertions
+    assert tcp_route["match"]["port"] == 22
+
+    # timeout assertions
+    assert tcp_route["timeout"]["idle"]["unit"] == "s"
+    assert tcp_route["timeout"]["idle"]["value"] == 600
+
     connection = client.list_routes()
     routes = connection.get("routes")
     assert routes is not None
@@ -358,13 +500,28 @@ def test_create_describe_list_update_delete_route(client):
     assert names_counted[ROUTE_4] == 1
  
     connection = client.update_route()
-    connection = client.describe_route()
-    connection = client.delete_route()
+    connection = client.describe_route(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        routeName=ROUTE_1,
+        virtualRouterName=ROUTER_NAME
+    )
+    connection = client.delete_route(        
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        routeName=ROUTE_4,
+        virtualRouterName=ROUTER_NAME
+    )
     with pytest.raises(ClientError) as e:
-        client.describe_route()
+        client.describe_route(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            routeName=ROUTE_4,
+            virtualRouterName=ROUTER_NAME
+        )
     err = e.value.response["Error"]
     assert err["Code"] == "RouteNotFound"
     assert (
         err["Message"]
-        == f"There is no route named {ROUTE_1} associated with router {ROUTER_NAME} in mesh {MESH_NAME}."
+        == f"There is no route named {ROUTE_4} associated with router {ROUTER_NAME} in mesh {MESH_NAME}."
     )

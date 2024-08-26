@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Dict, Literal
 from uuid import uuid4
 
 
@@ -12,3 +13,6 @@ class Metadata:
     last_updated_at: datetime = datetime.now()
     uid: str = uuid4().hex
     version: int = 1
+
+
+Status = Dict[Literal["status"], str]
