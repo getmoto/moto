@@ -273,7 +273,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
         == f"The mesh {MESH_NAME} does not have a virtual router named {ROUTER_1}."
     )
 
-
 @mock_aws
 def test_create_describe_list_update_delete_route(client):
     MESH_NAME = "mock_mesh"
@@ -507,20 +506,126 @@ def test_create_describe_list_update_delete_route(client):
         virtualRouterName=ROUTER_NAME,
         spec=modified_http_route_spec
     )
+    assert "route" in connection
+    route = connection["route"]
+    assert route["metadata"]["version"] == 2
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 5
+
+    modified_http_route = spec["httpRoute"]
+
+    # action assertions
+    assert len(modified_http_route["action"]["weightedTargets"]) == 1
+    weighted_target = modified_http_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 8080
+    assert weighted_target["virtualNode"] == "api-server-node"
+    assert weighted_target["weight"] == 50
+
+    # match assertions
+    assert len(modified_http_route["match"]["headers"]) == 1
+    header = modified_http_route["match"]["headers"][0]
+    assert header["invert"] is False
+    assert header["match"]["prefix"] == "Token "
+    assert header["name"] == "X-Auth-Token"
+    assert modified_http_route["match"]["method"] == "GET"
+    assert modified_http_route["match"]["path"]["exact"] == "/profile"
+    assert modified_http_route["match"]["port"] == 443
+    assert len(modified_http_route["match"]["queryParameters"]) == 1
+    query_param = modified_http_route["match"]["queryParameters"][0]
+    assert query_param["match"]["exact"] == "modified-match"
+    assert query_param["name"] == "filter-param"
+    assert modified_http_route["match"]["scheme"] == "https"
+
+    # retryPolicy assertions
+    assert modified_http_route["retryPolicy"]["httpRetryEvents"] == ["server-error"]
+    assert modified_http_route["retryPolicy"]["maxRetries"] == 3
+    assert modified_http_route["retryPolicy"]["perRetryTimeout"]["unit"] == "s"
+    assert modified_http_route["retryPolicy"]["perRetryTimeout"]["value"] == 2
+    assert modified_http_route["retryPolicy"]["tcpRetryEvents"] == ["connection-reset"]
+
+    # timeout assertions
+    assert modified_http_route["timeout"]["idle"]["unit"] == "m"
+    assert modified_http_route["timeout"]["idle"]["value"] == 5
+    assert modified_http_route["timeout"]["perRequest"]["unit"] == "ms"
+    assert modified_http_route["timeout"]["perRequest"]["value"] == 500
     connection = client.describe_route(
         meshName=MESH_NAME,
         meshOwner=mesh_owner,
         routeName=ROUTE_2,
         virtualRouterName=ROUTER_NAME
     )
-    # TODO describe assertions
+    assert "route" in connection
+    route = connection["route"]
+    assert route["metadata"]["version"] == 2
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 5
+
+    described_http_route = spec["httpRoute"]
+
+    # action assertions
+    assert len(described_http_route["action"]["weightedTargets"]) == 1
+    weighted_target = described_http_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 8080
+    assert weighted_target["virtualNode"] == "api-server-node"
+    assert weighted_target["weight"] == 50
+
+    # match assertions
+    assert len(described_http_route["match"]["headers"]) == 1
+    header = described_http_route["match"]["headers"][0]
+    assert header["invert"] is False
+    assert header["match"]["prefix"] == "Token "
+    assert header["name"] == "X-Auth-Token"
+    assert described_http_route["match"]["method"] == "GET"
+    assert described_http_route["match"]["path"]["exact"] == "/profile"
+    assert described_http_route["match"]["port"] == 443
+    assert len(described_http_route["match"]["queryParameters"]) == 1
+    query_param = described_http_route["match"]["queryParameters"][0]
+    assert query_param["match"]["exact"] == "modified-match"
+    assert query_param["name"] == "filter-param"
+    assert described_http_route["match"]["scheme"] == "https"
+
+    # retryPolicy assertions
+    assert described_http_route["retryPolicy"]["httpRetryEvents"] == ["server-error"]
+    assert described_http_route["retryPolicy"]["maxRetries"] == 3
+    assert described_http_route["retryPolicy"]["perRetryTimeout"]["unit"] == "s"
+    assert described_http_route["retryPolicy"]["perRetryTimeout"]["value"] == 2
+    assert described_http_route["retryPolicy"]["tcpRetryEvents"] == ["connection-reset"]
+
+    # timeout assertions
+    assert described_http_route["timeout"]["idle"]["unit"] == "m"
+    assert described_http_route["timeout"]["idle"]["value"] == 5
+    assert described_http_route["timeout"]["perRequest"]["unit"] == "ms"
+    assert described_http_route["timeout"]["perRequest"]["value"] == 500
     connection = client.delete_route(        
         meshName=MESH_NAME,
         meshOwner=mesh_owner,
         routeName=ROUTE_4,
         virtualRouterName=ROUTER_NAME
     )
-    # TODO delete assertions
+    assert "route" in connection
+    route = connection["route"]
+    assert route["status"]["status"] == "DELETED"
+    assert "spec" in route
+    spec = route["spec"]
+    assert spec["priority"] == 4
+    deleted_route = tcp_route_spec["tcpRoute"]
+
+    # action assertions
+    assert len(deleted_route["action"]["weightedTargets"]) == 1
+    weighted_target = deleted_route["action"]["weightedTargets"][0]
+    assert weighted_target["port"] == 22
+    assert weighted_target["virtualNode"] == "ssh-server-node"
+    assert weighted_target["weight"] == 100
+
+    # match assertions
+    assert deleted_route["match"]["port"] == 22
+
+    # timeout assertions
+    assert deleted_route["timeout"]["idle"]["unit"] == "s"
+    assert deleted_route["timeout"]["idle"]["value"] == 600 
+
     with pytest.raises(ClientError) as e:
         client.describe_route(
             meshName=MESH_NAME,

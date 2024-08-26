@@ -14,5 +14,8 @@ class Metadata:
     uid: str = uuid4().hex
     version: int = 1
 
+    def update_timestamp(self):
+        self.last_updated_at = datetime.now()
+
 
 Status = Dict[Literal["status"], str]

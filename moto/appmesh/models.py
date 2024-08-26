@@ -118,7 +118,7 @@ class AppMeshBackend(BaseBackend):
             updated = True
 
         if updated:
-            self.meshes[mesh_name].metadata.last_updated_at = datetime.now()
+            self.meshes[mesh_name].metadata.update_timestamp()
             self.meshes[mesh_name].metadata.version += 1
         return self.meshes[mesh_name]
 
@@ -237,7 +237,7 @@ class AppMeshBackend(BaseBackend):
         spec = VirtualRouterSpec(listeners=listeners)
         virtual_router = mesh.virtual_routers[virtual_router_name]
         virtual_router.spec = spec
-        virtual_router.metadata.last_updated_at = datetime.now()
+        virtual_router.metadata.update_timestamp()
         virtual_router.metadata.version += 1
         return virtual_router
 
@@ -362,6 +362,8 @@ class AppMeshBackend(BaseBackend):
             .routes[route_name]
         )
         route.spec = spec
+        route.metadata.version += 1
+        route.metadata.update_timestamp()
         return route
 
     def delete_route(
@@ -383,6 +385,7 @@ class AppMeshBackend(BaseBackend):
             .virtual_routers[virtual_router_name]
             .routes[route_name]
         )
+        route.status["status"] = "DELETED"
         del (
             self.meshes[mesh_name]
             .virtual_routers[virtual_router_name]
