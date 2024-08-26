@@ -12,6 +12,7 @@ from unittest import SkipTest, mock
 
 import boto3
 import pycognito
+import pyotp
 import pytest
 import requests
 from botocore.exceptions import ClientError, ParamValidationError
@@ -23,6 +24,7 @@ from moto.cognitoidp.utils import create_id
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core import set_initial_no_auth_action_count
 from moto.utilities.utils import load_resource
+from tests import allow_aws_request
 from tests.test_cognitoidp import cognitoidp_aws_verified
 
 private_key = load_resource(cognitoidp.__name__, "resources/jwks-private.json")
@@ -2931,6 +2933,7 @@ def user_authentication_flow(
     password = "P2$Sword"
     if not user_pool:
         user_pool = conn.create_user_pool(PoolName=str(uuid.uuid4()))
+
     user_pool_id = user_pool["UserPool"]["Id"]
     user_attribute_name = str(uuid.uuid4())
     user_attribute_value = str(uuid.uuid4())
@@ -2986,13 +2989,18 @@ def user_authentication_flow(
 
     # add mfa token
     if with_mfa:
-        conn.associate_software_token(
+        resp = conn.associate_software_token(
             AccessToken=result["AuthenticationResult"]["AccessToken"]
         )
+        secret_code = resp["SecretCode"]
+        totp = pyotp.TOTP(secret_code)
+        user_code = totp.now()
 
-        conn.verify_software_token(
-            AccessToken=result["AuthenticationResult"]["AccessToken"], UserCode="123456"
+        resp = conn.verify_software_token(
+            AccessToken=result["AuthenticationResult"]["AccessToken"],
+            UserCode=user_code,
         )
+        assert resp["Status"] == "SUCCESS"
 
         conn.set_user_mfa_preference(
             AccessToken=result["AuthenticationResult"]["AccessToken"],
@@ -3016,30 +3024,36 @@ def user_authentication_flow(
             AuthFlow="USER_SRP_AUTH",
             AuthParameters={
                 "USERNAME": username,
-                "SRP_A": uuid.uuid4().hex,
+                "SRP_A": pycognito.aws_srp.long_to_hex(aws_srp.large_a_value),
                 "SECRET_HASH": secret_hash,
             },
         )
 
+        challenge_response = aws_srp.process_challenge(
+            result["ChallengeParameters"], auth_params
+        )
         result = conn.respond_to_auth_challenge(
             ClientId=client_id,
             ChallengeName=result["ChallengeName"],
-            ChallengeResponses={
-                "PASSWORD_CLAIM_SIGNATURE": str(uuid.uuid4()),
-                "PASSWORD_CLAIM_SECRET_BLOCK": result["Session"],
-                "TIMESTAMP": str(uuid.uuid4()),
-                "USERNAME": username,
-            },
+            ChallengeResponses=challenge_response,
         )
+        assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
 
+        # AWS needs a new user code, otherwise they will throw an exception
+        #    ExpiredCodeException: Your software token has already been used once.
+        new_user_code = totp.now()
+        if allow_aws_request():
+            while user_code == new_user_code:
+                new_user_code = totp.now()
+                time.sleep(1)
         result = conn.respond_to_auth_challenge(
             ClientId=client_id,
             Session=result["Session"],
             ChallengeName=result["ChallengeName"],
             ChallengeResponses={
-                "SOFTWARE_TOKEN_MFA_CODE": "123456",
+                "SOFTWARE_TOKEN_MFA_CODE": new_user_code,
                 "USERNAME": username,
-                "SECRET_HASH": secret_hash,
+                "SECRET_HASH": auth_params["SECRET_HASH"],
             },
         )
 
@@ -3057,11 +3071,14 @@ def user_authentication_flow(
     }
 
 
-@mock_aws
-def test_user_authentication_flow():
+@cognitoidp_aws_verified(generate_secret=True, with_mfa="OPTIONAL")
+@pytest.mark.aws_verified
+def test_user_authentication_flow(user_pool=None, user_pool_client=None):
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    user_authentication_flow(conn)
+    user_authentication_flow(
+        conn, user_pool=user_pool, user_pool_client=user_pool_client
+    )
 
 
 @mock_aws
@@ -4569,6 +4586,86 @@ def test_initiate_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status():
 
     assert result["AuthenticationResult"]["IdToken"] != ""
     assert result["AuthenticationResult"]["AccessToken"] != ""
+
+
+@cognitoidp_aws_verified(explicit_auth_flows=["USER_PASSWORD_AUTH"], with_mfa="ON")
+@pytest.mark.aws_verified
+def test_initiate_mfa_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status(
+    user_pool=None, user_pool_client=None
+):
+    # Test flow:
+    # 1. Create user with FORCE_CHANGE_PASSWORD status
+    # 2. Configure MFA
+    # 3. Login with temporary password
+    # 4. Check that the right challenge is received
+    # 5. Respond to challenge with new password
+    # 6. Check that the MFA challenge is received
+    # 7. Return the MFA challenge
+    # 8. Check that the access tokens are received
+
+    client = boto3.client("cognito-idp", "us-west-2")
+    username = str(uuid.uuid4())
+
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+
+    # Create user in status FORCE_CHANGE_PASSWORD
+    temporary_password = "P2$Sword"
+    client.admin_create_user(
+        UserPoolId=user_pool_id, Username=username, TemporaryPassword=temporary_password
+    )
+
+    result = client.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result.get("AuthenticationResult") is None
+
+    new_password = "P2$Sword2"
+    result = client.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        Session=result["Session"],
+        ChallengeResponses={
+            "NEW_PASSWORD": new_password,
+            "USERNAME": username,
+        },
+    )
+    assert result["ChallengeName"] == "MFA_SETUP"
+    assert result["Session"]
+
+    assoc_response = client.associate_software_token(Session=result["Session"])
+
+    secret_code = assoc_response["SecretCode"]
+    totp = pyotp.TOTP(secret_code)
+    user_code = totp.now()
+
+    verify_response = client.verify_software_token(
+        Session=assoc_response["Session"], UserCode=user_code
+    )
+    assert verify_response["Status"] == "SUCCESS"
+
+    new_user_code = totp.now()
+    if allow_aws_request():
+        while user_code == new_user_code:
+            new_user_code = totp.now()
+            time.sleep(1)
+    result = client.respond_to_auth_challenge(
+        ClientId=client_id,
+        Session=verify_response["Session"],
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": new_user_code,
+            "USERNAME": username,
+        },
+    )
+    assert result["ChallengeParameters"] == {}
+    assert result["AuthenticationResult"]["AccessToken"]
+    assert result["AuthenticationResult"]["RefreshToken"]
+    assert result["AuthenticationResult"]["IdToken"]
 
 
 @mock_aws
