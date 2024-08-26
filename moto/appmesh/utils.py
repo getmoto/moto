@@ -2,8 +2,11 @@ from typing import Any, Dict, List, Optional
 
 from moto.appmesh.dataclasses.mesh import Mesh
 from moto.appmesh.dataclasses.route import (
+    GrcpRouteRetryPolicy,
     GrpcMetadatum,
+    GrpcRoute,
     GrpcRouteMatch,
+    HttpRoute,
     HttpRouteMatch,
     HttpRouteRetryPolicy,
     Match,
@@ -13,6 +16,9 @@ from moto.appmesh.dataclasses.route import (
     RouteActionWeightedTarget,
     RouteMatchPath,
     RouteMatchQueryParameter,
+    RouteSpec,
+    TCPRoute,
+    TCPRouteMatch,
     Timeout,
     TimeValue,
 )
@@ -26,7 +32,7 @@ from moto.appmesh.exceptions import (
 )
 
 
-def port_mappings_from_spec(spec: Any) -> List[PortMapping]:  # type: ignore[misc]
+def port_mappings_from_router_spec(spec: Any) -> List[PortMapping]:  # type: ignore[misc]
     return [
         PortMapping(
             port=(listener.get("portMapping") or {}).get("port"),
@@ -119,17 +125,20 @@ def get_http_match_from_route(route: Any) -> HttpRouteMatch:  # type: ignore[mis
 
 
 def get_http_retry_policy_from_route(route: Any) -> Optional[HttpRouteRetryPolicy]:  # type: ignore[misc]
-    _per_retry_timeout = route.get("perRetryTimeout")
-    per_retry_timeout = TimeValue(
-        unit=_per_retry_timeout.get("unit"), value=_per_retry_timeout.get("value")
-    )
-    return HttpRouteRetryPolicy(
-        max_retries=route.get("maxRetries"),
-        http_retry_events=route.get("httpRetryEvents"),
-        per_retry_timeout=per_retry_timeout,
-        tcp_retry_events=route.get("tcpRetryEvents"),
-    )
-
+    _retry_policy = route.get("retryPolicy")
+    retry_policy = None
+    if _retry_policy is not None:
+        _per_retry_timeout = _retry_policy.get("perRetryTimeout")
+        per_retry_timeout = TimeValue(
+            unit=_per_retry_timeout.get("unit"), value=_per_retry_timeout.get("value")
+        )
+        retry_policy = HttpRouteRetryPolicy(
+            max_retries=_retry_policy.get("maxRetries"),
+            http_retry_events=_retry_policy.get("httpRetryEvents"),
+            per_retry_timeout=per_retry_timeout,
+            tcp_retry_events=_retry_policy.get("tcpRetryEvents"),
+        )
+    return retry_policy
 
 def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[misc]
     _timeout = route.get("timeout") or {}
@@ -206,3 +215,85 @@ def check_route_availability(
             route_name=route_name,
         )
     return
+
+def build_spec(spec: Dict[str, Any]): # type: ignore[misc]
+    _grpc_route = spec.get("grpcRoute")
+    _http_route = spec.get("httpRoute")
+    _http2_route = spec.get("http2Route")
+    _tcp_route = spec.get("tcpRoute")
+    grpc_route, http_route, http2_route, tcp_route = None, None, None, None
+    if _grpc_route is not None:
+        grpc_action = get_action_from_route(_grpc_route)
+        grpc_route_match = get_grpc_route_match(_grpc_route)
+
+        _retry_policy = _grpc_route.get("retryPolicy")
+        grpc_retry_policy = None
+        if _retry_policy is not None:
+            _per_retry_timeout = _retry_policy.get("perRetryTimeout")
+            per_retry_timeout = TimeValue(
+                unit=_per_retry_timeout.get("unit"),
+                value=_per_retry_timeout.get("value"),
+            )
+            grpc_retry_policy = GrcpRouteRetryPolicy(
+                grpc_retry_events=_retry_policy.get("grpcRetryEvents"),
+                http_retry_events=_retry_policy.get("httpRetryEvents"),
+                max_retries=_retry_policy.get("maxRetries"),
+                per_retry_timeout=per_retry_timeout,
+                tcp_retry_events=_retry_policy.get("tcpRetryEvents"),
+            )
+
+        grpc_timeout = get_timeout_from_route(_grpc_route)
+
+        grpc_route = GrpcRoute(
+            action=grpc_action,
+            match=grpc_route_match,
+            retry_policy=grpc_retry_policy,
+            timeout=grpc_timeout,
+        )
+
+    if _http_route is not None:
+        http_action = get_action_from_route(_http_route)
+        http_match = get_http_match_from_route(_http_route)
+        http_retry_policy = get_http_retry_policy_from_route(_http_route)
+        http_timeout = get_timeout_from_route(_http_route)
+
+        http_route = HttpRoute(
+            action=http_action,
+            match=http_match,
+            retry_policy=http_retry_policy,
+            timeout=http_timeout,
+        )
+
+    if _http2_route is not None:
+        http2_action = get_action_from_route(_http2_route)
+        http2_match = get_http_match_from_route(_http2_route)
+        http2_retry_policy = get_http_retry_policy_from_route(_http2_route)
+        http2_timeout = get_timeout_from_route(_http2_route)
+
+        http2_route = HttpRoute(
+            action=http2_action,
+            match=http2_match,
+            retry_policy=http2_retry_policy,
+            timeout=http2_timeout,
+        )
+
+    if _tcp_route is not None:
+        tcp_action = get_action_from_route(_tcp_route)
+        tcp_timeout = get_timeout_from_route(_tcp_route)
+
+        _tcp_match = _tcp_route.get("match")
+        tcp_match = None
+        if _tcp_match is not None:
+            tcp_match = TCPRouteMatch(port=_tcp_match.get("port"))
+
+        tcp_route = TCPRoute(
+            action=tcp_action, match=tcp_match, timeout=tcp_timeout
+        )
+
+    return RouteSpec(
+        grpc_route=grpc_route,
+        http_route=http_route,
+        http2_route=http2_route,
+        priority=spec.get("priority"),
+        tcp_route=tcp_route,
+    )

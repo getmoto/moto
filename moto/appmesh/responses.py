@@ -2,22 +2,9 @@
 
 import json
 
-from moto.appmesh.dataclasses.route import (
-    GrcpRouteRetryPolicy,
-    GrpcRoute,
-    HttpRoute,
-    RouteSpec,
-    TCPRoute,
-    TCPRouteMatch,
-    TimeValue,
-)
 from moto.appmesh.utils import (
-    get_action_from_route,
-    get_grpc_route_match,
-    get_http_match_from_route,
-    get_http_retry_policy_from_route,
-    get_timeout_from_route,
-    port_mappings_from_spec,
+    build_spec,
+    port_mappings_from_router_spec,
 )
 from moto.core.responses import BaseResponse
 
@@ -131,7 +118,7 @@ class AppMeshResponse(BaseResponse):
         client_token = params.get("clientToken")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
-        port_mappings = port_mappings_from_spec(params.get("spec"))
+        port_mappings = port_mappings_from_router_spec(params.get("spec"))
         tags = params.get("tags")
         virtual_router_name = params.get("virtualRouterName")
         virtual_router = self.appmesh_backend.create_virtual_router(
@@ -149,7 +136,7 @@ class AppMeshResponse(BaseResponse):
         client_token = params.get("clientToken")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
-        port_mappings = port_mappings_from_spec(params.get("spec"))
+        port_mappings = port_mappings_from_router_spec(params.get("spec"))
         virtual_router_name = self._get_param("virtualRouterName")
         virtual_router = self.appmesh_backend.update_virtual_router(
             client_token=client_token,
@@ -192,106 +179,23 @@ class AppMeshResponse(BaseResponse):
         route_name = self._get_param("routeName")
         tags = params.get("tags")
         virtual_router_name = self._get_param("virtualRouterName")
-
-        _spec = params.get("spec") or {}
-
-        _grpc_route = _spec.get("grpcRoute")
-        _http_route = _spec.get("httpRoute")
-        _http2_route = _spec.get("http2Route")
-        _tcp_route = _spec.get("tcpRoute")
-        grpc_route, http_route, http2_route, tcp_route = None, None, None, None
-        if _grpc_route is not None:
-            grpc_action = get_action_from_route(_grpc_route)
-            grpc_route_match = get_grpc_route_match(_grpc_route)
-
-            _retry_policy = _grpc_route.get("retryPolicy")
-            grpc_retry_policy = None
-            if _retry_policy is not None:
-                _per_retry_timeout = _retry_policy.get("perRetryTimeout")
-                per_retry_timeout = TimeValue(
-                    unit=_per_retry_timeout.get("unit"),
-                    value=_per_retry_timeout.get("value"),
-                )
-                grpc_retry_policy = GrcpRouteRetryPolicy(
-                    grpc_retry_events=_retry_policy.get("grpcRetryEvents"),
-                    http_retry_events=_retry_policy.get("httpRetryEvents"),
-                    max_retries=_retry_policy.get("maxRetries"),
-                    per_retry_timeout=per_retry_timeout,
-                    tcp_retry_events=_retry_policy.get("tcpRetryEvents"),
-                )
-
-            grpc_timeout = get_timeout_from_route(_grpc_route)
-
-            grpc_route = GrpcRoute(
-                action=grpc_action,
-                match=grpc_route_match,
-                retry_policy=grpc_retry_policy,
-                timeout=grpc_timeout,
-            )
-
-        if _http_route is not None:
-            http_action = get_action_from_route(_http_route)
-            http_match = get_http_match_from_route(_http_route)
-            http_retry_policy = get_http_retry_policy_from_route(_http_route)
-            http_timeout = get_timeout_from_route(_http_route)
-
-            http_route = HttpRoute(
-                action=http_action,
-                match=http_match,
-                http_retry_policy=http_retry_policy,
-                timeout=http_timeout,
-            )
-
-        if _http2_route is not None:
-            http2_action = get_action_from_route(_http2_route)
-            http2_match = get_http_match_from_route(_http2_route)
-            http2_retry_policy = get_http_retry_policy_from_route(_http2_route)
-            http2_timeout = get_timeout_from_route(_http2_route)
-
-            http2_route = HttpRoute(
-                action=http2_action,
-                match=http2_match,
-                http_retry_policy=http2_retry_policy,
-                timeout=http2_timeout,
-            )
-
-        if _tcp_route is not None:
-            tcp_action = get_action_from_route(_tcp_route)
-            tcp_timeout = get_timeout_from_route(_tcp_route)
-
-            _tcp_match = _tcp_route.get("match")
-            tcp_match = None
-            if _tcp_match is not None:
-                tcp_match = TCPRouteMatch(port=_tcp_match.get("port"))
-
-            tcp_route = TCPRoute(
-                action=tcp_action, match=tcp_match, timeout=tcp_timeout
-            )
-
-        route_spec = RouteSpec(
-            grpc_route=grpc_route,
-            http_route=http_route,
-            http2_route=http2_route,
-            priority=_spec.get("priority"),
-            tcp_route=tcp_route,
-        )
+        spec = build_spec(params.get("spec") or {})
         route = self.appmesh_backend.create_route(
             client_token=client_token,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             route_name=route_name,
-            spec=route_spec,
+            spec=spec,
             tags=tags,
             virtual_router_name=virtual_router_name,
         )
         return json.dumps(route.to_dict())
 
     def describe_route(self) -> str:
-        params = self._get_params()
-        mesh_name = params.get("meshName")
-        mesh_owner = params.get("meshOwner")
-        route_name = params.get("routeName")
-        virtual_router_name = params.get("virtualRouterName")
+        mesh_name =  self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        route_name = self._get_param("routeName")
+        virtual_router_name = self._get_param("virtualRouterName")
         route = self.appmesh_backend.describe_route(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
@@ -301,13 +205,13 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(route.to_dict())
 
     def update_route(self) -> str:
-        params = self._get_params()
+        params = json.loads(self.body)
         client_token = params.get("clientToken")
-        mesh_name = params.get("meshName")
-        mesh_owner = params.get("meshOwner")
-        route_name = params.get("routeName")
-        spec = params.get("spec")
-        virtual_router_name = params.get("virtualRouterName")
+        mesh_name =  self._get_param("meshName")
+        mesh_owner =  self._get_param("meshOwner")
+        route_name =  self._get_param("routeName")
+        virtual_router_name = self._get_param("virtualRouterName")
+        spec = build_spec(params.get("spec") or {})
         route = self.appmesh_backend.update_route(
             client_token=client_token,
             mesh_name=mesh_name,
@@ -319,11 +223,10 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(route.to_dict())
 
     def delete_route(self) -> str:
-        params = self._get_params()
-        mesh_name = params.get("meshName")
-        mesh_owner = params.get("meshOwner")
-        route_name = params.get("routeName")
-        virtual_router_name = params.get("virtualRouterName")
+        mesh_name =  self._get_param("meshName")
+        mesh_owner =  self._get_param("meshOwner")
+        route_name =  self._get_param("routeName")
+        virtual_router_name = self._get_param("virtualRouterName")
         route = self.appmesh_backend.delete_route(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,

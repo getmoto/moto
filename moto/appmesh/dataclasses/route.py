@@ -202,10 +202,10 @@ class GrcpRouteRetryPolicy:
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
             {
-                "grpcRetryEvents": self.tcp_retry_events or [],
-                "httpRetryEvents": self.tcp_retry_events or [],
+                "grpcRetryEvents": self.grpc_retry_events or [],
+                "httpRetryEvents": self.http_retry_events or [],
                 "maxRetries": self.max_retries,
-                "perRetryTimeout": self.per_retry_timeout,
+                "perRetryTimeout": self.per_retry_timeout.to_dict(),
                 "tcpRetryEvents": self.tcp_retry_events or [],
             }
         )
@@ -221,8 +221,8 @@ class GrpcRoute:
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
             {
-                "action": self.action,
-                "match": self.match,
+                "action": self.action.to_dict(),
+                "match": self.match.to_dict(),
                 "retryPolicy": (self.retry_policy or MissingField()).to_dict(),
                 "timeout": (self.timeout or MissingField()).to_dict(),
             }
@@ -239,8 +239,8 @@ class HttpRoute:
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
             {
-                "action": self.action,
-                "match": self.match,
+                "action": self.action.to_dict(),
+                "match": self.match.to_dict(),
                 "retryPolicy": (self.retry_policy or MissingField()).to_dict(),
                 "timeout": (self.timeout or MissingField()).to_dict(),
             }
@@ -262,7 +262,7 @@ class TCPRoute:
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
             {
-                "action": self.action,
+                "action": self.action.to_dict(),
                 "match": (self.match or MissingField()).to_dict(),
                 "timeout": (self.timeout or MissingField()).to_dict(),
             }
@@ -290,15 +290,24 @@ class RouteSpec:
 
 @dataclass
 class RouteMetadata(Metadata):
-    mesh_name: str
-    route_name: str
-    virtual_router_name: str
+    mesh_name: str = field(default="")
+    route_name: str = field(default="")
+    virtual_router_name: str = field(default="")
+
+
+    def __post_init__(self):
+        if self.mesh_name == "":
+            raise TypeError("__init__ missing 1 required argument: 'mesh_name'")
+        if self.mesh_owner == "":
+            raise TypeError("__init__ missing 1 required argument: 'route_name'")
+        if self.virtual_router_name == "":
+            raise TypeError("__init__ missing 1 required argument: 'virtual_router_name'")
 
     def formatted_for_list_api(self) -> Dict[str, Any]: # type: ignore
         return {
             "arn": self.arn,
-            "createdAt": self.created_at,
-            "lastUpdatedAt": self.last_updated_at,
+            "createdAt": self.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
+            "lastUpdatedAt": self.last_updated_at.strftime("%d/%m/%Y, %H:%M:%S"),
             "meshName": self.mesh_name,
             "meshOwner": self.mesh_owner,
             "resourceOwner": self.resource_owner,
@@ -310,8 +319,8 @@ class RouteMetadata(Metadata):
     def formatted_for_crud_apis(self) -> Dict[str, Any]: # type: ignore
         return {
             "arn": self.arn,
-            "createdAt": self.created_at,
-            "lastUpdatedAt": self.last_updated_at,
+            "createdAt": self.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
+            "lastUpdatedAt": self.last_updated_at.strftime("%d/%m/%Y, %H:%M:%S"),
             "meshOwner": self.mesh_owner,
             "resourceOwner": self.resource_owner,
             "uid": self.uid,
@@ -328,7 +337,7 @@ class Route:
     spec: RouteSpec
     tags: Optional[List[Dict[str, str]]]
     virtual_router_name: str
-    status: Status = field(default={"status": "ACTIVE"})
+    status: Status = field(default_factory=lambda: {"status": "ACTIVE"})
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(

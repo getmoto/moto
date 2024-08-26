@@ -51,7 +51,14 @@ http_route_spec = {
             "method": "POST",
             "path": {"exact": "/login"},
             "port": 80,
-            "queryParameters": [],
+            "queryParameters": [
+                {
+                    "match": {
+                        "exact": "example-match"
+                    },
+                    "name": "http-query-param"
+                }
+            ],
             "scheme": "http",
         },
         "retryPolicy": {
@@ -115,5 +122,47 @@ tcp_route_spec = {
         },
         "match": {"port": 22},
         "timeout": {"idle": {"unit": "s", "value": 600}},
+    },
+}
+
+modified_http_route_spec = {
+    "priority": 5,
+    "httpRoute": {
+        "action": {
+            "weightedTargets": [
+                {"port": 8080, "virtualNode": "api-server-node", "weight": 50}
+            ]
+        },
+        "match": {
+            "headers": [
+                {
+                    "invert": False,
+                    "match": {"prefix": "Token "},
+                    "name": "X-Auth-Token",
+                }
+            ],
+            "method": "GET",
+            "path": {"exact": "/profile"},
+            "port": 443,
+            "queryParameters": [
+                {
+                    "match": {
+                        "exact": "modified-match"
+                    },
+                    "name": "filter-param"
+                }
+            ],
+            "scheme": "https",
+        },
+        "retryPolicy": {
+            "httpRetryEvents": ["server-error"],
+            "maxRetries": 3,
+            "perRetryTimeout": {"unit": "s", "value": 2},
+            "tcpRetryEvents": ["connection-reset"],
+        },
+        "timeout": {
+            "idle": {"unit": "m", "value": 5},
+            "perRequest": {"unit": "ms", "value": 500},
+        },
     },
 }

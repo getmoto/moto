@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
-from .data import grpc_route_spec, http2_route_spec, http_route_spec, tcp_route_spec
+from .data import grpc_route_spec, http2_route_spec, http_route_spec, tcp_route_spec, modified_http_route_spec
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -300,6 +300,12 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "router_traffic", "value": "http"}],
     )
 
+    router = connection.get("virtualRouter")
+    assert router is not None
+    assert router["meshName"] == MESH_NAME
+    assert router["metadata"]["meshOwner"] == mesh_owner
+    assert router["virtualRouterName"] == ROUTER_NAME
+
     ROUTE_1 = "route1"
     ROUTE_2 = "route2"
     ROUTE_3 = "route3"
@@ -351,11 +357,6 @@ def test_create_describe_list_update_delete_route(client):
     assert grpc_route["timeout"]["idle"]["value"] == 60
     assert grpc_route["timeout"]["perRequest"]["unit"] == "s"
     assert grpc_route["timeout"]["perRequest"]["value"] == 5
-    router = connection.get("virtualRouter")
-    assert router is not None
-    assert router["meshName"] == MESH_NAME
-    assert router["metadata"]["meshOwner"] == mesh_owner
-    assert router["virtualRouterName"] == ROUTER_NAME
 
     connection = client.create_route(
         meshOwner=mesh_owner,
@@ -388,7 +389,8 @@ def test_create_describe_list_update_delete_route(client):
     assert http_route["match"]["method"] == "POST"
     assert http_route["match"]["path"]["exact"] == "/login"
     assert http_route["match"]["port"] == 80
-    assert http_route["match"]["queryParameters"] == []
+    assert http_route["match"]["queryParameters"][0]["match"]["exact"] == "example-match"
+    assert http_route["match"]["queryParameters"][0]["name"] == "http-query-param"
     assert http_route["match"]["scheme"] == "http"
 
     # retryPolicy assertions
@@ -484,7 +486,7 @@ def test_create_describe_list_update_delete_route(client):
     assert tcp_route["timeout"]["idle"]["unit"] == "s"
     assert tcp_route["timeout"]["idle"]["value"] == 600
 
-    connection = client.list_routes()
+    connection = client.list_routes(meshName=MESH_NAME, virtualRouterName=ROUTER_NAME)
     routes = connection.get("routes")
     assert routes is not None
     assert isinstance(routes, list)
@@ -499,19 +501,26 @@ def test_create_describe_list_update_delete_route(client):
     assert names_counted[ROUTE_3] == 1
     assert names_counted[ROUTE_4] == 1
  
-    connection = client.update_route()
+    connection = client.update_route(
+        meshName=MESH_NAME,
+        routeName=ROUTE_2,
+        virtualRouterName=ROUTER_NAME,
+        spec=modified_http_route_spec
+    )
     connection = client.describe_route(
         meshName=MESH_NAME,
         meshOwner=mesh_owner,
-        routeName=ROUTE_1,
+        routeName=ROUTE_2,
         virtualRouterName=ROUTER_NAME
     )
+    # TODO describe assertions
     connection = client.delete_route(        
         meshName=MESH_NAME,
         meshOwner=mesh_owner,
         routeName=ROUTE_4,
         virtualRouterName=ROUTER_NAME
     )
+    # TODO delete assertions
     with pytest.raises(ClientError) as e:
         client.describe_route(
             meshName=MESH_NAME,
