@@ -196,7 +196,9 @@ class AppMeshBackend(BaseBackend):
         if mesh.metadata.mesh_owner != mesh_owner:
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
         metadata = Metadata(
-            mesh_owner=mesh_owner, resource_owner=mesh_owner, arn="TODO"
+            mesh_owner=mesh_owner,
+            resource_owner=mesh_owner,
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualRouter/{virtual_router_name}",
         )
         listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
             {"port_mapping": port_mapping} for port_mapping in port_mappings
@@ -302,7 +304,7 @@ class AppMeshBackend(BaseBackend):
             virtual_router_name=virtual_router_name,
         )
         metadata = RouteMetadata(
-            arn="TODO",
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualRouter/{virtual_router_name}/route/{route_name}",
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             resource_owner=mesh_owner,
