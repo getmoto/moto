@@ -436,16 +436,16 @@ def test_delete_versioned_objects():
     assert delete_markers is None
 
 
-@mock_aws
-def test_delete_missing_key():
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_delete_missing_key(bucket_name=None):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
-    bucket.create()
+    bucket = s3_resource.Bucket(bucket_name)
 
-    s3_resource.Object("foobar", "key1").put(Body=b"some value")
-    s3_resource.Object("foobar", "key2").put(Body=b"some value")
-    s3_resource.Object("foobar", "key3").put(Body=b"some value")
-    s3_resource.Object("foobar", "key4").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key1").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key2").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key3").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key4").put(Body=b"some value")
 
     result = bucket.delete_objects(
         Delete={
@@ -1786,27 +1786,35 @@ def test_deleted_versionings_list():
     assert len(listed["Contents"]) == 1
 
 
-@mock_aws
-def test_delete_objects_for_specific_version_id():
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_delete_objects_for_specific_version_id(bucket_name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="blah")
-    client.put_bucket_versioning(
-        Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
-    )
+    enable_versioning(bucket_name, client)
 
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1a")
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1b")
+    client.put_object(Bucket=bucket_name, Key="test1", Body=b"test1a")
+    client.put_object(Bucket=bucket_name, Key="test1", Body=b"test1b")
 
-    response = client.list_object_versions(Bucket="blah", Prefix="test1")
+    response = client.list_object_versions(Bucket=bucket_name, Prefix="test1")
     id_to_delete = [v["VersionId"] for v in response["Versions"] if v["IsLatest"]][0]
 
     response = client.delete_objects(
-        Bucket="blah", Delete={"Objects": [{"Key": "test1", "VersionId": id_to_delete}]}
+        Bucket=bucket_name,
+        Delete={"Objects": [{"Key": "test1", "VersionId": id_to_delete}]},
     )
     assert response["Deleted"] == [{"Key": "test1", "VersionId": id_to_delete}]
 
-    listed = client.list_objects_v2(Bucket="blah")
+    listed = client.list_objects_v2(Bucket=bucket_name)
     assert len(listed["Contents"]) == 1
+
+    # DeleteObjects without specifying VersionId
+    response = client.delete_objects(
+        Bucket=bucket_name, Delete={"Objects": [{"Key": "test1"}]}
+    )
+    assert "Deleted" in response
+    assert response["Deleted"][0]["DeleteMarker"] is True
+    assert response["Deleted"][0]["DeleteMarkerVersionId"]
+    assert response["Deleted"][0]["Key"] == "test1"
 
 
 @mock_aws

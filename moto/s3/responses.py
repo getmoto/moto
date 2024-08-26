@@ -4,6 +4,7 @@ import urllib.parse
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
 from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
 from xml.dom import minidom
+from xml.parsers.expat import ExpatError
 
 import xmltodict
 
@@ -46,6 +47,7 @@ from .exceptions import (
     MalformedXML,
     MissingBucket,
     MissingKey,
+    MissingRequestBody,
     MissingVersion,
     NoSystemTags,
     NotAnIntegerException,
@@ -766,7 +768,7 @@ class S3Response(BaseResponse):
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "object-lock" in querystring:
-            config = self._lock_config_from_body()
+            config = self._process_lock_config_from_body()
 
             self.backend.put_object_lock_configuration(
                 bucket_name,
@@ -1210,7 +1212,16 @@ class S3Response(BaseResponse):
             deleted, errored = self.backend.delete_objects(
                 bucket_name, objects_to_delete, bypass_retention
             )
-            errors.extend([(err, "AccessDenied", "Access Denied") for err in errored])
+            errors.extend(
+                [
+                    (
+                        err,
+                        "AccessDenied",
+                        "Access Denied because object protected by object lock.",
+                    )
+                    for err in errored
+                ]
+            )
         else:
             deleted = []
             # [(key_name, errorcode, 'error message'), ..]
@@ -1915,6 +1926,14 @@ class S3Response(BaseResponse):
             return 200, response_headers, ""
         else:
             return 404, response_headers, ""
+
+    def _process_lock_config_from_body(self) -> Dict[str, Any]:
+        try:
+            return self._lock_config_from_body()
+        except (TypeError, ExpatError):
+            raise MissingRequestBody
+        except KeyError:
+            raise MalformedXML
 
     def _lock_config_from_body(self) -> Dict[str, Any]:
         response_dict: Dict[str, Any] = {
@@ -2711,10 +2730,11 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-{% for k, v in deleted %}
+{% for k, v, dv in deleted %}
 <Deleted>
 <Key>{{k}}</Key>
 {% if v %}<VersionId>{{v}}</VersionId>{% endif %}
+{% if dv %}<DeleteMarkerVersionId>{{ dv }}</DeleteMarkerVersionId><DeleteMarker>true</DeleteMarker>{% endif %}
 </Deleted>
 {% endfor %}
 {% for k,c,m in delete_errors %}

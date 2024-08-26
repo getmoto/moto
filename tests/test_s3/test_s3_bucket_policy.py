@@ -144,6 +144,7 @@ class TestBucketPolicy:
 @pytest.mark.aws_verified
 def test_deny_delete_policy(bucket_name=None):
     client = boto3.client("s3", "us-east-1")
+    resource = boto3.resource("s3", "us-east-1")
 
     policy = {
         "Version": "2012-10-17",
@@ -164,12 +165,11 @@ def test_deny_delete_policy(bucket_name=None):
     with pytest.raises(ClientError):
         client.delete_object(Bucket=bucket_name, Key="obj")
 
-    result = (
-        boto3.resource("s3", "us-east-1").Bucket(bucket_name).objects.all().delete()
-    )
-    assert result[0]["Errors"] == [
-        {"Key": "obj", "Code": "AccessDenied", "Message": "Access Denied"}
-    ]
+    result = resource.Bucket(bucket_name).objects.all().delete()
+    assert result[0]["Errors"][0]["Key"] == "obj"
+    assert result[0]["Errors"][0]["Code"] == "AccessDenied"
+    # Message:
+    # User: {user_arn} is not authorized to perform: s3:DeleteObject on resource: "arn:aws:s3:::{bucket}/{key}" with an explicit deny in a resource-based policy
 
     # Delete Policy to make sure bucket can be emptied during teardown
     client.delete_bucket_policy(Bucket=bucket_name)

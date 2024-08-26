@@ -517,6 +517,13 @@ class InvalidContinuationToken(S3ClientError):
         )
 
 
+class InvalidBucketState(S3ClientError):
+    code = 400
+
+    def __init__(self, msg: str):
+        super().__init__("InvalidBucketState", msg)
+
+
 class InvalidObjectState(BucketError):
     code = 403
 
@@ -535,6 +542,13 @@ class LockNotEnabled(S3ClientError):
 
     def __init__(self) -> None:
         super().__init__("InvalidRequest", "Bucket is missing ObjectLockConfiguration")
+
+
+class MissingRequestBody(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__("MissingRequestBodyError", "Request Body is empty")
 
 
 class AccessDeniedByLock(S3ClientError):
