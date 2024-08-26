@@ -9,7 +9,13 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
-from .data import grpc_route_spec, http2_route_spec, http_route_spec, tcp_route_spec, modified_http_route_spec
+from .data import (
+    grpc_route_spec,
+    http2_route_spec,
+    http_route_spec,
+    modified_http_route_spec,
+    tcp_route_spec,
+)
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -273,6 +279,7 @@ def test_create_describe_list_update_delete_virtual_router(client):
         == f"The mesh {MESH_NAME} does not have a virtual router named {ROUTER_1}."
     )
 
+
 @mock_aws
 def test_create_describe_list_update_delete_route(client):
     MESH_NAME = "mock_mesh"
@@ -344,7 +351,10 @@ def test_create_describe_list_update_delete_route(client):
     assert grpc_route["match"]["serviceName"] == "myService"
 
     # retryPolicy assertions
-    assert grpc_route["retryPolicy"]["grpcRetryEvents"] == ["unavailable", "resource-exhausted"]
+    assert grpc_route["retryPolicy"]["grpcRetryEvents"] == [
+        "unavailable",
+        "resource-exhausted",
+    ]
     assert grpc_route["retryPolicy"]["httpRetryEvents"] == ["gateway-error"]
     assert grpc_route["retryPolicy"]["maxRetries"] == 3
     assert grpc_route["retryPolicy"]["perRetryTimeout"]["unit"] == "ms"
@@ -388,12 +398,17 @@ def test_create_describe_list_update_delete_route(client):
     assert http_route["match"]["method"] == "POST"
     assert http_route["match"]["path"]["exact"] == "/login"
     assert http_route["match"]["port"] == 80
-    assert http_route["match"]["queryParameters"][0]["match"]["exact"] == "example-match"
+    assert (
+        http_route["match"]["queryParameters"][0]["match"]["exact"] == "example-match"
+    )
     assert http_route["match"]["queryParameters"][0]["name"] == "http-query-param"
     assert http_route["match"]["scheme"] == "http"
 
     # retryPolicy assertions
-    assert http_route["retryPolicy"]["httpRetryEvents"] == ["gateway-error", "client-error"]
+    assert http_route["retryPolicy"]["httpRetryEvents"] == [
+        "gateway-error",
+        "client-error",
+    ]
     assert http_route["retryPolicy"]["maxRetries"] == 0
     assert http_route["retryPolicy"]["perRetryTimeout"]["unit"] == "ms"
     assert http_route["retryPolicy"]["perRetryTimeout"]["value"] == 0
@@ -499,12 +514,12 @@ def test_create_describe_list_update_delete_route(client):
     assert names_counted[ROUTE_2] == 1
     assert names_counted[ROUTE_3] == 1
     assert names_counted[ROUTE_4] == 1
- 
+
     connection = client.update_route(
         meshName=MESH_NAME,
         routeName=ROUTE_2,
         virtualRouterName=ROUTER_NAME,
-        spec=modified_http_route_spec
+        spec=modified_http_route_spec,
     )
     assert "route" in connection
     route = connection["route"]
@@ -553,7 +568,7 @@ def test_create_describe_list_update_delete_route(client):
         meshName=MESH_NAME,
         meshOwner=mesh_owner,
         routeName=ROUTE_2,
-        virtualRouterName=ROUTER_NAME
+        virtualRouterName=ROUTER_NAME,
     )
     assert "route" in connection
     route = connection["route"]
@@ -598,11 +613,11 @@ def test_create_describe_list_update_delete_route(client):
     assert described_http_route["timeout"]["idle"]["value"] == 5
     assert described_http_route["timeout"]["perRequest"]["unit"] == "ms"
     assert described_http_route["timeout"]["perRequest"]["value"] == 500
-    connection = client.delete_route(        
+    connection = client.delete_route(
         meshName=MESH_NAME,
         meshOwner=mesh_owner,
         routeName=ROUTE_4,
-        virtualRouterName=ROUTER_NAME
+        virtualRouterName=ROUTER_NAME,
     )
     assert "route" in connection
     route = connection["route"]
@@ -624,14 +639,14 @@ def test_create_describe_list_update_delete_route(client):
 
     # timeout assertions
     assert deleted_route["timeout"]["idle"]["unit"] == "s"
-    assert deleted_route["timeout"]["idle"]["value"] == 600 
+    assert deleted_route["timeout"]["idle"]["value"] == 600
 
     with pytest.raises(ClientError) as e:
         client.describe_route(
             meshName=MESH_NAME,
             meshOwner=mesh_owner,
             routeName=ROUTE_4,
-            virtualRouterName=ROUTER_NAME
+            virtualRouterName=ROUTER_NAME,
         )
     err = e.value.response["Error"]
     assert err["Code"] == "RouteNotFound"

@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Optional
 
 from moto.appmesh.dataclasses.shared import Metadata, Status
 
@@ -294,16 +294,17 @@ class RouteMetadata(Metadata):
     route_name: str = field(default="")
     virtual_router_name: str = field(default="")
 
-
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.mesh_name == "":
             raise TypeError("__init__ missing 1 required argument: 'mesh_name'")
         if self.mesh_owner == "":
             raise TypeError("__init__ missing 1 required argument: 'route_name'")
         if self.virtual_router_name == "":
-            raise TypeError("__init__ missing 1 required argument: 'virtual_router_name'")
+            raise TypeError(
+                "__init__ missing 1 required argument: 'virtual_router_name'"
+            )
 
-    def formatted_for_list_api(self) -> Dict[str, Any]: # type: ignore
+    def formatted_for_list_api(self) -> Dict[str, Any]:  # type: ignore
         return {
             "arn": self.arn,
             "createdAt": self.created_at.strftime("%d/%m/%Y, %H:%M:%S"),
@@ -316,7 +317,7 @@ class RouteMetadata(Metadata):
             "virtualRouterName": self.virtual_router_name,
         }
 
-    def formatted_for_crud_apis(self) -> Dict[str, Any]: # type: ignore
+    def formatted_for_crud_apis(self) -> Dict[str, Any]:  # type: ignore
         return {
             "arn": self.arn,
             "createdAt": self.created_at.strftime("%d/%m/%Y, %H:%M:%S"),

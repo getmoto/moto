@@ -14,7 +14,7 @@ class Metadata:
     uid: str = uuid4().hex
     version: int = 1
 
-    def update_timestamp(self):
+    def update_timestamp(self) -> None:
         self.last_updated_at = datetime.now()
 
 

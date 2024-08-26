@@ -192,7 +192,7 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(route.to_dict())
 
     def describe_route(self) -> str:
-        mesh_name =  self._get_param("meshName")
+        mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
         route_name = self._get_param("routeName")
         virtual_router_name = self._get_param("virtualRouterName")
@@ -207,9 +207,9 @@ class AppMeshResponse(BaseResponse):
     def update_route(self) -> str:
         params = json.loads(self.body)
         client_token = params.get("clientToken")
-        mesh_name =  self._get_param("meshName")
-        mesh_owner =  self._get_param("meshOwner")
-        route_name =  self._get_param("routeName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        route_name = self._get_param("routeName")
         virtual_router_name = self._get_param("virtualRouterName")
         spec = build_spec(params.get("spec") or {})
         route = self.appmesh_backend.update_route(
@@ -223,9 +223,9 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(route.to_dict())
 
     def delete_route(self) -> str:
-        mesh_name =  self._get_param("meshName")
-        mesh_owner =  self._get_param("meshOwner")
-        route_name =  self._get_param("routeName")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        route_name = self._get_param("routeName")
         virtual_router_name = self._get_param("virtualRouterName")
         route = self.appmesh_backend.delete_route(
             mesh_name=mesh_name,

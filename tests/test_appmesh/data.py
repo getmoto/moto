@@ -52,12 +52,7 @@ http_route_spec = {
             "path": {"exact": "/login"},
             "port": 80,
             "queryParameters": [
-                {
-                    "match": {
-                        "exact": "example-match"
-                    },
-                    "name": "http-query-param"
-                }
+                {"match": {"exact": "example-match"}, "name": "http-query-param"}
             ],
             "scheme": "http",
         },
@@ -145,12 +140,7 @@ modified_http_route_spec = {
             "path": {"exact": "/profile"},
             "port": 443,
             "queryParameters": [
-                {
-                    "match": {
-                        "exact": "modified-match"
-                    },
-                    "name": "filter-param"
-                }
+                {"match": {"exact": "modified-match"}, "name": "filter-param"}
             ],
             "scheme": "https",
         },

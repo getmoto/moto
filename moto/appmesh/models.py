@@ -1,7 +1,6 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from datetime import datetime
-from typing import Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from moto.appmesh.dataclasses.mesh import (
     Mesh,
@@ -368,10 +367,10 @@ class AppMeshBackend(BaseBackend):
 
     def delete_route(
         self,
-        mesh_name: Optional[str],
+        mesh_name: str,
         mesh_owner: Optional[str],
         route_name: str,
-        virtual_router_name: Optional[str],
+        virtual_router_name: str,
     ) -> Route:
         check_route_validity(
             meshes=self.meshes,
@@ -393,7 +392,7 @@ class AppMeshBackend(BaseBackend):
         )
         return route
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_routes(
         self,
         limit: Optional[int],
@@ -401,7 +400,7 @@ class AppMeshBackend(BaseBackend):
         mesh_owner: Optional[str],
         next_token: Optional[str],
         virtual_router_name: str,
-    ):
+    ) -> List[Dict[str, Any]]:
         check_router_validity(
             meshes=self.meshes,
             mesh_name=mesh_name,

@@ -140,6 +140,7 @@ def get_http_retry_policy_from_route(route: Any) -> Optional[HttpRouteRetryPolic
         )
     return retry_policy
 
+
 def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[misc]
     _timeout = route.get("timeout") or {}
     idle, per_request = None, None
@@ -159,7 +160,10 @@ def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[mis
 
 
 def check_router_validity(
-    meshes: Dict[str, Mesh], mesh_name: str, mesh_owner: str, virtual_router_name: str
+    meshes: Dict[str, Mesh],
+    mesh_name: str,
+    mesh_owner: Optional[str],
+    virtual_router_name: str,
 ) -> None:
     if mesh_name not in meshes:
         raise MeshNotFoundError(mesh_name=mesh_name)
@@ -176,7 +180,7 @@ def check_router_validity(
 def check_route_validity(
     meshes: Dict[str, Mesh],
     mesh_name: str,
-    mesh_owner: str,
+    mesh_owner: Optional[str],
     virtual_router_name: str,
     route_name: str,
 ) -> None:
@@ -216,7 +220,8 @@ def check_route_availability(
         )
     return
 
-def build_spec(spec: Dict[str, Any]): # type: ignore[misc]
+
+def build_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     _grpc_route = spec.get("grpcRoute")
     _http_route = spec.get("httpRoute")
     _http2_route = spec.get("http2Route")
@@ -286,9 +291,7 @@ def build_spec(spec: Dict[str, Any]): # type: ignore[misc]
         if _tcp_match is not None:
             tcp_match = TCPRouteMatch(port=_tcp_match.get("port"))
 
-        tcp_route = TCPRoute(
-            action=tcp_action, match=tcp_match, timeout=tcp_timeout
-        )
+        tcp_route = TCPRoute(action=tcp_action, match=tcp_match, timeout=tcp_timeout)
 
     return RouteSpec(
         grpc_route=grpc_route,
