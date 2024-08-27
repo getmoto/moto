@@ -2767,7 +2767,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         version_id: Optional[str] = None,
         bypass: bool = False,
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    ) -> Tuple[bool, Dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
 
         response_meta = {}
@@ -2831,7 +2831,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
             return True, response_meta
         except KeyError:
-            return False, None
+            return False, response_meta
 
     def delete_objects(
         self,
