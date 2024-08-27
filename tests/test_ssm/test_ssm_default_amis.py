@@ -1,4 +1,5 @@
 import boto3
+import pytest
 
 from moto import mock_aws
 
@@ -6,8 +7,16 @@ test_ami = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_6
 
 
 @mock_aws
-def test_ssm_get_latest_ami_by_path():
-    client = boto3.client("ssm", region_name="us-west-1")
+@pytest.mark.parametrize(
+    "partition,region",
+    [
+        ("aws", "us-west-1"),
+        ("aws-us-gov", "us-gov-east-1"),
+        ("aws-us-gov", "us-gov-west-1"),
+    ],
+)
+def test_ssm_get_latest_ami_by_path(partition, region):
+    client = boto3.client("ssm", region_name=region)
     path = "/aws/service/ami-amazon-linux-latest"
     params = client.get_parameters_by_path(Path=path)["Parameters"]
     assert len(params) == 10
@@ -17,7 +26,7 @@ def test_ssm_get_latest_ami_by_path():
     )
     assert all(p["Type"] == "String" for p in params)
     assert all(p["DataType"] == "text" for p in params)
-    assert all(p["ARN"].startswith("arn:aws:ssm:us-west-1") for p in params)
+    assert all(p["ARN"].startswith(f"arn:{partition}:ssm:{region}") for p in params)
 
 
 @mock_aws
