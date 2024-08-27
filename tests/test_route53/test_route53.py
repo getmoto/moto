@@ -257,7 +257,7 @@ def test_list_resource_record_set_invalid_start_record_name(invalid_char):
 
 
 @mock_aws
-@pytest.mark.parametrize("valid_char", ["*", ".", "\\t", "\ ", "国", "}", "\\ç"])
+@pytest.mark.parametrize("valid_char", ["*", ".", "\\t", "\\ ", "国", "}", "\\ç"])
 def test_list_resource_record_set_valid_characters(valid_char):
     """
     Validation that we can use odd characters as part of the domain name
