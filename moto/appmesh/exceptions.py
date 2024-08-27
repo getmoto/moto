@@ -31,6 +31,14 @@ class MeshOwnerDoesNotMatchError(MeshError):
         )
 
 
+class VirtualRouterNameAlreadyTakenError(MeshError):
+    def __init__(self, mesh_name: str, virtual_router_name: str) -> None:
+        super().__init__(
+            "VirtualRouterNameAlreadyTaken",
+            f"There is already a virtual router named {virtual_router_name} associated with the mesh {mesh_name}.",
+        )
+
+
 class VirtualRouterNotFoundError(MeshError):
     def __init__(self, mesh_name: str, virtual_router_name: str) -> None:
         super().__init__(

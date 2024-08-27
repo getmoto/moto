@@ -65,9 +65,7 @@ class AppMeshResponse(BaseResponse):
 
     def delete_mesh(self) -> str:
         mesh_name = self._get_param("meshName")
-        mesh = self.appmesh_backend.delete_mesh(
-            mesh_name=mesh_name,
-        )
+        mesh = self.appmesh_backend.delete_mesh(mesh_name=mesh_name)
         return json.dumps(mesh.to_dict())
 
     def list_meshes(self) -> str:

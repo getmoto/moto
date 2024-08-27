@@ -15,14 +15,14 @@ from moto.appmesh.dataclasses.virtual_router import (
 )
 from moto.appmesh.exceptions import (
     MeshNotFoundError,
-    MeshOwnerDoesNotMatchError,
     ResourceNotFoundError,
-    VirtualRouterNotFoundError,
 )
 from moto.appmesh.utils import (
     check_route_availability,
     check_route_validity,
+    check_router_availability,
     check_router_validity,
+    validate_mesh,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -104,7 +104,7 @@ class AppMeshBackend(BaseBackend):
         ip_preference: Optional[str],
     ) -> Mesh:
         if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name)
+            raise MeshNotFoundError(mesh_name=mesh_name)
         updated = False
         if egress_filter_type is not None:
             self.meshes[mesh_name].spec.egress_filter["type"] = egress_filter_type
@@ -122,13 +122,12 @@ class AppMeshBackend(BaseBackend):
         return self.meshes[mesh_name]
 
     def describe_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> Mesh:
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name)
+        validate_mesh(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
         return self.meshes[mesh_name]
 
     def delete_mesh(self, mesh_name: str) -> Mesh:
         if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name)
+            raise MeshNotFoundError(mesh_name=mesh_name)
         self.meshes[mesh_name].status["status"] = "DELETED"
         mesh = self.meshes[mesh_name]
         del self.meshes[mesh_name]
@@ -168,36 +167,35 @@ class AppMeshBackend(BaseBackend):
         return
 
     def describe_virtual_router(
-        self, mesh_name: str, mesh_owner: str, virtual_router_name: str
+        self, mesh_name: str, mesh_owner: Optional[str], virtual_router_name: str
     ) -> VirtualRouter:
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name=mesh_name)
-        mesh = self.meshes[mesh_name]
-        if mesh.metadata.mesh_owner != mesh_owner:
-            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-        if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(
-                virtual_router_name=virtual_router_name, mesh_name=mesh_name
-            )
-        return mesh.virtual_routers[virtual_router_name]
+        check_router_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+        )
+        return self.meshes[mesh_name].virtual_routers[virtual_router_name]
 
     def create_virtual_router(
         self,
         client_token: str,
         mesh_name: str,
-        mesh_owner: str,
+        mesh_owner: Optional[str],
         port_mappings: List[PortMapping],
         tags: List[Dict[str, str]],
         virtual_router_name: str,
     ) -> VirtualRouter:
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name=mesh_name)
-        mesh = self.meshes[mesh_name]
-        if mesh.metadata.mesh_owner != mesh_owner:
-            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-        metadata = Metadata(
+        check_router_availability(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            virtual_router_name=virtual_router_name,
             mesh_owner=mesh_owner,
-            resource_owner=mesh_owner,
+        )
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
+        metadata = Metadata(
+            mesh_owner=owner,
+            resource_owner=owner,
             arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualRouter/{virtual_router_name}",
         )
         listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
@@ -219,41 +217,36 @@ class AppMeshBackend(BaseBackend):
         self,
         client_token: str,
         mesh_name: str,
-        mesh_owner: str,
+        mesh_owner: Optional[str],
         port_mappings: List[PortMapping],
         virtual_router_name: str,
     ) -> VirtualRouter:
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name=mesh_name)
-        mesh = self.meshes[mesh_name]
-        if mesh.metadata.mesh_owner != mesh_owner:
-            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-        if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(
-                virtual_router_name=virtual_router_name, mesh_name=mesh_name
-            )
+        check_router_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+        )
         listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
             {"port_mapping": port_mapping} for port_mapping in port_mappings
         ]
         spec = VirtualRouterSpec(listeners=listeners)
-        virtual_router = mesh.virtual_routers[virtual_router_name]
+        virtual_router = self.meshes[mesh_name].virtual_routers[virtual_router_name]
         virtual_router.spec = spec
         virtual_router.metadata.update_timestamp()
         virtual_router.metadata.version += 1
         return virtual_router
 
     def delete_virtual_router(
-        self, mesh_name: str, mesh_owner: str, virtual_router_name: str
+        self, mesh_name: str, mesh_owner: Optional[str], virtual_router_name: str
     ) -> VirtualRouter:
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name=mesh_name)
+        check_router_validity(
+            meshes=self.meshes,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_router_name=virtual_router_name,
+        )
         mesh = self.meshes[mesh_name]
-        if mesh.metadata.mesh_owner != mesh_owner:
-            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-        if virtual_router_name not in mesh.virtual_routers:
-            raise VirtualRouterNotFoundError(
-                virtual_router_name=virtual_router_name, mesh_name=mesh_name
-            )
         mesh.virtual_routers[virtual_router_name].status["status"] = "DELETED"
         virtual_router = mesh.virtual_routers[virtual_router_name]
         del mesh.virtual_routers[virtual_router_name]
@@ -261,13 +254,9 @@ class AppMeshBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_virtual_routers(
-        self, limit: int, mesh_name: str, mesh_owner: str, next_token: str
+        self, limit: int, mesh_name: str, mesh_owner: Optional[str], next_token: str
     ):
-        if mesh_name not in self.meshes:
-            raise MeshNotFoundError(mesh_name=mesh_name)
-        mesh = self.meshes[mesh_name]
-        if mesh.metadata.mesh_owner != mesh_owner:
-            raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
+        validate_mesh(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
         return [
             {
                 "arn": virtual_router.metadata.arn,
@@ -283,14 +272,14 @@ class AppMeshBackend(BaseBackend):
                 "version": virtual_router.metadata.version,
                 "virtualRouterName": virtual_router.virtual_router_name,
             }
-            for virtual_router in mesh.virtual_routers.values()
+            for virtual_router in self.meshes[mesh_name].virtual_routers.values()
         ]
 
     def create_route(
         self,
         client_token: Optional[str],
         mesh_name: str,
-        mesh_owner: str,
+        mesh_owner: Optional[str],
         route_name: str,
         spec: RouteSpec,
         tags: Optional[List[Dict[str, str]]],
@@ -303,17 +292,18 @@ class AppMeshBackend(BaseBackend):
             route_name=route_name,
             virtual_router_name=virtual_router_name,
         )
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
         metadata = RouteMetadata(
             arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualRouter/{virtual_router_name}/route/{route_name}",
             mesh_name=mesh_name,
-            mesh_owner=mesh_owner,
-            resource_owner=mesh_owner,
+            mesh_owner=owner,
+            resource_owner=owner,
             route_name=route_name,
             virtual_router_name=virtual_router_name,
         )
         route = Route(
             mesh_name=mesh_name,
-            mesh_owner=mesh_owner,
+            mesh_owner=owner,
             metadata=metadata,
             route_name=route_name,
             spec=spec,
@@ -326,7 +316,11 @@ class AppMeshBackend(BaseBackend):
         return route
 
     def describe_route(
-        self, mesh_name: str, mesh_owner: str, route_name: str, virtual_router_name: str
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        route_name: str,
+        virtual_router_name: str,
     ) -> Route:
         check_route_validity(
             meshes=self.meshes,
@@ -345,7 +339,7 @@ class AppMeshBackend(BaseBackend):
         self,
         client_token: Optional[str],
         mesh_name: str,
-        mesh_owner: str,
+        mesh_owner: Optional[str],
         route_name: str,
         spec: RouteSpec,
         virtual_router_name: str,

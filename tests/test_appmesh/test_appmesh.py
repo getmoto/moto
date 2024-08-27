@@ -39,7 +39,6 @@ def test_create_list_update_describe_delete_mesh(client):
         tags=[{"key": "owner", "value": "moto"}],
     )
     mesh = connection.get("mesh")
-    assert mesh is not None
     assert mesh["meshName"] == "mesh1"
     assert mesh["spec"]["egressFilter"]["type"] == "DROP_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_ONLY"
@@ -61,7 +60,6 @@ def test_create_list_update_describe_delete_mesh(client):
         tags=[{"key": "owner", "value": "moto"}],
     )
     mesh = connection.get("mesh")
-    assert mesh is not None
     assert mesh["meshName"] == "mesh2"
     assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_PREFERRED"
@@ -76,7 +74,6 @@ def test_create_list_update_describe_delete_mesh(client):
     # List all methods, expecting 2
     connection = client.list_meshes()
     meshes = connection.get("meshes")
-    assert meshes is not None
     assert isinstance(meshes, list)
     assert len(meshes) == 2
     names_counted = defaultdict(int)
@@ -96,7 +93,6 @@ def test_create_list_update_describe_delete_mesh(client):
         },
     )
     mesh = connection.get("mesh")
-    assert mesh is not None
     assert mesh["meshName"] == "mesh1"
     assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv6_PREFERRED"
@@ -106,7 +102,6 @@ def test_create_list_update_describe_delete_mesh(client):
     # Describe mesh 1, should reflect changes
     connection = client.describe_mesh(meshName="mesh1")
     mesh = connection.get("mesh")
-    assert mesh is not None
     assert mesh["meshName"] == "mesh1"
     assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv6_PREFERRED"
@@ -115,7 +110,6 @@ def test_create_list_update_describe_delete_mesh(client):
 
     connection = client.delete_mesh(meshName="mesh2")
     mesh = connection.get("mesh")
-    assert mesh is not None
     assert mesh["meshName"] == "mesh2"
     assert mesh["spec"]["egressFilter"]["type"] == "ALLOW_ALL"
     assert mesh["spec"]["serviceDiscovery"]["ipPreference"] == "IPv4_PREFERRED"
@@ -123,7 +117,6 @@ def test_create_list_update_describe_delete_mesh(client):
 
     connection = client.list_meshes()
     meshes = connection.get("meshes")
-    assert meshes is not None
     assert isinstance(meshes, list)
     assert len(meshes) == 1
     assert meshes[0]["meshName"] == "mesh1"
@@ -146,7 +139,6 @@ def test_tag_and_list_tags_for_resource(client):
         tags=[{"key": "owner", "value": "moto"}],
     )
     mesh = connection.get("mesh")
-    assert mesh is not None
     arn = mesh["metadata"]["arn"]
 
     client.tag_resource(
@@ -185,7 +177,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
         tags=[{"key": "router_traffic", "value": "http"}],
     )
     router1 = connection.get("virtualRouter")
-    assert router1 is not None
     assert router1["meshName"] == MESH_NAME
     assert router1["metadata"]["meshOwner"] == mesh_owner
     assert router1["metadata"]["version"] == 1
@@ -201,7 +192,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
         tags=[{"key": "router_traffic", "value": "https"}],
     )
     router2 = connection.get("virtualRouter")
-    assert router2 is not None
     assert router2["meshName"] == MESH_NAME
     assert router2["metadata"]["meshOwner"] == mesh_owner
     assert router2["metadata"]["version"] == 1
@@ -210,7 +200,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
     assert router2["status"]["status"] == "ACTIVE"
     connection = client.list_virtual_routers(meshName=MESH_NAME, meshOwner=mesh_owner)
     virtual_routers = connection.get("virtualRouters")
-    assert virtual_routers is not None
     assert isinstance(virtual_routers, list)
     assert len(virtual_routers) == 2
     names_counted = defaultdict(int)
@@ -228,7 +217,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
         spec={"listeners": [{"portMapping": {"port": 80, "protocol": "tcp"}}]},
     )
     updated_router2 = connection.get("virtualRouter")
-    assert updated_router2 is not None
     assert updated_router2["virtualRouterName"] == ROUTER_2
     assert updated_router2["meshName"] == MESH_NAME
     assert updated_router2["metadata"]["meshOwner"] == mesh_owner
@@ -243,7 +231,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
         virtualRouterName=ROUTER_2,
     )
     described_router2 = connection.get("virtualRouter")
-    assert described_router2 is not None
     assert described_router2["virtualRouterName"] == ROUTER_2
     assert described_router2["meshName"] == MESH_NAME
     assert described_router2["metadata"]["meshOwner"] == mesh_owner
@@ -258,7 +245,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
         virtualRouterName=ROUTER_1,
     )
     deleted_router1 = connection.get("virtualRouter")
-    assert deleted_router1 is not None
     assert deleted_router1["virtualRouterName"] == ROUTER_1
     assert deleted_router1["meshName"] == MESH_NAME
     assert deleted_router1["metadata"]["meshOwner"] == mesh_owner
@@ -307,7 +293,6 @@ def test_create_describe_list_update_delete_route(client):
     )
 
     router = connection.get("virtualRouter")
-    assert router is not None
     assert router["meshName"] == MESH_NAME
     assert router["metadata"]["meshOwner"] == mesh_owner
     assert router["virtualRouterName"] == ROUTER_NAME
@@ -502,7 +487,6 @@ def test_create_describe_list_update_delete_route(client):
 
     connection = client.list_routes(meshName=MESH_NAME, virtualRouterName=ROUTER_NAME)
     routes = connection.get("routes")
-    assert routes is not None
     assert isinstance(routes, list)
     assert len(routes) == 4
     names_counted = defaultdict(int)

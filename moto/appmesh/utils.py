@@ -28,6 +28,7 @@ from moto.appmesh.exceptions import (
     MeshOwnerDoesNotMatchError,
     RouteNameAlreadyTakenError,
     RouteNotFoundError,
+    VirtualRouterNameAlreadyTakenError,
     VirtualRouterNotFoundError,
 )
 
@@ -159,18 +160,37 @@ def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[mis
     )
 
 
+def validate_mesh(
+    meshes: Dict[str, Mesh], mesh_name: str, mesh_owner: Optional[str]
+) -> None:
+    if mesh_name not in meshes:
+        raise MeshNotFoundError(mesh_name=mesh_name)
+    if mesh_owner is not None and meshes[mesh_name].metadata.mesh_owner != mesh_owner:
+        raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
+
+
+def check_router_availability(
+    meshes: Dict[str, Mesh],
+    mesh_name: str,
+    mesh_owner: Optional[str],
+    virtual_router_name: str,
+) -> None:
+    validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
+    if virtual_router_name in meshes[mesh_name].virtual_routers:
+        raise VirtualRouterNameAlreadyTakenError(
+            virtual_router_name=virtual_router_name, mesh_name=mesh_name
+        )
+    return
+
+
 def check_router_validity(
     meshes: Dict[str, Mesh],
     mesh_name: str,
     mesh_owner: Optional[str],
     virtual_router_name: str,
 ) -> None:
-    if mesh_name not in meshes:
-        raise MeshNotFoundError(mesh_name=mesh_name)
-    mesh = meshes[mesh_name]
-    if mesh_owner is not None and mesh.metadata.mesh_owner != mesh_owner:
-        raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-    if virtual_router_name not in mesh.virtual_routers:
+    validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
+    if virtual_router_name not in meshes[mesh_name].virtual_routers:
         raise VirtualRouterNotFoundError(
             virtual_router_name=virtual_router_name, mesh_name=mesh_name
         )
@@ -202,7 +222,7 @@ def check_route_validity(
 def check_route_availability(
     meshes: Dict[str, Mesh],
     mesh_name: str,
-    mesh_owner: str,
+    mesh_owner: Optional[str],
     virtual_router_name: str,
     route_name: str,
 ) -> None:
