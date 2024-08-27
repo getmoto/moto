@@ -1,7 +1,7 @@
 import base64
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from threading import Thread
+from threading import Event, Thread
 from typing import Optional, Tuple
 from unittest import SkipTest
 from uuid import uuid4
@@ -48,14 +48,17 @@ class ThreadedSnsReceiver:
         self._thread: Optional[Thread] = None
         self._ip_address = "0.0.0.0"
         self._server: Optional[HTTPServer] = None
+        self._server_ready_event = Event()
 
     def _server_entry(self) -> None:
         self._server = HTTPServer(("0.0.0.0", 0), WebRequestHandler)
+        self._server_ready_event.set()
         self._server.serve_forever()
 
     def start(self) -> None:
         self._thread = Thread(target=self._server_entry, daemon=True)
         self._thread.start()
+        self._server_ready_event.wait()
 
     def get_host_and_port(self) -> Tuple[str, int]:
         assert self._server is not None, "Make sure to call start() first"
