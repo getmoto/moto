@@ -1126,7 +1126,7 @@ def test_submit_job_with_parameters():
             "image": "busybox",
             "vcpus": 1,
             "memory": 512,
-            "command": ["sleep", "$seconds"],
+            "command": ["sleep", "Ref::seconds"],
         },
         parameters={"seconds": "0"},
     )

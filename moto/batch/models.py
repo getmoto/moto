@@ -639,7 +639,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             return command
 
         new_command = [
-            command_part.replace(f"${param}", value)
+            command_part.replace(f"Ref::{param}", value)
             for command_part in command
             for param, value in self.parameters.items()
         ]
