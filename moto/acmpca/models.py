@@ -56,7 +56,7 @@ class CertificateAuthority(BaseModel):
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.BestAvailableEncryption(self.password),
         )
-        self.certificate: Optional[x509.Certificate] = None
+        self.certificate_bytes: bytes = b""
         self.certificate_chain: Optional[bytes] = None
         self.issued_certificates: Dict[str, bytes] = dict()
 
@@ -84,6 +84,12 @@ class CertificateAuthority(BaseModel):
         cert = builder.sign(self.key, hashes.SHA512(), default_backend())
 
         return cert.public_bytes(serialization.Encoding.PEM)
+
+    @property
+    def certificate(self) -> Optional[x509.Certificate]:
+        if self.certificate_bytes:
+            return x509.load_pem_x509_certificate(self.certificate_bytes)
+        return None
 
     @property
     def issuer(self) -> x509.Name:
@@ -261,12 +267,6 @@ class CertificateAuthority(BaseModel):
                         raise InvalidS3ObjectAclInCrlConfiguration(acl)
 
     @property
-    def certificate_bytes(self) -> bytes:
-        if self.certificate:
-            return self.certificate.public_bytes(serialization.Encoding.PEM)
-        return b""
-
-    @property
     def not_valid_after(self) -> Optional[float]:
         if self.certificate is None:
             return None
@@ -287,7 +287,7 @@ class CertificateAuthority(BaseModel):
     def import_certificate_authority_certificate(
         self, certificate: bytes, certificate_chain: Optional[bytes]
     ) -> None:
-        self.certificate = x509.load_pem_x509_certificate(certificate)
+        self.certificate_bytes = certificate
         self.certificate_chain = certificate_chain
         self.status = "ACTIVE"
         self.updated_at = unix_time()
