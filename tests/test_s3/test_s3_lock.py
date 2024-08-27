@@ -177,7 +177,7 @@ def test_locked_object_compliance_mode(bypass_governance_retention, bucket_name=
     s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
 
     key_name = "file.txt"
-    seconds_lock = 5 if allow_aws_request() else 1
+    seconds_lock = 5 if allow_aws_request() else 2
 
     enable_versioning(bucket_name, s3_client)
 
@@ -235,9 +235,7 @@ def test_locked_object_compliance_mode(bypass_governance_retention, bucket_name=
         == "Access Denied because object protected by object lock."
     )
 
-    from time import sleep
-
-    sleep(seconds_lock)
+    time.sleep(seconds_lock)
 
 
 @mock_aws
