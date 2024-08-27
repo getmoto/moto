@@ -1,3 +1,5 @@
+import pytest
+
 from moto.ssm.models import ParameterDict
 
 
@@ -83,3 +85,17 @@ def test_ssm_parameter_from_unknown_region():
             "/aws/service/ami-amazon-linux-latest", recursive=False
         )
     )
+
+
+@pytest.mark.parametrize("region", ["us-gov-east-1", "us-gov-west-1"])
+def test_ssm_parameter_from_gov_cloud_east_region(region):
+    store = ParameterDict("000000000000", region)
+    keys = list(
+        store.get_keys_beginning_with(
+            "/aws/service/ami-amazon-linux-latest", recursive=False
+        )
+    )
+    for key in keys:
+        ssm_parameter = store.get(key)[0]
+        ami = ssm_parameter.value
+        assert ami.startswith("ami-")
