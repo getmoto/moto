@@ -341,6 +341,7 @@ def test_delete_object_tagging_notification():
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectTagging"
 
+
 @mock_aws
 def test_storage_class_change_notifications():
     resource_names = _seteup_bucket_notification_eventbridge()

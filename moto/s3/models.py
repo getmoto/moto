@@ -230,9 +230,11 @@ class FakeKey(BaseModel, ManagedState):
             self._metadata = {}  # type: ignore
         self._metadata.update(metadata)
 
+
 @property
 def storage_class(self) -> Optional[str]:
     return self._storage_class
+
 
 @storage_class.setter
 def storage_class(self, storage: Optional[str]) -> None:
