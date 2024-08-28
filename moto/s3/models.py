@@ -143,7 +143,7 @@ class FakeKey(BaseModel, ManagedState):
         self.last_modified = utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.website_redirect_location: Optional[str] = None
-        self.checksum_algorithm = None
+        self.checksum_algorithm: Optional[str] = None
         self._storage_class: Optional[str] = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
         self._expiry: Optional[datetime.datetime] = None

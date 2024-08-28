@@ -363,6 +363,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if hasattr(self.body, "read"):
             self.body = self.body.read()
+        self.raw_body = self.body
 
         # https://github.com/getmoto/moto/issues/6692
         # Content coming from SDK's can be GZipped for performance reasons

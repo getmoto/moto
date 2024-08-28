@@ -183,6 +183,19 @@ class S3Response(BaseResponse):
             )
         self.bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.request = request
+        if (
+            self.request.headers.get("x-amz-content-sha256")
+            == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
+        ):
+            self.body = self._handle_encoded_body(self.body)
+
+        if (
+            request.headers.get("x-amz-content-sha256")
+            == "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
+        ):
+            self.body = self._handle_v4_chunk_signatures(
+                self.raw_body, int(request.headers["x-amz-decoded-content-length"])
+            )
 
     def get_safe_path(self) -> str:
         return unquote(self.raw_path)
@@ -1441,20 +1454,12 @@ class S3Response(BaseResponse):
 
         body = self.body or b""
 
-        if (
-            request.headers.get("x-amz-content-sha256", None)
-            == "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
-        ):
-            body = self._handle_v4_chunk_signatures(
-                body, int(request.headers["x-amz-decoded-content-length"])
-            )
-
         if method == "GET":
             return self._key_response_get(
                 bucket_name, query, key_name, headers=request.headers
             )
         elif method == "PUT":
-            return self._key_response_put(request, body, bucket_name, query, key_name)
+            return self._key_response_put(query, key_name)
         elif method == "HEAD":
             return self.head_object(
                 bucket_name, query, key_name, headers=request.headers
@@ -1609,273 +1614,81 @@ class S3Response(BaseResponse):
             not_modified = True
         return key, not_modified
 
-    def _key_response_put(
-        self,
-        request: Any,
-        body: bytes,
-        bucket_name: str,
-        query: Dict[str, Any],
-        key_name: str,
-    ) -> TYPE_RESPONSE:
+    def _key_response_put(self, query: Dict[str, Any], key_name: str) -> TYPE_RESPONSE:
         self._set_action("KEY", "PUT", query)
         self._authenticate_and_authorize_s3_action(
-            bucket_name=bucket_name, key_name=key_name
+            bucket_name=self.bucket_name, key_name=key_name
         )
 
-        response_headers = self._get_cors_headers_other(request.headers, bucket_name)
         if query.get("uploadId") and query.get("partNumber"):
-            upload_id = query["uploadId"][0]
-            part_number = int(query["partNumber"][0])
-            if "x-amz-copy-source" in request.headers:
-                copy_source = request.headers.get("x-amz-copy-source")
-                if isinstance(copy_source, bytes):
-                    copy_source = copy_source.decode("utf-8")
-                copy_source_parsed = urlparse(copy_source)
-                src_bucket, src_key = (
-                    unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
-                )
-                src_version_id = parse_qs(copy_source_parsed.query).get(
-                    "versionId", [None]
-                )[0]
-                src_range = request.headers.get("x-amz-copy-source-range", "").split(
-                    "bytes="
-                )[-1]
-
-                try:
-                    start_byte, end_byte = src_range.split("-")
-                    start_byte, end_byte = int(start_byte), int(end_byte)
-                except ValueError:
-                    start_byte, end_byte = None, None
-
-                if self.backend.get_object(
-                    src_bucket, src_key, version_id=src_version_id
-                ):
-                    key = self.backend.upload_part_copy(
-                        bucket_name,
-                        upload_id,
-                        part_number,
-                        src_bucket_name=src_bucket,
-                        src_key_name=src_key,
-                        src_version_id=src_version_id,
-                        start_byte=start_byte,
-                        end_byte=end_byte,
-                    )
-                else:
-                    return 404, response_headers, ""
-
-                template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
-                response = template.render(part=key)
+            if "x-amz-copy-source" in self.headers:
+                return self.upload_part_copy()
             else:
-                if part_number > 10000:
-                    raise InvalidMaxPartNumberArgument(part_number)
-                key = self.backend.upload_part(
-                    bucket_name, upload_id, part_number, body
-                )
-                response = ""
-            response_headers.update(key.response_dict)
-            response_headers["content-length"] = str(len(response))
-            return 200, response_headers, response
+                return self.upload_part()
 
-        storage_class = request.headers.get("x-amz-storage-class", "STANDARD")
-        encryption = request.headers.get("x-amz-server-side-encryption", None)
-        kms_key_id = request.headers.get(
-            "x-amz-server-side-encryption-aws-kms-key-id", None
-        )
-
-        checksum_algorithm = request.headers.get("x-amz-sdk-checksum-algorithm", "")
-        checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
-        checksum_value = request.headers.get(checksum_header)
-        if not checksum_value and checksum_algorithm:
-            # Extract the checksum-value from the body first
-            search = re.search(rb"x-amz-checksum-\w+:(.+={1,2})", body)
-            checksum_value = search.group(1) if search else None
-
-        if checksum_value:
-            # TODO: AWS computes the provided value and verifies it's the same
-            # Afterwards, it should be returned in every subsequent call
-            if isinstance(checksum_value, bytes):
-                checksum_value = checksum_value.decode("utf-8")
-            response_headers.update({checksum_header: checksum_value})
-        elif checksum_algorithm:
-            # If the value is not provided, we compute it and only return it as part of this request
-            checksum_value = compute_checksum(body, algorithm=checksum_algorithm)
-            response_headers.update({checksum_header: checksum_value})
-
-        # Extract the actual data from the body second
-        if (
-            request.headers.get("x-amz-content-sha256", None)
-            == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
-        ):
-            body = self._handle_encoded_body(body)
-
-        bucket_key_enabled = request.headers.get(
-            "x-amz-server-side-encryption-bucket-key-enabled", None
-        )
-        if bucket_key_enabled is not None:
-            bucket_key_enabled = str(bucket_key_enabled).lower()
-
-        bucket = self.backend.get_bucket(bucket_name)
+        bucket = self.backend.get_bucket(self.bucket_name)
         lock_enabled = bucket.object_lock_enabled
 
-        lock_mode = request.headers.get("x-amz-object-lock-mode", None)
-        lock_until = request.headers.get("x-amz-object-lock-retain-until-date", None)
-        legal_hold = request.headers.get("x-amz-object-lock-legal-hold", None)
+        lock_mode = self.headers.get("x-amz-object-lock-mode")
+        lock_until = self.headers.get("x-amz-object-lock-retain-until-date", None)
+        legal_hold = self.headers.get("x-amz-object-lock-legal-hold")
 
         if lock_mode or lock_until or legal_hold == "ON":
-            if not request.headers.get("Content-Md5"):
+            if not self.headers.get("Content-Md5"):
                 raise InvalidContentMD5
             if not lock_enabled:
                 raise LockNotEnabled
 
         elif lock_enabled and bucket.has_default_lock:
-            if not request.headers.get("Content-Md5"):
+            if not self.headers.get("Content-Md5"):
                 raise InvalidContentMD5
-            lock_until = bucket.default_retention()
-            lock_mode = bucket.default_lock_mode
-
-        acl = self._acl_from_headers(request.headers)
-        if acl is None:
-            acl = bucket.acl
-        tagging = self._tagging_from_headers(request.headers)
-
-        if "versionId" in query:
-            version_id = query["versionId"][0]
-        else:
-            version_id = None
 
         if "retention" in query:
-            if not lock_enabled:
-                raise LockNotEnabled
-            retention = self._mode_until_from_body()
-            self.backend.put_object_retention(
-                bucket_name, key_name, version_id=version_id, retention=retention
-            )
-            return 200, response_headers, ""
+            return self.put_object_retention()
 
         if "legal-hold" in query:
-            if not lock_enabled:
-                raise LockNotEnabled
-            legal_hold_status = self._legal_hold_status_from_xml(body)
-            self.backend.put_object_legal_hold(
-                bucket_name, key_name, version_id, legal_hold_status
-            )
-            return 200, response_headers, ""
+            return self.put_object_legal_hold()
 
         if "acl" in query:
-            self.backend.put_object_acl(bucket_name, key_name, acl)
-            return 200, response_headers, ""
+            return self.put_object_acl()
 
         if "tagging" in query:
-            key_to_tag = self.backend.get_object(
-                bucket_name, key_name, version_id=version_id
-            )
-            tagging = self._tagging_from_xml(body)
-            self.backend.put_object_tagging(key_to_tag, tagging, key_name)
-            return 200, response_headers, ""
+            return self.put_object_tagging()
 
-        if "x-amz-copy-source" in request.headers:
-            # Copy key
-            # you can have a quoted ?version=abc with a version Id, so work on
-            # we need to parse the unquoted string first
-            copy_source = request.headers.get("x-amz-copy-source")
-            if isinstance(copy_source, bytes):
-                copy_source = copy_source.decode("utf-8")
-            copy_source_parsed = urlparse(copy_source)
-            src_bucket, src_key = (
-                unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
-            )
-            src_version_id = parse_qs(copy_source_parsed.query).get(
-                "versionId", [None]
-            )[0]
+        if "x-amz-copy-source" in self.headers:
+            return self.copy_object()
 
-            key_to_copy = self.backend.get_object(
-                src_bucket, src_key, version_id=src_version_id
-            )
+        return self.put_object()
 
-            if key_to_copy is not None:
-                if "x-amz-copy-source-if-none-match" in request.headers:
-                    requested_etag = request.headers["x-amz-copy-source-if-none-match"]
-                    if requested_etag in [key_to_copy.etag, key_to_copy.etag[1:-1]]:
-                        raise PreconditionFailed(
-                            failed_condition="x-amz-copy-source-If-None-Match"
-                        )
+    def put_object(self) -> TYPE_RESPONSE:
+        key_name = self.parse_key_name()
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
 
-                if key_to_copy.storage_class in ARCHIVE_STORAGE_CLASSES:
-                    if (
-                        key_to_copy.response_dict.get("x-amz-restore") is None
-                        or 'ongoing-request="true"'
-                        in key_to_copy.response_dict.get(  # type: ignore
-                            "x-amz-restore"
-                        )
-                    ):
-                        raise ObjectNotInActiveTierError(key_to_copy)
+        storage_class = self.headers.get("x-amz-storage-class", "STANDARD")
+        encryption = self.headers.get("x-amz-server-side-encryption")
+        kms_key_id = self.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+        bucket_key_enabled = self.headers.get(
+            "x-amz-server-side-encryption-bucket-key-enabled"
+        )
+        if bucket_key_enabled is not None:
+            bucket_key_enabled = str(bucket_key_enabled).lower()
 
-                website_redirect_location = request.headers.get(
-                    "x-amz-website-redirect-location"
-                )
+        checksum_algorithm, checksum_value = self._get_checksum(response_headers)
 
-                mdirective = request.headers.get("x-amz-metadata-directive")
-                metadata = metadata_from_headers(request.headers)
-                self.backend.copy_object(
-                    key_to_copy,
-                    bucket_name,
-                    key_name,
-                    storage=request.headers.get("x-amz-storage-class"),
-                    kms_key_id=kms_key_id,
-                    encryption=encryption,
-                    bucket_key_enabled=bucket_key_enabled,
-                    mdirective=mdirective,
-                    metadata=metadata,
-                    website_redirect_location=website_redirect_location,
-                    lock_mode=lock_mode,
-                    lock_legal_status=legal_hold,
-                    lock_until=lock_until,
-                    provided_version_id=src_version_id,
-                )
-            else:
-                if src_version_id:
-                    raise MissingVersion()
-                raise MissingKey(key=src_key)
+        bucket = self.backend.get_bucket(self.bucket_name)
+        lock_enabled = bucket.object_lock_enabled
 
-            new_key: FakeKey = self.backend.get_object(bucket_name, key_name)  # type: ignore
+        legal_hold, lock_mode, lock_until = self._get_lock_details(bucket, lock_enabled)
 
-            if acl is not None:
-                new_key.set_acl(acl)
+        acl = self._acl_from_headers(self.headers)
+        if acl is None:
+            acl = bucket.acl
+        tagging = self._tagging_from_headers(self.headers)
 
-            tdirective = request.headers.get("x-amz-tagging-directive")
-            if tdirective == "REPLACE":
-                tagging = self._tagging_from_headers(request.headers)
-                self.backend.put_object_tagging(new_key, tagging)
-            if key_to_copy.version_id != "null":
-                response_headers["x-amz-copy-source-version-id"] = (
-                    key_to_copy.version_id
-                )
-
-            # checksum stuff, do we need to compute hash of the copied object
-            checksum_algorithm = request.headers.get("x-amz-checksum-algorithm")
-            if checksum_algorithm:
-                checksum_value = compute_checksum(
-                    new_key.value, algorithm=checksum_algorithm
-                ).decode("utf-8")
-                response_headers.update(
-                    {"Checksum": {f"Checksum{checksum_algorithm}": checksum_value}}
-                )
-                # By default, the checksum-details for the copy will be the same as the original
-                # But if another algorithm is provided during the copy-operation, we override the values
-                new_key.checksum_algorithm = checksum_algorithm
-                new_key.checksum_value = checksum_value
-
-            template = self.response_template(S3_OBJECT_COPY_RESPONSE)
-            response_headers.update(new_key.response_dict)
-            response = template.render(key=new_key)
-            response_headers["content-length"] = str(len(response))
-            return 200, response_headers, response
-
-        # Initial data
         new_key = self.backend.put_object(
-            bucket_name,
+            self.bucket_name,
             key_name,
-            body,
+            self.body or b"",
             storage=storage_class,
             encryption=encryption,
             kms_key_id=kms_key_id,
@@ -1885,22 +1698,278 @@ class S3Response(BaseResponse):
             lock_until=lock_until,
             checksum_value=checksum_value,
         )
-
-        metadata = metadata_from_headers(request.headers)
-        metadata.update(metadata_from_headers(query))
+        metadata = metadata_from_headers(self.headers)
+        metadata.update(metadata_from_headers(self.querystring))
         new_key.set_metadata(metadata)
         new_key.set_acl(acl)
-        new_key.website_redirect_location = request.headers.get(
+        new_key.website_redirect_location = self.headers.get(
             "x-amz-website-redirect-location"
         )
         if checksum_algorithm:
             new_key.checksum_algorithm = checksum_algorithm
         self.backend.put_object_tagging(new_key, tagging)
-
         response_headers.update(new_key.response_dict)
         # Remove content-length - the response body is empty for this request
         response_headers.pop("content-length", None)
         return 200, response_headers, ""
+
+    def _get_checksum(
+        self, response_headers: Dict[str, Any]
+    ) -> Tuple[str, Optional[str]]:
+        checksum_algorithm = self.headers.get("x-amz-sdk-checksum-algorithm", "")
+        checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
+        checksum_value = self.headers.get(checksum_header)
+        if not checksum_value and checksum_algorithm:
+            # Extract the checksum-value from the body first
+            search = re.search(rb"x-amz-checksum-\w+:(.+={1,2})", self.raw_body)
+            checksum_value = search.group(1) if search else None
+        if checksum_value:
+            # TODO: AWS computes the provided value and verifies it's the same
+            # Afterwards, it should be returned in every subsequent call
+            if isinstance(checksum_value, bytes):
+                checksum_value = checksum_value.decode("utf-8")
+            response_headers.update({checksum_header: checksum_value})
+        elif checksum_algorithm:
+            # If the value is not provided, we compute it and only return it as part of this request
+            checksum_value = compute_checksum(
+                self.raw_body, algorithm=checksum_algorithm
+            )
+            response_headers.update({checksum_header: checksum_value})
+        return checksum_algorithm, checksum_value
+
+    def copy_object(self) -> TYPE_RESPONSE:
+        # you can have a quoted ?version=abc with a version Id, so work on
+        # we need to parse the unquoted string first
+        copy_source = self.headers.get("x-amz-copy-source")
+        if isinstance(copy_source, bytes):
+            copy_source = copy_source.decode("utf-8")
+        copy_source_parsed = urlparse(copy_source)
+        src_bucket, src_key = unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
+        src_version_id = parse_qs(copy_source_parsed.query).get("versionId", [None])[0]
+
+        key_to_copy = self.backend.get_object(
+            src_bucket, src_key, version_id=src_version_id
+        )
+        key_name = self.parse_key_name()
+
+        bucket = self.backend.get_bucket(self.bucket_name)
+        lock_enabled = bucket.object_lock_enabled
+
+        encryption = self.headers.get("x-amz-server-side-encryption")
+        kms_key_id = self.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+        bucket_key_enabled = self.headers.get(
+            "x-amz-server-side-encryption-bucket-key-enabled"
+        )
+        if bucket_key_enabled is not None:
+            bucket_key_enabled = str(bucket_key_enabled).lower()
+
+        legal_hold, lock_mode, lock_until = self._get_lock_details(bucket, lock_enabled)
+
+        if key_to_copy is not None:
+            if "x-amz-copy-source-if-none-match" in self.headers:
+                requested_etag = self.headers["x-amz-copy-source-if-none-match"]
+                if requested_etag in [key_to_copy.etag, key_to_copy.etag[1:-1]]:
+                    raise PreconditionFailed(
+                        failed_condition="x-amz-copy-source-If-None-Match"
+                    )
+
+            if key_to_copy.storage_class in ARCHIVE_STORAGE_CLASSES:
+                if key_to_copy.response_dict.get(
+                    "x-amz-restore"
+                ) is None or 'ongoing-request="true"' in key_to_copy.response_dict.get(  # type: ignore
+                    "x-amz-restore"
+                ):
+                    raise ObjectNotInActiveTierError(key_to_copy)
+
+            website_redirect_location = self.headers.get(
+                "x-amz-website-redirect-location"
+            )
+
+            mdirective = self.headers.get("x-amz-metadata-directive")
+            metadata = metadata_from_headers(self.headers)
+            self.backend.copy_object(
+                key_to_copy,
+                self.bucket_name,
+                key_name,
+                storage=self.headers.get("x-amz-storage-class"),
+                kms_key_id=kms_key_id,
+                encryption=encryption,
+                bucket_key_enabled=bucket_key_enabled,
+                mdirective=mdirective,
+                metadata=metadata,
+                website_redirect_location=website_redirect_location,
+                lock_mode=lock_mode,
+                lock_legal_status=legal_hold,
+                lock_until=lock_until,
+                provided_version_id=src_version_id,
+            )
+        else:
+            if src_version_id:
+                raise MissingVersion()
+            raise MissingKey(key=src_key)
+
+        new_key: FakeKey = self.backend.get_object(self.bucket_name, key_name)  # type: ignore
+
+        acl = self._acl_from_headers(self.headers)
+        if acl is None:
+            acl = bucket.acl
+        if acl is not None:
+            new_key.set_acl(acl)
+
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        tdirective = self.headers.get("x-amz-tagging-directive")
+        if tdirective == "REPLACE":
+            tagging = self._tagging_from_headers(self.headers)
+            self.backend.put_object_tagging(new_key, tagging)
+        if key_to_copy.version_id != "null":
+            response_headers["x-amz-copy-source-version-id"] = key_to_copy.version_id
+
+        # checksum stuff, do we need to compute hash of the copied object
+        checksum_algorithm = self.headers.get("x-amz-checksum-algorithm")
+        if checksum_algorithm:
+            checksum_value = compute_checksum(
+                new_key.value, algorithm=checksum_algorithm
+            ).decode("utf-8")
+            response_headers.update(
+                {"Checksum": {f"Checksum{checksum_algorithm}": checksum_value}}
+            )
+            # By default, the checksum-details for the copy will be the same as the original
+            # But if another algorithm is provided during the copy-operation, we override the values
+            new_key.checksum_algorithm = checksum_algorithm
+            new_key.checksum_value = checksum_value
+
+        template = self.response_template(S3_OBJECT_COPY_RESPONSE)
+        response_headers.update(new_key.response_dict)
+        response = template.render(key=new_key)
+        response_headers["content-length"] = str(len(response))
+        return 200, response_headers, response
+
+    def _get_lock_details(
+        self, bucket: "FakeBucket", lock_enabled: bool
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        lock_mode = self.headers.get("x-amz-object-lock-mode")
+        lock_until = self.headers.get("x-amz-object-lock-retain-until-date")
+        legal_hold = self.headers.get("x-amz-object-lock-legal-hold")
+        if lock_mode or lock_until or legal_hold == "ON":
+            pass
+        elif lock_enabled and bucket.has_default_lock:
+            lock_until = bucket.default_retention()
+            lock_mode = bucket.default_lock_mode
+        return legal_hold, lock_mode, lock_until
+
+    def put_object_tagging(self) -> TYPE_RESPONSE:
+        key_name = self.parse_key_name()
+        version_id = self._get_param("versionId")
+        key_to_tag = self.backend.get_object(
+            self.bucket_name, key_name, version_id=version_id
+        )
+        tagging = self._tagging_from_xml()
+        self.backend.put_object_tagging(key_to_tag, tagging, key_name)
+
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        self._get_checksum(response_headers)
+        return 200, response_headers, ""
+
+    def put_object_acl(self) -> TYPE_RESPONSE:
+        acl = self._acl_from_headers(self.headers)
+        if acl is None:
+            bucket = self.backend.get_bucket(self.bucket_name)
+            acl = bucket.acl
+        key_name = self.parse_key_name()
+        self.backend.put_object_acl(self.bucket_name, key_name, acl)
+
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        self._get_checksum(response_headers)
+        return 200, response_headers, ""
+
+    def put_object_legal_hold(self) -> TYPE_RESPONSE:
+        version_id = self._get_param("versionId")
+        bucket = self.backend.get_bucket(self.bucket_name)
+        lock_enabled = bucket.object_lock_enabled
+        key_name = self.parse_key_name()
+
+        if not lock_enabled:
+            raise LockNotEnabled
+        legal_hold_status = self._legal_hold_status_from_xml(self.body)
+        self.backend.put_object_legal_hold(
+            self.bucket_name, key_name, version_id, legal_hold_status
+        )
+
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        self._get_checksum(response_headers)
+        return 200, response_headers, ""
+
+    def put_object_retention(self) -> TYPE_RESPONSE:
+        version_id = self._get_param("versionId")
+        bucket = self.backend.get_bucket(self.bucket_name)
+        lock_enabled = bucket.object_lock_enabled
+        key_name = self.parse_key_name()
+
+        if not lock_enabled:
+            raise LockNotEnabled
+        retention = self._mode_until_from_body()
+        self.backend.put_object_retention(
+            self.bucket_name, key_name, version_id=version_id, retention=retention
+        )
+
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        self._get_checksum(response_headers)
+        return 200, response_headers, ""
+
+    def upload_part(self) -> TYPE_RESPONSE:
+        upload_id = self._get_param("uploadId")
+        part_number = self._get_int_param("partNumber")
+
+        if part_number > 10000:
+            raise InvalidMaxPartNumberArgument(part_number)
+        key = self.backend.upload_part(
+            self.bucket_name, upload_id, part_number, self.body
+        )
+
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        self._get_checksum(response_headers)
+        response_headers.update(key.response_dict)
+        response_headers["content-length"] = "0"
+        return 200, response_headers, ""
+
+    def upload_part_copy(self) -> TYPE_RESPONSE:
+        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        self._get_checksum(response_headers)
+
+        upload_id = self._get_param("uploadId")
+        part_number = self._get_int_param("partNumber")
+
+        copy_source = self.headers.get("x-amz-copy-source")
+        if isinstance(copy_source, bytes):
+            copy_source = copy_source.decode("utf-8")
+        copy_source_parsed = urlparse(copy_source)
+        src_bucket, src_key = unquote(copy_source_parsed.path).lstrip("/").split("/", 1)
+        src_version_id = parse_qs(copy_source_parsed.query).get("versionId", [None])[0]
+        src_range = self.headers.get("x-amz-copy-source-range", "").split("bytes=")[-1]
+        try:
+            start_byte, end_byte = src_range.split("-")
+            start_byte, end_byte = int(start_byte), int(end_byte)
+        except ValueError:
+            start_byte, end_byte = None, None
+        if self.backend.get_object(src_bucket, src_key, version_id=src_version_id):
+            key = self.backend.upload_part_copy(
+                self.bucket_name,
+                upload_id,
+                part_number,
+                src_bucket_name=src_bucket,
+                src_key_name=src_key,
+                src_version_id=src_version_id,
+                start_byte=start_byte,
+                end_byte=end_byte,
+            )
+        else:
+            return 404, response_headers, ""
+        template = self.response_template(S3_MULTIPART_UPLOAD_RESPONSE)
+        response = template.render(part=key)
+
+        response_headers.update(key.response_dict)
+        response_headers["content-length"] = str(len(response))
+        return 200, response_headers, response
 
     def head_object(
         self,
@@ -2129,8 +2198,8 @@ class S3Response(BaseResponse):
                 tags[tag[0]] = tag[1][0]
         return tags
 
-    def _tagging_from_xml(self, xml: bytes) -> Dict[str, str]:
-        parsed_xml = xmltodict.parse(xml, force_list={"Tag": True})
+    def _tagging_from_xml(self) -> Dict[str, str]:
+        parsed_xml = xmltodict.parse(self.body, force_list={"Tag": True})
 
         tags = {}
         for tag in parsed_xml["Tagging"]["TagSet"]["Tag"]:
