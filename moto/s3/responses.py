@@ -1321,12 +1321,24 @@ class S3Response(BaseResponse):
             line = body_io.readline()
         return bytes(new_body)
 
-    def _handle_encoded_body(self, body: bytes, content_length: int) -> bytes:
+    def _handle_encoded_body(self, body: bytes) -> bytes:
+        decoded_body = b""
         body_io = io.BytesIO(body)
-        # first line should equal '{content_length}\r\n
-        body_io.readline()
-        # Body contains actual data next
-        return body_io.read(content_length)
+        # first line should equal '{content_length}\r\n' while the content_length is a hex number
+        content_length = int(body_io.readline().strip(), 16)
+        while content_length > 0:
+            # read the content_length of the actual data
+            decoded_body += body_io.read(content_length).rstrip()
+            # next is line with just '\r\n' so we skip it
+            body_io.readline()
+            # check if there is another chunk with '{content_length}\r\n'
+            content_length_str = body_io.readline().strip()
+            try:
+                content_length = int(content_length_str, 16)
+            except ValueError:
+                break
+
+        return decoded_body
         # last line should equal
         # amz-checksum-sha256:<..>\r\n
 
@@ -1685,9 +1697,7 @@ class S3Response(BaseResponse):
             request.headers.get("x-amz-content-sha256", None)
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
         ):
-            body = self._handle_encoded_body(
-                body, int(request.headers["x-amz-decoded-content-length"])
-            )
+            body = self._handle_encoded_body(body)
 
         bucket_key_enabled = request.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled", None

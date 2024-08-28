@@ -910,6 +910,22 @@ def test_upload_file_with_checksum_algorithm():
 
 
 @mock_aws
+def test_put_large_with_checksum_algorithm():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "mybucket"
+    s3_client.create_bucket(Bucket=bucket)
+    s3_client.put_object(
+        Bucket=bucket,
+        Key="the-key",
+        Body=b"test" * 1000000,
+        ChecksumAlgorithm="SHA256",
+    )
+
+    resp = s3_client.get_object(Bucket="mybucket", Key="the-key")
+    assert resp["Body"].read() == b"test" * 1000000
+
+
+@mock_aws
 def test_put_chunked_with_v4_signature_in_body():
     bucket_name = "mybucket"
     file_name = "file"
