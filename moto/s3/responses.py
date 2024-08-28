@@ -1328,7 +1328,7 @@ class S3Response(BaseResponse):
         content_length = int(body_io.readline().strip(), 16)
         while content_length > 0:
             # read the content_length of the actual data
-            decoded_body += body_io.read(content_length).removesuffix(b"\r\n")
+            decoded_body += body_io.read(content_length)
             # next is line with just '\r\n' so we skip it
             body_io.readline()
             # check if there is another chunk with '{content_length}\r\n'
