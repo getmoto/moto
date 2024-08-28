@@ -3071,14 +3071,219 @@ def user_authentication_flow(
     }
 
 
-@cognitoidp_aws_verified(generate_secret=True, with_mfa="OPTIONAL")
+@cognitoidp_aws_verified(generate_secret=True, with_mfa="ON")
 @pytest.mark.aws_verified
-def test_user_authentication_flow(user_pool=None, user_pool_client=None):
+def test_user_authentication_flow_mfa_on(user_pool=None, user_pool_client=None):
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    user_authentication_flow(
-        conn, user_pool=user_pool, user_pool_client=user_pool_client
+    username = str(uuid.uuid4())
+    password = "P2$Sword"
+
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    client_secret = user_pool_client["UserPoolClient"]["ClientSecret"]
+
+    secret_hash = pycognito.aws_srp.AWSSRP.get_secret_hash(
+        username=username, client_id=client_id, client_secret=client_secret
     )
+    conn.sign_up(
+        ClientId=client_id, Username=username, Password=password, SecretHash=secret_hash
+    )
+
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id
+    )["UserPoolClient"]["ClientSecret"]
+
+    conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
+
+    aws_srp = pycognito.aws_srp.AWSSRP(
+        username=username,
+        password=password,
+        pool_id=user_pool_id,
+        client_id=client_id,
+        client_secret=client_secret,
+        client=conn,
+    )
+    auth_params = aws_srp.get_auth_params()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters=auth_params,
+    )
+
+    challenge_response = aws_srp.process_challenge(
+        result["ChallengeParameters"], auth_params
+    )
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses=challenge_response,
+    )
+    assert result["ChallengeName"] == "MFA_SETUP"
+
+    # add mfa token
+    resp = conn.associate_software_token(Session=result["Session"])
+    secret_code = resp["SecretCode"]
+    totp = pyotp.TOTP(secret_code)
+    user_code = totp.now()
+
+    resp = conn.verify_software_token(Session=resp["Session"], UserCode=user_code)
+    assert resp["Status"] == "SUCCESS"
+
+    # authenticate user once again
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": pycognito.aws_srp.long_to_hex(aws_srp.large_a_value),
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    challenge_response = aws_srp.process_challenge(
+        result["ChallengeParameters"], auth_params
+    )
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses=challenge_response,
+    )
+    assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
+
+    # AWS needs a new user code, otherwise they will throw an exception
+    #    ExpiredCodeException: Your software token has already been used once.
+    new_user_code = totp.now()
+    if allow_aws_request():
+        while user_code == new_user_code:
+            new_user_code = totp.now()
+            time.sleep(1)
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        Session=result["Session"],
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": new_user_code,
+            "USERNAME": username,
+            "SECRET_HASH": auth_params["SECRET_HASH"],
+        },
+    )
+    assert result["AuthenticationResult"]["AccessToken"]
+    assert result["AuthenticationResult"]["IdToken"]
+    assert result["AuthenticationResult"]["RefreshToken"]
+
+
+@cognitoidp_aws_verified(generate_secret=True, with_mfa="OPTIONAL")
+@pytest.mark.aws_verified
+def test_user_authentication_flow_mfa_optional(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    password = "P2$Sword"
+
+    user_pool_id = user_pool["UserPool"]["Id"]
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    client_secret = user_pool_client["UserPoolClient"]["ClientSecret"]
+
+    secret_hash = pycognito.aws_srp.AWSSRP.get_secret_hash(
+        username=username, client_id=client_id, client_secret=client_secret
+    )
+    conn.sign_up(
+        ClientId=client_id, Username=username, Password=password, SecretHash=secret_hash
+    )
+
+    client_secret = conn.describe_user_pool_client(
+        UserPoolId=user_pool_id, ClientId=client_id
+    )["UserPoolClient"]["ClientSecret"]
+
+    conn.admin_confirm_sign_up(UserPoolId=user_pool_id, Username=username)
+
+    aws_srp = pycognito.aws_srp.AWSSRP(
+        username=username,
+        password=password,
+        pool_id=user_pool_id,
+        client_id=client_id,
+        client_secret=client_secret,
+        client=conn,
+    )
+    auth_params = aws_srp.get_auth_params()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters=auth_params,
+    )
+
+    challenge_response = aws_srp.process_challenge(
+        result["ChallengeParameters"], auth_params
+    )
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses=challenge_response,
+    )
+
+    # add mfa token
+    resp = conn.associate_software_token(
+        AccessToken=result["AuthenticationResult"]["AccessToken"]
+    )
+    secret_code = resp["SecretCode"]
+    totp = pyotp.TOTP(secret_code)
+    user_code = totp.now()
+
+    resp = conn.verify_software_token(
+        AccessToken=result["AuthenticationResult"]["AccessToken"],
+        UserCode=user_code,
+    )
+    assert resp["Status"] == "SUCCESS"
+
+    conn.set_user_mfa_preference(
+        AccessToken=result["AuthenticationResult"]["AccessToken"],
+        SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+    )
+
+    # authenticate user once again
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "SRP_A": pycognito.aws_srp.long_to_hex(aws_srp.large_a_value),
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    challenge_response = aws_srp.process_challenge(
+        result["ChallengeParameters"], auth_params
+    )
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses=challenge_response,
+    )
+    assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
+
+    # AWS needs a new user code, otherwise they will throw an exception
+    #    ExpiredCodeException: Your software token has already been used once.
+    new_user_code = totp.now()
+    if allow_aws_request():
+        while user_code == new_user_code:
+            new_user_code = totp.now()
+            time.sleep(1)
+    result = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        Session=result["Session"],
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": new_user_code,
+            "USERNAME": username,
+            "SECRET_HASH": auth_params["SECRET_HASH"],
+        },
+    )
+    assert result["AuthenticationResult"]["AccessToken"]
+    assert result["AuthenticationResult"]["IdToken"]
+    assert result["AuthenticationResult"]["RefreshToken"]
 
 
 @mock_aws
@@ -4602,6 +4807,7 @@ def test_initiate_mfa_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status(
     # 6. Check that the MFA challenge is received
     # 7. Return the MFA challenge
     # 8. Check that the access tokens are received
+    # 9. Login again
 
     client = boto3.client("cognito-idp", "us-west-2")
     username = str(uuid.uuid4())
@@ -4659,6 +4865,31 @@ def test_initiate_mfa_auth_USER_PASSWORD_AUTH_with_FORCE_CHANGE_PASSWORD_status(
         ChallengeName=result["ChallengeName"],
         ChallengeResponses={
             "SOFTWARE_TOKEN_MFA_CODE": new_user_code,
+            "USERNAME": username,
+        },
+    )
+    assert result["ChallengeParameters"] == {}
+    assert result["AuthenticationResult"]["AccessToken"]
+    assert result["AuthenticationResult"]["RefreshToken"]
+    assert result["AuthenticationResult"]["IdToken"]
+
+    result = client.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_PASSWORD_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": new_password},
+    )
+    assert result["ChallengeName"] == "SOFTWARE_TOKEN_MFA"
+    third_user_code = totp.now()
+    if allow_aws_request():
+        while third_user_code == new_user_code:
+            third_user_code = totp.now()
+            time.sleep(1)
+    result = client.respond_to_auth_challenge(
+        ClientId=client_id,
+        Session=result["Session"],
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses={
+            "SOFTWARE_TOKEN_MFA_CODE": third_user_code,
             "USERNAME": username,
         },
     )

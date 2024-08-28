@@ -1389,13 +1389,14 @@ class CognitoIdpBackend(BaseBackend):
         )
 
         return {
+            "ChallengeParameters": {},
             "AuthenticationResult": {
                 "IdToken": id_token,
                 "AccessToken": access_token,
                 "RefreshToken": refresh_token,
                 "ExpiresIn": expires_in,
                 "TokenType": "Bearer",
-            }
+            },
         }
 
     def _validate_auth_flow(
@@ -1592,7 +1593,29 @@ class CognitoIdpBackend(BaseBackend):
             if not timestamp:
                 raise ResourceNotFoundError(timestamp)
 
-            if user.software_token_mfa_enabled:
+            if user.status == UserStatus.FORCE_CHANGE_PASSWORD:
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {
+                        "USERNAME": username,
+                    },
+                    "Session": session,
+                }
+            if user_pool.mfa_config == "ON" and not user.token_verified:
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                return {
+                    "ChallengeName": "MFA_SETUP",
+                    "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
+                    "Session": session,
+                }
+            if user.software_token_mfa_enabled or (
+                user_pool.token_mfa_config == {"Enabled": True} and user.token_verified
+            ):
                 return {
                     "ChallengeName": "SOFTWARE_TOKEN_MFA",
                     "Session": session,
@@ -1604,15 +1627,6 @@ class CognitoIdpBackend(BaseBackend):
                     "ChallengeName": "SMS_MFA",
                     "Session": session,
                     "ChallengeParameters": {},
-                }
-
-            if user.status == UserStatus.FORCE_CHANGE_PASSWORD:
-                return {
-                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                    "ChallengeParameters": {
-                        "USERNAME": username,
-                    },
-                    "Session": session,
                 }
 
             del self.sessions[session]
@@ -1637,8 +1651,7 @@ class CognitoIdpBackend(BaseBackend):
 
         elif challenge_name == "MFA_SETUP":
             username, user_pool = self.sessions[session]
-            auth_params = self._log_user_in(user_pool, client, username)
-            return {"ChallengeParameters": {}, **auth_params}
+            return self._log_user_in(user_pool, client, username)
 
         else:
             return {}
@@ -2012,7 +2025,7 @@ class CognitoIdpBackend(BaseBackend):
             if (
                 user.software_token_mfa_enabled
                 and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
-            ):
+            ) or (user_pool.mfa_config == "ON" and user.token_verified):
                 return {
                     "ChallengeName": "SOFTWARE_TOKEN_MFA",
                     "ChallengeParameters": {},
