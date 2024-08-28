@@ -1,7 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from typing import Dict, Literal
 from uuid import uuid4
+
+
+Status = Dict[Literal["status"], str]
 
 
 @dataclass
@@ -18,4 +21,13 @@ class Metadata:
         self.last_updated_at = datetime.now()
 
 
-Status = Dict[Literal["status"], str]
+@dataclass
+class TimeValue:
+    unit: str
+    value: int
+    to_dict = asdict
+
+
+class MissingField:
+    def to_dict(self) -> None:
+        return

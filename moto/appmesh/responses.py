@@ -247,3 +247,80 @@ class AppMeshResponse(BaseResponse):
             virtual_router_name=virtual_router_name,
         )
         return json.dumps(dict(nextToken=next_token, routes=routes))
+    
+    def describe_virtual_node(self):
+        params = self._get_params()
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        virtual_node_name = params.get("virtualNodeName")
+        virtual_node = self.appmesh_backend.describe_virtual_node(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_node_name=virtual_node_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(virtualNode=virtual_node))
+    
+    def create_virtual_node(self):
+        params = self._get_params()
+        client_token = params.get("clientToken")
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        spec = params.get("spec")
+        tags = params.get("tags")
+        virtual_node_name = params.get("virtualNodeName")
+        virtual_node = self.appmesh_backend.create_virtual_node(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            tags=tags,
+            virtual_node_name=virtual_node_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(virtualNode=virtual_node))
+    
+    def update_virtual_node(self):
+        params = self._get_params()
+        client_token = params.get("clientToken")
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        spec = params.get("spec")
+        virtual_node_name = params.get("virtualNodeName")
+        virtual_node = self.appmesh_backend.update_virtual_node(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            virtual_node_name=virtual_node_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(virtualNode=virtual_node))
+    
+    def delete_virtual_node(self):
+        params = self._get_params()
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        virtual_node_name = params.get("virtualNodeName")
+        virtual_node = self.appmesh_backend.delete_virtual_node(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_node_name=virtual_node_name,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(virtualNode=virtual_node))
+    
+    def list_virtual_nodes(self):
+        params = self._get_params()
+        limit = params.get("limit")
+        mesh_name = params.get("meshName")
+        mesh_owner = params.get("meshOwner")
+        next_token = params.get("nextToken")
+        next_token, virtual_nodes = self.appmesh_backend.list_virtual_nodes(
+            limit=limit,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            next_token=next_token,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(nextToken=next_token, virtualNodes=virtual_nodes))

@@ -20,8 +20,8 @@ from moto.appmesh.dataclasses.route import (
     TCPRoute,
     TCPRouteMatch,
     Timeout,
-    TimeValue,
 )
+from moto.appmesh.dataclasses.shared import TimeValue
 from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.appmesh.exceptions import (
     MeshNotFoundError,
@@ -320,3 +320,9 @@ def build_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
         priority=spec.get("priority"),
         tcp_route=tcp_route,
     )
+
+
+def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+    return {
+        key: value for key, value in obj.items() if value is not None and value != []
+    }

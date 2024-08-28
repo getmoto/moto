@@ -638,3 +638,43 @@ def test_create_describe_list_update_delete_route(client):
         err["Message"]
         == f"There is no route named {ROUTE_4} associated with router {ROUTER_NAME} in mesh {MESH_NAME}."
     )
+
+
+@mock_aws
+def test_describe_virtual_node():
+    client = boto3.client("appmesh", region_name="eu-west-1")
+    resp = client.describe_virtual_node()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_create_virtual_node():
+    client = boto3.client("appmesh", region_name="eu-west-1")
+    resp = client.create_virtual_node()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_update_virtual_node():
+    client = boto3.client("appmesh", region_name="eu-west-1")
+    resp = client.update_virtual_node()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_virtual_node():
+    client = boto3.client("appmesh", region_name="ap-southeast-1")
+    resp = client.delete_virtual_node()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_virtual_nodes():
+    client = boto3.client("appmesh", region_name="ap-southeast-1")
+    resp = client.list_virtual_nodes()
+
+    raise Exception("NotYetImplemented")

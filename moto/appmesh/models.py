@@ -409,5 +409,25 @@ class AppMeshBackend(BaseBackend):
             for route in virtual_router.routes.values()
         ]
 
+    def describe_virtual_node(self, mesh_name, mesh_owner, virtual_node_name):
+        # implement here
+        return virtual_node
+    
+    def create_virtual_node(self, client_token, mesh_name, mesh_owner, spec, tags, virtual_node_name):
+        # implement here
+        return virtual_node
+    
+    def update_virtual_node(self, client_token, mesh_name, mesh_owner, spec, virtual_node_name):
+        # implement here
+        return virtual_node
+    
+    def delete_virtual_node(self, mesh_name, mesh_owner, virtual_node_name):
+        # implement here
+        return virtual_node
+    
+    def list_virtual_nodes(self, limit, mesh_name, mesh_owner, next_token):
+        # implement here
+        return next_token, virtual_nodes
+    
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

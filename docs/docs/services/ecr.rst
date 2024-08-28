@@ -25,12 +25,10 @@ ecr
 - [ ] complete_layer_upload
 - [ ] create_pull_through_cache_rule
 - [X] create_repository
-- [ ] create_repository_creation_template
 - [X] delete_lifecycle_policy
 - [ ] delete_pull_through_cache_rule
 - [X] delete_registry_policy
 - [X] delete_repository
-- [ ] delete_repository_creation_template
 - [X] delete_repository_policy
 - [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
@@ -42,8 +40,6 @@ ecr
         maxResults and nextToken not implemented
         
 
-- [ ] describe_repository_creation_templates
-- [ ] get_account_setting
 - [ ] get_authorization_token
 - [ ] get_download_url_for_layer
 - [X] get_lifecycle_policy
@@ -58,7 +54,6 @@ ecr
         
 
 - [X] list_tags_for_resource
-- [ ] put_account_setting
 - [X] put_image
 - [X] put_image_scanning_configuration
 - [X] put_image_tag_mutability
@@ -72,7 +67,6 @@ ecr
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_pull_through_cache_rule
-- [ ] update_repository_creation_template
 - [ ] upload_layer_part
 - [ ] validate_pull_through_cache_rule
 

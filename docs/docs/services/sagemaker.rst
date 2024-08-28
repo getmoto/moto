@@ -292,6 +292,10 @@ sagemaker
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
 - [X] search
+  
+        Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
+        
+
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage

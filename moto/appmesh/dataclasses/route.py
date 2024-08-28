@@ -1,25 +1,8 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from moto.appmesh.dataclasses.shared import Metadata, Status
-
-
-def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
-    return {
-        key: value for key, value in obj.items() if value is not None and value != []
-    }
-
-
-class MissingField:
-    def to_dict(self) -> None:
-        return
-
-
-@dataclass
-class TimeValue:
-    unit: str
-    value: int
-    to_dict = asdict
+from moto.appmesh.dataclasses.shared import Metadata, MissingField, Status, TimeValue
+from moto.appmesh.utils import clean_dict
 
 
 @dataclass

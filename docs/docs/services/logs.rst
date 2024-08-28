@@ -15,7 +15,7 @@ logs
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_kms_key
-- [ ] cancel_export_task
+- [X] cancel_export_task
 - [ ] create_delivery
 - [X] create_export_task
 - [ ] create_log_anomaly_detector
