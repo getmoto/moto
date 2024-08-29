@@ -1270,7 +1270,10 @@ class S3Response(BaseResponse):
     def _handle_range_header(
         self, request: Any, response_headers: Dict[str, Any], response_content: Any
     ) -> TYPE_RESPONSE:
-        length = len(response_content)
+        if request.method == "HEAD":
+            length = int(response_headers["content-length"])
+        else:
+            length = len(response_content)
         last = length - 1
 
         _, rspec = request.headers.get("range").split("=")
@@ -1284,6 +1287,8 @@ class S3Response(BaseResponse):
             return 200, response_headers, response_content
 
         if (begin is None and end == 0) or (begin is not None and begin > last):
+            if request.method == "HEAD":
+                return 416, {"Content-Type": "application/xml"}, b""
             raise InvalidRange(
                 actual_size=str(length), range_requested=request.headers.get("range")
             )
@@ -1303,7 +1308,10 @@ class S3Response(BaseResponse):
 
         response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
         content = response_content[begin : end + 1]
-        response_headers["content-length"] = str(len(content))
+        if request.method == "HEAD":
+            response_headers["content-length"] = str((end - begin) + 1)
+        else:
+            response_headers["content-length"] = str(len(content))
         return 206, response_headers, content
 
     def _handle_v4_chunk_signatures(self, body: bytes, content_length: int) -> bytes:
