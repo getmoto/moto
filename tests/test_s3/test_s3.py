@@ -305,6 +305,7 @@ def test_create_bucket_in_regions_from_us_east_1(constraint):
         client.get_bucket_location(Bucket=bucket_name)["LocationConstraint"]
         == constraint
     )
+    client.delete_bucket(Bucket=bucket_name)
 
 
 @mock_aws
