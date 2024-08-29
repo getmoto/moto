@@ -1,33 +1,66 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Dict, List, Literal, Optional
 
-from moto.appmesh.dataclasses.shared import Status, TimeValue, Timeout
+from moto.appmesh.dataclasses.shared import MissingField, Status, TimeValue, Timeout
+from moto.appmesh.utils import clean_dict
 
 
 @dataclass
 class CertificateFile:
     certificate_chain: str
 
+    def to_dict(self):
+        return {
+            "certificateChain": self.certificate_chain
+        }
+
 @dataclass
 class CertificateFileWithPrivateKey(CertificateFile):
     private_key: str
+
+    def to_dict(self):
+        return {
+            "certificateChain": self.certificate_chain,
+            "privateKey": self.private_key
+        }
 
 @dataclass
 class SDS:
     secret_name: str
 
+    def to_dict(self):
+        return {
+            "secretName": self.secret_name
+        }
+    
+
 @dataclass
 class Certificate:
     file:  Optional[CertificateFileWithPrivateKey]
     sds:  Optional[SDS]
+    
+    def to_dict(self):
+        return clean_dict({
+            "file": (self.file or MissingField()).to_dict(),
+            "sds": (self.sds or MissingField()).to_dict()
+        })
+
+@dataclass
+class ListenerCertificateACM:
+    certificate_arn: str
+
+    def to_dict(self):
+        return {"certificateArn": self.certificate_arn}
 
 @dataclass
 class TLSListenerCertificate(Certificate):
-    acm: Optional[Dict[Literal["certificate_arn"], str]]
+    acm: Optional[ListenerCertificateACM]
 
 @dataclass
 class Match:
     exact: List[str]
+
+    to_dict=asdict
 
 @dataclass
 class SubjectAlternativeNames:
