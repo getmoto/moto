@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal, Optional
 
 from moto.appmesh.dataclasses.shared import Metadata, Status
+from moto.appmesh.dataclasses.virtual_node import VirtualNode
 from moto.appmesh.dataclasses.virtual_router import VirtualRouter
 
 
@@ -18,6 +19,7 @@ class Mesh:
     spec: MeshSpec
     status: Status
     tags: List[Dict[str, str]]
+    virtual_nodes: Dict[str, VirtualNode] = field(default_factory=dict)
     virtual_routers: Dict[str, VirtualRouter] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]

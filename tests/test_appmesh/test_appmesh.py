@@ -21,6 +21,8 @@ from .data import (
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
+MESH_NAME = "mock_mesh"
+
 @pytest.fixture(name="client")
 def fixture_transfer_client():
     with mock_aws():
@@ -152,7 +154,6 @@ def test_tag_and_list_tags_for_resource(client):
 
 @mock_aws
 def test_create_describe_list_update_delete_virtual_router(client):
-    MESH_NAME = "mock_mesh"
     connection = client.create_mesh(
         meshName=MESH_NAME,
         spec={
@@ -268,7 +269,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
 
 @mock_aws
 def test_create_describe_list_update_delete_route(client):
-    MESH_NAME = "mock_mesh"
     ROUTER_NAME = "mock_virtual_router"
 
     connection = client.create_mesh(
@@ -641,40 +641,9 @@ def test_create_describe_list_update_delete_route(client):
 
 
 @mock_aws
-def test_describe_virtual_node():
-    client = boto3.client("appmesh", region_name="eu-west-1")
+def test_create_describe_list_update_delete_virtual_node(client):
     resp = client.describe_virtual_node()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_create_virtual_node():
-    client = boto3.client("appmesh", region_name="eu-west-1")
     resp = client.create_virtual_node()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_update_virtual_node():
-    client = boto3.client("appmesh", region_name="eu-west-1")
     resp = client.update_virtual_node()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_delete_virtual_node():
-    client = boto3.client("appmesh", region_name="ap-southeast-1")
     resp = client.delete_virtual_node()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_list_virtual_nodes():
-    client = boto3.client("appmesh", region_name="ap-southeast-1")
     resp = client.list_virtual_nodes()
-
-    raise Exception("NotYetImplemented")
