@@ -53,6 +53,7 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": ["routeName"],
     },
+    # TODO list_virtual_nodes
 }
 
 
@@ -62,6 +63,7 @@ class AppMeshBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.meshes: Dict[str, Mesh] = dict()
+        self.virtual_nodes: Dict[str, VirtualNode] = dict()
 
     def create_mesh(
         self,
@@ -155,6 +157,7 @@ class AppMeshBackend(BaseBackend):
         for mesh in self.meshes.values():
             if mesh.metadata.arn == resource_arn:
                 return mesh
+        # TODO implement for routers, routes, and virtual nodes
         raise ResourceNotFoundError(resource_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
