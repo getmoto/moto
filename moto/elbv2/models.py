@@ -14,6 +14,7 @@ from moto.ec2.models.subnets import Subnet
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
+from ..elb.models import register_certificate
 from .exceptions import (
     ActionTargetGroupNotFoundError,
     DuplicateListenerError,
@@ -1420,6 +1421,14 @@ Member must satisfy regular expression pattern: {expression}"
             default_actions,
             alpn_policy,
         )
+        if certificate:
+            register_certificate(
+                account_id=self.account_id,
+                region=self.region_name,
+                arn_certificate=certificate,
+                arn_user=arn,
+            )
+
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
