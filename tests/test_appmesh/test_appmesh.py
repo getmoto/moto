@@ -23,6 +23,7 @@ from .data import (
 
 MESH_NAME = "mock_mesh"
 
+
 @pytest.fixture(name="client")
 def fixture_transfer_client():
     with mock_aws():

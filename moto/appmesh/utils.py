@@ -21,7 +21,21 @@ from moto.appmesh.dataclasses.route import (
     TCPRouteMatch,
 )
 from moto.appmesh.dataclasses.shared import Timeout, TimeValue
-from moto.appmesh.dataclasses.virtual_node import BackendDefaults, ClientPolicy, TLSClientPolicy, VirtualNodeSpec
+from moto.appmesh.dataclasses.virtual_node import (
+    SDS,
+    BackendDefaults,
+    BackendTrust,
+    Certificate,
+    CertificateFileWithPrivateKey,
+    ClientPolicy,
+    SubjectAlternativeNames,
+    TLSBackendValidation,
+    TLSClientPolicy,
+    VirtualNodeSpec,
+)
+from moto.appmesh.dataclasses.virtual_node import (
+    Match as VirtualNodeMatch,
+)
 from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.appmesh.exceptions import (
     MeshNotFoundError,
@@ -328,14 +342,20 @@ def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     )
 
 
-def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec: # type: ignore[misc]
+def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: ignore[misc]
     _backend_defaults = spec.get("backendDefaults")
     _backends = spec.get("backends")
     _listeners = spec.get("listeners")
     _logging = spec.get("logging")
     _service_discovery = spec.get("serviceDiscovery")
 
-    backend_defaults, backends, listeners, logging, service_discovery = None, None, None, None, None
+    backend_defaults, backends, listeners, logging, service_discovery = (
+        None,
+        None,
+        None,
+        None,
+        None,
+    )
 
     if _backend_defaults is not None:
         _client_policy = _backend_defaults.get("clientPolicy")
@@ -347,12 +367,48 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec: # type: ig
                 _certificate = _tls.get("certificate")
                 _validation = _tls.get("validation")
                 certificate, validation = None, None
-                # TODO certificate and validation
+                if _certificate is not None:
+                    _file = _certificate.get("file")
+                    _sds = _certificate.get("sds")
+                    file, sds = None
+                    if _file is not None:
+                        file = CertificateFileWithPrivateKey(
+                            certificate_chain=_file.get("certificateChain"),
+                            private_key=_file.get("privateKey"),
+                        )
+                    if _sds is not None:
+                        sds = SDS(secret_name=_sds.get("secretName"))
+                    certificate = Certificate(file=file, sds=sds)
+                if _validation is not None:
+                    _subject_alternative_names = _validation.get(
+                        "subjectAlternativeNames"
+                    )
+                    _trust = _validation.get("trust")
+                    subject_alternative_names, trust = None, None
+
+                    if _subject_alternative_names is not None:
+                        _match = _subject_alternative_names.get("match")
+                        match = None
+                        if _match is not None:
+                            match = VirtualNodeMatch(exact=_match.get("exact"))
+                        subject_alternative_names = SubjectAlternativeNames(match=match)
+
+                    if _trust is not None:
+                        _trust_file = _trust.get("file")
+                        _trust_sds = _trust.get("sds")
+                        _acm = _trust.get("acm")
+                        trust_file, trust_sds, acm = None, None, None
+                        # TODO set trust params
+                        trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
+
+                    validation = TLSBackendValidation(
+                        subject_alternative_names=subject_alternative_names, trust=trust
+                    )
                 tls = TLSClientPolicy(
                     certificate=certificate,
                     enforce=_tls.get("enforce"),
                     ports=_tls.get("ports"),
-                    validation=validation
+                    validation=validation,
                 )
             client_policy = ClientPolicy(tls=tls)
 
@@ -363,5 +419,5 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec: # type: ig
         backends=backends,
         listeners=listeners,
         logging=logging,
-        service_discovery=service_discovery
+        service_discovery=service_discovery,
     )

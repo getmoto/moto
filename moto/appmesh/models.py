@@ -63,7 +63,7 @@ class AppMeshBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.meshes: Dict[str, Mesh] = dict()
-        
+
     def create_mesh(
         self,
         client_token: Optional[str],

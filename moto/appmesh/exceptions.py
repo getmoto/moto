@@ -65,3 +65,11 @@ class RouteNameAlreadyTakenError(MeshError):
             "RouteNameAlreadyTaken",
             f"There is already a route named {route_name} associated with router {virtual_router_name} in mesh {mesh_name}.",
         )
+
+
+class MissingRequiredFieldError(MeshError):
+    def __init__(self, field_name: str) -> None:
+        super().__init__(
+            "MissingRequiredField",
+            f"{field_name} must be defined.",
+        )
