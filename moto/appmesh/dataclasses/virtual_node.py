@@ -9,7 +9,7 @@ from moto.appmesh.utils import clean_dict
 class CertificateFile:
     certificate_chain: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {
             "certificateChain": self.certificate_chain
         }
@@ -18,7 +18,7 @@ class CertificateFile:
 class CertificateFileWithPrivateKey(CertificateFile):
     private_key: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {
             "certificateChain": self.certificate_chain,
             "privateKey": self.private_key
@@ -28,7 +28,7 @@ class CertificateFileWithPrivateKey(CertificateFile):
 class SDS:
     secret_name: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {
             "secretName": self.secret_name
         }
@@ -39,7 +39,7 @@ class Certificate:
     file:  Optional[CertificateFileWithPrivateKey]
     sds:  Optional[SDS]
     
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "file": (self.file or MissingField()).to_dict(),
             "sds": (self.sds or MissingField()).to_dict()
@@ -49,14 +49,14 @@ class Certificate:
 class ListenerCertificateACM:
     certificate_arn: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {"certificateArn": self.certificate_arn}
 
 @dataclass
 class TLSListenerCertificate(Certificate):
     acm: Optional[ListenerCertificateACM]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "acm": (self.acm or MissingField()).to_dict(),
             "file": (self.file or MissingField()).to_dict(),
@@ -73,7 +73,7 @@ class Match:
 class SubjectAlternativeNames:
     match: Match
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {
             "match": self.match.to_dict()
         }
@@ -82,7 +82,7 @@ class SubjectAlternativeNames:
 class ACM:
     certificate_authority_arns: List[str]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {
             "certificateAuthorityArns": self.certificate_authority_arns
         }
@@ -92,7 +92,7 @@ class Trust:
     file: Optional[CertificateFile]
     sds: Optional[SDS]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "file": (self.file or MissingField()).to_dict(),
             "sds": (self.sds or MissingField()).to_dict(),
@@ -102,7 +102,7 @@ class Trust:
 class BackendTrust(Trust):
     acm: Optional[ACM]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "acm": (self.acm or MissingField()).to_dict(), 
             "file": (self.file or MissingField()).to_dict(),
@@ -113,14 +113,14 @@ class BackendTrust(Trust):
 class Validation:
     subject_alternative_names: Optional[SubjectAlternativeNames]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({ "subjectAlternativeNames": (self.subject_alternative_names or MissingField()).to_dict() })
 
 @dataclass
 class TLSBackendValidation(Validation):
     trust: BackendTrust
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({ 
             "subjectAlternativeNames": (self.subject_alternative_names or MissingField()).to_dict(),
             "trust": self.trust.to_dict()
@@ -130,7 +130,7 @@ class TLSBackendValidation(Validation):
 class TLSListenerValidation(Validation):
     trust: Trust
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({ 
             "subjectAlternativeNames": (self.subject_alternative_names or MissingField()).to_dict(),
             "trust": self.trust.to_dict()
@@ -143,7 +143,7 @@ class TLSClientPolicy:
     ports: Optional[List[int]]
     validation: TLSBackendValidation
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "certificate": (self.certificate or MissingField()).to_dict(),
             "enforce": self.enforce,
@@ -155,7 +155,7 @@ class TLSClientPolicy:
 class ClientPolicy:
     tls: Optional[TLSClientPolicy]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "tls": (self.tls or MissingField()).to_dict()
         })
@@ -164,7 +164,7 @@ class ClientPolicy:
 class BackendDefaults:
     client_policy: Optional[ClientPolicy]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "clientPolicy": (self.client_policy or MissingField()).to_dict()
         })
@@ -174,7 +174,7 @@ class VirtualService:
     client_policy: Optional[ClientPolicy]
     virtual_service_name: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "clientPolicy": (self.client_policy or MissingField()).to_dict(),
             "virtualServiceName": self.virtual_service_name
@@ -184,7 +184,7 @@ class VirtualService:
 class Backend:
     virtual_service: Optional[VirtualService]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "virtualService": (self.virtual_service or MissingField()).to_dict()
         })
@@ -194,7 +194,7 @@ class HTTPConnection:
     max_connections: int
     max_pending_requests: Optional[int]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "maxConnections": self.max_connections,
             "maxPendingRequests": self.max_pending_requests
@@ -204,14 +204,14 @@ class HTTPConnection:
 class GRPCOrHTTP2Connection:
     max_requests: int
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return { "maxRequests": self.max_requests }
 
 @dataclass
 class TCPConnection:
     max_connections: int
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return { "maxConnections": self.max_connections }
 
 @dataclass
@@ -221,7 +221,7 @@ class ConnectionPool:
     http2: Optional[GRPCOrHTTP2Connection]
     tcp: Optional[TCPConnection]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "grpc": (self.grpc or MissingField()).to_dict(),
             "http": (self.http or MissingField()).to_dict(),
@@ -239,7 +239,7 @@ class HealthCheck:
     timeout_millis: int
     unhealthy_threshold: int
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "healthyThreshold": self.healthy_threshold,
             "intervalMillis": self.interval_millis,
@@ -267,7 +267,7 @@ class PortMapping:
 class TCPTimeout:
     idle: TimeValue
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return {"idle": self.idle.to_dict()}
 
 @dataclass
@@ -277,7 +277,7 @@ class ProtocolTimeouts:
     http2: Optional[Timeout]
     tcp: Optional[TCPTimeout]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "grpc": (self.grpc or MissingField()).to_dict(),
             "http": (self.http or MissingField()).to_dict(),
@@ -291,7 +291,7 @@ class ListenerTLS:
     mode: str
     validation: Optional[TLSListenerValidation]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "certificate": self.certificate.to_dict(),
             "mode": self.mode,
@@ -307,7 +307,7 @@ class Listener:
     timeout: Optional[ProtocolTimeouts]
     tls: Optional[ListenerTLS]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "connectionPool": (self.connection_pool or MissingField()).or_dict(),
             "healthCheck": (self.health_check or MissingField()).or_dict(),
@@ -328,7 +328,7 @@ class LoggingFormat:
     json: Optional[List[KeyValue]]
     text: Optional[str]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "json": [pair.to_dict() for pair in self.json],
             "text": self.text
@@ -339,7 +339,7 @@ class AccessLogFile:
     format: Optional[LoggingFormat]
     path: str
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "format": (self.format or MissingField()).to_dict(),
             "path": self.path
@@ -349,7 +349,7 @@ class AccessLogFile:
 class AccessLog:
     file: Optional[AccessLogFile]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "file": (self.file or MissingField()).to_dict()
         })
@@ -358,7 +358,7 @@ class AccessLog:
 class Logging:
     access_log: Optional[AccessLog]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
         return clean_dict({
             "accessLog": (self.access_log or MissingField()).to_dict()
         })
@@ -371,16 +371,37 @@ class AWSCloudMap:
     namespace_name: str
     service_name: str
 
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
+        return clean_dict({
+            "attributes": [attribute.to_dict() for attribute in self.attributes or []],
+            "ipPreference": self.ip_preference,
+            "namespaceName": self.namespace_name,
+            "serviceName": self.service_name
+        })
+
 @dataclass
 class DNS:
     hostname: str
     ip_preference: Optional[str]
     response_type: Optional[str]
 
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
+        return clean_dict({
+            "hostname": self.hostname,
+            "ipPreference": self.ip_preference,
+            "responseType": self.response_type
+        })
+
 @dataclass
 class ServiceDiscovery:
     aws_cloud_map: Optional[AWSCloudMap]
     dns: Optional[DNS]
+
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
+        return clean_dict({
+            "awsCloudMap": (self.aws_cloud_map or MissingField()).to_dict(),
+            "dns": (self.dns or MissingField()).to_dict(),
+        })
 
 @dataclass
 class VirtualNodeSpec:
@@ -392,3 +413,15 @@ class VirtualNodeSpec:
     tags: Optional[List[Dict[str, str]]]
     virtual_node_name: str
     status: Status = field(default_factory=lambda: {"status": "ACTIVE"})
+
+    def to_dict(self) -> Dict[str, Any]: # type: ignore[misc]
+        return clean_dict({
+            "backendDefaults": (self.backend_defaults or MissingField()).to_dict(),
+            "backends": [backend.to_dict() for backend in self.backends or []],
+            "listeners": [listener.to_dict() for listener in self.listeners or []],
+            "logging": (self.logging or MissingField()).to_dict(),
+            "serviceDiscovery": (self.service_discovery or MissingField()).to_dict(),
+            "status": self.status,
+            "tags": self.tags,
+            "virtualNodeName": self.virtual_node_name
+        })
