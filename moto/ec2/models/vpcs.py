@@ -2,9 +2,8 @@ import ipaddress
 import json
 import threading
 import weakref
-from collections import defaultdict
 from operator import itemgetter
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import CloudFormationModel
@@ -697,12 +696,19 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
 
 class VPCBackend:
-    vpc_refs = defaultdict(set)  # type: ignore
+    _vpc_backend_refs = set()  # type: set[weakref.ReferenceType["VPCBackend"]]
 
     def __init__(self) -> None:
         self.vpcs: Dict[str, VPC] = {}
         self.vpc_end_points: Dict[str, VPCEndPoint] = {}
-        self.vpc_refs[self.__class__].add(weakref.ref(self))
+        self._vpc_backend_refs.add(weakref.ref(self))
+
+    @classmethod
+    def get_vpc_backend_refs(cls) -> Iterator["VPCBackend"]:
+        for ref in cls._vpc_backend_refs:
+            backend = ref()
+            if backend is not None:
+                yield backend
 
     def create_default_vpc(self) -> VPC:
         default_vpc = self.describe_vpcs(filters={"is-default": "true"})

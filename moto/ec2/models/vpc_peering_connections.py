@@ -1,5 +1,4 @@
 import weakref
-from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional
 
 from moto.core.common_models import CloudFormationModel
@@ -105,16 +104,15 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
 
 
 class VPCPeeringConnectionBackend:
-    # for cross region vpc reference
-    vpc_pcx_refs = defaultdict(set)  # type: ignore
+    _vpc_pcx_backend_refs = set()  # type: set[weakref.ReferenceType["VPCPeeringConnectionBackend"]]
 
     def __init__(self) -> None:
         self.vpc_pcxs: Dict[str, VPCPeeringConnection] = {}
-        self.vpc_pcx_refs[self.__class__].add(weakref.ref(self))
+        self._vpc_pcx_backend_refs.add(weakref.ref(self))
 
     @classmethod
-    def get_vpc_pcx_refs(cls) -> Iterator[VPCPeeringConnection]:
-        for inst_ref in cls.vpc_pcx_refs[cls]:
+    def get_vpc_pcx_backend_refs(cls) -> Iterator["VPCPeeringConnectionBackend"]:
+        for inst_ref in cls._vpc_pcx_backend_refs:
             inst = inst_ref()
             if inst is not None:
                 yield inst
@@ -128,7 +126,7 @@ class VPCPeeringConnectionBackend:
         self.vpc_pcxs[vpc_pcx_id] = vpc_pcx
         # insert cross-account/cross-region peering info
         if vpc.owner_id != peer_vpc.owner_id or vpc.region != peer_vpc.region:
-            for backend in peer_vpc.ec2_backend.get_vpc_pcx_refs():
+            for backend in peer_vpc.ec2_backend.get_vpc_pcx_backend_refs():
                 if (
                     backend.account_id == peer_vpc.owner_id
                     and backend.region_name == peer_vpc.region

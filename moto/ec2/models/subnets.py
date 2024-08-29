@@ -1,7 +1,8 @@
 import ipaddress
 import itertools
+import weakref
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Set, Tuple
 
 from moto.core.common_models import CloudFormationModel
 
@@ -292,10 +293,21 @@ class SubnetRouteTableAssociation(CloudFormationModel):
 
 
 class SubnetBackend:
+    _subnet_backend_refs = set()  # type: set[weakref.ReferenceType[SubnetBackend]]
+
     def __init__(self) -> None:
+        self._subnet_backend_refs.add(weakref.ref(self))
+
         # maps availability zone to dict of (subnet_id, subnet)
         self.subnets: Dict[str, Dict[str, Subnet]] = defaultdict(dict)
         self.subnet_associations: Dict[str, SubnetRouteTableAssociation] = {}
+
+    @classmethod
+    def get_subnet_backend_refs(cls) -> Iterator["SubnetBackend"]:
+        for ref in cls._subnet_backend_refs:
+            backend = ref()
+            if backend is not None:
+                yield backend
 
     def get_subnet(self, subnet_id: str) -> Subnet:
         for subnets_per_zone in self.subnets.values():

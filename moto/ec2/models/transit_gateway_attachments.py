@@ -1,5 +1,4 @@
 import weakref
-from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -104,17 +103,17 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
 
 
 class TransitGatewayAttachmentBackend:
-    backend_refs = defaultdict(set)  # type: ignore
+    _transit_gateway_attachment_backend_refs = set()  # type: set[weakref.ReferenceType["TransitGatewayAttachmentBackend"]]
 
     def __init__(self) -> None:
         self.transit_gateway_attachments: Dict[str, TransitGatewayAttachment] = {}
-        self.backend_refs[self.__class__].add(weakref.ref(self))
+        self._transit_gateway_attachment_backend_refs.add(weakref.ref(self))
 
     @classmethod
-    def _get_peering_attachment_backend_refs(
+    def get_transit_gateway_attachment_backend_refs(
         cls,
     ) -> Iterator["TransitGatewayAttachmentBackend"]:
-        for backend_ref in cls.backend_refs[cls]:
+        for backend_ref in cls._transit_gateway_attachment_backend_refs:
             backend = backend_ref()
             if backend is not None:
                 yield backend
@@ -313,7 +312,7 @@ class TransitGatewayAttachmentBackend:
 
         # If the peer is not same as the current account or region, create attachment in peer backend
         if self.account_id != peer_account_id or self.region_name != peer_region:  # type: ignore[attr-defined]
-            for backend in self._get_peering_attachment_backend_refs():
+            for backend in self.get_transit_gateway_attachment_backend_refs():
                 if (
                     backend.account_id == peer_account_id  # type: ignore[attr-defined]
                     and backend.region_name == peer_region  # type: ignore[attr-defined]
