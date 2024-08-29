@@ -49,13 +49,15 @@ class CertificateAuthority(BaseModel):
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
 
-        self.key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         self.password = str(mock_random.uuid4()).encode("utf-8")
-        self.private_bytes = self.key.private_bytes(
+
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        self.private_bytes = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.BestAvailableEncryption(self.password),
         )
+
         self.certificate_bytes: bytes = b""
         self.certificate_chain: Optional[bytes] = None
         self.issued_certificates: Dict[str, bytes] = dict()
@@ -84,6 +86,13 @@ class CertificateAuthority(BaseModel):
         cert = builder.sign(self.key, hashes.SHA512(), default_backend())
 
         return cert.public_bytes(serialization.Encoding.PEM)
+
+    @property
+    def key(self) -> rsa.RSAPrivateKey:
+        return serialization.load_pem_private_key(
+            self.private_bytes,
+            password=self.password,
+        )
 
     @property
     def certificate(self) -> Optional[x509.Certificate]:
