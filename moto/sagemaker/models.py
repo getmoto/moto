@@ -205,6 +205,7 @@ class FakePipelineExecution(BaseObject):
         client_request_token: str,
     ):
         self.pipeline_execution_arn = pipeline_execution_arn
+        self.arn = self.pipeline_execution_arn
         self.pipeline_execution_display_name = pipeline_execution_display_name
         self.pipeline_parameters = pipeline_parameters
         self.pipeline_execution_description = pipeline_execution_description
@@ -256,6 +257,7 @@ class FakePipeline(BaseObject):
         self.pipeline_arn = arn_formatter(
             "pipeline", pipeline_name, account_id, region_name
         )
+        self.arn = self.pipeline_arn
         self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
@@ -309,7 +311,7 @@ class FakeProcessingJob(BaseObject):
         self.processing_job_arn = FakeProcessingJob.arn_formatter(
             processing_job_name, account_id, region_name
         )
-
+        self.arn = self.processing_job_arn
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
         self.last_modified_time = now_string
@@ -387,6 +389,7 @@ class FakeTrainingJob(BaseObject):
         self.training_job_arn = FakeTrainingJob.arn_formatter(
             training_job_name, account_id, region_name
         )
+        self.arn = self.training_job_arn
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
@@ -458,6 +461,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         self.endpoint_arn = FakeEndpoint.arn_formatter(
             endpoint_name, account_id, region_name
         )
+        self.arn = self.endpoint_arn
         self.endpoint_config_name = endpoint_config_name
         self.production_variants = self._process_production_variants(
             production_variants
@@ -633,6 +637,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         self.endpoint_config_arn = FakeEndpointConfig.arn_formatter(
             endpoint_config_name, account_id, region_name
         )
+        self.arn = (self.endpoint_config_arn,)
         self.production_variants = production_variants or []
         self.data_capture_config = data_capture_config or {}
         self.tags = tags or []
@@ -883,6 +888,7 @@ class FakeTransformJob(BaseObject):
         self.transform_job_arn = FakeTransformJob.arn_formatter(
             transform_job_name, account_id, region_name
         )
+        self.arn = self.transform_job_arn
         self.transform_job_status = "Completed"
         self.failure_reason = ""
         self.labeling_job_arn = ""
@@ -943,6 +949,7 @@ class Model(BaseObject, CloudFormationModel):
         self.model_arn = arn_formatter(
             "model", self.model_name, account_id, region_name
         )
+        self.arn = self.model_arn
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -1066,6 +1073,7 @@ class ModelPackageGroup(BaseObject):
         datetime_now = datetime.now(tzutc())
         self.model_package_group_name = model_package_group_name
         self.model_package_group_arn = model_package_group_arn
+        self.arn = self.model_package_group_arn
         self.model_package_group_description = model_package_group_description
         self.creation_time = datetime_now
         self.created_by = {
@@ -1109,6 +1117,7 @@ class FakeModelCard(BaseObject):
         self.model_card_arn = arn_formatter(
             "model-card", model_card_name, account_id, region_name
         )
+        self.arn = self.model_card_arn
         self.model_card_name = model_card_name
         self.model_card_version = model_card_version
         self.content = content
@@ -1194,6 +1203,7 @@ class FeatureGroup(BaseObject):
             _type="feature-group",
             _id=f"{self.feature_group_name.lower()}",
         )
+        self.arn = self.feature_group_arn
         self.tags = tags
 
     def describe(self) -> Dict[str, Any]:
@@ -1259,6 +1269,7 @@ class ModelPackage(BaseObject):
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
         self.model_package_arn = model_package_arn
+        self.arn = self.model_package_arn
         self.model_package_description = model_package_description
         self.creation_time = datetime_now
         self.inference_specification = inference_specification
@@ -2753,11 +2764,12 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
                 self.notebook_instance_lifecycle_config_name, account_id, region_name
             )
         )
+        self.arn = self.notebook_instance_lifecycle_config_arn
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region_name: str) -> str:
         return arn_formatter(
-            "notebook-instance-lifecycle-configuration", name, account_id, region_name
+            "notebook-instance-lifecycle-config", name, account_id, region_name
         )
 
     @property
@@ -5875,6 +5887,7 @@ class FakeExperiment(BaseObject):
         self.experiment_arn = arn_formatter(
             "experiment", experiment_name, account_id, region_name
         )
+        self.arn = self.experiment_arn
         self.tags = tags
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -5904,6 +5917,7 @@ class FakeTrial(BaseObject):
     ):
         self.trial_name = trial_name
         self.trial_arn = FakeTrial.arn_formatter(trial_name, account_id, region_name)
+        self.arn = self.trial_arn
         self.tags = tags
         self.trial_components = trial_components
         self.experiment_name = experiment_name
@@ -5951,6 +5965,7 @@ class FakeTrialComponent(BaseObject):
         self.trial_component_arn = FakeTrialComponent.arn_formatter(
             trial_component_name, account_id, region_name
         )
+        self.arn = self.trial_component_arn
         self.status = status
         self.tags = tags
         self.trial_name = trial_name
