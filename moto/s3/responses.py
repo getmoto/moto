@@ -4,6 +4,7 @@ import urllib.parse
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
 from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
 from xml.dom import minidom
+from xml.parsers.expat import ExpatError
 
 import xmltodict
 
@@ -46,6 +47,7 @@ from .exceptions import (
     MalformedXML,
     MissingBucket,
     MissingKey,
+    MissingRequestBody,
     MissingVersion,
     NoSystemTags,
     NotAnIntegerException,
@@ -196,6 +198,11 @@ class S3Response(BaseResponse):
     @property
     def should_autoescape(self) -> bool:
         return True
+
+    def abort_multipart_upload(self) -> TYPE_RESPONSE:
+        upload_id = self._get_param("uploadId")
+        self.backend.abort_multipart_upload(self.bucket_name, upload_id)
+        return 204, {}, ""
 
     def all_buckets(self) -> str:
         self.data["Action"] = "ListAllMyBuckets"
@@ -766,7 +773,7 @@ class S3Response(BaseResponse):
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "object-lock" in querystring:
-            config = self._lock_config_from_body()
+            config = self._process_lock_config_from_body()
 
             self.backend.put_object_lock_configuration(
                 bucket_name,
@@ -1067,35 +1074,28 @@ class S3Response(BaseResponse):
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
         if "policy" in querystring:
-            self.backend.delete_bucket_policy(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_policy()
         elif "tagging" in querystring:
-            self.backend.delete_bucket_tagging(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_tagging()
         elif "website" in querystring:
-            self.backend.delete_bucket_website(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_website()
         elif "cors" in querystring:
-            self.backend.delete_bucket_cors(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_cors()
         elif "lifecycle" in querystring:
-            self.backend.delete_bucket_lifecycle(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_lifecycle()
         elif "publicAccessBlock" in querystring:
-            self.backend.delete_public_access_block(bucket_name)
-            return 204, {}, ""
+            return self.delete_public_access_block()
         elif "encryption" in querystring:
-            self.backend.delete_bucket_encryption(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_encryption()
         elif "replication" in querystring:
-            self.backend.delete_bucket_replication(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_replication()
         elif "ownershipControls" in querystring:
-            self.backend.delete_bucket_ownership_controls(bucket_name)
-            return 204, {}, ""
+            return self.delete_bucket_ownership_controls()
 
-        removed_bucket = self.backend.delete_bucket(bucket_name)
+        return self.delete_bucket()
 
+    def delete_bucket(self) -> TYPE_RESPONSE:
+        removed_bucket = self.backend.delete_bucket(self.bucket_name)
         if removed_bucket:
             # Bucket exists
             template = self.response_template(S3_DELETE_BUCKET_SUCCESS)
@@ -1104,6 +1104,42 @@ class S3Response(BaseResponse):
             # Tried to delete a bucket that still has keys
             template = self.response_template(S3_DELETE_BUCKET_WITH_ITEMS_ERROR)
             return 409, {}, template.render(bucket=removed_bucket)
+
+    def delete_bucket_ownership_controls(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_ownership_controls(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_replication(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_replication(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_encryption(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_encryption(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_public_access_block(self) -> TYPE_RESPONSE:
+        self.backend.delete_public_access_block(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_lifecycle(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_lifecycle(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_cors(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_cors(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_website(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_website(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_tagging(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_tagging(self.bucket_name)
+        return 204, {}, ""
+
+    def delete_bucket_policy(self) -> TYPE_RESPONSE:
+        self.backend.delete_bucket_policy(self.bucket_name)
+        return 204, {}, ""
 
     def _bucket_response_post(self, request: Any, bucket_name: str) -> TYPE_RESPONSE:
         response_headers = {}
@@ -1210,7 +1246,16 @@ class S3Response(BaseResponse):
             deleted, errored = self.backend.delete_objects(
                 bucket_name, objects_to_delete, bypass_retention
             )
-            errors.extend([(err, "AccessDenied", "Access Denied") for err in errored])
+            errors.extend(
+                [
+                    (
+                        err,
+                        "AccessDenied",
+                        "Access Denied because object protected by object lock.",
+                    )
+                    for err in errored
+                ]
+            )
         else:
             deleted = []
             # [(key_name, errorcode, 'error message'), ..]
@@ -1390,11 +1435,11 @@ class S3Response(BaseResponse):
         elif method == "PUT":
             return self._key_response_put(request, body, bucket_name, query, key_name)
         elif method == "HEAD":
-            return self._key_response_head(
+            return self.head_object(
                 bucket_name, query, key_name, headers=request.headers
             )
         elif method == "DELETE":
-            return self._key_response_delete(headers, bucket_name, query, key_name)
+            return self._key_response_delete(bucket_name, query, key_name)
         elif method == "POST":
             return self._key_response_post(request, body, bucket_name, query, key_name)
         elif method == "OPTIONS":
@@ -1838,7 +1883,7 @@ class S3Response(BaseResponse):
         response_headers.pop("content-length", None)
         return 200, response_headers, ""
 
-    def _key_response_head(
+    def head_object(
         self,
         bucket_name: str,
         query: Dict[str, Any],
@@ -1915,6 +1960,14 @@ class S3Response(BaseResponse):
             return 200, response_headers, ""
         else:
             return 404, response_headers, ""
+
+    def _process_lock_config_from_body(self) -> Dict[str, Any]:
+        try:
+            return self._lock_config_from_body()
+        except (TypeError, ExpatError):
+            raise MissingRequestBody
+        except KeyError:
+            raise MalformedXML
 
     def _lock_config_from_body(self) -> Dict[str, Any]:
         response_dict: Dict[str, Any] = {
@@ -2258,7 +2311,7 @@ class S3Response(BaseResponse):
         return config
 
     def _key_response_delete(
-        self, headers: Any, bucket_name: str, query: Dict[str, Any], key_name: str
+        self, bucket_name: str, query: Dict[str, Any], key_name: str
     ) -> TYPE_RESPONSE:
         self._set_action("KEY", "DELETE", query)
         self._authenticate_and_authorize_s3_action(
@@ -2266,25 +2319,31 @@ class S3Response(BaseResponse):
         )
 
         if query.get("uploadId"):
-            upload_id = query["uploadId"][0]
-            self.backend.abort_multipart_upload(bucket_name, upload_id)
-            return 204, {}, ""
-        version_id = query.get("versionId", [None])[0]
+            return self.abort_multipart_upload()
         if "tagging" in query:
-            self.backend.delete_object_tagging(
-                bucket_name, key_name, version_id=version_id
-            )
-            template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
-            return 204, {}, template.render(version_id=version_id)
-        bypass = headers.get("X-Amz-Bypass-Governance-Retention")
+            return self.delete_object_tagging()
+        return self.delete_object()
+
+    def delete_object(self) -> TYPE_RESPONSE:
+        bypass = self.headers.get("X-Amz-Bypass-Governance-Retention")
+        key_name = self.parse_key_name()
+        version_id = self._get_param("versionId")
         _, response_meta = self.backend.delete_object(
-            bucket_name, key_name, version_id=version_id, bypass=bypass
+            self.bucket_name, key_name, version_id=version_id, bypass=bypass
         )
         response_headers = {}
-        if response_meta is not None:
-            for k in response_meta:
-                response_headers[f"x-amz-{k}"] = response_meta[k]
+        for k in response_meta:
+            response_headers[f"x-amz-{k}"] = response_meta[k]
         return 204, response_headers, ""
+
+    def delete_object_tagging(self) -> TYPE_RESPONSE:
+        key_name = self.parse_key_name()
+        version_id = self._get_param("versionId")
+        self.backend.delete_object_tagging(
+            self.bucket_name, key_name, version_id=version_id
+        )
+        template = self.response_template(S3_DELETE_KEY_TAGGING_RESPONSE)
+        return 204, {}, template.render(version_id=version_id)
 
     def _complete_multipart_body(self, body: bytes) -> Iterator[Tuple[int, str]]:
         ps = minidom.parseString(body).getElementsByTagName("Part")
@@ -2711,10 +2770,11 @@ S3_BUCKET_GET_VERSIONS = """<?xml version="1.0" encoding="UTF-8"?>
 
 S3_DELETE_KEYS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
 <DeleteResult xmlns="http://s3.amazonaws.com/doc/2006-03-01">
-{% for k, v in deleted %}
+{% for k, v, dv in deleted %}
 <Deleted>
 <Key>{{k}}</Key>
 {% if v %}<VersionId>{{v}}</VersionId>{% endif %}
+{% if dv %}<DeleteMarkerVersionId>{{ dv }}</DeleteMarkerVersionId><DeleteMarker>true</DeleteMarker>{% endif %}
 </Deleted>
 {% endfor %}
 {% for k,c,m in delete_errors %}

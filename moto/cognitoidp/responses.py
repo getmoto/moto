@@ -623,12 +623,14 @@ class CognitoIdpResponse(BaseResponse):
 
     def associate_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
-        result = self.backend.associate_software_token(access_token)
+        session = self._get_param("Session")
+        result = self.backend.associate_software_token(access_token, session)
         return json.dumps(result)
 
     def verify_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
-        result = self.backend.verify_software_token(access_token)
+        session = self._get_param("Session")
+        result = self.backend.verify_software_token(access_token, session)
         return json.dumps(result)
 
     def set_user_mfa_preference(self) -> str:

@@ -45,6 +45,7 @@ from moto.s3.exceptions import (
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
+    InvalidBucketState,
     InvalidNotificationDestination,
     InvalidNotificationEvent,
     InvalidObjectState,
@@ -371,12 +372,14 @@ class FakeKey(BaseModel, ManagedState):
         self.value = state["value"]  # type: ignore
         self.lock = threading.Lock()
 
-    @property
-    def is_locked(self) -> bool:
+    def is_locked(self, governance_bypass: bool) -> bool:
         if self.lock_legal_status == "ON":
             return True
 
-        if self.lock_mode == "COMPLIANCE":
+        if self.lock_mode == "GOVERNANCE" and governance_bypass:
+            return False
+
+        if self.lock_mode in ["GOVERNANCE", "COMPLIANCE"]:
             now = utcnow()
             try:
                 until = datetime.datetime.strptime(
@@ -2393,6 +2396,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         years: Optional[int] = None,
     ) -> None:
         bucket = self.get_bucket(bucket_name)
+        if not bucket.is_versioned:
+            raise InvalidBucketState(
+                "Versioning must be 'Enabled' on the bucket to apply a Object Lock configuration"
+            )
 
         if bucket.keys.item_size() > 0:
             raise BucketNeedsToBeNew
@@ -2760,7 +2767,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         version_id: Optional[str] = None,
         bypass: bool = False,
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    ) -> Tuple[bool, Dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
 
         response_meta = {}
@@ -2788,10 +2795,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
-                            if (
-                                hasattr(key, "is_locked")
-                                and key.is_locked
-                                and not bypass
+                            if isinstance(key, FakeKey) and key.is_locked(
+                                governance_bypass=bypass
                             ):
                                 raise AccessDeniedByLock
 
@@ -2826,14 +2831,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
             return True, response_meta
         except KeyError:
-            return False, None
+            return False, response_meta
 
     def delete_objects(
         self,
         bucket_name: str,
         objects: List[Dict[str, Any]],
         bypass_retention: bool = False,
-    ) -> Tuple[List[Tuple[str, Optional[str]]], List[str]]:
+    ) -> Tuple[List[Tuple[str, Optional[str], Optional[str]]], List[str]]:
         deleted = []
         errors = []
         for object_ in objects:
@@ -2841,13 +2846,21 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             version_id = object_.get("VersionId", None)
 
             try:
-                self.delete_object(
+                success, headers = self.delete_object(
                     bucket_name,
                     key_name,
                     version_id=version_id,
                     bypass=bypass_retention,
                 )
-                deleted.append((key_name, version_id))
+                deleted.append(
+                    (
+                        key_name,
+                        version_id,
+                        headers.get("version-id")
+                        if headers and not version_id
+                        else None,
+                    )
+                )
             except AccessDeniedByLock:
                 errors.append(key_name)
         return deleted, errors

@@ -1519,6 +1519,13 @@ class User(CloudFormationModel):
                 else self.access_keys[1].last_used.strftime(date_format)
             )
 
+        cert1_active = cert2_active = False
+        if len(self.signing_certificates) > 0:
+            cert1 = list(self.signing_certificates.values())[0]
+            cert1_active = cert1.status == "Active"
+        if len(self.signing_certificates) > 1:
+            cert2 = list(self.signing_certificates.values())[1]
+            cert2_active = cert2.status == "Active"
         fields = [
             self.name,
             self.arn,
@@ -1538,9 +1545,9 @@ class User(CloudFormationModel):
             access_key_2_last_used,
             "not_supported",
             "not_supported",
-            "false",
+            "true" if cert1_active else "false",
             "N/A",
-            "false",
+            "true" if cert2_active else "false",
             "N/A",
         ]
         return ",".join(fields) + "\n"
@@ -2719,6 +2726,13 @@ class IAMBackend(BaseBackend):
         except Exception:
             raise MalformedCertificate(body)
 
+        if (
+            len(user.signing_certificates)
+            >= self.account_summary._signing_certificates_per_user_quota
+        ):
+            raise IAMLimitExceededException(
+                "Cannot exceed quota for CertificatesPerUser: 2"
+            )
         user.signing_certificates[cert_id] = SigningCertificate(
             cert_id, user_name, body
         )

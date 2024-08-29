@@ -1233,6 +1233,16 @@ class LogsBackend(BaseBackend):
         """
         return self.queries[query_id]
 
+    def cancel_export_task(self, task_id: str) -> None:
+        task = self.export_tasks.get(task_id)
+        if not task:
+            raise ResourceNotFoundException("The specified export task does not exist.")
+        # If the task has already finished, AWS throws an InvalidOperationException
+        #     'The specified export task has already finished'
+        # However, the export task is currently syncronous, meaning it finishes immediately
+        # When we make the Task async, we can also implement the error behaviour
+        task.status = {"code": "CANCELLED", "message": "Cancelled by user"}
+
     def create_export_task(
         self,
         taskName: str,

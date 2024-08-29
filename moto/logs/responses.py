@@ -432,6 +432,11 @@ class LogsResponse(BaseResponse):
         query = self.logs_backend.get_query_results(query_id)
         return json.dumps(query.to_result_json())
 
+    def cancel_export_task(self) -> str:
+        task_id = self._get_param("taskId")
+        self.logs_backend.cancel_export_task(task_id)
+        return "{}"
+
     def create_export_task(self) -> str:
         task_id = self.logs_backend.create_export_task(
             logGroupName=self._get_param("logGroupName"),
