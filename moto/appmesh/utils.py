@@ -21,6 +21,7 @@ from moto.appmesh.dataclasses.route import (
     TCPRouteMatch,
 )
 from moto.appmesh.dataclasses.shared import Timeout, TimeValue
+from moto.appmesh.dataclasses.virtual_node import BackendDefaults, ClientPolicy, TLSClientPolicy, VirtualNodeSpec
 from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.appmesh.exceptions import (
     MeshNotFoundError,
@@ -30,6 +31,12 @@ from moto.appmesh.exceptions import (
     VirtualRouterNameAlreadyTakenError,
     VirtualRouterNotFoundError,
 )
+
+
+def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+    return {
+        key: value for key, value in obj.items() if value is not None and value != []
+    }
 
 
 def port_mappings_from_router_spec(spec: Any) -> List[PortMapping]:  # type: ignore[misc]
@@ -240,7 +247,7 @@ def check_route_availability(
     return
 
 
-def build_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
+def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     _grpc_route = spec.get("grpcRoute")
     _http_route = spec.get("httpRoute")
     _http2_route = spec.get("http2Route")
@@ -321,7 +328,40 @@ def build_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     )
 
 
-def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
-    return {
-        key: value for key, value in obj.items() if value is not None and value != []
-    }
+def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec: # type: ignore[misc]
+    _backend_defaults = spec.get("backendDefaults")
+    _backends = spec.get("backends")
+    _listeners = spec.get("listeners")
+    _logging = spec.get("logging")
+    _service_discovery = spec.get("serviceDiscovery")
+
+    backend_defaults, backends, listeners, logging, service_discovery = None, None, None, None, None
+
+    if _backend_defaults is not None:
+        _client_policy = _backend_defaults.get("clientPolicy")
+        client_policy = None
+        if _client_policy is not None:
+            _tls = _client_policy.get("tls")
+            tls = None
+            if _tls is not None:
+                _certificate = _tls.get("certificate")
+                _validation = _tls.get("validation")
+                certificate, validation = None, None
+                # TODO certificate and validation
+                tls = TLSClientPolicy(
+                    certificate=certificate,
+                    enforce=_tls.get("enforce"),
+                    ports=_tls.get("ports"),
+                    validation=validation
+                )
+            client_policy = ClientPolicy(tls=tls)
+
+        backend_defaults = BackendDefaults(client_policy=client_policy)
+
+    return VirtualNodeSpec(
+        backend_defaults=backend_defaults,
+        backends=backends,
+        listeners=listeners,
+        logging=logging,
+        service_discovery=service_discovery
+    )

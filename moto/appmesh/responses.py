@@ -3,7 +3,7 @@
 import json
 
 from moto.appmesh.utils import (
-    build_spec,
+    build_route_spec,
     port_mappings_from_router_spec,
 )
 from moto.core.responses import BaseResponse
@@ -177,7 +177,7 @@ class AppMeshResponse(BaseResponse):
         route_name = self._get_param("routeName")
         tags = params.get("tags")
         virtual_router_name = self._get_param("virtualRouterName")
-        spec = build_spec(params.get("spec") or {})
+        spec = build_route_spec(params.get("spec") or {})
         route = self.appmesh_backend.create_route(
             client_token=client_token,
             mesh_name=mesh_name,
@@ -209,7 +209,7 @@ class AppMeshResponse(BaseResponse):
         mesh_owner = self._get_param("meshOwner")
         route_name = self._get_param("routeName")
         virtual_router_name = self._get_param("virtualRouterName")
-        spec = build_spec(params.get("spec") or {})
+        spec = build_route_spec(params.get("spec") or {})
         route = self.appmesh_backend.update_route(
             client_token=client_token,
             mesh_name=mesh_name,
