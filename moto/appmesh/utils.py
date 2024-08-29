@@ -19,9 +19,8 @@ from moto.appmesh.dataclasses.route import (
     RouteSpec,
     TCPRoute,
     TCPRouteMatch,
-    Timeout,
 )
-from moto.appmesh.dataclasses.shared import TimeValue
+from moto.appmesh.dataclasses.shared import TimeValue, Timeout
 from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.appmesh.exceptions import (
     MeshNotFoundError,

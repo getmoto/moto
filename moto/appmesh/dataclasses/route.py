@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from moto.appmesh.dataclasses.shared import Metadata, MissingField, Status, TimeValue
+from moto.appmesh.dataclasses.shared import Metadata, MissingField, Status, TimeValue, Timeout
 from moto.appmesh.utils import clean_dict
 
 
@@ -138,20 +138,6 @@ class HttpRouteRetryPolicy:
                 "maxRetries": self.max_retries,
                 "perRetryTimeout": self.per_retry_timeout.to_dict(),
                 "tcpRetryEvents": self.tcp_retry_events or [],
-            }
-        )
-
-
-@dataclass
-class Timeout:
-    idle: Optional[TimeValue] = field(default=None)
-    per_request: Optional[TimeValue] = field(default=None)
-
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
-        return clean_dict(
-            {
-                "idle": (self.idle or MissingField()).to_dict(),
-                "perRequest": (self.per_request or MissingField()).to_dict(),
             }
         )
 

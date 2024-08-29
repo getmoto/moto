@@ -1,7 +1,9 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict, Literal
+from typing import Any, Dict, Literal, Optional
 from uuid import uuid4
+
+from moto.appmesh.utils import clean_dict
 
 
 Status = Dict[Literal["status"], str]
@@ -31,3 +33,17 @@ class TimeValue:
 class MissingField:
     def to_dict(self) -> None:
         return
+
+
+@dataclass
+class Timeout:
+    idle: Optional[TimeValue] = field(default=None)
+    per_request: Optional[TimeValue] = field(default=None)
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return clean_dict(
+            {
+                "idle": (self.idle or MissingField()).to_dict(),
+                "perRequest": (self.per_request or MissingField()).to_dict(),
+            }
+        )
