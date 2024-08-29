@@ -22,12 +22,15 @@ from moto.appmesh.dataclasses.route import (
 )
 from moto.appmesh.dataclasses.shared import Timeout, TimeValue
 from moto.appmesh.dataclasses.virtual_node import (
+    ACM,
     SDS,
     BackendDefaults,
     BackendTrust,
     Certificate,
+    CertificateFile,
     CertificateFileWithPrivateKey,
     ClientPolicy,
+    ServiceDiscovery,
     SubjectAlternativeNames,
     TLSBackendValidation,
     TLSClientPolicy,
@@ -40,6 +43,7 @@ from moto.appmesh.dataclasses.virtual_router import PortMapping
 from moto.appmesh.exceptions import (
     MeshNotFoundError,
     MeshOwnerDoesNotMatchError,
+    MissingRequiredFieldError,
     RouteNameAlreadyTakenError,
     RouteNotFoundError,
     VirtualRouterNameAlreadyTakenError,
@@ -370,7 +374,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 if _certificate is not None:
                     _file = _certificate.get("file")
                     _sds = _certificate.get("sds")
-                    file, sds = None
+                    file, sds = None, None
                     if _file is not None:
                         file = CertificateFileWithPrivateKey(
                             certificate_chain=_file.get("certificateChain"),
@@ -379,31 +383,36 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     if _sds is not None:
                         sds = SDS(secret_name=_sds.get("secretName"))
                     certificate = Certificate(file=file, sds=sds)
-                if _validation is not None:
-                    _subject_alternative_names = _validation.get(
-                        "subjectAlternativeNames"
-                    )
-                    _trust = _validation.get("trust")
-                    subject_alternative_names, trust = None, None
+                if _validation is None:
+                    raise MissingRequiredFieldError("validation")
+                _subject_alternative_names = _validation.get(
+                    "subjectAlternativeNames"
+                )
+                _trust = _validation.get("trust")
+                subject_alternative_names = None
 
-                    if _subject_alternative_names is not None:
-                        _match = _subject_alternative_names.get("match")
-                        match = None
-                        if _match is not None:
-                            match = VirtualNodeMatch(exact=_match.get("exact"))
-                        subject_alternative_names = SubjectAlternativeNames(match=match)
+                if _subject_alternative_names is not None:
+                    match = VirtualNodeMatch(exact=(_subject_alternative_names.get("match") or {}).get("exact") or [])
+                    subject_alternative_names = SubjectAlternativeNames(match=match)
 
-                    if _trust is not None:
-                        _trust_file = _trust.get("file")
-                        _trust_sds = _trust.get("sds")
-                        _acm = _trust.get("acm")
-                        trust_file, trust_sds, acm = None, None, None
-                        # TODO set trust params
-                        trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
+                if _trust is None:
+                    raise MissingRequiredFieldError("trust")
+                
+                _trust_file = _trust.get("file")
+                _trust_sds = _trust.get("sds")
+                _acm = _trust.get("acm")
+                trust_file, trust_sds, acm = None, None, None
+                if _trust_file is not None:
+                    trust_file = CertificateFile(certificate_chain=_trust_file.get("certificateChain"))
+                if _trust_sds is not None:
+                    sds = SDS(secret_name=_sds.get("secretName"))
+                if _acm is not None:
+                    acm = ACM(certificate_authority_arns=_acm.get("certificateAuthorityArns"))
+                trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
 
-                    validation = TLSBackendValidation(
-                        subject_alternative_names=subject_alternative_names, trust=trust
-                    )
+                validation = TLSBackendValidation(
+                    subject_alternative_names=subject_alternative_names, trust=trust
+                )
                 tls = TLSClientPolicy(
                     certificate=certificate,
                     enforce=_tls.get("enforce"),
@@ -413,6 +422,12 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
             client_policy = ClientPolicy(tls=tls)
 
         backend_defaults = BackendDefaults(client_policy=client_policy)
+
+    # if _service_discovery is not None:
+    #     _aws_cloud_map = _service_discovery.get("awsCloudMap")
+    #     _dns = _service_discovery.get("dns")
+    #     aws_cloud_map, dns = None, None
+    #     service_discovery = ServiceDiscovery()        
 
     return VirtualNodeSpec(
         backend_defaults=backend_defaults,

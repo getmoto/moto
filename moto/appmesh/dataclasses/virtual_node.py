@@ -308,7 +308,7 @@ class OutlierDetection:
     max_ejection_percent: int
     max_server_errors: int
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return {
             "baseEjectionDuration": self.base_ejection_duration,
             "interval": self.interval,
@@ -404,7 +404,7 @@ class LoggingFormat:
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
-            {"json": [pair.to_dict() for pair in self.json], "text": self.text}
+            {"json": [pair.to_dict() for pair in self.json or []], "text": self.text}
         )
 
 
