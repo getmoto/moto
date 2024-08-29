@@ -895,7 +895,9 @@ class S3Response(BaseResponse):
             if self.body and not location_constraint:
                 raise MalformedXML()
 
-            bucket_region = location_constraint if location_constraint else DEFAULT_REGION_NAME
+            bucket_region = (
+                location_constraint if location_constraint else DEFAULT_REGION_NAME
+            )
             try:
                 new_bucket = self.backend.create_bucket(bucket_name, bucket_region)
             except BucketAlreadyExists:

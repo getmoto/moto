@@ -294,15 +294,12 @@ def test_create_bucket_with_wrong_location_constraint(constraint):
 
 @aws_verified
 @pytest.mark.aws_verified
-@pytest.mark.parametrize(
-    "constraint", ["us-east-2", "eu-central-1"]
-)
+@pytest.mark.parametrize("constraint", ["us-east-2", "eu-central-1"])
 def test_create_bucket_in_regions_from_us_east_1(constraint):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = str(uuid.uuid4())
     client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": constraint}
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": constraint}
     )
     assert (
         client.get_bucket_location(Bucket=bucket_name)["LocationConstraint"]
