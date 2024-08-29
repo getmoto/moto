@@ -2,7 +2,7 @@
 
 import base64
 import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -89,10 +89,11 @@ class CertificateAuthority(BaseModel):
 
     @property
     def key(self) -> rsa.RSAPrivateKey:
-        return serialization.load_pem_private_key(
+        private_key = serialization.load_pem_private_key(
             self.private_bytes,
             password=self.password,
         )
+        return cast(rsa.RSAPrivateKey, private_key)
 
     @property
     def certificate(self) -> Optional[x509.Certificate]:
