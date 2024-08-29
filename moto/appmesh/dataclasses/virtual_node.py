@@ -307,28 +307,61 @@ class Listener:
     timeout: Optional[ProtocolTimeouts]
     tls: Optional[ListenerTLS]
 
+    def to_dict(self):
+        return clean_dict({
+            "connectionPool": (self.connection_pool or MissingField()).or_dict(),
+            "healthCheck": (self.health_check or MissingField()).or_dict(),
+            "outlierDetection": (self.outlier_detection or MissingField()).or_dict(),
+            "portMapping": self.port_mapping, 
+            "timeout": (self.timeout or MissingField()).or_dict(),
+            "tls": (self.tls or MissingField()).or_dict()
+        })
+
 @dataclass
 class KeyValue:
     key: str
     value: str
+    to_dict=asdict
 
 @dataclass
 class LoggingFormat:
     json: Optional[List[KeyValue]]
     text: Optional[str]
 
+    def to_dict(self):
+        return clean_dict({
+            "json": [pair.to_dict() for pair in self.json],
+            "text": self.text
+        })
+
 @dataclass
 class AccessLogFile:
     format: Optional[LoggingFormat]
     path: str
 
+    def to_dict(self):
+        return clean_dict({
+            "format": (self.format or MissingField()).to_dict(),
+            "path": self.path
+        })
+
 @dataclass
 class AccessLog:
     file: Optional[AccessLogFile]
 
+    def to_dict(self):
+        return clean_dict({
+            "file": (self.file or MissingField()).to_dict()
+        })
+
 @dataclass
 class Logging:
     access_log: Optional[AccessLog]
+
+    def to_dict(self):
+        return clean_dict({
+            "accessLog": (self.access_log or MissingField()).to_dict()
+        })
 
 
 @dataclass
