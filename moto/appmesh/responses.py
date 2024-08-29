@@ -247,8 +247,8 @@ class AppMeshResponse(BaseResponse):
             virtual_router_name=virtual_router_name,
         )
         return json.dumps(dict(nextToken=next_token, routes=routes))
-    
-    def describe_virtual_node(self):
+
+    def describe_virtual_node(self) -> str:
         params = self._get_params()
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
@@ -260,8 +260,8 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(virtualNode=virtual_node))
-    
-    def create_virtual_node(self):
+
+    def create_virtual_node(self) -> str:
         params = self._get_params()
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
@@ -279,8 +279,8 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(virtualNode=virtual_node))
-    
-    def update_virtual_node(self):
+
+    def update_virtual_node(self) -> str:
         params = self._get_params()
         client_token = params.get("clientToken")
         mesh_name = params.get("meshName")
@@ -296,8 +296,8 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(virtualNode=virtual_node))
-    
-    def delete_virtual_node(self):
+
+    def delete_virtual_node(self) -> str:
         params = self._get_params()
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
@@ -309,14 +309,14 @@ class AppMeshResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(virtualNode=virtual_node))
-    
-    def list_virtual_nodes(self):
+
+    def list_virtual_nodes(self) -> str:
         params = self._get_params()
         limit = params.get("limit")
         mesh_name = params.get("meshName")
         mesh_owner = params.get("meshOwner")
         next_token = params.get("nextToken")
-        next_token, virtual_nodes = self.appmesh_backend.list_virtual_nodes(
+        virtual_nodes, next_token = self.appmesh_backend.list_virtual_nodes(
             limit=limit,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,

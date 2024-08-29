@@ -1,7 +1,13 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from moto.appmesh.dataclasses.shared import Metadata, MissingField, Status, TimeValue, Timeout
+from moto.appmesh.dataclasses.shared import (
+    Metadata,
+    MissingField,
+    Status,
+    Timeout,
+    TimeValue,
+)
 from moto.appmesh.utils import clean_dict
 
 

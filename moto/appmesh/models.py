@@ -8,6 +8,7 @@ from moto.appmesh.dataclasses.mesh import (
 )
 from moto.appmesh.dataclasses.route import Route, RouteMetadata, RouteSpec
 from moto.appmesh.dataclasses.shared import Metadata
+from moto.appmesh.dataclasses.virtual_node import VirtualNode, VirtualNodeSpec
 from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
     VirtualRouter,
@@ -409,25 +410,51 @@ class AppMeshBackend(BaseBackend):
             for route in virtual_router.routes.values()
         ]
 
-    def describe_virtual_node(self, mesh_name, mesh_owner, virtual_node_name):
+    def describe_virtual_node(
+        self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
+    ) -> VirtualNode:
         # implement here
         return virtual_node
-    
-    def create_virtual_node(self, client_token, mesh_name, mesh_owner, spec, tags, virtual_node_name):
+
+    def create_virtual_node(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: VirtualNodeSpec,
+        tags: Optional[List[Dict[str, str]]],
+        virtual_node_name: str,
+    ) -> VirtualNode:
         # implement here
         return virtual_node
-    
-    def update_virtual_node(self, client_token, mesh_name, mesh_owner, spec, virtual_node_name):
+
+    def update_virtual_node(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: VirtualNodeSpec,
+        virtual_node_name: str,
+    ) -> VirtualNode:
         # implement here
         return virtual_node
-    
-    def delete_virtual_node(self, mesh_name, mesh_owner, virtual_node_name):
+
+    def delete_virtual_node(
+        self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
+    ) -> VirtualNode:
         # implement here
         return virtual_node
-    
-    def list_virtual_nodes(self, limit, mesh_name, mesh_owner, next_token):
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    def list_virtual_nodes(
+        self,
+        limit: Optional[int],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        next_token: Optional[str],
+    ) -> List[Dict[str, Any]]:
         # implement here
-        return next_token, virtual_nodes
-    
+        return virtual_nodes
+
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

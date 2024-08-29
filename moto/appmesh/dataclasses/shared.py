@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from moto.appmesh.utils import clean_dict
 
-
 Status = Dict[Literal["status"], str]
 
 
