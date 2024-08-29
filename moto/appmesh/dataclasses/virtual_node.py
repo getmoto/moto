@@ -56,6 +56,13 @@ class ListenerCertificateACM:
 class TLSListenerCertificate(Certificate):
     acm: Optional[ListenerCertificateACM]
 
+    def to_dict(self):
+        return clean_dict({
+            "acm": (self.acm or MissingField()).to_dict(),
+            "file": (self.file or MissingField()).to_dict(),
+            "sds": (self.sds or MissingField()).to_dict()
+        })
+
 @dataclass
 class Match:
     exact: List[str]
@@ -66,30 +73,68 @@ class Match:
 class SubjectAlternativeNames:
     match: Match
 
+    def to_dict(self):
+        return {
+            "match": self.match.to_dict()
+        }
+
 @dataclass
 class ACM:
     certificate_authority_arns: List[str]
+
+    def to_dict(self):
+        return {
+            "certificateAuthorityArns": self.certificate_authority_arns
+        }
 
 @dataclass
 class Trust:
     file: Optional[CertificateFile]
     sds: Optional[SDS]
 
+    def to_dict(self):
+        return clean_dict({
+            "file": (self.file or MissingField()).to_dict(),
+            "sds": (self.sds or MissingField()).to_dict(),
+        })
+
 @dataclass
 class BackendTrust(Trust):
     acm: Optional[ACM]
+
+    def to_dict(self):
+        return clean_dict({
+            "acm": (self.acm or MissingField()).to_dict(), 
+            "file": (self.file or MissingField()).to_dict(),
+            "sds": (self.sds or MissingField()).to_dict(),
+        })
 
 @dataclass
 class Validation:
     subject_alternative_names: Optional[SubjectAlternativeNames]
 
+    def to_dict(self):
+        return clean_dict({ "subjectAlternativeNames": (self.subject_alternative_names or MissingField()).to_dict() })
+
 @dataclass
 class TLSBackendValidation(Validation):
-    trust: BackendTrust 
+    trust: BackendTrust
+
+    def to_dict(self):
+        return clean_dict({ 
+            "subjectAlternativeNames": (self.subject_alternative_names or MissingField()).to_dict(),
+            "trust": self.trust.to_dict()
+        })
 
 @dataclass
 class TLSListenerValidation(Validation):
     trust: Trust
+
+    def to_dict(self):
+        return clean_dict({ 
+            "subjectAlternativeNames": (self.subject_alternative_names or MissingField()).to_dict(),
+            "trust": self.trust.to_dict()
+        })
 
 @dataclass
 class TLSClientPolicy:
@@ -98,34 +143,91 @@ class TLSClientPolicy:
     ports: Optional[List[int]]
     validation: TLSBackendValidation
 
+    def to_dict(self):
+        return clean_dict({
+            "certificate": (self.certificate or MissingField()).to_dict(),
+            "enforce": self.enforce,
+            "ports": self.ports,
+            "validation": self.validation.to_dict()
+        })
+
 @dataclass
 class ClientPolicy:
     tls: Optional[TLSClientPolicy]
 
+    def to_dict(self):
+        return clean_dict({
+            "tls": (self.tls or MissingField()).to_dict()
+        })
+
 @dataclass
 class BackendDefaults:
     client_policy: Optional[ClientPolicy]
+
+    def to_dict(self):
+        return clean_dict({
+            "clientPolicy": (self.client_policy or MissingField()).to_dict()
+        })
 
 @dataclass
 class VirtualService:
     client_policy: Optional[ClientPolicy]
     virtual_service_name: str
 
+    def to_dict(self):
+        return clean_dict({
+            "clientPolicy": (self.client_policy or MissingField()).to_dict(),
+            "virtualServiceName": self.virtual_service_name
+        })
+
 @dataclass
 class Backend:
     virtual_service: Optional[VirtualService]
+
+    def to_dict(self):
+        return clean_dict({
+            "virtualService": (self.virtual_service or MissingField()).to_dict()
+        })
 
 @dataclass
 class HTTPConnection:
     max_connections: int
     max_pending_requests: Optional[int]
 
+    def to_dict(self):
+        return clean_dict({
+            "maxConnections": self.max_connections,
+            "maxPendingRequests": self.max_pending_requests
+        })
+
+@dataclass
+class GRPCOrHTTP2Connection:
+    max_requests: int
+
+    def to_dict(self):
+        return { "maxRequests": self.max_requests }
+
+@dataclass
+class TCPConnection:
+    max_connections: int
+
+    def to_dict(self):
+        return { "maxConnections": self.max_connections }
+
 @dataclass
 class ConnectionPool:
-    grpc: Optional[Dict[Literal["max_requests"], int]]
-    http: HTTPConnection
-    http2: Optional[Dict[Literal["max_requests"], int]]
-    tcp: Optional[Dict[Literal["max_connections"], int]]
+    grpc: Optional[GRPCOrHTTP2Connection]
+    http: Optional[HTTPConnection]
+    http2: Optional[GRPCOrHTTP2Connection]
+    tcp: Optional[TCPConnection]
+
+    def to_dict(self):
+        return clean_dict({
+            "grpc": (self.grpc or MissingField()).to_dict(),
+            "http": (self.http or MissingField()).to_dict(),
+            "http2": (self.http2 or MissingField()).to_dict(),
+            "tcp": (self.tcp or MissingField()).to_dict(),
+        })
 
 @dataclass
 class HealthCheck:
@@ -136,6 +238,17 @@ class HealthCheck:
     protocol: str
     timeout_millis: int
     unhealthy_threshold: int
+
+    def to_dict(self):
+        return clean_dict({
+            "healthyThreshold": self.healthy_threshold,
+            "intervalMillis": self.interval_millis,
+            "path": self.path,
+            "port": self.port,
+            "protocol": self.protocol,
+            "timeoutMillis": self.timeout_millis,
+            "unhealthyThreshold": self.unhealthy_threshold
+        })
 
 @dataclass
 class OutlierDetection:
@@ -148,19 +261,42 @@ class OutlierDetection:
 class PortMapping:
     port: int
     protocol: str
+    to_dict=asdict
+
+@dataclass
+class TCPTimeout:
+    idle: TimeValue
+
+    def to_dict(self):
+        return {"idle": self.idle.to_dict()}
 
 @dataclass
 class ProtocolTimeouts:
     grpc: Optional[Timeout]
     http: Optional[Timeout]
     http2: Optional[Timeout]
-    tcp: Optional[Dict[Literal["idle"], TimeValue]]
+    tcp: Optional[TCPTimeout]
+
+    def to_dict(self):
+        return clean_dict({
+            "grpc": (self.grpc or MissingField()).to_dict(),
+            "http": (self.http or MissingField()).to_dict(),
+            "http2": (self.http2 or MissingField()).to_dict(),
+            "tcp": (self.tcp or MissingField()).to_dict(),
+        }) 
 
 @dataclass
 class ListenerTLS:
     certificate: TLSListenerCertificate
     mode: str
     validation: Optional[TLSListenerValidation]
+
+    def to_dict(self):
+        return clean_dict({
+            "certificate": self.certificate.to_dict(),
+            "mode": self.mode,
+            "validation": (self.validation or MissingField()).to_dict()
+        })
 
 @dataclass
 class Listener:
