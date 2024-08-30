@@ -157,273 +157,365 @@ modified_http_route_spec = {
     },
 }
 
-#TODO Need to add to connection pool
-virtual_node_spec_1 = {
-    'backendDefaults': {
-        'clientPolicy': {
-            'tls': {
-                'certificate': {
-                    'file': {
-                        'certificateChain': '/path/to/cert_chain.pem',
-                        'privateKey': '/path/to/private_key.pem'
+virtual_node_spec_http = {
+    "backendDefaults": {
+        "clientPolicy": {
+            "tls": {
+                "certificate": {
+                    "file": {
+                        "certificateChain": "/path/to/cert_chain.pem",
+                        "privateKey": "/path/to/private_key.pem",
                     }
                 },
-                'enforce': True,
-                'ports': [443],
-                'validation': {
-                    'subjectAlternativeNames': {
-                        'match': {
-                            'exact': ['www.example.com', 'api.example.com']
-                        }
+                "enforce": True,
+                "ports": [443],
+                "validation": {
+                    "subjectAlternativeNames": {
+                        "match": {"exact": ["www.example.com", "api.example.com"]}
                     },
-                    'trust': {
-                        'file': {
-                            'certificateChain': '/path/to/ca_bundle.pem'
-                        }
-                    }
-                }
+                    "trust": {"file": {"certificateChain": "/path/to/ca_bundle.pem"}},
+                },
             }
         }
     },
-    'backends': [
+    "backends": [
         {
-            'virtualService': {
-                'clientPolicy': {
-                    'tls': {
-                        'enforce': False
-                    }
-                },
-                'virtualServiceName': 'my-service.default.svc.cluster.local'
+            "virtualService": {
+                "clientPolicy": {"tls": {"enforce": False}},
+                "virtualServiceName": "my-service.default.svc.cluster.local",
             }
         }
     ],
-    'listeners': [
+    "listeners": [
         {
-            'connectionPool': {
-                'http': {
-                    'maxConnections': 1000,
-                    'maxPendingRequests': 5000
+            "connectionPool": {
+                "http": {"maxConnections": 1000, "maxPendingRequests": 5000}
+            },
+            "healthCheck": {
+                "healthyThreshold": 2,
+                "intervalMillis": 5000,
+                "path": "/health",
+                "port": 80,
+                "protocol": "http",
+                "timeoutMillis": 2000,
+                "unhealthyThreshold": 3,
+            },
+            "outlierDetection": {
+                "baseEjectionDuration": {"unit": "s", "value": 30},
+                "interval": {"unit": "s", "value": 10},
+                "maxEjectionPercent": 10,
+                "maxServerErrors": 5,
+            },
+            "portMapping": {"port": 80, "protocol": "http"},
+            "timeout": {
+                "http": {
+                    "idle": {"unit": "s", "value": 60},
+                    "perRequest": {"unit": "s", "value": 5},
                 }
             },
-            'healthCheck': {
-                'healthyThreshold': 2,
-                'intervalMillis': 5000,
-                'path': '/health',
-                'port': 80,
-                'protocol': 'http',
-                'timeoutMillis': 2000,
-                'unhealthyThreshold': 3
-            },
-            'outlierDetection': {
-                'baseEjectionDuration': {
-                    'unit': 's',
-                    'value': 30
-                },
-                'interval': {
-                    'unit': 's',
-                    'value': 10
-                },
-                'maxEjectionPercent': 10,
-                'maxServerErrors': 5
-            },
-            'portMapping': {
-                'port': 80,
-                'protocol': 'http'
-            },
-            'timeout': {
-                'http': {
-                    'idle': {
-                        'unit': 's',
-                        'value': 60
-                    },
-                    'perRequest': {
-                        'unit': 's',
-                        'value': 5
-                    }
-                }
-            },
-            'tls': {
-                'certificate': {
-                    'acm': {
-                        'certificateArn': 'arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567'
+            "tls": {
+                "certificate": {
+                    "acm": {
+                        "certificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
                     }
                 },
-                'mode': 'STRICT',
-                'validation': {
-                    'trust': {
-                        'sds': {
-                            'secretName': 'my-ca-bundle-secret'
-                        }
-                    }
-                }
-            }
+                "mode": "STRICT",
+                "validation": {"trust": {"sds": {"secretName": "my-ca-bundle-secret"}}},
+            },
         }
     ],
-    'logging': {
-        'accessLog': {
-            'file': {
-                'format': {
-                    'json': [
-                        {
-                            'key': 'start_time',
-                            'value': '%START_TIME%'
-                        },
-                        {
-                            'key': 'method',
-                            'value': '%REQ(:METHOD)%'
-                        }
+    "logging": {
+        "accessLog": {
+            "file": {
+                "format": {
+                    "json": [
+                        {"key": "start_time", "value": "%START_TIME%"},
+                        {"key": "method", "value": "%REQ(:METHOD)%"},
                     ]
                 },
-                'path': '/var/log/appmesh/access.log'
+                "path": "/var/log/appmesh/access.log",
             }
         }
     },
-    'serviceDiscovery': {
-        'awsCloudMap': {
-            'attributes': [
-                {
-                    'key': 'env',
-                    'value': 'prod'
-                }
-            ],
-            'ipPreference': 'IPv4_PREFERRED',
-            'namespaceName': 'my-namespace',
-            'serviceName': 'my-service'
+    "serviceDiscovery": {
+        "awsCloudMap": {
+            "attributes": [{"key": "env", "value": "prod"}],
+            "ipPreference": "IPv4_PREFERRED",
+            "namespaceName": "my-namespace",
+            "serviceName": "my-service",
         }
-    }
+    },
 }
 
-virtual_node_spec_2 = {
-    'backendDefaults': {
-        'clientPolicy': {
-            'tls': {
-                'certificate': {
-                    'file': {
-                        'certificateChain': '/new/path/to/cert_chain.pem',
-                        'privateKey': '/new/path/to/private_key.pem'
+virtual_node_spec_http2 = {
+    "backendDefaults": {
+        "clientPolicy": {
+            "tls": {
+                "certificate": {
+                    "file": {
+                        "certificateChain": "/path/to/cert_chain.pem",
+                        "privateKey": "/path/to/private_key.pem",
                     }
                 },
-                'enforce': False,
-                'ports': [8443],
-                'validation': {
-                    'subjectAlternativeNames': {
-                        'match': {
-                            'exact': ['new.example.com', 'dev.example.com']
-                        }
+                "enforce": True,
+                "ports": [443],  # HTTPS port (commonly used for HTTP/2)
+                "validation": {
+                    "subjectAlternativeNames": {
+                        "match": {"exact": ["http2.example.com"]}
                     },
-                    'trust': {
-                        'file': {
-                            'certificateChain': '/new/path/to/ca_bundle.pem'
-                        }
-                    }
-                }
+                    "trust": {"file": {"certificateChain": "/path/to/ca_bundle.pem"}},
+                },
             }
         }
     },
-    'backends': [
+    "backends": [
         {
-            'virtualService': {
-                'clientPolicy': {
-                    'tls': {
-                        'enforce': True
-                    }
-                },
-                'virtualServiceName': 'another-service.default.svc.cluster.local'
+            "virtualService": {
+                "clientPolicy": {"tls": {"enforce": True, "ports": [443]}},
+                "virtualServiceName": "my-http2-service.default.svc.cluster.local",
             }
         }
     ],
-    'listeners': [
+    "listeners": [
         {
-            'connectionPool': {
-                'http': {
-                    'maxConnections': 2000,
-                    'maxPendingRequests': 10000
+            "connectionPool": {
+                "http2": {
+                    "maxRequests": 1000  # Adjust based on expected HTTP/2 load
                 }
             },
-            'healthCheck': {
-                'healthyThreshold': 3,
-                'intervalMillis': 10000,
-                'path': '/status',
-                'port': 8080,
-                'protocol': 'https',
-                'timeoutMillis': 3000,
-                'unhealthyThreshold': 2
+            "healthCheck": {
+                "healthyThreshold": 2,
+                "intervalMillis": 5000,
+                "path": "/",  # Basic health check path
+                "port": 443,  # Assuming health check on HTTPS port
+                "protocol": "http2",
+                "timeoutMillis": 2000,
+                "unhealthyThreshold": 3,
             },
-            'outlierDetection': {
-                'baseEjectionDuration': {
-                    'unit': 'ms',
-                    'value': 500
-                },
-                'interval': {
-                    'unit': 'm',
-                    'value': 1
-                },
-                'maxEjectionPercent': 5,
-                'maxServerErrors': 10
+            "portMapping": {
+                "port": 443,  # Listening on HTTPS port
+                "protocol": "http2",
             },
-            'portMapping': {
-                'port': 8080,
-                'protocol': 'https'
-            },
-            'timeout': {
-                'http': {
-                    'idle': {
-                        'unit': 'm',
-                        'value': 5
+            "timeout": {
+                "http2": {
+                    "idle": {
+                        "unit": "s",
+                        "value": 120,  # Potentially longer idle timeout for HTTP/2
                     },
-                    'perRequest': {
-                        'unit': 'ms',
-                        'value': 1000
-                    }
+                    "perRequest": {"unit": "s", "value": 10},
                 }
             },
-            'tls': {
-                'certificate': {
-                    'acm': {
-                        'certificateArn': 'arn:aws:acm:us-west-2:987654321098:certificate/hgfedcba-4321-8765-09ba-fedc09876543'
+            "tls": {
+                "certificate": {
+                    "acm": {
+                        "certificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
                     }
                 },
-                'mode': 'PERMISSIVE',
-                'validation': {
-                    'trust': {
-                        'sds': {
-                            'secretName': 'another-ca-bundle-secret'
-                        }
-                    }
-                }
-            }
+                "mode": "STRICT",
+                "validation": {"trust": {"sds": {"secretName": "my-ca-bundle-secret"}}},
+            },
         }
     ],
-    'logging': {
-        'accessLog': {
-            'file': {
-                'format': {
-                    'json': [
-                        {
-                            'key': 'end_time',
-                            'value': '%END_TIME%'
-                        },
-                        {
-                            'key': 'status_code',
-                            'value': '%RESPONSE_CODE%'
-                        }
+    "logging": {
+        "accessLog": {
+            "file": {
+                "format": {
+                    "json": [
+                        {"key": "end_time", "value": "%END_TIME%"},
+                        {"key": "status_code", "value": "%RESPONSE_CODE%"},
                     ]
                 },
-                'path': '/var/log/appmesh/new_access.log'
+                "path": "/var/log/appmesh/new_access.log",
             }
         }
     },
-    'serviceDiscovery': {
-        'awsCloudMap': {
-            'attributes': [
-                {
-                    'key': 'region',
-                    'value': 'us-east-1'
-                }
-            ],
-            'ipPreference': 'IPv6_PREFERRED',
-            'namespaceName': 'new-namespace',
-            'serviceName': 'new-service'
+    "serviceDiscovery": {
+        "awsCloudMap": {
+            "attributes": [{"key": "region", "value": "us-east-1"}],
+            "ipPreference": "IPv6_PREFERRED",
+            "namespaceName": "new-namespace",
+            "serviceName": "new-service",
         }
-    }
+    },
+}
+
+virtual_node_spec_grpc = {
+    "backendDefaults": {
+        "clientPolicy": {
+            "tls": {
+                "certificate": {
+                    "file": {
+                        "certificateChain": "/path/to/cert_chain.pem",
+                        "privateKey": "/path/to/private_key.pem",
+                    }
+                },
+                "enforce": True,
+                "ports": [443],  # HTTPS port (often used for gRPC over TLS)
+                "validation": {
+                    "subjectAlternativeNames": {
+                        "match": {"exact": ["grpc.example.com"]}
+                    },
+                    "trust": {"file": {"certificateChain": "/path/to/ca_bundle.pem"}},
+                },
+            }
+        }
+    },
+    "backends": [
+        {
+            "virtualService": {
+                "clientPolicy": {
+                    "tls": {
+                        "enforce": True,  # Enforce TLS for this gRPC backend
+                        "ports": [443],
+                    }
+                },
+                "virtualServiceName": "my-grpc-service.default.svc.cluster.local",
+            }
+        }
+    ],
+    "listeners": [
+        {
+            "connectionPool": {
+                "grpc": {
+                    "maxRequests": 500  # Adjust based on expected gRPC load
+                }
+            },
+            "healthCheck": {
+                "healthyThreshold": 2,
+                "intervalMillis": 5000,
+                "port": 50051,  # Common gRPC port
+                "protocol": "grpc",
+                "timeoutMillis": 2000,
+                "unhealthyThreshold": 3,
+            },
+            "portMapping": {
+                "port": 50051,  # Listening on a typical gRPC port
+                "protocol": "grpc",
+            },
+            "timeout": {
+                "grpc": {
+                    "idle": {
+                        "unit": "s",
+                        "value": 600,  # Longer idle timeout for gRPC
+                    },
+                    "perRequest": {"unit": "s", "value": 30},
+                }
+            },
+            "tls": {
+                "certificate": {
+                    "acm": {
+                        "certificateArn": "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
+                    }
+                },
+                "mode": "STRICT",
+                "validation": {"trust": {"sds": {"secretName": "my-ca-bundle-secret"}}},
+            },
+        }
+    ],
+    "logging": {
+        "accessLog": {
+            "file": {
+                "format": {
+                    "json": [
+                        {"key": "end_time", "value": "%END_TIME%"},
+                        {"key": "status_code", "value": "%RESPONSE_CODE%"},
+                    ]
+                },
+                "path": "/var/log/appmesh/new_access.log",
+            }
+        }
+    },
+    "serviceDiscovery": {
+        "awsCloudMap": {
+            "attributes": [{"key": "region", "value": "us-east-1"}],
+            "ipPreference": "IPv6_PREFERRED",
+            "namespaceName": "new-namespace",
+            "serviceName": "new-service",
+        }
+    },
+}
+
+virtual_node_spec_tcp = {
+    "backendDefaults": {
+        "clientPolicy": {
+            "tls": {
+                "certificate": {
+                    "file": {
+                        "certificateChain": "/path/to/cert_chain.pem",
+                        "privateKey": "/path/to/private_key.pem",
+                    }
+                },
+                "enforce": True,  # Enforce TLS for backend connections if applicable
+                "ports": [443],  # Example port, adjust as needed
+                "validation": {
+                    "subjectAlternativeNames": {
+                        "match": {"exact": ["tcp.example.com"]}
+                    },
+                    "trust": {"file": {"certificateChain": "/path/to/ca_bundle.pem"}},
+                },
+            }
+        }
+    },
+    "backends": [
+        {
+            "virtualService": {
+                "clientPolicy": {
+                    "tls": {
+                        "enforce": False  # TLS might not be applicable for all TCP backends
+                    }
+                },
+                "virtualServiceName": "my-tcp-service.default.svc.cluster.local",
+            }
+        }
+    ],
+    "listeners": [
+        {
+            "connectionPool": {
+                "tcp": {
+                    "maxConnections": 2000  # Adjust based on expected TCP load
+                }
+            },
+            "healthCheck": {
+                "healthyThreshold": 2,
+                "intervalMillis": 10000,  # Potentially longer interval for TCP
+                "port": 8080,  # Example TCP port, adjust as needed
+                "protocol": "tcp",
+                "timeoutMillis": 5000,
+                "unhealthyThreshold": 3,
+            },
+            "portMapping": {
+                "port": 8080,  # Listening on a custom TCP port
+                "protocol": "tcp",
+            },
+            "timeout": {
+                "tcp": {
+                    "idle": {
+                        "unit": "m",  # Minutes, potentially longer for TCP
+                        "value": 30,
+                    }
+                }
+            },
+        }
+    ],
+    "logging": {
+        "accessLog": {
+            "file": {
+                "format": {
+                    "json": [
+                        {"key": "end_time", "value": "%END_TIME%"},
+                        {"key": "status_code", "value": "%RESPONSE_CODE%"},
+                    ]
+                },
+                "path": "/var/log/appmesh/new_access.log",
+            }
+        }
+    },
+    "serviceDiscovery": {
+        "awsCloudMap": {
+            "attributes": [{"key": "region", "value": "us-east-1"}],
+            "ipPreference": "IPv6_PREFERRED",
+            "namespaceName": "new-namespace",
+            "serviceName": "new-service",
+        }
+    },
 }

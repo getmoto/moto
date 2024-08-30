@@ -8,7 +8,11 @@ from moto.appmesh.dataclasses.mesh import (
 )
 from moto.appmesh.dataclasses.route import Route, RouteMetadata, RouteSpec
 from moto.appmesh.dataclasses.shared import Metadata
-from moto.appmesh.dataclasses.virtual_node import VirtualNode, VirtualNodeMetadata, VirtualNodeSpec
+from moto.appmesh.dataclasses.virtual_node import (
+    VirtualNode,
+    VirtualNodeMetadata,
+    VirtualNodeSpec,
+)
 from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
     VirtualRouter,
@@ -58,8 +62,8 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 100,
-        "unique_attribute": ["virtualNodeName"], 
-    } 
+        "unique_attribute": ["virtualNodeName"],
+    },
 }
 
 
@@ -421,7 +425,11 @@ class AppMeshBackend(BaseBackend):
     def describe_virtual_node(
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
     ) -> VirtualNode:
-        check_virtual_node_validity(mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_node_name=virtual_node_name)
+        check_virtual_node_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_node_name=virtual_node_name,
+        )
         return self.meshes[mesh_name].virtual_nodes[virtual_node_name]
 
     def create_virtual_node(
@@ -439,14 +447,14 @@ class AppMeshBackend(BaseBackend):
             mesh_name=mesh_name,
             mesh_owner=owner,
             resource_owner=owner,
-            virtual_node_name=virtual_node_name
+            virtual_node_name=virtual_node_name,
         )
         virtual_node = VirtualNode(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             metadata=metadata,
             spec=spec,
-            tags=tags
+            tags=tags,
         )
         return virtual_node
 
@@ -458,7 +466,11 @@ class AppMeshBackend(BaseBackend):
         spec: VirtualNodeSpec,
         virtual_node_name: str,
     ) -> VirtualNode:
-        check_virtual_node_validity(mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_node_name=virtual_node_name)
+        check_virtual_node_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_node_name=virtual_node_name,
+        )
         virtual_node = self.meshes[mesh_name].virtual_nodes[virtual_node_name]
         virtual_node.spec = spec
         virtual_node.metadata.version += 1
@@ -468,7 +480,11 @@ class AppMeshBackend(BaseBackend):
     def delete_virtual_node(
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
     ) -> VirtualNode:
-        check_virtual_node_validity(mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_node_name=virtual_node_name)
+        check_virtual_node_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_node_name=virtual_node_name,
+        )
         virtual_node = self.meshes[mesh_name].virtual_nodes[virtual_node_name]
         virtual_node.status["status"] = "DELETED"
         del self.meshes[mesh_name].virtual_nodes[virtual_node_name]

@@ -25,9 +25,9 @@ from moto.appmesh.dataclasses.virtual_node import (
     ACM,
     DNS,
     SDS,
-    AWSCloudMap,
     AccessLog,
     AccessLogFile,
+    AWSCloudMap,
     Backend,
     BackendDefaults,
     BackendTrust,
@@ -37,8 +37,8 @@ from moto.appmesh.dataclasses.virtual_node import (
     ClientPolicy,
     ConnectionPool,
     GRPCOrHTTP2Connection,
-    HTTPConnection,
     HealthCheck,
+    HTTPConnection,
     KeyValue,
     Listener,
     ListenerCertificateACM,
@@ -288,17 +288,19 @@ def check_route_availability(
         )
     return
 
-def check_virtual_node_validity( 
-        meshes: Dict[str, Mesh],
-        mesh_name: str,
-        mesh_owner: Optional[str],
-        virtual_node_name: str
-    ):
+
+def check_virtual_node_validity(
+    meshes: Dict[str, Mesh],
+    mesh_name: str,
+    mesh_owner: Optional[str],
+    virtual_node_name: str,
+):
     validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
     if virtual_node_name not in meshes[mesh_name].virtual_nodes:
         raise VirtualNodeNotFoundError(mesh_name, virtual_node_name)
 
-def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy: # type: ignore[misc]
+
+def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy:  # type: ignore[misc]
     _certificate = tls.get("certificate")
     _validation = tls.get("validation")
     certificate, validation = None, None
@@ -322,10 +324,7 @@ def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy: # type: ignore[misc]
 
     if _subject_alternative_names is not None:
         match = VirtualNodeMatch(
-            exact=(_subject_alternative_names.get("match") or {}).get(
-                "exact"
-            )
-            or []
+            exact=(_subject_alternative_names.get("match") or {}).get("exact") or []
         )
         subject_alternative_names = SubjectAlternativeNames(match=match)
 
@@ -343,9 +342,7 @@ def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy: # type: ignore[misc]
     if _trust_sds is not None:
         sds = SDS(secret_name=_sds.get("secretName"))
     if _acm is not None:
-        acm = ACM(
-            certificate_authority_arns=_acm.get("certificateAuthorityArns")
-        )
+        acm = ACM(certificate_authority_arns=_acm.get("certificateAuthorityArns"))
     trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
 
     validation = TLSBackendValidation(
@@ -357,6 +354,7 @@ def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy: # type: ignore[misc]
         ports=tls.get("ports"),
         validation=validation,
     )
+
 
 def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     _grpc_route = spec.get("grpcRoute")
@@ -465,7 +463,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
             client_policy = ClientPolicy(tls=tls)
 
         backend_defaults = BackendDefaults(client_policy=client_policy)
-    
+
     if _backends is not None:
         backends = []
         for _backend in _backends:
@@ -478,13 +476,13 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     _tls_client_policy = _virtual_service_client_policy.get("tls")
                     tls_client_policy = None
                     if _tls_client_policy is not None:
-                        tls_client_policy = get_tls_for_client_policy(_tls_client_policy)
-                    virtual_service_client_policy = ClientPolicy(
-                        tls=tls_client_policy
-                    )
+                        tls_client_policy = get_tls_for_client_policy(
+                            _tls_client_policy
+                        )
+                    virtual_service_client_policy = ClientPolicy(tls=tls_client_policy)
                 virtual_service = VirtualService(
                     client_policy=virtual_service_client_policy,
-                    virtual_service_name=_virtual_service.get("virtualServiceName")
+                    virtual_service_name=_virtual_service.get("virtualServiceName"),
                 )
             backend = Backend(virtual_service=virtual_service)
             backends.append(backend)
@@ -515,28 +513,21 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 grpc, http, http2, tcp = None, None, None, None
 
                 if _grpc is not None:
-                    grpc = GRPCOrHTTP2Connection(
-                        max_requests= _grpc.get("maxRequests")
-                    )
+                    grpc = GRPCOrHTTP2Connection(max_requests=_grpc.get("maxRequests"))
                 if _http is not None:
                     http = HTTPConnection(
                         max_connections=_http.get("maxConnections"),
-                        max_pending_requests=_http.get("maxPendingRequests")
+                        max_pending_requests=_http.get("maxPendingRequests"),
                     )
                 if _http2 is not None:
                     http2 = GRPCOrHTTP2Connection(
                         max_requests=_http2.get("maxRequests")
                     )
                 if _tcp is not None:
-                    tcp = TCPConnection(
-                        max_connections=_tcp.get("maxConnections")
-                    )
+                    tcp = TCPConnection(max_connections=_tcp.get("maxConnections"))
 
                 connection_pool = ConnectionPool(
-                    grpc=grpc,
-                    http=http,
-                    http2=http2,
-                    tcp=tcp
+                    grpc=grpc, http=http, http2=http2, tcp=tcp
                 )
             if _health_check is not None:
                 health_check = HealthCheck(
@@ -546,42 +537,48 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     port=_health_check.get("port"),
                     protocol=_health_check.get("protocol"),
                     timeout_millis=_health_check.get("timeoutMillis"),
-                    unhealthy_threshold=_health_check.get("unhealthyThreshold")
+                    unhealthy_threshold=_health_check.get("unhealthyThreshold"),
                 )
-            
+
             if _outlier_detection is not None:
-                _base_ejection_duration = _outlier_detection.get("baseEjectionDetection")
+                _base_ejection_duration = _outlier_detection.get(
+                    "baseEjectionDetection"
+                )
                 _interval = _outlier_detection.get("interval")
                 base_ejection_duration, interval = None, None
                 if _base_ejection_duration is not None:
                     base_ejection_duration = TimeValue(
                         unit=_base_ejection_duration.get("unit"),
-                        value=_base_ejection_duration.get("value")
-                    ) 
+                        value=_base_ejection_duration.get("value"),
+                    )
                 if _interval is not None:
                     interval = TimeValue(
-                        unit=_interval.get("unit"),
-                        value=_interval.get("value")
-                    ) 
+                        unit=_interval.get("unit"), value=_interval.get("value")
+                    )
                 outlier_detection = OutlierDetection(
                     base_ejection_duration=base_ejection_duration,
                     interval=interval,
                     max_ejection_percent=_outlier_detection.get("maxEjectionPercent"),
-                    max_server_errors=_outlier_detection.get("maxServerErrors")
+                    max_server_errors=_outlier_detection.get("maxServerErrors"),
                 )
-            
+
             if _port_mapping is not None:
                 port_mapping = PortMapping(
                     port=_port_mapping.get("port"),
-                    protocol=_port_mapping.get("protocol") 
+                    protocol=_port_mapping.get("protocol"),
                 )
-            
+
             if _timeout is not None:
                 _grpc_timeout = _timeout.get("grpc")
                 _http_timeout = _timeout.get("http")
                 _http2_timeout = _timeout.get("http2")
                 _tcp_timeout = _timeout.get("tpc")
-                grpc_timeout, http_timeout, http2_timeout, tcp_timeout = None, None, None, None
+                grpc_timeout, http_timeout, http2_timeout, tcp_timeout = (
+                    None,
+                    None,
+                    None,
+                    None,
+                )
 
                 if _grpc_timeout is not None:
                     _idle = _grpc_timeout.get("idle")
@@ -589,107 +586,102 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     idle, per_request = None, None
                     if _idle is not None:
                         idle = TimeValue(
-                            unit=_idle.get("unit"),
-                            value=_idle.get("value")
+                            unit=_idle.get("unit"), value=_idle.get("value")
                         )
                     if _per_request is not None:
                         per_request = TimeValue(
                             unit=_per_request.get("unit"),
-                            value=_per_request.get("value")
+                            value=_per_request.get("value"),
                         )
-                    grpc_timeout = Timeout(
-                        idle=idle,
-                        per_request=per_request
-                    )
-                if _http_timeout is not None: 
+                    grpc_timeout = Timeout(idle=idle, per_request=per_request)
+                if _http_timeout is not None:
                     _idle = _http_timeout.get("idle")
                     _per_request = _http_timeout.get("perRequest")
                     idle, per_request = None, None
                     if _idle is not None:
                         idle = TimeValue(
-                            unit=_idle.get("unit"),
-                            value=_idle.get("value")
+                            unit=_idle.get("unit"), value=_idle.get("value")
                         )
                     if _per_request is not None:
                         per_request = TimeValue(
                             unit=_per_request.get("unit"),
-                            value=_per_request.get("value")
+                            value=_per_request.get("value"),
                         )
-                    http_timeout = Timeout(
-                        idle=idle,
-                        per_request=per_request
-                    )
+                    http_timeout = Timeout(idle=idle, per_request=per_request)
                 if _http2_timeout is not None:
                     _idle = _http2_timeout.get("idle")
                     _per_request = _http2_timeout.get("perRequest")
                     idle, per_request = None, None
                     if _idle is not None:
                         idle = TimeValue(
-                            unit=_idle.get("unit"),
-                            value=_idle.get("value")
+                            unit=_idle.get("unit"), value=_idle.get("value")
                         )
                     if _per_request is not None:
                         per_request = TimeValue(
                             unit=_per_request.get("unit"),
-                            value=_per_request.get("value")
+                            value=_per_request.get("value"),
                         )
-                    http2_timeout = Timeout(
-                        idle=idle,
-                        per_request=per_request
-                    ) 
+                    http2_timeout = Timeout(idle=idle, per_request=per_request)
                 if _tcp_timeout is not None:
                     _idle = _tcp_timeout.get("idle")
                     idle = None
                     if _idle is not None:
                         idle = TimeValue(
-                            unit=_idle.get("unit"),
-                            value=_idle.get("value")
+                            unit=_idle.get("unit"), value=_idle.get("value")
                         )
-                    tcp_timeout = TCPTimeout(
-                        idle=idle
-                    )
+                    tcp_timeout = TCPTimeout(idle=idle)
 
                 timeout = ProtocolTimeouts(
                     grpc=grpc_timeout,
                     http=http_timeout,
                     http2=http2_timeout,
-                    tcp=tcp_timeout
+                    tcp=tcp_timeout,
                 )
-            
+
             if _listener_tls is not None:
-                _tls_listener_certificate = _listener_tls.get("certificate") 
-                _tls_listener_validation = _listener_tls.get("validation") 
+                _tls_listener_certificate = _listener_tls.get("certificate")
+                _tls_listener_validation = _listener_tls.get("validation")
                 tls_listener_certificate, tls_listener_validation = None, None
                 if _tls_listener_certificate is not None:
                     _listener_certificate_file = _tls_listener_certificate.get("file")
                     _listener_certificate_sds = _tls_listener_certificate.get("sds")
                     _listener_certificate_acm = _tls_listener_certificate.get("acm")
-                    listener_certificate_file, listener_certificate_sds, listener_certificate_acm = None, None, None
+                    (
+                        listener_certificate_file,
+                        listener_certificate_sds,
+                        listener_certificate_acm,
+                    ) = None, None, None
                     if _listener_certificate_file is not None:
                         listener_certificate_file = CertificateFileWithPrivateKey(
-                            certificate_chain=_listener_certificate_file.get("certificateChain"),
-                            private_key=_listener_certificate_file.get("privateKey")
+                            certificate_chain=_listener_certificate_file.get(
+                                "certificateChain"
+                            ),
+                            private_key=_listener_certificate_file.get("privateKey"),
                         )
                     if _listener_certificate_sds is not None:
                         listener_certificate_sds = SDS(
                             secret_name=_listener_certificate_sds.get("secretName")
-                        ) 
+                        )
                     if _listener_certificate_acm is not None:
                         listener_certificate_acm = ListenerCertificateACM(
-                            certificate_arn=_listener_certificate_acm.get("certificateArn")
+                            certificate_arn=_listener_certificate_acm.get(
+                                "certificateArn"
+                            )
                         )
 
                     tls_listener_certificate = TLSListenerCertificate(
                         file=listener_certificate_file,
                         sds=listener_certificate_sds,
-                        acm=listener_certificate_acm
+                        acm=listener_certificate_acm,
                     )
                 if _tls_listener_validation is not None:
-                    _subject_alternative_names = _tls_listener_validation.get("subjectAlternativeNames") 
+                    _subject_alternative_names = _tls_listener_validation.get(
+                        "subjectAlternativeNames"
+                    )
                     _trust = _tls_listener_validation.get("trust")
                     subject_alternative_names, tls_listener_trust = None, None
                     if _subject_alternative_names is not None:
-                        _tls_listener_match = _subject_alternative_names.get("match") 
+                        _tls_listener_match = _subject_alternative_names.get("match")
                         tls_listener_match = VirtualNodeMatch(
                             exact=_tls_listener_match.get("exact")
                         )
@@ -698,39 +690,39 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                         )
                     if _trust is not None:
                         _tls_listener_certificate_file = _trust.get("file")
-                        _tls_listener_sds = _trust.get("sds") 
+                        _tls_listener_sds = _trust.get("sds")
                         tls_listener_certificate_file, tls_listener_sds = None, None
                         if _tls_listener_certificate_file is not None:
                             tls_listener_certificate_file = CertificateFile(
-                                certificate_chain=_tls_listener_certificate_file.get("certificateChain")
+                                certificate_chain=_tls_listener_certificate_file.get(
+                                    "certificateChain"
+                                )
                             )
                         if _tls_listener_sds is not None:
                             tls_listener_sds = SDS(
                                 secret_name=_tls_listener_sds.get("secretName")
                             )
                         tls_listener_trust = Trust(
-                            file=tls_listener_certificate_file,
-                            sds=tls_listener_sds
+                            file=tls_listener_certificate_file, sds=tls_listener_sds
                         )
-
 
                     tls_listener_validation = TLSListenerValidation(
                         subject_alternative_names=subject_alternative_names,
-                        trust=tls_listener_trust
+                        trust=tls_listener_trust,
                     )
                 listener_tls = ListenerTLS(
                     certificate=tls_listener_certificate,
                     mode=_listener_tls.get("mode"),
-                    validation=tls_listener_validation
+                    validation=tls_listener_validation,
                 )
 
             listener = Listener(
-                connection_pool=connection_pool, 
+                connection_pool=connection_pool,
                 health_check=health_check,
                 outlier_detection=outlier_detection,
                 port_mapping=port_mapping,
                 timeout=timeout,
-                listener_tls=listener_tls
+                listener_tls=listener_tls,
             )
             listeners.append(listener)
 
@@ -749,18 +741,12 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     if _json is not None:
                         json = list()
                         for item in _json:
-                            json.append(KeyValue(key=item.get("key"), value=item.get("value")))
-                    format = LoggingFormat(
-                        json=json,
-                        text=_format.get("text")
-                    )
-                file = AccessLogFile(
-                    format=format,
-                    path=_file.get("path")
-                )
-            access_log = AccessLog(
-                file=file
-            )
+                            json.append(
+                                KeyValue(key=item.get("key"), value=item.get("value"))
+                            )
+                    format = LoggingFormat(json=json, text=_format.get("text"))
+                file = AccessLogFile(format=format, path=_file.get("path"))
+            access_log = AccessLog(file=file)
         logging = Logging(access_log=access_log)
 
     if _service_discovery is not None:
