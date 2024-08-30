@@ -73,3 +73,10 @@ class MissingRequiredFieldError(MeshError):
             "MissingRequiredField",
             f"{field_name} must be defined.",
         )
+
+class VirtualNodeNotFoundError(MeshError):
+    def __init__(self, mesh_name: str, virtual_node_name: str) -> None:
+        super().__init__(
+            "VirtualNodeNotFound",
+            f"{virtual_node_name} is not a virtual node associated with mesh {mesh_name}",
+        )

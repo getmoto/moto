@@ -23,6 +23,7 @@ from moto.appmesh.utils import (
     check_route_validity,
     check_router_availability,
     check_router_validity,
+    check_virtual_node_validity,
     validate_mesh,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -415,8 +416,8 @@ class AppMeshBackend(BaseBackend):
     def describe_virtual_node(
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
     ) -> VirtualNode:
-        # implement here
-        return virtual_node
+        check_virtual_node_validity(mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_node_name=virtual_node_name)
+        return self.meshes[mesh_name].virtual_nodes[virtual_node_name]
 
     def create_virtual_node(
         self,
@@ -444,7 +445,10 @@ class AppMeshBackend(BaseBackend):
     def delete_virtual_node(
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
     ) -> VirtualNode:
-        # implement here
+        check_virtual_node_validity(mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_node_name=virtual_node_name)
+        virtual_node = self.meshes[mesh_name].virtual_nodes[virtual_node_name]
+        virtual_node.status["status"] = "DELETED"
+        del self.meshes[mesh_name].virtual_nodes[virtual_node_name]
         return virtual_node
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore

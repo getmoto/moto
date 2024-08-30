@@ -69,6 +69,7 @@ from moto.appmesh.exceptions import (
     MissingRequiredFieldError,
     RouteNameAlreadyTakenError,
     RouteNotFoundError,
+    VirtualNodeNotFoundError,
     VirtualRouterNameAlreadyTakenError,
     VirtualRouterNotFoundError,
 )
@@ -286,6 +287,16 @@ def check_route_availability(
             route_name=route_name,
         )
     return
+
+def check_virtual_node_validity( 
+        meshes: Dict[str, Mesh],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_node_name: str
+    ):
+    validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
+    if virtual_node_name not in meshes[mesh_name].virtual_nodes:
+        raise VirtualNodeNotFoundError(mesh_name, virtual_node_name)
 
 def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy: # type: ignore[misc]
     _certificate = tls.get("certificate")
