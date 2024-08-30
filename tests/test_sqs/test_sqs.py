@@ -1972,6 +1972,20 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
 
 
+@sqs_aws_verified()
+@pytest.mark.aws_verified
+def test_delete_message_batch_with_zero_entries(queue_name=None, queue_url=None):
+    sqs = boto3.client("sqs", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        sqs.delete_message_batch(QueueUrl=queue_url, Entries=[])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AWS.SimpleQueueService.EmptyBatchRequest"
+    assert (
+        err["Message"]
+        == "There should be at least one DeleteMessageBatchRequestEntry in the request."
+    )
+
+
 @mock_aws
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name=REGION)
