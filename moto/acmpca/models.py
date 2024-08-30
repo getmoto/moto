@@ -19,6 +19,7 @@ from moto.utilities.utils import get_partition
 from .exceptions import (
     InvalidS3ObjectAclInCrlConfiguration,
     InvalidStateException,
+    MalformedCertificateAuthorityException,
     ResourceNotFoundException,
 )
 
@@ -297,6 +298,11 @@ class CertificateAuthority(BaseModel):
     def import_certificate_authority_certificate(
         self, certificate: bytes, certificate_chain: Optional[bytes]
     ) -> None:
+        try:
+            x509.load_pem_x509_certificate(certificate)
+        except ValueError:
+            raise MalformedCertificateAuthorityException()
+
         self.certificate_bytes = certificate
         self.certificate_chain = certificate_chain
         self.status = "ACTIVE"

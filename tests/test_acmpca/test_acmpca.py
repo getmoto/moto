@@ -389,8 +389,16 @@ def test_import_certificate_authority_certificate():
         CertificateAuthorityType="SUBORDINATE",
     )["CertificateAuthorityArn"]
 
-    cert = create_cert()
+    with pytest.raises(ClientError) as exc:
+        client.import_certificate_authority_certificate(
+            CertificateAuthorityArn=ca_arn,
+            Certificate="invalid certificate pem",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MalformedCertificateAuthorityException"
+    assert err["Message"] == "Malformed certificate."
 
+    cert = create_cert()
     client.import_certificate_authority_certificate(
         CertificateAuthorityArn=ca_arn,
         Certificate=cert,
