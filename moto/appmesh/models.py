@@ -8,7 +8,7 @@ from moto.appmesh.dataclasses.mesh import (
 )
 from moto.appmesh.dataclasses.route import Route, RouteMetadata, RouteSpec
 from moto.appmesh.dataclasses.shared import Metadata
-from moto.appmesh.dataclasses.virtual_node import VirtualNode, VirtualNodeSpec
+from moto.appmesh.dataclasses.virtual_node import VirtualNode, VirtualNodeMetadata, VirtualNodeSpec
 from moto.appmesh.dataclasses.virtual_router import (
     PortMapping,
     VirtualRouter,
@@ -54,7 +54,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": ["routeName"],
     },
-    # TODO list_virtual_nodes
+    "list_virtual_nodes": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": ["virtualNodeName"], 
+    } 
 }
 
 
@@ -428,7 +433,21 @@ class AppMeshBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         virtual_node_name: str,
     ) -> VirtualNode:
-        # implement here
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
+        metadata = VirtualNodeMetadata(
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualNode/{virtual_node_name}",
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            resource_owner=owner,
+            virtual_node_name=virtual_node_name
+        )
+        virtual_node = VirtualNode(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            metadata=metadata,
+            spec=spec,
+            tags=tags
+        )
         return virtual_node
 
     def update_virtual_node(
@@ -439,7 +458,11 @@ class AppMeshBackend(BaseBackend):
         spec: VirtualNodeSpec,
         virtual_node_name: str,
     ) -> VirtualNode:
-        # implement here
+        check_virtual_node_validity(mesh_name=mesh_name, mesh_owner=mesh_owner, virtual_node_name=virtual_node_name)
+        virtual_node = self.meshes[mesh_name].virtual_nodes[virtual_node_name]
+        virtual_node.spec = spec
+        virtual_node.metadata.version += 1
+        virtual_node.metadata.update_timestamp()
         return virtual_node
 
     def delete_virtual_node(
@@ -459,8 +482,12 @@ class AppMeshBackend(BaseBackend):
         mesh_owner: Optional[str],
         next_token: Optional[str],
     ) -> List[Dict[str, Any]]:
-        # implement here
-        return virtual_nodes
+        validate_mesh(meshes=self.meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
+        virtual_nodes = self.meshes[mesh_name].virtual_nodes
+        return [
+            virtual_node.metadata.formatted_for_list_api()
+            for virtual_node in virtual_nodes.values()
+        ]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
