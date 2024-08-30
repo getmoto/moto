@@ -1,4 +1,6 @@
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -113,6 +115,12 @@ def test_get_maintenance_windows():
     assert "EndDate" not in my_window
     assert "StartDate" not in my_window
 
+    with pytest.raises(ClientError) as exc:
+        ssm.get_maintenance_window(WindowId=_id + "bad")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DoesNotExistException"
+    assert err["Message"] == f"Maintenance window {_id + 'bad'} does not exist"
+
 
 @mock_aws
 def test_describe_maintenance_windows():
@@ -148,10 +156,17 @@ def test_delete_maintenance_windows():
         AllowUnassociatedTargets=False,
     )
 
-    ssm.delete_maintenance_window(WindowId=resp["WindowId"])
+    _id = resp["WindowId"]
+    ssm.delete_maintenance_window(WindowId=_id)
 
     resp = ssm.describe_maintenance_windows()
     assert resp["WindowIdentities"] == []
+
+    with pytest.raises(ClientError) as exc:
+        ssm.delete_maintenance_window(WindowId=_id + "bad")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DoesNotExistException"
+    assert err["Message"] == f"Maintenance window {_id + 'bad'} does not exist"
 
 
 @mock_aws
