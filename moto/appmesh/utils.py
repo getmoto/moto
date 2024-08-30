@@ -23,17 +23,34 @@ from moto.appmesh.dataclasses.route import (
 from moto.appmesh.dataclasses.shared import Timeout, TimeValue
 from moto.appmesh.dataclasses.virtual_node import (
     ACM,
+    DNS,
     SDS,
+    AWSCloudMap,
     BackendDefaults,
     BackendTrust,
     Certificate,
     CertificateFile,
     CertificateFileWithPrivateKey,
     ClientPolicy,
+    ConnectionPool,
+    GRPCOrHTTP2Connection,
+    HTTPConnection,
+    HealthCheck,
+    KeyValue,
+    Listener,
+    ListenerCertificateACM,
+    ListenerTLS,
+    OutlierDetection,
+    ProtocolTimeouts,
     ServiceDiscovery,
     SubjectAlternativeNames,
+    TCPConnection,
+    TCPTimeout,
     TLSBackendValidation,
     TLSClientPolicy,
+    TLSListenerCertificate,
+    TLSListenerValidation,
+    Trust,
     VirtualNodeSpec,
 )
 from moto.appmesh.dataclasses.virtual_node import (
@@ -385,29 +402,36 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     certificate = Certificate(file=file, sds=sds)
                 if _validation is None:
                     raise MissingRequiredFieldError("validation")
-                _subject_alternative_names = _validation.get(
-                    "subjectAlternativeNames"
-                )
+                _subject_alternative_names = _validation.get("subjectAlternativeNames")
                 _trust = _validation.get("trust")
                 subject_alternative_names = None
 
                 if _subject_alternative_names is not None:
-                    match = VirtualNodeMatch(exact=(_subject_alternative_names.get("match") or {}).get("exact") or [])
+                    match = VirtualNodeMatch(
+                        exact=(_subject_alternative_names.get("match") or {}).get(
+                            "exact"
+                        )
+                        or []
+                    )
                     subject_alternative_names = SubjectAlternativeNames(match=match)
 
                 if _trust is None:
                     raise MissingRequiredFieldError("trust")
-                
+
                 _trust_file = _trust.get("file")
                 _trust_sds = _trust.get("sds")
                 _acm = _trust.get("acm")
                 trust_file, trust_sds, acm = None, None, None
                 if _trust_file is not None:
-                    trust_file = CertificateFile(certificate_chain=_trust_file.get("certificateChain"))
+                    trust_file = CertificateFile(
+                        certificate_chain=_trust_file.get("certificateChain")
+                    )
                 if _trust_sds is not None:
                     sds = SDS(secret_name=_sds.get("secretName"))
                 if _acm is not None:
-                    acm = ACM(certificate_authority_arns=_acm.get("certificateAuthorityArns"))
+                    acm = ACM(
+                        certificate_authority_arns=_acm.get("certificateAuthorityArns")
+                    )
                 trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
 
                 validation = TLSBackendValidation(
@@ -423,11 +447,276 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
 
         backend_defaults = BackendDefaults(client_policy=client_policy)
 
-    # if _service_discovery is not None:
-    #     _aws_cloud_map = _service_discovery.get("awsCloudMap")
-    #     _dns = _service_discovery.get("dns")
-    #     aws_cloud_map, dns = None, None
-    #     service_discovery = ServiceDiscovery()        
+    if _listeners is not None:
+        listeners = []
+        for _listener in _listeners:
+            _connection_pool = _listener.get("connectionPool")
+            _health_check = _listener.get("healthCheck")
+            _outlier_detection = _listener.get("outlierDetection")
+            _port_mapping = _listener.get("portMapping")
+            _timeout = _listener.get("timeout")
+            _listener_tls = _listener.get("tls")
+            (
+                connection_pool,
+                health_check,
+                outlier_detection,
+                port_mapping,
+                timeout,
+                listener_tls,
+            ) = None, None, None, None, None, None
+
+            if _connection_pool is not None:
+                _grpc = _connection_pool.get("grpc")
+                _http = _connection_pool.get("http")
+                _http2 = _connection_pool.get("http2")
+                _tcp = _connection_pool.get("tcp")
+                grpc, http, http2, tcp = None, None, None, None
+
+                if _grpc is not None:
+                    grpc = GRPCOrHTTP2Connection(
+                        max_requests= _grpc.get("maxRequests")
+                    )
+                if _http is not None:
+                    http = HTTPConnection(
+                        max_connections=_http.get("maxConnections")
+                        max_pending_requests=_http.get("maxPendingRequests")
+                    )
+                if _http2 is not None:
+                    http2 = GRPCOrHTTP2Connection(
+                        max_requests=_http2.get("maxRequests")
+                    )
+                if _tcp is not None:
+                    tcp = TCPConnection(
+                        max_connections=_tcp.get("maxConnections")
+                    )
+
+                connection_pool = ConnectionPool(
+                    grpc=grpc,
+                    http=http,
+                    http2=http2,
+                    tcp=tcp
+                )
+            if _health_check is not None:
+                health_check = HealthCheck(
+                    healthy_threshold=_health_check.get("healthyThreshold"),
+                    interval_millis=_health_check.get("intervalMillis"),
+                    path=_health_check.get("path"),
+                    port=_health_check.get("port"),
+                    protocol=_health_check.get("protocol"),
+                    timeout_millis=_health_check.get("timeoutMillis"),
+                    unhealthy_threshold=_health_check.get("unhealthyThreshold")
+                )
+            
+            if _outlier_detection is not None:
+                _base_ejection_duration = _outlier_detection.get("baseEjectionDetection")
+                _interval = _outlier_detection.get("interval")
+                base_ejection_duration, interval = None, None
+                if _base_ejection_duration is not None:
+                    base_ejection_duration = TimeValue(
+                        unit=_base_ejection_duration.get("unit"),
+                        value=_base_ejection_duration.get("value")
+                    ) 
+                if _interval is not None:
+                    interval = TimeValue(
+                        unit=_interval.get("unit"),
+                        value=_interval.get("value")
+                    ) 
+                outlier_detection = OutlierDetection(
+                    base_ejection_duration=base_ejection_duration,
+                    interval=interval,
+                    max_ejection_percent=_outlier_detection.get("maxEjectionPercent"),
+                    max_server_errors=_outlier_detection.get("maxServerErrors")
+                )
+            
+            if _port_mapping is not None:
+                port_mapping = PortMapping(
+                    port=_port_mapping.get("port"),
+                    protocol=_port_mapping.get("protocol") 
+                )
+            
+            if _timeout is not None:
+                _grpc_timeout = _timeout.get("grpc")
+                _http_timeout = _timeout.get("http")
+                _http2_timeout = _timeout.get("http2")
+                _tcp_timeout = _timeout.get("tpc")
+                grpc_timeout, http_timeout, http2_timeout, tcp_timeout = None, None, None, None
+
+                if _grpc_timeout is not None:
+                    _idle = _grpc_timeout.get("idle")
+                    _per_request = _grpc_timeout.get("perRequest")
+                    idle, per_request = None, None
+                    if _idle is not None:
+                        idle = TimeValue(
+                            unit=_idle.get("unit"),
+                            value=_idle.get("value")
+                        )
+                    if _per_request is not None:
+                        per_request = TimeValue(
+                            unit=_per_request.get("unit"),
+                            value=_per_request.get("value")
+                        )
+                    grpc_timeout = Timeout(
+                        idle=idle,
+                        per_request=per_request
+                    )
+                if _http_timeout is not None: 
+                    _idle = _http_timeout.get("idle")
+                    _per_request = _http_timeout.get("perRequest")
+                    idle, per_request = None, None
+                    if _idle is not None:
+                        idle = TimeValue(
+                            unit=_idle.get("unit"),
+                            value=_idle.get("value")
+                        )
+                    if _per_request is not None:
+                        per_request = TimeValue(
+                            unit=_per_request.get("unit"),
+                            value=_per_request.get("value")
+                        )
+                    http_timeout = Timeout(
+                        idle=idle,
+                        per_request=per_request
+                    )
+                if _http2_timeout is not None:
+                    _idle = _http2_timeout.get("idle")
+                    _per_request = _http2_timeout.get("perRequest")
+                    idle, per_request = None, None
+                    if _idle is not None:
+                        idle = TimeValue(
+                            unit=_idle.get("unit"),
+                            value=_idle.get("value")
+                        )
+                    if _per_request is not None:
+                        per_request = TimeValue(
+                            unit=_per_request.get("unit"),
+                            value=_per_request.get("value")
+                        )
+                    http2_timeout = Timeout(
+                        idle=idle,
+                        per_request=per_request
+                    ) 
+                if _tcp_timeout is not None:
+                    _idle = _tcp_timeout.get("idle")
+                    idle = None
+                    if _idle is not None:
+                        idle = TimeValue(
+                            unit=_idle.get("unit"),
+                            value=_idle.get("value")
+                        )
+                    tcp_timeout = TCPTimeout(
+                        idle=idle
+                    )
+
+                timeout = ProtocolTimeouts(
+                    grpc=grpc_timeout,
+                    http=http_timeout,
+                    http2=http2_timeout,
+                    tcp=tcp_timeout
+                )
+            
+            if _listener_tls is not None:
+                _tls_listener_certificate = _listener_tls.get("certificate") 
+                _tls_listener_validation = _listener_tls.get("validation") 
+                tls_listener_certificate, tls_listener_validation = None, None
+                if _tls_listener_certificate is not None:
+                    _listener_certificate_file = _tls_listener_certificate.get("file")
+                    _listener_certificate_sds = _tls_listener_certificate.get("sds")
+                    _listener_certificate_acm = _tls_listener_certificate.get("acm")
+                    listener_certificate_file, listener_certificate_sds, listener_certificate_acm = None, None, None
+                    if _listener_certificate_file is not None:
+                        listener_certificate_file = CertificateFileWithPrivateKey(
+                            certificate_chain=_listener_certificate_file.get("certificateChain"),
+                            private_key=_listener_certificate_file.get("privateKey")
+                        )
+                    if _listener_certificate_sds is not None:
+                        listener_certificate_sds = SDS(
+                            secret_name=_listener_certificate_sds.get("secretName")
+                        ) 
+                    if _listener_certificate_acm is not None:
+                        listener_certificate_acm = ListenerCertificateACM(
+                            certificate_arn=_listener_certificate_acm.get("certificateArn")
+                        )
+
+                    certificate = TLSListenerCertificate(
+                        file=listener_certificate_file,
+                        sds=listener_certificate_sds,
+                        acm=listener_certificate_acm
+                    )
+                if _tls_listener_validation is not None:
+                    _subject_alternative_names = _tls_listener_validation.get("subjectAlternativeNames") 
+                    _trust = _tls_listener_validation.get("trust")
+                    subject_alternative_names, tls_listener_trust = None, None
+                    if _subject_alternative_names is not None:
+                        _tls_listener_match = _subject_alternative_names.get("match") 
+                        tls_listener_match = VirtualNodeMatch(
+                            exact=_tls_listener_match.get("exact")
+                        )
+                        subject_alternative_names = SubjectAlternativeNames(
+                            match=tls_listener_match
+                        )
+                    if _trust is not None:
+                        _tls_listener_certificate_file = _trust.get("file")
+                        _tls_listener_sds = _trust.get("sds") 
+                        tls_listener_certificate_file, tls_listener_sds = None, None
+                        if _tls_listener_certificate_file is not None:
+                            tls_listener_certificate_file = CertificateFile(
+                                certificate_chain=_tls_listener_certificate_file.get("certificateChain")
+                            )
+                        if _tls_listener_sds is not None:
+                            tls_listener_sds = SDS(
+                                secret_name=_tls_listener_sds.get("secretName")
+                            )
+                        tls_listener_trust = Trust(
+                            file=tls_listener_certificate_file,
+                            sds=tls_listener_sds
+                        )
+
+
+                    validation = TLSListenerValidation(
+                        subject_alternative_names=subject_alternative_names,
+                        trust=tls_listener_trust
+                    )
+                listener_tls = ListenerTLS(
+                    certificate=tls_listener_certificate,
+                    mode=_listener_tls.get("mode"),
+                    validation=tls_listener_validation
+                )
+
+            listener = Listener(
+                connection_pool=connection_pool, 
+                health_check=health_check,
+                outlier_detection=outlier_detection,
+                port_mapping=port_mapping,
+                timeout=timeout,
+                listener_tls=listener_tls
+            )
+            listeners.append(listener)
+
+    if _service_discovery is not None:
+        _aws_cloud_map = _service_discovery.get("awsCloudMap")
+        _dns = _service_discovery.get("dns")
+        aws_cloud_map, dns = None, None
+        if _aws_cloud_map is not None:
+            _attributes = _aws_cloud_map.get("attributes")
+            if _attributes is None:
+                raise MissingRequiredFieldError("attributes")
+            attributes = [
+                KeyValue(key=attribute.get("key"), value=attribute.get("value"))
+                for attribute in _attributes
+            ]
+            aws_cloud_map = AWSCloudMap(
+                attributes=attributes,
+                ip_preference=_aws_cloud_map.get("ipPreference"),
+                namespace_name=_aws_cloud_map.get("namespaceName"),
+                service_name=_aws_cloud_map.get("serviceName"),
+            )
+        if _dns is not None:
+            dns = DNS(
+                hostname=_dns.get("hostname"),
+                ip_preference=_dns.get("ipPreference"),
+                response_type=_dns.get("responseType"),
+            )
+        service_discovery = ServiceDiscovery(aws_cloud_map=aws_cloud_map, dns=dns)
 
     return VirtualNodeSpec(
         backend_defaults=backend_defaults,
