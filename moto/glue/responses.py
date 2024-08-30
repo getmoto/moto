@@ -34,7 +34,7 @@ class GlueResponse(BaseResponse):
         self.glue_backend.create_database(
             database_name,
             database_input,  # type: ignore[arg-type]
-            self.parameters.get("Tags"),  # type: ignore[arg-type]
+            self.parameters.get("Tags"),
         )
         return ""
 

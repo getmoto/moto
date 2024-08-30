@@ -1423,7 +1423,7 @@ class S3Response(BaseResponse):
 
         # Enforces policy when creating new objects, `if key` does not https://github.com/getmoto/moto/issues/7837
         if bucket:
-            resource = f"arn:{bucket.partition}:s3:::{bucket_name}/{key_name}"  # type: ignore[union-attr]
+            resource = f"arn:{bucket.partition}:s3:::{bucket_name}/{key_name}"
 
             # Authorization Workflow
             # https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-auth-workflow-object-operation.html
@@ -1432,7 +1432,7 @@ class S3Response(BaseResponse):
             from moto.iam.access_control import PermissionResult
 
             action = f"s3:{method.upper()[0]}{method.lower()[1:]}Object"
-            bucket_permissions = bucket.get_permission(action, resource)  # type: ignore
+            bucket_permissions = bucket.get_permission(action, resource)
             if bucket_permissions == PermissionResult.DENIED:
                 return 403, {}, ""
 

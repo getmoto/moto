@@ -37,9 +37,7 @@ class User(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.user_name}:{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    def to_dict(
-        self,
-    ) -> Dict[str, Any]:  # type: ignore[misc]
+    def to_dict(self) -> Dict[str, Any]:
         user = {
             "HomeDirectory": self.home_directory,
             "HomeDirectoryType": self.home_directory_type,
@@ -152,7 +150,7 @@ class Server(BaseModel):
         if self.as2_service_managed_egress_ip_addresses == []:
             self.as2_service_managed_egress_ip_addresses.append("0.0.0.0/0")
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def to_dict(self) -> Dict[str, Any]:
         on_upload = []
         on_partial_upload = []
         if self.workflow_details is not None:

@@ -555,7 +555,7 @@ class ElasticMapReduceBackend(BaseBackend):
         self.clusters: Dict[str, FakeCluster] = {}
         self.instance_groups: Dict[str, FakeInstanceGroup] = {}
         self.security_configurations: Dict[str, FakeSecurityConfiguration] = {}
-        self.block_public_access_configuration: Dict[str, Any] = {}  # type: ignore [misc]
+        self.block_public_access_configuration: Dict[str, Any] = {}
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]

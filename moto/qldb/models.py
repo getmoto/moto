@@ -110,7 +110,7 @@ class QLDBBackend(BaseBackend):
         Optional[datetime],
         Optional[bool],
         Optional[Dict[str, Union[str, datetime]]],
-    ]:  # type: ignore[misc]
+    ]:
         if name not in self.ledgers:
             raise LedgerNotFoundException(name)
         if deletion_protection is not None:
@@ -131,7 +131,7 @@ class QLDBBackend(BaseBackend):
             ledger.get("encryption_description"),
         )
 
-    def _get_ledger_by_resource_arn(self, resource_arn: str) -> Dict[str, Any]:  # type: ignore[misc]
+    def _get_ledger_by_resource_arn(self, resource_arn: str) -> Dict[str, Any]:
         for ledger in self.ledgers.values():
             if ledger.get("resource_arn") == resource_arn:
                 return ledger

@@ -174,14 +174,13 @@ class FSxBackend(BaseBackend):
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags.extend(tags)
 
-    def _get_resource_from_arn(self, arn: str) -> Any:
+    def _get_resource_from_arn(self, arn: str) -> FileSystem:
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
-            resource = self.file_systems.get(target_name)  # type: ignore
+            return self.file_systems[target_name]
         except KeyError:
             message = f"Could not find {target_resource} with name {target_name}"
             raise ValueError(message)
-        return resource
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         resource = self._get_resource_from_arn(resource_arn)

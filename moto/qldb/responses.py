@@ -78,7 +78,7 @@ class QLDBResponse(BaseResponse):
             permissions_mode,
             deletion_protection,
             kms_key_arn,
-        ) = self.qldb_backend.create_ledger(  # type: ignore[misc]
+        ) = self.qldb_backend.create_ledger(
             name=name,
             tags=tags,
             permissions_mode=permissions_mode,
