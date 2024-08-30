@@ -243,7 +243,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
     def _action_from_request(self) -> str:
         if "X-Amz-Target" in self._headers:
             return self._headers["X-Amz-Target"].split(".")[-1]
-        return self._data["Action"]
+        return self._data.get("Action", "")
 
     def check_signature(self) -> None:
         original_signature = self._get_string_between(
