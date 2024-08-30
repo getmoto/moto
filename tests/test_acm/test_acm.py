@@ -711,7 +711,7 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
 
 
 @mock_aws
-def test_request_certificate_with_mutiple_times():
+def test_request_certificate_with_multiple_times():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
@@ -791,6 +791,12 @@ def test_elb_acm_in_use_by():
         create_load_balancer_request["DNSName"]
     ]
 
+    certificates = acm_client.list_certificates()["CertificateSummaryList"]
+    cert = [
+        _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
+    ][0]
+    assert cert["InUse"]
+
 
 @mock_aws
 def test_elbv2_acm_in_use_by():
@@ -819,3 +825,9 @@ def test_elbv2_acm_in_use_by():
     assert response["Certificate"]["InUseBy"] == [
         create_listener_resp["Listeners"][0]["ListenerArn"]
     ]
+
+    certificates = acm_client.list_certificates()["CertificateSummaryList"]
+    cert = [
+        _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
+    ][0]
+    assert cert["InUse"]
