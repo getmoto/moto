@@ -881,9 +881,11 @@ class S3Response(BaseResponse):
             # - you should not use any location constraint
             location_constraint = self._get_location_constraint()
             if self.region == DEFAULT_REGION_NAME:
-                # REGION = us-east-1 - we should never receive a LocationConstraint
-                if location_constraint:
+                # REGION = us-east-1 - we should never receive a LocationConstraint for `us-east-1`
+                # However, you can create buckets in other regions from us-east-1
+                if location_constraint == DEFAULT_REGION_NAME:
                     raise InvalidLocationConstraintException
+
             else:
                 # Non-Standard region - the LocationConstraint must be equal to the actual region the request was send to
                 if not location_constraint:
@@ -893,8 +895,11 @@ class S3Response(BaseResponse):
             if self.body and not location_constraint:
                 raise MalformedXML()
 
+            bucket_region = (
+                location_constraint if location_constraint else DEFAULT_REGION_NAME
+            )
             try:
-                new_bucket = self.backend.create_bucket(bucket_name, self.region)
+                new_bucket = self.backend.create_bucket(bucket_name, bucket_region)
             except BucketAlreadyExists:
                 new_bucket = self.backend.get_bucket(bucket_name)
                 if new_bucket.account_id == self.get_current_account():
