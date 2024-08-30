@@ -26,6 +26,9 @@ from moto.appmesh.dataclasses.virtual_node import (
     DNS,
     SDS,
     AWSCloudMap,
+    AccessLog,
+    AccessLogFile,
+    Backend,
     BackendDefaults,
     BackendTrust,
     Certificate,
@@ -40,6 +43,8 @@ from moto.appmesh.dataclasses.virtual_node import (
     Listener,
     ListenerCertificateACM,
     ListenerTLS,
+    Logging,
+    LoggingFormat,
     OutlierDetection,
     ProtocolTimeouts,
     ServiceDiscovery,
@@ -52,6 +57,7 @@ from moto.appmesh.dataclasses.virtual_node import (
     TLSListenerValidation,
     Trust,
     VirtualNodeSpec,
+    VirtualService,
 )
 from moto.appmesh.dataclasses.virtual_node import (
     Match as VirtualNodeMatch,
@@ -281,6 +287,65 @@ def check_route_availability(
         )
     return
 
+def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy: # type: ignore[misc]
+    _certificate = tls.get("certificate")
+    _validation = tls.get("validation")
+    certificate, validation = None, None
+    if _certificate is not None:
+        _file = _certificate.get("file")
+        _sds = _certificate.get("sds")
+        file, sds = None, None
+        if _file is not None:
+            file = CertificateFileWithPrivateKey(
+                certificate_chain=_file.get("certificateChain"),
+                private_key=_file.get("privateKey"),
+            )
+        if _sds is not None:
+            sds = SDS(secret_name=_sds.get("secretName"))
+        certificate = Certificate(file=file, sds=sds)
+    if _validation is None:
+        raise MissingRequiredFieldError("validation")
+    _subject_alternative_names = _validation.get("subjectAlternativeNames")
+    _trust = _validation.get("trust")
+    subject_alternative_names = None
+
+    if _subject_alternative_names is not None:
+        match = VirtualNodeMatch(
+            exact=(_subject_alternative_names.get("match") or {}).get(
+                "exact"
+            )
+            or []
+        )
+        subject_alternative_names = SubjectAlternativeNames(match=match)
+
+    if _trust is None:
+        raise MissingRequiredFieldError("trust")
+
+    _trust_file = _trust.get("file")
+    _trust_sds = _trust.get("sds")
+    _acm = _trust.get("acm")
+    trust_file, trust_sds, acm = None, None, None
+    if _trust_file is not None:
+        trust_file = CertificateFile(
+            certificate_chain=_trust_file.get("certificateChain")
+        )
+    if _trust_sds is not None:
+        sds = SDS(secret_name=_sds.get("secretName"))
+    if _acm is not None:
+        acm = ACM(
+            certificate_authority_arns=_acm.get("certificateAuthorityArns")
+        )
+    trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
+
+    validation = TLSBackendValidation(
+        subject_alternative_names=subject_alternative_names, trust=trust
+    )
+    return TLSClientPolicy(
+        certificate=certificate,
+        enforce=tls.get("enforce"),
+        ports=tls.get("ports"),
+        validation=validation,
+    )
 
 def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     _grpc_route = spec.get("grpcRoute")
@@ -385,67 +450,33 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
             _tls = _client_policy.get("tls")
             tls = None
             if _tls is not None:
-                _certificate = _tls.get("certificate")
-                _validation = _tls.get("validation")
-                certificate, validation = None, None
-                if _certificate is not None:
-                    _file = _certificate.get("file")
-                    _sds = _certificate.get("sds")
-                    file, sds = None, None
-                    if _file is not None:
-                        file = CertificateFileWithPrivateKey(
-                            certificate_chain=_file.get("certificateChain"),
-                            private_key=_file.get("privateKey"),
-                        )
-                    if _sds is not None:
-                        sds = SDS(secret_name=_sds.get("secretName"))
-                    certificate = Certificate(file=file, sds=sds)
-                if _validation is None:
-                    raise MissingRequiredFieldError("validation")
-                _subject_alternative_names = _validation.get("subjectAlternativeNames")
-                _trust = _validation.get("trust")
-                subject_alternative_names = None
-
-                if _subject_alternative_names is not None:
-                    match = VirtualNodeMatch(
-                        exact=(_subject_alternative_names.get("match") or {}).get(
-                            "exact"
-                        )
-                        or []
-                    )
-                    subject_alternative_names = SubjectAlternativeNames(match=match)
-
-                if _trust is None:
-                    raise MissingRequiredFieldError("trust")
-
-                _trust_file = _trust.get("file")
-                _trust_sds = _trust.get("sds")
-                _acm = _trust.get("acm")
-                trust_file, trust_sds, acm = None, None, None
-                if _trust_file is not None:
-                    trust_file = CertificateFile(
-                        certificate_chain=_trust_file.get("certificateChain")
-                    )
-                if _trust_sds is not None:
-                    sds = SDS(secret_name=_sds.get("secretName"))
-                if _acm is not None:
-                    acm = ACM(
-                        certificate_authority_arns=_acm.get("certificateAuthorityArns")
-                    )
-                trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
-
-                validation = TLSBackendValidation(
-                    subject_alternative_names=subject_alternative_names, trust=trust
-                )
-                tls = TLSClientPolicy(
-                    certificate=certificate,
-                    enforce=_tls.get("enforce"),
-                    ports=_tls.get("ports"),
-                    validation=validation,
-                )
+                tls = get_tls_for_client_policy(_tls)
             client_policy = ClientPolicy(tls=tls)
 
         backend_defaults = BackendDefaults(client_policy=client_policy)
+    
+    if _backends is not None:
+        backends = []
+        for _backend in _backends:
+            _virtual_service = _backend.get("virtualService")
+            virtual_service = None
+            if _virtual_service is not None:
+                _virtual_service_client_policy = _virtual_service.get("clientPolicy")
+                virtual_service_client_policy = None
+                if _virtual_service_client_policy is not None:
+                    _tls_client_policy = _virtual_service_client_policy.get("tls")
+                    tls_client_policy = None
+                    if _tls_client_policy is not None:
+                        tls_client_policy = get_tls_for_client_policy(_tls_client_policy)
+                    virtual_service_client_policy = ClientPolicy(
+                        tls=tls_client_policy
+                    )
+                virtual_service = VirtualService(
+                    client_policy=virtual_service_client_policy,
+                    virtual_service_name=_virtual_service.get("virtualServiceName")
+                )
+            backend = Backend(virtual_service=virtual_service)
+            backends.append(backend)
 
     if _listeners is not None:
         listeners = []
@@ -478,7 +509,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     )
                 if _http is not None:
                     http = HTTPConnection(
-                        max_connections=_http.get("maxConnections")
+                        max_connections=_http.get("maxConnections"),
                         max_pending_requests=_http.get("maxPendingRequests")
                     )
                 if _http2 is not None:
@@ -637,7 +668,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                             certificate_arn=_listener_certificate_acm.get("certificateArn")
                         )
 
-                    certificate = TLSListenerCertificate(
+                    tls_listener_certificate = TLSListenerCertificate(
                         file=listener_certificate_file,
                         sds=listener_certificate_sds,
                         acm=listener_certificate_acm
@@ -672,7 +703,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                         )
 
 
-                    validation = TLSListenerValidation(
+                    tls_listener_validation = TLSListenerValidation(
                         subject_alternative_names=subject_alternative_names,
                         trust=tls_listener_trust
                     )
@@ -691,6 +722,35 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 listener_tls=listener_tls
             )
             listeners.append(listener)
+
+    if _logging is not None:
+        _access_log = _logging.get("accessLog")
+        access_log = None
+        if _access_log is not None:
+            _file = _access_log.get("file")
+            file = None
+            if _file is not None:
+                _format = _file.get("format")
+                format = None
+                if _format is not None:
+                    _json = _format.get("json")
+                    json = None
+                    if _json is not None:
+                        json = list()
+                        for item in _json:
+                            json.append(KeyValue(key=item.get("key"), value=item.get("value")))
+                    format = LoggingFormat(
+                        json=json,
+                        text=_format.get("text")
+                    )
+                file = AccessLogFile(
+                    format=format,
+                    path=_file.get("path")
+                )
+            access_log = AccessLog(
+                file=file
+            )
+        logging = Logging(access_log=access_log)
 
     if _service_discovery is not None:
         _aws_cloud_map = _service_discovery.get("awsCloudMap")
