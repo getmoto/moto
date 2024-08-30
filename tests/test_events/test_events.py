@@ -2317,6 +2317,7 @@ def test_create_and_list_connections():
         f"arn:aws:events:eu-central-1:{ACCOUNT_ID}:connection/test/"
         in response["Connections"][0]["ConnectionArn"]
     )
+    assert response["Connections"][0]["Name"] == "test"
 
 
 @mock_aws
