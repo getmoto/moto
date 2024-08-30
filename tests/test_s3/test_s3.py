@@ -3423,6 +3423,41 @@ def test_head_versioned_key_in_not_versioned_bucket():
     assert response["Error"]["Code"] == "400"
 
 
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_head_object_with_range_header(bucket_name=None):
+    # HeadObject returns only the metadata for an object.
+    # If the Range is satisfiable, only the ContentLength is affected in the response.
+    # If the Range is not satisfiable, S3 returns a 416 - Requested Range Not Satisfiable error.
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.put_object(Bucket=bucket_name, Key="f1", Body="f1")
+
+    for valid in ["0-9", "0-"]:
+        resp = client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={valid}")
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        assert headers["content-range"] == "bytes 0-1/2"
+        assert headers["content-length"] == "2"
+
+    for valid in ["-1", "1-1"]:
+        resp = client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={valid}")
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        assert headers["content-range"] == "bytes 1-1/2"
+        assert headers["content-length"] == "1"
+
+    for valid in ["1-0"]:
+        resp = client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={valid}")
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        assert "content-range" not in headers
+        assert headers["content-length"] == "2"
+
+    for invalid in ["5-9", "100-"]:
+        with pytest.raises(ClientError) as exc:
+            client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={invalid}")
+        err = exc.value.response["Error"]
+        assert err["Code"] == "416"
+        assert "Range Not Satisfiable" in err["Message"]
+
+
 @mock_aws
 def test_prefix_encoding():
     bucket_name = "encoding-bucket"
