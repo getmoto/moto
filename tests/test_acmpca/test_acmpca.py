@@ -1,4 +1,5 @@
 import datetime
+import pickle
 
 import boto3
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -388,8 +389,16 @@ def test_import_certificate_authority_certificate():
         CertificateAuthorityType="SUBORDINATE",
     )["CertificateAuthorityArn"]
 
-    cert = create_cert()
+    with pytest.raises(ClientError) as exc:
+        client.import_certificate_authority_certificate(
+            CertificateAuthorityArn=ca_arn,
+            Certificate="invalid certificate pem",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MalformedCertificateAuthorityException"
+    assert err["Message"] == "Malformed certificate."
 
+    cert = create_cert()
     client.import_certificate_authority_certificate(
         CertificateAuthorityArn=ca_arn,
         Certificate=cert,
@@ -511,6 +520,46 @@ def test_untag_certificate_authority():
 
     resp = client.list_tags(CertificateAuthorityArn=ca_arn)
     assert resp["Tags"] == [{"Key": "t2", "Value": "v2"}]
+
+
+@mock_aws
+def test_acmpca_backend_is_serialisable():
+    # This test ensures that the backend does not store any non-picklable objects (e.g. native OpenSSL objects)
+    # This is important for downstream projects like LocalStack
+
+    client = boto3.client("acm-pca", region_name="eu-west-1")
+
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "yscb41lw.test"},
+        },
+        CertificateAuthorityType="SUBORDINATE",
+    )["CertificateAuthorityArn"]
+
+    cert = create_cert()
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=cert,
+    )
+    client.update_certificate_authority(
+        CertificateAuthorityArn=ca_arn,
+        Status="DISABLED",
+    )
+
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA512WITHRSA",
+        Validity={"Type": "YEARS", "Value": 10},
+    )
+    client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)
+
+    from moto.acmpca import acmpca_backends
+
+    assert pickle.dumps(acmpca_backends)
 
 
 def create_csr(private_key, country, state, org, cn):

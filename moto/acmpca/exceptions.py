@@ -26,3 +26,13 @@ class InvalidStateException(JsonRESTError):
             "InvalidStateException",
             f"The certificate authority {arn} is not in the correct state to have a certificate signing request.",
         )
+
+
+class MalformedCertificateAuthorityException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "MalformedCertificateAuthorityException",
+            "Malformed certificate.",
+        )
