@@ -1,6 +1,5 @@
 from typing import Any, Dict, List, Optional
 
-from moto.appmesh.dataclasses.mesh import Mesh
 from moto.appmesh.dataclasses.route import (
     GrcpRouteRetryPolicy,
     GrpcMetadatum,
@@ -65,14 +64,7 @@ from moto.appmesh.dataclasses.virtual_node import (
 )
 from moto.appmesh.dataclasses.virtual_router import PortMapping as RouterPortMapping
 from moto.appmesh.exceptions import (
-    MeshNotFoundError,
-    MeshOwnerDoesNotMatchError,
     MissingRequiredFieldError,
-    RouteNameAlreadyTakenError,
-    RouteNotFoundError,
-    VirtualNodeNotFoundError,
-    VirtualRouterNameAlreadyTakenError,
-    VirtualRouterNotFoundError,
 )
 
 
@@ -207,99 +199,6 @@ def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[mis
         if idle is not None or per_request is not None
         else None
     )
-
-
-def validate_mesh(
-    meshes: Dict[str, Mesh], mesh_name: str, mesh_owner: Optional[str]
-) -> None:
-    if mesh_name not in meshes:
-        raise MeshNotFoundError(mesh_name=mesh_name)
-    if mesh_owner is not None and meshes[mesh_name].metadata.mesh_owner != mesh_owner:
-        raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
-
-
-def check_router_availability(
-    meshes: Dict[str, Mesh],
-    mesh_name: str,
-    mesh_owner: Optional[str],
-    virtual_router_name: str,
-) -> None:
-    validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
-    if virtual_router_name in meshes[mesh_name].virtual_routers:
-        raise VirtualRouterNameAlreadyTakenError(
-            virtual_router_name=virtual_router_name, mesh_name=mesh_name
-        )
-    return
-
-
-def check_router_validity(
-    meshes: Dict[str, Mesh],
-    mesh_name: str,
-    mesh_owner: Optional[str],
-    virtual_router_name: str,
-) -> None:
-    validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
-    if virtual_router_name not in meshes[mesh_name].virtual_routers:
-        raise VirtualRouterNotFoundError(
-            virtual_router_name=virtual_router_name, mesh_name=mesh_name
-        )
-    return
-
-
-def check_route_validity(
-    meshes: Dict[str, Mesh],
-    mesh_name: str,
-    mesh_owner: Optional[str],
-    virtual_router_name: str,
-    route_name: str,
-) -> None:
-    check_router_validity(
-        meshes=meshes,
-        mesh_name=mesh_name,
-        mesh_owner=mesh_owner,
-        virtual_router_name=virtual_router_name,
-    )
-    if route_name not in meshes[mesh_name].virtual_routers[virtual_router_name].routes:
-        raise RouteNotFoundError(
-            mesh_name=mesh_name,
-            virtual_router_name=virtual_router_name,
-            route_name=route_name,
-        )
-    return
-
-
-def check_route_availability(
-    meshes: Dict[str, Mesh],
-    mesh_name: str,
-    mesh_owner: Optional[str],
-    virtual_router_name: str,
-    route_name: str,
-) -> None:
-    check_router_validity(
-        meshes=meshes,
-        mesh_name=mesh_name,
-        mesh_owner=mesh_owner,
-        virtual_router_name=virtual_router_name,
-    )
-    if route_name in meshes[mesh_name].virtual_routers[virtual_router_name].routes:
-        raise RouteNameAlreadyTakenError(
-            mesh_name=mesh_name,
-            virtual_router_name=virtual_router_name,
-            route_name=route_name,
-        )
-    return
-
-
-def check_virtual_node_validity(
-    meshes: Dict[str, Mesh],
-    mesh_name: str,
-    mesh_owner: Optional[str],
-    virtual_node_name: str,
-) -> None:
-    validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
-    if virtual_node_name not in meshes[mesh_name].virtual_nodes:
-        raise VirtualNodeNotFoundError(mesh_name, virtual_node_name)
-    return
 
 
 def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy:  # type: ignore[misc]
