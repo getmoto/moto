@@ -68,6 +68,12 @@ from moto.appmesh.exceptions import (
 )
 
 
+def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+    return {
+        key: value for key, value in obj.items() if value is not None and value != []
+    }
+
+
 def port_mappings_from_router_spec(spec: Any) -> List[RouterPortMapping]:  # type: ignore[misc]
     return [
         RouterPortMapping(
@@ -436,7 +442,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
 
             if _outlier_detection is not None:
                 _base_ejection_duration = _outlier_detection.get(
-                    "baseEjectionDetection"
+                    "baseEjectionDuration"
                 )
                 _interval = _outlier_detection.get("interval")
                 if _base_ejection_duration is None:

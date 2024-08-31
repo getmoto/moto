@@ -310,8 +310,8 @@ class OutlierDetection:
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return {
-            "baseEjectionDuration": self.base_ejection_duration,
-            "interval": self.interval,
+            "baseEjectionDuration": self.base_ejection_duration.to_dict(),
+            "interval": self.interval.to_dict(),
             "maxEjectionPercent": self.max_ejection_percent,
             "maxServerErrors": self.max_server_errors,
         }
@@ -383,7 +383,7 @@ class Listener:
                 "outlierDetection": (
                     self.outlier_detection or MissingField()
                 ).to_dict(),
-                "portMapping": self.port_mapping,
+                "portMapping": self.port_mapping.to_dict(),
                 "timeout": (self.timeout or MissingField()).to_dict(),
                 "tls": (self.tls or MissingField()).to_dict(),
             }

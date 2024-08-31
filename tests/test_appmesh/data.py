@@ -181,7 +181,21 @@ http_virtual_node_spec = {
     "backends": [
         {
             "virtualService": {
-                "clientPolicy": {"tls": {"enforce": False}},
+                "clientPolicy": {"tls": {"enforce": False,                        
+                            'validation': {
+                            'subjectAlternativeNames': {
+                                'match': {
+                                    'exact': [
+                                        'example-alternative-name',
+                                    ]
+                                }
+                            },
+                            'trust': {
+                                    'file': {
+                                        'certificateChain': 'example-certificate-chain'
+                                    },
+                            }
+                        }}},
                 "virtualServiceName": "my-service.default.svc.cluster.local",
             }
         }
@@ -363,6 +377,28 @@ grpc_virtual_node_spec = {
                     "tls": {
                         "enforce": True,
                         "ports": [443],
+                        'certificate': {
+                            'file': {
+                                'certificateChain': 'grpc-backend-certificate-chain',
+                                'privateKey': 'grpc-backend-certificate-private-key'
+                            },
+                        },
+                        'validation': {
+                            'subjectAlternativeNames': {
+                                'match': {
+                                    'exact': [
+                                        'validation-alternate-name',
+                                    ]
+                                }
+                            },
+                            'trust': {
+                                'acm': {
+                                    'certificateAuthorityArns': [
+                                        'example-acm-arn',
+                                    ]
+                                },
+                            }
+                        }
                     }
                 },
                 "virtualServiceName": "my-grpc-service.default.svc.cluster.local",
