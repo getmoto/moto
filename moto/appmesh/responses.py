@@ -2,7 +2,7 @@
 
 import json
 
-from moto.appmesh.utils import (
+from moto.appmesh.spec_parsing import (
     build_route_spec,
     build_virtual_node_spec,
     port_mappings_from_router_spec,
