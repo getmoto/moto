@@ -46,6 +46,7 @@ from moto.appmesh.dataclasses.virtual_node import (
     Logging,
     LoggingFormat,
     OutlierDetection,
+    PortMapping,
     ProtocolTimeouts,
     ServiceDiscovery,
     SubjectAlternativeNames,
@@ -62,7 +63,7 @@ from moto.appmesh.dataclasses.virtual_node import (
 from moto.appmesh.dataclasses.virtual_node import (
     Match as VirtualNodeMatch,
 )
-from moto.appmesh.dataclasses.virtual_router import PortMapping
+from moto.appmesh.dataclasses.virtual_router import PortMapping as RouterPortMapping
 from moto.appmesh.exceptions import (
     MeshNotFoundError,
     MeshOwnerDoesNotMatchError,
@@ -81,9 +82,9 @@ def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
     }
 
 
-def port_mappings_from_router_spec(spec: Any) -> List[PortMapping]:  # type: ignore[misc]
+def port_mappings_from_router_spec(spec: Any) -> List[RouterPortMapping]:  # type: ignore[misc]
     return [
-        PortMapping(
+        RouterPortMapping(
             port=(listener.get("portMapping") or {}).get("port"),
             protocol=(listener.get("portMapping") or {}).get("protocol"),
         )
@@ -294,10 +295,11 @@ def check_virtual_node_validity(
     mesh_name: str,
     mesh_owner: Optional[str],
     virtual_node_name: str,
-):
+) -> None:
     validate_mesh(meshes=meshes, mesh_name=mesh_name, mesh_owner=mesh_owner)
     if virtual_node_name not in meshes[mesh_name].virtual_nodes:
         raise VirtualNodeNotFoundError(mesh_name, virtual_node_name)
+    return
 
 
 def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy:  # type: ignore[misc]
@@ -500,10 +502,9 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 connection_pool,
                 health_check,
                 outlier_detection,
-                port_mapping,
                 timeout,
                 listener_tls,
-            ) = None, None, None, None, None, None
+            ) = None, None, None, None, None
 
             if _connection_pool is not None:
                 _grpc = _connection_pool.get("grpc")
@@ -545,16 +546,17 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     "baseEjectionDetection"
                 )
                 _interval = _outlier_detection.get("interval")
-                base_ejection_duration, interval = None, None
-                if _base_ejection_duration is not None:
-                    base_ejection_duration = TimeValue(
-                        unit=_base_ejection_duration.get("unit"),
-                        value=_base_ejection_duration.get("value"),
-                    )
-                if _interval is not None:
-                    interval = TimeValue(
-                        unit=_interval.get("unit"), value=_interval.get("value")
-                    )
+                if _base_ejection_duration is None:
+                    raise MissingRequiredFieldError("baseEjectionDuration")
+                base_ejection_duration = TimeValue(
+                    unit=_base_ejection_duration.get("unit"),
+                    value=_base_ejection_duration.get("value"),
+                )
+                if _interval is None:
+                    raise MissingRequiredFieldError("interval")
+                interval = TimeValue(
+                    unit=_interval.get("unit"), value=_interval.get("value")
+                )
                 outlier_detection = OutlierDetection(
                     base_ejection_duration=base_ejection_duration,
                     interval=interval,
@@ -562,11 +564,12 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     max_server_errors=_outlier_detection.get("maxServerErrors"),
                 )
 
-            if _port_mapping is not None:
-                port_mapping = PortMapping(
-                    port=_port_mapping.get("port"),
-                    protocol=_port_mapping.get("protocol"),
-                )
+            if _port_mapping is None:
+                raise MissingRequiredFieldError("portMapping")
+            port_mapping = PortMapping(
+                port=_port_mapping.get("port"),
+                protocol=_port_mapping.get("protocol"),
+            )
 
             if _timeout is not None:
                 _grpc_timeout = _timeout.get("grpc")
@@ -624,11 +627,9 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     http2_timeout = Timeout(idle=idle, per_request=per_request)
                 if _tcp_timeout is not None:
                     _idle = _tcp_timeout.get("idle")
-                    idle = None
-                    if _idle is not None:
-                        idle = TimeValue(
-                            unit=_idle.get("unit"), value=_idle.get("value")
-                        )
+                    if _idle is None:
+                        raise MissingRequiredFieldError("idle")
+                    idle = TimeValue(unit=_idle.get("unit"), value=_idle.get("value"))
                     tcp_timeout = TCPTimeout(idle=idle)
 
                 timeout = ProtocolTimeouts(
@@ -641,45 +642,44 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
             if _listener_tls is not None:
                 _tls_listener_certificate = _listener_tls.get("certificate")
                 _tls_listener_validation = _listener_tls.get("validation")
-                tls_listener_certificate, tls_listener_validation = None, None
-                if _tls_listener_certificate is not None:
-                    _listener_certificate_file = _tls_listener_certificate.get("file")
-                    _listener_certificate_sds = _tls_listener_certificate.get("sds")
-                    _listener_certificate_acm = _tls_listener_certificate.get("acm")
-                    (
-                        listener_certificate_file,
-                        listener_certificate_sds,
-                        listener_certificate_acm,
-                    ) = None, None, None
-                    if _listener_certificate_file is not None:
-                        listener_certificate_file = CertificateFileWithPrivateKey(
-                            certificate_chain=_listener_certificate_file.get(
-                                "certificateChain"
-                            ),
-                            private_key=_listener_certificate_file.get("privateKey"),
-                        )
-                    if _listener_certificate_sds is not None:
-                        listener_certificate_sds = SDS(
-                            secret_name=_listener_certificate_sds.get("secretName")
-                        )
-                    if _listener_certificate_acm is not None:
-                        listener_certificate_acm = ListenerCertificateACM(
-                            certificate_arn=_listener_certificate_acm.get(
-                                "certificateArn"
-                            )
-                        )
-
-                    tls_listener_certificate = TLSListenerCertificate(
-                        file=listener_certificate_file,
-                        sds=listener_certificate_sds,
-                        acm=listener_certificate_acm,
+                tls_listener_validation = None
+                if _tls_listener_certificate is None:
+                    raise MissingRequiredFieldError("certificate")
+                _listener_certificate_file = _tls_listener_certificate.get("file")
+                _listener_certificate_sds = _tls_listener_certificate.get("sds")
+                _listener_certificate_acm = _tls_listener_certificate.get("acm")
+                (
+                    listener_certificate_file,
+                    listener_certificate_sds,
+                    listener_certificate_acm,
+                ) = None, None, None
+                if _listener_certificate_file is not None:
+                    listener_certificate_file = CertificateFileWithPrivateKey(
+                        certificate_chain=_listener_certificate_file.get(
+                            "certificateChain"
+                        ),
+                        private_key=_listener_certificate_file.get("privateKey"),
                     )
+                if _listener_certificate_sds is not None:
+                    listener_certificate_sds = SDS(
+                        secret_name=_listener_certificate_sds.get("secretName")
+                    )
+                if _listener_certificate_acm is not None:
+                    listener_certificate_acm = ListenerCertificateACM(
+                        certificate_arn=_listener_certificate_acm.get("certificateArn")
+                    )
+
+                tls_listener_certificate = TLSListenerCertificate(
+                    file=listener_certificate_file,
+                    sds=listener_certificate_sds,
+                    acm=listener_certificate_acm,
+                )
                 if _tls_listener_validation is not None:
                     _subject_alternative_names = _tls_listener_validation.get(
                         "subjectAlternativeNames"
                     )
                     _trust = _tls_listener_validation.get("trust")
-                    subject_alternative_names, tls_listener_trust = None, None
+                    subject_alternative_names = None
                     if _subject_alternative_names is not None:
                         _tls_listener_match = _subject_alternative_names.get("match")
                         tls_listener_match = VirtualNodeMatch(
@@ -688,23 +688,24 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                         subject_alternative_names = SubjectAlternativeNames(
                             match=tls_listener_match
                         )
-                    if _trust is not None:
-                        _tls_listener_certificate_file = _trust.get("file")
-                        _tls_listener_sds = _trust.get("sds")
-                        tls_listener_certificate_file, tls_listener_sds = None, None
-                        if _tls_listener_certificate_file is not None:
-                            tls_listener_certificate_file = CertificateFile(
-                                certificate_chain=_tls_listener_certificate_file.get(
-                                    "certificateChain"
-                                )
+                    if _trust is None:
+                        raise MissingRequiredFieldError("trust")
+                    _tls_listener_certificate_file = _trust.get("file")
+                    _tls_listener_sds = _trust.get("sds")
+                    tls_listener_certificate_file, tls_listener_sds = None, None
+                    if _tls_listener_certificate_file is not None:
+                        tls_listener_certificate_file = CertificateFile(
+                            certificate_chain=_tls_listener_certificate_file.get(
+                                "certificateChain"
                             )
-                        if _tls_listener_sds is not None:
-                            tls_listener_sds = SDS(
-                                secret_name=_tls_listener_sds.get("secretName")
-                            )
-                        tls_listener_trust = Trust(
-                            file=tls_listener_certificate_file, sds=tls_listener_sds
                         )
+                    if _tls_listener_sds is not None:
+                        tls_listener_sds = SDS(
+                            secret_name=_tls_listener_sds.get("secretName")
+                        )
+                    tls_listener_trust = Trust(
+                        file=tls_listener_certificate_file, sds=tls_listener_sds
+                    )
 
                     tls_listener_validation = TLSListenerValidation(
                         subject_alternative_names=subject_alternative_names,
@@ -722,7 +723,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 outlier_detection=outlier_detection,
                 port_mapping=port_mapping,
                 timeout=timeout,
-                listener_tls=listener_tls,
+                tls=listener_tls,
             )
             listeners.append(listener)
 

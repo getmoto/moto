@@ -520,7 +520,9 @@ modified_http2_virtual_node_spec = {
                     "subjectAlternativeNames": {
                         "match": {"exact": ["updated.example.com"]}
                     },
-                    "trust": {"file": {"certificateChain": "/updated/path/to/ca_bundle.pem"}},
+                    "trust": {
+                        "file": {"certificateChain": "/updated/path/to/ca_bundle.pem"}
+                    },
                 },
             }
         }
@@ -565,7 +567,9 @@ modified_http2_virtual_node_spec = {
                     }
                 },
                 "mode": "PERMISSIVE",
-                "validation": {"trust": {"sds": {"secretName": "updated-ca-bundle-secret"}}},
+                "validation": {
+                    "trust": {"sds": {"secretName": "updated-ca-bundle-secret"}}
+                },
             },
         }
     ],

@@ -426,6 +426,7 @@ class AppMeshBackend(BaseBackend):
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
     ) -> VirtualNode:
         check_virtual_node_validity(
+            meshes=self.meshes,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             virtual_node_name=virtual_node_name,
@@ -451,10 +452,11 @@ class AppMeshBackend(BaseBackend):
         )
         virtual_node = VirtualNode(
             mesh_name=mesh_name,
-            mesh_owner=mesh_owner,
+            mesh_owner=owner,
             metadata=metadata,
             spec=spec,
             tags=tags,
+            virtual_node_name=virtual_node_name,
         )
         return virtual_node
 
@@ -467,6 +469,7 @@ class AppMeshBackend(BaseBackend):
         virtual_node_name: str,
     ) -> VirtualNode:
         check_virtual_node_validity(
+            meshes=self.meshes,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             virtual_node_name=virtual_node_name,
@@ -481,6 +484,7 @@ class AppMeshBackend(BaseBackend):
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
     ) -> VirtualNode:
         check_virtual_node_validity(
+            meshes=self.meshes,
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             virtual_node_name=virtual_node_name,
