@@ -157,7 +157,7 @@ modified_http_route_spec = {
     },
 }
 
-virtual_node_spec_http = {
+http_virtual_node_spec = {
     "backendDefaults": {
         "clientPolicy": {
             "tls": {
@@ -247,7 +247,7 @@ virtual_node_spec_http = {
     },
 }
 
-virtual_node_spec_http2 = {
+http2_virtual_node_spec = {
     "backendDefaults": {
         "clientPolicy": {
             "tls": {
@@ -258,7 +258,7 @@ virtual_node_spec_http2 = {
                     }
                 },
                 "enforce": True,
-                "ports": [443],  # HTTPS port (commonly used for HTTP/2)
+                "ports": [443],
                 "validation": {
                     "subjectAlternativeNames": {
                         "match": {"exact": ["http2.example.com"]}
@@ -278,29 +278,25 @@ virtual_node_spec_http2 = {
     ],
     "listeners": [
         {
-            "connectionPool": {
-                "http2": {
-                    "maxRequests": 1000  # Adjust based on expected HTTP/2 load
-                }
-            },
+            "connectionPool": {"http2": {"maxRequests": 1000}},
             "healthCheck": {
                 "healthyThreshold": 2,
                 "intervalMillis": 5000,
-                "path": "/",  # Basic health check path
-                "port": 443,  # Assuming health check on HTTPS port
+                "path": "/",
+                "port": 443,
                 "protocol": "http2",
                 "timeoutMillis": 2000,
                 "unhealthyThreshold": 3,
             },
             "portMapping": {
-                "port": 443,  # Listening on HTTPS port
+                "port": 443,
                 "protocol": "http2",
             },
             "timeout": {
                 "http2": {
                     "idle": {
                         "unit": "s",
-                        "value": 120,  # Potentially longer idle timeout for HTTP/2
+                        "value": 120,
                     },
                     "perRequest": {"unit": "s", "value": 10},
                 }
@@ -339,7 +335,7 @@ virtual_node_spec_http2 = {
     },
 }
 
-virtual_node_spec_grpc = {
+grpc_virtual_node_spec = {
     "backendDefaults": {
         "clientPolicy": {
             "tls": {
@@ -350,7 +346,7 @@ virtual_node_spec_grpc = {
                     }
                 },
                 "enforce": True,
-                "ports": [443],  # HTTPS port (often used for gRPC over TLS)
+                "ports": [443],
                 "validation": {
                     "subjectAlternativeNames": {
                         "match": {"exact": ["grpc.example.com"]}
@@ -365,7 +361,7 @@ virtual_node_spec_grpc = {
             "virtualService": {
                 "clientPolicy": {
                     "tls": {
-                        "enforce": True,  # Enforce TLS for this gRPC backend
+                        "enforce": True,
                         "ports": [443],
                     }
                 },
@@ -375,28 +371,24 @@ virtual_node_spec_grpc = {
     ],
     "listeners": [
         {
-            "connectionPool": {
-                "grpc": {
-                    "maxRequests": 500  # Adjust based on expected gRPC load
-                }
-            },
+            "connectionPool": {"grpc": {"maxRequests": 500}},
             "healthCheck": {
                 "healthyThreshold": 2,
                 "intervalMillis": 5000,
-                "port": 50051,  # Common gRPC port
+                "port": 50051,
                 "protocol": "grpc",
                 "timeoutMillis": 2000,
                 "unhealthyThreshold": 3,
             },
             "portMapping": {
-                "port": 50051,  # Listening on a typical gRPC port
+                "port": 50051,
                 "protocol": "grpc",
             },
             "timeout": {
                 "grpc": {
                     "idle": {
                         "unit": "s",
-                        "value": 600,  # Longer idle timeout for gRPC
+                        "value": 600,
                     },
                     "perRequest": {"unit": "s", "value": 30},
                 }
@@ -435,7 +427,7 @@ virtual_node_spec_grpc = {
     },
 }
 
-virtual_node_spec_tcp = {
+tcp_virtual_node_spec = {
     "backendDefaults": {
         "clientPolicy": {
             "tls": {
@@ -445,8 +437,8 @@ virtual_node_spec_tcp = {
                         "privateKey": "/path/to/private_key.pem",
                     }
                 },
-                "enforce": True,  # Enforce TLS for backend connections if applicable
-                "ports": [443],  # Example port, adjust as needed
+                "enforce": True,
+                "ports": [443],
                 "validation": {
                     "subjectAlternativeNames": {
                         "match": {"exact": ["tcp.example.com"]}
@@ -459,38 +451,30 @@ virtual_node_spec_tcp = {
     "backends": [
         {
             "virtualService": {
-                "clientPolicy": {
-                    "tls": {
-                        "enforce": False  # TLS might not be applicable for all TCP backends
-                    }
-                },
+                "clientPolicy": {"tls": {"enforce": False}},
                 "virtualServiceName": "my-tcp-service.default.svc.cluster.local",
             }
         }
     ],
     "listeners": [
         {
-            "connectionPool": {
-                "tcp": {
-                    "maxConnections": 2000  # Adjust based on expected TCP load
-                }
-            },
+            "connectionPool": {"tcp": {"maxConnections": 2000}},
             "healthCheck": {
                 "healthyThreshold": 2,
-                "intervalMillis": 10000,  # Potentially longer interval for TCP
-                "port": 8080,  # Example TCP port, adjust as needed
+                "intervalMillis": 10000,
+                "port": 8080,
                 "protocol": "tcp",
                 "timeoutMillis": 5000,
                 "unhealthyThreshold": 3,
             },
             "portMapping": {
-                "port": 8080,  # Listening on a custom TCP port
+                "port": 8080,
                 "protocol": "tcp",
             },
             "timeout": {
                 "tcp": {
                     "idle": {
-                        "unit": "m",  # Minutes, potentially longer for TCP
+                        "unit": "m",
                         "value": 30,
                     }
                 }
@@ -516,6 +500,94 @@ virtual_node_spec_tcp = {
             "ipPreference": "IPv6_PREFERRED",
             "namespaceName": "new-namespace",
             "serviceName": "new-service",
+        }
+    },
+}
+
+modified_http2_virtual_node_spec = {
+    "backendDefaults": {
+        "clientPolicy": {
+            "tls": {
+                "certificate": {
+                    "file": {
+                        "certificateChain": "/updated/path/to/cert_chain.pem",
+                        "privateKey": "/updated/path/to/private_key.pem",
+                    }
+                },
+                "enforce": False,
+                "ports": [8443],
+                "validation": {
+                    "subjectAlternativeNames": {
+                        "match": {"exact": ["updated.example.com"]}
+                    },
+                    "trust": {"file": {"certificateChain": "/updated/path/to/ca_bundle.pem"}},
+                },
+            }
+        }
+    },
+    "backends": [
+        {
+            "virtualService": {
+                "clientPolicy": {"tls": {"enforce": False, "ports": [8443]}},
+                "virtualServiceName": "updated-http2-service.default.svc.cluster.local",
+            }
+        }
+    ],
+    "listeners": [
+        {
+            "connectionPool": {"http2": {"maxRequests": 500}},
+            "healthCheck": {
+                "healthyThreshold": 3,
+                "intervalMillis": 3000,
+                "path": "/health",
+                "port": 8443,
+                "protocol": "http2",
+                "timeoutMillis": 1000,
+                "unhealthyThreshold": 2,
+            },
+            "portMapping": {
+                "port": 8443,
+                "protocol": "http2",
+            },
+            "timeout": {
+                "http2": {
+                    "idle": {
+                        "unit": "m",
+                        "value": 5,
+                    },
+                    "perRequest": {"unit": "m", "value": 1},
+                }
+            },
+            "tls": {
+                "certificate": {
+                    "acm": {
+                        "certificateArn": "arn:aws:acm:us-west-2:987654321098:certificate/hgfedcba-4321-8765-ba09-fedc09876543"
+                    }
+                },
+                "mode": "PERMISSIVE",
+                "validation": {"trust": {"sds": {"secretName": "updated-ca-bundle-secret"}}},
+            },
+        }
+    ],
+    "logging": {
+        "accessLog": {
+            "file": {
+                "format": {
+                    "json": [
+                        {"key": "start_time", "value": "%START_TIME%"},
+                        {"key": "method", "value": "%REQUEST_METHOD%"},
+                    ]
+                },
+                "path": "/var/log/appmesh/updated_access.log",
+            }
+        }
+    },
+    "serviceDiscovery": {
+        "awsCloudMap": {
+            "attributes": [{"key": "environment", "value": "production"}],
+            "ipPreference": "IPv4_PREFERRED",
+            "namespaceName": "updated-namespace",
+            "serviceName": "updated-service",
         }
     },
 }
