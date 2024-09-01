@@ -16656,6 +16656,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.ap-southeast-2.amazonaws.com"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -20257,6 +20263,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
@@ -22429,6 +22444,15 @@
                 "Value": "redshift",
                 "endpoint": {
                   "Value": "redshift.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-data": {
+                "Value": "redshift-data",
+                "endpoint": {
+                  "Value": "redshift-data.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29092,6 +29116,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.eu-central-1.amazonaws.com"
                 }
               },
               "aps": {
@@ -50013,6 +50043,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.sa-east-1.amazonaws.com"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -52132,6 +52168,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.us-east-1.amazonaws.com"
                 }
               },
               "aps": {
