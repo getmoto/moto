@@ -472,7 +472,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 _grpc_timeout = _timeout.get("grpc")
                 _http_timeout = _timeout.get("http")
                 _http2_timeout = _timeout.get("http2")
-                _tcp_timeout = _timeout.get("tpc")
+                _tcp_timeout = _timeout.get("tcp")
                 grpc_timeout, http_timeout, http2_timeout, tcp_timeout = (
                     None,
                     None,
@@ -528,7 +528,6 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                         raise MissingRequiredFieldError("idle")
                     idle = Duration(unit=_idle.get("unit"), value=_idle.get("value"))
                     tcp_timeout = TCPTimeout(idle=idle)
-
                 timeout = ProtocolTimeouts(
                     grpc=grpc_timeout,
                     http=http_timeout,

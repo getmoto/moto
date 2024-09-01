@@ -24,6 +24,7 @@ from moto.appmesh.exceptions import (
     ResourceNotFoundError,
     RouteNameAlreadyTakenError,
     RouteNotFoundError,
+    VirtualNodeNameAlreadyTakenError,
     VirtualNodeNotFoundError,
     VirtualRouterNameAlreadyTakenError,
     VirtualRouterNotFoundError,
@@ -90,6 +91,19 @@ class AppMeshBackend(BaseBackend):
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         if virtual_node_name not in self.meshes[mesh_name].virtual_nodes:
             raise VirtualNodeNotFoundError(mesh_name, virtual_node_name)
+        return
+
+    def _check_virtual_node_availability(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_node_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_node_name in self.meshes[mesh_name].virtual_nodes:
+            raise VirtualNodeNameAlreadyTakenError(
+                mesh_name=mesh_name, virtual_node_name=virtual_node_name
+            )
         return
 
     def _check_router_availability(
@@ -522,6 +536,11 @@ class AppMeshBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         virtual_node_name: str,
     ) -> VirtualNode:
+        self._check_virtual_node_availability(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_node_name=virtual_node_name,
+        )
         owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
         metadata = VirtualNodeMetadata(
             arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualNode/{virtual_node_name}",
@@ -538,6 +557,7 @@ class AppMeshBackend(BaseBackend):
             tags=tags,
             virtual_node_name=virtual_node_name,
         )
+        self.meshes[mesh_name].virtual_nodes[virtual_node_name] = virtual_node
         return virtual_node
 
     def update_virtual_node(

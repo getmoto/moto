@@ -601,7 +601,26 @@ modified_http2_virtual_node_spec = {
     "backends": [
         {
             "virtualService": {
-                "clientPolicy": {"tls": {"enforce": False, "ports": [8443]}},
+                "clientPolicy": {
+                    "tls": {
+                        "enforce": False,
+                        "ports": [8443],
+                        "validation": {
+                            "subjectAlternativeNames": {
+                                "match": {
+                                    "exact": [
+                                        "another-exact-match-example",
+                                    ]
+                                }
+                            },
+                            "trust": {
+                                "file": {
+                                    "certificateChain": "different-test-certificate-chain"
+                                },
+                            },
+                        },
+                    }
+                },
                 "virtualServiceName": "updated-http2-service.default.svc.cluster.local",
             }
         }
@@ -611,11 +630,11 @@ modified_http2_virtual_node_spec = {
             "connectionPool": {"http2": {"maxRequests": 500}},
             "healthCheck": {
                 "healthyThreshold": 3,
-                "intervalMillis": 3000,
+                "intervalMillis": 5100,
                 "path": "/health",
                 "port": 8443,
                 "protocol": "http2",
-                "timeoutMillis": 1000,
+                "timeoutMillis": 2200,
                 "unhealthyThreshold": 2,
             },
             "portMapping": {

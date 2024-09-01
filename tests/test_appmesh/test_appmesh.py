@@ -932,7 +932,7 @@ def test_create_describe_list_update_delete_virtual_node(client):
     assert service_discovery["namespaceName"] == "new-namespace"
     assert service_discovery["serviceName"] == "new-service"
 
-    connection = client.list_virtual_nodes()
+    connection = client.list_virtual_nodes(meshName=MESH_NAME, meshOwner=mesh_owner)
     virtual_nodes = connection.get("virtualNodes")
     assert isinstance(virtual_nodes, list)
     assert len(virtual_nodes) == 4
@@ -986,11 +986,11 @@ def test_create_describe_list_update_delete_virtual_node(client):
     listener = spec["listeners"][0]
     assert listener["connectionPool"]["http2"]["maxRequests"] == 500
     assert listener["healthCheck"]["healthyThreshold"] == 3
-    assert listener["healthCheck"]["intervalMillis"] == 3000
+    assert listener["healthCheck"]["intervalMillis"] == 5100
     assert listener["healthCheck"]["path"] == "/health"
     assert listener["healthCheck"]["port"] == 8443
     assert listener["healthCheck"]["protocol"] == "http2"
-    assert listener["healthCheck"]["timeoutMillis"] == 1000
+    assert listener["healthCheck"]["timeoutMillis"] == 2200
     assert listener["healthCheck"]["unhealthyThreshold"] == 2
     assert listener["portMapping"]["port"] == 8443
     assert listener["portMapping"]["protocol"] == "http2"
@@ -1067,11 +1067,11 @@ def test_create_describe_list_update_delete_virtual_node(client):
     listener = spec["listeners"][0]
     assert listener["connectionPool"]["http2"]["maxRequests"] == 500
     assert listener["healthCheck"]["healthyThreshold"] == 3
-    assert listener["healthCheck"]["intervalMillis"] == 3000
+    assert listener["healthCheck"]["intervalMillis"] == 5100
     assert listener["healthCheck"]["path"] == "/health"
     assert listener["healthCheck"]["port"] == 8443
     assert listener["healthCheck"]["protocol"] == "http2"
-    assert listener["healthCheck"]["timeoutMillis"] == 1000
+    assert listener["healthCheck"]["timeoutMillis"] == 2200
     assert listener["healthCheck"]["unhealthyThreshold"] == 2
     assert listener["portMapping"]["port"] == 8443
     assert listener["portMapping"]["protocol"] == "http2"
@@ -1184,7 +1184,7 @@ def test_create_describe_list_update_delete_virtual_node(client):
     assert service_discovery["serviceName"] == "new-service"
 
     with pytest.raises(ClientError) as e:
-        client.describe_route(
+        client.describe_virtual_node(
             meshName=MESH_NAME,
             meshOwner=mesh_owner,
             virtualNodeName=GRPC_NODE,

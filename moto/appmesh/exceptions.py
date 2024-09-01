@@ -81,3 +81,11 @@ class VirtualNodeNotFoundError(MeshError):
             "VirtualNodeNotFound",
             f"{virtual_node_name} is not a virtual node associated with mesh {mesh_name}",
         )
+
+
+class VirtualNodeNameAlreadyTakenError(MeshError):
+    def __init__(self, mesh_name: str, virtual_node_name: str) -> None:
+        super().__init__(
+            "VirtualNodeNameAlreadyTaken",
+            f"There is already a virtual node named {virtual_node_name} associated with mesh {mesh_name}",
+        )
