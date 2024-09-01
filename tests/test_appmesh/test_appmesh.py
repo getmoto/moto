@@ -11,14 +11,18 @@ from moto import mock_aws
 
 from .data import (
     grpc_route_spec,
+    grpc_virtual_node_spec,
     http2_route_spec,
+    http2_virtual_node_spec,
     http_route_spec,
+    http_virtual_node_spec,
+    modified_http2_virtual_node_spec,
     modified_http_route_spec,
     tcp_route_spec,
+    tcp_virtual_node_spec,
 )
 
-# See our Development Tips on writing tests for hints on how to write good tests:
-# http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
+MESH_NAME = "mock_mesh"
 
 
 @pytest.fixture(name="client")
@@ -29,7 +33,6 @@ def fixture_transfer_client():
 
 @mock_aws
 def test_create_list_update_describe_delete_mesh(client):
-    # Create first mesh
     connection = client.create_mesh(
         meshName="mesh1",
         spec={
@@ -50,7 +53,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert isinstance(mesh["metadata"]["createdAt"], datetime)
     assert isinstance(mesh["metadata"]["lastUpdatedAt"], datetime)
 
-    # Create second mesh
     connection = client.create_mesh(
         meshName="mesh2",
         spec={
@@ -71,7 +73,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert isinstance(mesh["metadata"]["createdAt"], datetime)
     assert isinstance(mesh["metadata"]["lastUpdatedAt"], datetime)
 
-    # List all methods, expecting 2
     connection = client.list_meshes()
     meshes = connection.get("meshes")
     assert isinstance(meshes, list)
@@ -84,7 +85,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert names_counted["mesh1"] == 1
     assert names_counted["mesh2"] == 1
 
-    # Change spec for mesh 1
     connection = client.update_mesh(
         meshName="mesh1",
         spec={
@@ -99,7 +99,6 @@ def test_create_list_update_describe_delete_mesh(client):
     assert mesh["status"]["status"] == "ACTIVE"
     assert mesh["metadata"]["version"] == 2
 
-    # Describe mesh 1, should reflect changes
     connection = client.describe_mesh(meshName="mesh1")
     mesh = connection.get("mesh")
     assert mesh["meshName"] == "mesh1"
@@ -152,7 +151,6 @@ def test_tag_and_list_tags_for_resource(client):
 
 @mock_aws
 def test_create_describe_list_update_delete_virtual_router(client):
-    MESH_NAME = "mock_mesh"
     connection = client.create_mesh(
         meshName=MESH_NAME,
         spec={
@@ -268,7 +266,6 @@ def test_create_describe_list_update_delete_virtual_router(client):
 
 @mock_aws
 def test_create_describe_list_update_delete_route(client):
-    MESH_NAME = "mock_mesh"
     ROUTER_NAME = "mock_virtual_router"
 
     connection = client.create_mesh(
@@ -311,21 +308,18 @@ def test_create_describe_list_update_delete_route(client):
         spec=grpc_route_spec,
     )
 
-    assert "route" in connection
     route = connection["route"]
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 1
     grpc_route = spec["grpcRoute"]
 
-    # action assertions
     assert len(grpc_route["action"]["weightedTargets"]) == 1
     weighted_target = grpc_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 8080
     assert weighted_target["virtualNode"] == "my-virtual-node"
     assert weighted_target["weight"] == 50
 
-    # match assertions
     assert len(grpc_route["match"]["metadata"]) == 1
     metadata = grpc_route["match"]["metadata"][0]
     assert metadata["invert"] is False
@@ -335,7 +329,6 @@ def test_create_describe_list_update_delete_route(client):
     assert grpc_route["match"]["port"] == 8080
     assert grpc_route["match"]["serviceName"] == "myService"
 
-    # retryPolicy assertions
     assert grpc_route["retryPolicy"]["grpcRetryEvents"] == [
         "unavailable",
         "resource-exhausted",
@@ -346,7 +339,6 @@ def test_create_describe_list_update_delete_route(client):
     assert grpc_route["retryPolicy"]["perRetryTimeout"]["value"] == 200
     assert grpc_route["retryPolicy"]["tcpRetryEvents"] == ["connection-error"]
 
-    # timeout assertions
     assert grpc_route["timeout"]["idle"]["unit"] == "s"
     assert grpc_route["timeout"]["idle"]["value"] == 60
     assert grpc_route["timeout"]["perRequest"]["unit"] == "s"
@@ -360,21 +352,19 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "mit"}],
         spec=http_route_spec,
     )
-    assert "route" in connection
+
     route = connection["route"]
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 2
     http_route = http_route_spec["httpRoute"]
 
-    # action assertions
     assert len(http_route["action"]["weightedTargets"]) == 1
     weighted_target = http_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 80
     assert weighted_target["virtualNode"] == "web-server-node"
     assert weighted_target["weight"] == 100
 
-    # match assertions
     assert len(http_route["match"]["headers"]) == 1
     header = http_route["match"]["headers"][0]
     assert header["invert"] is True
@@ -389,7 +379,6 @@ def test_create_describe_list_update_delete_route(client):
     assert http_route["match"]["queryParameters"][0]["name"] == "http-query-param"
     assert http_route["match"]["scheme"] == "http"
 
-    # retryPolicy assertions
     assert http_route["retryPolicy"]["httpRetryEvents"] == [
         "gateway-error",
         "client-error",
@@ -399,7 +388,6 @@ def test_create_describe_list_update_delete_route(client):
     assert http_route["retryPolicy"]["perRetryTimeout"]["value"] == 0
     assert http_route["retryPolicy"]["tcpRetryEvents"] == ["connection-error"]
 
-    # timeout assertions
     assert http_route["timeout"]["idle"]["unit"] == "s"
     assert http_route["timeout"]["idle"]["value"] == 15
     assert http_route["timeout"]["perRequest"]["unit"] == "s"
@@ -413,21 +401,19 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "mpl"}],
         spec=http2_route_spec,
     )
-    assert "route" in connection
+
     route = connection["route"]
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 3
     http2_route = spec["http2Route"]
 
-    # action assertions
     assert len(http2_route["action"]["weightedTargets"]) == 1
     weighted_target = http2_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 80
     assert weighted_target["virtualNode"] == "web-server-node"
     assert weighted_target["weight"] == 75
 
-    # match assertions
     assert len(http2_route["match"]["headers"]) == 1
     header = http2_route["match"]["headers"][0]
     assert header["invert"] is False
@@ -443,14 +429,12 @@ def test_create_describe_list_update_delete_route(client):
     assert query_param["name"] == "category"
     assert http2_route["match"]["scheme"] == "https"
 
-    # retryPolicy assertions
     assert http2_route["retryPolicy"]["httpRetryEvents"] == ["server-error"]
     assert http2_route["retryPolicy"]["maxRetries"] == 2
     assert http2_route["retryPolicy"]["perRetryTimeout"]["unit"] == "ms"
     assert http2_route["retryPolicy"]["perRetryTimeout"]["value"] == 500
     assert http2_route["retryPolicy"]["tcpRetryEvents"] == ["connection-error"]
 
-    # timeout assertions
     assert http2_route["timeout"]["idle"]["unit"] == "s"
     assert http2_route["timeout"]["idle"]["value"] == 30
     assert http2_route["timeout"]["perRequest"]["unit"] == "s"
@@ -464,24 +448,21 @@ def test_create_describe_list_update_delete_route(client):
         tags=[{"key": "license", "value": "bsd"}],
         spec=tcp_route_spec,
     )
-    assert "route" in connection
+
     route = connection["route"]
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 4
     tcp_route = tcp_route_spec["tcpRoute"]
 
-    # action assertions
     assert len(tcp_route["action"]["weightedTargets"]) == 1
     weighted_target = tcp_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 22
     assert weighted_target["virtualNode"] == "ssh-server-node"
     assert weighted_target["weight"] == 100
 
-    # match assertions
     assert tcp_route["match"]["port"] == 22
 
-    # timeout assertions
     assert tcp_route["timeout"]["idle"]["unit"] == "s"
     assert tcp_route["timeout"]["idle"]["value"] == 600
 
@@ -505,23 +486,21 @@ def test_create_describe_list_update_delete_route(client):
         virtualRouterName=ROUTER_NAME,
         spec=modified_http_route_spec,
     )
-    assert "route" in connection
+
     route = connection["route"]
     assert route["metadata"]["version"] == 2
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 5
 
     modified_http_route = spec["httpRoute"]
 
-    # action assertions
     assert len(modified_http_route["action"]["weightedTargets"]) == 1
     weighted_target = modified_http_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 8080
     assert weighted_target["virtualNode"] == "api-server-node"
     assert weighted_target["weight"] == 50
 
-    # match assertions
     assert len(modified_http_route["match"]["headers"]) == 1
     header = modified_http_route["match"]["headers"][0]
     assert header["invert"] is False
@@ -536,14 +515,12 @@ def test_create_describe_list_update_delete_route(client):
     assert query_param["name"] == "filter-param"
     assert modified_http_route["match"]["scheme"] == "https"
 
-    # retryPolicy assertions
     assert modified_http_route["retryPolicy"]["httpRetryEvents"] == ["server-error"]
     assert modified_http_route["retryPolicy"]["maxRetries"] == 3
     assert modified_http_route["retryPolicy"]["perRetryTimeout"]["unit"] == "s"
     assert modified_http_route["retryPolicy"]["perRetryTimeout"]["value"] == 2
     assert modified_http_route["retryPolicy"]["tcpRetryEvents"] == ["connection-reset"]
 
-    # timeout assertions
     assert modified_http_route["timeout"]["idle"]["unit"] == "m"
     assert modified_http_route["timeout"]["idle"]["value"] == 5
     assert modified_http_route["timeout"]["perRequest"]["unit"] == "ms"
@@ -554,23 +531,21 @@ def test_create_describe_list_update_delete_route(client):
         routeName=ROUTE_2,
         virtualRouterName=ROUTER_NAME,
     )
-    assert "route" in connection
+
     route = connection["route"]
     assert route["metadata"]["version"] == 2
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 5
 
     described_http_route = spec["httpRoute"]
 
-    # action assertions
     assert len(described_http_route["action"]["weightedTargets"]) == 1
     weighted_target = described_http_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 8080
     assert weighted_target["virtualNode"] == "api-server-node"
     assert weighted_target["weight"] == 50
 
-    # match assertions
     assert len(described_http_route["match"]["headers"]) == 1
     header = described_http_route["match"]["headers"][0]
     assert header["invert"] is False
@@ -585,14 +560,12 @@ def test_create_describe_list_update_delete_route(client):
     assert query_param["name"] == "filter-param"
     assert described_http_route["match"]["scheme"] == "https"
 
-    # retryPolicy assertions
     assert described_http_route["retryPolicy"]["httpRetryEvents"] == ["server-error"]
     assert described_http_route["retryPolicy"]["maxRetries"] == 3
     assert described_http_route["retryPolicy"]["perRetryTimeout"]["unit"] == "s"
     assert described_http_route["retryPolicy"]["perRetryTimeout"]["value"] == 2
     assert described_http_route["retryPolicy"]["tcpRetryEvents"] == ["connection-reset"]
 
-    # timeout assertions
     assert described_http_route["timeout"]["idle"]["unit"] == "m"
     assert described_http_route["timeout"]["idle"]["value"] == 5
     assert described_http_route["timeout"]["perRequest"]["unit"] == "ms"
@@ -603,25 +576,22 @@ def test_create_describe_list_update_delete_route(client):
         routeName=ROUTE_4,
         virtualRouterName=ROUTER_NAME,
     )
-    assert "route" in connection
+
     route = connection["route"]
     assert route["status"]["status"] == "DELETED"
-    assert "spec" in route
+
     spec = route["spec"]
     assert spec["priority"] == 4
     deleted_route = tcp_route_spec["tcpRoute"]
 
-    # action assertions
     assert len(deleted_route["action"]["weightedTargets"]) == 1
     weighted_target = deleted_route["action"]["weightedTargets"][0]
     assert weighted_target["port"] == 22
     assert weighted_target["virtualNode"] == "ssh-server-node"
     assert weighted_target["weight"] == 100
 
-    # match assertions
     assert deleted_route["match"]["port"] == 22
 
-    # timeout assertions
     assert deleted_route["timeout"]["idle"]["unit"] == "s"
     assert deleted_route["timeout"]["idle"]["value"] == 600
 
@@ -637,4 +607,624 @@ def test_create_describe_list_update_delete_route(client):
     assert (
         err["Message"]
         == f"There is no route named {ROUTE_4} associated with router {ROUTER_NAME} in mesh {MESH_NAME}."
+    )
+
+
+@mock_aws
+def test_create_describe_list_update_delete_virtual_node(client):
+    connection = client.create_mesh(
+        meshName=MESH_NAME,
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )
+    assert "mesh" in connection
+    mesh = connection["mesh"]
+    assert "metadata" in mesh
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    GRPC_NODE = "grpc_node"
+    HTTP_NODE = "http_node"
+    HTTP2_NODE = "http2_node"
+    TCP_NODE = "tcp_node"
+
+    connection = client.create_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=grpc_virtual_node_spec,
+        tags=[{"key": "type", "value": "grpc"}],
+        virtualNodeName=GRPC_NODE,
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is True
+    assert tls["ports"] == [443]
+    assert tls["certificate"]["file"]["certificateChain"] == "/path/to/cert_chain.pem"
+    assert tls["certificate"]["file"]["privateKey"] == "/path/to/private_key.pem"
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "grpc.example.com"
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is True
+    assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "validation-alternate-name"
+    ]
+    assert validation["trust"]["acm"]["certificateAuthorityArns"] == ["example-acm-arn"]
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "my-grpc-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["grpc"]["maxRequests"] == 500
+    assert listener["healthCheck"]["healthyThreshold"] == 2
+    assert listener["healthCheck"]["intervalMillis"] == 5000
+    assert listener["healthCheck"]["port"] == 50051
+    assert listener["healthCheck"]["protocol"] == "grpc"
+    assert listener["healthCheck"]["timeoutMillis"] == 2000
+    assert listener["healthCheck"]["unhealthyThreshold"] == 3
+    assert listener["portMapping"]["port"] == 50051
+    assert listener["portMapping"]["protocol"] == "grpc"
+    assert listener["timeout"]["grpc"]["idle"]["unit"] == "s"
+    assert listener["timeout"]["grpc"]["idle"]["value"] == 600
+    assert listener["timeout"]["grpc"]["perRequest"]["unit"] == "s"
+    assert listener["timeout"]["grpc"]["perRequest"]["value"] == 30
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
+    )
+    assert listener["tls"]["mode"] == "STRICT"
+    assert (
+        listener["tls"]["validation"]["trust"]["sds"]["secretName"]
+        == "my-ca-bundle-secret"
+    )
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/new_access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "end_time",
+        "value": "%END_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "status_code",
+        "value": "%RESPONSE_CODE%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {"key": "region", "value": "us-east-1"}
+    assert service_discovery["ipPreference"] == "IPv6_PREFERRED"
+    assert service_discovery["namespaceName"] == "new-namespace"
+    assert service_discovery["serviceName"] == "new-service"
+
+    connection = client.create_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=http_virtual_node_spec,
+        tags=[{"key": "type", "value": "http"}],
+        virtualNodeName=HTTP_NODE,
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is True
+    assert tls["ports"] == [443]
+    assert tls["certificate"]["file"]["certificateChain"] == "/path/to/cert_chain.pem"
+    assert tls["certificate"]["file"]["privateKey"] == "/path/to/private_key.pem"
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "www.example.com",
+        "api.example.com",
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "example-alternative-name"
+    ]
+    assert (
+        validation["trust"]["file"]["certificateChain"] == "example-certificate-chain"
+    )
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "my-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["http"]["maxConnections"] == 1000
+    assert listener["connectionPool"]["http"]["maxPendingRequests"] == 5000
+    assert listener["healthCheck"]["healthyThreshold"] == 2
+    assert listener["healthCheck"]["intervalMillis"] == 5000
+    assert listener["healthCheck"]["path"] == "/health"
+    assert listener["healthCheck"]["port"] == 80
+    assert listener["healthCheck"]["protocol"] == "http"
+    assert listener["healthCheck"]["timeoutMillis"] == 2000
+    assert listener["healthCheck"]["unhealthyThreshold"] == 3
+    assert listener["outlierDetection"]["baseEjectionDuration"]["unit"] == "s"
+    assert listener["outlierDetection"]["baseEjectionDuration"]["value"] == 30
+    assert listener["outlierDetection"]["interval"]["unit"] == "s"
+    assert listener["outlierDetection"]["interval"]["value"] == 10
+    assert listener["outlierDetection"]["maxEjectionPercent"] == 10
+    assert listener["outlierDetection"]["maxServerErrors"] == 5
+    assert listener["portMapping"]["port"] == 80
+    assert listener["portMapping"]["protocol"] == "http"
+    assert listener["timeout"]["http"]["idle"]["unit"] == "s"
+    assert listener["timeout"]["http"]["idle"]["value"] == 60
+    assert listener["timeout"]["http"]["perRequest"]["unit"] == "s"
+    assert listener["timeout"]["http"]["perRequest"]["value"] == 5
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
+    )
+    assert listener["tls"]["mode"] == "STRICT"
+    assert (
+        listener["tls"]["validation"]["trust"]["sds"]["secretName"]
+        == "my-ca-bundle-secret"
+    )
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "start_time",
+        "value": "%START_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "method",
+        "value": "%REQ(:METHOD)%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {"key": "env", "value": "prod"}
+    assert service_discovery["ipPreference"] == "IPv4_PREFERRED"
+    assert service_discovery["namespaceName"] == "my-namespace"
+    assert service_discovery["serviceName"] == "my-service"
+
+    connection = client.create_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=http2_virtual_node_spec,
+        tags=[{"key": "type", "value": "http2"}],
+        virtualNodeName=HTTP2_NODE,
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is True
+    assert tls["ports"] == [443]
+    assert tls["certificate"]["file"]["certificateChain"] == "/path/to/cert_chain.pem"
+    assert tls["certificate"]["file"]["privateKey"] == "/path/to/private_key.pem"
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "http2.example.com"
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is True
+    assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == ["match-me"]
+    assert validation["trust"]["sds"]["secretName"] == "example-secret-name"
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "my-http2-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["http2"]["maxRequests"] == 1000
+    assert listener["healthCheck"]["healthyThreshold"] == 2
+    assert listener["healthCheck"]["intervalMillis"] == 5000
+    assert listener["healthCheck"]["path"] == "/"
+    assert listener["healthCheck"]["port"] == 443
+    assert listener["healthCheck"]["protocol"] == "http2"
+    assert listener["healthCheck"]["timeoutMillis"] == 2000
+    assert listener["healthCheck"]["unhealthyThreshold"] == 3
+    assert listener["portMapping"]["port"] == 443
+    assert listener["portMapping"]["protocol"] == "http2"
+    assert listener["timeout"]["http2"]["idle"]["unit"] == "s"
+    assert listener["timeout"]["http2"]["idle"]["value"] == 120
+    assert listener["timeout"]["http2"]["perRequest"]["unit"] == "s"
+    assert listener["timeout"]["http2"]["perRequest"]["value"] == 10
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
+    )
+    assert listener["tls"]["mode"] == "STRICT"
+    assert (
+        listener["tls"]["validation"]["trust"]["sds"]["secretName"]
+        == "my-ca-bundle-secret"
+    )
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/new_access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "end_time",
+        "value": "%END_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "status_code",
+        "value": "%RESPONSE_CODE%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {"key": "region", "value": "us-east-1"}
+    assert service_discovery["ipPreference"] == "IPv6_PREFERRED"
+    assert service_discovery["namespaceName"] == "new-namespace"
+    assert service_discovery["serviceName"] == "new-service"
+
+    connection = client.create_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=tcp_virtual_node_spec,
+        tags=[{"key": "type", "value": "tcp"}],
+        virtualNodeName=TCP_NODE,
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is True
+    assert tls["ports"] == [443]
+    assert tls["certificate"]["file"]["certificateChain"] == "/path/to/cert_chain.pem"
+    assert tls["certificate"]["file"]["privateKey"] == "/path/to/private_key.pem"
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "tcp.example.com"
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "exact-match-example"
+    ]
+    assert validation["trust"]["file"]["certificateChain"] == "test-certificate-chain"
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "my-tcp-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["tcp"]["maxConnections"] == 2000
+    assert listener["healthCheck"]["healthyThreshold"] == 2
+    assert listener["healthCheck"]["intervalMillis"] == 10000
+    assert listener["healthCheck"]["port"] == 8080
+    assert listener["healthCheck"]["protocol"] == "tcp"
+    assert listener["healthCheck"]["timeoutMillis"] == 5000
+    assert listener["healthCheck"]["unhealthyThreshold"] == 3
+    assert listener["portMapping"]["port"] == 8080
+    assert listener["portMapping"]["protocol"] == "tcp"
+    assert listener["timeout"]["tcp"]["idle"]["unit"] == "m"
+    assert listener["timeout"]["tcp"]["idle"]["value"] == 30
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/new_access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "end_time",
+        "value": "%END_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "status_code",
+        "value": "%RESPONSE_CODE%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {"key": "region", "value": "us-east-1"}
+    assert service_discovery["ipPreference"] == "IPv6_PREFERRED"
+    assert service_discovery["namespaceName"] == "new-namespace"
+    assert service_discovery["serviceName"] == "new-service"
+
+    connection = client.list_virtual_nodes(meshName=MESH_NAME, meshOwner=mesh_owner)
+    virtual_nodes = connection.get("virtualNodes")
+    assert isinstance(virtual_nodes, list)
+    assert len(virtual_nodes) == 4
+    names_counted = defaultdict(int)
+    for node in virtual_nodes:
+        node_name = node.get("virtualNodeName")
+        if node_name:
+            names_counted[node_name] += 1
+    assert names_counted[GRPC_NODE] == 1
+    assert names_counted[HTTP_NODE] == 1
+    assert names_counted[HTTP2_NODE] == 1
+    assert names_counted[TCP_NODE] == 1
+
+    connection = client.update_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=modified_http2_virtual_node_spec,
+        virtualNodeName=HTTP2_NODE,
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is False
+    assert tls["ports"] == [8443]
+    assert (
+        tls["certificate"]["file"]["certificateChain"]
+        == "/updated/path/to/cert_chain.pem"
+    )
+    assert (
+        tls["certificate"]["file"]["privateKey"] == "/updated/path/to/private_key.pem"
+    )
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "updated.example.com"
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/updated/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
+    assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [8443]
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "updated-http2-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["http2"]["maxRequests"] == 500
+    assert listener["healthCheck"]["healthyThreshold"] == 3
+    assert listener["healthCheck"]["intervalMillis"] == 5100
+    assert listener["healthCheck"]["path"] == "/health"
+    assert listener["healthCheck"]["port"] == 8443
+    assert listener["healthCheck"]["protocol"] == "http2"
+    assert listener["healthCheck"]["timeoutMillis"] == 2200
+    assert listener["healthCheck"]["unhealthyThreshold"] == 2
+    assert listener["portMapping"]["port"] == 8443
+    assert listener["portMapping"]["protocol"] == "http2"
+    assert listener["timeout"]["http2"]["idle"]["unit"] == "m"
+    assert listener["timeout"]["http2"]["idle"]["value"] == 5
+    assert listener["timeout"]["http2"]["perRequest"]["unit"] == "m"
+    assert listener["timeout"]["http2"]["perRequest"]["value"] == 1
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-west-2:987654321098:certificate/hgfedcba-4321-8765-ba09-fedc09876543"
+    )
+    assert listener["tls"]["mode"] == "PERMISSIVE"
+    assert (
+        listener["tls"]["validation"]["trust"]["sds"]["secretName"]
+        == "updated-ca-bundle-secret"
+    )
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/updated_access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "start_time",
+        "value": "%START_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "method",
+        "value": "%REQUEST_METHOD%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {
+        "key": "environment",
+        "value": "production",
+    }
+    assert service_discovery["ipPreference"] == "IPv4_PREFERRED"
+    assert service_discovery["namespaceName"] == "updated-namespace"
+    assert service_discovery["serviceName"] == "updated-service"
+
+    connection = client.describe_virtual_node(
+        meshName=MESH_NAME, meshOwner=mesh_owner, virtualNodeName=HTTP2_NODE
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is False
+    assert tls["ports"] == [8443]
+    assert (
+        tls["certificate"]["file"]["certificateChain"]
+        == "/updated/path/to/cert_chain.pem"
+    )
+    assert (
+        tls["certificate"]["file"]["privateKey"] == "/updated/path/to/private_key.pem"
+    )
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "updated.example.com"
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/updated/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
+    assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [8443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "another-exact-match-example"
+    ]
+    assert (
+        validation["trust"]["file"]["certificateChain"]
+        == "different-test-certificate-chain"
+    )
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "updated-http2-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["http2"]["maxRequests"] == 500
+    assert listener["healthCheck"]["healthyThreshold"] == 3
+    assert listener["healthCheck"]["intervalMillis"] == 5100
+    assert listener["healthCheck"]["path"] == "/health"
+    assert listener["healthCheck"]["port"] == 8443
+    assert listener["healthCheck"]["protocol"] == "http2"
+    assert listener["healthCheck"]["timeoutMillis"] == 2200
+    assert listener["healthCheck"]["unhealthyThreshold"] == 2
+    assert listener["portMapping"]["port"] == 8443
+    assert listener["portMapping"]["protocol"] == "http2"
+    assert listener["timeout"]["http2"]["idle"]["unit"] == "m"
+    assert listener["timeout"]["http2"]["idle"]["value"] == 5
+    assert listener["timeout"]["http2"]["perRequest"]["unit"] == "m"
+    assert listener["timeout"]["http2"]["perRequest"]["value"] == 1
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-west-2:987654321098:certificate/hgfedcba-4321-8765-ba09-fedc09876543"
+    )
+    assert listener["tls"]["mode"] == "PERMISSIVE"
+    assert (
+        listener["tls"]["validation"]["trust"]["sds"]["secretName"]
+        == "updated-ca-bundle-secret"
+    )
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/updated_access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "start_time",
+        "value": "%START_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "method",
+        "value": "%REQUEST_METHOD%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {
+        "key": "environment",
+        "value": "production",
+    }
+    assert service_discovery["ipPreference"] == "IPv4_PREFERRED"
+    assert service_discovery["namespaceName"] == "updated-namespace"
+    assert service_discovery["serviceName"] == "updated-service"
+
+    connection = client.delete_virtual_node(
+        meshName=MESH_NAME, meshOwner=mesh_owner, virtualNodeName=GRPC_NODE
+    )
+    virtualNode = connection["virtualNode"]
+    spec = virtualNode["spec"]
+    backend_defaults = spec["backendDefaults"]
+    tls = backend_defaults["clientPolicy"]["tls"]
+    assert tls["enforce"] is True
+    assert tls["ports"] == [443]
+    assert tls["certificate"]["file"]["certificateChain"] == "/path/to/cert_chain.pem"
+    assert tls["certificate"]["file"]["privateKey"] == "/path/to/private_key.pem"
+    assert tls["validation"]["subjectAlternativeNames"]["match"]["exact"] == [
+        "grpc.example.com"
+    ]
+    assert (
+        tls["validation"]["trust"]["file"]["certificateChain"]
+        == "/path/to/ca_bundle.pem"
+    )
+
+    assert len(spec["backends"]) == 1
+    backend = spec["backends"][0]
+    assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is True
+    assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "validation-alternate-name"
+    ]
+    assert validation["trust"]["acm"]["certificateAuthorityArns"] == ["example-acm-arn"]
+    assert (
+        backend["virtualService"]["virtualServiceName"]
+        == "my-grpc-service.default.svc.cluster.local"
+    )
+
+    assert len(spec["listeners"]) == 1
+    listener = spec["listeners"][0]
+    assert listener["connectionPool"]["grpc"]["maxRequests"] == 500
+    assert listener["healthCheck"]["healthyThreshold"] == 2
+    assert listener["healthCheck"]["intervalMillis"] == 5000
+    assert listener["healthCheck"]["port"] == 50051
+    assert listener["healthCheck"]["protocol"] == "grpc"
+    assert listener["healthCheck"]["timeoutMillis"] == 2000
+    assert listener["healthCheck"]["unhealthyThreshold"] == 3
+    assert listener["portMapping"]["port"] == 50051
+    assert listener["portMapping"]["protocol"] == "grpc"
+    assert listener["timeout"]["grpc"]["idle"]["unit"] == "s"
+    assert listener["timeout"]["grpc"]["idle"]["value"] == 600
+    assert listener["timeout"]["grpc"]["perRequest"]["unit"] == "s"
+    assert listener["timeout"]["grpc"]["perRequest"]["value"] == 30
+    assert (
+        listener["tls"]["certificate"]["acm"]["certificateArn"]
+        == "arn:aws:acm:us-east-1:123456789012:certificate/abcdefg-1234-5678-90ab-cdef01234567"
+    )
+    assert listener["tls"]["mode"] == "STRICT"
+    assert (
+        listener["tls"]["validation"]["trust"]["sds"]["secretName"]
+        == "my-ca-bundle-secret"
+    )
+
+    access_log = spec["logging"]["accessLog"]
+    assert access_log["file"]["path"] == "/var/log/appmesh/new_access.log"
+    assert len(access_log["file"]["format"]["json"]) == 2
+    assert access_log["file"]["format"]["json"][0] == {
+        "key": "end_time",
+        "value": "%END_TIME%",
+    }
+    assert access_log["file"]["format"]["json"][1] == {
+        "key": "status_code",
+        "value": "%RESPONSE_CODE%",
+    }
+
+    service_discovery = spec["serviceDiscovery"]["awsCloudMap"]
+    assert len(service_discovery["attributes"]) == 1
+    assert service_discovery["attributes"][0] == {"key": "region", "value": "us-east-1"}
+    assert service_discovery["ipPreference"] == "IPv6_PREFERRED"
+    assert service_discovery["namespaceName"] == "new-namespace"
+    assert service_discovery["serviceName"] == "new-service"
+
+    with pytest.raises(ClientError) as e:
+        client.describe_virtual_node(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualNodeName=GRPC_NODE,
+        )
+    err = e.value.response["Error"]
+    assert err["Code"] == "VirtualNodeNotFound"
+    assert (
+        err["Message"]
+        == f"{GRPC_NODE} is not a virtual node associated with mesh {MESH_NAME}"
     )

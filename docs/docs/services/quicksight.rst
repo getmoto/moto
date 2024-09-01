@@ -16,8 +16,6 @@ quicksight
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] batch_create_topic_reviewed_answer
-- [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
@@ -148,7 +146,6 @@ quicksight
 - [ ] list_theme_versions
 - [ ] list_themes
 - [ ] list_topic_refresh_schedules
-- [ ] list_topic_reviewed_answers
 - [ ] list_topics
 - [ ] list_user_groups
 - [X] list_users

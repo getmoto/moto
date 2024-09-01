@@ -1,25 +1,14 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
-from moto.appmesh.dataclasses.shared import Metadata, Status
-
-
-def clean_dict(obj: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
-    return {
-        key: value for key, value in obj.items() if value is not None and value != []
-    }
-
-
-class MissingField:
-    def to_dict(self) -> None:
-        return
-
-
-@dataclass
-class TimeValue:
-    unit: str
-    value: int
-    to_dict = asdict
+from moto.appmesh.dataclasses.shared import (
+    Duration,
+    Metadata,
+    MissingField,
+    Status,
+    Timeout,
+)
+from moto.appmesh.utils.common import clean_dict
 
 
 @dataclass
@@ -145,7 +134,7 @@ class HttpRouteMatch:
 class HttpRouteRetryPolicy:
     max_retries: int
     http_retry_events: Optional[List[str]]
-    per_retry_timeout: TimeValue
+    per_retry_timeout: Duration
     tcp_retry_events: Optional[List[str]]
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -155,20 +144,6 @@ class HttpRouteRetryPolicy:
                 "maxRetries": self.max_retries,
                 "perRetryTimeout": self.per_retry_timeout.to_dict(),
                 "tcpRetryEvents": self.tcp_retry_events or [],
-            }
-        )
-
-
-@dataclass
-class Timeout:
-    idle: Optional[TimeValue] = field(default=None)
-    per_request: Optional[TimeValue] = field(default=None)
-
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
-        return clean_dict(
-            {
-                "idle": (self.idle or MissingField()).to_dict(),
-                "perRequest": (self.per_request or MissingField()).to_dict(),
             }
         )
 
@@ -194,7 +169,7 @@ class GrpcRouteMatch:
 @dataclass
 class GrcpRouteRetryPolicy:
     max_retries: int
-    per_retry_timeout: TimeValue
+    per_retry_timeout: Duration
     grpc_retry_events: Optional[List[str]]
     http_retry_events: Optional[List[str]]
     tcp_retry_events: Optional[List[str]]

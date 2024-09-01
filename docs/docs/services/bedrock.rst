@@ -19,7 +19,6 @@ bedrock
 - [ ] create_evaluation_job
 - [ ] create_guardrail
 - [ ] create_guardrail_version
-- [ ] create_model_copy_job
 - [X] create_model_customization_job
 - [ ] create_provisioned_model_throughput
 - [X] delete_custom_model
@@ -30,7 +29,6 @@ bedrock
 - [ ] get_evaluation_job
 - [ ] get_foundation_model
 - [ ] get_guardrail
-- [ ] get_model_copy_job
 - [X] get_model_customization_job
 - [X] get_model_invocation_logging_configuration
 - [ ] get_provisioned_model_throughput
@@ -42,7 +40,6 @@ bedrock
 - [ ] list_evaluation_jobs
 - [ ] list_foundation_models
 - [ ] list_guardrails
-- [ ] list_model_copy_jobs
 - [X] list_model_customization_jobs
 - [ ] list_provisioned_model_throughputs
 - [X] list_tags_for_resource
