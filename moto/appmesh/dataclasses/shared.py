@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, Dict, Literal, Optional
 from uuid import uuid4
 
-from moto.appmesh.utils import clean_dict
+from moto.appmesh.utils.common import clean_dict
 
 Status = Dict[Literal["status"], str]
 

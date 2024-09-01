@@ -657,6 +657,11 @@ def test_create_describe_list_update_delete_virtual_node(client):
     backend = spec["backends"][0]
     assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is True
     assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "validation-alternate-name"
+    ]
+    assert validation["trust"]["acm"]["certificateAuthorityArns"] == ["example-acm-arn"]
     assert (
         backend["virtualService"]["virtualServiceName"]
         == "my-grpc-service.default.svc.cluster.local"
@@ -734,6 +739,13 @@ def test_create_describe_list_update_delete_virtual_node(client):
     assert len(spec["backends"]) == 1
     backend = spec["backends"][0]
     assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "example-alternative-name"
+    ]
+    assert (
+        validation["trust"]["file"]["certificateChain"] == "example-certificate-chain"
+    )
     assert (
         backend["virtualService"]["virtualServiceName"]
         == "my-service.default.svc.cluster.local"
@@ -818,6 +830,9 @@ def test_create_describe_list_update_delete_virtual_node(client):
     backend = spec["backends"][0]
     assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is True
     assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == ["match-me"]
+    assert validation["trust"]["sds"]["secretName"] == "example-secret-name"
     assert (
         backend["virtualService"]["virtualServiceName"]
         == "my-http2-service.default.svc.cluster.local"
@@ -894,6 +909,11 @@ def test_create_describe_list_update_delete_virtual_node(client):
     assert len(spec["backends"]) == 1
     backend = spec["backends"][0]
     assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "exact-match-example"
+    ]
+    assert validation["trust"]["file"]["certificateChain"] == "test-certificate-chain"
     assert (
         backend["virtualService"]["virtualServiceName"]
         == "my-tcp-service.default.svc.cluster.local"
@@ -1058,6 +1078,14 @@ def test_create_describe_list_update_delete_virtual_node(client):
     backend = spec["backends"][0]
     assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is False
     assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [8443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "another-exact-match-example"
+    ]
+    assert (
+        validation["trust"]["file"]["certificateChain"]
+        == "different-test-certificate-chain"
+    )
     assert (
         backend["virtualService"]["virtualServiceName"]
         == "updated-http2-service.default.svc.cluster.local"
@@ -1134,6 +1162,11 @@ def test_create_describe_list_update_delete_virtual_node(client):
     backend = spec["backends"][0]
     assert backend["virtualService"]["clientPolicy"]["tls"]["enforce"] is True
     assert backend["virtualService"]["clientPolicy"]["tls"]["ports"] == [443]
+    validation = backend["virtualService"]["clientPolicy"]["tls"]["validation"]
+    assert validation["subjectAlternativeNames"]["match"]["exact"] == [
+        "validation-alternate-name"
+    ]
+    assert validation["trust"]["acm"]["certificateAuthorityArns"] == ["example-acm-arn"]
     assert (
         backend["virtualService"]["virtualServiceName"]
         == "my-grpc-service.default.svc.cluster.local"

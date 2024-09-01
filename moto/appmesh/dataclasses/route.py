@@ -8,7 +8,7 @@ from moto.appmesh.dataclasses.shared import (
     Status,
     Timeout,
 )
-from moto.appmesh.utils import clean_dict
+from moto.appmesh.utils.common import clean_dict
 
 
 @dataclass
