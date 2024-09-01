@@ -65,8 +65,6 @@ PAGINATION_MODEL = {
 }
 
 
-
-
 class AppMeshBackend(BaseBackend):
     """Implementation of AppMesh APIs."""
 
@@ -74,12 +72,13 @@ class AppMeshBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.meshes: Dict[str, Mesh] = dict()
 
-    def _validate_mesh(
-        self, mesh_name: str, mesh_owner: Optional[str]
-    ) -> None:
+    def _validate_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> None:
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name=mesh_name)
-        if mesh_owner is not None and self.meshes[mesh_name].metadata.mesh_owner != mesh_owner:
+        if (
+            mesh_owner is not None
+            and self.meshes[mesh_name].metadata.mesh_owner != mesh_owner
+        ):
             raise MeshOwnerDoesNotMatchError(mesh_name, mesh_owner)
 
     def _check_virtual_node_validity(
@@ -92,7 +91,6 @@ class AppMeshBackend(BaseBackend):
         if virtual_node_name not in self.meshes[mesh_name].virtual_nodes:
             raise VirtualNodeNotFoundError(mesh_name, virtual_node_name)
         return
-
 
     def _check_router_availability(
         self,
@@ -107,7 +105,6 @@ class AppMeshBackend(BaseBackend):
             )
         return
 
-
     def _check_router_validity(
         self,
         mesh_name: str,
@@ -121,7 +118,6 @@ class AppMeshBackend(BaseBackend):
             )
         return
 
-
     def _check_route_validity(
         self,
         mesh_name: str,
@@ -134,14 +130,16 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=mesh_owner,
             virtual_router_name=virtual_router_name,
         )
-        if route_name not in self.meshes[mesh_name].virtual_routers[virtual_router_name].routes:
+        if (
+            route_name
+            not in self.meshes[mesh_name].virtual_routers[virtual_router_name].routes
+        ):
             raise RouteNotFoundError(
                 mesh_name=mesh_name,
                 virtual_router_name=virtual_router_name,
                 route_name=route_name,
             )
         return
-
 
     def _check_route_availability(
         self,
@@ -155,7 +153,10 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=mesh_owner,
             virtual_router_name=virtual_router_name,
         )
-        if route_name in self.meshes[mesh_name].virtual_routers[virtual_router_name].routes:
+        if (
+            route_name
+            in self.meshes[mesh_name].virtual_routers[virtual_router_name].routes
+        ):
             raise RouteNameAlreadyTakenError(
                 mesh_name=mesh_name,
                 virtual_router_name=virtual_router_name,

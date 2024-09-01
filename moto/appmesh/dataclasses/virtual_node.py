@@ -2,11 +2,11 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from moto.appmesh.dataclasses.shared import (
+    Duration,
     Metadata,
     MissingField,
     Status,
     Timeout,
-    TimeValue,
 )
 from moto.appmesh.utils import clean_dict
 
@@ -303,8 +303,8 @@ class HealthCheck:
 
 @dataclass
 class OutlierDetection:
-    base_ejection_duration: TimeValue
-    interval: TimeValue
+    base_ejection_duration: Duration
+    interval: Duration
     max_ejection_percent: int
     max_server_errors: int
 
@@ -326,7 +326,7 @@ class PortMapping:
 
 @dataclass
 class TCPTimeout:
-    idle: TimeValue
+    idle: Duration
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return {"idle": self.idle.to_dict()}

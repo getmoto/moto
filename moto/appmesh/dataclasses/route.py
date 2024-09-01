@@ -2,11 +2,11 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
 from moto.appmesh.dataclasses.shared import (
+    Duration,
     Metadata,
     MissingField,
     Status,
     Timeout,
-    TimeValue,
 )
 from moto.appmesh.utils import clean_dict
 
@@ -134,7 +134,7 @@ class HttpRouteMatch:
 class HttpRouteRetryPolicy:
     max_retries: int
     http_retry_events: Optional[List[str]]
-    per_retry_timeout: TimeValue
+    per_retry_timeout: Duration
     tcp_retry_events: Optional[List[str]]
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -169,7 +169,7 @@ class GrpcRouteMatch:
 @dataclass
 class GrcpRouteRetryPolicy:
     max_retries: int
-    per_retry_timeout: TimeValue
+    per_retry_timeout: Duration
     grpc_retry_events: Optional[List[str]]
     http_retry_events: Optional[List[str]]
     tcp_retry_events: Optional[List[str]]

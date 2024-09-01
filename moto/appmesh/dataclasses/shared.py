@@ -23,7 +23,7 @@ class Metadata:
 
 
 @dataclass
-class TimeValue:
+class Duration:
     unit: str
     value: int
     to_dict = asdict
@@ -36,8 +36,8 @@ class MissingField:
 
 @dataclass
 class Timeout:
-    idle: Optional[TimeValue] = field(default=None)
-    per_request: Optional[TimeValue] = field(default=None)
+    idle: Optional[Duration] = field(default=None)
+    per_request: Optional[Duration] = field(default=None)
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(

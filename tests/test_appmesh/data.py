@@ -181,21 +181,25 @@ http_virtual_node_spec = {
     "backends": [
         {
             "virtualService": {
-                "clientPolicy": {"tls": {"enforce": False,                        
-                            'validation': {
-                            'subjectAlternativeNames': {
-                                'match': {
-                                    'exact': [
-                                        'example-alternative-name',
+                "clientPolicy": {
+                    "tls": {
+                        "enforce": False,
+                        "validation": {
+                            "subjectAlternativeNames": {
+                                "match": {
+                                    "exact": [
+                                        "example-alternative-name",
                                     ]
                                 }
                             },
-                            'trust': {
-                                    'file': {
-                                        'certificateChain': 'example-certificate-chain'
-                                    },
-                            }
-                        }}},
+                            "trust": {
+                                "file": {
+                                    "certificateChain": "example-certificate-chain"
+                                },
+                            },
+                        },
+                    }
+                },
                 "virtualServiceName": "my-service.default.svc.cluster.local",
             }
         }
@@ -285,7 +289,22 @@ http2_virtual_node_spec = {
     "backends": [
         {
             "virtualService": {
-                "clientPolicy": {"tls": {"enforce": True, "ports": [443]}},
+                "clientPolicy": {
+                    "tls": {
+                        "enforce": True,
+                        "ports": [443],
+                        "validation": {
+                            "subjectAlternativeNames": {
+                                "match": {
+                                    "exact": [
+                                        "match-me",
+                                    ]
+                                }
+                            },
+                            "trust": {"sds": {"secretName": "example-secret-name"}},
+                        },
+                    }
+                },
                 "virtualServiceName": "my-http2-service.default.svc.cluster.local",
             }
         }
@@ -377,28 +396,28 @@ grpc_virtual_node_spec = {
                     "tls": {
                         "enforce": True,
                         "ports": [443],
-                        'certificate': {
-                            'file': {
-                                'certificateChain': 'grpc-backend-certificate-chain',
-                                'privateKey': 'grpc-backend-certificate-private-key'
+                        "certificate": {
+                            "file": {
+                                "certificateChain": "grpc-backend-certificate-chain",
+                                "privateKey": "grpc-backend-certificate-private-key",
                             },
                         },
-                        'validation': {
-                            'subjectAlternativeNames': {
-                                'match': {
-                                    'exact': [
-                                        'validation-alternate-name',
+                        "validation": {
+                            "subjectAlternativeNames": {
+                                "match": {
+                                    "exact": [
+                                        "validation-alternate-name",
                                     ]
                                 }
                             },
-                            'trust': {
-                                'acm': {
-                                    'certificateAuthorityArns': [
-                                        'example-acm-arn',
+                            "trust": {
+                                "acm": {
+                                    "certificateAuthorityArns": [
+                                        "example-acm-arn",
                                     ]
                                 },
-                            }
-                        }
+                            },
+                        },
                     }
                 },
                 "virtualServiceName": "my-grpc-service.default.svc.cluster.local",
@@ -487,7 +506,23 @@ tcp_virtual_node_spec = {
     "backends": [
         {
             "virtualService": {
-                "clientPolicy": {"tls": {"enforce": False}},
+                "clientPolicy": {
+                    "tls": {
+                        "enforce": False,
+                        "validation": {
+                            "subjectAlternativeNames": {
+                                "match": {
+                                    "exact": [
+                                        "exact-match-example",
+                                    ]
+                                }
+                            },
+                            "trust": {
+                                "file": {"certificateChain": "test-certificate-chain"},
+                            },
+                        },
+                    }
+                },
                 "virtualServiceName": "my-tcp-service.default.svc.cluster.local",
             }
         }

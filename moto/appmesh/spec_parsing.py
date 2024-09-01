@@ -19,7 +19,7 @@ from moto.appmesh.dataclasses.route import (
     TCPRoute,
     TCPRouteMatch,
 )
-from moto.appmesh.dataclasses.shared import Timeout, TimeValue
+from moto.appmesh.dataclasses.shared import Duration, Timeout
 from moto.appmesh.dataclasses.virtual_node import (
     ACM,
     DNS,
@@ -171,7 +171,7 @@ def get_http_retry_policy_from_route(route: Any) -> Optional[HttpRouteRetryPolic
     retry_policy = None
     if _retry_policy is not None:
         _per_retry_timeout = _retry_policy.get("perRetryTimeout")
-        per_retry_timeout = TimeValue(
+        per_retry_timeout = Duration(
             unit=_per_retry_timeout.get("unit"), value=_per_retry_timeout.get("value")
         )
         retry_policy = HttpRouteRetryPolicy(
@@ -188,10 +188,10 @@ def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[mis
     idle, per_request = None, None
     _idle = _timeout.get("idle")
     if _idle is not None:
-        idle = TimeValue(unit=_idle.get("unit"), value=_idle.get("value"))
+        idle = Duration(unit=_idle.get("unit"), value=_idle.get("value"))
     _per_request = _timeout.get("perRequest")
     if _per_request is not None:
-        per_request = TimeValue(
+        per_request = Duration(
             unit=_per_request.get("unit"), value=_per_request.get("value")
         )
     return (
@@ -241,7 +241,7 @@ def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy:  # type: ignore[misc
             certificate_chain=_trust_file.get("certificateChain")
         )
     if _trust_sds is not None:
-        sds = SDS(secret_name=_sds.get("secretName"))
+        trust_sds = SDS(secret_name=_trust_sds.get("secretName"))
     if _acm is not None:
         acm = ACM(certificate_authority_arns=_acm.get("certificateAuthorityArns"))
     trust = BackendTrust(file=trust_file, sds=trust_sds, acm=acm)
@@ -271,7 +271,7 @@ def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
         grpc_retry_policy = None
         if _retry_policy is not None:
             _per_retry_timeout = _retry_policy.get("perRetryTimeout")
-            per_retry_timeout = TimeValue(
+            per_retry_timeout = Duration(
                 unit=_per_retry_timeout.get("unit"),
                 value=_per_retry_timeout.get("value"),
             )
@@ -441,19 +441,17 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                 )
 
             if _outlier_detection is not None:
-                _base_ejection_duration = _outlier_detection.get(
-                    "baseEjectionDuration"
-                )
+                _base_ejection_duration = _outlier_detection.get("baseEjectionDuration")
                 _interval = _outlier_detection.get("interval")
                 if _base_ejection_duration is None:
                     raise MissingRequiredFieldError("baseEjectionDuration")
-                base_ejection_duration = TimeValue(
+                base_ejection_duration = Duration(
                     unit=_base_ejection_duration.get("unit"),
                     value=_base_ejection_duration.get("value"),
                 )
                 if _interval is None:
                     raise MissingRequiredFieldError("interval")
-                interval = TimeValue(
+                interval = Duration(
                     unit=_interval.get("unit"), value=_interval.get("value")
                 )
                 outlier_detection = OutlierDetection(
@@ -487,11 +485,11 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     _per_request = _grpc_timeout.get("perRequest")
                     idle, per_request = None, None
                     if _idle is not None:
-                        idle = TimeValue(
+                        idle = Duration(
                             unit=_idle.get("unit"), value=_idle.get("value")
                         )
                     if _per_request is not None:
-                        per_request = TimeValue(
+                        per_request = Duration(
                             unit=_per_request.get("unit"),
                             value=_per_request.get("value"),
                         )
@@ -501,11 +499,11 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     _per_request = _http_timeout.get("perRequest")
                     idle, per_request = None, None
                     if _idle is not None:
-                        idle = TimeValue(
+                        idle = Duration(
                             unit=_idle.get("unit"), value=_idle.get("value")
                         )
                     if _per_request is not None:
-                        per_request = TimeValue(
+                        per_request = Duration(
                             unit=_per_request.get("unit"),
                             value=_per_request.get("value"),
                         )
@@ -515,11 +513,11 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     _per_request = _http2_timeout.get("perRequest")
                     idle, per_request = None, None
                     if _idle is not None:
-                        idle = TimeValue(
+                        idle = Duration(
                             unit=_idle.get("unit"), value=_idle.get("value")
                         )
                     if _per_request is not None:
-                        per_request = TimeValue(
+                        per_request = Duration(
                             unit=_per_request.get("unit"),
                             value=_per_request.get("value"),
                         )
@@ -528,7 +526,7 @@ def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     _idle = _tcp_timeout.get("idle")
                     if _idle is None:
                         raise MissingRequiredFieldError("idle")
-                    idle = TimeValue(unit=_idle.get("unit"), value=_idle.get("value"))
+                    idle = Duration(unit=_idle.get("unit"), value=_idle.get("value"))
                     tcp_timeout = TCPTimeout(idle=idle)
 
                 timeout = ProtocolTimeouts(
