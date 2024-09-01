@@ -475,9 +475,7 @@ class S3Response(BaseResponse):
 
         return 200, self.response_headers, ""
 
-    def _get_cors_headers_other(
-        self, headers: Dict[str, str], bucket_name: str
-    ) -> Dict[str, Any]:
+    def _get_cors_headers_other(self) -> Dict[str, Any]:
         """
         Returns a dictionary with the appropriate CORS headers
         Should be used for non-OPTIONS requests only
@@ -485,10 +483,10 @@ class S3Response(BaseResponse):
         """
         response_headers: Dict[str, Any] = dict()
         try:
-            origin = headers.get("Origin")
+            origin = self.headers.get("Origin")
             if not origin:
                 return response_headers
-            bucket = self.backend.get_bucket(bucket_name)
+            bucket = self.backend.get_bucket(self.bucket_name)
 
             def _to_string(header: Union[List[str], str]) -> str:
                 # We allow list and strs in header values. Transform lists in comma-separated strings
@@ -1056,7 +1054,7 @@ class S3Response(BaseResponse):
         return 200, {}, website_configuration
 
     def get_object_acl(self) -> TYPE_RESPONSE:
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         key, not_modified = self._get_key()
         if key.version_id != "null":
             response_headers["x-amz-version-id"] = key.version_id
@@ -1374,7 +1372,7 @@ class S3Response(BaseResponse):
         response_headers: Dict[str, Any] = {}
 
         try:
-            response = self._key_response(request, full_url, self.headers)
+            response = self._key_response(request, full_url)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
@@ -1397,9 +1395,7 @@ class S3Response(BaseResponse):
                 return s3error.code, {}, s3error.description
         return status_code, response_headers, response_content
 
-    def _key_response(
-        self, request: Any, full_url: str, headers: Dict[str, Any]
-    ) -> TYPE_RESPONSE:
+    def _key_response(self, request: Any, full_url: str) -> TYPE_RESPONSE:
         parsed_url = urlparse(full_url)
         query = parse_qs(parsed_url.query, keep_blank_values=True)
         method = request.method
@@ -1455,9 +1451,7 @@ class S3Response(BaseResponse):
         body = self.body or b""
 
         if method == "GET":
-            return self._key_response_get(
-                bucket_name, query, key_name, headers=request.headers
-            )
+            return self._key_response_get(query, key_name)
         elif method == "PUT":
             return self._key_response_put(query, key_name)
         elif method == "HEAD":
@@ -1476,100 +1470,40 @@ class S3Response(BaseResponse):
                 f"Method {method} has not been implemented in the S3 backend yet"
             )
 
-    def _key_response_get(
-        self,
-        bucket_name: str,
-        query: Dict[str, Any],
-        key_name: str,
-        headers: Dict[str, Any],
-    ) -> TYPE_RESPONSE:
+    def _key_response_get(self, query: Dict[str, Any], key_name: str) -> TYPE_RESPONSE:
         self._set_action("KEY", "GET", query)
         self._authenticate_and_authorize_s3_action(
-            bucket_name=bucket_name, key_name=key_name
+            bucket_name=self.bucket_name, key_name=key_name
         )
 
-        response_headers = self._get_cors_headers_other(headers, bucket_name)
         if query.get("uploadId"):
-            upload_id = query["uploadId"][0]
+            return self.list_parts()
 
-            # 0 <= PartNumberMarker <= 2,147,483,647
-            part_number_marker = int(query.get("part-number-marker", [0])[0])
-            if part_number_marker > 2147483647:
-                raise NotAnIntegerException(
-                    name="part-number-marker", value=part_number_marker
-                )
-            if not (0 <= part_number_marker <= 2147483647):
-                raise InvalidMaxPartArgument("part-number-marker", 0, 2147483647)
+        if "acl" in query:
+            return self.get_object_acl()
+        if "tagging" in query:
+            return self.get_object_tagging()
+        if "legal-hold" in query:
+            return self.get_object_legal_hold()
+        if "attributes" in query:
+            return self.get_object_attributes()
 
-            # 0 <= MaxParts <= 2,147,483,647 (default is 1,000)
-            max_parts = int(query.get("max-parts", [1000])[0])
-            if max_parts > 2147483647:
-                raise NotAnIntegerException(name="max-parts", value=max_parts)
-            if not (0 <= max_parts <= 2147483647):
-                raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
+        return self.get_object()
 
-            parts = self.backend.list_parts(
-                bucket_name,
-                upload_id,
-                part_number_marker=part_number_marker,
-                max_parts=max_parts,
-            )
-            next_part_number_marker = parts[-1].name if parts else 0
-            is_truncated = len(parts) != 0 and self.backend.is_truncated(
-                bucket_name,
-                upload_id,
-                next_part_number_marker,  # type: ignore
-            )
-
-            template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
-            return (
-                200,
-                response_headers,
-                template.render(
-                    bucket_name=bucket_name,
-                    key_name=key_name,
-                    upload_id=upload_id,
-                    is_truncated=str(is_truncated).lower(),
-                    max_parts=max_parts,
-                    next_part_number_marker=next_part_number_marker,
-                    parts=parts,
-                    part_number_marker=part_number_marker,
-                ),
-            )
-
-        part_number = query.get("partNumber", [None])[0]
-        if part_number:
-            part_number = int(part_number)
-
+    def get_object(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
+        response_headers = self._get_cors_headers_other()
         if not_modified:
             return 304, response_headers, "Not Modified"
 
         if key.version_id != "null":
             response_headers["x-amz-version-id"] = key.version_id
 
-        if "acl" in query:
-            return self.get_object_acl()
-        if "tagging" in query:
-            tags = self.backend.get_object_tagging(key)["Tags"]
-            template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
-            return 200, response_headers, template.render(tags=tags)
-        if "legal-hold" in query:
-            legal_hold = self.backend.get_object_legal_hold(key)
-            template = self.response_template(S3_OBJECT_LEGAL_HOLD)
-            return 200, response_headers, template.render(legal_hold=legal_hold)
-        if "attributes" in query:
-            attributes_to_get = headers.get("x-amz-object-attributes", "").split(",")
-            response_keys = self.backend.get_object_attributes(key, attributes_to_get)
-
-            response_headers["Last-Modified"] = key.last_modified_ISO8601
-
-            template = self.response_template(S3_OBJECT_ATTRIBUTES_RESPONSE)
-            return 200, response_headers, template.render(**response_keys)
-
         response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
         response_headers.update({"Accept-Ranges": "bytes"})
+
+        part_number = self._get_int_param("partNumber")
         if part_number:
             if key.multipart:
                 # TODO
@@ -1580,6 +1514,99 @@ class S3Response(BaseResponse):
                 response_headers["content-range"] = f"bytes 0-{key.size - 1}/{key.size}"
                 return 206, response_headers, key.value
         return 200, response_headers, key.value
+
+    def get_object_attributes(self) -> TYPE_RESPONSE:
+        key, not_modified = self._get_key()
+        response_headers = self._get_cors_headers_other()
+        if not_modified:
+            return 304, response_headers, "Not Modified"
+
+        if key.version_id != "null":
+            response_headers["x-amz-version-id"] = key.version_id
+
+        attributes_to_get = self.headers.get("x-amz-object-attributes", "").split(",")
+        response_keys = self.backend.get_object_attributes(key, attributes_to_get)
+        response_headers["Last-Modified"] = key.last_modified_ISO8601
+        template = self.response_template(S3_OBJECT_ATTRIBUTES_RESPONSE)
+        return 200, response_headers, template.render(**response_keys)
+
+    def get_object_legal_hold(self) -> TYPE_RESPONSE:
+        key, not_modified = self._get_key()
+        response_headers = self._get_cors_headers_other()
+        if not_modified:
+            return 304, response_headers, "Not Modified"
+
+        if key.version_id != "null":
+            response_headers["x-amz-version-id"] = key.version_id
+
+        legal_hold = self.backend.get_object_legal_hold(key)
+        template = self.response_template(S3_OBJECT_LEGAL_HOLD)
+        return 200, response_headers, template.render(legal_hold=legal_hold)
+
+    def get_object_tagging(self) -> TYPE_RESPONSE:
+        key, not_modified = self._get_key()
+        response_headers = self._get_cors_headers_other()
+        if not_modified:
+            return 304, response_headers, "Not Modified"
+
+        if key.version_id != "null":
+            response_headers["x-amz-version-id"] = key.version_id
+
+        tags = self.backend.get_object_tagging(key)["Tags"]
+
+        template = self.response_template(S3_OBJECT_TAGGING_RESPONSE)
+        return 200, response_headers, template.render(tags=tags)
+
+    def list_parts(self) -> TYPE_RESPONSE:
+        response_headers = self._get_cors_headers_other()
+
+        upload_id = self._get_param("uploadId")
+
+        # 0 <= PartNumberMarker <= 2,147,483,647
+        part_number_marker = self._get_int_param("part-number-marker", 0)
+        if part_number_marker > 2147483647:
+            raise NotAnIntegerException(
+                name="part-number-marker", value=part_number_marker
+            )
+        if not (0 <= part_number_marker <= 2147483647):
+            raise InvalidMaxPartArgument("part-number-marker", 0, 2147483647)
+
+        # 0 <= MaxParts <= 2,147,483,647 (default is 1,000)
+        max_parts = self._get_int_param("max-parts", 1000)
+        if max_parts > 2147483647:
+            raise NotAnIntegerException(name="max-parts", value=max_parts)
+        if not (0 <= max_parts <= 2147483647):
+            raise InvalidMaxPartArgument("max-parts", 0, 2147483647)
+
+        parts = self.backend.list_parts(
+            self.bucket_name,
+            upload_id,
+            part_number_marker=part_number_marker,
+            max_parts=max_parts,
+        )
+        next_part_number_marker = parts[-1].name if parts else 0
+        is_truncated = len(parts) != 0 and self.backend.is_truncated(
+            self.bucket_name,
+            upload_id,
+            next_part_number_marker,  # type: ignore
+        )
+
+        key_name = self.parse_key_name()
+        template = self.response_template(S3_MULTIPART_LIST_RESPONSE)
+        return (
+            200,
+            response_headers,
+            template.render(
+                bucket_name=self.bucket_name,
+                key_name=key_name,
+                upload_id=upload_id,
+                is_truncated=str(is_truncated).lower(),
+                max_parts=max_parts,
+                next_part_number_marker=next_part_number_marker,
+                parts=parts,
+                part_number_marker=part_number_marker,
+            ),
+        )
 
     def _get_key(self) -> Tuple[FakeKey, bool]:
         key_name = self.parse_key_name()
@@ -1662,7 +1689,7 @@ class S3Response(BaseResponse):
 
     def put_object(self) -> TYPE_RESPONSE:
         key_name = self.parse_key_name()
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
 
         storage_class = self.headers.get("x-amz-storage-class", "STANDARD")
         encryption = self.headers.get("x-amz-server-side-encryption")
@@ -1816,7 +1843,7 @@ class S3Response(BaseResponse):
         if acl is not None:
             new_key.set_acl(acl)
 
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         tdirective = self.headers.get("x-amz-tagging-directive")
         if tdirective == "REPLACE":
             tagging = self._tagging_from_headers(self.headers)
@@ -1866,7 +1893,7 @@ class S3Response(BaseResponse):
         tagging = self._tagging_from_xml()
         self.backend.put_object_tagging(key_to_tag, tagging, key_name)
 
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
         return 200, response_headers, ""
 
@@ -1878,7 +1905,7 @@ class S3Response(BaseResponse):
         key_name = self.parse_key_name()
         self.backend.put_object_acl(self.bucket_name, key_name, acl)
 
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
         return 200, response_headers, ""
 
@@ -1895,7 +1922,7 @@ class S3Response(BaseResponse):
             self.bucket_name, key_name, version_id, legal_hold_status
         )
 
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
         return 200, response_headers, ""
 
@@ -1912,7 +1939,7 @@ class S3Response(BaseResponse):
             self.bucket_name, key_name, version_id=version_id, retention=retention
         )
 
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
         return 200, response_headers, ""
 
@@ -1926,14 +1953,14 @@ class S3Response(BaseResponse):
             self.bucket_name, upload_id, part_number, self.body
         )
 
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
         response_headers.update(key.response_dict)
         response_headers["content-length"] = "0"
         return 200, response_headers, ""
 
     def upload_part_copy(self) -> TYPE_RESPONSE:
-        response_headers = self._get_cors_headers_other(self.headers, self.bucket_name)
+        response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
 
         upload_id = self._get_param("uploadId")
