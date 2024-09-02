@@ -13,7 +13,15 @@ updates:
     directory: "other_langs/tests_java"
     schedule:
       interval: "monthly"
+    groups:
+      java-deps:
+        patterns:
+          - "*"
   - package-ecosystem: "nuget"
     directory: "other_langs/tests_dotnet"
     schedule:
       interval: "monthly"
+    groups:
+      dotnet-deps:
+        patterns:
+          - "*"
