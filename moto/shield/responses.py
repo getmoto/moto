@@ -86,8 +86,6 @@ class ShieldResponse(BaseResponse):
         )
         return "{}"
 
-    def create_subscription(self):
-        params = self._get_params()
+    def create_subscription(self) -> str:
         self.shield_backend.create_subscription()
-        # TODO: adjust response
-        return json.dumps(dict())
+        return "{}"

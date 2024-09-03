@@ -24,19 +24,14 @@ class Limit:
     type: str
     max: int
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore
         return {"Type": self.type, "Max": self.max}
-
-    @classmethod
-    def default_list(cls):
-        return list(cls("MitigationCapacityUnits", 10000))
-
 
 @dataclass
 class ArbitraryPatternLimits:
     max_members: int
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore
         return {"MaxMembers": self.max_members}
 
 
@@ -44,7 +39,7 @@ class ArbitraryPatternLimits:
 class PatternTypeLimits:
     arbitrary_pattern_limits: ArbitraryPatternLimits
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore
         return {"PatternTypeLimits": self.arbitrary_pattern_limits.to_dict()}
 
 
@@ -53,7 +48,7 @@ class ProtectionGroupLimits:
     max_protection_groups: int
     pattern_type_limits: PatternTypeLimits
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore
         return {
             "MaxProtectionGroups": self.max_protection_groups,
             "PatternTypeLimits": self.pattern_type_limits,
@@ -64,7 +59,7 @@ class ProtectionGroupLimits:
 class ProtectionLimits:
     protection_resource_type_limits: List[Limit]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore
         return {
             "ProtectionResourceTypeLimits": [
                 limit.to_dict() for limit in self.protection_resource_type_limits
@@ -77,28 +72,27 @@ class SubscriptionLimits:
     protection_limits: ProtectionLimits
     protection_group_limits: ProtectionGroupLimits
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]: # type: ignore
         return {
             "ProtectionLimits": self.protection_limits,
             "ProtectionGroupLimits": self.protection_group_limits,
         }
 
-    @classmethod
-    def new(cls):
-        protection_limits = ProtectionLimits(
-            protection_resource_type_limits=[
-                Limit(type="ELASTIC_IP_ADDRESS", max=100),
-                Limit(type="APPLICATION_LOAD_BALANCER", max=50),
-            ]
-        )
-        protection_group_limits = ProtectionGroupLimits(
-            max_protection_groups=20,
-            pattern_type_limits=PatternTypeLimits(
-                arbitrary_pattern_limits=ArbitraryPatternLimits(max_members=100)
-            ),
-        )
-        return cls(protection_limits, protection_group_limits)
 
+def default_subscription_limits() -> SubscriptionLimits:
+    protection_limits = ProtectionLimits(
+        protection_resource_type_limits=[
+            Limit(type="ELASTIC_IP_ADDRESS", max=100),
+            Limit(type="APPLICATION_LOAD_BALANCER", max=50),
+        ]
+    )
+    protection_group_limits = ProtectionGroupLimits(
+        max_protection_groups=20,
+        pattern_type_limits=PatternTypeLimits(
+            arbitrary_pattern_limits=ArbitraryPatternLimits(max_members=100)
+        ),
+    )
+    return SubscriptionLimits(protection_limits, protection_group_limits)
 
 @dataclass
 class Subscription:
@@ -108,10 +102,10 @@ class Subscription:
         default_factory=lambda: datetime.now() + timedelta(days=365)
     )
     auto_renew: str = field(default="ENABLED")
-    limits: List[Limit] = field(default_factory=Limit.default_list)
+    limits: List[Limit] = field(default_factory=lambda: [Limit(type="MitigationCapacityUnits", max=10000)])
     proactive_engagement_status: str = field(default="ENABLED")
     subscription_limits: SubscriptionLimits = field(
-        default_factory=SubscriptionLimits.new
+        default_factory=default_subscription_limits
     )
     subscription_arn: str = field(default="")
     time_commitment_in_seconds: int = field(default=31536000)
@@ -127,8 +121,8 @@ class Subscription:
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {
-            "StartTime": self.start_time,
-            "EndTime": self.end_time,
+            "StartTime": self.start_time.strftime("%d/%m/%Y, %H:%M:%S"),
+            "EndTime": self.end_time.strftime("%d/%m/%Y, %H:%M:%S"),
             "TimeCommitmentInSeconds": self.time_commitment_in_seconds,
             "AutoRenew": self.auto_renew,
             "Limits": [limit.to_dict() for limit in self.limits],
@@ -187,6 +181,7 @@ class ShieldBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.protections: Dict[str, Protection] = dict()
+        self.subscriptions: Dict[str, Subscription] = dict()
         self.tagger = TaggingService()
 
     def validate_resource_arn(self, resource_arn: str) -> None:
@@ -320,8 +315,9 @@ class ShieldBackend(BaseBackend):
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def create_subscription(self) -> Subscription:
-        # implement here
+    def create_subscription(self) -> None:
+        subscription = Subscription(account_id=self.account_id)
+        self.subscriptions[subscription.subscription_arn] = subscription
         return
 
 
