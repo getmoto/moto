@@ -89,3 +89,8 @@ class ShieldResponse(BaseResponse):
     def create_subscription(self) -> str:
         self.shield_backend.create_subscription()
         return "{}"
+    
+    def describe_subscription(self):
+        subscription = self.shield_backend.describe_subscription(
+        )
+        return json.dumps(dict(Subscription=subscription.to_dict()))

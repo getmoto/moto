@@ -373,9 +373,19 @@ def test_untag_resource():
 
 
 @mock_aws
-def test_create_describe_subscription():
+def test_create_and_describe_subscription():
     client = boto3.client("shield", region_name="eu-west-1")
     client.create_subscription()
-    assert True # TODO describe subscription
-
-
+    connection = client.describe_subscription()
+    subscription = connection["Subscription"]
+    assert subscription["AutoRenew"] == "ENABLED"
+    assert subscription["Limits"][0]["Type"] == "MitigationCapacityUnits"
+    assert subscription["Limits"][0]["Max"] == 10000
+    assert subscription["ProactiveEngagementStatus"] == "ENABLED"
+    assert subscription["SubscriptionLimits"]["ProtectionLimits"]["ProtectedResourceTypeLimits"][0]["Type"] == "ELASTIC_IP_ADDRESS"
+    assert subscription["SubscriptionLimits"]["ProtectionLimits"]["ProtectedResourceTypeLimits"][0]["Max"] == 100
+    assert subscription["SubscriptionLimits"]["ProtectionLimits"]["ProtectedResourceTypeLimits"][1]["Type"] == "APPLICATION_LOAD_BALANCER"
+    assert subscription["SubscriptionLimits"]["ProtectionLimits"]["ProtectedResourceTypeLimits"][1]["Max"] == 50
+    assert subscription["SubscriptionLimits"]["ProtectionGroupLimits"]["MaxProtectionGroups"] == 20
+    assert subscription["SubscriptionLimits"]["ProtectionGroupLimits"]["PatternTypeLimits"]["ArbitraryPatternLimits"]["MaxMembers"] == 100
+    assert subscription["TimeCommitmentInSeconds"] == 31536000
