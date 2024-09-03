@@ -85,3 +85,9 @@ class ShieldResponse(BaseResponse):
             tag_keys=tag_keys,
         )
         return "{}"
+
+    def create_subscription(self):
+        params = self._get_params()
+        self.shield_backend.create_subscription()
+        # TODO: adjust response
+        return json.dumps(dict())

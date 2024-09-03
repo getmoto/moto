@@ -370,3 +370,11 @@ def test_untag_resource():
     resp = client.list_tags_for_resource(ResourceARN=protection_arn)
     assert len(resp["Tags"]) == 1
     assert "key2" == resp["Tags"][0]["Key"]
+
+
+@mock_aws
+def test_create_subscription():
+    client = boto3.client("shield", region_name="eu-west-1")
+    resp = client.create_subscription()
+
+    raise Exception("NotYetImplemented")
