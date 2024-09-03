@@ -25,14 +25,15 @@ class Limit:
     type: str
     max: int
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {"Type": self.type, "Max": self.max}
+
 
 @dataclass
 class ArbitraryPatternLimits:
     max_members: int
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {"MaxMembers": self.max_members}
 
 
@@ -40,7 +41,7 @@ class ArbitraryPatternLimits:
 class PatternTypeLimits:
     arbitrary_pattern_limits: ArbitraryPatternLimits
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {"ArbitraryPatternLimits": self.arbitrary_pattern_limits.to_dict()}
 
 
@@ -49,7 +50,7 @@ class ProtectionGroupLimits:
     max_protection_groups: int
     pattern_type_limits: PatternTypeLimits
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {
             "MaxProtectionGroups": self.max_protection_groups,
             "PatternTypeLimits": self.pattern_type_limits.to_dict(),
@@ -60,7 +61,7 @@ class ProtectionGroupLimits:
 class ProtectionLimits:
     protected_resource_type_limits: List[Limit]
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {
             "ProtectedResourceTypeLimits": [
                 limit.to_dict() for limit in self.protected_resource_type_limits
@@ -73,7 +74,7 @@ class SubscriptionLimits:
     protection_limits: ProtectionLimits
     protection_group_limits: ProtectionGroupLimits
 
-    def to_dict(self) -> Dict[str, Any]: # type: ignore
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
         return {
             "ProtectionLimits": self.protection_limits.to_dict(),
             "ProtectionGroupLimits": self.protection_group_limits.to_dict(),
@@ -93,7 +94,11 @@ def default_subscription_limits() -> SubscriptionLimits:
             arbitrary_pattern_limits=ArbitraryPatternLimits(max_members=100)
         ),
     )
-    return SubscriptionLimits(protection_limits=protection_limits, protection_group_limits=protection_group_limits)
+    return SubscriptionLimits(
+        protection_limits=protection_limits,
+        protection_group_limits=protection_group_limits,
+    )
+
 
 @dataclass
 class Subscription:
@@ -103,7 +108,9 @@ class Subscription:
         default_factory=lambda: datetime.now() + timedelta(days=365)
     )
     auto_renew: str = field(default="ENABLED")
-    limits: List[Limit] = field(default_factory=lambda: [Limit(type="MitigationCapacityUnits", max=10000)])
+    limits: List[Limit] = field(
+        default_factory=lambda: [Limit(type="MitigationCapacityUnits", max=10000)]
+    )
     proactive_engagement_status: str = field(default="ENABLED")
     subscription_limits: SubscriptionLimits = field(
         default_factory=default_subscription_limits
@@ -317,13 +324,13 @@ class ShieldBackend(BaseBackend):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_subscription(self) -> None:
-        self.subscription= Subscription(account_id=self.account_id)
+        self.subscription = Subscription(account_id=self.account_id)
         return
 
     def describe_subscription(self) -> Subscription:
         if self.subscription is None:
             raise SubscriptionNotFoundError()
         return self.subscription
-    
+
 
 shield_backends = BackendDict(ShieldBackend, "ec2")
