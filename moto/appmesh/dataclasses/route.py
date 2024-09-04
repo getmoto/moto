@@ -311,9 +311,9 @@ class Route:
     metadata: RouteMetadata
     route_name: str
     spec: RouteSpec
-    tags: Optional[List[Dict[str, str]]]
     virtual_router_name: str
     status: Status = field(default_factory=lambda: {"status": "ACTIVE"})
+    tags: List[Dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
