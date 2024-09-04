@@ -204,6 +204,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         data: Dict[str, str],
         body: bytes,
         headers: Dict[str, str],
+        action: str,
     ):
         log.debug(
             f"Creating {self.__class__.__name__} with method={method}, path={path}, data={data}, headers={headers}"
@@ -220,15 +221,8 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         credential_data = credential_scope.split("/")
         self._region = credential_data[2]
         self._service = credential_data[3]
-        action_from_request = self._action_from_request()
         self._action = (
-            self._service
-            + ":"
-            + (
-                action_from_request[0]
-                if isinstance(action_from_request, list)
-                else action_from_request
-            )
+            f"{self._service}:{action[0] if isinstance(action, list) else action}"
         )
         try:
             self._access_key = create_access_key(
@@ -239,11 +233,6 @@ class IAMRequestBase(object, metaclass=ABCMeta):
             )
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)
-
-    def _action_from_request(self) -> str:
-        if "X-Amz-Target" in self._headers:
-            return self._headers["X-Amz-Target"].split(".")[-1]
-        return self._data["Action"]
 
     def check_signature(self) -> None:
         original_signature = self._get_string_between(
