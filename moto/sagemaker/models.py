@@ -39,19 +39,19 @@ PAGINATION_MODEL = {
         "input_token": "NextToken",
         "limit_key": "MaxResults",
         "limit_default": 100,
-        "unique_attribute": "experiment_arn",
+        "unique_attribute": "arn",
     },
     "list_trials": {
         "input_token": "NextToken",
         "limit_key": "MaxResults",
         "limit_default": 100,
-        "unique_attribute": "trial_arn",
+        "unique_attribute": "arn",
     },
     "list_trial_components": {
         "input_token": "NextToken",
         "limit_key": "MaxResults",
         "limit_default": 100,
-        "unique_attribute": "trial_component_arn",
+        "unique_attribute": "arn",
     },
     "list_tags": {
         "input_token": "NextToken",
@@ -63,13 +63,13 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "model_package_group_arn",
+        "unique_attribute": "arn",
     },
     "list_model_packages": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "model_package_arn",
+        "unique_attribute": "arn",
     },
     "list_notebook_instances": {
         "input_token": "next_token",
@@ -87,7 +87,7 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "cluster_node_arn",
+        "unique_attribute": "arn",
     },
     "list_auto_ml_jobs": {
         "input_token": "next_token",
@@ -99,13 +99,13 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "endpoint_arn",
+        "unique_attribute": "arn",
     },
     "list_endpoint_configs": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "endpoint_config_arn",
+        "unique_attribute": "arn",
     },
     "list_compilation_jobs": {
         "input_token": "next_token",
@@ -141,7 +141,7 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "model_card_arn",
+        "unique_attribute": "arn",
     },
     "list_model_card_versions": {
         "input_token": "next_token",
@@ -204,7 +204,7 @@ class FakePipelineExecution(BaseObject):
         pipeline_definition: str,
         client_request_token: str,
     ):
-        self.pipeline_execution_arn = pipeline_execution_arn
+        self.arn = pipeline_execution_arn
         self.pipeline_execution_display_name = pipeline_execution_display_name
         self.pipeline_parameters = pipeline_parameters
         self.pipeline_execution_description = pipeline_execution_description
@@ -253,9 +253,7 @@ class FakePipeline(BaseObject):
         parallelism_configuration: Dict[str, int],
     ):
         self.pipeline_name = pipeline_name
-        self.pipeline_arn = arn_formatter(
-            "pipeline", pipeline_name, account_id, region_name
-        )
+        self.arn = arn_formatter("pipeline", pipeline_name, account_id, region_name)
         self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
@@ -306,10 +304,9 @@ class FakeProcessingJob(BaseObject):
         stopping_condition: Dict[str, int],
     ):
         self.processing_job_name = processing_job_name
-        self.processing_job_arn = FakeProcessingJob.arn_formatter(
+        self.arn = FakeProcessingJob.arn_formatter(
             processing_job_name, account_id, region_name
         )
-
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
         self.last_modified_time = now_string
@@ -327,13 +324,16 @@ class FakeProcessingJob(BaseObject):
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["ProcessingJobArn"] = response.pop("Arn")
+
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"ProcessingJobArn": self.processing_job_arn}
+        return {"ProcessingJobArn": self.arn}
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region: str) -> str:
@@ -384,7 +384,7 @@ class FakeTrainingJob(BaseObject):
         self.debug_rule_configurations = debug_rule_configurations
         self.tensor_board_output_config = tensor_board_output_config
         self.experiment_config = experiment_config
-        self.training_job_arn = FakeTrainingJob.arn_formatter(
+        self.arn = FakeTrainingJob.arn_formatter(
             training_job_name, account_id, region_name
         )
         self.creation_time = self.last_modified_time = datetime.now().strftime(
@@ -430,13 +430,16 @@ class FakeTrainingJob(BaseObject):
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["TrainingJobArn"] = response.pop("Arn")
+
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"TrainingJobArn": self.training_job_arn}
+        return {"TrainingJobArn": self.arn}
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region_name: str) -> str:
@@ -455,9 +458,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
         tags: List[Dict[str, str]],
     ):
         self.endpoint_name = endpoint_name
-        self.endpoint_arn = FakeEndpoint.arn_formatter(
-            endpoint_name, account_id, region_name
-        )
+        self.arn = FakeEndpoint.arn_formatter(endpoint_name, account_id, region_name)
         self.endpoint_config_name = endpoint_config_name
         self.production_variants = self._process_production_variants(
             production_variants
@@ -511,7 +512,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
     def summary(self) -> Dict[str, Any]:
         return {
             "EndpointName": self.endpoint_name,
-            "EndpointArn": self.endpoint_arn,
+            "EndpointArn": self.arn,
             "CreationTime": self.creation_time,
             "LastModifiedTime": self.last_modified_time,
             "EndpointStatus": self.endpoint_status,
@@ -520,13 +521,16 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["EndpointArn"] = response.pop("Arn")
+
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"EndpointArn": self.endpoint_arn}
+        return {"EndpointArn": self.arn}
 
     @staticmethod
     def arn_formatter(endpoint_name: str, account_id: str, region_name: str) -> str:
@@ -534,7 +538,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
 
     @property
     def physical_resource_id(self) -> str:
-        return self.endpoint_arn
+        return self.arn
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -590,7 +594,7 @@ class FakeEndpoint(BaseObject, CloudFormationModel):
     ) -> "FakeEndpoint":
         # Changes to the Endpoint will not change resource name
         cls.delete_from_cloudformation_json(
-            original_resource.endpoint_arn, cloudformation_json, account_id, region_name
+            original_resource.arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
             original_resource.endpoint_name,
@@ -633,6 +637,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         self.endpoint_config_arn = FakeEndpointConfig.arn_formatter(
             endpoint_config_name, account_id, region_name
         )
+        self.arn = (self.endpoint_config_arn,)
         self.production_variants = production_variants or []
         self.data_capture_config = data_capture_config or {}
         self.tags = tags or []
@@ -880,7 +885,7 @@ class FakeTransformJob(BaseObject):
         self.data_processing = data_processing
         self.tags = tags
         self.experiment_config = experiment_config
-        self.transform_job_arn = FakeTransformJob.arn_formatter(
+        self.arn = FakeTransformJob.arn_formatter(
             transform_job_name, account_id, region_name
         )
         self.transform_job_status = "Completed"
@@ -913,7 +918,7 @@ class FakeTransformJob(BaseObject):
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"TransformJobArn": self.transform_job_arn}
+        return {"TransformJobArn": self.arn}
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region_name: str) -> str:
@@ -940,24 +945,25 @@ class Model(BaseObject, CloudFormationModel):
         self.vpc_config = vpc_config
         self.primary_container = primary_container
         self.execution_role_arn = execution_role_arn or "arn:test"
-        self.model_arn = arn_formatter(
-            "model", self.model_name, account_id, region_name
-        )
+        self.arn = arn_formatter("model", self.model_name, account_id, region_name)
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["ModelArn"] = response.pop("Arn")
+
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"ModelArn": self.model_arn}
+        return {"ModelArn": self.arn}
 
     @property
     def physical_resource_id(self) -> str:
-        return self.model_arn
+        return self.arn
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -1017,7 +1023,7 @@ class Model(BaseObject, CloudFormationModel):
     ) -> "Model":
         # Most changes to the model will change resource name for Models
         cls.delete_from_cloudformation_json(
-            original_resource.model_arn, cloudformation_json, account_id, region_name
+            original_resource.arn, cloudformation_json, account_id, region_name
         )
         new_resource = cls.create_from_cloudformation_json(
             new_resource_name, cloudformation_json, account_id, region_name
@@ -1065,7 +1071,7 @@ class ModelPackageGroup(BaseObject):
         )
         datetime_now = datetime.now(tzutc())
         self.model_package_group_name = model_package_group_name
-        self.model_package_group_arn = model_package_group_arn
+        self.arn = model_package_group_arn
         self.model_package_group_description = model_package_group_description
         self.creation_time = datetime_now
         self.created_by = {
@@ -1083,12 +1089,15 @@ class ModelPackageGroup(BaseObject):
                 response_object[k] = v.isoformat()
         response_values = [
             "ModelPackageGroupName",
-            "ModelPackageGroupArn",
+            "Arn",
             "ModelPackageGroupDescription",
             "CreationTime",
             "ModelPackageGroupStatus",
         ]
-        return {k: v for k, v in response_object.items() if k in response_values}
+        response = {k: v for k, v in response_object.items() if k in response_values}
+        response["ModelPackageGroupArn"] = response.pop("Arn")
+
+        return response
 
 
 class FakeModelCard(BaseObject):
@@ -1106,9 +1115,7 @@ class FakeModelCard(BaseObject):
         last_modified_time: Optional[str] = None,
     ) -> None:
         datetime_now = str(datetime.now(tzutc()))
-        self.model_card_arn = arn_formatter(
-            "model-card", model_card_name, account_id, region_name
-        )
+        self.arn = arn_formatter("model-card", model_card_name, account_id, region_name)
         self.model_card_name = model_card_name
         self.model_card_version = model_card_version
         self.content = content
@@ -1122,7 +1129,7 @@ class FakeModelCard(BaseObject):
 
     def describe(self) -> Dict[str, Any]:
         return {
-            "ModelCardArn": self.model_card_arn,
+            "ModelCardArn": self.arn,
             "ModelCardName": self.model_card_name,
             "ModelCardVersion": self.model_card_version,
             "Content": self.content,
@@ -1137,7 +1144,7 @@ class FakeModelCard(BaseObject):
     def summary(self) -> Dict[str, Any]:
         return {
             "ModelCardName": self.model_card_name,
-            "ModelCardArn": self.model_card_arn,
+            "ModelCardArn": self.arn,
             "ModelCardStatus": self.model_card_status,
             "CreationTime": self.creation_time,
             "LastModifiedTime": self.last_modified_time,
@@ -1146,7 +1153,7 @@ class FakeModelCard(BaseObject):
     def version_summary(self) -> Dict[str, Any]:
         return {
             "ModelCardName": self.model_card_name,
-            "ModelCardArn": self.model_card_arn,
+            "ModelCardArn": self.arn,
             "ModelCardStatus": self.model_card_status,
             "ModelCardVersion": self.model_card_version,
             "CreationTime": self.creation_time,
@@ -1188,7 +1195,7 @@ class FeatureGroup(BaseObject):
         self.role_arn = role_arn
 
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.feature_group_arn = arn_formatter(
+        self.arn = arn_formatter(
             region_name=region_name,
             account_id=account_id,
             _type="feature-group",
@@ -1198,7 +1205,7 @@ class FeatureGroup(BaseObject):
 
     def describe(self) -> Dict[str, Any]:
         return {
-            "FeatureGroupArn": self.feature_group_arn,
+            "FeatureGroupArn": self.arn,
             "FeatureGroupName": self.feature_group_name,
             "RecordIdentifierFeatureName": self.record_identifier_feature_name,
             "EventTimeFeatureName": self.event_time_feature_name,
@@ -1258,7 +1265,7 @@ class ModelPackage(BaseObject):
         self.model_package_name = model_package_name
         self.model_package_group_name = model_package_group_name
         self.model_package_version = model_package_version
-        self.model_package_arn = model_package_arn
+        self.arn = model_package_arn
         self.model_package_description = model_package_description
         self.creation_time = datetime_now
         self.inference_specification = inference_specification
@@ -1314,7 +1321,7 @@ class ModelPackage(BaseObject):
             "ModelPackageName",
             "ModelPackageGroupName",
             "ModelPackageVersion",
-            "ModelPackageArn",
+            "Arn",
             "ModelPackageDescription",
             "CreationTime",
             "InferenceSpecification",
@@ -1342,12 +1349,15 @@ class ModelPackage(BaseObject):
             del response_object["ModelPackageName"]
         elif self.model_package_type == "Unversioned":
             del response_object["ModelPackageGroupName"]
-        return {
+        response = {
             k: v
             for k, v in response_object.items()
             if k in response_values
             if v is not None
         }
+        response["ModelPackageArn"] = response.pop("Arn")
+
+        return response
 
     def modifications_done(self) -> None:
         self.last_modified_time = datetime.now(tzutc())
@@ -2748,28 +2758,29 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
         )
-        self.notebook_instance_lifecycle_config_arn = (
-            FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
-                self.notebook_instance_lifecycle_config_name, account_id, region_name
-            )
+        self.arn = FakeSageMakerNotebookInstanceLifecycleConfig.arn_formatter(
+            self.notebook_instance_lifecycle_config_name, account_id, region_name
         )
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region_name: str) -> str:
         return arn_formatter(
-            "notebook-instance-lifecycle-configuration", name, account_id, region_name
+            "notebook-instance-lifecycle-config", name, account_id, region_name
         )
 
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["NotebookInstanceLifecycleConfigArn"] = response.pop("Arn")
+
+        return response
 
     @property
     def physical_resource_id(self) -> str:
-        return self.notebook_instance_lifecycle_config_arn
+        return self.arn
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -2823,7 +2834,7 @@ class FakeSageMakerNotebookInstanceLifecycleConfig(BaseObject, CloudFormationMod
     ) -> "FakeSageMakerNotebookInstanceLifecycleConfig":
         # Operations keep same resource name so delete old and create new to mimic update
         cls.delete_from_cloudformation_json(
-            original_resource.notebook_instance_lifecycle_config_arn,
+            original_resource.arn,
             cloudformation_json,
             account_id,
             region_name,
@@ -2997,7 +3008,7 @@ class SageMakerModelBackend(BaseBackend):
         experiment_data = self.experiments[experiment_name]
         return {
             "ExperimentName": experiment_data.experiment_name,
-            "ExperimentArn": experiment_data.experiment_arn,
+            "ExperimentArn": experiment_data.arn,
             "CreationTime": experiment_data.creation_time,
             "LastModifiedTime": experiment_data.last_modified_time,
         }
@@ -3143,7 +3154,7 @@ class SageMakerModelBackend(BaseBackend):
             experiment_summaries = [
                 {
                     "ExperimentName": experiment_data.experiment_name,
-                    "ExperimentArn": experiment_data.experiment_arn,
+                    "ExperimentArn": experiment_data.arn,
                     "CreationTime": experiment_data.creation_time,
                     "LastModifiedTime": experiment_data.last_modified_time,
                 }
@@ -3160,7 +3171,7 @@ class SageMakerModelBackend(BaseBackend):
             trial_summaries = [
                 {
                     "TrialName": trial_data.trial_name,
-                    "TrialArn": trial_data.trial_arn,
+                    "TrialArn": trial_data.arn,
                     "CreationTime": trial_data.creation_time,
                     "LastModifiedTime": trial_data.last_modified_time,
                 }
@@ -3177,7 +3188,7 @@ class SageMakerModelBackend(BaseBackend):
             trial_component_summaries = [
                 {
                     "TrialComponentName": trial_component_data.trial_component_name,
-                    "TrialComponentArn": trial_component_data.trial_component_arn,
+                    "TrialComponentArn": trial_component_data.arn,
                     "CreationTime": trial_component_data.creation_time,
                     "LastModifiedTime": trial_component_data.last_modified_time,
                 }
@@ -3191,7 +3202,7 @@ class SageMakerModelBackend(BaseBackend):
         if resource == "ModelPackageGroup":
             package_groups = [
                 {
-                    "ModelPackageGroupArn": group.model_package_group_arn,
+                    "ModelPackageGroupArn": group.arn,
                     "ModelPackageGroupDescription": group.model_package_group_description,
                     "CreationTime": group.creation_time.strftime("%Y-%m-%d %H:%M:%S"),
                     "ModelPackageGroupName": group.model_package_group_name,
@@ -3352,10 +3363,8 @@ class SageMakerModelBackend(BaseBackend):
             self.trial_components[trial_component_name].trial_name = trial_name
 
         return {
-            "TrialComponentArn": self.trial_components[
-                trial_component_name
-            ].trial_component_arn,
-            "TrialArn": self.trials[trial_name].trial_arn,
+            "TrialComponentArn": self.trial_components[trial_component_name].arn,
+            "TrialArn": self.trials[trial_name].arn,
         }
 
     def disassociate_trial_component(
@@ -3788,7 +3797,7 @@ class SageMakerModelBackend(BaseBackend):
     def delete_pipeline(self, pipeline_name: str) -> str:
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         del self.pipelines[pipeline.pipeline_name]
-        return pipeline.pipeline_arn
+        return pipeline.arn
 
     def update_pipeline(self, pipeline_name: str, **kwargs: Any) -> str:
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
@@ -3816,7 +3825,7 @@ class SageMakerModelBackend(BaseBackend):
                     continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
 
-        return pipeline.pipeline_arn
+        return pipeline.arn
 
     def start_pipeline_execution(
         self,
@@ -3863,7 +3872,7 @@ class SageMakerModelBackend(BaseBackend):
         return {
             "PipelineExecutionSummaries": [
                 {
-                    "PipelineExecutionArn": pipeline_execution_arn,
+                    "PipelineExecutionArn": arn,
                     "StartTime": pipeline_execution.start_time,
                     "PipelineExecutionStatus": pipeline_execution.pipeline_execution_status,
                     "PipelineExecutionDescription": pipeline_execution.pipeline_execution_description,
@@ -3872,7 +3881,7 @@ class SageMakerModelBackend(BaseBackend):
                         pipeline_execution.pipeline_execution_failure_reason
                     ),
                 }
-                for pipeline_execution_arn, pipeline_execution in pipeline.pipeline_executions.items()
+                for arn, pipeline_execution in pipeline.pipeline_executions.items()
             ]
         }
 
@@ -3909,8 +3918,8 @@ class SageMakerModelBackend(BaseBackend):
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
 
         return {
-            "PipelineArn": pipeline.pipeline_arn,
-            "PipelineExecutionArn": pipeline_execution.pipeline_execution_arn,
+            "PipelineArn": pipeline.arn,
+            "PipelineExecutionArn": pipeline_execution.arn,
             "PipelineExecutionDisplayName": pipeline_execution.pipeline_execution_display_name,
             "PipelineExecutionStatus": pipeline_execution.pipeline_execution_status,
             "PipelineExecutionDescription": pipeline_execution.pipeline_execution_description,
@@ -3926,7 +3935,7 @@ class SageMakerModelBackend(BaseBackend):
     def describe_pipeline(self, pipeline_name: str) -> Dict[str, Any]:
         pipeline = get_pipeline_from_name(self.pipelines, pipeline_name)
         return {
-            "PipelineArn": pipeline.pipeline_arn,
+            "PipelineArn": pipeline.arn,
             "PipelineName": pipeline.pipeline_name,
             "PipelineDisplayName": pipeline.pipeline_display_name,
             "PipelineDescription": pipeline.pipeline_description,
@@ -4008,7 +4017,7 @@ class SageMakerModelBackend(BaseBackend):
 
         pipeline_summaries = [
             {
-                "PipelineArn": pipeline_data.pipeline_arn,
+                "PipelineArn": pipeline_data.arn,
                 "PipelineName": pipeline_data.pipeline_name,
                 "PipelineDisplayName": pipeline_data.pipeline_display_name,
                 "PipelineDescription": pipeline_data.pipeline_description,
@@ -4096,7 +4105,7 @@ class SageMakerModelBackend(BaseBackend):
         processing_job_summaries = [
             {
                 "ProcessingJobName": processing_job_data.processing_job_name,
-                "ProcessingJobArn": processing_job_data.processing_job_arn,
+                "ProcessingJobArn": processing_job_data.arn,
                 "CreationTime": processing_job_data.creation_time,
                 "ProcessingEndTime": processing_job_data.processing_end_time,
                 "LastModifiedTime": processing_job_data.last_modified_time,
@@ -4217,7 +4226,7 @@ class SageMakerModelBackend(BaseBackend):
         transform_job_summaries = [
             {
                 "TransformJobName": transform_job_data.transform_job_name,
-                "TransformJobArn": transform_job_data.transform_job_arn,
+                "TransformJobArn": transform_job_data.arn,
                 "CreationTime": transform_job_data.creation_time,
                 "TransformEndTime": transform_job_data.transform_end_time,
                 "LastModifiedTime": transform_job_data.last_modified_time,
@@ -4365,7 +4374,7 @@ class SageMakerModelBackend(BaseBackend):
         training_job_summaries = [
             {
                 "TrainingJobName": training_job_data.training_job_name,
-                "TrainingJobArn": training_job_data.training_job_arn,
+                "TrainingJobArn": training_job_data.arn,
                 "CreationTime": training_job_data.creation_time,
                 "TrainingEndTime": training_job_data.training_end_time,
                 "LastModifiedTime": training_job_data.last_modified_time,
@@ -4426,7 +4435,7 @@ class SageMakerModelBackend(BaseBackend):
                     break
 
         endpoint.endpoint_status = "InService"
-        return endpoint.endpoint_arn
+        return endpoint.arn
 
     def create_model_package_group(
         self,
@@ -4441,9 +4450,7 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             tags=tags or [],
         )
-        return self.model_package_groups[
-            model_package_group_name
-        ].model_package_group_arn
+        return self.model_package_groups[model_package_group_name].arn
 
     def _get_versioned_or_not(
         self, model_package_type: Optional[str], model_package_version: Optional[int]
@@ -4621,7 +4628,7 @@ class SageMakerModelBackend(BaseBackend):
         )
         model_package.modifications_done()
 
-        return model_package.model_package_arn
+        return model_package.arn
 
     def create_model_package(
         self,
@@ -4695,13 +4702,11 @@ class SageMakerModelBackend(BaseBackend):
             model_package_type=model_package_type,
         )
         self.model_package_name_mapping[model_package.model_package_name] = (
-            model_package.model_package_arn
+            model_package.arn
         )
-        self.model_package_name_mapping[model_package.model_package_arn] = (
-            model_package.model_package_arn
-        )
-        self.model_packages[model_package.model_package_arn] = model_package
-        return model_package.model_package_arn
+        self.model_package_name_mapping[model_package.arn] = model_package.arn
+        self.model_packages[model_package.arn] = model_package
+        return model_package.arn
 
     def create_feature_group(
         self,
@@ -4735,8 +4740,8 @@ class SageMakerModelBackend(BaseBackend):
             account_id=self.account_id,
             tags=tags,
         )
-        self.feature_groups[feature_group.feature_group_arn] = feature_group
-        return feature_group.feature_group_arn
+        self.feature_groups[feature_group.arn] = feature_group
+        return feature_group.arn
 
     def describe_feature_group(
         self,
@@ -5636,7 +5641,7 @@ class SageMakerModelBackend(BaseBackend):
         )
 
         self.model_cards[model_card_name].append(model_card)
-        return model_card.model_card_arn
+        return model_card.arn
 
     def update_model_card(
         self, model_card_name: str, content: str, model_card_status: str
@@ -5668,7 +5673,7 @@ class SageMakerModelBackend(BaseBackend):
         )
 
         self.model_cards[model_card_name].append(model_card)
-        return model_card.model_card_arn
+        return model_card.arn
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_cards(
@@ -5872,9 +5877,7 @@ class FakeExperiment(BaseObject):
         tags: List[Dict[str, str]],
     ):
         self.experiment_name = experiment_name
-        self.experiment_arn = arn_formatter(
-            "experiment", experiment_name, account_id, region_name
-        )
+        self.arn = arn_formatter("experiment", experiment_name, account_id, region_name)
         self.tags = tags
         self.creation_time = self.last_modified_time = datetime.now().strftime(
             "%Y-%m-%d %H:%M:%S"
@@ -5889,7 +5892,7 @@ class FakeExperiment(BaseObject):
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"ExperimentArn": self.experiment_arn}
+        return {"ExperimentArn": self.arn}
 
 
 class FakeTrial(BaseObject):
@@ -5903,7 +5906,7 @@ class FakeTrial(BaseObject):
         trial_components: List[str],
     ):
         self.trial_name = trial_name
-        self.trial_arn = FakeTrial.arn_formatter(trial_name, account_id, region_name)
+        self.arn = FakeTrial.arn_formatter(trial_name, account_id, region_name)
         self.tags = tags
         self.trial_components = trial_components
         self.experiment_name = experiment_name
@@ -5914,13 +5917,16 @@ class FakeTrial(BaseObject):
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["TrialArn"] = response.pop("Arn")
+
+        return response
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"TrialArn": self.trial_arn}
+        return {"TrialArn": self.arn}
 
     @staticmethod
     def arn_formatter(name: str, account_id: str, region: str) -> str:
@@ -5948,7 +5954,7 @@ class FakeTrialComponent(BaseObject):
         self.display_name = (
             display_name if display_name is not None else trial_component_name
         )
-        self.trial_component_arn = FakeTrialComponent.arn_formatter(
+        self.arn = FakeTrialComponent.arn_formatter(
             trial_component_name, account_id, region_name
         )
         self.status = status
@@ -5971,9 +5977,12 @@ class FakeTrialComponent(BaseObject):
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response_object["Metrics"] = self.gen_metrics_response_object()
-        return {
+        response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["TrialComponentArn"] = response.pop("Arn")
+
+        return response
 
     def gen_metrics_response_object(
         self,
@@ -6000,7 +6009,7 @@ class FakeTrialComponent(BaseObject):
             timestamp_int: int = cast(int, self.metrics[metrics_name]["Timestamp"])
             metrics_response_object = {
                 "MetricName": metrics_name,
-                "SourceArn": self.trial_component_arn,
+                "SourceArn": self.arn,
                 "TimeStamp": datetime.fromtimestamp(timestamp_int, tz=tzutc()).strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
@@ -6016,7 +6025,7 @@ class FakeTrialComponent(BaseObject):
 
     @property
     def response_create(self) -> Dict[str, str]:
-        return {"TrialComponentArn": self.trial_component_arn}
+        return {"TrialComponentArn": self.arn}
 
     @staticmethod
     def arn_formatter(

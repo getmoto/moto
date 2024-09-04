@@ -39,7 +39,7 @@ def _get_notebook_instance_arn(notebook_name):
 def _get_notebook_instance_lifecycle_arn(lifecycle_name):
     return (
         f"arn:aws:sagemaker:{TEST_REGION_NAME}:{ACCOUNT_ID}"
-        f":notebook-instance-lifecycle-configuration/{lifecycle_name}"
+        f":notebook-instance-lifecycle-config/{lifecycle_name}"
     )
 
 

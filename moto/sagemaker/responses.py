@@ -168,7 +168,7 @@ class SageMakerResponse(BaseResponse):
             endpoint_config_name=self._get_param("EndpointConfigName"),
             tags=self._get_param("Tags"),
         )
-        return 200, {}, json.dumps({"EndpointArn": endpoint.endpoint_arn})
+        return 200, {}, json.dumps({"EndpointArn": endpoint.arn})
 
     def describe_endpoint(self) -> str:
         endpoint_name = self._get_param("EndpointName")
@@ -192,7 +192,7 @@ class SageMakerResponse(BaseResponse):
             stopping_condition=self._get_param("StoppingCondition"),
             tags=self._get_param("Tags"),
         )
-        response = {"ProcessingJobArn": processing_job.processing_job_arn}
+        response = {"ProcessingJobArn": processing_job.arn}
         return 200, {}, json.dumps(response)
 
     def describe_processing_job(self) -> str:
@@ -218,7 +218,7 @@ class SageMakerResponse(BaseResponse):
             experiment_config=self._get_param("ExperimentConfig"),
         )
         response = {
-            "TransformJobArn": transform_job.transform_job_arn,
+            "TransformJobArn": transform_job.arn,
         }
         return 200, {}, json.dumps(response)
 
@@ -255,7 +255,7 @@ class SageMakerResponse(BaseResponse):
             experiment_config=self._get_param("ExperimentConfig"),
         )
         response = {
-            "TrainingJobArn": training_job.training_job_arn,
+            "TrainingJobArn": training_job.arn,
         }
         return 200, {}, json.dumps(response)
 
@@ -275,7 +275,7 @@ class SageMakerResponse(BaseResponse):
             )
         )
         response = {
-            "NotebookInstanceLifecycleConfigArn": lifecycle_configuration.notebook_instance_lifecycle_config_arn,
+            "NotebookInstanceLifecycleConfigArn": lifecycle_configuration.arn,
         }
         return 200, {}, json.dumps(response)
 
@@ -313,7 +313,7 @@ class SageMakerResponse(BaseResponse):
         experiment_summaries = [
             {
                 "ExperimentName": experiment_data.experiment_name,
-                "ExperimentArn": experiment_data.experiment_arn,
+                "ExperimentArn": experiment_data.arn,
                 "CreationTime": experiment_data.creation_time,
                 "LastModifiedTime": experiment_data.last_modified_time,
             }
@@ -359,7 +359,7 @@ class SageMakerResponse(BaseResponse):
         trial_summaries = [
             {
                 "TrialName": trial_data.trial_name,
-                "TrialArn": trial_data.trial_arn,
+                "TrialArn": trial_data.arn,
                 "CreationTime": trial_data.creation_time,
                 "LastModifiedTime": trial_data.last_modified_time,
             }
@@ -390,7 +390,7 @@ class SageMakerResponse(BaseResponse):
         trial_component_summaries = [
             {
                 "TrialComponentName": trial_component_data.trial_component_name,
-                "TrialComponentArn": trial_component_data.trial_component_arn,
+                "TrialComponentArn": trial_component_data.arn,
                 "CreationTime": trial_component_data.creation_time,
                 "LastModifiedTime": trial_component_data.last_modified_time,
             }
@@ -526,20 +526,20 @@ class SageMakerResponse(BaseResponse):
             parallelism_configuration=self._get_param("ParallelismConfiguration"),
         )
         response = {
-            "PipelineArn": pipeline.pipeline_arn,
+            "PipelineArn": pipeline.arn,
         }
 
         return 200, {}, json.dumps(response)
 
     def delete_pipeline(self) -> TYPE_RESPONSE:
-        pipeline_arn = self.sagemaker_backend.delete_pipeline(
+        arn = self.sagemaker_backend.delete_pipeline(
             pipeline_name=self._get_param("PipelineName"),
         )
-        response = {"PipelineArn": pipeline_arn}
+        response = {"PipelineArn": arn}
         return 200, {}, json.dumps(response)
 
     def update_pipeline(self) -> TYPE_RESPONSE:
-        pipeline_arn = self.sagemaker_backend.update_pipeline(
+        arn = self.sagemaker_backend.update_pipeline(
             pipeline_name=self._get_param("PipelineName"),
             pipeline_display_name=self._get_param("PipelineDisplayName"),
             pipeline_definition=self._get_param("PipelineDefinition"),
@@ -551,7 +551,7 @@ class SageMakerResponse(BaseResponse):
             parallelism_configuration=self._get_param("ParallelismConfiguration"),
         )
 
-        response = {"PipelineArn": pipeline_arn}
+        response = {"PipelineArn": arn}
         return 200, {}, json.dumps(response)
 
     def list_pipelines(self) -> TYPE_RESPONSE:
