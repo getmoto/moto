@@ -18,9 +18,9 @@ class Mesh:
     metadata: Metadata
     spec: MeshSpec
     status: Status
-    tags: List[Dict[str, str]]
     virtual_nodes: Dict[str, VirtualNode] = field(default_factory=dict)
     virtual_routers: Dict[str, VirtualRouter] = field(default_factory=dict)
+    tags: List[Dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]
         return {

@@ -23,8 +23,8 @@ class VirtualRouter:
     spec: VirtualRouterSpec
     status: Status
     virtual_router_name: str
-    tags: List[Dict[str, str]]
     routes: Dict[str, Route] = field(default_factory=dict)
+    tags: List[Dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:  # type ignore[misc]
         return {

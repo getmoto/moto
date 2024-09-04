@@ -1,6 +1,6 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from moto.appmesh.dataclasses.mesh import (
     Mesh,
@@ -184,7 +184,7 @@ class AppMeshBackend(BaseBackend):
         mesh_name: str,
         egress_filter_type: Optional[str],
         ip_preference: Optional[str],
-        tags: List[Dict[str, str]],
+        tags: Optional[List[Dict[str, str]]],
     ) -> Mesh:
         from moto.sts import sts_backends
 
@@ -207,7 +207,7 @@ class AppMeshBackend(BaseBackend):
             spec=spec,
             status={"status": "ACTIVE"},
             metadata=metadata,
-            tags=tags,
+            tags=tags or list(),
         )
         self.meshes[mesh_name] = mesh
         return mesh
@@ -266,11 +266,21 @@ class AppMeshBackend(BaseBackend):
             for mesh in self.meshes.values()
         ]
 
-    def _get_resource_with_arn(self, resource_arn: str) -> Mesh:
+    def _get_resource_with_arn(
+        self, resource_arn: str
+    ) -> Union[Mesh, VirtualRouter, Route, VirtualNode]:
         for mesh in self.meshes.values():
             if mesh.metadata.arn == resource_arn:
                 return mesh
-        # TODO implement for routers, routes, and virtual nodes
+            for virtual_router in mesh.virtual_routers.values():
+                if virtual_router.metadata.arn == resource_arn:
+                    return virtual_router
+                for route in virtual_router.routes.values():
+                    if route.metadata.arn == resource_arn:
+                        return route
+            for virtual_node in mesh.virtual_nodes.values():
+                if virtual_node.metadata.arn == resource_arn:
+                    return virtual_node
         raise ResourceNotFoundError(resource_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
@@ -279,8 +289,8 @@ class AppMeshBackend(BaseBackend):
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         if len(tags) > 0:
-            mesh = self._get_resource_with_arn(resource_arn=resource_arn)
-            mesh.tags.extend(tags)
+            resource = self._get_resource_with_arn(resource_arn=resource_arn)
+            resource.tags.extend(tags)
         return
 
     def describe_virtual_router(
@@ -299,7 +309,7 @@ class AppMeshBackend(BaseBackend):
         mesh_name: str,
         mesh_owner: Optional[str],
         port_mappings: List[PortMapping],
-        tags: List[Dict[str, str]],
+        tags: Optional[List[Dict[str, str]]],
         virtual_router_name: str,
     ) -> VirtualRouter:
         self._check_router_availability(
@@ -323,7 +333,7 @@ class AppMeshBackend(BaseBackend):
             metadata=metadata,
             status={"status": "ACTIVE"},
             spec=spec,
-            tags=tags,
+            tags=tags or list(),
         )
         self.meshes[mesh_name].virtual_routers[virtual_router_name] = virtual_router
         return virtual_router
@@ -419,7 +429,7 @@ class AppMeshBackend(BaseBackend):
             metadata=metadata,
             route_name=route_name,
             spec=spec,
-            tags=tags,
+            tags=tags or list(),
             virtual_router_name=virtual_router_name,
         )
         self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[
@@ -554,7 +564,7 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=owner,
             metadata=metadata,
             spec=spec,
-            tags=tags,
+            tags=tags or list(),
             virtual_node_name=virtual_node_name,
         )
         self.meshes[mesh_name].virtual_nodes[virtual_node_name] = virtual_node

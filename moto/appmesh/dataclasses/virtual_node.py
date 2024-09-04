@@ -550,9 +550,9 @@ class VirtualNode:
     mesh_owner: str
     metadata: VirtualNodeMetadata
     spec: VirtualNodeSpec
-    tags: Optional[List[Dict[str, str]]]
     virtual_node_name: str
     status: Status = field(default_factory=lambda: {"status": "ACTIVE"})
+    tags: List[Dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:  # type: ignore[misc]
         return clean_dict(

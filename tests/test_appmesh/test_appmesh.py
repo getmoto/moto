@@ -128,28 +128,6 @@ def test_create_list_update_describe_delete_mesh(client):
 
 
 @mock_aws
-def test_tag_and_list_tags_for_resource(client):
-    connection = client.create_mesh(
-        meshName="mesh1",
-        spec={
-            "egressFilter": {"type": "DROP_ALL"},
-            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
-        },
-        tags=[{"key": "owner", "value": "moto"}],
-    )
-    mesh = connection.get("mesh")
-    arn = mesh["metadata"]["arn"]
-
-    client.tag_resource(
-        resourceArn=arn, tags=[{"key": "organization", "value": "moto"}]
-    )
-    connection = client.list_tags_for_resource(resourceArn=arn)
-    tags = connection["tags"]
-    assert tags[0] == {"key": "owner", "value": "moto"}
-    assert tags[1] == {"key": "organization", "value": "moto"}
-
-
-@mock_aws
 def test_create_describe_list_update_delete_virtual_router(client):
     connection = client.create_mesh(
         meshName=MESH_NAME,
@@ -1228,3 +1206,89 @@ def test_create_describe_list_update_delete_virtual_node(client):
         err["Message"]
         == f"{GRPC_NODE} is not a virtual node associated with mesh {MESH_NAME}"
     )
+
+
+@mock_aws
+def test_tag_and_list_tags_for_resource(client):
+    # create resources
+    connection = client.create_mesh(
+        meshName=MESH_NAME,
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )
+    mesh = connection["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+    mesh_arn = mesh["metadata"]["arn"]
+
+    ROUTER_NAME = "mock_router"
+
+    connection = client.create_virtual_router(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualRouterName=ROUTER_NAME,
+        spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
+        tags=[{"key": "router_traffic", "value": "http"}],
+    )
+
+    virtual_router = connection.get("virtualRouter")
+    virtual_router_arn = virtual_router["metadata"]["arn"]
+
+    connection = client.create_route(
+        meshOwner=mesh_owner,
+        meshName=MESH_NAME,
+        virtualRouterName=ROUTER_NAME,
+        routeName="mock_http_route",
+        tags=[{"key": "license", "value": "mit"}],
+        spec=http_route_spec,
+    )
+
+    route = connection["route"]
+    route_arn = route["metadata"]["arn"]
+
+    connection = client.create_virtual_node(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        spec=http_virtual_node_spec,
+        tags=[{"key": "type", "value": "http"}],
+        virtualNodeName="mock_http_node",
+    )
+    virtual_node = connection["virtualNode"]
+    virtual_node_arn = virtual_node["metadata"]["arn"]
+
+    # add tags and validate
+    client.tag_resource(
+        resourceArn=mesh_arn, tags=[{"key": "organization", "value": "moto"}]
+    )
+    connection = client.list_tags_for_resource(resourceArn=mesh_arn)
+    tags = connection["tags"]
+    assert tags[0] == {"key": "owner", "value": "moto"}
+    assert tags[1] == {"key": "organization", "value": "moto"}
+
+    client.tag_resource(
+        resourceArn=virtual_router_arn,
+        tags=[{"key": "organization", "value": "2moto2furious"}],
+    )
+    connection = client.list_tags_for_resource(resourceArn=virtual_router_arn)
+    tags = connection["tags"]
+    assert tags[0] == {"key": "router_traffic", "value": "http"}
+    assert tags[1] == {"key": "organization", "value": "2moto2furious"}
+
+    client.tag_resource(
+        resourceArn=route_arn, tags=[{"key": "organization", "value": "motyo_drift"}]
+    )
+    connection = client.list_tags_for_resource(resourceArn=route_arn)
+    tags = connection["tags"]
+    assert tags[0] == {"key": "license", "value": "mit"}
+    assert tags[1] == {"key": "organization", "value": "motyo_drift"}
+
+    client.tag_resource(
+        resourceArn=virtual_node_arn,
+        tags=[{"key": "organization", "value": "how_moto_got_its_mojo_back"}],
+    )
+    connection = client.list_tags_for_resource(resourceArn=virtual_node_arn)
+    tags = connection["tags"]
+    assert tags[0] == {"key": "type", "value": "http"}
+    assert tags[1] == {"key": "organization", "value": "how_moto_got_its_mojo_back"}
