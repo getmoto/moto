@@ -196,6 +196,7 @@ class ActionAuthenticatorMixin(object):
                 data=self.data,  # type: ignore[attr-defined]
                 body=self.body,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
+                action=self._get_action(),  # type: ignore[attr-defined]
             )
             iam_request.check_signature()
             iam_request.check_action_permitted(resource)
@@ -552,7 +553,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return None  # type: ignore[return-value]
 
     def _get_action(self) -> str:
-        action = self.querystring.get("Action", [""])[0]
+        action = self.querystring.get("Action")
+        if action and isinstance(action, list):
+            action = action[0]
         if action:
             return action
         # Some services use a header for the action
