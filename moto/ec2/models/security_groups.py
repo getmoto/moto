@@ -645,7 +645,7 @@ class SecurityGroupBackend:
                         for rule in rules_list:
                             if rule.id == sg_rule_id:
                                 results.append(rule)
-        
+
             return results
 
         if group_ids:

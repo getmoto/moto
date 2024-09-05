@@ -698,16 +698,17 @@ def test_create_and_describe_security_grp_rule():
         assert rule["IpProtocol"] == "-1"
         assert rule["CidrIpv4"] == "0.0.0.0/0"
         assert "GroupId" in rule
-    
+
     # Test default egress rule content
     _verify_egress_rule(rules[0])
 
-    # check that the default rule is present using security group rule ids 
+    # check that the default rule is present using security group rule ids
     response = client.describe_security_group_rules(
         SecurityGroupRuleIds=[rules[0]["SecurityGroupRuleId"]]
     )
     rules = response["SecurityGroupRules"]
     _verify_egress_rule(rules[0])
+
 
 @mock_aws
 @pytest.mark.parametrize("use_vpc", [True, False], ids=["Use VPC", "Without VPC"])
