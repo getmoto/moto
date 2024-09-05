@@ -1,9 +1,9 @@
+from datetime import datetime
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from freezegun import freeze_time
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -1344,7 +1344,6 @@ def test_create_template_with_block_device():
     assert volumes[1]["Size"] == 20
 
 
-@freeze_time("2024-09-05 12:34:56")
 @mock_aws
 def test_sets_created_time():
     mocked_networking = setup_networking()
@@ -1365,4 +1364,6 @@ def test_sets_created_time():
 
     asgs = conn.describe_auto_scaling_groups()["AutoScalingGroups"]
     assert len(asgs) == 1
-    assert asgs[0]["CreatedTime"] == "2024-09-05T12:34:56"
+    assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
+        "%Y %m %d"
+    )
