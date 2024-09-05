@@ -1,10 +1,9 @@
-from datetime import datetime
 from uuid import uuid4
-from freezegun import freeze_time
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -1343,6 +1342,7 @@ def test_create_template_with_block_device():
     # Our Ebs-volume
     assert volumes[1]["VolumeType"] == "gp3"
     assert volumes[1]["Size"] == 20
+
 
 @freeze_time("2024-09-05 12:34:56")
 @mock_aws
