@@ -1344,7 +1344,7 @@ def test_create_template_with_block_device():
     assert volumes[1]["VolumeType"] == "gp3"
     assert volumes[1]["Size"] == 20
 
-@freezegun.freeze_time("2024-09-05 12:34:56")
+@freeze_time("2024-09-05 12:34:56")
 @mock_aws
 def test_sets_created_time():
     mocked_networking = setup_networking()
