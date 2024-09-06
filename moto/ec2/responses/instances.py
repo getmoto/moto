@@ -90,6 +90,7 @@ class InstanceResponse(EC2BaseResponse):
             "monitoring_state": "enabled"
             if self._get_param("Monitoring.Enabled") == "true"
             else "disabled",
+            "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -599,6 +600,16 @@ INSTANCE_TEMPLATE = """<item>
                     <publicIp>{{ nic.public_ip }}</publicIp>
                     <ipOwnerId>{{ account_id }}</ipOwnerId>
                   </association>
+                {% endif %}
+                {% if nic.ipv6_addresses %}
+                <ipv6AddressesSet>
+                  {% for ipv6 in nic.ipv6_addresses %}
+                  <item>
+                    <ipv6Address>{{ ipv6 }}</ipv6Address>
+                    <isPrimaryIpv6>false</isPrimaryIpv6>
+                  </item>
+                  {% endfor %}
+                </ipv6AddressesSet>
                 {% endif %}
                 <privateIpAddressesSet>
                   <item>

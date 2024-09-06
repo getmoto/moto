@@ -2735,3 +2735,44 @@ def test_describe_instance_with_enhanced_monitoring():
     )["Reservations"][0]["Instances"]
 
     assert result[0]["Monitoring"] == {"State": "disabled"}
+
+
+@mock_aws
+def test_instance_with_ipv6_address():
+    ec2_client = boto3.client("ec2", "us-east-1")
+    # Build a VPC.
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16",
+        AmazonProvidedIpv6CidrBlock=True,
+    )["Vpc"]
+
+    # The IPv6 CIDR for the subnet needs to be /64; the block associated with the VPC will be /56.
+    ipv6_subnet_cidr = vpc["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlock"]
+    ipv6_subnet_cidr = ipv6_subnet_cidr[:-2] + "64"
+
+    # Build a subnet.
+    subnet = ec2_client.create_subnet(
+        VpcId=vpc["VpcId"], CidrBlock="10.0.0.0/24", Ipv6CidrBlock=ipv6_subnet_cidr
+    )["Subnet"]
+    assert "Ipv6CidrBlockAssociationSet" in subnet
+
+    # Build a security group.
+    security_group_id = ec2_client.create_security_group(
+        GroupName="ipv6-test",
+        Description="Test security group.",
+        VpcId=vpc["VpcId"],
+    )["GroupId"]
+
+    # Launch the instance.
+    instance = ec2_client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t3.nano",
+        MinCount=1,
+        MaxCount=1,
+        Ipv6AddressCount=1,
+        SecurityGroupIds=[security_group_id],
+        SubnetId=subnet["SubnetId"],
+    )["Instances"][0]
+
+    assert len(instance["NetworkInterfaces"]) == 1
+    assert len(instance["NetworkInterfaces"][0]["Ipv6Addresses"]) == 1
