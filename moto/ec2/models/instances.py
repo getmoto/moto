@@ -173,6 +173,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             private_ip=kwargs.get("private_ip"),
             associate_public_ip=self.associate_public_ip,
             security_groups=self.security_groups,
+            ipv6_address_count=kwargs.get("ipv6_address_count"),
         )
 
     @property
@@ -468,6 +469,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         private_ip: Optional[str] = None,
         associate_public_ip: Optional[bool] = None,
         security_groups: Optional[List[SecurityGroup]] = None,
+        ipv6_address_count: Optional[int] = None,
     ) -> None:
         self.nics: Dict[int, NetworkInterface] = {}
         for nic in nic_spec:
@@ -541,6 +543,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     public_ip_auto_assign=nic.get("AssociatePublicIpAddress", False),
                     group_ids=group_ids,
                     delete_on_termination=nic.get("DeleteOnTermination") == "true",
+                    ipv6_address_count=ipv6_address_count,
                 )
 
             self.attach_eni(use_nic, device_index)
