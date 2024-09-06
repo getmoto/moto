@@ -487,7 +487,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: List[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
-        self.created_time = created_time
+        self.created_time = created_time.isoformat()
 
     @property
     def tags(self) -> List[Dict[str, str]]:

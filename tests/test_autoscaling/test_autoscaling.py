@@ -1364,6 +1364,6 @@ def test_sets_created_time():
 
     asgs = conn.describe_auto_scaling_groups()["AutoScalingGroups"]
     assert len(asgs) == 1
-    assert asgs[0]["CreatedTime"] != datetime.strptime(
-        "2013-05-06T17:47:15.107Z", "%Y-%m-%dT%H:%M:%S.%f%z"
+    assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
+        "%Y %m %d"
     )
