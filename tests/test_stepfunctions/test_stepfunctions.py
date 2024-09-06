@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime
 from unittest import SkipTest, mock
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -11,6 +12,7 @@ from dateutil.tz import tzutc
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests.test_stepfunctions.parser import sfn_role_policy
 
 region = "us-east-1"
 simple_definition = (
@@ -977,6 +979,48 @@ def test_state_machine_execution_name_limits():
         "failed to satisfy constraint: "
         "Member must have length less than or equal to 80"
     )
+
+
+@mock_aws
+def test_version_is_only_available_when_published():
+    iam = boto3.client("iam", region_name="us-east-1")
+    role_name = f"sfn_role_{str(uuid4())[0:6]}"
+    sfn_role = iam.create_role(
+        RoleName=role_name,
+        AssumeRolePolicyDocument=json.dumps(sfn_role_policy),
+        Path="/",
+    )["Role"]["Arn"]
+
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+
+    name1 = f"sfn_name_{str(uuid4())[0:6]}"
+    response = client.create_state_machine(
+        name=name1, definition=simple_definition, roleArn=sfn_role
+    )
+    assert "stateMachineVersionArn" not in response
+    arn1 = response["stateMachineArn"]
+
+    resp = client.update_state_machine(
+        stateMachineArn=arn1, publish=True, tracingConfiguration={"enabled": True}
+    )
+    assert resp["stateMachineVersionArn"] == f"{arn1}:1"
+
+    resp = client.update_state_machine(
+        stateMachineArn=arn1, tracingConfiguration={"enabled": False}
+    )
+    assert "stateMachineVersionArn" not in resp
+
+    name2 = f"sfn_name_{str(uuid4())[0:6]}"
+    response = client.create_state_machine(
+        name=name2, definition=simple_definition, roleArn=sfn_role, publish=True
+    )
+    arn2 = response["stateMachineArn"]
+    assert response["stateMachineVersionArn"] == f"{arn2}:1"
+
+    resp = client.update_state_machine(
+        stateMachineArn=arn2, publish=True, tracingConfiguration={"enabled": True}
+    )
+    assert resp["stateMachineVersionArn"] == f"{arn2}:2"
 
 
 def _get_default_role():

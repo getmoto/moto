@@ -45,6 +45,7 @@ class StateMachine(CloudFormationModel):
         self.tags: List[Dict[str, str]] = []
         if tags:
             self.add_tags(tags)
+        self.version = 0
 
     def start_execution(
         self,
@@ -521,6 +522,7 @@ class StepFunctionBackend(BaseBackend):
         definition: str,
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        publish: Optional[bool] = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -529,6 +531,8 @@ class StepFunctionBackend(BaseBackend):
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
             state_machine = StateMachine(arn, name, definition, roleArn, tags)
+            if publish:
+                state_machine.version += 1
             self.state_machines.append(state_machine)
             return state_machine
 
@@ -552,7 +556,13 @@ class StepFunctionBackend(BaseBackend):
             self.state_machines.remove(sm)
 
     def update_state_machine(
-        self, arn: str, definition: Optional[str] = None, role_arn: Optional[str] = None
+        self,
+        arn: str,
+        definition: Optional[str] = None,
+        role_arn: Optional[str] = None,
+        logging_configuration: Optional[Dict[str, bool]] = None,
+        tracing_configuration: Optional[Dict[str, bool]] = None,
+        publish: Optional[bool] = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
         updates = {
@@ -560,6 +570,8 @@ class StepFunctionBackend(BaseBackend):
             "roleArn": role_arn,
         }
         sm.update(**updates)
+        if publish:
+            sm.version += 1
         return sm
 
     def start_execution(
