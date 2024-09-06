@@ -1,7 +1,5 @@
 import datetime
 import enum
-import json
-import os
 import re
 import time
 import typing
@@ -15,7 +13,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import get_partition, md5_hash
+from moto.utilities.utils import get_partition, load_resource, md5_hash
 
 from ..settings import get_cognito_idp_user_pool_id_strategy
 from .exceptions import (
@@ -406,7 +404,7 @@ class CognitoIdpUserPool(BaseModel):
         self.creation_date = utcnow()
         self.last_modified_date = utcnow()
 
-        self.mfa_config = "OFF"
+        self.mfa_config = extended_config.get("MfaConfiguration") or "OFF"
         self.sms_mfa_config: Optional[Dict[str, Any]] = None
         self.token_mfa_config: Optional[Dict[str, bool]] = None
 
@@ -439,10 +437,8 @@ class CognitoIdpUserPool(BaseModel):
         self.access_tokens: Dict[str, Tuple[str, str]] = {}
         self.id_tokens: Dict[str, Tuple[str, str]] = {}
 
-        with open(
-            os.path.join(os.path.dirname(__file__), "resources/jwks-private.json")
-        ) as f:
-            self.json_web_key = jwk.RSAKey.import_key(json.loads(f.read()))
+        jwks_file = load_resource(__name__, "resources/jwks-private.json")
+        self.json_web_key = jwk.RSAKey.import_key(jwks_file)
 
     @property
     def backend(self) -> "CognitoIdpBackend":
@@ -538,8 +534,22 @@ class CognitoIdpUserPool(BaseModel):
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
-            "username" if token_use == "access" else "cognito:username": username,
         }
+        username_is_email = "email" in self.extended_config.get(
+            "UsernameAttributes", []
+        )
+        if token_use == "access":
+            if username_is_email:
+                payload["username"] = payload["sub"]
+            else:
+                payload["username"] = username
+        if token_use == "id":
+            if username_is_email:
+                payload["cognito:username"] = payload["sub"]
+                payload["email"] = username
+            else:
+                payload["cognito:username"] = username
+
         payload.update(extra_data or {})
         headers = {"kid": "dummy", "alg": "RS256"}  # KID as present in jwks-public.json
 
@@ -938,7 +948,7 @@ class CognitoIdpBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.user_pools: Dict[str, CognitoIdpUserPool] = OrderedDict()
         self.user_pool_domains: Dict[str, CognitoIdpUserPoolDomain] = OrderedDict()
-        self.sessions: Dict[str, CognitoIdpUserPool] = {}
+        self.sessions: Dict[str, Tuple[str, CognitoIdpUserPool]] = {}
 
     # User pool
     def create_user_pool(
@@ -1379,13 +1389,14 @@ class CognitoIdpBackend(BaseBackend):
         )
 
         return {
+            "ChallengeParameters": {},
             "AuthenticationResult": {
                 "IdToken": id_token,
                 "AccessToken": access_token,
                 "RefreshToken": refresh_token,
                 "ExpiresIn": expires_in,
                 "TokenType": "Bearer",
-            }
+            },
         }
 
     def _validate_auth_flow(
@@ -1446,7 +1457,7 @@ class CognitoIdpBackend(BaseBackend):
                 UserStatus.RESET_REQUIRED,
             ]:
                 session = str(random.uuid4())
-                self.sessions[session] = user_pool
+                self.sessions[session] = (username, user_pool)
 
                 return {
                     "ChallengeName": "NEW_PASSWORD_REQUIRED",
@@ -1459,7 +1470,7 @@ class CognitoIdpBackend(BaseBackend):
                 and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
             ):
                 session = str(random.uuid4())
-                self.sessions[session] = user_pool
+                self.sessions[session] = (username, user_pool)
 
                 return {
                     "ChallengeName": "SOFTWARE_TOKEN_MFA",
@@ -1469,7 +1480,7 @@ class CognitoIdpBackend(BaseBackend):
 
             if user.sms_mfa_enabled and user.preferred_mfa_setting == "SMS_MFA":
                 session = str(random.uuid4())
-                self.sessions[session] = user_pool
+                self.sessions[session] = (username, user_pool)
 
                 return {
                     "ChallengeName": "SMS_MFA",
@@ -1525,9 +1536,9 @@ class CognitoIdpBackend(BaseBackend):
         if challenge_name == "PASSWORD_VERIFIER":
             session = challenge_responses.get("PASSWORD_CLAIM_SECRET_BLOCK")  # type: ignore[assignment]
 
-        user_pool = self.sessions.get(session)
-        if not user_pool:
+        if session not in self.sessions:
             raise ResourceNotFoundError(session)
+        _, user_pool = self.sessions[session]
 
         client = user_pool.clients.get(client_id)
         if not client:
@@ -1543,8 +1554,26 @@ class CognitoIdpBackend(BaseBackend):
 
             user.password = new_password
             user.status = UserStatus.CONFIRMED
-            del self.sessions[session]
 
+            if user_pool.mfa_config == "ON":
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                if (
+                    mfas_can_setup
+                    and not user.software_token_mfa_enabled
+                    and not user.sms_mfa_enabled
+                ):
+                    return {
+                        "ChallengeName": "MFA_SETUP",
+                        "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
+                        "Session": session,
+                    }
+
+            del self.sessions[session]
             return self._log_user_in(user_pool, client, username)
         elif challenge_name == "PASSWORD_VERIFIER":
             username: str = challenge_responses.get("USERNAME")  # type: ignore[no-redef]
@@ -1564,7 +1593,29 @@ class CognitoIdpBackend(BaseBackend):
             if not timestamp:
                 raise ResourceNotFoundError(timestamp)
 
-            if user.software_token_mfa_enabled:
+            if user.status == UserStatus.FORCE_CHANGE_PASSWORD:
+                return {
+                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
+                    "ChallengeParameters": {
+                        "USERNAME": username,
+                    },
+                    "Session": session,
+                }
+            if user_pool.mfa_config == "ON" and not user.token_verified:
+                mfas_can_setup = []
+                if user_pool.token_mfa_config == {"Enabled": True}:
+                    mfas_can_setup.append("SOFTWARE_TOKEN_MFA")
+                if user_pool.sms_mfa_config:
+                    mfas_can_setup.append("SMS_MFA")
+
+                return {
+                    "ChallengeName": "MFA_SETUP",
+                    "ChallengeParameters": {"MFAS_CAN_SETUP": mfas_can_setup},
+                    "Session": session,
+                }
+            if user.software_token_mfa_enabled or (
+                user_pool.token_mfa_config == {"Enabled": True} and user.token_verified
+            ):
                 return {
                     "ChallengeName": "SOFTWARE_TOKEN_MFA",
                     "Session": session,
@@ -1576,15 +1627,6 @@ class CognitoIdpBackend(BaseBackend):
                     "ChallengeName": "SMS_MFA",
                     "Session": session,
                     "ChallengeParameters": {},
-                }
-
-            if user.status == UserStatus.FORCE_CHANGE_PASSWORD:
-                return {
-                    "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                    "ChallengeParameters": {
-                        "USERNAME": username,
-                    },
-                    "Session": session,
                 }
 
             del self.sessions[session]
@@ -1605,6 +1647,10 @@ class CognitoIdpBackend(BaseBackend):
                     raise NotAuthorizedError(secret_hash)
 
             del self.sessions[session]
+            return self._log_user_in(user_pool, client, username)
+
+        elif challenge_name == "MFA_SETUP":
+            username, user_pool = self.sessions[session]
             return self._log_user_in(user_pool, client, username)
 
         else:
@@ -1660,13 +1706,14 @@ class CognitoIdpBackend(BaseBackend):
             )
             user.confirmation_code = confirmation_code
 
-        code_delivery_details = {
-            "Destination": username + "@h***.com"
-            if not user
-            else user.attribute_lookup.get("email", username + "@h***.com"),
-            "DeliveryMedium": "EMAIL",
-            "AttributeName": "email",
-        }
+        code_delivery_details = self._get_code_delivery_details(
+            recovery_settings, user, username
+        )
+        return confirmation_code, {"CodeDeliveryDetails": code_delivery_details}
+
+    def _get_code_delivery_details(
+        self, recovery_settings: Any, user: Optional[CognitoIdpUser], username: str
+    ) -> Dict[str, str]:
         selected_recovery = min(
             recovery_settings["RecoveryMechanisms"],
             key=lambda recovery_mechanism: recovery_mechanism["Priority"],
@@ -1674,14 +1721,24 @@ class CognitoIdpBackend(BaseBackend):
         if selected_recovery["Name"] == "admin_only":
             raise NotAuthorizedError("Contact administrator to reset password.")
         if selected_recovery["Name"] == "verified_phone_number":
-            code_delivery_details = {
-                "Destination": "+*******9934"
-                if not user
-                else user.attribute_lookup.get("phone_number", "+*******9934"),
+            number = "+*******9934"
+            if user and "phone_number" in user.attribute_lookup:
+                number = user.attribute_lookup["phone_number"]
+            return {
+                "Destination": number,
                 "DeliveryMedium": "SMS",
                 "AttributeName": "phone_number",
             }
-        return confirmation_code, {"CodeDeliveryDetails": code_delivery_details}
+        else:
+            email = username + "@h***.com"
+            if user and "email" in user.attribute_lookup:
+                first, second = user.attribute_lookup["email"].split("@")
+                email = f"{first[0]}***@{second[0]}***"
+            return {
+                "Destination": email,
+                "DeliveryMedium": "EMAIL",
+                "AttributeName": "email",
+            }
 
     def change_password(
         self, access_token: str, previous_password: str, proposed_password: str
@@ -1782,7 +1839,7 @@ class CognitoIdpBackend(BaseBackend):
         username: str,
         password: str,
         attributes: List[Dict[str, str]],
-    ) -> CognitoIdpUser:
+    ) -> Tuple[CognitoIdpUser, Any]:
         user_pool = None
         for p in self.user_pools.values():
             if client_id in p.clients:
@@ -1844,7 +1901,27 @@ class CognitoIdpBackend(BaseBackend):
             status=UserStatus.UNCONFIRMED,
         )
         user_pool.users[user.username] = user
-        return user
+
+        has_email = "email" in user.attribute_lookup
+        has_phone = "phone_number" in user.attribute_lookup
+        verified_attributes = user_pool.extended_config.get(
+            "AutoVerifiedAttributes", []
+        )
+        email_verified = (
+            "email_verified" in user.attribute_lookup or "email" in verified_attributes
+        )
+        phone_verified = (
+            "phone_number_verified" in user.attribute_lookup
+            or "phone_number" in verified_attributes
+        )
+        if (has_email and email_verified) or (has_phone and phone_verified):
+            recovery_settings = user_pool.extended_config["AccountRecoverySetting"]
+            details = self._get_code_delivery_details(
+                recovery_settings=recovery_settings, user=user, username=user.username
+            )
+            return user, details
+        else:
+            return user, None
 
     def confirm_sign_up(self, client_id: str, username: str) -> str:
         user_pool = None
@@ -1904,7 +1981,7 @@ class CognitoIdpBackend(BaseBackend):
                 raise UserNotConfirmedException("User is not confirmed.")
 
             session = str(random.uuid4())
-            self.sessions[session] = user_pool
+            self.sessions[session] = (username, user_pool)
 
             return {
                 "ChallengeName": "PASSWORD_VERIFIER",
@@ -1936,12 +2013,29 @@ class CognitoIdpBackend(BaseBackend):
                 raise UserNotConfirmedException("User is not confirmed.")
 
             session = str(random.uuid4())
-            self.sessions[session] = user_pool
+            self.sessions[session] = (username, user_pool)
 
             if user.status is UserStatus.FORCE_CHANGE_PASSWORD:
                 return {
                     "ChallengeName": "NEW_PASSWORD_REQUIRED",
                     "ChallengeParameters": {"USERNAME": user.username},
+                    "Session": session,
+                }
+
+            if (
+                user.software_token_mfa_enabled
+                and user.preferred_mfa_setting == "SOFTWARE_TOKEN_MFA"
+            ) or (user_pool.mfa_config == "ON" and user.token_verified):
+                return {
+                    "ChallengeName": "SOFTWARE_TOKEN_MFA",
+                    "ChallengeParameters": {},
+                    "Session": session,
+                }
+
+            if user.sms_mfa_enabled and user.preferred_mfa_setting == "SMS_MFA":
+                return {
+                    "ChallengeName": "SMS_MFA",
+                    "ChallengeParameters": {},
                     "Session": session,
                 }
 
@@ -1998,20 +2092,40 @@ class CognitoIdpBackend(BaseBackend):
             # We shouldn't get here due to enum validation of auth_flow
             return None  # type: ignore[return-value]
 
-    def associate_software_token(self, access_token: str) -> Dict[str, str]:
+    def associate_software_token(
+        self, access_token: str, session: str
+    ) -> Dict[str, str]:
+        secret_code = "asdfasdfasdf"
+        if session:
+            if session in self.sessions:
+                return {"SecretCode": secret_code, "Session": session}
+            raise NotAuthorizedError(session)
+
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
                 self.admin_get_user(user_pool.id, username)
 
-                return {"SecretCode": str(random.uuid4())}
+                return {"SecretCode": secret_code}
 
         raise NotAuthorizedError(access_token)
 
-    def verify_software_token(self, access_token: str) -> Dict[str, str]:
+    def verify_software_token(self, access_token: str, session: str) -> Dict[str, str]:
         """
         The parameter UserCode has not yet been implemented
         """
+        if session:
+            if session not in self.sessions:
+                raise ResourceNotFoundError(session)
+
+            username, user_pool = self.sessions[session]
+            user = self.admin_get_user(user_pool.id, username)
+            user.token_verified = True
+
+            session = str(random.uuid4())
+            self.sessions[session] = (username, user_pool)
+            return {"Status": "SUCCESS", "Session": session}
+
         for user_pool in self.user_pools.values():
             if access_token in user_pool.access_tokens:
                 _, username = user_pool.access_tokens[access_token]
@@ -2019,7 +2133,9 @@ class CognitoIdpBackend(BaseBackend):
 
                 user.token_verified = True
 
-                return {"Status": "SUCCESS"}
+                session = str(random.uuid4())
+                self.sessions[session] = (username, user_pool)
+                return {"Status": "SUCCESS", "Session": session}
 
         raise NotAuthorizedError(access_token)
 
@@ -2198,7 +2314,7 @@ class RegionAgnosticBackend:
         username: str,
         password: str,
         attributes: List[Dict[str, str]],
-    ) -> CognitoIdpUser:
+    ) -> Tuple[CognitoIdpUser, Any]:
         backend = self._find_backend_for_clientid(client_id)
         return backend.sign_up(client_id, username, password, attributes)
 

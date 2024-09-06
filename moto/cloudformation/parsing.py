@@ -1,3 +1,4 @@
+import base64
 import collections.abc as collections_abc
 import copy
 import functools
@@ -125,10 +126,9 @@ class LazyDict(Dict[str, Any]):
 
 def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
     """
-    Cleanup the a resource dict. For now, this just means replacing any Ref node
-    with the corresponding physical_resource_id.
-
-    Eventually, this is where we would add things like function parsing (fn::)
+    Cleanup a resource dict. This includes:
+     - replacing any Ref node
+     - Parsing functions: FindInMap, GetAtt, If, Join, Split, Select, Sub, ImportValue, GetAZs, ToJsonString
     """
     if isinstance(resource_json, dict):
         if "Ref" in resource_json:
@@ -245,6 +245,10 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
             for az in ("a", "b", "c", "d"):
                 result.append(f"{region}{az}")
             return result
+
+        if "Fn::Base64" in resource_json:
+            value = clean_json(resource_json["Fn::Base64"], resources_map)
+            return base64.b64encode(value.encode("utf-8")).decode("utf-8")
 
         if "Fn::ToJsonString" in resource_json:
             return json.dumps(
@@ -496,6 +500,20 @@ def parse_output(
         description=output_json.get("Description"),
     )
     return output
+
+
+def get_references_from_template(template: Dict[str, Any]) -> List[str]:
+    references = []
+    if isinstance(template, dict):
+        for key in template:
+            if key == "Ref":
+                references.append(template[key])
+            else:
+                references.extend(get_references_from_template(template[key]))
+    if isinstance(template, list):
+        for item in template:
+            references.extend(get_references_from_template(item))
+    return references
 
 
 class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
@@ -759,7 +777,11 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                 all_resources_ready = False
         return all_resources_ready
 
-    def build_resource_diff(self, other_template: Dict[str, Any]) -> Dict[str, Any]:
+    def build_resource_diff(
+        self,
+        other_template: Dict[str, Any],
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         old = self._resource_json_map
         new = other_template["Resources"]
 
@@ -768,6 +790,18 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             "Modify": [name for name in new if name in old and new[name] != old[name]],
             "Remove": [name for name in old if name not in new],
         }
+        # Modify resources when only parameters are different
+        if parameters:
+            changed_parameters = [
+                p for p in parameters if self.input_parameters.get(p) != parameters[p]
+            ]
+            for name in new:
+                # Only check for modified parameters if the template is exactly the same
+                # If the template is different, it will already be part of the Modify-collection
+                if name in old and new[name] == old[name]:
+                    template_parameters = get_references_from_template(new[name])
+                    if any(c for c in changed_parameters if c in template_parameters):
+                        resource_names_by_action["Modify"].append(name)
 
         return resource_names_by_action
 
@@ -805,7 +839,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def update(
         self, template: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None
     ) -> None:
-        resource_names_by_action = self.build_resource_diff(template)
+        resource_names_by_action = self.build_resource_diff(template, parameters)
 
         for logical_name in resource_names_by_action["Remove"]:
             resource_json = self._resource_json_map[logical_name]

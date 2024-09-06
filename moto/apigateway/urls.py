@@ -5,6 +5,7 @@ url_bases = [r"https?://apigateway\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/restapis$": APIGatewayResponse.dispatch,
+    "{0}/restapis/$": APIGatewayResponse.get_rest_api_without_id,
     "{0}/restapis/(?P<function_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/resources$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers$": APIGatewayResponse.dispatch,
@@ -43,4 +44,4 @@ url_paths = {
 }
 
 # Also manages the APIGatewayV2
-url_paths.update(url_paths_v2)  # type: ignore[arg-type]
+url_paths.update(url_paths_v2)

@@ -23,6 +23,7 @@ from .exceptions import (
     AccessDeniedException,
     DocumentAlreadyExists,
     DocumentPermissionLimit,
+    DoesNotExistException,
     DuplicateDocumentContent,
     DuplicateDocumentVersionName,
     InvalidDocument,
@@ -1187,7 +1188,9 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
-        self.ssm_prefix = f"arn:aws:ssm:{self.region_name}:{self.account_id}:parameter"
+        self.ssm_prefix = (
+            f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
+        )
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
@@ -2313,9 +2316,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def get_maintenance_window(self, window_id: str) -> FakeMaintenanceWindow:
         """
-        The window is assumed to exist - no error handling has been implemented yet.
         The NextExecutionTime-field is not returned.
         """
+        if window_id not in self.windows:
+            raise DoesNotExistException(window_id)
         return self.windows[window_id]
 
     def describe_maintenance_windows(
@@ -2335,8 +2339,10 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def delete_maintenance_window(self, window_id: str) -> None:
         """
-        Assumes the provided WindowId exists. No error handling has been implemented yet.
+        Delete a maintenance window.
         """
+        if window_id not in self.windows:
+            raise DoesNotExistException(window_id)
         del self.windows[window_id]
 
     def create_patch_baseline(

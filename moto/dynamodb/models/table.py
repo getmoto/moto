@@ -324,7 +324,7 @@ class Table(CloudFormationModel):
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
             )
-            kms.add_alias(key.id, ddb_alias)
+            kms.create_alias(key.id, ddb_alias)
         ebs_key = kms.describe_key(ddb_alias)
         return ebs_key.arn
 
@@ -1198,3 +1198,10 @@ class RestoredPITTable(Table):
             "RestoreInProgress": False,
         }
         return result
+
+
+class ResourcePolicy:
+    def __init__(self, resource_arn: str, policy_doc: str):
+        self.resource_arn = resource_arn
+        self.policy_doc = policy_doc
+        self.revision_id = str(int(unix_time_millis()))

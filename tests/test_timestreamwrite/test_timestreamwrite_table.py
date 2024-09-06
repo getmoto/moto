@@ -7,12 +7,11 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
-from . import timestreamwrite_aws_verified
+from tests import aws_verified
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_create_table():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_name = "db_" + str(uuid4())[0:6]
@@ -49,7 +48,7 @@ def test_create_table():
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_create_table__with_magnetic_store_write_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_name = "db_" + str(uuid4())[0:6]
@@ -94,7 +93,7 @@ def test_create_table__with_magnetic_store_write_properties():
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_create_table_without_retention_properties():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_name = "db_" + str(uuid4())[0:6]
@@ -150,7 +149,7 @@ def test_describe_table():
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_describe_unknown_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_name = "db_" + str(uuid4())[0:6]

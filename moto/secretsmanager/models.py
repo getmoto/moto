@@ -914,7 +914,7 @@ class SecretsManagerBackend(BaseBackend):
     def delete_secret(
         self,
         secret_id: str,
-        recovery_window_in_days: int,
+        recovery_window_in_days: Optional[int],
         force_delete_without_recovery: bool,
     ) -> Tuple[str, str, float]:
         if recovery_window_in_days is not None and (

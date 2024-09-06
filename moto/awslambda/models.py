@@ -1150,9 +1150,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         spec = {
             "Code": properties["Code"],
             "FunctionName": resource_name,
-            "Handler": properties["Handler"],
+            "Handler": properties.get("Handler"),
             "Role": properties["Role"],
-            "Runtime": properties["Runtime"],
+            "Runtime": properties.get("Runtime"),
         }
 
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the

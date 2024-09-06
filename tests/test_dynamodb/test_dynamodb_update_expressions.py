@@ -187,3 +187,41 @@ def test_update_item_add_empty_set(table_name=None):
     assert dynamodb.scan(TableName=table_name)["Items"] == [
         {"pk": {"S": "foo"}, "stringset": {"SS": ["item1"]}}
     ]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_update_item_with_empty_values(table_name=None):
+    dynamodb = boto3.client("dynamodb", "us-east-1")
+
+    dynamodb.put_item(TableName=table_name, Item={"pk": {"S": "foo"}})
+    with pytest.raises(ClientError) as exc:
+        dynamodb.update_item(
+            TableName=table_name,
+            Key={"pk": {"S": "foo"}},
+            UpdateExpression="SET #d = :s",
+            ExpressionAttributeNames={"#d": "d"},
+            ExpressionAttributeValues={},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeValues must not be empty"
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_update_item_with_empty_expression(table_name=None):
+    dynamodb = boto3.client("dynamodb", "us-east-1")
+
+    dynamodb.put_item(TableName=table_name, Item={"pk": {"S": "foo"}})
+    with pytest.raises(ClientError) as exc:
+        dynamodb.update_item(
+            TableName=table_name,
+            Key={"pk": {"S": "foo"}},
+            UpdateExpression="",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"] == "Invalid UpdateExpression: The expression can not be empty;"
+    )

@@ -130,6 +130,23 @@ class MotoAPIBackend(BaseBackend):
         backend = inspector2_backends[account_id][region]
         backend.findings_queue.append(results)
 
+    def set_timestream_result(
+        self,
+        query: Optional[str],
+        query_results: List[Dict[str, Any]],
+        account_id: str,
+        region: str,
+    ) -> None:
+        from moto.timestreamquery.models import (
+            TimestreamQueryBackend,
+            timestreamquery_backends,
+        )
+
+        backend: TimestreamQueryBackend = timestreamquery_backends[account_id][region]
+        if query not in backend.query_result_queue:
+            backend.query_result_queue[query] = []
+        backend.query_result_queue[query].extend(query_results)
+
     def get_proxy_passthrough(self) -> Tuple[Set[str], Set[str]]:
         return self.proxy_urls_to_passthrough, self.proxy_hosts_to_passthrough
 

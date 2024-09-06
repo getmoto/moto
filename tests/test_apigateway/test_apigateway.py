@@ -1927,6 +1927,17 @@ def test_get_api_key_unknown_apikey():
 
 
 @mock_aws
+def test_get_rest_api_without_id():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    resp = client.get_rest_api(restApiId="")
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    del resp["ResponseMetadata"]
+    assert resp == {}
+
+
+@mock_aws
 def test_get_domain_name_unknown_domainname():
     client = boto3.client("apigateway", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:

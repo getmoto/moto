@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.8, 3.9, "3.10", "3.11", "3.12" ]
+        python-version: [ 3.8, 3.9, "3.10", "3.11", "3.12", "3.13.0-rc.1" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +30,11 @@ jobs:
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
           python -m pip install --upgrade pip
+      - name: Install XML dependencies
+        if: ${{ matrix.python-version == '3.13.0-rc.1' }}
+        run: |
+          echo "The libxml dependency needs these system packages to compile in Python 3.13"
+          sudo apt install -y libxml2-dev libxslt-dev
       - name: Install project dependencies
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -42,7 +47,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12"]
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12", "3.13.0-rc.1"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}

@@ -1,16 +1,26 @@
+import base64
 import contextlib
 import json
 import re
 from collections import OrderedDict
+from datetime import timedelta
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+import cryptography
 import requests
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.x509 import Name, NameAttribute
+from cryptography.x509.oid import NameOID
 
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
+    utcnow,
 )
 from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
@@ -295,22 +305,79 @@ class Subscription(BaseModel):
         subject: Optional[str],
         message_attributes: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        key = self.private_key()
+        cert_subject = [NameAttribute(NameOID.COMMON_NAME, "sns.amazonaws.com")]
+        issuer = [
+            NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            NameAttribute(NameOID.ORGANIZATION_NAME, "Amazon"),
+            NameAttribute(NameOID.COMMON_NAME, "Amazon RSA 2048 M01"),
+        ]
+        # SNS supports two signing algorithms
+        # User can choose which algorithm they want by updating the topic attribute 'SignatureVersion'
+        # Signature Version "1" == SHA1, "2" == SHA256
+        #
+        # Because cryptography doesn't support SHA1 anymore for certificates, we always use SignatureVersion="2"
+        signature_version = "2"
+        algo = hashes.SHA256() if signature_version == "2" else hashes.SHA1()
+        cert = (
+            cryptography.x509.CertificateBuilder()
+            .subject_name(Name(cert_subject))
+            .issuer_name(Name(issuer))
+            .public_key(key.public_key())
+            .serial_number(cryptography.x509.random_serial_number())
+            .not_valid_before(utcnow())
+            .not_valid_after(utcnow() + timedelta(days=365))
+            .sign(key, algo)  # type: ignore
+        )
+        key_name = (
+            f"SimpleNotificationService-{str(mock_random.uuid4()).replace('-', '')}.pem"
+        )
+
+        timestamp = iso_8601_datetime_with_milliseconds()
+        string_to_sign = f"""Message
+{message}
+MessageId
+{message_id}
+Timestamp
+{timestamp}
+TopicArn
+{self.topic.arn}
+Type
+Notification
+"""
+        signature = key.sign(
+            string_to_sign.encode("UTF-8"), padding.PKCS1v15(), hashes.SHA256()
+        )
+
+        # Retrieving the PEM is done via an unauthorized request
+        # We don't know in what account this was done - so just store in the default account
+        # We do know what region it is in, as the URL is `sns.{region}.amazonaws.com/name.pem`
+        region = self.topic.sns_backend.region_name
+        default_sns_backend = sns_backends[DEFAULT_ACCOUNT_ID][region]
+        default_sns_backend._message_public_keys[key_name] = cert.public_bytes(
+            serialization.Encoding.PEM
+        )
+
         post_data: Dict[str, Any] = {
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
             "Message": message,
-            "Timestamp": iso_8601_datetime_with_milliseconds(),
-            "SignatureVersion": "1",
-            "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
-            "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
-            "UnsubscribeURL": f"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{self.account_id}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
+            "Timestamp": timestamp,
+            "SignatureVersion": signature_version,
+            "Signature": base64.b64encode(signature).decode("utf-8"),
+            "SigningCertURL": f"https://sns.{region}.amazonaws.com/{key_name}",
+            "UnsubscribeURL": f"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{self.account_id}:{self.topic.name}:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
         }
         if subject:
             post_data["Subject"] = subject
         if message_attributes:
             post_data["MessageAttributes"] = message_attributes
         return post_data
+
+    @lru_cache()
+    def private_key(self) -> rsa.RSAPrivateKey:
+        return rsa.generate_private_key(public_exponent=65537, key_size=2028)
 
 
 class PlatformApplication(BaseModel):
@@ -378,6 +445,8 @@ class SNSBackend(BaseBackend):
     """
     Responsible for mocking calls to SNS. Integration with SQS/HTTP/etc is supported.
 
+    If you're using the decorators, you can verify the message signature send to an HTTP endpoint.
+
     Messages published to a topic are persisted in the backend. If you need to verify that a message was published successfully, you can use the internal API to check the message was published successfully:
 
     .. sourcecode:: python
@@ -409,6 +478,8 @@ class SNSBackend(BaseBackend):
             "+447700900545",
             "+447700900907",
         ]
+
+        self._message_public_keys: Dict[str, bytes] = {}
 
     def get_sms_attributes(self, filter_list: Set[str]) -> Dict[str, str]:
         if len(filter_list) > 0:

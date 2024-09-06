@@ -196,6 +196,7 @@ class ActionAuthenticatorMixin(object):
                 data=self.data,  # type: ignore[attr-defined]
                 body=self.body,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
+                action=self._get_action(),  # type: ignore[attr-defined]
             )
             iam_request.check_signature()
             iam_request.check_action_permitted(resource)
@@ -363,6 +364,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if hasattr(self.body, "read"):
             self.body = self.body.read()
+        self.raw_body = self.body
 
         # https://github.com/getmoto/moto/issues/6692
         # Content coming from SDK's can be GZipped for performance reasons
@@ -551,7 +553,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return None  # type: ignore[return-value]
 
     def _get_action(self) -> str:
-        action = self.querystring.get("Action", [""])[0]
+        action = self.querystring.get("Action")
+        if action and isinstance(action, list):
+            action = action[0]
         if action:
             return action
         # Some services use a header for the action
@@ -1139,6 +1143,8 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
         return utcfromtimestamp(value).replace(tzinfo=datetime.timezone.utc).isoformat()
     elif vtype == "string":
         return str(value)
+    elif vtype == "structure":
+        return ""
     elif value is None:
         return "null"
     else:

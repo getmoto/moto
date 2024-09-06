@@ -1,6 +1,7 @@
 """Handles incoming apigatewayv2 requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -60,6 +61,15 @@ class ApiGatewayV2Response(BaseResponse):
         api_id = self.path.split("/")[-1]
         api = self.apigatewayv2_backend.get_api(api_id=api_id)
         return 200, {}, json.dumps(api.to_json())
+
+    @staticmethod
+    def get_api_without_id(*args: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        """
+        AWS is returning an empty response when apiId is an empty string. This is slightly odd and it seems an
+        outlier, therefore it was decided we could have a custom handler for this particular use case instead of
+        trying to make it work with the existing url-matcher.
+        """
+        return 200, {}, "{}"
 
     def get_apis(self) -> TYPE_RESPONSE:
         apis = self.apigatewayv2_backend.get_apis()

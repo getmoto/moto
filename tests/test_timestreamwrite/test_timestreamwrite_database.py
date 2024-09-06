@@ -6,12 +6,11 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-
-from . import timestreamwrite_aws_verified
+from tests import aws_verified
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_create_database_simple():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     db_name = "db_" + str(uuid4())[0:6]
@@ -71,7 +70,7 @@ def test_describe_database():
 
 
 @pytest.mark.aws_verified
-@timestreamwrite_aws_verified
+@aws_verified
 def test_describe_unknown_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")
     with pytest.raises(ClientError) as exc:

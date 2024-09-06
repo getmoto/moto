@@ -774,10 +774,7 @@ def test_get_function_code_signing_config(key):
 def test_get_function_by_arn():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", "us-east-1")
-    s3_conn.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
-    )
+    s3_conn.create_bucket(Bucket=bucket_name)
 
     zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
@@ -860,10 +857,7 @@ def test_delete_function():
 def test_delete_function_by_arn():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", "us-east-1")
-    s3_conn.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
-    )
+    s3_conn.create_bucket(Bucket=bucket_name)
 
     zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)

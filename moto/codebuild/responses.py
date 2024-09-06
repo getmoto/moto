@@ -136,17 +136,30 @@ class CodeBuildResponse(BaseResponse):
             )
 
         project_metadata = self.codebuild_backend.create_project(
-            self._get_param("name"),
-            self._get_param("source"),
-            self._get_param("artifacts"),
-            self._get_param("environment"),
+            project_name=self._get_param("name"),
+            description=self._get_param("description"),
+            project_source=self._get_param("source"),
+            artifacts=self._get_param("artifacts"),
+            environment=self._get_param("environment"),
             service_role=service_role,
+            tags=self._get_param("tags"),
+            cache=self._get_param("cache"),
+            timeout=self._get_param("timeoutInMinutes"),
+            queued_timeout=self._get_param("queuedTimeoutInMinutes"),
+            source_version=self._get_param("sourceVersion"),
+            logs_config=self._get_param("logsConfig"),
+            vpc_config=self._get_param("vpcConfig"),
         )
 
         return json.dumps({"project": project_metadata})
 
     def list_projects(self) -> str:
         project_metadata = self.codebuild_backend.list_projects()
+        return json.dumps({"projects": project_metadata})
+
+    def batch_get_projects(self) -> str:
+        names = self._get_param("names")
+        project_metadata = self.codebuild_backend.batch_get_projects(names)
         return json.dumps({"projects": project_metadata})
 
     def start_build(self) -> str:

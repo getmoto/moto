@@ -28,6 +28,7 @@ from .utils import (
     generate_stackset_arn,
     generate_stackset_id,
     get_stack_from_s3_url,
+    validate_create_change_set,
     validate_template_cfn_lint,
     yaml_tag_constructor,
 )
@@ -536,6 +537,8 @@ class FakeStack(CloudFormationModel):
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
         self.role_arn = role_arn
+        if parameters:
+            self.parameters = parameters
         # only overwrite tags if passed
         if tags is not None:
             self.tags = tags
@@ -790,7 +793,7 @@ class CloudFormationBackend(BaseBackend):
                     instance.parameters[parameter["parameter_key"]],
                 )
                 for parameter in incoming_params
-                if "use_previous_value" in parameter
+                if parameter.get("use_previous_value") == "true"
             ]
         )
         parameters.update(previous)
@@ -1005,6 +1008,7 @@ class CloudFormationBackend(BaseBackend):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
     ) -> Tuple[str, str]:
+        validate_create_change_set(change_set_name)
         if change_set_type == "UPDATE":
             for stack in self.stacks.values():
                 if stack.name == stack_name:

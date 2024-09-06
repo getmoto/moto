@@ -474,9 +474,21 @@ def test_publish_to_disabled_platform_endpoint(api_key=None):
             conn.delete_platform_application(PlatformApplicationArn=application_arn)
 
 
-@pytest.mark.aws_verified
 @sns_aws_verified
 def test_publish_to_deleted_platform_endpoint(api_key=None):
+    """
+    This used to run against AWS, but they have changed the API, and this currently throws an exception:
+        Invalid parameter: Attributes Reason: Platform credentials are invalid
+
+    Need to change this test accordingly
+
+    https://docs.aws.amazon.com/sns/latest/dg/sns-send-custom-platform-specific-payloads-mobile-devices.html
+
+    > Amazon SNS now supports Firebase Cloud Messaging (FCM) HTTP v1 API for sending mobile push notifications to Android devices.
+    >
+    > March 26, 2024 – Amazon SNS supports FCM HTTP v1 API for Apple devices and Webpush destinations.
+    > We recommend that you migrate your existing mobile push applications to the latest FCM HTTP v1 API on or before June 1, 2024 to avoid application disruption.
+    """
     conn = boto3.client("sns", region_name="us-east-1")
     platform_name = str(uuid4())[0:6]
     topic_name = "topic_" + str(uuid4())[0:6]

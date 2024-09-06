@@ -136,10 +136,18 @@ class SQSResponse(BaseResponse):
     def call_action(self) -> TYPE_RESPONSE:
         status_code, headers, body = super().call_action()
         if status_code == 404:
-            queue_name = self.querystring.get("QueueName", [""])[0]
-            template = self.response_template(ERROR_INEXISTENT_QUEUE)
-            response = template.render(queue_name=queue_name)
-            return 404, headers, response
+            if self.is_json():
+                err = {
+                    "__type": "com.amazonaws.sqs#QueueDoesNotExist",
+                    "message": "The specified queue does not exist.",
+                }
+                headers["x-amzn-query-error"] = (
+                    "AWS.SimpleQueueService.NonExistentQueue;Sender"
+                )
+                body = json.dumps(err)
+            else:
+                body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
+            status_code = 400
         return status_code, headers, body
 
     def _error(self, code: str, message: str, status: int = 400) -> TYPE_RESPONSE:
@@ -480,6 +488,9 @@ class SQSResponse(BaseResponse):
             receipts = self._get_param("Entries")
         else:
             receipts = self._get_multi_param("DeleteMessageBatchRequestEntry")
+
+        if not receipts:
+            raise EmptyBatchRequest(action="Delete")
 
         for r in receipts:
             for key in list(r.keys()):

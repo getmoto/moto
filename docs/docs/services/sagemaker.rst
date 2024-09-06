@@ -24,14 +24,14 @@ sagemaker
 - [ ] create_app_image_config
 - [ ] create_artifact
 - [ ] create_auto_ml_job
-- [ ] create_auto_ml_job_v2
+- [X] create_auto_ml_job_v2
 - [X] create_cluster
 - [ ] create_code_repository
-- [ ] create_compilation_job
+- [X] create_compilation_job
 - [ ] create_context
-- [ ] create_data_quality_job_definition
+- [X] create_data_quality_job_definition
 - [ ] create_device_fleet
-- [ ] create_domain
+- [X] create_domain
 - [ ] create_edge_deployment_plan
 - [ ] create_edge_deployment_stage
 - [ ] create_edge_packaging_job
@@ -43,7 +43,7 @@ sagemaker
 - [ ] create_hub
 - [ ] create_hub_content_reference
 - [ ] create_human_task_ui
-- [ ] create_hyper_parameter_tuning_job
+- [X] create_hyper_parameter_tuning_job
 - [ ] create_image
 - [ ] create_image_version
 - [ ] create_inference_component
@@ -52,13 +52,13 @@ sagemaker
 - [ ] create_labeling_job
 - [ ] create_mlflow_tracking_server
 - [X] create_model
-- [ ] create_model_bias_job_definition
-- [ ] create_model_card
+- [X] create_model_bias_job_definition
+- [X] create_model_card
 - [ ] create_model_card_export_job
-- [ ] create_model_explainability_job_definition
+- [X] create_model_explainability_job_definition
 - [X] create_model_package
 - [X] create_model_package_group
-- [ ] create_model_quality_job_definition
+- [X] create_model_quality_job_definition
 - [ ] create_monitoring_schedule
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
@@ -86,11 +86,11 @@ sagemaker
 - [ ] delete_association
 - [X] delete_cluster
 - [ ] delete_code_repository
-- [ ] delete_compilation_job
+- [X] delete_compilation_job
 - [ ] delete_context
-- [ ] delete_data_quality_job_definition
+- [X] delete_data_quality_job_definition
 - [ ] delete_device_fleet
-- [ ] delete_domain
+- [X] delete_domain
 - [ ] delete_edge_deployment_plan
 - [ ] delete_edge_deployment_stage
 - [X] delete_endpoint
@@ -102,20 +102,20 @@ sagemaker
 - [ ] delete_hub_content
 - [ ] delete_hub_content_reference
 - [ ] delete_human_task_ui
-- [ ] delete_hyper_parameter_tuning_job
+- [X] delete_hyper_parameter_tuning_job
 - [ ] delete_image
 - [ ] delete_image_version
 - [ ] delete_inference_component
 - [ ] delete_inference_experiment
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
-- [ ] delete_model_bias_job_definition
-- [ ] delete_model_card
-- [ ] delete_model_explainability_job_definition
+- [X] delete_model_bias_job_definition
+- [X] delete_model_card
+- [X] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
 - [ ] delete_model_package_group_policy
-- [ ] delete_model_quality_job_definition
+- [X] delete_model_quality_job_definition
 - [ ] delete_monitoring_schedule
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
@@ -137,16 +137,16 @@ sagemaker
 - [ ] describe_app_image_config
 - [ ] describe_artifact
 - [ ] describe_auto_ml_job
-- [ ] describe_auto_ml_job_v2
+- [X] describe_auto_ml_job_v2
 - [X] describe_cluster
 - [X] describe_cluster_node
 - [ ] describe_code_repository
-- [ ] describe_compilation_job
+- [X] describe_compilation_job
 - [ ] describe_context
-- [ ] describe_data_quality_job_definition
+- [X] describe_data_quality_job_definition
 - [ ] describe_device
 - [ ] describe_device_fleet
-- [ ] describe_domain
+- [X] describe_domain
 - [ ] describe_edge_deployment_plan
 - [ ] describe_edge_packaging_job
 - [X] describe_endpoint
@@ -158,7 +158,7 @@ sagemaker
 - [ ] describe_hub
 - [ ] describe_hub_content
 - [ ] describe_human_task_ui
-- [ ] describe_hyper_parameter_tuning_job
+- [X] describe_hyper_parameter_tuning_job
 - [ ] describe_image
 - [ ] describe_image_version
 - [ ] describe_inference_component
@@ -168,13 +168,13 @@ sagemaker
 - [ ] describe_lineage_group
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
-- [ ] describe_model_bias_job_definition
-- [ ] describe_model_card
+- [X] describe_model_bias_job_definition
+- [X] describe_model_card
 - [ ] describe_model_card_export_job
-- [ ] describe_model_explainability_job_definition
+- [X] describe_model_explainability_job_definition
 - [X] describe_model_package
 - [X] describe_model_package_group
-- [ ] describe_model_quality_job_definition
+- [X] describe_model_quality_job_definition
 - [ ] describe_monitoring_schedule
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
@@ -211,21 +211,21 @@ sagemaker
 - [ ] list_apps
 - [ ] list_artifacts
 - [ ] list_associations
-- [ ] list_auto_ml_jobs
+- [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
 - [X] list_cluster_nodes
 - [X] list_clusters
 - [ ] list_code_repositories
-- [ ] list_compilation_jobs
+- [X] list_compilation_jobs
 - [ ] list_contexts
-- [ ] list_data_quality_job_definitions
+- [X] list_data_quality_job_definitions
 - [ ] list_device_fleets
 - [ ] list_devices
-- [ ] list_domains
+- [X] list_domains
 - [ ] list_edge_deployment_plans
 - [ ] list_edge_packaging_jobs
-- [ ] list_endpoint_configs
-- [ ] list_endpoints
+- [X] list_endpoint_configs
+- [X] list_endpoints
 - [X] list_experiments
 - [ ] list_feature_groups
 - [ ] list_flow_definitions
@@ -233,7 +233,7 @@ sagemaker
 - [ ] list_hub_contents
 - [ ] list_hubs
 - [ ] list_human_task_uis
-- [ ] list_hyper_parameter_tuning_jobs
+- [X] list_hyper_parameter_tuning_jobs
 - [ ] list_image_versions
 - [ ] list_images
 - [ ] list_inference_components
@@ -244,15 +244,15 @@ sagemaker
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
 - [ ] list_mlflow_tracking_servers
-- [ ] list_model_bias_job_definitions
+- [X] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
-- [ ] list_model_card_versions
-- [ ] list_model_cards
-- [ ] list_model_explainability_job_definitions
+- [X] list_model_card_versions
+- [X] list_model_cards
+- [X] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [X] list_model_package_groups
 - [X] list_model_packages
-- [ ] list_model_quality_job_definitions
+- [X] list_model_quality_job_definitions
 - [X] list_models
 - [ ] list_monitoring_alert_history
 - [ ] list_monitoring_alerts
@@ -292,6 +292,10 @@ sagemaker
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
 - [X] search
+  
+        Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
+        
+
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
@@ -300,7 +304,7 @@ sagemaker
 - [ ] start_monitoring_schedule
 - [X] start_notebook_instance
 - [X] start_pipeline_execution
-- [ ] stop_auto_ml_job
+- [X] stop_auto_ml_job
 - [ ] stop_compilation_job
 - [ ] stop_edge_deployment_stage
 - [ ] stop_edge_packaging_job
@@ -338,7 +342,7 @@ sagemaker
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
 - [ ] update_mlflow_tracking_server
-- [ ] update_model_card
+- [X] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule

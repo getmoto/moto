@@ -535,6 +535,45 @@ class ElasticMapReduceResponse(BaseResponse):
         template = self.response_template(REMOVE_AUTO_SCALING_POLICY)
         return template.render()
 
+    @generate_boto3_response("GetBlockPublicAccessConfiguration")
+    def get_block_public_access_configuration(self) -> str:
+        configuration = self.backend.get_block_public_access_configuration()
+        config = configuration.get("block_public_access_configuration") or {}
+        metadata = configuration.get("block_public_access_configuration_metadata") or {}
+        template = self.response_template(
+            GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
+        )
+        return template.render(
+            block_public_security_group_rules=config.get(
+                "block_public_security_group_rules"
+            ),
+            permitted_public_security_group_rule_ranges=config.get(
+                "permitted_public_security_group_rule_ranges"
+            ),
+            creation_date_time=metadata.get("creation_date_time"),
+            created_by_arn=metadata.get("created_by_arn"),
+        )
+
+    @generate_boto3_response("PutBlockPublicAccessConfiguration")
+    def put_block_public_access_configuration(self) -> str:
+        params = self._get_params()
+        block_public_access_configuration = (
+            params.get("BlockPublicAccessConfiguration") or {}
+        )
+        self.backend.put_block_public_access_configuration(
+            block_public_security_group_rules=block_public_access_configuration.get(
+                "BlockPublicSecurityGroupRules"
+            )
+            or True,
+            rule_ranges=block_public_access_configuration.get(
+                "PermittedPublicSecurityGroupRuleRanges"
+            ),
+        )
+        template = self.response_template(
+            PUT_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE
+        )
+        return template.render()
+
 
 ADD_INSTANCE_GROUPS_TEMPLATE = """<AddInstanceGroupsResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
   <AddInstanceGroupsResult>
@@ -1418,3 +1457,36 @@ DELETE_SECURITY_CONFIGURATION_TEMPLATE = """<DeleteSecurityConfigurationResponse
     <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
   </ResponseMetadata>
 </DeleteSecurityConfigurationResponse>"""
+
+PUT_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE = """<PutBlockPublicAccessConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+  <ResponseMetadata>
+    <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+  </ResponseMetadata>
+</PutBlockPublicAccessConfigurationResponse>"""
+
+GET_BLOCK_PUBLIC_ACCESS_CONFIGURATION_TEMPLATE = """
+  <GetBlockPublicAccessConfigurationResponse xmlns="http://elasticmapreduce.amazonaws.com/doc/2009-03-31">
+    <GetBlockPublicAccessConfigurationResult>
+      <BlockPublicAccessConfiguration>
+        <BlockPublicSecurityGroupRules>
+          {{block_public_security_group_rules}}
+        </BlockPublicSecurityGroupRules>
+        <PermittedPublicSecurityGroupRuleRanges>
+          {% for rule_range in permitted_public_security_group_rule_ranges %}
+            <member>
+              <MinRange>{{rule_range['min_range']}}</MinRange>
+              <MaxRange>{{rule_range['max_range']}}</MaxRange>      
+            </member>
+          {% endfor %}
+        </PermittedPublicSecurityGroupRuleRanges>
+      </BlockPublicAccessConfiguration>
+      <BlockPublicAccessConfigurationMetadata>
+        <CreationDateTime>{{creation_date_time}}</CreationDateTime>
+        <CreatedByArn>{{created_by_arn}}</CreatedByArn>
+      </BlockPublicAccessConfigurationMetadata>
+    </GetBlockPublicAccessConfigurationResult>
+    <ResponseMetadata>
+      <RequestId>2690d7eb-ed86-11dd-9877-6fad448a8419</RequestId>
+    </ResponseMetadata>
+  </GetBlockPublicAccessConfigurationResponse>
+"""

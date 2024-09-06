@@ -19,11 +19,15 @@ class ElasticBlockStore(EC2BaseResponse):
         description = self._get_param("Description")
         tags = self._parse_tag_specification()
         snapshot_tags = tags.get("snapshot", {})
+        kms_key_id = self._get_param("KmsKeyId")
 
         self.error_on_dryrun()
 
         snapshot = self.ec2_backend.copy_snapshot(
-            source_snapshot_id, source_region, description
+            source_snapshot_id=source_snapshot_id,
+            source_region=source_region,
+            description=description,
+            kms_key_id=kms_key_id,
         )
         snapshot.add_tags(snapshot_tags)
         template = self.response_template(COPY_SNAPSHOT_RESPONSE)
@@ -412,6 +416,7 @@ DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.am
             <volumeSize>{{ snapshot.volume.size }}</volumeSize>
              <description>{{ snapshot.description }}</description>
              <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
+             {% if snapshot.kms_key_id %}<kmsKeyId>{{ snapshot.kms_key_id }}</kmsKeyId>{% endif %}
              <tagSet>
                {% for tag in snapshot.get_tags() %}
                  <item>

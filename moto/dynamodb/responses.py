@@ -53,28 +53,25 @@ def include_consumed_capacity(
 
             response = f(*args, **kwargs)
 
-            if isinstance(response, str):
-                body = json.loads(response)
+            body = json.loads(response)
 
-                if expected_capacity == "TOTAL":
-                    body["ConsumedCapacity"] = {
-                        "TableName": table_name,
-                        "CapacityUnits": val,
+            if expected_capacity == "TOTAL":
+                body["ConsumedCapacity"] = {
+                    "TableName": table_name,
+                    "CapacityUnits": val,
+                }
+            elif expected_capacity == "INDEXES":
+                body["ConsumedCapacity"] = {
+                    "TableName": table_name,
+                    "CapacityUnits": val,
+                    "Table": {"CapacityUnits": val},
+                }
+                if index_name:
+                    body["ConsumedCapacity"]["LocalSecondaryIndexes"] = {
+                        index_name: {"CapacityUnits": val}
                     }
-                elif expected_capacity == "INDEXES":
-                    body["ConsumedCapacity"] = {
-                        "TableName": table_name,
-                        "CapacityUnits": val,
-                        "Table": {"CapacityUnits": val},
-                    }
-                    if index_name:
-                        body["ConsumedCapacity"]["LocalSecondaryIndexes"] = {
-                            index_name: {"CapacityUnits": val}
-                        }
 
-                return dynamo_json_dump(body)
-
-            return response
+            return dynamo_json_dump(body)
 
         return _wrapper
 
@@ -122,23 +119,24 @@ def validate_put_has_empty_keys(
             raise MockValidationException(msg.format(empty_key))
 
 
-def put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> bool:
+def validate_put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> None:
     # Example invalid attribute: [{'M': {'SS': {'NS': []}}}]
-    def _validate_attr(attr: Dict[str, Any]) -> bool:
-        if "NS" in attr and attr["NS"] == []:
-            return True
+    def _validate_attr(attr: Dict[str, Any]) -> None:
+        for set_type, error in [("NS", "number"), ("SS", "string")]:
+            if set_type in attr and attr[set_type] == []:
+                raise MockValidationException(
+                    f"One or more parameter values were invalid: An {error} set  may not be empty"
+                )
+
         else:
-            return any(
-                [_validate_attr(val) for val in attr.values() if isinstance(val, dict)]
-            )
+            for val in attr.values():
+                if isinstance(val, dict):
+                    _validate_attr(val)
 
     if table:
-        key_names = table.attribute_keys
-        attrs_to_check = [
-            val for attr, val in field_updates.items() if attr not in key_names
-        ]
-        return any([_validate_attr(attr) for attr in attrs_to_check])
-    return False
+        for attr, val in field_updates.items():
+            if attr not in table.attribute_keys:
+                _validate_attr(val)
 
 
 def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) -> None:
@@ -475,10 +473,7 @@ class DynamoHandler(BaseResponse):
 
         table = self.dynamodb_backend.get_table(name)
         validate_put_has_empty_keys(item, table)
-        if put_has_empty_attrs(item, table):
-            raise MockValidationException(
-                "One or more parameter values were invalid: An number set  may not be empty"
-            )
+        validate_put_has_empty_attrs(item, table)
         validate_put_has_gsi_keys_set_to_none(item, table)
 
         overwrite = "Expected" not in self.body
@@ -889,12 +884,22 @@ class DynamoHandler(BaseResponse):
         name = self.body["TableName"]
         key = self.body["Key"]
         return_values = self.body.get("ReturnValues", "NONE")
-        update_expression = self.body.get("UpdateExpression", "").strip()
+        update_expression = self.body.get("UpdateExpression", None)
         attribute_updates = self.body.get("AttributeUpdates")
-        if update_expression and attribute_updates:
+        if update_expression is not None and attribute_updates:
             raise MockValidationException(
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
             )
+
+        if update_expression is not None:
+            update_expression = update_expression.strip()
+            if update_expression == "":
+                raise MockValidationException(
+                    "Invalid UpdateExpression: The expression can not be empty;"
+                )
+        else:
+            update_expression = ""
+
         return_values_on_condition_check_failure = self.body.get(
             "ReturnValuesOnConditionCheckFailure"
         )
@@ -965,7 +970,11 @@ class DynamoHandler(BaseResponse):
         return dynamo_json_dump(item_dict)
 
     def _get_expr_attr_values(self) -> Dict[str, Dict[str, str]]:
-        values = self.body.get("ExpressionAttributeValues", {})
+        values = self.body.get("ExpressionAttributeValues")
+        if values is None:
+            return {}
+        if len(values) == 0:
+            raise MockValidationException("ExpressionAttributeValues must not be empty")
         for key in values.keys():
             if not key.startswith(":"):
                 raise MockValidationException(
@@ -1227,3 +1236,64 @@ class DynamoHandler(BaseResponse):
         import_arn = self.body["ImportArn"]
         import_table = self.dynamodb_backend.describe_import(import_arn)
         return json.dumps({"ImportTableDescription": import_table.response()})
+
+    def export_table_to_point_in_time(self) -> str:
+        table_arn = self.body["TableArn"]
+        s3_bucket = self.body["S3Bucket"]
+        s3_prefix = self.body["S3Prefix"]
+        export_type = self.body.get("ExportType", "FULL_EXPORT")
+        export_format = self.body.get("ExportFormat", "DYNAMO_JSON")
+        s3_bucket_owner = self.body.get("S3BucketOwner")
+
+        export_table = self.dynamodb_backend.export_table(
+            s3_bucket=s3_bucket,
+            s3_prefix=s3_prefix,
+            table_arn=table_arn,
+            export_type=export_type,
+            export_format=export_format,
+            s3_bucket_owner=s3_bucket_owner,
+        )
+
+        return dynamo_json_dump({"ExportDescription": export_table.response()})
+
+    def describe_export(self) -> str:
+        export_arn = self.body["ExportArn"]
+        export_table = self.dynamodb_backend.describe_export(export_arn)
+        return json.dumps({"ExportDescription": export_table.response()})
+
+    def list_exports(self) -> str:
+        table_arn = self.body["TableArn"]
+        exports = self.dynamodb_backend.list_exports(table_arn)
+        response = []
+        for export_table in exports:
+            response.append(
+                {
+                    "ExportArn": export_table.arn,
+                    "ExportStatus": export_table.status,
+                    "ExportType": export_table.export_type,
+                }
+            )
+        return json.dumps({"ExportSummaries": response})
+
+    def put_resource_policy(self) -> str:
+        policy = self.dynamodb_backend.put_resource_policy(
+            resource_arn=self.body.get("ResourceArn"),
+            policy_doc=self.body.get("Policy"),
+            expected_revision_id=self.body.get("ExpectedRevisionId"),
+        )
+        return json.dumps({"RevisionId": policy.revision_id})
+
+    def get_resource_policy(self) -> str:
+        policy = self.dynamodb_backend.get_resource_policy(
+            resource_arn=self.body.get("ResourceArn")
+        )
+        return json.dumps(
+            {"Policy": policy.policy_doc, "RevisionId": policy.revision_id}
+        )
+
+    def delete_resource_policy(self) -> str:
+        self.dynamodb_backend.delete_resource_policy(
+            resource_arn=self.body.get("ResourceArn"),
+            expected_revision_id=self.body.get("ExpectedRevisionId"),
+        )
+        return "{}"

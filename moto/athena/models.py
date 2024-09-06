@@ -62,6 +62,20 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
         self.description = description
         self.configuration = configuration
 
+        if "EnableMinimumEncryptionConfiguration" not in self.configuration:
+            self.configuration["EnableMinimumEncryptionConfiguration"] = False
+        if "EnforceWorkGroupConfiguration" not in self.configuration:
+            self.configuration["EnforceWorkGroupConfiguration"] = True
+        if "EngineVersion" not in self.configuration:
+            self.configuration["EngineVersion"] = {
+                "EffectiveEngineVersion": "Athena engine " "version 3",
+                "SelectedEngineVersion": "AUTO",
+            }
+        if "PublishCloudWatchMetricsEnabled" not in self.configuration:
+            self.configuration["PublishCloudWatchMetricsEnabled"] = False
+        if "RequesterPaysEnabled" not in self.configuration:
+            self.configuration["RequesterPaysEnabled"] = False
+
 
 class DataCatalog(TaggableResourceMixin, BaseModel):
     def __init__(
@@ -179,7 +193,13 @@ class AthenaBackend(BaseBackend):
 
         # Initialise with the primary workgroup
         self.create_work_group(
-            name="primary", description="", configuration=dict(), tags=[]
+            name="primary",
+            description="",
+            configuration={
+                "ResultConfiguration": {},
+                "EnforceWorkGroupConfiguration": False,
+            },
+            tags=[],
         )
 
     def create_work_group(
@@ -217,6 +237,9 @@ class AthenaBackend(BaseBackend):
             "Description": wg.description,
             "CreationTime": time.time(),
         }
+
+    def delete_work_group(self, name: str) -> None:
+        self.work_groups.pop(name, None)
 
     def start_query_execution(
         self,

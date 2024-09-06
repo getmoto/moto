@@ -35,6 +35,18 @@ class InvalidInput(Route53ClientError):
         super().__init__("InvalidInput", message)
 
 
+class UnsupportedCharacter(Route53ClientError):
+    """Malformed ARN for the CloudWatch log group."""
+
+    code = 400
+
+    def __init__(self, code: str, char: str):
+        super().__init__(
+            code,
+            f"FATAL problem: UnsupportedCharacter (Value contains unsupported characters) encountered with '{char}'",
+        )
+
+
 class InvalidCloudWatchArn(InvalidInput):
     def __init__(self) -> None:
         message = "The ARN for the CloudWatch Logs log group is invalid"

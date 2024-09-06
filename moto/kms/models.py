@@ -1,5 +1,6 @@
 import json
 import os
+import typing
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
@@ -78,6 +79,15 @@ class Key(CloudFormationModel):
         self.description = description or ""
         self.enabled = True
         self.multi_region = multi_region
+        if self.multi_region:
+            self.multi_region_configuration: typing.Dict[str, Any] = {
+                "MultiRegionKeyType": "PRIMARY",
+                "PrimaryKey": {
+                    "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
+                    "Region": self.region,
+                },
+                "ReplicaKeys": [],
+            }
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
         self.key_material = generate_master_key()
@@ -88,7 +98,6 @@ class Key(CloudFormationModel):
         self.arn = (
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
         )
-
         self.grants: Dict[str, Grant] = dict()
 
     def add_grant(
@@ -206,6 +215,10 @@ class Key(CloudFormationModel):
                 "SigningAlgorithms": self.signing_algorithms,
             }
         }
+        if key_dict["KeyMetadata"]["MultiRegion"]:
+            key_dict["KeyMetadata"]["MultiRegionConfiguration"] = (
+                self.multi_region_configuration
+            )
         if self.key_state == "PendingDeletion":
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
@@ -275,7 +288,7 @@ class KmsBackend(BaseBackend):
                 "Default key",
                 None,
             )
-            self.add_alias(key.id, alias_name)
+            self.create_alias(key.id, alias_name)
             return key.id
         return None
 
@@ -326,8 +339,24 @@ class KmsBackend(BaseBackend):
         replica_key = copy(self.keys[key_id])
         replica_key.region = replica_region
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
+
+        if replica_key.multi_region:
+            existing_replica = any(
+                replica["Region"] == replica_region
+                for replica in replica_key.multi_region_configuration["ReplicaKeys"]
+            )
+
+            if not existing_replica:
+                replica_payload = {"Arn": replica_key.arn, "Region": replica_region}
+                replica_key.multi_region_configuration["ReplicaKeys"].append(
+                    replica_payload
+                )
+
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
+
+        self.multi_region_configuration = copy(replica_key.multi_region_configuration)
+
         return replica_key
 
     def update_key_description(self, key_id: str, description: str) -> None:
@@ -348,6 +377,16 @@ class KmsBackend(BaseBackend):
         key_id = self.get_key_id(key_id)
         if r"alias/" in str(key_id).lower():
             key_id = self.get_key_id_from_alias(key_id)  # type: ignore[assignment]
+
+        key = self.keys[self.get_key_id(key_id)]
+
+        if key.multi_region:
+            if key.arn == key.multi_region_configuration["PrimaryKey"]["Arn"]:
+                return self.keys[self.get_key_id(key_id)]
+            else:
+                key.multi_region_configuration["MultiRegionKeyType"] = "REPLICA"
+                return key
+
         return self.keys[self.get_key_id(key_id)]
 
     def list_keys(self) -> Iterable[Key]:
@@ -391,9 +430,12 @@ class KmsBackend(BaseBackend):
 
         return False
 
-    def add_alias(self, target_key_id: str, alias_name: str) -> None:
+    def create_alias(self, target_key_id: str, alias_name: str) -> None:
         raw_key_id = self.get_key_id(target_key_id)
         self.key_to_aliases[raw_key_id].add(alias_name)
+
+    def update_alias(self, target_key_id: str, alias_name: str) -> None:
+        self.create_alias(target_key_id, alias_name)
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
@@ -401,7 +443,7 @@ class KmsBackend(BaseBackend):
             if alias_name in aliases:
                 aliases.remove(alias_name)
 
-    def get_all_aliases(self) -> Dict[str, Set[str]]:
+    def list_aliases(self) -> Dict[str, Set[str]]:
         return self.key_to_aliases
 
     def get_key_id_from_alias(self, alias_name: str) -> Optional[str]:
@@ -518,6 +560,11 @@ class KmsBackend(BaseBackend):
         )
 
         return plaintext, ciphertext_blob, arn
+
+    def generate_data_key_without_plaintext(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'generate_data_key'
+        pass
 
     def list_resource_tags(self, key_id_or_arn: str) -> Dict[str, List[Dict[str, str]]]:
         key_id = self.get_key_id(key_id_or_arn)

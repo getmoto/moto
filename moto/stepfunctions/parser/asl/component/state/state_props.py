@@ -7,23 +7,32 @@ from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import Time
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.max_items_decl import (
     MaxItemsDecl,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.max_concurrency import (
+    MaxConcurrencyDecl,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     Resource,
 )
+from moto.stepfunctions.parser.asl.component.state.fail.cause_decl import CauseDecl
+from moto.stepfunctions.parser.asl.component.state.fail.error_decl import ErrorDecl
 from moto.stepfunctions.parser.asl.component.state.wait.wait_function.wait_function import (
     WaitFunction,
 )
 from moto.stepfunctions.parser.asl.parse.typed_props import TypedProps
 
+UNIQUE_SUBINSTANCES = {
+    Resource,
+    WaitFunction,
+    Timeout,
+    Heartbeat,
+    MaxItemsDecl,
+    MaxConcurrencyDecl,
+    ErrorDecl,
+    CauseDecl,
+}
+
 
 class StateProps(TypedProps):
-    _UNIQUE_SUBINSTANCES = {
-        Resource,
-        WaitFunction,
-        Timeout,
-        Heartbeat,
-        MaxItemsDecl,
-    }
     name: str
 
     def add(self, instance: Any) -> None:
@@ -40,7 +49,7 @@ class StateProps(TypedProps):
             )
 
         # Subclasses
-        for typ in self._UNIQUE_SUBINSTANCES:
+        for typ in UNIQUE_SUBINSTANCES:
             if issubclass(inst_type, typ):
                 super()._add(typ, instance)
                 return

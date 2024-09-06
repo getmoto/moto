@@ -321,20 +321,14 @@ class LambdaResponse(BaseResponse):
 
     def get_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function_name = self.backend.get_function(path_function_name)
-
-        if function_name is None:
-            return 404, {"status": 404}, "{}"
+        self.backend.get_function(path_function_name)
 
         resp = self.backend.get_function_concurrency(path_function_name)
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
 
     def delete_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function_name = self.backend.get_function(path_function_name)
-
-        if function_name is None:
-            return 404, {}, "{}"
+        self.backend.get_function(path_function_name)
 
         self.backend.delete_function_concurrency(path_function_name)
 
@@ -342,10 +336,7 @@ class LambdaResponse(BaseResponse):
 
     def put_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function = self.backend.get_function(path_function_name)
-
-        if function is None:
-            return 404, {}, "{}"
+        self.backend.get_function(path_function_name)
 
         concurrency = self._get_param("ReservedConcurrentExecutions", None)
         resp = self.backend.put_function_concurrency(path_function_name, concurrency)

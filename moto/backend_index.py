@@ -8,13 +8,14 @@ backend_url_patterns = [
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
     (
         "apigatewaymanagementapi",
-        re.compile("https?://execute-api\\.(.+)\\.amazonaws\\.com"),
+        re.compile("https?://(.+\\.)*execute-api\\.(.+)\\.amazonaws\\.com"),
     ),
     ("appconfig", re.compile("https?://appconfig\\.(.+)\\.amazonaws\\.com")),
     (
         "applicationautoscaling",
         re.compile("https?://application-autoscaling\\.(.+)\\.amazonaws.com"),
     ),
+    ("appmesh", re.compile("https?://appmesh\\.(.+)\\.amazonaws\\.com")),
     ("appsync", re.compile("https?://appsync\\.(.+)\\.amazonaws\\.com")),
     ("athena", re.compile("https?://athena\\.(.+)\\.amazonaws\\.com")),
     ("autoscaling", re.compile("https?://autoscaling\\.(.+)\\.amazonaws\\.com")),
@@ -130,6 +131,7 @@ backend_url_patterns = [
     ("personalize", re.compile("https?://personalize\\.(.+)\\.amazonaws\\.com")),
     ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
+    ("qldb", re.compile("https?://qldb\\.(.+)\\.amazonaws\\.com")),
     ("quicksight", re.compile("https?://quicksight\\.(.+)\\.amazonaws\\.com")),
     ("ram", re.compile("https?://ram\\.(.+)\\.amazonaws.com")),
     ("rds", re.compile("https?://rds\\.(.+)\\.amazonaws\\.com")),
@@ -195,6 +197,10 @@ backend_url_patterns = [
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
+        "timestreamquery",
+        re.compile("https?://query.timestream\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
         "timestreamwrite",
         re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com"),
     ),
@@ -203,6 +209,7 @@ backend_url_patterns = [
         re.compile("https?://ingest\\.timestream\\.(.+)\\.amazonaws\\.com/"),
     ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
+    ("transfer", re.compile("https?://transfer\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
     ("workspaces", re.compile("https?://workspaces\\.(.+)\\.amazonaws\\.com")),
     ("xray", re.compile("https?://xray\\.(.+)\\.amazonaws.com")),

@@ -308,6 +308,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 a
                 for a in self.scheduled_actions
                 if a.service_namespace == service_namespace
+                and a.scheduled_action_name == scheduled_action_name
                 and a.resource_id == resource_id
                 and a.scalable_dimension == scalable_dimension
             ),
@@ -640,7 +641,7 @@ class FakeScheduledAction(BaseModel):
         account_id: str,
         region: str,
     ) -> None:
-        self.arn = f"arn:{get_partition(region)}:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
+        self.arn = f"arn:{get_partition(region)}:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}/{resource_id}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
         self.timezone = timezone

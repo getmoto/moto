@@ -130,7 +130,10 @@ class AWSCertificateManagerResponse(BaseResponse):
         certs = []
         statuses = self._get_param("CertificateStatuses")
         for cert_bundle in self.acm_backend.list_certificates(statuses):
-            certs.append(cert_bundle.describe()["Certificate"])
+            _cert = cert_bundle.describe()["Certificate"]
+            _in_use_by = _cert.pop("InUseBy", [])
+            _cert["InUse"] = bool(_in_use_by)
+            certs.append(_cert)
 
         result = {"CertificateSummaryList": certs}
         return json.dumps(result)

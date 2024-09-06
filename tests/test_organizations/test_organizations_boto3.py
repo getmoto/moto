@@ -1,12 +1,14 @@
 import json
+import os
 import re
 from datetime import datetime
+from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.organizations import utils
 from moto.organizations.exceptions import InvalidInputException, TargetNotFoundException
@@ -73,6 +75,39 @@ def test_create_organization_without_feature_set():
     response = client.describe_organization()
     validate_organization(response)
     assert response["Organization"]["FeatureSet"] == "ALL"
+
+
+@mock_aws
+def test_create_account_creates_role():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+    orgs_client = boto3.client("organizations", region_name="us-west-2")
+    orgs_client.create_organization()
+    account = orgs_client.create_account(AccountName="test", Email="test@test.xyz")
+    account_id = account["CreateAccountStatus"]["AccountId"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        iam_client = boto3.client("iam", "us-east-1")
+        iam_client.get_role(RoleName="OrganizationAccountAccessRole")
+
+
+@mock_aws
+def test_create_account_creates_custom_role():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+
+    orgs_client = boto3.client("organizations", region_name="us-west-2")
+    _ = orgs_client.create_organization()
+    account = orgs_client.create_account(
+        AccountName="test_account",
+        Email="test@test.xyz",
+        RoleName="CustomOrganizationRole",
+    )
+    account_id = account["CreateAccountStatus"]["AccountId"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        iam_client = boto3.client("iam", "us-east-1")
+        iam_client.get_role(RoleName="CustomOrganizationRole")
 
 
 @mock_aws

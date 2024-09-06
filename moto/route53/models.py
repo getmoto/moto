@@ -33,7 +33,7 @@ from moto.route53.exceptions import (
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, validate_domain_name
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
@@ -659,6 +659,8 @@ class Route53Backend(BaseBackend):
         """
         The StartRecordIdentifier-parameter is not yet implemented
         """
+        if start_name:
+            validate_domain_name(start_name)
         the_zone = self.get_hosted_zone(zone_id)
         all_records = list(the_zone.get_record_sets(start_type, start_name))
         records = all_records[0:max_items]
@@ -674,6 +676,9 @@ class Route53Backend(BaseBackend):
         the_zone = self.get_hosted_zone(zoneid)
 
         for value in change_list:
+            validate_domain_name(
+                value["ResourceRecordSet"]["Name"], code="InvalidChangeBatch"
+            )
             if value["Action"] == "CREATE" and value in the_zone.rr_changes:
                 name = value["ResourceRecordSet"]["Name"] + "."
                 _type = value["ResourceRecordSet"]["Type"]

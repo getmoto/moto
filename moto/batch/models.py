@@ -6,7 +6,7 @@ import time
 from itertools import cycle
 from sys import platform
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import dateutil.parser
 
@@ -473,6 +473,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         log_backend: LogsBackend,
         container_overrides: Optional[Dict[str, Any]],
         depends_on: Optional[List[Dict[str, str]]],
+        parameters: Optional[Dict[str, str]],
         all_jobs: Dict[str, "Job"],
         timeout: Optional[Dict[str, int]],
         array_properties: Dict[str, Any],
@@ -498,6 +499,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped = False
         self.job_stopped_reason: Optional[str] = None
         self.depends_on = depends_on
+        self.parameters = {**self.job_definition.parameters, **(parameters or {})}
         self.timeout = timeout
         self.all_jobs = all_jobs
         self.array_properties: Dict[str, Any] = array_properties
@@ -546,6 +548,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         result = self.describe_short()
         result["jobQueue"] = self.job_queue.arn
         result["dependsOn"] = self.depends_on or []
+        result["parameters"] = {**self.job_definition.parameters, **self.parameters}
         if self.job_definition.type == "container":
             result["container"] = self._container_details()
         elif self.job_definition.type == "multinode":
@@ -628,6 +631,20 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             return self.job_definition.timeout["attemptDurationSeconds"]
         return None
 
+    def _add_parameters_to_command(self, command: Union[str, List[str]]) -> List[str]:
+        if isinstance(command, str):
+            command = [command]
+
+        if not self.parameters:
+            return command
+
+        new_command = [
+            command_part.replace(f"Ref::{param}", value)
+            for command_part in command
+            for param, value in self.parameters.items()
+        ]
+        return new_command
+
     def run(self) -> None:
         """
         Run the container.
@@ -676,9 +693,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         "privileged": self.job_definition.container_properties.get(
                             "privileged", False
                         ),
-                        "command": self._get_container_property(
-                            "command",
-                            '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                        "command": self._add_parameters_to_command(
+                            self._get_container_property(
+                                "command",
+                                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                            )
                         ),
                         "environment": {
                             e["name"]: e["value"]
@@ -723,9 +742,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         {
                             "image": spec.get("image", "alpine:latest"),
                             "privileged": spec.get("privileged", False),
-                            "command": spec.get(
-                                "command",
-                                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                            "command": self._add_parameters_to_command(
+                                spec.get(
+                                    "command",
+                                    '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                                )
                             ),
                             "environment": {
                                 e["name"]: e["value"]
@@ -1729,6 +1750,7 @@ class BatchBackend(BaseBackend):
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
+        parameters: Optional[Dict[str, str]] = None,
     ) -> Tuple[str, str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
@@ -1755,6 +1777,7 @@ class BatchBackend(BaseBackend):
             all_jobs=self._jobs,
             timeout=timeout,
             array_properties=array_properties or {},
+            parameters=parameters,
         )
         self._jobs[job.job_id] = job
 
@@ -1772,6 +1795,7 @@ class BatchBackend(BaseBackend):
                     all_jobs=self._jobs,
                     timeout=timeout,
                     array_properties={"statusSummary": {}, "index": array_index},
+                    parameters=parameters,
                     provided_job_id=provided_job_id,
                 )
                 child_jobs.append(child_job)

@@ -367,6 +367,7 @@ class CertBundle(BaseModel):
         domain_names = set(sans + [self.common_name])
         validation_options = []
 
+        domain_name_status = "SUCCESS" if self.status == "ISSUED" else self.status
         for san in domain_names:
             resource_record = {
                 "Name": f"_d930b28be6c5927595552b219965053e.{san}.",
@@ -377,7 +378,7 @@ class CertBundle(BaseModel):
                 {
                     "DomainName": san,
                     "ValidationDomain": san,
-                    "ValidationStatus": self.status,
+                    "ValidationStatus": domain_name_status,
                     "ValidationMethod": "DNS",
                     "ResourceRecord": resource_record,
                 }
