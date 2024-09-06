@@ -372,22 +372,13 @@ class KmsBackend(BaseBackend):
             self.keys.pop(key_id)
 
     def describe_key(self, key_id: str) -> Key:
-        # allow the different methods (alias, ARN :key/, keyId, ARN alias) to
-        # describe key not just KeyId
-        key_id = self.get_key_id(key_id)
-        if r"alias/" in str(key_id).lower():
-            key_id = self.get_key_id_from_alias(key_id)  # type: ignore[assignment]
-
-        key = self.keys[self.get_key_id(key_id)]
+        key = self.keys[self.any_id_to_key_id(key_id)]
 
         if key.multi_region:
-            if key.arn == key.multi_region_configuration["PrimaryKey"]["Arn"]:
-                return self.keys[self.get_key_id(key_id)]
-            else:
+            if key.arn != key.multi_region_configuration["PrimaryKey"]["Arn"]:
                 key.multi_region_configuration["MultiRegionKeyType"] = "REPLICA"
-                return key
 
-        return self.keys[self.get_key_id(key_id)]
+        return key
 
     def list_keys(self) -> Iterable[Key]:
         return self.keys.values()

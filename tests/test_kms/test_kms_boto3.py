@@ -1193,6 +1193,30 @@ def test_sign_happy(plaintext):
 
 
 @mock_aws
+def test_sign_using_alias():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sk", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+    client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
+    client.sign(
+        KeyId=key_id, Message="plaintext", SigningAlgorithm="RSASSA_PSS_SHA_256"
+    )
+
+    key_id = "alias/my-alias"
+    client.sign(
+        KeyId=key_id, Message="plaintext", SigningAlgorithm="RSASSA_PSS_SHA_256"
+    )
+
+    key_id = f"arn:aws:kms:us-west-2:{ACCOUNT_ID}:alias/my-alias"
+    client.sign(
+        KeyId=key_id, Message="plaintext", SigningAlgorithm="RSASSA_PSS_SHA_256"
+    )
+
+
+@mock_aws
 def test_sign_invalid_signing_algorithm():
     client = boto3.client("kms", region_name="us-west-2")
 
