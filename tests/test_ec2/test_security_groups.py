@@ -684,6 +684,7 @@ def test_create_and_describe_security_grp_rule():
         Description="Test SG", GroupName=sg_name, VpcId=vpc.id
     )
 
+    # check that the default rule is present using filters
     response = client.describe_security_group_rules(
         Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
     )
@@ -692,11 +693,21 @@ def test_create_and_describe_security_grp_rule():
     # Only the default rule is present
     assert len(rules) == 1
 
+    def _verify_egress_rule(rule):
+        assert rule["IsEgress"] is True
+        assert rule["IpProtocol"] == "-1"
+        assert rule["CidrIpv4"] == "0.0.0.0/0"
+        assert "GroupId" in rule
+
     # Test default egress rule content
-    assert rules[0]["IsEgress"] is True
-    assert rules[0]["IpProtocol"] == "-1"
-    assert rules[0]["CidrIpv4"] == "0.0.0.0/0"
-    assert "GroupId" in rules[0]
+    _verify_egress_rule(rules[0])
+
+    # check that the default rule is present using security group rule ids
+    response = client.describe_security_group_rules(
+        SecurityGroupRuleIds=[rules[0]["SecurityGroupRuleId"]]
+    )
+    rules = response["SecurityGroupRules"]
+    _verify_egress_rule(rules[0])
 
 
 @mock_aws

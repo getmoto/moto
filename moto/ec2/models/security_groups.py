@@ -634,12 +634,17 @@ class SecurityGroupBackend:
         results = []
 
         if sg_rule_ids:
+            rules_sources = [
+                self.sg_old_ingress_ruls.items(),
+                self.sg_old_egress_ruls.items(),
+            ]
             # go thru all the rules in the backend to find a match
             for sg_rule_id in sg_rule_ids:
-                for sg in self.sg_old_ingress_ruls:
-                    for rule in self.sg_old_ingress_ruls[sg]:
-                        if rule.id == sg_rule_id:
-                            results.append(rule)
+                for rules in rules_sources:
+                    for sg, rules_list in rules:
+                        for rule in rules_list:
+                            if rule.id == sg_rule_id:
+                                results.append(rule)
 
             return results
 
