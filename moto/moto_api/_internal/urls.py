@@ -20,6 +20,7 @@ url_paths = {
     "{0}/moto-api/static/lambda-simple/response": response_instance.set_lambda_simple_result,
     "{0}/moto-api/static/resilience-hub-assessments/response": response_instance.set_resilience_result,
     "{0}/moto-api/static/sagemaker/endpoint-results": response_instance.set_sagemaker_result,
+    "{0}/moto-api/static/sagemaker/async-endpoint-results": response_instance.set_sagemaker_async_result,
     "{0}/moto-api/static/timestream/query-results": response_instance.set_timestream_result,
     "{0}/moto-api/static/rds-data/statement-results": response_instance.set_rds_data_result,
     "{0}/moto-api/state-manager/get-transition": response_instance.get_transition,

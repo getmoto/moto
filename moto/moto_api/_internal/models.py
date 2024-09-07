@@ -84,6 +84,18 @@ class MotoAPIBackend(BaseBackend):
         backend = sagemakerruntime_backends[account_id][region]
         backend.results_queue.append((body, content_type, prod_variant, custom_attrs))
 
+    def set_sagemaker_async_result(
+        self,
+        is_failure: bool,
+        data: str,
+        account_id: str,
+        region: str,
+    ) -> None:
+        from moto.sagemakerruntime.models import sagemakerruntime_backends
+
+        backend = sagemakerruntime_backends[account_id][region]
+        backend.async_results_queue.append((is_failure, data))
+
     def set_rds_data_result(
         self,
         records: Optional[List[List[Dict[str, Any]]]],
