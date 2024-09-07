@@ -85,11 +85,11 @@ class MotoAPIBackend(BaseBackend):
         backend.results_queue.append((body, content_type, prod_variant, custom_attrs))
 
     def set_sagemaker_async_result(
-            self,
-            is_failure: bool,
-            data: str,
-            account_id: str,
-            region: str,
+        self,
+        is_failure: bool,
+        data: str,
+        account_id: str,
+        region: str,
     ) -> None:
         from moto.sagemakerruntime.models import sagemakerruntime_backends
 

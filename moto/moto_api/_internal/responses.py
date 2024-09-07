@@ -216,10 +216,10 @@ class MotoAPIResponse(BaseResponse):
         return 201, {}, ""
 
     def set_sagemaker_async_result(
-            self,
-            request: Any,
-            full_url: str,  # pylint: disable=unused-argument
-            headers: Any,
+        self,
+        request: Any,
+        full_url: str,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
