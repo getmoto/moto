@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.14
 -----
-Docker Digest for 5.0.14: <autopopulateddigest>
+Docker Digest for 5.0.14: _sha256:5399ffa0daadd1eb6c00250ec64453675f9635d0a210563f43c26b43e0dfd178_
 
     General:
         * All JSON files in the binary distribution are shipped compressed, significantly reducing the size on disk
