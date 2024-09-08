@@ -12437,6 +12437,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -16660,6 +16669,9 @@
                 "Value": "apptest",
                 "endpoint": {
                   "Value": "apptest.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "aps": {
@@ -22134,15 +22146,6 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
-              "codedeploy": {
-                "Value": "codedeploy",
-                "endpoint": {
-                  "Value": "codedeploy.ap-southeast-5.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "config": {
                 "Value": "config",
                 "endpoint": {
@@ -24890,6 +24893,15 @@
                 "Value": "thinclient",
                 "endpoint": {
                   "Value": "api.thinclient.ca-central-1.amazonaws.com"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "tnb": {
@@ -29122,6 +29134,9 @@
                 "Value": "apptest",
                 "endpoint": {
                   "Value": "apptest.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "aps": {
@@ -31831,6 +31846,15 @@
                 "Value": "application-insights",
                 "endpoint": {
                   "Value": "applicationinsights.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appmesh": {
+                "Value": "appmesh",
+                "endpoint": {
+                  "Value": "appmesh.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36799,6 +36823,15 @@
                 "Value": "application-insights",
                 "endpoint": {
                   "Value": "applicationinsights.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appmesh": {
+                "Value": "appmesh",
+                "endpoint": {
+                  "Value": "appmesh.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43241,6 +43274,15 @@
                   "Value": "api.thinclient.eu-west-2.amazonaws.com"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transcribe": {
                 "Value": "transcribe",
                 "endpoint": {
@@ -45320,6 +45362,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "tnb": {
                 "Value": "tnb",
                 "endpoint": {
@@ -45382,6 +45433,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -50047,6 +50107,9 @@
                 "Value": "apptest",
                 "endpoint": {
                   "Value": "apptest.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "aps": {
@@ -52174,6 +52237,9 @@
                 "Value": "apptest",
                 "endpoint": {
                   "Value": "apptest.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "aps": {
@@ -53834,6 +53900,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "marketplace-agreement": {
+                "Value": "marketplace-agreement",
+                "endpoint": {
+                  "Value": "agreement-marketplace.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "marketplace-catalog": {
                 "Value": "marketplace-catalog",
