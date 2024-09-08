@@ -141,8 +141,11 @@ class TestBucketPolicy:
 
 
 @s3_aws_verified
-@pytest.mark.aws_verified
 def test_deny_delete_policy(bucket_name=None):
+    # This test sometimes passes against AWS
+    # The put_bucket_policy is async though, so it may not be active by the time we try to delete an object
+    # In the same vain, deletion of the resource policy may still be ongoing when we try to delete an object
+    # We can either wait for x seconds until it works, or (as we've done here) remove the `aws_verified` marker so it doesn't run against AWS
     client = boto3.client("s3", "us-east-1")
     resource = boto3.resource("s3", "us-east-1")
 

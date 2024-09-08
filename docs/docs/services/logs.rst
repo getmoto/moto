@@ -41,6 +41,7 @@ logs
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
 - [ ] describe_account_policies
+- [ ] describe_configuration_templates
 - [ ] describe_deliveries
 - [ ] describe_delivery_destinations
 - [ ] describe_delivery_sources
@@ -124,5 +125,6 @@ logs
 - [X] untag_log_group
 - [X] untag_resource
 - [ ] update_anomaly
+- [ ] update_delivery_configuration
 - [ ] update_log_anomaly_detector
 
