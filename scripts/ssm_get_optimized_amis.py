@@ -51,7 +51,10 @@ def main():
      - Download from AWS
      - Store this in the dedicated moto/ssm/resources-folder
     """
-    for region in session.get_available_regions("ssm"):
+    regions = session.get_available_regions("ssm")
+    # Malaysia is a new region, and not yet exposed by get_available_regions
+    regions.append("ap-southeast-5")
+    for region in regions:
         ssm_client = session.client("ssm", region_name=region)
 
         default_param_path = "/aws/service/ecs/optimized-ami"

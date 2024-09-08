@@ -22,7 +22,7 @@ shield
 - [ ] associate_proactive_engagement_details
 - [X] create_protection
 - [ ] create_protection_group
-- [ ] create_subscription
+- [X] create_subscription
 - [X] delete_protection
 - [ ] delete_protection_group
 - [ ] delete_subscription
@@ -32,7 +32,7 @@ shield
 - [ ] describe_emergency_contact_settings
 - [X] describe_protection
 - [ ] describe_protection_group
-- [ ] describe_subscription
+- [X] describe_subscription
 - [ ] disable_application_layer_automatic_response
 - [ ] disable_proactive_engagement
 - [ ] disassociate_drt_log_bucket
