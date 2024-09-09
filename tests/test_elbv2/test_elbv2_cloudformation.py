@@ -326,3 +326,96 @@ def test_fixed_response_action_listener_rule_cloudformation():
             },
         }
     ]
+
+
+@mock_aws
+def test_https_listener_rule_with_certificate_cloudformation():
+    cnf_conn = boto3.client("cloudformation", region_name="us-east-1")
+    elbv2_client = boto3.client("elbv2", region_name="us-east-1")
+    acm_client = boto3.client("acm", region_name="us-east-1")
+
+    acm_request_response = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"},
+        ],
+    )
+    certificate_arn = acm_request_response["CertificateArn"]
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testVPC": {
+                "Type": "AWS::EC2::VPC",
+                "Properties": {"CidrBlock": "10.0.0.0/16"},
+            },
+            "subnet1": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.0.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "subnet2": {
+                "Type": "AWS::EC2::Subnet",
+                "Properties": {
+                    "CidrBlock": "10.0.1.0/24",
+                    "VpcId": {"Ref": "testVPC"},
+                    "AvalabilityZone": "us-east-1b",
+                },
+            },
+            "testLb": {
+                "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+                "Properties": {
+                    "Name": "my-lb",
+                    "Subnets": [{"Ref": "subnet1"}, {"Ref": "subnet2"}],
+                    "Type": "application",
+                    "SecurityGroups": [],
+                },
+            },
+            "testListener": {
+                "Type": "AWS::ElasticLoadBalancingV2::Listener",
+                "Properties": {
+                    "LoadBalancerArn": {"Ref": "testLb"},
+                    "Certificates": [{"CertificateArn": certificate_arn}],
+                    "Port": 443,
+                    "Protocol": "HTTPS",
+                    "DefaultActions": [
+                        {
+                            "Type": "fixed-response",
+                            "FixedResponseConfig": {
+                                "ContentType": "text/plain",
+                                "MessageBody": "This page does not exist",
+                                "StatusCode": "404",
+                            },
+                        }
+                    ],
+                },
+            },
+        },
+    }
+    template_json = json.dumps(template)
+    cnf_conn.create_stack(StackName="test-stack", TemplateBody=template_json)
+
+    resp = elbv2_client.describe_load_balancers(Names=["my-lb"])
+    assert len(resp["LoadBalancers"]) == 1
+    load_balancer_arn = resp["LoadBalancers"][0]["LoadBalancerArn"]
+
+    listeners = elbv2_client.describe_listeners(LoadBalancerArn=load_balancer_arn)
+
+    assert len(listeners["Listeners"]) == 1
+    assert listeners["Listeners"][0]["DefaultActions"] == [
+        {
+            "Type": "fixed-response",
+            "FixedResponseConfig": {
+                "ContentType": "text/plain",
+                "MessageBody": "This page does not exist",
+                "StatusCode": "404",
+            },
+        }
+    ]
+    assert listeners["Listeners"][0]["Certificates"] == [
+        {"CertificateArn": certificate_arn}
+    ]
