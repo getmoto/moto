@@ -526,6 +526,37 @@ def test_key_with_special_characters(key):
     assert resp["Body"].read() == b"value"
 
 
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("versioned", [True, False], ids=["versioned", "not versioned"])
+def test_conditional_write(versioned, bucket_name=None):
+    s3 = boto3.client("s3", region_name="us-east-1")
+    if versioned:
+        enable_versioning(bucket_name, s3)
+
+    s3.put_object(
+        Key="test_object",
+        Body="test",
+        Bucket=bucket_name,
+        IfNoneMatch="*",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        s3.put_object(
+            Key="test_object",
+            Body="another_test",
+            Bucket=bucket_name,
+            IfNoneMatch="*",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+    assert err["Condition"] == "If-None-Match"
+
+
 @mock_aws
 def test_bucket_key_listing_order():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)

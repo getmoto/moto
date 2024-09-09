@@ -1694,11 +1694,18 @@ class S3Response(BaseResponse):
         storage_class = self.headers.get("x-amz-storage-class", "STANDARD")
         encryption = self.headers.get("x-amz-server-side-encryption")
         kms_key_id = self.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+        if_none_match = self.headers.get("If-None-Match")
         bucket_key_enabled = self.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled"
         )
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
+
+        if (
+            if_none_match == "*"
+            and self.backend.get_object(self.bucket_name, key_name) is not None
+        ):
+            raise PreconditionFailed("If-None-Match")
 
         checksum_algorithm, checksum_value = self._get_checksum(response_headers)
 
