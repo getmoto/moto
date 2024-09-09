@@ -416,8 +416,6 @@ def test_https_listener_rule_with_certificate_cloudformation():
             },
         }
     ]
-    assert listeners["Listeners"][0]['Certificates'] == [
-        {
-            'CertificateArn': certificate_arn
-        }
+    assert listeners["Listeners"][0]["Certificates"] == [
+        {"CertificateArn": certificate_arn}
     ]
