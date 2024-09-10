@@ -17,4 +17,7 @@ url_paths = {
     "{0}/v1/tags/(?P<resource_arn>.+)$": AppSyncResponse.dispatch,
     "{0}/v1/tags/(?P<resource_arn_pt1>.+)/(?P<resource_arn_pt2>.+)$": AppSyncResponse.dispatch,
     "{0}/v1/apis/(?P<api_id>[^/]+)/types/(?P<type_name>.+)$": AppSyncResponse.dispatch,
+    "{0}/v1/apis/(?P<apiId>.*)/ApiCaches$": AppSyncResponse.dispatch,
+    "{0}/v1/apis/(?P<apiId>.*)/ApiCaches/update$": AppSyncResponse.dispatch,
+    "{0}/v1/apis/(?P<apiId>.*)/FlushCache$": AppSyncResponse.dispatch,
 }
