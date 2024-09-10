@@ -1,3 +1,5 @@
+from xml.sax.saxutils import escape
+
 from moto.core.responses import BaseResponse
 
 from .models import IAMBackend, User, iam_backends
@@ -858,7 +860,10 @@ class IamResponse(BaseResponse):
 
     def create_saml_provider(self) -> str:
         saml_provider_name = self._get_param("Name")
-        saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        _saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        saml_metadata_document = escape(
+            _saml_metadata_document, entities={"'": "&apos;", '"': "&quot;"}
+        )
         saml_provider = self.backend.create_saml_provider(
             saml_provider_name, saml_metadata_document
         )
@@ -868,7 +873,10 @@ class IamResponse(BaseResponse):
 
     def update_saml_provider(self) -> str:
         saml_provider_arn = self._get_param("SAMLProviderArn")
-        saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        _saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        saml_metadata_document = escape(
+            _saml_metadata_document, entities={"'": "&apos;", '"': "&quot;"}
+        )
         saml_provider = self.backend.update_saml_provider(
             saml_provider_arn, saml_metadata_document
         )
@@ -2481,7 +2489,7 @@ LIST_SAML_PROVIDERS_TEMPLATE = """<ListSAMLProvidersResponse xmlns="https://iam.
 
 GET_SAML_PROVIDER_TEMPLATE = """<GetSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
 <GetSAMLProviderResult>
-  <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+  <CreateDate>{{ saml_provider.created_iso_8601 }}</CreateDate>
   <ValidUntil>2015-12-31T21:59:59Z</ValidUntil>
   <SAMLMetadataDocument>{{ saml_provider.saml_metadata_document }}</SAMLMetadataDocument>
 </GetSAMLProviderResult>

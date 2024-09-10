@@ -22,3 +22,8 @@ resource "aws_iam_policy" "policy" {
     t1 = "v1"
   }
 }
+
+resource "aws_iam_saml_provider" "this" {
+  name                   = "sso-test"
+  saml_metadata_document = file("${path.module}/sample-metadata.xml")
+}

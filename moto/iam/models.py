@@ -223,6 +223,7 @@ class SAMLProvider(BaseModel):
         saml_metadata_document: Optional[str] = None,
     ):
         self.account_id = account_id
+        self.create_date = utcnow()
         self.region_name = region_name
         self.name = name
         self.saml_metadata_document = saml_metadata_document
@@ -230,6 +231,10 @@ class SAMLProvider(BaseModel):
     @property
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:saml-provider/{self.name}"
+
+    @property
+    def created_iso_8601(self) -> str:
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
 
 class OpenIDConnectProvider(BaseModel):
