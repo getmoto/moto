@@ -150,21 +150,9 @@ class APICache(BaseModel):
         self.ttl = ttl
         self.api_caching_behavior = api_caching_behavior
         self.type = type_
-
-        if transit_encryption_enabled is None:
-            self.transit_encryption_enabled = False
-        else:
-            self.transit_encryption_enabled = transit_encryption_enabled
-
-        if at_rest_encryption_enabled is None:
-            self.at_rest_encryption_enabled = False
-        else:
-            self.at_rest_encryption_enabled = at_rest_encryption_enabled
-
-        if health_metrics_config is None:
-            self.health_metrics_config = "DISABLED"
-        else:
-            self.health_metrics_config = health_metrics_config
+        self.transit_encryption_enabled = transit_encryption_enabled or False
+        self.at_rest_encryption_enabled = at_rest_encryption_enabled or False
+        self.health_metrics_config = health_metrics_config or "DISABLED"
         self.status = "AVAILABLE"
 
     def update(

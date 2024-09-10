@@ -176,6 +176,9 @@ def test_get_api_cache():
         ttl=300,
         apiCachingBehavior="FULL_REQUEST_CACHING",
         type="T2_SMALL",
+        transitEncryptionEnabled=False,
+        atRestEncryptionEnabled=False,
+        healthMetricsConfig="DISABLED",
     )
 
     cache = client.get_api_cache(apiId=api_id)["apiCache"]
