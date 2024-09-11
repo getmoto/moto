@@ -122,16 +122,25 @@ class FakePortal(BaseModel):
 
     def to_dict(self):
         return {
-            "associatedBrowserSettingsArn": self.associated_browser_settings_arn,
-            "associatedNetworkSettingsArn": self.associated_network_settings_arn,
-            "portalArn": self.arn,
             "additionalEncryptionContext": self.additional_encryption_context,
             "authenticationType": self.authentication_type,
-            "clientToken": self.client_token,
+            "browserSettingsArn": self.browser_settings_arn,
+            "browserType": self.browser_type,
+            "creationDate": self.creation_time,
             "customerManagedKey": self.customer_managed_key,
             "displayName": self.display_name,
             "instanceType": self.instance_type,
+            "ipAccessSettingsArn": self.ip_access_settings_arn,
             "maxConcurrentSessions": self.max_concurrent_sessions,
+            "networkSettingsArn": self.network_settings_arn,
+            "portalArn": self.arn,
+            "portalEndpoint": self.portal_endpoint,
+            "portalStatus": self.status,
+            "rendererType": self.renderer_type,
+            "statusReason": self.status_reason,
+            "trustStoreArn": self.trust_store_arn,
+            "userAccessLoggingSettingsArn": self.user_access_logging_settings_arn,
+            "userSettingsArn": self.user_settings_arn,
             "tags": self.tags,
         }
 
@@ -169,7 +178,7 @@ class WorkSpacesWebBackend(BaseBackend):
         return self.network_settings[network_settings_arn].to_dict()
 
     def delete_network_settings(self, network_settings_arn):
-        # implement here
+        self.network_settings.pop(network_settings_arn)
         return
 
     def create_browser_settings(self, additional_encryption_context, browser_policy, client_token, customer_managed_key, tags):
@@ -192,11 +201,10 @@ class WorkSpacesWebBackend(BaseBackend):
         return browser_settings_summaries, 0
 
     def get_browser_settings(self, browser_settings_arn):
-        # implement here
-        return browser_settings
+        return self.browser_settings[browser_settings_arn].to_dict()
 
     def delete_browser_settings(self, browser_settings_arn):
-        # implement here
+        self.browser_settings.pop(browser_settings_arn)
         return
 
     def create_portal(self, additional_encryption_context, authentication_type, client_token, customer_managed_key, display_name, instance_type, max_concurrent_sessions, tags):
@@ -237,19 +245,24 @@ class WorkSpacesWebBackend(BaseBackend):
         return 0, portal_summaries
 
     def get_portal(self, portal_arn):
-        # implement here
-        return portal
+        return self.portals[portal_arn].to_dict()
 
     def delete_portal(self, portal_arn):
-        # implement here
+        self.portals.pop(portal_arn)
         return
 
     def associate_browser_settings(self, browser_settings_arn, portal_arn):
-        # implement here
+        browser_settings_object = self.browser_settings[browser_settings_arn]
+        portal_object = self.portals[portal_arn]
+        browser_settings_object.associated_portal_arns.append(portal_arn)
+        portal_object.browser_settings_arn = browser_settings_arn
         return browser_settings_arn, portal_arn
 
     def associate_network_settings(self, network_settings_arn, portal_arn):
-        # implement here
+        network_settings_object = self.network_settings[network_settings_arn]
+        portal_object = self.portals[portal_arn]
+        network_settings_object.associated_portal_arns.append(portal_arn)
+        portal_object.network_settings_arn = network_settings_arn
         return network_settings_arn, portal_arn
 
 

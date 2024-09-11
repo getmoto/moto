@@ -111,18 +111,32 @@ def test_list_browser_settings():
 
 @mock_aws
 def test_get_browser_settings():
-    client = boto3.client("workspaces-web", region_name="us-east-2")
-    resp = client.get_browser_settings()
-
-    raise Exception("NotYetImplemented")
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    arn = client.create_browser_settings(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        browserPolicy="TestBrowserPolicy",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        tags=FAKE_TAGS
+    )["browserSettingsArn"]
+    resp = client.get_browser_settings(browserSettingsArn=arn)[
+        "browserSettings"]
+    assert resp["browserSettingsArn"] == arn, f"Expected ARN {arn} in response"
 
 
 @mock_aws
 def test_delete_browser_settings():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
-    resp = client.delete_browser_settings()
-
-    raise Exception("NotYetImplemented")
+    arn = client.create_browser_settings(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        browserPolicy="TestBrowserPolicy",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        tags=FAKE_TAGS
+    )["browserSettingsArn"]
+    client.delete_browser_settings(browserSettingsArn=arn)
+    resp = client.list_browser_settings()
+    assert len(resp["browserSettings"]) == 0, "Expected no browser settings"
 
 
 @mock_aws
@@ -164,31 +178,96 @@ def test_list_portals():
 
 @mock_aws
 def test_get_portal():
-    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
-    resp = client.get_portal()
-
-    raise Exception("NotYetImplemented")
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS
+    )["portalArn"]
+    resp = client.get_portal(portalArn=arn)["portal"]
+    assert resp["portalArn"] == arn, f"Expected ARN {arn} in response"
+    assert resp["authenticationType"] == "Standard", "Expected authentication type in response"
+    assert resp["instanceType"] == "TestInstanceType", "Expected instance type in response"
+    assert resp["maxConcurrentSessions"] == 5, "Expected max concurrent sessions in response"
 
 
 @mock_aws
 def test_delete_portal():
-    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
-    resp = client.delete_portal()
-
-    raise Exception("NotYetImplemented")
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS
+    )["portalArn"]
+    client.delete_portal(portalArn=arn)
+    assert len(client.list_portals()["portals"]) == 0, "Expected no portals"
 
 
 @mock_aws
 def test_associate_browser_settings():
-    client = boto3.client("workspaces-web", region_name="us-east-2")
-    resp = client.associate_browser_settings()
-
-    raise Exception("NotYetImplemented")
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    browser_settings_arn = client.create_browser_settings(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        browserPolicy="TestBrowserPolicy",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        tags=FAKE_TAGS
+    )["browserSettingsArn"]
+    portal_arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS
+    )["portalArn"]
+    client.associate_browser_settings(
+        browserSettingsArn=browser_settings_arn, portalArn=portal_arn)
+    resp = client.get_portal(portalArn=portal_arn)["portal"]
+    assert resp[
+        "associatedBrowserSettingsArn"] == browser_settings_arn, f"Expected associated browser settings ARN {browser_settings_arn} in response"
+    resp = client.get_browser_settings(browserSettingsArn=browser_settings_arn)
+    assert resp[
+        "associatedPortals"] == [portal_arn], f"Expected associated portal ARN {portal_arn} in response"
 
 
 @mock_aws
 def test_associate_network_settings():
-    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
-    resp = client.associate_network_settings()
-
-    raise Exception("NotYetImplemented")
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    network_arn = client.create_network_settings(
+        securityGroupIds=FAKE_SECURITY_GROUP_IDS,
+        subnetIds=FAKE_SUBNET_IDS,
+        tags=FAKE_TAGS,
+        vpcId=FAKE_VPC_ID
+    )['networkSettingsArn']
+    portal_arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS
+    )["portalArn"]
+    print("Portal ARN: ", portal_arn)
+    client.associate_network_settings(
+        networkSettingsArn=network_arn, portalArn=portal_arn)
+    resp = client.get_portal(portalArn=portal_arn)["portal"]
+    assert resp[
+        "associatedNetworkSettingsArn"] == network_arn, f"Expected associated network settings ARN {network_arn} in response"
+    resp = client.get_network_settings(networkSettingsArn=network_arn)
+    assert resp[
+        "associatedPortals"] == [portal_arn], f"Expected associated portal ARN {portal_arn} in response"

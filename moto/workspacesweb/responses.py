@@ -22,7 +22,6 @@ class WorkSpacesWebResponse(BaseResponse):
     # add methods from here
 
     def create_browser_settings(self):
-        params = self._get_params()
         additional_encryption_context = self._get_param(
             "additionalEncryptionContext")
         browser_policy = self._get_param("browserPolicy")
@@ -64,7 +63,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(networkSettings=network_settings))
 
     def create_portal(self):
-        params = self._get_params()
         additional_encryption_context = self._get_param(
             "additionalEncryptionContext")
         authentication_type = self._get_param("authenticationType")
@@ -88,7 +86,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(portalArn=portal_arn, portalEndpoint=portal_endpoint))
 
     def list_browser_settings(self):
-        params = self._get_params()
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
         browser_settings, next_token = self.workspacesweb_backend.list_browser_settings(
@@ -109,7 +106,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(networkSettings=network_settings, nextToken=next_token))
 
     def list_portals(self):
-        params = self._get_params()
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
         next_token, portals = self.workspacesweb_backend.list_portals(
@@ -120,7 +116,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(nextToken=next_token, portals=portals))
 
     def get_browser_settings(self):
-        params = self._get_params()
         browser_settings_arn = self._get_param("browserSettingsArn")
         browser_settings = self.workspacesweb_backend.get_browser_settings(
             browser_settings_arn=browser_settings_arn,
@@ -129,7 +124,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(browserSettings=browser_settings))
 
     def delete_browser_settings(self):
-        params = self._get_params()
         browser_settings_arn = self._get_param("browserSettingsArn")
         self.workspacesweb_backend.delete_browser_settings(
             browser_settings_arn=browser_settings_arn,
@@ -138,7 +132,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict())
 
     def delete_network_settings(self):
-        params = self._get_params()
         network_settings_arn = self._get_param("networkSettingsArn")
         self.workspacesweb_backend.delete_network_settings(
             network_settings_arn=network_settings_arn,
@@ -147,7 +140,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict())
 
     def get_portal(self):
-        params = self._get_params()
         portal_arn = self._get_param("portalArn")
         portal = self.workspacesweb_backend.get_portal(
             portal_arn=portal_arn,
@@ -156,7 +148,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(portal=portal))
 
     def get_portal(self):
-        params = self._get_params()
         portal_arn = self._get_param("portalArn")
         portal = self.workspacesweb_backend.get_portal(
             portal_arn=portal_arn,
@@ -165,7 +156,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(portal=portal))
 
     def delete_portal(self):
-        params = self._get_params()
         portal_arn = self._get_param("portalArn")
         self.workspacesweb_backend.delete_portal(
             portal_arn=portal_arn,
@@ -174,7 +164,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict())
 
     def associate_browser_settings(self):
-        params = self._get_params()
         browser_settings_arn = self._get_param("browserSettingsArn")
         portal_arn = self._get_param("portalArn")
         browser_settings_arn, portal_arn = self.workspacesweb_backend.associate_browser_settings(
@@ -185,7 +174,6 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(browserSettingsArn=browser_settings_arn, portalArn=portal_arn))
 
     def associate_network_settings(self):
-        params = self._get_params()
         network_settings_arn = self._get_param("networkSettingsArn")
         portal_arn = self._get_param("portalArn")
         network_settings_arn, portal_arn = self.workspacesweb_backend.associate_network_settings(
