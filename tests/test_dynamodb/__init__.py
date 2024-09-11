@@ -33,7 +33,7 @@ def dynamodb_aws_verified(
     def inner(func):
         @wraps(func)
         def pagination_wrapper(**kwargs):
-            table_name = "t" + str(uuid4())[0:6]
+            table_name = "T" + str(uuid4())[0:6]
             if create_table:
                 kwargs["table_name"] = table_name
 

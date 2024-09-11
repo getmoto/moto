@@ -361,8 +361,12 @@ class FakeListener(CloudFormationModel):
 
         default_actions = elbv2_backend.convert_and_validate_properties(properties)
         certificates = elbv2_backend.convert_and_validate_certificates(certificates)
+        if certificates:
+            certificate = certificates[0].get("certificate_arn")
+        else:
+            certificate = None
         listener = elbv2_backend.create_listener(
-            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
+            load_balancer_arn, protocol, port, ssl_policy, certificate, default_actions
         )
         return listener
 

@@ -16066,7 +16066,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16224,7 +16224,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16395,7 +16395,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16510,7 +16510,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16633,7 +16633,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16772,7 +16772,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -16881,7 +16881,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -17082,7 +17082,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18711,7 +18711,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18832,7 +18832,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -18961,7 +18961,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19106,7 +19106,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19210,7 +19210,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19354,7 +19354,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19459,7 +19459,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19572,7 +19572,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19664,7 +19664,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19751,7 +19751,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -19841,7 +19841,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53269,7 +53269,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53415,7 +53415,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53574,7 +53574,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53677,7 +53677,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53788,7 +53788,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53915,7 +53915,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54012,7 +54012,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54099,7 +54099,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54189,7 +54189,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54300,7 +54300,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54458,7 +54458,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54629,7 +54629,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54744,7 +54744,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -54867,7 +54867,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55006,7 +55006,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55115,7 +55115,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55214,7 +55214,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55316,7 +55316,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -55926,7 +55926,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56047,7 +56047,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56176,7 +56176,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56321,7 +56321,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56425,7 +56425,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56569,7 +56569,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56674,7 +56674,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56787,7 +56787,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56879,7 +56879,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56966,7 +56966,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57056,7 +57056,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -75916,7 +75916,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76062,7 +76062,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76221,7 +76221,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76324,7 +76324,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76435,7 +76435,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76562,7 +76562,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76659,7 +76659,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76746,7 +76746,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76836,7 +76836,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -76947,7 +76947,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77105,7 +77105,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77276,7 +77276,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77391,7 +77391,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77514,7 +77514,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77653,7 +77653,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77762,7 +77762,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -77963,7 +77963,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78062,7 +78062,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78183,7 +78183,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78312,7 +78312,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78457,7 +78457,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78561,7 +78561,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78705,7 +78705,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78810,7 +78810,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -78923,7 +78923,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -79015,7 +79015,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -79102,7 +79102,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -79192,7 +79192,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -80819,7 +80819,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r8g.2xlarge",
@@ -81115,7 +81115,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r8g.4xlarge",
@@ -81353,7 +81353,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r8g.large",
@@ -81450,7 +81450,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r8g.medium",
@@ -81714,7 +81714,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r8g.xlarge",
@@ -82716,7 +82716,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,

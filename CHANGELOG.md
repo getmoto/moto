@@ -1,6 +1,64 @@
 Moto Changelog
 ==============
 
+5.0.14
+-----
+Docker Digest for 5.0.14: _sha256:5399ffa0daadd1eb6c00250ec64453675f9635d0a210563f43c26b43e0dfd178_
+
+    General:
+        * All JSON files in the binary distribution are shipped compressed, significantly reducing the size on disk
+
+    New Services:
+        * Shield:
+            * create_subscription()
+            * describe_subscription()
+
+        * TimestreamQuery:
+            * create_scheduled_query()
+            * delete_scheduled_query()
+            * describe_endpoints()
+            * describe_scheduled_query()
+            * query()
+            * update_scheduled_query()
+
+    New Methods:
+        * AppMesh:
+            * create_virtual_node()
+            * delete_virtual_node()
+            * describe_virtual_node()
+            * list_virtual_nodes()
+            * update_virtual_node()
+            * create_virtual_router()
+            * delete_virtual_router()
+            * describe_virtual_router()
+            * list_virtual_routers()
+            * update_virtual_router()
+            * create_route()
+            * delete_route()
+            * describe_route()
+            * list_routes()
+            * update_route()
+
+    Miscellaneous:
+        * CloudFormation templates now support the Fn::Base64-function
+        * CognitoIDP: Enhanced support for MFA flows/challenges
+        * DynamoDB: update_item() now validates empty string sets
+        * EC2: describe_snapshots() now supports the kms-key-id filter
+        * EC2: run_instances() now supports the parameter Ipv6AddressCount
+        * ECS: Tasks can now be created with unknown security groups
+        * IAM: generate_credentials_report() now shows active certificates
+        * KMS: sign() now supports Alias ARNs
+        * Route53: list_resource_record_sets() now validates record names
+        * S3: create_bucket() now has additional LocationConstraint-validation
+        * S3: delete_objects() now respects BucketPolicy and ObjectLocks
+        * S3: head_object() now handles Range-parameter correctly
+        * SageMaker: search() now supports the CONTAINS filter
+        * Sagemaker Runtime: invoke_endpoint_async() now supports failure responses
+        * SNS: Signature of HTTP Messages are now valid
+        * SSM: get_maintenance_window() now returns an exception if the window does not exist
+        * SQS: delete_message_batch() now validates there's at least one entry
+
+
 5.0.13
 -----
 Docker Digest for 5.0.13: _sha256:de97faba597d8f1bfb4dab1c7d562e1997ac5e0ba1186c4392430650b0f6bd4e_

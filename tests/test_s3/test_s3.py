@@ -473,9 +473,11 @@ def test_delete_missing_key(bucket_name=None):
             ]
         }
     )
-    assert result["Deleted"] == (
-        [{"Key": "unknown"}, {"Key": "key1"}, {"Key": "key3"}, {"Key": "typo"}]
-    )
+    assert len(result["Deleted"]) == 4
+    assert {"Key": "unknown"} in result["Deleted"]
+    assert {"Key": "key1"} in result["Deleted"]
+    assert {"Key": "key3"} in result["Deleted"]
+    assert {"Key": "typo"} in result["Deleted"]
     assert "Errors" not in result
 
     objects = list(bucket.objects.all())
