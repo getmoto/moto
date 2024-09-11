@@ -8,7 +8,7 @@ from moto.dynamodb.models import DynamoType
 from ..exceptions import (
     DuplicateUpdateExpression,
     MockValidationException,
-    TooManyAddClauses,
+    TooManyClauses,
 )
 
 
@@ -29,9 +29,10 @@ class Node(metaclass=abc.ABCMeta):
 
     def validate(self, limit_set_actions: bool = False) -> None:
         if self.type == "UpdateExpression":
-            nr_of_clauses = len(self.find_clauses([UpdateExpressionAddClause]))
-            if nr_of_clauses > 1:
-                raise TooManyAddClauses()
+            if len(self.find_clauses([UpdateExpressionAddClause])) > 1:
+                raise TooManyClauses("ADD")
+            if len(self.find_clauses([UpdateExpressionRemoveClause])) > 1:
+                raise TooManyClauses("REMOVE")
             set_actions = self.find_clauses([UpdateExpressionSetAction])
             # set_attributes = ["attr", "map.attr", attr.list[2], ..]
             set_attributes = [s.children[0].to_str() for s in set_actions]
@@ -176,8 +177,11 @@ class UpdateExpressionRemoveAction(UpdateExpressionClause):
 
     def __lt__(self, other):
         self_value = self._get_value()
-
-        return self_value < other._get_value()
+        other_value = other._get_value()
+        if isinstance(self_value, int) and isinstance(other_value, int):
+            return self_value < other_value
+        else:
+            return str(self_value) < str(other_value)
 
 
 class UpdateExpressionAddActions(UpdateExpressionClause):

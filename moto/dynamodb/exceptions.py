@@ -305,11 +305,11 @@ class DuplicateUpdateExpression(InvalidUpdateExpression):
         )
 
 
-class TooManyAddClauses(InvalidUpdateExpression):
-    msg = 'The "ADD" section can only be used once in an update expression;'
-
-    def __init__(self) -> None:
-        super().__init__(self.msg)
+class TooManyClauses(InvalidUpdateExpression):
+    def __init__(self, _type: str) -> None:
+        super().__init__(
+            f'The "{_type}" section can only be used once in an update expression;'
+        )
 
 
 class ResourceNotFoundException(JsonRESTError):
