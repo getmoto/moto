@@ -41,6 +41,7 @@ url_paths = {
     "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/(?P<response_type>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/vpclinks$": APIGatewayResponse.dispatch,
     "{0}/vpclinks/(?P<vpclink_id>[^/]+)": APIGatewayResponse.dispatch,
+    "{0}/account$": APIGatewayResponse.dispatch,
 }
 
 # Also manages the APIGatewayV2

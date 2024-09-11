@@ -2486,3 +2486,42 @@ def test_update_path_mapping_with_unknown_stage():
     assert ex.value.response["Error"]["Message"] == "Invalid stage identifier specified"
     assert ex.value.response["Error"]["Code"] == "BadRequestException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_update_account():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+
+    patch_operations = [
+        {"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"},
+        {"op": "add", "path": "/features", "value": "UsagePlans"},
+    ]
+
+    account = client.update_account(patchOperations=patch_operations)
+
+    assert account["cloudwatchRoleArn"] == "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"
+    assert account["features"] == ["UsagePlans"]
+
+    patch_operations = [
+        {"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"},
+    ]
+
+    account = client.update_account(patchOperations=patch_operations)
+
+    assert account["cloudwatchRoleArn"] == "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"
+    assert account["throttleSettings"]["burstLimit"] == 5000
+    assert account["throttleSettings"]["rateLimit"] == 10000.0
+    assert account["apiKeyVersion"] == "1"
+    assert account["features"] == ["UsagePlans"]
+
+
+@mock_aws
+def test_get_account():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+    account = client.get_account()
+
+    assert account["throttleSettings"]["burstLimit"] == 5000
+    assert account["throttleSettings"]["rateLimit"] == 10000.0
+    assert account["apiKeyVersion"] == "1"
+    assert "features" not in account
+    assert "cloudwatchRoleArn" not in account
