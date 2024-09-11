@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
+from botocore.exceptions import WaiterError
 
 from . import elbv2_aws_verified
 
@@ -313,8 +314,13 @@ sudo systemctl enable httpd"""
 
         if load_balancer_arn:
             conn.delete_load_balancer(LoadBalancerArn=load_balancer_arn)
-            waiter = conn.get_waiter("load_balancers_deleted")
-            waiter.wait(LoadBalancerArns=[load_balancer_arn])
+            try:
+                waiter = conn.get_waiter("load_balancers_deleted")
+                waiter.wait(LoadBalancerArns=[load_balancer_arn])
+            except WaiterError:
+                # This operations fails against botocore 1.35.15 and up
+                # https://github.com/boto/botocore/issues/3252
+                pass
 
     if target_is_aws:
         # Resources take a while to deregister
@@ -423,8 +429,13 @@ def test_describe_unknown_targets(target_is_aws=False):
 
         if load_balancer_arn:
             conn.delete_load_balancer(LoadBalancerArn=load_balancer_arn)
-            waiter = conn.get_waiter("load_balancers_deleted")
-            waiter.wait(LoadBalancerArns=[load_balancer_arn])
+            try:
+                waiter = conn.get_waiter("load_balancers_deleted")
+                waiter.wait(LoadBalancerArns=[load_balancer_arn])
+            except WaiterError:
+                # This operations fails against botocore 1.35.15 and up
+                # https://github.com/boto/botocore/issues/3252
+                pass
 
     if target_is_aws:
         # Resources take a while to deregister
