@@ -2545,9 +2545,13 @@ def test_update_account_error():
     with pytest.raises(ClientError) as ex:
         client.update_account(patchOperations=patch_operations)
 
-    assert ex.value.response["Error"]["Message"] == "Usage Plans cannot be disabled once enabled"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Usage Plans cannot be disabled once enabled"
+    )
     assert ex.value.response["Error"]["Code"] == "BadRequestException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
 
 @mock_aws
 def test_get_account():
