@@ -2499,6 +2499,7 @@ def test_update_account():
             "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-1",
         },
         {"op": "add", "path": "/features", "value": "UsagePlans"},
+        {"op": "add", "path": "/features", "value": "TestFeature"},
     ]
 
     account = client.update_account(patchOperations=patch_operations)
@@ -2507,7 +2508,7 @@ def test_update_account():
         account["cloudwatchRoleArn"]
         == "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"
     )
-    assert account["features"] == ["UsagePlans"]
+    assert account["features"] == ["UsagePlans", "TestFeature"]
 
     patch_operations = [
         {
@@ -2515,6 +2516,7 @@ def test_update_account():
             "path": "/cloudwatchRoleArn",
             "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-2",
         },
+        {"op": "remove", "path": "/features", "value": "TestFeature"},
     ]
 
     account = client.update_account(patchOperations=patch_operations)
@@ -2528,6 +2530,24 @@ def test_update_account():
     assert account["apiKeyVersion"] == "1"
     assert account["features"] == ["UsagePlans"]
 
+
+@mock_aws
+def test_update_account_error():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+    patch_operations = [
+        {
+            "op": "remove",
+            "path": "/features",
+            "value": "UsagePlans",
+        },
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_account(patchOperations=patch_operations)
+
+    assert ex.value.response["Error"]["Message"] == "Usage Plans cannot be disabled once enabled"
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 @mock_aws
 def test_get_account():

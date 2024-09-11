@@ -71,7 +71,7 @@ from .exceptions import (
 from .utils import create_id, to_path
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
-
+PATCH_OPERATIONS = ["add", "remove", "replace", "move", "copy", "test"]
 
 class Deployment(CloudFormationModel):
     def __init__(self, deployment_id: str, name: str, description: str = ""):
