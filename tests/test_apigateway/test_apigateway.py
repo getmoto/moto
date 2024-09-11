@@ -2493,22 +2493,36 @@ def test_update_account():
     client = boto3.client("apigateway", region_name="eu-west-1")
 
     patch_operations = [
-        {"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"},
+        {
+            "op": "replace",
+            "path": "/cloudwatchRoleArn",
+            "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-1",
+        },
         {"op": "add", "path": "/features", "value": "UsagePlans"},
     ]
 
     account = client.update_account(patchOperations=patch_operations)
 
-    assert account["cloudwatchRoleArn"] == "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"
+    assert (
+        account["cloudwatchRoleArn"]
+        == "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"
+    )
     assert account["features"] == ["UsagePlans"]
 
     patch_operations = [
-        {"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"},
+        {
+            "op": "replace",
+            "path": "/cloudwatchRoleArn",
+            "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-2",
+        },
     ]
 
     account = client.update_account(patchOperations=patch_operations)
 
-    assert account["cloudwatchRoleArn"] == "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"
+    assert (
+        account["cloudwatchRoleArn"]
+        == "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"
+    )
     assert account["throttleSettings"]["burstLimit"] == 5000
     assert account["throttleSettings"]["rateLimit"] == 10000.0
     assert account["apiKeyVersion"] == "1"

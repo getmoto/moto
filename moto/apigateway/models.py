@@ -1528,8 +1528,9 @@ class GatewayResponse(BaseModel):
             dct["responseTemplates"] = self.response_templates
         return dct
 
+
 class Account(BaseModel):
-    def __init__(self):
+    def __init__(self):  # type: ignore[no-untyped-def]
         self.cloudwatch_role_arn: Optional[str] = None
         self.throttle_settings: Dict[str, Any] = {
             "burstLimit": 5000,
@@ -1538,7 +1539,9 @@ class Account(BaseModel):
         self.features: Optional[List[str]] = None
         self.api_key_version: str = "1"
 
-    def apply_patch_operations(self, patch_operations: List[Dict[str, Any]]) -> "Account":
+    def apply_patch_operations(
+        self, patch_operations: List[Dict[str, Any]]
+    ) -> "Account":
         for op in patch_operations:
             if "/cloudwatchRoleArn" in op["path"]:
                 self.cloudwatch_role_arn = op["value"]
@@ -1549,7 +1552,12 @@ class Account(BaseModel):
                     else:
                         self.features.append(op["value"])
                 elif op["op"] == "remove":
-                    self.features.remove(op["value"])
+                    if op["value"] == "UsagePlans":
+                        raise BadRequestException(
+                            "Usage Plans cannot be disabled once enabled"
+                        )
+                    if self.features is not None:
+                        self.features.remove(op["value"])
                 else:
                     raise NotImplementedError(
                         f'Patch operation "{op["op"]}" for "/features" not implemented'
@@ -1598,7 +1606,7 @@ class APIGatewayBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.account: Account = Account()
+        self.account = Account()  # type: ignore[no-untyped-call]
         self.apis: Dict[str, RestAPI] = {}
         self.keys: Dict[str, ApiKey] = {}
         self.usage_plans: Dict[str, UsagePlan] = {}
@@ -2529,8 +2537,9 @@ class APIGatewayBackend(BaseBackend):
     def update_account(self, patch_operations: List[Dict[str, Any]]) -> Account:
         account = self.account.apply_patch_operations(patch_operations)
         return account
-    
+
     def get_account(self) -> Account:
         return self.account
+
 
 apigateway_backends = BackendDict(APIGatewayBackend, "apigateway")
