@@ -65,35 +65,48 @@ def test_get_network_settings():
 
 
 @mock_aws
-def test_create_browser_settings():
-    client = boto3.client("workspaces-web", region_name="eu-west-1")
-    resp = client.create_browser_settings()
-
-    raise Exception("NotYetImplemented")
+def test_delete_network_settings():
+    client = boto3.client('workspaces-web', region_name='eu-west-1')
+    arn = client.create_network_settings(
+        securityGroupIds=FAKE_SECURITY_GROUP_IDS,
+        subnetIds=FAKE_SUBNET_IDS,
+        tags=FAKE_TAGS,
+        vpcId=FAKE_VPC_ID
+    )['networkSettingsArn']
+    client.delete_network_settings(networkSettingsArn=arn)
+    resp = client.list_network_settings()
+    assert len(resp['networkSettings'] == 0), "Expected no network settings"
 
 
 @mock_aws
-def test_create_portal():
+def test_create_browser_settings():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
-    resp = client.create_portal()
-
-    raise Exception("NotYetImplemented")
+    response = client.create_browser_settings(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        browserPolicy="TestBrowserPolicy",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        tags=FAKE_TAGS
+    )
+    browser_settings_arn = response['browserSettingsArn']
+    arn_regex = r'^arn:aws:workspaces-web:eu-west-1:\d{12}:browser-settings/[a-f0-9-]+$'
+    assert re.match(
+        arn_regex, browser_settings_arn) is not None, f"ARN {browser_settings_arn} does not match expected pattern"
 
 
 @mock_aws
 def test_list_browser_settings():
-    client = boto3.client("workspaces-web", region_name="us-east-2")
-    resp = client.list_browser_settings()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
-def test_list_portals():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
-    resp = client.list_portals()
-
-    raise Exception("NotYetImplemented")
+    arn = client.create_browser_settings(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        browserPolicy="TestBrowserPolicy",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        tags=FAKE_TAGS
+    )['browserSettingsArn']
+    resp = client.list_browser_settings()
+    assert resp["browserSettings"][0][
+        "browserSettingsArn"] == arn, f"Expected ARN {arn} in response"
 
 
 @mock_aws
@@ -113,19 +126,40 @@ def test_delete_browser_settings():
 
 
 @mock_aws
-def test_delete_network_settings():
+def test_create_portal():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
-    resp = client.delete_network_settings()
-
-    raise Exception("NotYetImplemented")
+    resp = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS
+    )
+    assert resp["portalArn"] is not None, "Expected portal ARN in response"
+    assert resp["portalEndpoint"] is not None, "Expected portal endpoint in response"
 
 
 @mock_aws
-def test_get_portal():
+def test_list_portals():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
-    resp = client.get_portal()
-
-    raise Exception("NotYetImplemented")
+    arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS
+    )['portalArn']
+    resp = client.list_portals()
+    assert resp["portals"][0]["portalArn"] == arn, f"Expected ARN {arn} in response"
+    assert len(
+        resp['portals']) == 1, f"Expected 1 portal ARN in response, got {len(resp['portals'])}"
+    assert resp['portals'][0]['authenticationType'] == "Standard", "Expected authentication type in response"
 
 
 @mock_aws
