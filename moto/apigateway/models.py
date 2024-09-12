@@ -1021,6 +1021,7 @@ class RestAPI(CloudFormationModel):
     PROP_POLICY = "policy"
     PROP_DISABLE_EXECUTE_API_ENDPOINT = "disableExecuteApiEndpoint"
     PROP_MINIMUM_COMPRESSION_SIZE = "minimumCompressionSize"
+    PROP_ROOT_RESOURCE_ID = "rootResourceId"
 
     # operations
     OPERATION_ADD = "add"
@@ -1065,6 +1066,7 @@ class RestAPI(CloudFormationModel):
         self.models: Dict[str, Model] = {}
         self.request_validators: Dict[str, RequestValidator] = {}
         self.default = self.add_child("/")  # Add default child
+        self.root_resource_id = self.default.id
 
     def __repr__(self) -> str:
         return str(self.id)
@@ -1083,6 +1085,7 @@ class RestAPI(CloudFormationModel):
             self.PROP_POLICY: self.policy,
             self.PROP_DISABLE_EXECUTE_API_ENDPOINT: self.disableExecuteApiEndpoint,
             self.PROP_MINIMUM_COMPRESSION_SIZE: self.minimum_compression_size,
+            self.PROP_ROOT_RESOURCE_ID: self.root_resource_id,
         }
 
     def apply_patch_operations(self, patch_operations: List[Dict[str, Any]]) -> None:

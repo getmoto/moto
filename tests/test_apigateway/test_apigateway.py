@@ -19,6 +19,7 @@ def test_create_and_get_rest_api():
         name="my_api", description="this is my api", disableExecuteApiEndpoint=True
     )
     api_id = response["id"]
+    root_resource_id = response["rootResourceId"]
 
     response = client.get_rest_api(restApiId=api_id)
 
@@ -34,6 +35,7 @@ def test_create_and_get_rest_api():
         "endpointConfiguration": {"types": ["EDGE"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
+        "rootResourceId": root_resource_id,
     }
 
 
@@ -42,6 +44,7 @@ def test_update_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
+    root_resource_id = response["rootResourceId"]
     patchOperations = [
         {"op": "replace", "path": "/name", "value": "new-name"},
         {"op": "replace", "path": "/description", "value": "new-description"},
@@ -71,6 +74,7 @@ def test_update_rest_api():
         "endpointConfiguration": {"types": ["EDGE"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
+        "rootResourceId": root_resource_id,
     }
     # should fail with wrong apikeysoruce
     patchOperations = [
