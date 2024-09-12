@@ -1531,7 +1531,7 @@ class GatewayResponse(BaseModel):
 
 
 class Account(BaseModel):
-    def __init__(self):  # type: ignore[no-untyped-def]
+    def __init__(self) -> None:
         self.cloudwatch_role_arn: Optional[str] = None
         self.throttle_settings: Dict[str, Any] = {
             "burstLimit": 5000,
@@ -1607,7 +1607,7 @@ class APIGatewayBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.account = Account()  # type: ignore[no-untyped-call]
+        self.account: Account = Account()
         self.apis: Dict[str, RestAPI] = {}
         self.keys: Dict[str, ApiKey] = {}
         self.usage_plans: Dict[str, UsagePlan] = {}
