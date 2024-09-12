@@ -192,3 +192,60 @@ class AppSyncResponse(BaseResponse):
             format_=format_, include_directives=include_directives
         )
         return schema
+
+    def get_api_cache(self) -> str:
+        api_id = self.path.split("/")[-2]
+        api_cache = self.appsync_backend.get_api_cache(
+            api_id=api_id,
+        )
+        return json.dumps(dict(apiCache=api_cache.to_json()))
+
+    def delete_api_cache(self) -> str:
+        api_id = self.path.split("/")[-2]
+        self.appsync_backend.delete_api_cache(
+            api_id=api_id,
+        )
+        return "{}"
+
+    def create_api_cache(self) -> str:
+        params = json.loads(self.body)
+        api_id = self.path.split("/")[-2]
+        ttl = params.get("ttl")
+        transit_encryption_enabled = params.get("transitEncryptionEnabled")
+        at_rest_encryption_enabled = params.get("atRestEncryptionEnabled")
+        api_caching_behavior = params.get("apiCachingBehavior")
+        type = params.get("type")
+        health_metrics_config = params.get("healthMetricsConfig")
+        api_cache = self.appsync_backend.create_api_cache(
+            api_id=api_id,
+            ttl=ttl,
+            transit_encryption_enabled=transit_encryption_enabled,
+            at_rest_encryption_enabled=at_rest_encryption_enabled,
+            api_caching_behavior=api_caching_behavior,
+            type=type,
+            health_metrics_config=health_metrics_config,
+        )
+        return json.dumps(dict(apiCache=api_cache.to_json()))
+
+    def update_api_cache(self) -> str:
+        api_id = self.path.split("/")[-3]
+        params = json.loads(self.body)
+        ttl = params.get("ttl")
+        api_caching_behavior = params.get("apiCachingBehavior")
+        type = params.get("type")
+        health_metrics_config = params.get("healthMetricsConfig")
+        api_cache = self.appsync_backend.update_api_cache(
+            api_id=api_id,
+            ttl=ttl,
+            api_caching_behavior=api_caching_behavior,
+            type=type,
+            health_metrics_config=health_metrics_config,
+        )
+        return json.dumps(dict(apiCache=api_cache.to_json()))
+
+    def flush_api_cache(self) -> str:
+        api_id = self.path.split("/")[-2]
+        self.appsync_backend.flush_api_cache(
+            api_id=api_id,
+        )
+        return "{}"
