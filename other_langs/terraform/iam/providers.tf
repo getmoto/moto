@@ -7,6 +7,7 @@ provider "aws" {
 
   endpoints {
     iam = "http://localhost:5000"
+    sts = "http://localhost:5000"
   }
 
   access_key = "my-access-key"
