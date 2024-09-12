@@ -42,7 +42,7 @@ jobs:
         pip install boto3
         scripts/get_instance_info.py
     - name: Create PR
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v7
       with:
         branch: 'chore-update-ec2-types-${{ github.run_number }}'
         title: 'chore: update EC2 Instance Types'
