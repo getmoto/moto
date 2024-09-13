@@ -162,15 +162,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             elif len(values) == 1:
                 # Check it's exactly the same as key, value
                 filters.append(
-                    # type: ignore
-                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key
+                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
                     and v == value
                 )
             else:
                 # Check key matches and value is one of the provided values
                 filters.append(
-                    # type: ignore
-                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key
+                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key  # type: ignore
                     and v in vl
                 )
 
@@ -262,8 +260,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         if not resource_type_filters or "ecs:cluster" in resource_type_filters:
             for cluster in self.ecs_backend.clusters.values():
-                # type: ignore[arg-type]
-                tags = format_tag_keys(cluster.tags, ["key", "value"])
+                tags = format_tag_keys(cluster.tags, ["key", "value"])  # type: ignore[arg-type]
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
@@ -639,7 +636,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             not resource_type_filters or "workspaces-web" in resource_type_filters
         ):
             for portal in self.workspacesweb_backends.portals.values():
-                tags = format_tag_keys(portal.tags, ["Key", "Value"])
+                tags = format_tag_keys(portal.tags, ["Key", "Value"])  # type: ignore
                 if not tags or not tag_filter(tags):
                     continue
                 yield {
@@ -771,8 +768,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                # type: ignore[assignment]
-                for key in get_ec2_keys(instance.id):
+                for key in get_ec2_keys(instance.id):  # type: ignore[assignment]
                     yield key
 
         # EC2 NetworkInterface, resource type ec2:network-interface
@@ -832,8 +828,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                # type: ignore[assignment]
-                for value in get_ec2_values(instance.id):
+                for value in get_ec2_values(instance.id):  # type: ignore[assignment]
                     yield value
 
         # EC2 NetworkInterface, resource type ec2:network-interface
@@ -851,8 +846,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # EC2 Snapshot, resource type ec2:snapshot
         for snapshot in self.ec2_backend.snapshots.values():
-            # type: ignore[assignment]
-            for value in get_ec2_values(snapshot.id):
+            for value in get_ec2_values(snapshot.id):  # type: ignore[assignment]
                 yield value
 
         # TODO EC2 SpotInstanceRequest

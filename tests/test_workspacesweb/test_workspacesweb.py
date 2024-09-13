@@ -29,9 +29,7 @@ def test_create_network_settings():
     )
     network_settings_arn = response["networkSettingsArn"]
     arn_regex = r"^arn:aws:workspaces-web:eu-west-1:\d{12}:network-settings/[a-f0-9-]+$"
-    assert (
-        re.match(arn_regex, network_settings_arn) is not None
-    ), f"ARN {network_settings_arn} does not match expected pattern"
+    assert re.match(arn_regex, network_settings_arn) is not None
 
 
 @mock_aws
@@ -44,12 +42,8 @@ def test_list_network_settings():
         vpcId=FAKE_VPC_ID,
     )["networkSettingsArn"]
     resp = client.list_network_settings()
-    assert (
-        resp["networkSettings"][0]["networkSettingsArn"] == arn
-    ), f"Expected ARN {arn} in response"
-    assert (
-        len(resp["networkSettings"]) == 1
-    ), f"Expected 1 network settings ARN in response, got {len(resp['networkSettings'])}"
+    assert resp["networkSettings"][0]["networkSettingsArn"] == arn
+    assert len(resp["networkSettings"]) == 1
 
 
 @mock_aws
@@ -62,7 +56,7 @@ def test_get_network_settings():
         vpcId=FAKE_VPC_ID,
     )["networkSettingsArn"]
     resp = client.get_network_settings(networkSettingsArn=arn)["networkSettings"]
-    assert resp["networkSettingsArn"] == arn, f"Expected ARN {arn} in response"
+    assert resp["networkSettingsArn"] == arn
 
 
 @mock_aws
@@ -76,7 +70,7 @@ def test_delete_network_settings():
     )["networkSettingsArn"]
     client.delete_network_settings(networkSettingsArn=arn)
     resp = client.list_network_settings()
-    assert len(resp["networkSettings"] == 0), "Expected no network settings"
+    assert resp["networkSettings"] == [], "Expected no network settings"
 
 
 @mock_aws
@@ -91,9 +85,7 @@ def test_create_browser_settings():
     )
     browser_settings_arn = response["browserSettingsArn"]
     arn_regex = r"^arn:aws:workspaces-web:eu-west-1:\d{12}:browser-settings/[a-f0-9-]+$"
-    assert (
-        re.match(arn_regex, browser_settings_arn) is not None
-    ), f"ARN {browser_settings_arn} does not match expected pattern"
+    assert re.match(arn_regex, browser_settings_arn) is not None
 
 
 @mock_aws
@@ -107,9 +99,7 @@ def test_list_browser_settings():
         tags=FAKE_TAGS,
     )["browserSettingsArn"]
     resp = client.list_browser_settings()
-    assert (
-        resp["browserSettings"][0]["browserSettingsArn"] == arn
-    ), f"Expected ARN {arn} in response"
+    assert resp["browserSettings"][0]["browserSettingsArn"] == arn
 
 
 @mock_aws
@@ -123,7 +113,7 @@ def test_get_browser_settings():
         tags=FAKE_TAGS,
     )["browserSettingsArn"]
     resp = client.get_browser_settings(browserSettingsArn=arn)["browserSettings"]
-    assert resp["browserSettingsArn"] == arn, f"Expected ARN {arn} in response"
+    assert resp["browserSettingsArn"] == arn
 
 
 @mock_aws
@@ -138,7 +128,7 @@ def test_delete_browser_settings():
     )["browserSettingsArn"]
     client.delete_browser_settings(browserSettingsArn=arn)
     resp = client.list_browser_settings()
-    assert len(resp["browserSettings"]) == 0, "Expected no browser settings"
+    assert resp["browserSettings"] == []
 
 
 @mock_aws
@@ -154,8 +144,8 @@ def test_create_portal():
         maxConcurrentSessions=5,
         tags=FAKE_TAGS,
     )
-    assert resp["portalArn"] is not None, "Expected portal ARN in response"
-    assert resp["portalEndpoint"] is not None, "Expected portal endpoint in response"
+    assert resp["portalArn"]
+    assert resp["portalEndpoint"]
 
 
 @mock_aws
@@ -172,13 +162,9 @@ def test_list_portals():
         tags=FAKE_TAGS,
     )["portalArn"]
     resp = client.list_portals()
-    assert resp["portals"][0]["portalArn"] == arn, f"Expected ARN {arn} in response"
-    assert (
-        len(resp["portals"]) == 1
-    ), f"Expected 1 portal ARN in response, got {len(resp['portals'])}"
-    assert (
-        resp["portals"][0]["authenticationType"] == "Standard"
-    ), "Expected authentication type in response"
+    assert resp["portals"][0]["portalArn"] == arn
+    assert len(resp["portals"]) == 1
+    assert resp["portals"][0]["authenticationType"] == "Standard"
 
 
 @mock_aws
@@ -248,13 +234,11 @@ def test_associate_browser_settings():
         browserSettingsArn=browser_settings_arn, portalArn=portal_arn
     )
     resp = client.get_portal(portalArn=portal_arn)["portal"]
-    assert (
-        resp["associatedBrowserSettingsArn"] == browser_settings_arn
-    ), f"Expected associated browser settings ARN {browser_settings_arn} in response"
-    resp = client.get_browser_settings(browserSettingsArn=browser_settings_arn)
-    assert resp["associatedPortals"] == [
-        portal_arn
-    ], f"Expected associated portal ARN {portal_arn} in response"
+    assert resp["browserSettingsArn"] == browser_settings_arn
+    resp = client.get_browser_settings(browserSettingsArn=browser_settings_arn)[
+        "browserSettings"
+    ]
+    assert resp["associatedPortalArns"] == [portal_arn]
 
 
 @mock_aws
@@ -280,10 +264,8 @@ def test_associate_network_settings():
         networkSettingsArn=network_arn, portalArn=portal_arn
     )
     resp = client.get_portal(portalArn=portal_arn)["portal"]
-    assert (
-        resp["associatedNetworkSettingsArn"] == network_arn
-    ), f"Expected associated network settings ARN {network_arn} in response"
-    resp = client.get_network_settings(networkSettingsArn=network_arn)
-    assert resp["associatedPortals"] == [
-        portal_arn
-    ], f"Expected associated portal ARN {portal_arn} in response"
+    assert resp["networkSettingsArn"] == network_arn
+    resp = client.get_network_settings(networkSettingsArn=network_arn)[
+        "networkSettings"
+    ]
+    assert resp["associatedPortalArns"] == [portal_arn]

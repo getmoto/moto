@@ -1,29 +1,53 @@
 """Handles incoming workspacesweb requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
+from urllib.parse import unquote
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
 
-from .models import workspacesweb_backends
+from .models import WorkSpacesWebBackend, workspacesweb_backends
 
 
 class WorkSpacesWebResponse(BaseResponse):
     """Handler for WorkSpacesWeb requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="workspaces-web")
 
     @property
-    def workspacesweb_backend(self):
+    def workspacesweb_backend(self) -> WorkSpacesWebBackend:
         """Return backend instance specific for this region."""
-        # TODO
-        # workspacesweb_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return workspacesweb_backends[self.current_account][self.region]
 
-    # add methods from here
+    @staticmethod
+    def network_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        handler = WorkSpacesWebResponse()
+        handler.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return handler.get_network_settings()
+        else:
+            return handler.delete_network_settings()
 
-    def create_browser_settings(self):
+    @staticmethod
+    def browser_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        handler = WorkSpacesWebResponse()
+        handler.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return handler.get_browser_settings()
+        else:
+            return handler.delete_browser_settings()
+
+    @staticmethod
+    def portal(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        handler = WorkSpacesWebResponse()
+        handler.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return handler.get_portal()
+        else:
+            return handler.delete_portal()
+
+    def create_browser_settings(self) -> str:
         additional_encryption_context = self._get_param("additionalEncryptionContext")
         browser_policy = self._get_param("browserPolicy")
         client_token = self._get_param("clientToken")
@@ -36,34 +60,31 @@ class WorkSpacesWebResponse(BaseResponse):
             customer_managed_key=customer_managed_key,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict(browserSettingsArn=browser_settings_arn))
 
-    def create_network_settings(self):
-        client_token = self._get_param("clientToken")
+    def create_network_settings(self) -> str:
         security_group_ids = self._get_param("securityGroupIds")
         subnet_ids = self._get_param("subnetIds")
         tags = self._get_param("tags")
         vpc_id = self._get_param("vpcId")
         network_settings_arn = self.workspacesweb_backend.create_network_settings(
-            client_token=client_token,
             security_group_ids=security_group_ids,
             subnet_ids=subnet_ids,
             tags=tags,
             vpc_id=vpc_id,
         )
-        # TODO: adjust response
         return json.dumps(dict(networkSettingsArn=network_settings_arn))
 
-    def get_network_settings(self):
-        network_settings_arn = self._get_param("networkSettingsArn")
+    def get_network_settings(self) -> TYPE_RESPONSE:
+        network_settings_arn = unquote(
+            self.parsed_url.path.split("/networkSettings/")[-1]
+        )
         network_settings = self.workspacesweb_backend.get_network_settings(
             network_settings_arn=network_settings_arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(networkSettings=network_settings))
+        return 200, {}, json.dumps(dict(networkSettings=network_settings))
 
-    def create_portal(self):
+    def create_portal(self) -> str:
         additional_encryption_context = self._get_param("additionalEncryptionContext")
         authentication_type = self._get_param("authenticationType")
         client_token = self._get_param("clientToken")
@@ -82,103 +103,83 @@ class WorkSpacesWebResponse(BaseResponse):
             max_concurrent_sessions=max_concurrent_sessions,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict(portalArn=portal_arn, portalEndpoint=portal_endpoint))
 
-    def list_browser_settings(self):
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        browser_settings, next_token = self.workspacesweb_backend.list_browser_settings(
-            max_results=max_results,
-            next_token=next_token,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(browserSettings=browser_settings, nextToken=next_token))
+    def list_browser_settings(self) -> str:
+        browser_settings = self.workspacesweb_backend.list_browser_settings()
+        return json.dumps(dict(browserSettings=browser_settings))
 
-    def list_network_settings(self):
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        network_settings, next_token = self.workspacesweb_backend.list_network_settings(
-            max_results=max_results,
-            next_token=next_token,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(networkSettings=network_settings, nextToken=next_token))
+    def list_network_settings(self) -> str:
+        network_settings = self.workspacesweb_backend.list_network_settings()
+        return json.dumps(dict(networkSettings=network_settings))
 
-    def list_portals(self):
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        next_token, portals = self.workspacesweb_backend.list_portals(
-            max_results=max_results,
-            next_token=next_token,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(nextToken=next_token, portals=portals))
+    def list_portals(self) -> str:
+        portals = self.workspacesweb_backend.list_portals()
+        return json.dumps(dict(portals=portals))
 
-    def get_browser_settings(self):
-        browser_settings_arn = self._get_param("browserSettingsArn")
+    def get_browser_settings(self) -> TYPE_RESPONSE:
+        browser_settings_arn = unquote(
+            self.parsed_url.path.split("/browserSettings/")[-1]
+        )
         browser_settings = self.workspacesweb_backend.get_browser_settings(
             browser_settings_arn=browser_settings_arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(browserSettings=browser_settings))
+        return 200, {}, json.dumps(dict(browserSettings=browser_settings))
 
-    def delete_browser_settings(self):
-        browser_settings_arn = self._get_param("browserSettingsArn")
-        self.workspacesweb_backend.delete_browser_settings(
-            browser_settings_arn=browser_settings_arn,
+    def delete_browser_settings(self) -> TYPE_RESPONSE:
+        browser_settings_arn = unquote(
+            self.parsed_url.path.split("/browserSettings/")[-1]
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        self.workspacesweb_backend.delete_browser_settings(
+            browser_settings_arn=browser_settings_arn
+        )
+        return 200, {}, "{}"
 
-    def delete_network_settings(self):
-        network_settings_arn = self._get_param("networkSettingsArn")
+    def delete_network_settings(self) -> TYPE_RESPONSE:
+        network_settings_arn = unquote(
+            self.parsed_url.path.split("/networkSettings/")[-1]
+        )
         self.workspacesweb_backend.delete_network_settings(
             network_settings_arn=network_settings_arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return 200, {}, "{}"
 
-    def get_portal(self):
-        portal_arn = self._get_param("portalArn")
-        portal = self.workspacesweb_backend.get_portal(
-            portal_arn=portal_arn,
+    def get_portal(self) -> TYPE_RESPONSE:
+        portal_arn = unquote(self.parsed_url.path.split("/portals/")[-1])
+        portal = self.workspacesweb_backend.get_portal(portal_arn=portal_arn)
+        return 200, {}, json.dumps(dict(portal=portal))
+
+    def delete_portal(self) -> TYPE_RESPONSE:
+        portal_arn = unquote(self.parsed_url.path.split("/portals/")[-1])
+        self.workspacesweb_backend.delete_portal(portal_arn=portal_arn)
+        return 200, {}, "{}"
+
+    def associate_browser_settings(self) -> str:
+        browser_settings_arn = unquote(self._get_param("browserSettingsArn"))
+        portal_arn = unquote(
+            self.parsed_url.path.split("/portals/")[-1].split("/browserSettings")[0]
         )
-        # TODO: adjust response
-        return json.dumps(dict(portal=portal))
-
-    def delete_portal(self):
-        portal_arn = self._get_param("portalArn")
-        self.workspacesweb_backend.delete_portal(
-            portal_arn=portal_arn,
-        )
-        # TODO: adjust response
-        return json.dumps(dict())
-
-    def associate_browser_settings(self):
-        browser_settings_arn = self._get_param("browserSettingsArn")
-        portal_arn = self._get_param("portalArn")
         browser_settings_arn, portal_arn = (
             self.workspacesweb_backend.associate_browser_settings(
                 browser_settings_arn=browser_settings_arn,
                 portal_arn=portal_arn,
             )
         )
-        # TODO: adjust response
         return json.dumps(
             dict(browserSettingsArn=browser_settings_arn, portalArn=portal_arn)
         )
 
-    def associate_network_settings(self):
-        network_settings_arn = self._get_param("networkSettingsArn")
-        portal_arn = self._get_param("portalArn")
+    def associate_network_settings(self) -> str:
+        network_settings_arn = unquote(self._get_param("networkSettingsArn"))
+        portal_arn = unquote(
+            self.parsed_url.path.split("/portals/")[-1].split("/networkSettings")[0]
+        )
         network_settings_arn, portal_arn = (
             self.workspacesweb_backend.associate_network_settings(
                 network_settings_arn=network_settings_arn,
                 portal_arn=portal_arn,
             )
         )
-        # TODO: adjust response
         return json.dumps(
             dict(networkSettingsArn=network_settings_arn, portalArn=portal_arn)
         )
