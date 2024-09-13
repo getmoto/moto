@@ -602,7 +602,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_update: Dict[str, Any],
         splunk_destination_update: Dict[str, Any],
         http_endpoint_destination_update: Dict[str, Any],
-        snowflake_destination_configuration: Dict[str, Any]
+        snowflake_destination_configuration: Dict[str, Any],
     ) -> None:
         (dest_name, dest_config) = find_destination_config_in_args(locals())
 

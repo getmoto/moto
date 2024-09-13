@@ -110,7 +110,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("ElasticsearchDestinationUpdate"),
             self._get_param("SplunkDestinationUpdate"),
             self._get_param("HttpEndpointDestinationUpdate"),
-            self._get_param("SnowflakeDestinationConfiguration")
+            self._get_param("SnowflakeDestinationConfiguration"),
         )
         return json.dumps({})
 
