@@ -138,7 +138,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
-        return workspacesweb_backends[self.account_id][self.region_name]
+        # Workspaces service has limited region availability
+        if self.region_name in workspaces_backends[self.account_id].regions:
+            return workspacesweb_backends[self.account_id][self.region_name]
+        return None
 
     @property
     def sagemaker_backend(self) -> SageMakerModelBackend:

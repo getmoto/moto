@@ -343,174 +343,102 @@ def _import_backend(
 def get_backend(
     name: "Literal['acm']",
 ) -> "BackendDict[AWSCertificateManagerBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['acm-pca']") -> "BackendDict[ACMPCABackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['amp']") -> "BackendDict[PrometheusServiceBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['apigateway']") -> "BackendDict[APIGatewayBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['apigatewaymanagementapi']",
 ) -> "BackendDict[ApiGatewayManagementApiBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['apigatewayv2']",
 ) -> "BackendDict[ApiGatewayV2Backend]": ...
-
-
 @overload
 def get_backend(name: "Literal['appconfig']") -> "BackendDict[AppConfigBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['applicationautoscaling']",
 ) -> "BackendDict[ApplicationAutoscalingBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['appmesh']") -> "BackendDict[AppMeshBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['appsync']") -> "BackendDict[AppSyncBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['athena']") -> "BackendDict[AthenaBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['autoscaling']",
 ) -> "BackendDict[AutoScalingBackend]": ...
 @overload
 def get_backend(name: "Literal['batch']") -> "BackendDict[BatchBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['bedrock']") -> "BackendDict[BedrockBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['bedrock-agent']",
 ) -> "BackendDict[AgentsforBedrockBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['ce']") -> "BackendDict[CostExplorerBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['cloudformation']",
 ) -> "BackendDict[CloudFormationBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['cloudfront']") -> "BackendDict[CloudFrontBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['cloudtrail']") -> "BackendDict[CloudTrailBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['cloudwatch']") -> "BackendDict[CloudWatchBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['codebuild']") -> "BackendDict[CodeBuildBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['codecommit']") -> "BackendDict[CodeCommitBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['codepipeline']",
 ) -> "BackendDict[CodePipelineBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['cognito-identity']",
 ) -> "BackendDict[CognitoIdentityBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['cognito-idp']") -> "BackendDict[CognitoIdpBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['comprehend']") -> "BackendDict[ComprehendBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['config']") -> "BackendDict[ConfigBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['databrew']") -> "BackendDict[DataBrewBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['datapipeline']",
 ) -> "BackendDict[DataPipelineBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['datasync']") -> "BackendDict[DataSyncBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['dax']") -> "BackendDict[DAXBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['dms']",
 ) -> "BackendDict[DatabaseMigrationServiceBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['directconnect']",
 ) -> "BackendDict[DirectConnectBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['ds']") -> "BackendDict[DirectoryServiceBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['dynamodb']") -> "BackendDict[DynamoDBBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['dynamodb_v20111205']",
 ) -> "BackendDict[DynamoDBBackend_v20111205]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['dynamodbstreams']",
@@ -519,16 +447,12 @@ def get_backend(
 def get_backend(name: "Literal['ebs']") -> "BackendDict[EBSBackend]": ...
 @overload
 def get_backend(name: "Literal['ec2']") -> "BackendDict[EC2Backend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['ec2instanceconnect']",
 ) -> "BackendDict[Ec2InstanceConnectBackend]": ...
 @overload
 def get_backend(name: "Literal['ecr']") -> "BackendDict[ECRBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['ecs']",
@@ -537,18 +461,12 @@ def get_backend(
 def get_backend(name: "Literal['efs']") -> "BackendDict[EFSBackend]": ...
 @overload
 def get_backend(name: "Literal['eks']") -> "BackendDict[EKSBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['elasticache']",
 ) -> "BackendDict[ElastiCacheBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['elasticbeanstalk']") -> "BackendDict[EBBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['elastictranscoder']",
@@ -557,108 +475,66 @@ def get_backend(
 def get_backend(name: "Literal['elb']") -> "BackendDict[ELBBackend]": ...
 @overload
 def get_backend(name: "Literal['elbv2']") -> "BackendDict[ELBv2Backend]": ...
-
-
 @overload
 def get_backend(name: "Literal['emr']") -> "BackendDict[ElasticMapReduceBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['emr-containers']",
 ) -> "BackendDict[EMRContainersBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['emr-serverless']",
 ) -> "BackendDict[EMRServerlessBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['es']",
 ) -> "BackendDict[ElasticsearchServiceBackend]": ...
 @overload
 def get_backend(name: "Literal['events']") -> "BackendDict[EventsBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['firehose']") -> "BackendDict[FirehoseBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['forecast']") -> "BackendDict[ForecastBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['fsx']") -> "BackendDict[FSxBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['glacier']") -> "BackendDict[GlacierBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['glue']") -> "BackendDict[GlueBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['greengrass']") -> "BackendDict[GreengrassBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['guardduty']") -> "BackendDict[GuardDutyBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['iam']") -> "BackendDict[IAMBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['identitystore']",
 ) -> "BackendDict[IdentityStoreBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['inspector2']") -> "BackendDict[Inspector2Backend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['instance_metadata']",
 ) -> "BackendDict[InstanceMetadataBackend]": ...
 @overload
 def get_backend(name: "Literal['iot']") -> "BackendDict[IoTBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['iot-data']") -> "BackendDict[IoTDataPlaneBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['ivs']") -> "BackendDict[IVSBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['kinesis']") -> "BackendDict[KinesisBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['kinesisvideo']",
 ) -> "BackendDict[KinesisVideoBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['kinesis-video-archived-media']",
 ) -> "BackendDict[KinesisVideoArchivedMediaBackend]": ...
 @overload
 def get_backend(name: "Literal['kms']") -> "BackendDict[KmsBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['lakeformation']",
@@ -667,220 +543,142 @@ def get_backend(
 def get_backend(name: "Literal['lambda']") -> "BackendDict[LambdaBackend]": ...
 @overload
 def get_backend(name: "Literal['logs']") -> "BackendDict[LogsBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['managedblockchain']",
 ) -> "BackendDict[ManagedBlockchainBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['mediaconnect']",
 ) -> "BackendDict[MediaConnectBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['medialive']") -> "BackendDict[MediaLiveBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['mediapackage']",
 ) -> "BackendDict[MediaPackageBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['mediastore']") -> "BackendDict[MediaStoreBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['mediastore-data']",
 ) -> "BackendDict[MediaStoreDataBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['meteringmarketplace']",
 ) -> "BackendDict[MeteringMarketplaceBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['moto_api']") -> "BackendDict[MotoAPIBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['mq']") -> "BackendDict[MQBackend]": ...
 @overload
 def get_backend(name: "Literal['neptune']") -> "BackendDict[RDSBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['networkmanager']",
 ) -> "BackendDict[NetworkManagerBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['opensearch']",
 ) -> "BackendDict[OpenSearchServiceBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['opensearchserverless']",
 ) -> "BackendDict[OpenSearchServiceServerlessBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['opsworks']") -> "BackendDict[OpsWorksBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['organizations']",
 ) -> "BackendDict[OrganizationsBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['personalize']",
 ) -> "BackendDict[PersonalizeBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['pinpoint']") -> "BackendDict[PinpointBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['polly']") -> "BackendDict[PollyBackend]": ...
 @overload
 def get_backend(name: "Literal['qldb']") -> "BackendDict[QLDBBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['quicksight']") -> "BackendDict[QuickSightBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['ram']",
 ) -> "BackendDict[ResourceAccessManagerBackend]": ...
 @overload
 def get_backend(name: "Literal['rds']") -> "BackendDict[RDSBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['rds-data']",
 ) -> "BackendDict[RDSDataServiceBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['redshift']") -> "BackendDict[RedshiftBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['redshift-data']",
 ) -> "BackendDict[RedshiftDataAPIServiceBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['rekognition']",
 ) -> "BackendDict[RekognitionBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['resiliencehub']",
 ) -> "BackendDict[ResilienceHubBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['resource-groups']",
 ) -> "BackendDict[ResourceGroupsBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['resourcegroupstaggingapi']",
 ) -> "BackendDict[ResourceGroupsTaggingAPIBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['robomaker']") -> "BackendDict[RoboMakerBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['route53']") -> "BackendDict[Route53Backend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['route53resolver']",
 ) -> "BackendDict[Route53ResolverBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['route53domains']",
 ) -> "BackendDict[Route53DomainsBackend]": ...
 @overload
 def get_backend(name: "Literal['s3']") -> "BackendDict[S3Backend]": ...
-
-
 @overload
 def get_backend(name: "Literal['s3bucket_path']") -> "BackendDict[S3Backend]": ...
-
-
 @overload
 def get_backend(name: "Literal['s3control']") -> "BackendDict[S3ControlBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['sagemaker']",
 ) -> "BackendDict[SageMakerModelBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['sagemaker-metrics']",
 ) -> "BackendDict[SageMakerMetricsBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['sagemaker-runtime']",
 ) -> "BackendDict[SageMakerRuntimeBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['scheduler']",
 ) -> "BackendDict[EventBridgeSchedulerBackend]": ...
 @overload
 def get_backend(name: "Literal['sdb']") -> "BackendDict[SimpleDBBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['secretsmanager']",
 ) -> "BackendDict[SecretsManagerBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['servicediscovery']",
 ) -> "BackendDict[ServiceDiscoveryBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['service-quotas']",
@@ -897,72 +695,44 @@ def get_backend(name: "Literal['signer']") -> "BackendDict[SignerBackend]": ...
 def get_backend(name: "Literal['sns']") -> "BackendDict[SNSBackend]": ...
 @overload
 def get_backend(name: "Literal['sqs']") -> "BackendDict[SQSBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['ssm']",
 ) -> "BackendDict[SimpleSystemManagerBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['sso-admin']") -> "BackendDict[SSOAdminBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['stepfunctions']",
 ) -> "BackendDict[StepFunctionBackend]": ...
 @overload
 def get_backend(name: "Literal['sts']") -> "BackendDict[STSBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['support']") -> "BackendDict[SupportBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['swf']") -> "BackendDict[SWFBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['textract']") -> "BackendDict[TextractBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['timestream-query']",
 ) -> "BackendDict[TimestreamQueryBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['timestream-write']",
 ) -> "BackendDict[TimestreamWriteBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['transcribe']") -> "BackendDict[TranscribeBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['transfer']") -> "BackendDict[TransferBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
-
-
 @overload
 def get_backend(name: "Literal['workspaces']") -> "BackendDict[WorkSpacesBackend]": ...
-
-
 @overload
 def get_backend(
     name: "Literal['workspaces-web']",
 ) -> "BackendDict[WorkSpacesWebBackend]": ...
-
-
 @overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
 
