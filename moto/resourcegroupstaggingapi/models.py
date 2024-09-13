@@ -28,6 +28,7 @@ from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
+from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -133,6 +134,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Workspaces service has limited region availability
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspaces_backends[self.account_id][self.region_name]
+        return None
+
+    @property
+    def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
+        # Workspaces service has limited region availability
+        if self.region_name in workspaces_backends[self.account_id].regions:
+            return workspacesweb_backends[self.account_id][self.region_name]
         return None
 
     @property
@@ -626,6 +634,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+        # Workspaces Web
+        if self.workspacesweb_backends and (
+            not resource_type_filters or "workspaces-web" in resource_type_filters
+        ):
+            for portal in self.workspacesweb_backends.portals.values():
+                tags = format_tag_keys(portal.tags, ["Key", "Value"])  # type: ignore
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces-web:{self.region_name}:{self.account_id}:portal/{portal.portal_id}",
+                    "Tags": tags,
+                }
+
         # VPC
         if (
             not resource_type_filters
@@ -1027,6 +1048,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:workspaces-web:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
+                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces:"):
                 resource_id = arn.split("/")[-1]

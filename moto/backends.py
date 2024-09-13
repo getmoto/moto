@@ -147,6 +147,7 @@ if TYPE_CHECKING:
     from moto.transfer.models import TransferBackend
     from moto.wafv2.models import WAFV2Backend
     from moto.workspaces.models import WorkSpacesBackend
+    from moto.workspacesweb.models import WorkSpacesWebBackend
     from moto.xray.models import XRayBackend
 
 
@@ -325,6 +326,7 @@ SERVICE_NAMES = Union[
     "Literal['transfer']",
     "Literal['wafv2']",
     "Literal['workspaces']",
+    "Literal['workspaces-web']",
     "Literal['xray']",
 ]
 
@@ -727,6 +729,10 @@ def get_backend(name: "Literal['transfer']") -> "BackendDict[TransferBackend]": 
 def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
 @overload
 def get_backend(name: "Literal['workspaces']") -> "BackendDict[WorkSpacesBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['workspaces-web']",
+) -> "BackendDict[WorkSpacesWebBackend]": ...
 @overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
 
