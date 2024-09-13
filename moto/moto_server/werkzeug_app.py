@@ -163,6 +163,8 @@ class DomainDispatcherApplication:
             host = "s3control"
         elif service == "ses" and path.startswith("/v2/"):
             host = "sesv2"
+        elif service == "memorydb":
+            host = f"memory-db.{region}.amazonaws.com"
         else:
             host = f"{service}.{region}.amazonaws.com"
 
