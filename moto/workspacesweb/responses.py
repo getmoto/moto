@@ -1,7 +1,9 @@
 """Handles incoming workspacesweb requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.responses import BaseResponse
+
 from .models import workspacesweb_backends
 
 
@@ -22,8 +24,7 @@ class WorkSpacesWebResponse(BaseResponse):
     # add methods from here
 
     def create_browser_settings(self):
-        additional_encryption_context = self._get_param(
-            "additionalEncryptionContext")
+        additional_encryption_context = self._get_param("additionalEncryptionContext")
         browser_policy = self._get_param("browserPolicy")
         client_token = self._get_param("clientToken")
         customer_managed_key = self._get_param("customerManagedKey")
@@ -63,8 +64,7 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(dict(networkSettings=network_settings))
 
     def create_portal(self):
-        additional_encryption_context = self._get_param(
-            "additionalEncryptionContext")
+        additional_encryption_context = self._get_param("additionalEncryptionContext")
         authentication_type = self._get_param("authenticationType")
         client_token = self._get_param("clientToken")
         customer_managed_key = self._get_param("customerManagedKey")
@@ -147,14 +147,6 @@ class WorkSpacesWebResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(dict(portal=portal))
 
-    def get_portal(self):
-        portal_arn = self._get_param("portalArn")
-        portal = self.workspacesweb_backend.get_portal(
-            portal_arn=portal_arn,
-        )
-        # TODO: adjust response
-        return json.dumps(dict(portal=portal))
-
     def delete_portal(self):
         portal_arn = self._get_param("portalArn")
         self.workspacesweb_backend.delete_portal(
@@ -166,19 +158,27 @@ class WorkSpacesWebResponse(BaseResponse):
     def associate_browser_settings(self):
         browser_settings_arn = self._get_param("browserSettingsArn")
         portal_arn = self._get_param("portalArn")
-        browser_settings_arn, portal_arn = self.workspacesweb_backend.associate_browser_settings(
-            browser_settings_arn=browser_settings_arn,
-            portal_arn=portal_arn,
+        browser_settings_arn, portal_arn = (
+            self.workspacesweb_backend.associate_browser_settings(
+                browser_settings_arn=browser_settings_arn,
+                portal_arn=portal_arn,
+            )
         )
         # TODO: adjust response
-        return json.dumps(dict(browserSettingsArn=browser_settings_arn, portalArn=portal_arn))
+        return json.dumps(
+            dict(browserSettingsArn=browser_settings_arn, portalArn=portal_arn)
+        )
 
     def associate_network_settings(self):
         network_settings_arn = self._get_param("networkSettingsArn")
         portal_arn = self._get_param("portalArn")
-        network_settings_arn, portal_arn = self.workspacesweb_backend.associate_network_settings(
-            network_settings_arn=network_settings_arn,
-            portal_arn=portal_arn,
+        network_settings_arn, portal_arn = (
+            self.workspacesweb_backend.associate_network_settings(
+                network_settings_arn=network_settings_arn,
+                portal_arn=portal_arn,
+            )
         )
         # TODO: adjust response
-        return json.dumps(dict(networkSettingsArn=network_settings_arn, portalArn=portal_arn))
+        return json.dumps(
+            dict(networkSettingsArn=network_settings_arn, portalArn=portal_arn)
+        )

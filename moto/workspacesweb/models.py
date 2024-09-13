@@ -2,16 +2,14 @@
 
 import datetime
 import uuid
+from typing import Dict, Iterable
 
-from moto.core.base_backend import BaseBackend, BackendDict
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.utils import get_partition
 
-from typing import Dict, Iterable
-
 
 class FakeNetworkSettings(BaseModel):
-
     def __init__(
         self,
         security_group_ids,
@@ -22,8 +20,7 @@ class FakeNetworkSettings(BaseModel):
         account_id,
     ):
         self.network_settings_id = uuid.uuid4()
-        self.arn = self.arn_formatter(
-            self.network_settings_id, account_id, region_name)
+        self.arn = self.arn_formatter(self.network_settings_id, account_id, region_name)
         self.security_group_ids = security_group_ids
         self.subnet_ids = subnet_ids
         self.tags = tags
@@ -56,8 +53,7 @@ class FakeBrowserSettings(BaseModel):
         account_id,
     ):
         self.browser_settings_id = uuid.uuid4()
-        self.arn = self.arn_formatter(
-            self.browser_settings_id, account_id, region_name)
+        self.arn = self.arn_formatter(self.browser_settings_id, account_id, region_name)
         self.additional_encryption_context = additional_encryption_context
         self.browser_policy = browser_policy
         self.client_token = client_token
@@ -94,8 +90,7 @@ class FakePortal(BaseModel):
         account_id,
     ):
         self.portal_id = uuid.uuid4()
-        self.arn = self.arn_formatter(
-            self.portal_id, account_id, region_name)
+        self.arn = self.arn_formatter(self.portal_id, account_id, region_name)
         self.additional_encryption_context = additional_encryption_context
         self.authentication_type = authentication_type
         self.client_token = client_token
@@ -154,9 +149,17 @@ class WorkSpacesWebBackend(BaseBackend):
         self.browser_settings: Dict[str, FakeBrowserSettings] = {}
         self.portals: Dict[str, FakePortal] = {}
 
-    def create_network_settings(self, client_token, security_group_ids, subnet_ids, tags, vpc_id):
+    def create_network_settings(
+        self, client_token, security_group_ids, subnet_ids, tags, vpc_id
+    ):
         network_settings_object = FakeNetworkSettings(
-            security_group_ids, subnet_ids, tags, vpc_id, self.region_name, self.account_id)
+            security_group_ids,
+            subnet_ids,
+            tags,
+            vpc_id,
+            self.region_name,
+            self.account_id,
+        )
         self.network_settings[network_settings_object.arn] = network_settings_object
         return network_settings_object.arn
 
@@ -169,7 +172,6 @@ class WorkSpacesWebBackend(BaseBackend):
                 "networkSettingsArn": network_setting.arn,
                 "vpcId": network_setting.vpc_id,
             }
-
             for network_setting in network_settings_fetched
         ]
         return network_settings_summaries, 0
@@ -181,9 +183,23 @@ class WorkSpacesWebBackend(BaseBackend):
         self.network_settings.pop(network_settings_arn)
         return
 
-    def create_browser_settings(self, additional_encryption_context, browser_policy, client_token, customer_managed_key, tags):
+    def create_browser_settings(
+        self,
+        additional_encryption_context,
+        browser_policy,
+        client_token,
+        customer_managed_key,
+        tags,
+    ):
         browser_settings_object = FakeBrowserSettings(
-            additional_encryption_context, browser_policy, client_token, customer_managed_key, tags, self.region_name, self.account_id)
+            additional_encryption_context,
+            browser_policy,
+            client_token,
+            customer_managed_key,
+            tags,
+            self.region_name,
+            self.account_id,
+        )
         self.browser_settings[browser_settings_object.arn] = browser_settings_object
         return browser_settings_object.arn
 
@@ -195,7 +211,6 @@ class WorkSpacesWebBackend(BaseBackend):
             {
                 "browserSettingsArn": browser_setting.arn,
             }
-
             for browser_setting in browser_settings_fetched
         ]
         return browser_settings_summaries, 0
@@ -207,16 +222,34 @@ class WorkSpacesWebBackend(BaseBackend):
         self.browser_settings.pop(browser_settings_arn)
         return
 
-    def create_portal(self, additional_encryption_context, authentication_type, client_token, customer_managed_key, display_name, instance_type, max_concurrent_sessions, tags):
+    def create_portal(
+        self,
+        additional_encryption_context,
+        authentication_type,
+        client_token,
+        customer_managed_key,
+        display_name,
+        instance_type,
+        max_concurrent_sessions,
+        tags,
+    ):
         portal_object = FakePortal(
-            additional_encryption_context, authentication_type, client_token, customer_managed_key, display_name, instance_type, max_concurrent_sessions, tags, self.region_name, self.account_id)
+            additional_encryption_context,
+            authentication_type,
+            client_token,
+            customer_managed_key,
+            display_name,
+            instance_type,
+            max_concurrent_sessions,
+            tags,
+            self.region_name,
+            self.account_id,
+        )
         self.portals[portal_object.arn] = portal_object
         return portal_object.arn, portal_object.portal_endpoint
 
     def list_portals(self, max_results, next_token):
-        portals_fetched: Iterable[FakePortal] = list(
-            self.portals.values()
-        )
+        portals_fetched: Iterable[FakePortal] = list(self.portals.values())
 
         portal_summaries = [
             {
@@ -240,7 +273,6 @@ class WorkSpacesWebBackend(BaseBackend):
                 "userSettingsArn": portal.user_settings_arn,
             }
             for portal in portals_fetched
-
         ]
         return 0, portal_summaries
 

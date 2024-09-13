@@ -1,4 +1,5 @@
 """workspacesweb base URL and path."""
+
 from .responses import WorkSpacesWebResponse
 
 url_bases = [

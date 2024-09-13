@@ -28,6 +28,7 @@ from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
+from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -136,6 +137,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
+    def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
+        return workspacesweb_backends[self.account_id][self.region_name]
+
+    @property
     def sagemaker_backend(self) -> SageMakerModelBackend:
         return sagemaker_backends[self.account_id][self.region_name]
 
@@ -157,13 +162,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             elif len(values) == 1:
                 # Check it's exactly the same as key, value
                 filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
+                    # type: ignore
+                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key
                     and v == value
                 )
             else:
                 # Check key matches and value is one of the provided values
                 filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key  # type: ignore
+                    # type: ignore
+                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key
                     and v in vl
                 )
 
@@ -255,7 +262,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         if not resource_type_filters or "ecs:cluster" in resource_type_filters:
             for cluster in self.ecs_backend.clusters.values():
-                tags = format_tag_keys(cluster.tags, ["key", "value"])  # type: ignore[arg-type]
+                # type: ignore[arg-type]
+                tags = format_tag_keys(cluster.tags, ["key", "value"])
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
@@ -626,6 +634,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+        # Workspaces Web
+        if self.workspacesweb_backends and (
+            not resource_type_filters or "workspaces-web" in resource_type_filters
+        ):
+            for portal in self.workspacesweb_backends.portals.values():
+                tags = format_tag_keys(portal.tags, ["Key", "Value"])
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces-web:{self.region_name}:{self.account_id}:portal/{portal.portal_id}",
+                    "Tags": tags,
+                }
+
         # VPC
         if (
             not resource_type_filters
@@ -750,7 +771,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                for key in get_ec2_keys(instance.id):  # type: ignore[assignment]
+                # type: ignore[assignment]
+                for key in get_ec2_keys(instance.id):
                     yield key
 
         # EC2 NetworkInterface, resource type ec2:network-interface
@@ -810,7 +832,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                for value in get_ec2_values(instance.id):  # type: ignore[assignment]
+                # type: ignore[assignment]
+                for value in get_ec2_values(instance.id):
                     yield value
 
         # EC2 NetworkInterface, resource type ec2:network-interface
@@ -828,7 +851,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # EC2 Snapshot, resource type ec2:snapshot
         for snapshot in self.ec2_backend.snapshots.values():
-            for value in get_ec2_values(snapshot.id):  # type: ignore[assignment]
+            # type: ignore[assignment]
+            for value in get_ec2_values(snapshot.id):
                 yield value
 
         # TODO EC2 SpotInstanceRequest
@@ -1027,6 +1051,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:workspaces-web:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
+                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces:"):
                 resource_id = arn.split("/")[-1]
