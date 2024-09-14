@@ -19,6 +19,7 @@ def test_create_and_get_rest_api():
         name="my_api", description="this is my api", disableExecuteApiEndpoint=True
     )
     api_id = response["id"]
+    root_resource_id = response["rootResourceId"]
 
     response = client.get_rest_api(restApiId=api_id)
 
@@ -34,6 +35,7 @@ def test_create_and_get_rest_api():
         "endpointConfiguration": {"types": ["EDGE"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
+        "rootResourceId": root_resource_id,
     }
 
 
@@ -42,6 +44,7 @@ def test_update_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
+    root_resource_id = response["rootResourceId"]
     patchOperations = [
         {"op": "replace", "path": "/name", "value": "new-name"},
         {"op": "replace", "path": "/description", "value": "new-description"},
@@ -71,6 +74,7 @@ def test_update_rest_api():
         "endpointConfiguration": {"types": ["EDGE"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
+        "rootResourceId": root_resource_id,
     }
     # should fail with wrong apikeysoruce
     patchOperations = [
@@ -2486,3 +2490,80 @@ def test_update_path_mapping_with_unknown_stage():
     assert ex.value.response["Error"]["Message"] == "Invalid stage identifier specified"
     assert ex.value.response["Error"]["Code"] == "BadRequestException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_update_account():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+
+    patch_operations = [
+        {
+            "op": "replace",
+            "path": "/cloudwatchRoleArn",
+            "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-1",
+        },
+        {"op": "add", "path": "/features", "value": "UsagePlans"},
+        {"op": "add", "path": "/features", "value": "TestFeature"},
+    ]
+
+    account = client.update_account(patchOperations=patch_operations)
+
+    assert (
+        account["cloudwatchRoleArn"]
+        == "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"
+    )
+    assert account["features"] == ["UsagePlans", "TestFeature"]
+
+    patch_operations = [
+        {
+            "op": "replace",
+            "path": "/cloudwatchRoleArn",
+            "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-2",
+        },
+        {"op": "remove", "path": "/features", "value": "TestFeature"},
+    ]
+
+    account = client.update_account(patchOperations=patch_operations)
+
+    assert (
+        account["cloudwatchRoleArn"]
+        == "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"
+    )
+    assert account["throttleSettings"]["burstLimit"] == 5000
+    assert account["throttleSettings"]["rateLimit"] == 10000.0
+    assert account["apiKeyVersion"] == "1"
+    assert account["features"] == ["UsagePlans"]
+
+
+@mock_aws
+def test_update_account_error():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+    patch_operations = [
+        {
+            "op": "remove",
+            "path": "/features",
+            "value": "UsagePlans",
+        },
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_account(patchOperations=patch_operations)
+
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Usage Plans cannot be disabled once enabled"
+    )
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_get_account():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+    account = client.get_account()
+
+    assert account["throttleSettings"]["burstLimit"] == 5000
+    assert account["throttleSettings"]["rateLimit"] == 10000.0
+    assert account["apiKeyVersion"] == "1"
+    assert "features" not in account
+    assert "cloudwatchRoleArn" not in account

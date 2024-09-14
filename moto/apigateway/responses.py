@@ -851,3 +851,12 @@ class APIGatewayResponse(BaseResponse):
             rest_api_id=rest_api_id, response_type=response_type
         )
         return 202, {}, json.dumps(dict())
+
+    def update_account(self) -> str:
+        patch_operations = self._get_param("patchOperations")
+        account = self.backend.update_account(patch_operations)
+        return json.dumps(account.to_json())
+
+    def get_account(self) -> str:
+        account = self.backend.get_account()
+        return json.dumps(account.to_json())
