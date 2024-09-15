@@ -13774,7 +13774,7 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -13883,7 +13883,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -13994,7 +13994,7 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -14109,7 +14109,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -14213,7 +14213,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -14326,7 +14326,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -14440,7 +14440,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -14545,7 +14545,7 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -14928,7 +14928,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52008,7 +52008,7 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52117,7 +52117,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52228,7 +52228,7 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52343,7 +52343,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52447,7 +52447,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52560,7 +52560,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52674,7 +52674,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -52779,7 +52779,7 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -53162,7 +53162,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -58995,6 +58995,351 @@
    "capacity-block",
    "on-demand",
    "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 96,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    12,
+    24,
+    36,
+    48,
+    60,
+    72,
+    84,
+    96
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "p5e.48xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 80000,
+    "BaselineIops": 260000,
+    "BaselineThroughputInMBps": 10000.0,
+    "MaximumBandwidthInMbps": 80000,
+    "MaximumIops": 260000,
+    "MaximumThroughputInMBps": 10000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 8,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 144384
+     },
+     "Name": "H100"
+    }
+   ],
+   "TotalGpuMemoryInMiB": 1155072
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 8,
+     "SizeInGB": 3800,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 30400
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "p5e.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 2097152
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 32
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 32,
+   "MaximumNetworkInterfaces": 64,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 2,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 3,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 4,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 5,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 6,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 7,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 8,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 9,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 10,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 11,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 12,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 13,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 14,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 15,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 16,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 17,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 18,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 19,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 20,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 21,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 22,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 23,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 24,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 25,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 26,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 27,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 28,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 29,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 30,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    },
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "MaximumNetworkInterfaces": 2,
+     "NetworkCardIndex": 31,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    }
+   ],
+   "NetworkPerformance": "3200 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AMD",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.6
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "capacity-block",
+   "on-demand"
   ],
   "SupportedVirtualizationTypes": [
    "hvm"
@@ -74655,7 +75000,7 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -74764,7 +75109,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -74875,7 +75220,7 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -74990,7 +75335,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -75094,7 +75439,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -75207,7 +75552,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -75321,7 +75666,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -75426,7 +75771,7 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -75809,7 +76154,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -85905,7 +86250,7 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
-  "NitroEnclavesSupport": "supported",
+  "NitroEnclavesSupport": "unsupported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -86066,7 +86411,7 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
-  "NitroEnclavesSupport": "supported",
+  "NitroEnclavesSupport": "unsupported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -86227,7 +86572,7 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
-  "NitroEnclavesSupport": "supported",
+  "NitroEnclavesSupport": "unsupported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -86388,7 +86733,7 @@
    ],
    "NetworkPerformance": "200 Gigabit"
   },
-  "NitroEnclavesSupport": "supported",
+  "NitroEnclavesSupport": "unsupported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
