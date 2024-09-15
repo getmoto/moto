@@ -7768,6 +7768,10 @@
   "Location": "use2-az3"
  },
  {
+  "InstanceType": "p5e.48xlarge",
+  "Location": "use2-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "use2-az3"
  },
