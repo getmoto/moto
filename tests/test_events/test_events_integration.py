@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 from datetime import datetime
@@ -111,7 +112,13 @@ def test_send_to_sqs_fifo_queue():
 
     # when
     event_time = datetime(2021, 1, 1, 12, 23, 34)
-    with pytest.warns(UserWarning, match="you must enable content-based deduplication"):
+    # Catch and validate a UserWarning when running locally.
+    context = (
+        pytest.warns(UserWarning, match="you must enable content-based deduplication")
+        if not settings.TEST_SERVER_MODE
+        else contextlib.nullcontext()
+    )
+    with context:
         client_events.put_events(
             Entries=[
                 {
