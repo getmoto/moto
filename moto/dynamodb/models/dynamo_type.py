@@ -148,6 +148,11 @@ class DynamoType(object):
         else:
             raise NotImplementedError(f"No set_item for {type(key)}")
 
+    def __delitem__(self, item: str) -> "DynamoType":
+        if isinstance(item, str) and self.type == DDBType.MAP:
+            del self.value[item]
+        return self
+
     @property
     def cast_value(self) -> Any:  # type: ignore[misc]
         if self.is_number():
