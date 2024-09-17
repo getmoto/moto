@@ -94,6 +94,22 @@ def test_update_item_add_float(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
+def test_delete_last_item_from_map(table_name=None):
+    table = boto3.resource("dynamodb", "us-east-1").Table(table_name)
+
+    table.put_item(Item={"pk": "foo", "map": {"sset": {"foo"}}})
+    resp = table.update_item(
+        Key={"pk": "foo"},
+        UpdateExpression="DELETE #map.#sset :s",
+        ExpressionAttributeNames={"#map": "map", "#sset": "sset"},
+        ExpressionAttributeValues={":s": {"foo"}},
+        ReturnValues="ALL_NEW",
+    )
+    assert {"pk": "foo", "map": {}} == resp["Attributes"]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
 def test_delete_non_existing_item(table_name=None):
     table = boto3.resource("dynamodb", "us-east-1").Table(table_name)
 
