@@ -270,6 +270,11 @@ class NetworkManagerBackend(BaseBackend):
         except (KeyError, ValueError, AttributeError):
             raise ResourceNotFound(arn)
 
+    def update_resource_state(self, resource_arn: str, state: str) -> None:
+        # Acceptable states: PENDING, AVAILABLE, DELETING, UPDATING
+        resource = self._get_resource_from_arn(resource_arn)
+        resource.state = state
+
     def create_global_network(
         self,
         description: Optional[str],
