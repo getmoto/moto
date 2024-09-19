@@ -2,7 +2,7 @@
 
 import re
 from typing import Any
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, unquote
 
 import xmltodict
 from jinja2 import Template
@@ -346,7 +346,7 @@ class Route53(BaseResponse):
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
-        id_ = self.parsed_url.path.split("/")[-1]
+        id_ = unquote(self.parsed_url.path.split("/")[-1])
         type_ = self.parsed_url.path.split("/")[-2]
 
         if request.method == "GET":
@@ -373,7 +373,7 @@ class Route53(BaseResponse):
     def list_tags_for_resources(self) -> str:
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
-        ]
+        ]["ResourceId"]
         tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
         template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
         return template.render(tag_sets)
