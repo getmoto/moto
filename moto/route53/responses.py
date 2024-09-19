@@ -371,12 +371,13 @@ class Route53(BaseResponse):
             return 200, headers, template.render()
 
     def list_tags_for_resources(self) -> str:
+        resource_type = self.parsed_url.path.split("/")[-1]
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
         ]["ResourceId"]
         tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
         template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
-        return template.render(tag_sets)
+        return template.render(tag_sets=tag_sets, resource_type=resource_type)
 
     def get_change(self) -> str:
         change_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
@@ -494,10 +495,10 @@ LIST_TAGS_FOR_RESOURCES_RESPONSE = """
     <ResourceTagSets>
         {% for set in tag_sets %}
         <ResourceTagSet>
-            <ResourceType>{{set.resource_type}}</ResourceType>
-            <ResourceId>{{set.resource_id}}</ResourceId>
+            <ResourceType>{{resource_type}}</ResourceType>
+            <ResourceId>{{set["ResourceId"]}}</ResourceId>
             <Tags>
-                {% for key, value in set.tags.items() %}
+                {% for key, value in set["Tags"].items() %}
                 <Tag>
                     <Key>{{key}}</Key>
                     <Value>{{value}}</Value>

@@ -647,11 +647,11 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def list_tags_for_resources(self, resource_ids: List[str]) -> Dict[str, str]:
+    def list_tags_for_resources(self, resource_ids: List[str]) -> List[Dict[str, Any]]:
         resources = []
         for id in resource_ids:
-            resource_set = {"resource_id": id}
-            resource_set["tags"] = self.list_tags_for_resource(id)
+            resource_set = {"ResourceId": id, "Tags": {}}
+            resource_set["Tags"] = self.list_tags_for_resource(id)
             resources.append(resource_set)
         return resources
 
