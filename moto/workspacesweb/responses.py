@@ -39,7 +39,7 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_browser_settings()
 
     @staticmethod
-    def user_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE: # type: ignore[misc]
+    def user_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -50,7 +50,7 @@ class WorkSpacesWebResponse(BaseResponse):
     @staticmethod
     def user_access_logging_settings(
         request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE: # type: ignore[misc]
+    ) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -59,7 +59,7 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_user_access_logging_settings()
 
     @staticmethod
-    def portal(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE: # type: ignore[misc]
+    def portal(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
