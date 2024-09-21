@@ -346,8 +346,10 @@ class Route53(BaseResponse):
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
-        id_ = unquote(self.parsed_url.path.split("/")[-1])
-        type_ = self.parsed_url.path.split("/")[-2]
+        id_matcher = re.search(r"/tags/([-a-z]+)/(.+)", self.parsed_url.path)
+        assert id_matcher
+        type_ = id_matcher.group(1)
+        id_ = unquote(id_matcher.group(2))
 
         if request.method == "GET":
             tags = self.backend.list_tags_for_resource(id_)
@@ -371,7 +373,10 @@ class Route53(BaseResponse):
             return 200, headers, template.render()
 
     def list_tags_for_resources(self) -> str:
-        resource_type = self.parsed_url.path.split("/")[-1]
+        if id_matcher := re.search(r"/tags/[-a-z]+/(.+)", self.parsed_url.path):
+            resource_type = unquote(id_matcher.group(1))
+        else:
+            resource_type = ""
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
         ]["ResourceId"]
