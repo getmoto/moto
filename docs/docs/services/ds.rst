@@ -55,6 +55,7 @@ ds
 - [X] describe_directories
   Return info on all directories or directories with matching IDs.
 
+- [ ] describe_directory_data_access
 - [ ] describe_domain_controllers
 - [ ] describe_event_topics
 - [ ] describe_ldaps_settings
@@ -65,12 +66,14 @@ ds
 - [ ] describe_trusts
 - [ ] describe_update_directory
 - [ ] disable_client_authentication
+- [ ] disable_directory_data_access
 - [ ] disable_ldaps
 - [ ] disable_radius
 - [X] disable_sso
   Disable single-sign on for a directory.
 
 - [ ] enable_client_authentication
+- [ ] enable_directory_data_access
 - [ ] enable_ldaps
 - [ ] enable_radius
 - [X] enable_sso
