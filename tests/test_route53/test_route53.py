@@ -553,6 +553,7 @@ def test_list_or_change_tags_for_resource_request():
 @mock_aws
 def test_list_tags_for_resources():
     conn = boto3.client("route53", region_name="us-east-1")
+    # Create two hosted zones
     zone1 = conn.create_hosted_zone(
         Name="testdns1.aws.com", CallerReference=str(hash("foo"))
     )
@@ -562,9 +563,46 @@ def test_list_tags_for_resources():
     )
     zone2_id = zone2["HostedZone"]["Id"]
 
-    # confirm this works for resources with zero tags
+    # Create two healthchecks
+    health_check1 = conn.create_health_check(
+        CallerReference="foo",
+        HealthCheckConfig={
+            "IPAddress": "192.0.2.44",
+            "Port": 123,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "RequestInterval": 30,
+            "FailureThreshold": 123,
+            "HealthThreshold": 123,
+        },
+    )
+    healthcheck1_id = health_check1["HealthCheck"]["Id"]
+
+    health_check2 = conn.create_health_check(
+        CallerReference="bar",
+        HealthCheckConfig={
+            "IPAddress": "192.0.2.44",
+            "Port": 123,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "RequestInterval": 30,
+            "FailureThreshold": 123,
+            "HealthThreshold": 123,
+        },
+    )
+    healthcheck2_id = health_check2["HealthCheck"]["Id"]
+
+    # confirm this works for resources with zero tags for hostedzone
     response = conn.list_tags_for_resources(
         ResourceIds=[zone1_id, zone2_id], ResourceType="hostedzone"
+    )
+
+    for set in response["ResourceTagSets"]:
+        assert set["Tags"] == []
+
+    # confirm this works for resources with zero tags for healthchecks
+    response = conn.list_tags_for_resources(
+        ResourceIds=[healthcheck1_id, healthcheck2_id], ResourceType="healthcheck"
     )
 
     for set in response["ResourceTagSets"]:
@@ -582,14 +620,46 @@ def test_list_tags_for_resources():
         ResourceType="hostedzone", ResourceId=zone2_id, AddTags=[tag3, tag4]
     )
 
+    conn.change_tags_for_resource(
+        ResourceType="healthcheck", ResourceId=healthcheck1_id, AddTags=[tag1, tag2]
+    )
+    conn.change_tags_for_resource(
+        ResourceType="healthcheck", ResourceId=healthcheck2_id, AddTags=[tag3, tag4]
+    )
+
+    # Test hostedzone
     response = conn.list_tags_for_resources(
         ResourceIds=[zone1_id, zone2_id], ResourceType="hostedzone"
     )
+    assert len(response["ResourceTagSets"]) == 2
     for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] in (zone1_id, zone2_id)
         if set["ResourceId"] == zone1_id:
             assert tag1 in set["Tags"]
             assert tag2 in set["Tags"]
+            assert tag3 not in set["Tags"]
+            assert tag4 not in set["Tags"]
         elif set["ResourceId"] == zone2_id:
+            assert tag1 not in set["Tags"]
+            assert tag2 not in set["Tags"]
+            assert tag3 in set["Tags"]
+            assert tag4 in set["Tags"]
+
+    # Test healthcheck
+    response = conn.list_tags_for_resources(
+        ResourceIds=[healthcheck1_id, healthcheck2_id], ResourceType="healthcheck"
+    )
+    assert len(response["ResourceTagSets"]) == 2
+    for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] in (healthcheck1_id, healthcheck2_id)
+        if set["ResourceId"] == healthcheck1_id:
+            assert tag1 in set["Tags"]
+            assert tag2 in set["Tags"]
+            assert tag3 not in set["Tags"]
+            assert tag4 not in set["Tags"]
+        elif set["ResourceId"] == healthcheck2_id:
+            assert tag1 not in set["Tags"]
+            assert tag2 not in set["Tags"]
             assert tag3 in set["Tags"]
             assert tag4 in set["Tags"]
 
