@@ -9,6 +9,95 @@ from moto.core.common_models import BaseModel
 from moto.utilities.utils import get_partition
 
 
+class FakeUserSettings(BaseModel):
+    def __init__(
+        self,
+        additional_encryption_context: Any,
+        client_token: str,
+        cookie_synchronization_configuration: str,
+        copy_allowed: bool,
+        customer_managed_key: str,
+        deep_link_allowed: bool,
+        disconnect_timeout_in_minutes: int,
+        download_allowed: bool,
+        idle_disconnect_timeout_in_minutes: int,
+        paste_allowed: bool,
+        print_allowed: bool,
+        tags: Dict[str, str],
+        upload_allowed: bool,
+        region_name: str,
+        account_id: str,
+    ):
+        self.user_settings_id = str(uuid.uuid4())
+        self.arn = self.arn_formatter(self.user_settings_id, account_id, region_name)
+        self.additional_encryption_context = additional_encryption_context
+        self.client_token = client_token
+        self.cookie_synchronization_configuration = cookie_synchronization_configuration
+        self.copy_allowed = "Enabled" if copy_allowed else "Disabled"
+        self.customer_managed_key = customer_managed_key
+        self.deep_link_allowed = "Enabled" if deep_link_allowed else "Disabled"
+        self.disconnect_timeout_in_minutes = disconnect_timeout_in_minutes
+        self.download_allowed = "Enabled" if download_allowed else "Disabled"
+        self.idle_disconnect_timeout_in_minutes = idle_disconnect_timeout_in_minutes
+        self.paste_allowed = "Enabled" if paste_allowed else "Disabled"
+        self.print_allowed = "Enabled" if print_allowed else "Disabled"
+        self.tags = tags
+        self.upload_allowed = "Enabled" if upload_allowed else "Disabled"
+        self.associated_portal_arns: List[str] = []
+
+    def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
+        return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:user-settings/{_id}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "associatedPortalArns": self.associated_portal_arns,
+            "additionalEncryptionContext": self.additional_encryption_context,
+            "clientToken": self.client_token,
+            "cookieSynchronizationConfiguration": self.cookie_synchronization_configuration,
+            "copyAllowed": self.copy_allowed,
+            "customerManagedKey": self.customer_managed_key,
+            "deepLinkAllowed": self.deep_link_allowed,
+            "disconnectTimeoutInMinutes": self.disconnect_timeout_in_minutes,
+            "downloadAllowed": self.download_allowed,
+            "idleDisconnectTimeoutInMinutes": self.idle_disconnect_timeout_in_minutes,
+            "pasteAllowed": self.paste_allowed,
+            "printAllowed": self.print_allowed,
+            "tags": self.tags,
+            "uploadAllowed": self.upload_allowed,
+            "userSettingsArn": self.arn,
+        }
+
+
+class FakeUserAccessLoggingSettings(BaseModel):
+    def __init__(
+        self,
+        client_token: str,
+        kinesis_stream_arn: str,
+        tags: Dict[str, str],
+        region_name: str,
+        account_id: str,
+    ):
+        self.user_access_logging_settings_id = str(uuid.uuid4())
+        self.arn = self.arn_formatter(
+            self.user_access_logging_settings_id, account_id, region_name
+        )
+        self.client_token = client_token
+        self.kinesis_stream_arn = kinesis_stream_arn
+        self.tags = tags
+        self.associated_portal_arns: List[str] = []
+
+    def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
+        return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:user-access-logging-settings/{_id}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "associatedPortalArns": self.associated_portal_arns,
+            "kinesisStreamArn": self.kinesis_stream_arn,
+            "tags": self.tags,
+            "userAccessLoggingSettingsArn": self.arn,
+        }
+
+
 class FakeNetworkSettings(BaseModel):
     def __init__(
         self,
@@ -147,6 +236,8 @@ class WorkSpacesWebBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.network_settings: Dict[str, FakeNetworkSettings] = {}
         self.browser_settings: Dict[str, FakeBrowserSettings] = {}
+        self.user_settings: Dict[str, FakeUserSettings] = {}
+        self.user_access_logging_settings: Dict[str, FakeUserAccessLoggingSettings] = {}
         self.portals: Dict[str, FakePortal] = {}
 
     def create_network_settings(
@@ -285,6 +376,105 @@ class WorkSpacesWebBackend(BaseBackend):
         network_settings_object.associated_portal_arns.append(portal_arn)
         portal_object.network_settings_arn = network_settings_arn
         return network_settings_arn, portal_arn
+
+    def create_user_settings(
+        self,
+        additional_encryption_context: Any,
+        client_token: Any,
+        cookie_synchronization_configuration: Any,
+        copy_allowed: Any,
+        customer_managed_key: Any,
+        deep_link_allowed: Any,
+        disconnect_timeout_in_minutes: Any,
+        download_allowed: Any,
+        idle_disconnect_timeout_in_minutes: Any,
+        paste_allowed: Any,
+        print_allowed: Any,
+        tags: Any,
+        upload_allowed: Any,
+    ) -> str:
+        user_settings_object = FakeUserSettings(
+            additional_encryption_context,
+            client_token,
+            cookie_synchronization_configuration,
+            copy_allowed,
+            customer_managed_key,
+            deep_link_allowed,
+            disconnect_timeout_in_minutes,
+            download_allowed,
+            idle_disconnect_timeout_in_minutes,
+            paste_allowed,
+            print_allowed,
+            tags,
+            upload_allowed,
+            self.region_name,
+            self.account_id,
+        )
+        self.user_settings[user_settings_object.arn] = user_settings_object
+        return user_settings_object.arn
+
+    def get_user_settings(self, user_settings_arn: str) -> Dict[str, Any]:
+        return self.user_settings[user_settings_arn].to_dict()
+
+    def delete_user_settings(self, user_settings_arn: str) -> None:
+        self.user_settings.pop(user_settings_arn)
+
+    def create_user_access_logging_settings(
+        self, client_token: Any, kinesis_stream_arn: Any, tags: Any
+    ) -> str:
+        user_access_logging_settings_object = FakeUserAccessLoggingSettings(
+            client_token, kinesis_stream_arn, tags, self.region_name, self.account_id
+        )
+        self.user_access_logging_settings[user_access_logging_settings_object.arn] = (
+            user_access_logging_settings_object
+        )
+        return user_access_logging_settings_object.arn
+
+    def get_user_access_logging_settings(
+        self, user_access_logging_settings_arn: str
+    ) -> Dict[str, Any]:
+        return self.user_access_logging_settings[
+            user_access_logging_settings_arn
+        ].to_dict()
+
+    def delete_user_access_logging_settings(
+        self, user_access_logging_settings_arn: str
+    ) -> None:
+        self.user_access_logging_settings.pop(user_access_logging_settings_arn)
+
+    def associate_user_settings(
+        self, portal_arn: str, user_settings_arn: str
+    ) -> Tuple[str, str]:
+        user_settings_object = self.user_settings[user_settings_arn]
+        portal_object = self.portals[portal_arn]
+        user_settings_object.associated_portal_arns.append(portal_arn)
+        portal_object.user_settings_arn = user_settings_arn
+        return portal_arn, user_settings_arn
+
+    def associate_user_access_logging_settings(
+        self, portal_arn: str, user_access_logging_settings_arn: str
+    ) -> Tuple[str, str]:
+        user_access_logging_settings_object = self.user_access_logging_settings[
+            user_access_logging_settings_arn
+        ]
+        portal_object = self.portals[portal_arn]
+        user_access_logging_settings_object.associated_portal_arns.append(portal_arn)
+        portal_object.user_access_logging_settings_arn = (
+            user_access_logging_settings_arn
+        )
+        return portal_arn, user_access_logging_settings_arn
+
+    def list_user_settings(self) -> List[Dict[str, str]]:
+        return [
+            {"userSettingsArn": user_settings.arn}
+            for user_settings in self.user_settings.values()
+        ]
+
+    def list_user_access_logging_settings(self) -> List[Dict[str, str]]:
+        return [
+            {"userAccessLoggingSettingsArn": user_access_logging_settings.arn}
+            for user_access_logging_settings in self.user_access_logging_settings.values()
+        ]
 
 
 workspacesweb_backends = BackendDict(WorkSpacesWebBackend, "workspaces-web")

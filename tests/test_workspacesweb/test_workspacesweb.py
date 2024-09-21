@@ -269,3 +269,170 @@ def test_associate_network_settings():
         "networkSettings"
     ]
     assert resp["associatedPortalArns"] == [portal_arn]
+
+
+@mock_aws
+def test_create_user_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    resp = client.create_user_settings(
+        copyAllowed="Disabled",
+        pasteAllowed="Disabled",
+        printAllowed="Disabled",
+        uploadAllowed="Disabled",
+        downloadAllowed="Disabled",
+    )
+    user_settings_arn = resp["userSettingsArn"]
+    arn_regex = r"^arn:aws:workspaces-web:eu-west-1:\d{12}:user-settings/[a-f0-9-]+$"
+    assert re.match(arn_regex, user_settings_arn) is not None
+
+
+@mock_aws
+def test_get_user_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    resp = client.create_user_settings(
+        copyAllowed="Disabled",
+        pasteAllowed="Disabled",
+        printAllowed="Disabled",
+        uploadAllowed="Disabled",
+        downloadAllowed="Disabled",
+    )
+    user_settings_arn = resp["userSettingsArn"]
+    resp = client.get_user_settings(userSettingsArn=user_settings_arn)["userSettings"]
+    assert resp["userSettingsArn"] == user_settings_arn
+    assert resp["copyAllowed"] == "Disabled"
+    assert resp["pasteAllowed"] == "Disabled"
+    assert resp["printAllowed"] == "Disabled"
+    assert resp["uploadAllowed"] == "Disabled"
+    assert resp["downloadAllowed"] == "Disabled"
+
+
+@mock_aws
+def test_list_user_settings():
+    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
+    arn = client.create_user_settings(
+        copyAllowed="Disabled",
+        pasteAllowed="Disabled",
+        printAllowed="Disabled",
+        uploadAllowed="Disabled",
+        downloadAllowed="Disabled",
+    )["userSettingsArn"]
+    resp = client.list_user_settings()
+    assert resp["userSettings"][0]["userSettingsArn"] == arn
+
+
+@mock_aws
+def test_delete_user_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    arn = client.create_user_settings(
+        copyAllowed="Disabled",
+        pasteAllowed="Disabled",
+        printAllowed="Disabled",
+        uploadAllowed="Disabled",
+        downloadAllowed="Disabled",
+    )["userSettingsArn"]
+    client.delete_user_settings(userSettingsArn=arn)
+    assert len(client.list_user_settings()["userSettings"]) == 0
+
+
+@mock_aws
+def test_associate_user_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    user_settings_arn = client.create_user_settings(
+        copyAllowed="Disabled",
+        pasteAllowed="Disabled",
+        printAllowed="Disabled",
+        uploadAllowed="Disabled",
+        downloadAllowed="Disabled",
+    )["userSettingsArn"]
+    portal_arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS,
+    )["portalArn"]
+    client.associate_user_settings(
+        userSettingsArn=user_settings_arn, portalArn=portal_arn
+    )
+    resp = client.get_portal(portalArn=portal_arn)["portal"]
+    assert resp["userSettingsArn"] == user_settings_arn
+    resp = client.get_user_settings(userSettingsArn=user_settings_arn)["userSettings"]
+    assert resp["associatedPortalArns"] == [portal_arn]
+
+
+@mock_aws
+def test_create_user_access_logging_settings():
+    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
+    user_access_logging_settings_arn = client.create_user_access_logging_settings(
+        kinesisStreamArn="arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream",
+    )["userAccessLoggingSettingsArn"]
+    arn_regex = r"^arn:aws:workspaces-web:ap-southeast-1:\d{12}:user-access-logging-settings/[a-f0-9-]+$"
+    assert re.match(arn_regex, user_access_logging_settings_arn) is not None
+
+
+@mock_aws
+def test_get_user_access_logging_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    user_access_logging_settings_arn = client.create_user_access_logging_settings(
+        kinesisStreamArn="arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream",
+    )["userAccessLoggingSettingsArn"]
+    resp = client.get_user_access_logging_settings(
+        userAccessLoggingSettingsArn=user_access_logging_settings_arn
+    )["userAccessLoggingSettings"]
+    assert resp["userAccessLoggingSettingsArn"] == user_access_logging_settings_arn
+    assert (
+        resp["kinesisStreamArn"]
+        == "arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream"
+    )
+
+
+@mock_aws
+def test_list_user_access_logging_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    arn = client.create_user_access_logging_settings(
+        kinesisStreamArn="arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream",
+    )["userAccessLoggingSettingsArn"]
+    resp = client.list_user_access_logging_settings()
+    assert resp["userAccessLoggingSettings"][0]["userAccessLoggingSettingsArn"] == arn
+
+
+@mock_aws
+def test_delete_user_access_logging_settings():
+    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
+    arn = client.create_user_access_logging_settings(
+        kinesisStreamArn="arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream",
+    )["userAccessLoggingSettingsArn"]
+    client.delete_user_access_logging_settings(userAccessLoggingSettingsArn=arn)
+    resp = client.list_user_access_logging_settings()
+    assert resp["userAccessLoggingSettings"] == []
+
+
+@mock_aws
+def test_associate_user_access_logging_settings():
+    client = boto3.client("workspaces-web", region_name="eu-west-1")
+    user_access_logging_settings_arn = client.create_user_access_logging_settings(
+        kinesisStreamArn="arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream",
+    )["userAccessLoggingSettingsArn"]
+    portal_arn = client.create_portal(
+        additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey=FAKE_KMS_KEY_ID,
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=FAKE_TAGS,
+    )["portalArn"]
+    client.associate_user_access_logging_settings(
+        userAccessLoggingSettingsArn=user_access_logging_settings_arn,
+        portalArn=portal_arn,
+    )
+    resp = client.get_portal(portalArn=portal_arn)["portal"]
+    assert resp["userAccessLoggingSettingsArn"] == user_access_logging_settings_arn
+    resp = client.get_user_access_logging_settings(
+        userAccessLoggingSettingsArn=user_access_logging_settings_arn
+    )["userAccessLoggingSettings"]
+    assert resp["associatedPortalArns"] == [portal_arn]
