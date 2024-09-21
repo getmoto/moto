@@ -36,6 +36,10 @@ def test_create_global_network():
     assert global_network["Tags"] == [{"Key": "Name", "Value": "TestNetwork"}]
     assert global_network["State"] == "PENDING"
 
+    global_network = client.describe_global_networks()["GlobalNetworks"][0]
+    assert global_network["GlobalNetworkId"] == resp["GlobalNetwork"]["GlobalNetworkId"]
+    assert global_network["State"] == "AVAILABLE"
+
 
 @mock_aws
 def test_create_core_network():
