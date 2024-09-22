@@ -19,7 +19,7 @@ appsync
 - [ ] associate_api
 - [ ] associate_merged_graphql_api
 - [ ] associate_source_graphql_api
-- [ ] create_api_cache
+- [X] create_api_cache
 - [X] create_api_key
 - [ ] create_data_source
 - [ ] create_domain_name
@@ -27,7 +27,7 @@ appsync
 - [X] create_graphql_api
 - [ ] create_resolver
 - [ ] create_type
-- [ ] delete_api_cache
+- [X] delete_api_cache
 - [X] delete_api_key
 - [ ] delete_data_source
 - [ ] delete_domain_name
@@ -40,9 +40,9 @@ appsync
 - [ ] disassociate_source_graphql_api
 - [ ] evaluate_code
 - [ ] evaluate_mapping_template
-- [ ] flush_api_cache
+- [X] flush_api_cache
 - [ ] get_api_association
-- [ ] get_api_cache
+- [X] get_api_cache
 - [ ] get_data_source
 - [ ] get_data_source_introspection
 - [ ] get_domain_name
@@ -79,7 +79,7 @@ appsync
 - [ ] start_schema_merge
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_api_cache
+- [X] update_api_cache
 - [X] update_api_key
 - [ ] update_data_source
 - [ ] update_domain_name

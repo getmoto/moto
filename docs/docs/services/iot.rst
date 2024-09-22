@@ -17,6 +17,7 @@ iot
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
 - [X] add_thing_to_thing_group
+- [ ] associate_sbom_with_package_version
 - [ ] associate_targets_with_job
 - [X] attach_policy
 - [X] attach_principal_policy
@@ -151,6 +152,7 @@ iot
 - [ ] detach_security_profile
 - [X] detach_thing_principal
 - [X] disable_topic_rule
+- [ ] disassociate_sbom_from_package_version
 - [X] enable_topic_rule
 - [ ] get_behavior_model_training_summaries
 - [ ] get_buckets_aggregation
@@ -239,6 +241,7 @@ iot
 - [ ] list_provisioning_templates
 - [ ] list_related_resources_for_audit_finding
 - [ ] list_role_aliases
+- [ ] list_sbom_validation_results
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles
 - [ ] list_security_profiles_for_target
