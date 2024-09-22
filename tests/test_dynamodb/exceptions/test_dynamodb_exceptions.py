@@ -122,14 +122,14 @@ def test_query_table_with_wrong_key_attribute_names_throws_exception():
     assert err["Message"] == "Query condition missed key schema element: partitionKey"
 
 
-@mock_aws
-def test_empty_expressionattributenames():
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_empty_expressionattributenames(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = ddb.Table("test-table")
+    table = ddb.Table(table_name)
     with pytest.raises(ClientError) as exc:
+        # Note: provided key is wrong
+        # Empty ExpressionAttributeName is verified earlier, so that's the error we get
         table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -777,7 +777,7 @@ def test_update_expression_with_trailing_comma():
 
     with pytest.raises(ClientError) as exc:
         table.update_item(
-            Key={"pk": "key", "sk": "sk"},
+            Key={"pk": "key"},
             # Trailing comma should be invalid
             UpdateExpression="SET #attr1 = :val1, #attr2 = :val2,",
             ExpressionAttributeNames={"#attr1": "attr1", "#attr2": "attr2"},
@@ -1462,3 +1462,38 @@ def test_delete_table():
         err.value.response["Error"]["Message"]
         == "1 validation error detected: Table 'test1' can't be deleted while DeletionProtectionEnabled is set to True"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=False)
+def test_provide_range_key_against_table_without_range_key(table_name=None):
+    ddb_client = boto3.client("dynamodb", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        ddb_client.get_item(
+            TableName=table_name, Key={"pk": {"S": "pk"}, "sk": {"S": "sk"}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
+
+    with pytest.raises(ClientError) as exc:
+        ddb_client.delete_item(
+            TableName=table_name, Key={"pk": {"S": "pk"}, "sk": {"S": "sk"}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
+
+    with pytest.raises(ClientError) as exc:
+        ddb_client.update_item(
+            TableName=table_name,
+            Key={
+                "pk": {"S": "x"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
+            UpdateExpression="set body=:New",
+            ExpressionAttributeValues={":New": {"S": "hello"}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"

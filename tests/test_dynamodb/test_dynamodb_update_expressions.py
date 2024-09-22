@@ -296,9 +296,9 @@ def test_update_expression_remove_list_and_attribute(table_name=None):
         UpdateExpression="REMOVE #ulist[0], some_param",
         ExpressionAttributeNames={"#ulist": "user_list"},
     )
-    item = ddb_client.get_item(
-        TableName=table_name, Key={"pk": {"S": "primary_key"}, "sk": {"S": "sort_key"}}
-    )["Item"]
+    item = ddb_client.get_item(TableName=table_name, Key={"pk": {"S": "primary_key"}})[
+        "Item"
+    ]
     assert item == {
         "user_list": {"L": [{"M": {"name": {"S": "Jane"}, "surname": {"S": "Smith"}}}]},
         "pk": {"S": "primary_key"},
