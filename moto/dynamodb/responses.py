@@ -16,6 +16,7 @@ from moto.utilities.aws_headers import amz_crc32
 from .exceptions import (
     KeyIsEmptyStringException,
     MockValidationException,
+    ProvidedKeyDoesNotExist,
     ResourceNotFoundException,
     UnknownKeyType,
 )
@@ -565,7 +566,7 @@ class DynamoHandler(BaseResponse):
     @include_consumed_capacity(0.5)
     def get_item(self) -> str:
         name = self.body["TableName"]
-        self.dynamodb_backend.get_table(name)
+        table = self.dynamodb_backend.get_table(name)
         key = self.body["Key"]
         empty_keys = [k for k, v in key.items() if not next(iter(v.values()))]
         if empty_keys:
@@ -588,6 +589,9 @@ class DynamoHandler(BaseResponse):
                 raise MockValidationException(
                     "ExpressionAttributeNames must not be empty"
                 )
+
+        if not all([k in table.attribute_keys for k in key]):
+            raise ProvidedKeyDoesNotExist
 
         expression_attribute_names = expression_attribute_names or {}
         projection_expressions = self._adjust_projection_expression(
@@ -857,7 +861,9 @@ class DynamoHandler(BaseResponse):
         if return_values not in ("ALL_OLD", "NONE"):
             raise MockValidationException("Return values set to invalid value")
 
-        self.dynamodb_backend.get_table(name)
+        table = self.dynamodb_backend.get_table(name)
+        if not all([k in table.attribute_keys for k in key]):
+            raise ProvidedKeyDoesNotExist
 
         # Attempt to parse simple ConditionExpressions into an Expected
         # expression
@@ -890,6 +896,10 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException(
                 "Can not use both expression and non-expression parameters in the same request: Non-expression parameters: {AttributeUpdates} Expression parameters: {UpdateExpression}"
             )
+
+        table = self.dynamodb_backend.get_table(name)
+        if not all([k in table.attribute_keys for k in key]):
+            raise ProvidedKeyDoesNotExist
 
         if update_expression is not None:
             update_expression = update_expression.strip()

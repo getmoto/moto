@@ -95,7 +95,7 @@ def test_only_return_consumed_capacity_when_required(
     validate_response(response, should_have_capacity, should_have_table)
 
     # GET_ITEM
-    args = {"Key": item}
+    args = {"Key": {"job_id": item["job_id"]}}
     if capacity:
         args["ReturnConsumedCapacity"] = capacity
     response = table.get_item(**args)
