@@ -888,6 +888,10 @@
   "Location": "af-south-1"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "af-south-1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "af-south-1"
  },
