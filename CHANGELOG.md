@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.15
 -----
-Docker Digest for 5.0.15: <autopopulateddigest>
+Docker Digest for 5.0.15: _sha256:9d78f63668017ca6eb9bdb415418d8077e1e503a1e81edb4657f93cf7ff34be1_
 
     New Services:
         * MemoryDB:
