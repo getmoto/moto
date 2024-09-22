@@ -58,6 +58,7 @@ Docker Digest for 5.0.15: <autopopulateddigest>
             * get_api_cache()
 
     Miscellaneous:
+        * DynamoDB: get/delete/update_item() now validates all provided keys exist
         * Firehose: create_delivery_stream() now supports the SnowflakeDestinationConfiguration-parameter
         * S3: put_object() now support conditional writes
 
