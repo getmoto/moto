@@ -499,6 +499,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "drs": {
                 "Value": "drs",
                 "endpoint": {
@@ -36993,6 +37002,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -37126,6 +37144,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "drs": {
@@ -53995,7 +54022,13 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace"
+                "Value": "marketplace",
+                "endpoint": {
+                  "Value": "aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "marketplace-agreement": {
                 "Value": "marketplace-agreement",
@@ -64972,7 +65005,13 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace"
+                "Value": "marketplace",
+                "endpoint": {
+                  "Value": "aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mcs": {
                 "Value": "mcs",
