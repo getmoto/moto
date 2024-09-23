@@ -373,13 +373,16 @@ class Route53(BaseResponse):
             return 200, headers, template.render()
 
     def list_tags_for_resources(self) -> str:
-        if id_matcher := re.search(r"/tags/[-a-z]+/(.+)", self.parsed_url.path):
+        if id_matcher := re.search(r"/tags/(.+)", self.parsed_url.path):
             resource_type = unquote(id_matcher.group(1))
         else:
             resource_type = ""
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
         ]["ResourceId"]
+        # If only one resource id is passed, it is a string, not a list
+        if not isinstance(resource_ids, list):
+            resource_ids = [resource_ids]
         tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
         template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
         return template.render(tag_sets=tag_sets, resource_type=resource_type)
