@@ -1,4 +1,5 @@
 import datetime
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -6,6 +7,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests import aws_verified
 
 DEFAULT_REGION = "us-west-2"
 
@@ -1468,27 +1470,96 @@ def test_describe_option_group_options():
         )
 
 
-@mock_aws
+@pytest.mark.aws_verified
+@aws_verified
 def test_modify_option_group():
-    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    conn = boto3.client("rds", region_name="us-east-1")
+    option_group_name = f"og-{str(uuid4())[0:6]}"
     conn.create_option_group(
-        OptionGroupName="test",
+        OptionGroupName=option_group_name,
         EngineName="mysql",
         MajorEngineVersion="5.6",
         OptionGroupDescription="test option group",
     )
-    # TODO: create option and validate before deleting.
-    # if Someone can tell me how the hell to use this function
-    # to add options to an option_group, I can finish coding this.
-    result = conn.modify_option_group(
-        OptionGroupName="test",
-        OptionsToInclude=[],
-        OptionsToRemove=["MEMCACHED"],
-        ApplyImmediately=True,
-    )
-    assert result["OptionGroup"]["EngineName"] == "mysql"
-    assert result["OptionGroup"]["Options"] == []
-    assert result["OptionGroup"]["OptionGroupName"] == "test"
+
+    try:
+        # Verify OptionsToRemove do not have to exist
+        option_group = conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToInclude=[],
+            OptionsToRemove=["MEMCACHED"],
+            ApplyImmediately=True,
+        )["OptionGroup"]
+        assert option_group["EngineName"] == "mysql"
+        assert option_group["Options"] == []
+        assert option_group["OptionGroupName"] == option_group_name
+
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+        assert option_groups[0]["Options"] == []
+
+        # Include option
+        # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.MySQL.Options.AuditPlugin.html
+        conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToInclude=[{"OptionName": "MARIADB_AUDIT_PLUGIN"}],
+            OptionsToRemove=[],
+            ApplyImmediately=True,
+        )["OptionGroup"]
+
+        # Verify it was added successfully
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+
+        options = option_groups[0]["Options"]
+        assert len(options) == 1
+        assert options[0]["OptionName"] == "MARIADB_AUDIT_PLUGIN"
+        # AWS automatically adds a description + default option settings, but Moto does not support that yet
+
+        # Change setting for an existing option
+        conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToInclude=[
+                {
+                    "OptionName": "MARIADB_AUDIT_PLUGIN",
+                    "OptionSettings": [
+                        {"Name": "SERVER_AUDIT_FILE_ROTATE_SIZE", "Value": "1000"},
+                    ],
+                }
+            ],
+            ApplyImmediately=True,
+        )["OptionGroup"]
+
+        # Verify it was added successfully
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+
+        options = option_groups[0]["Options"]
+        assert len(options) == 1
+        assert options[0]["OptionName"] == "MARIADB_AUDIT_PLUGIN"
+
+        option_settings = options[0]["OptionSettings"]
+        audit_plugin = [
+            o for o in option_settings if o["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
+        ][0]
+        audit_plugin["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
+        audit_plugin["Value"] == "1000"
+
+        # Verify option can be deleted
+        conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToRemove=["MARIADB_AUDIT_PLUGIN"],
+            ApplyImmediately=True,
+        )
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+        assert option_groups[0]["Options"] == []
+    finally:
+        conn.delete_option_group(OptionGroupName=option_group_name)
 
 
 @mock_aws

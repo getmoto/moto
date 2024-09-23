@@ -489,34 +489,11 @@ class RDSResponse(BaseResponse):
 
     def modify_option_group(self) -> str:
         option_group_name = self._get_param("OptionGroupName")
-        count = 1
-        options_to_include = []
-        # TODO: This can probably be refactored with a single call to super.get_multi_param, but there are not enough tests (yet) to verify this
-        while self._get_param(f"OptionsToInclude.member.{count}.OptionName"):
-            options_to_include.append(
-                {
-                    "Port": self._get_param(f"OptionsToInclude.member.{count}.Port"),
-                    "OptionName": self._get_param(
-                        f"OptionsToInclude.member.{count}.OptionName"
-                    ),
-                    "DBSecurityGroupMemberships": self._get_param(
-                        f"OptionsToInclude.member.{count}.DBSecurityGroupMemberships"
-                    ),
-                    "OptionSettings": self._get_param(
-                        f"OptionsToInclude.member.{count}.OptionSettings"
-                    ),
-                    "VpcSecurityGroupMemberships": self._get_param(
-                        f"OptionsToInclude.member.{count}.VpcSecurityGroupMemberships"
-                    ),
-                }
-            )
-            count += 1
+        options_to_include = (self._get_multi_param_dict("OptionsToInclude") or {}).get(
+            "OptionConfiguration", []
+        )
+        options_to_remove = self._get_params().get("OptionsToRemove", [])
 
-        count = 1
-        options_to_remove = []
-        while self._get_param(f"OptionsToRemove.member.{count}"):
-            options_to_remove.append(self._get_param(f"OptionsToRemove.member.{count}"))
-            count += 1
         option_group = self.backend.modify_option_group(
             option_group_name, options_to_include, options_to_remove
         )
