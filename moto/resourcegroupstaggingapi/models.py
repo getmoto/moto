@@ -663,12 +663,27 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
                     "Tags": tags,
                 }
+        # VPC Subnet
+        if (
+            not resource_type_filters
+            or "ec2" in resource_type_filters
+            or "ec2:subnet" in resource_type_filters
+        ):
+            for subnet in self.ec2_backend.subnets.values():
+                for subnet_id in subnet.keys():
+                    tags = format_tags(self.ec2_backend.tags.get(subnet_id, {}))
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:subnet/{subnet_id}",
+                        "Tags": tags,
+                    }
+
         # VPC Customer Gateway
         # VPC DHCP Option Set
         # VPC Internet Gateway
         # VPC Network ACL
         # VPC Route Table
-        # VPC Subnet
         # VPC Virtual Private Gateway
         # VPC VPN Connection
 
