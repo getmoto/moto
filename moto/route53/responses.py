@@ -373,7 +373,7 @@ class Route53(BaseResponse):
             return 200, headers, template.render()
 
     def list_tags_for_resources(self) -> str:
-        if id_matcher := re.search(r"/tags/[-a-z]+/(.+)", self.parsed_url.path):
+        if id_matcher := re.search(r"/tags/(.+)", self.parsed_url.path):
             resource_type = unquote(id_matcher.group(1))
         else:
             resource_type = ""
