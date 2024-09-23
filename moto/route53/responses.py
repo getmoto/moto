@@ -380,6 +380,9 @@ class Route53(BaseResponse):
         resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
             "ResourceIds"
         ]["ResourceId"]
+        # If only one resource id is passed, it is a string, not a list
+        if not isinstance(resource_ids, list):
+            resource_ids = [resource_ids]
         tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
         template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
         return template.render(tag_sets=tag_sets, resource_type=resource_type)

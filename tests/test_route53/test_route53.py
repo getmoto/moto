@@ -644,6 +644,18 @@ def test_list_tags_for_resources():
             assert tag2 not in set["Tags"]
             assert tag3 in set["Tags"]
             assert tag4 in set["Tags"]
+    
+    # Test hostedzone with single resource
+    response = conn.list_tags_for_resources(
+        ResourceIds=[zone1_id], ResourceType="hostedzone"
+    )
+    assert len(response["ResourceTagSets"]) == 1
+    for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] == zone1_id
+        assert tag1 in set["Tags"]
+        assert tag2 in set["Tags"]
+        assert tag3 not in set["Tags"]
+        assert tag4 not in set["Tags"]
 
     # Test healthcheck
     response = conn.list_tags_for_resources(
