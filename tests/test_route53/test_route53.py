@@ -634,6 +634,7 @@ def test_list_tags_for_resources():
     assert len(response["ResourceTagSets"]) == 2
     for set in response["ResourceTagSets"]:
         assert set["ResourceId"] in (zone1_id, zone2_id)
+        assert set["ResourceType"] == "hostedzone"
         if set["ResourceId"] == zone1_id:
             assert tag1 in set["Tags"]
             assert tag2 in set["Tags"]
@@ -645,6 +646,19 @@ def test_list_tags_for_resources():
             assert tag3 in set["Tags"]
             assert tag4 in set["Tags"]
 
+    # Test hostedzone with single resource
+    response = conn.list_tags_for_resources(
+        ResourceIds=[zone1_id], ResourceType="hostedzone"
+    )
+    assert len(response["ResourceTagSets"]) == 1
+    for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] == zone1_id
+        assert set["ResourceType"] == "hostedzone"
+        assert tag1 in set["Tags"]
+        assert tag2 in set["Tags"]
+        assert tag3 not in set["Tags"]
+        assert tag4 not in set["Tags"]
+
     # Test healthcheck
     response = conn.list_tags_for_resources(
         ResourceIds=[healthcheck1_id, healthcheck2_id], ResourceType="healthcheck"
@@ -652,6 +666,7 @@ def test_list_tags_for_resources():
     assert len(response["ResourceTagSets"]) == 2
     for set in response["ResourceTagSets"]:
         assert set["ResourceId"] in (healthcheck1_id, healthcheck2_id)
+        assert set["ResourceType"] == "healthcheck"
         if set["ResourceId"] == healthcheck1_id:
             assert tag1 in set["Tags"]
             assert tag2 in set["Tags"]
