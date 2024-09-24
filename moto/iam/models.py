@@ -3424,6 +3424,9 @@ class IAMBackend(BaseBackend):
         for value in tagKeys:
             del profile.tags[value]
 
+    def _set_account_access_keys_present(self, present: bool) -> None:
+        self.account_summary._account_access_keys_present = int(present)
+
 
 iam_backends = BackendDict(
     IAMBackend, "iam", use_boto3_regions=False, additional_regions=PARTITION_NAMES
