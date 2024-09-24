@@ -269,7 +269,7 @@ class EBSBackend:
         self.volumes: Dict[str, Volume] = {}
         self.attachments: Dict[str, VolumeAttachment] = {}
         self.snapshots: Dict[str, Snapshot] = {}
-        self.default_kms_key_id = self._create_default_encryption_key()
+        self.default_kms_key_id: str = ""
 
     def create_volume(
         self,
@@ -285,6 +285,8 @@ class EBSBackend:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
         if encrypted and not kms_key_id:
+            if not self.default_kms_key_id:
+                self._create_default_encryption_key()
             kms_key_id = self.default_kms_key_id
         if volume_type in IOPS_REQUIRED_VOLUME_TYPES and not iops:
             raise InvalidParameterDependency("VolumeType", "Iops")
