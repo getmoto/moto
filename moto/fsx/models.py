@@ -1,7 +1,7 @@
 """FSxBackend class with methods for supported APIs."""
 
-from uuid import uuid4
 from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
