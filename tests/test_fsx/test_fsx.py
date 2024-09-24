@@ -1,5 +1,6 @@
 """Unit tests for fsx-supported APIs."""
 
+import re
 import time
 
 import boto3
