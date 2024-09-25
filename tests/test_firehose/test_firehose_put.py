@@ -149,3 +149,69 @@ def test_put_record_batch_extended_s3_destination():
     assert re.match(
         r"^[0-9]{4}/[0-9]{2}/[0-9]{2}/[0-9]{2}/", bucket_objects["Contents"][0]["Key"]
     )
+
+
+@mock_aws
+def test_put_record_snowflake_destination():
+    """Test invocations of put_record() to a Snowflake destination."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        SnowflakeDestinationConfiguration={
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+            "AccountUrl": f"fake-account.{TEST_REGION}.snowflakecomputing.com",
+            "Database": "myDatabase",
+            "Schema": "mySchema",
+            "Table": "myTable",
+            "S3BackupMode": "FailedDataOnly",
+            "S3Configuration": {
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                "BucketARN": "arn:aws:s3:::firehose-test",
+            },
+        },
+    )
+    result = client.put_record(
+        DeliveryStreamName=stream_name, Record={"Data": "some test data"}
+    )
+
+    assert set(result.keys()) == {"RecordId", "Encrypted", "ResponseMetadata"}
+    assert result["Encrypted"] is False
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_put_record_batch_snowflake_destination():
+    """Test invocations of put_record_batch() to a Snowflake destination."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"test_put_record_{mock_random.get_random_hex(6)}"
+    client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        SnowflakeDestinationConfiguration={
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+            "AccountUrl": f"fake-account.{TEST_REGION}.snowflakecomputing.com",
+            "Database": "myDatabase",
+            "Schema": "mySchema",
+            "Table": "myTable",
+            "S3BackupMode": "FailedDataOnly",
+            "S3Configuration": {
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                "BucketARN": "arn:aws:s3:::firehose-test",
+            },
+        },
+    )
+
+    records = [{"Data": "one"}, {"Data": "two"}, {"Data": "three"}]
+    result = client.put_record_batch(DeliveryStreamName=stream_name, Records=records)
+
+    assert set(result.keys()) == {
+        "RequestResponses",
+        "FailedPutCount",
+        "ResponseMetadata",
+        "Encrypted",
+    }
+    assert len(result["RequestResponses"]) == 3
+    assert result["Encrypted"] is False
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
