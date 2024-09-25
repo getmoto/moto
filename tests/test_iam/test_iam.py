@@ -3210,6 +3210,98 @@ def test_create_role_no_path():
 
 
 @mock_aws()
+def test_role_policy_encoding():
+    role_name = "my-role"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+    assume_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "sts:AssumeRole",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Effect": "Allow",
+                "Condition": {
+                    "StringEquals": {"aws:SourceArn": "arn:aws:test%3Aencoded%3Astring"}
+                },
+            }
+        ],
+    }
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    resp = conn.create_role(
+        RoleName=role_name, AssumeRolePolicyDocument=json.dumps(assume_policy_document)
+    )
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    conn.put_role_policy(
+        RoleName=role_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_role_policy(RoleName=role_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
+def test_user_policy_encoding():
+    user_name = "my-user"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    conn.create_user(UserName=user_name)
+    conn.put_user_policy(
+        UserName=user_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_user_policy(UserName=user_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
+def test_group_policy_encoding():
+    group_name = "my-group"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    conn.create_group(GroupName=group_name)
+    conn.put_group_policy(
+        GroupName=group_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_group_policy(GroupName=group_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
 @pytest.mark.parametrize(
     "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
 )
