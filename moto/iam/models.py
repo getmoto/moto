@@ -898,7 +898,7 @@ class Role(CloudFormationModel):
       <Path>{{ role.path }}</Path>
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
       {% if role.description is not none %}
       <Description>{{ role.description_escaped }}</Description>
       {% endif %}
