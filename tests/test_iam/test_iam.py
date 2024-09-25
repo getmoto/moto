@@ -3515,15 +3515,16 @@ def test_set_account_summary_account_access_keys_present():
     # Check the default value is 0
     assert account_summary.summary_map["AccountAccessKeysPresent"] == 0
 
-    # Check the value is set to 1 when True
-    iam_backends[ACCOUNT_ID]["global"]._set_account_access_keys_present(True)
-    account_summary = iam.AccountSummary()
-    assert account_summary.summary_map["AccountAccessKeysPresent"] == 1
+    if not settings.TEST_SERVER_MODE:
+        # Check the value is set to 1 when True
+        iam_backends[ACCOUNT_ID]["global"]._set_account_access_keys_present(True)
+        account_summary = iam.AccountSummary()
+        assert account_summary.summary_map["AccountAccessKeysPresent"] == 1
 
-    # Check the value is set to 0 when False
-    iam_backends[ACCOUNT_ID]["global"]._set_account_access_keys_present(False)
-    account_summary = iam.AccountSummary()
-    assert account_summary.summary_map["AccountAccessKeysPresent"] == 0
+        # Check the value is set to 0 when False
+        iam_backends[ACCOUNT_ID]["global"]._set_account_access_keys_present(False)
+        account_summary = iam.AccountSummary()
+        assert account_summary.summary_map["AccountAccessKeysPresent"] == 0
 
 
 @mock_aws()
