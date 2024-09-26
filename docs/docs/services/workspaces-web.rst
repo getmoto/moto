@@ -44,12 +44,14 @@ workspaces-web
 - [ ] disassociate_trust_store
 - [ ] disassociate_user_access_logging_settings
 - [ ] disassociate_user_settings
+- [ ] expire_session
 - [X] get_browser_settings
 - [ ] get_identity_provider
 - [ ] get_ip_access_settings
 - [X] get_network_settings
 - [X] get_portal
 - [ ] get_portal_service_provider_metadata
+- [ ] get_session
 - [ ] get_trust_store
 - [ ] get_trust_store_certificate
 - [X] get_user_access_logging_settings
@@ -59,6 +61,7 @@ workspaces-web
 - [ ] list_ip_access_settings
 - [X] list_network_settings
 - [X] list_portals
+- [ ] list_sessions
 - [ ] list_tags_for_resource
 - [ ] list_trust_store_certificates
 - [ ] list_trust_stores

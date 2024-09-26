@@ -2148,6 +2148,7 @@
 - [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
 - [X] describe_directories
+- [ ] describe_directory_data_access
 - [ ] describe_domain_controllers
 - [ ] describe_event_topics
 - [ ] describe_ldaps_settings
@@ -2158,10 +2159,12 @@
 - [ ] describe_trusts
 - [ ] describe_update_directory
 - [ ] disable_client_authentication
+- [ ] disable_directory_data_access
 - [ ] disable_ldaps
 - [ ] disable_radius
 - [X] disable_sso
 - [ ] enable_client_authentication
+- [ ] enable_directory_data_access
 - [ ] enable_ldaps
 - [ ] enable_radius
 - [X] enable_sso
@@ -3994,6 +3997,7 @@
 - [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
+- [ ] test_connection
 - [X] untag_resource
 - [ ] update_blueprint
 - [ ] update_classifier
@@ -4460,6 +4464,7 @@
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
 - [X] add_thing_to_thing_group
+- [ ] associate_sbom_with_package_version
 - [ ] associate_targets_with_job
 - [X] attach_policy
 - [X] attach_principal_policy
@@ -4578,6 +4583,7 @@
 - [ ] detach_security_profile
 - [X] detach_thing_principal
 - [X] disable_topic_rule
+- [ ] disassociate_sbom_from_package_version
 - [X] enable_topic_rule
 - [ ] get_behavior_model_training_summaries
 - [ ] get_buckets_aggregation
@@ -4638,6 +4644,7 @@
 - [ ] list_provisioning_templates
 - [ ] list_related_resources_for_audit_finding
 - [ ] list_role_aliases
+- [ ] list_sbom_validation_results
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles
 - [ ] list_security_profiles_for_target
@@ -4976,7 +4983,7 @@
 
 ## lambda
 <details>
-<summary>63% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -4995,6 +5002,7 @@
 - [X] delete_function_url_config
 - [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
+- [ ] delete_resource_policy
 - [ ] get_account_settings
 - [X] get_alias
 - [ ] get_code_signing_config
@@ -5011,6 +5019,8 @@
 - [ ] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
+- [ ] get_public_access_block_config
+- [ ] get_resource_policy
 - [ ] get_runtime_management_config
 - [X] invoke
 - [ ] invoke_async
@@ -5034,6 +5044,8 @@
 - [X] put_function_event_invoke_config
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
+- [ ] put_public_access_block_config
+- [ ] put_resource_policy
 - [ ] put_runtime_management_config
 - [ ] remove_layer_version_permission
 - [X] remove_permission
@@ -5223,7 +5235,7 @@
 
 ## medialive
 <details>
-<summary>13% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] accept_input_device_transfer
 - [ ] batch_delete
@@ -5233,38 +5245,51 @@
 - [ ] cancel_input_device_transfer
 - [ ] claim_device
 - [X] create_channel
+- [ ] create_channel_placement_group
 - [ ] create_cloud_watch_alarm_template
 - [ ] create_cloud_watch_alarm_template_group
+- [ ] create_cluster
 - [ ] create_event_bridge_rule_template
 - [ ] create_event_bridge_rule_template_group
 - [X] create_input
 - [ ] create_input_security_group
 - [ ] create_multiplex
 - [ ] create_multiplex_program
+- [ ] create_network
+- [ ] create_node
+- [ ] create_node_registration_script
 - [ ] create_partner_input
 - [ ] create_signal_map
 - [ ] create_tags
 - [X] delete_channel
+- [ ] delete_channel_placement_group
 - [ ] delete_cloud_watch_alarm_template
 - [ ] delete_cloud_watch_alarm_template_group
+- [ ] delete_cluster
 - [ ] delete_event_bridge_rule_template
 - [ ] delete_event_bridge_rule_template_group
 - [X] delete_input
 - [ ] delete_input_security_group
 - [ ] delete_multiplex
 - [ ] delete_multiplex_program
+- [ ] delete_network
+- [ ] delete_node
 - [ ] delete_reservation
 - [ ] delete_schedule
 - [ ] delete_signal_map
 - [ ] delete_tags
 - [ ] describe_account_configuration
 - [X] describe_channel
+- [ ] describe_channel_placement_group
+- [ ] describe_cluster
 - [X] describe_input
 - [ ] describe_input_device
 - [ ] describe_input_device_thumbnail
 - [ ] describe_input_security_group
 - [ ] describe_multiplex
 - [ ] describe_multiplex_program
+- [ ] describe_network
+- [ ] describe_node
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] describe_schedule
@@ -5274,9 +5299,11 @@
 - [ ] get_event_bridge_rule_template
 - [ ] get_event_bridge_rule_template_group
 - [ ] get_signal_map
+- [ ] list_channel_placement_groups
 - [X] list_channels
 - [ ] list_cloud_watch_alarm_template_groups
 - [ ] list_cloud_watch_alarm_templates
+- [ ] list_clusters
 - [ ] list_event_bridge_rule_template_groups
 - [ ] list_event_bridge_rule_templates
 - [ ] list_input_device_transfers
@@ -5285,6 +5312,8 @@
 - [X] list_inputs
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
+- [ ] list_networks
+- [ ] list_nodes
 - [ ] list_offerings
 - [ ] list_reservations
 - [ ] list_signal_maps
@@ -5307,8 +5336,10 @@
 - [ ] update_account_configuration
 - [X] update_channel
 - [ ] update_channel_class
+- [ ] update_channel_placement_group
 - [ ] update_cloud_watch_alarm_template
 - [ ] update_cloud_watch_alarm_template_group
+- [ ] update_cluster
 - [ ] update_event_bridge_rule_template
 - [ ] update_event_bridge_rule_template_group
 - [X] update_input
@@ -5316,6 +5347,9 @@
 - [ ] update_input_security_group
 - [ ] update_multiplex
 - [ ] update_multiplex_program
+- [ ] update_network
+- [ ] update_node
+- [ ] update_node_state
 - [ ] update_reservation
 </details>
 
@@ -5884,26 +5918,6 @@
 - [X] update_policy
 </details>
 
-## osis
-<details>
-<summary>71% implemented</summary>
-
-- [X] create_pipeline
-- [X] delete_pipeline
-- [X] get_pipeline
-- [ ] get_pipeline_blueprint
-- [ ] get_pipeline_change_progress
-- [ ] list_pipeline_blueprints
-- [X] list_pipelines
-- [X] list_tags_for_resource
-- [X] start_pipeline
-- [X] stop_pipeline
-- [X] tag_resource
-- [X] untag_resource
-- [X] update_pipeline
-- [ ] validate_pipeline
-</details>
-
 ## panorama
 <details>
 <summary>23% implemented</summary>
@@ -6301,6 +6315,7 @@
 - [ ] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
+- [ ] list_folders_for_resource
 - [X] list_group_memberships
 - [X] list_groups
 - [ ] list_iam_policy_assignments
@@ -7735,8 +7750,9 @@
 
 ## sagemaker-metrics
 <details>
-<summary>100% implemented</summary>
+<summary>50% implemented</summary>
 
+- [ ] batch_get_metrics
 - [X] batch_put_metrics
 </details>
 
@@ -8886,7 +8902,7 @@
 
 ## workspaces-web
 <details>
-<summary>41% implemented</summary>
+<summary>39% implemented</summary>
 
 - [X] associate_browser_settings
 - [ ] associate_ip_access_settings
@@ -8916,12 +8932,14 @@
 - [ ] disassociate_trust_store
 - [ ] disassociate_user_access_logging_settings
 - [ ] disassociate_user_settings
+- [ ] expire_session
 - [X] get_browser_settings
 - [ ] get_identity_provider
 - [ ] get_ip_access_settings
 - [X] get_network_settings
 - [X] get_portal
 - [ ] get_portal_service_provider_metadata
+- [ ] get_session
 - [ ] get_trust_store
 - [ ] get_trust_store_certificate
 - [X] get_user_access_logging_settings
@@ -8931,6 +8949,7 @@
 - [ ] list_ip_access_settings
 - [X] list_network_settings
 - [X] list_portals
+- [ ] list_sessions
 - [ ] list_tags_for_resource
 - [ ] list_trust_store_certificates
 - [ ] list_trust_stores
@@ -9028,6 +9047,7 @@
 - docdb
 - docdb-elastic
 - drs
+- ds-data
 - ecr-public
 - eks-auth
 - elastic-inference
@@ -9122,6 +9142,7 @@
 - oam
 - omics
 - opsworkscm
+- osis
 - outposts
 - payment-cryptography
 - payment-cryptography-data

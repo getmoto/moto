@@ -123,6 +123,7 @@ quicksight
 - [ ] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
+- [ ] list_folders_for_resource
 - [X] list_group_memberships
   
         The NextToken and MaxResults parameters are not yet implemented

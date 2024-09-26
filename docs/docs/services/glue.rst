@@ -230,6 +230,7 @@ glue
 - [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
+- [ ] test_connection
 - [X] untag_resource
 - [ ] update_blueprint
 - [ ] update_classifier
