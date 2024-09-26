@@ -517,8 +517,8 @@ class FirehoseBackend(BaseBackend):
                 request_responses = self.put_http_records(
                     destination["HttpEndpoint"], records
                 )
-            elif "Elasticsearch" in destination or "Redshift" in destination:
-                # This isn't implmented as these services aren't implemented,
+            elif {"Elasticsearch", "Redshift", "Snowflake"} & set(destination):
+                # This isn't implemented as these services aren't implemented,
                 # so ignore the data, but return a "proper" response.
                 request_responses = [
                     {"RecordId": str(mock_random.uuid4())} for _ in range(len(records))
