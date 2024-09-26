@@ -54,6 +54,7 @@ class FakeWebACL(BaseModel):
         self.visibility_config = visibility_config
         self.default_action = default_action
         self.lock_token = str(mock_random.uuid4())[0:6]
+        self.associated_resources: List[str] = []
 
     def update(
         self,
@@ -168,25 +169,28 @@ class WAFV2Backend(BaseBackend):
         # TODO: self.load_balancers = OrderedDict()
 
     def associate_web_acl(self, web_acl_arn: str, resource_arn: str) -> None:
-        """
-        Only APIGateway Stages can be associated at the moment.
-        """
-        if web_acl_arn not in self.wacls:
+        web_acl = self.wacls.get(web_acl_arn)
+        if not web_acl:
             raise WAFNonexistentItemException
+        web_acl.associated_resources.append(resource_arn)
+        # Special Case - APIGateway wants to know about the WebACL it's associated to
         stage = self._find_apigw_stage(resource_arn)
         if stage:
             stage.web_acl_arn = web_acl_arn
 
     def disassociate_web_acl(self, resource_arn: str) -> None:
+        for web_acl in self.wacls.values():
+            if resource_arn in web_acl.associated_resources:
+                web_acl.associated_resources.remove(resource_arn)
+                break
         stage = self._find_apigw_stage(resource_arn)
         if stage:
             stage.web_acl_arn = None
 
     def get_web_acl_for_resource(self, resource_arn: str) -> Optional[FakeWebACL]:
-        stage = self._find_apigw_stage(resource_arn)
-        if stage and stage.web_acl_arn is not None:
-            wacl_arn = stage.web_acl_arn
-            return self.wacls.get(wacl_arn)
+        for wacl in self.wacls.values():
+            if resource_arn in wacl.associated_resources:
+                return wacl
         return None
 
     def _find_apigw_stage(self, resource_arn: str) -> Optional["Stage"]:  # type: ignore

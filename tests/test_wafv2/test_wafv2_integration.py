@@ -20,13 +20,15 @@ def test_associate_with_unknown_resource():
         WebACLArn=wacl_arn,
         ResourceArn="arn:aws:apigateway:us-east-1::/restapis/unknown/stages/unknown",
     )
-    conn.associate_web_acl(WebACLArn=wacl_arn, ResourceArn="unknownarnwithminlength20")
+    random_arn = "arn:aws:cognito-idp:us-east-1:123456789012:userpool/us-east-1_a7e89b7ced4244f48000bd5bd191d871"
+    conn.associate_web_acl(WebACLArn=wacl_arn, ResourceArn=random_arn)
+
+    wacl = conn.get_web_acl_for_resource(ResourceArn=random_arn)["WebACL"]
+    assert wacl["ARN"] == wacl_arn
 
     # We can validate if the WebACL exists
     with pytest.raises(ClientError) as exc:
-        conn.associate_web_acl(
-            WebACLArn=f"{wacl_arn}2", ResourceArn="unknownarnwithminlength20"
-        )
+        conn.associate_web_acl(WebACLArn=f"{wacl_arn}2", ResourceArn=random_arn)
     err = exc.value.response["Error"]
     assert err["Code"] == "WAFNonexistentItemException"
     assert err["Message"] == (
@@ -79,6 +81,7 @@ def test_get_web_acl_for_resource():
 @mock_aws
 def test_disassociate_unknown_resource():
     conn = boto3.client("wafv2", region_name="us-east-1")
+    conn.create_web_acl(**CREATE_WEB_ACL_BODY("John", "REGIONAL"))
     # Nothing happens
     conn.disassociate_web_acl(ResourceArn="unknownarnwithlength20")
 
