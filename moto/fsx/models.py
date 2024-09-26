@@ -1,7 +1,7 @@
 """FSxBackend class with methods for supported APIs."""
 
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -36,7 +36,7 @@ class FileSystem(BaseModel):
         ontap_configuration: Optional[Dict[str, Any]],
         open_zfs_configuration: Optional[Dict[str, Any]],
     ) -> None:
-        self.file_system_id = f"fs-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        self.file_system_id = f"fs-{uuid4().hex[:8]}"
         self.file_system_type = file_system_type
         if self.file_system_type not in FileSystemType.list_values():
             raise ValueError(f"Invalid FileSystemType: {self.file_system_type}")
