@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -18,7 +18,9 @@ class PipelineAlreadyExistsException(OpensearchIngestionExceptions):
 
 
 class PipelineInvalidStateException(OpensearchIngestionExceptions):
-    def __init__(self, action: str, valid_states: List[str], current_state: str):
+    def __init__(
+        self, action: str, valid_states: List[str], current_state: Optional[str]
+    ):
         super().__init__(
             "ConflictException",
             f"Only pipelines with one of the following statuses are eligible for {action}: {valid_states}. The current status is {current_state}.",
@@ -41,16 +43,16 @@ class PipelineValidationException(OpensearchIngestionExceptions):
 
 
 class InvalidVPCOptionsException(OpensearchIngestionExceptions):
-    def __init__(self, message) -> None:
+    def __init__(self, message: str) -> None:
         super().__init__("ValidationException", f"Invalid VpcOptions: {message}")
         self.description = json.dumps({"message": self.message})
 
 
 class SubnetNotFoundException(InvalidVPCOptionsException):
-    def __init__(self, subnet_id) -> None:
+    def __init__(self, subnet_id: str) -> None:
         super().__init__(f"The subnet ID {subnet_id} does not exist")
 
 
 class SecurityGroupNotFoundException(InvalidVPCOptionsException):
-    def __init__(self, sg_id) -> None:
+    def __init__(self, sg_id: str) -> None:
         super().__init__(f"The security group {sg_id} does not exist")
