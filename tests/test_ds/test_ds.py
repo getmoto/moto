@@ -325,3 +325,43 @@ def test_ds_disable_sso():
     result = client.describe_directories()
     directory = result["DirectoryDescriptions"][0]
     assert not directory["SsoEnabled"]
+
+
+@mock_aws
+def test_create_trust():
+    client = boto3.client("ds", region_name="us-east-2")
+    resp = client.create_trust()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_describe_ldaps_settings():
+    client = boto3.client("ds", region_name="us-east-2")
+    resp = client.describe_ldaps_settings()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_describe_trusts():
+    client = boto3.client("ds", region_name="eu-west-1")
+    resp = client.describe_trusts()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_enable_ldaps():
+    client = boto3.client("ds", region_name="eu-west-1")
+    resp = client.enable_ldaps()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_disable_ldaps():
+    client = boto3.client("ds", region_name="ap-southeast-1")
+    resp = client.disable_ldaps()
+
+    raise Exception("NotYetImplemented")

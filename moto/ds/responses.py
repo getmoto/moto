@@ -165,3 +165,73 @@ class DirectoryServiceResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
+    
+    def create_trust(self):
+        params = self._get_params()
+        directory_id = params.get("DirectoryId")
+        remote_domain_name = params.get("RemoteDomainName")
+        trust_password = params.get("TrustPassword")
+        trust_direction = params.get("TrustDirection")
+        trust_type = params.get("TrustType")
+        conditional_forwarder_ip_addrs = params.get("ConditionalForwarderIpAddrs")
+        selective_auth = params.get("SelectiveAuth")
+        trust_id = self.ds_backend.create_trust(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            trust_password=trust_password,
+            trust_direction=trust_direction,
+            trust_type=trust_type,
+            conditional_forwarder_ip_addrs=conditional_forwarder_ip_addrs,
+            selective_auth=selective_auth,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(trustId=trust_id))
+    
+    def describe_trusts(self):
+        params = self._get_params()
+        directory_id = params.get("DirectoryId")
+        trust_ids = params.get("TrustIds")
+        next_token = params.get("NextToken")
+        limit = params.get("Limit")
+        trusts, next_token = self.ds_backend.describe_trusts(
+            directory_id=directory_id,
+            trust_ids=trust_ids,
+            next_token=next_token,
+            limit=limit,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(trusts=trusts, nextToken=next_token))
+
+    def describe_ldaps_settings(self):
+        params = self._get_params()
+        directory_id = params.get("DirectoryId")
+        type = params.get("Type")
+        next_token = params.get("NextToken")
+        limit = params.get("Limit")
+        ldaps_settings_info, next_token = self.ds_backend.describe_ldaps_settings(
+            directory_id=directory_id,
+            type=type,
+            next_token=next_token,
+            limit=limit,
+        )
+        return json.dumps(dict(LDAPSSettingsInfo=ldaps_settings_info, nextToken=next_token))
+    
+    def enable_ldaps(self):
+        params = self._get_params()
+        directory_id = params.get("DirectoryId")
+        type = params.get("Type")
+        self.ds_backend.enable_ldaps(
+            directory_id=directory_id,
+            type=type,
+        )
+        return ""
+    
+    def disable_ldaps(self):
+        params = self._get_params()
+        directory_id = params.get("DirectoryId")
+        type = params.get("Type")
+        self.ds_backend.disable_ldaps(
+            directory_id=directory_id,
+            type=type,
+        )
+        return ""
