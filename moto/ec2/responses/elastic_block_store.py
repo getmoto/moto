@@ -219,6 +219,13 @@ class ElasticBlockStore(EC2BaseResponse):
             "ElasticBlockStore.reset_snapshot_attribute is not yet implemented"
         )
 
+    def modify_ebs_default_kms_key_id(self) -> str:
+        self.error_on_dryrun()
+        kms_key_id = self._get_param("KmsKeyId")
+        new_default_kms_arn = self.ec2_backend.modify_ebs_default_kms_key_id(kms_key_id)
+        template = self.response_template(MODIFY_EBS_DEFAULT_KMS_KEY_ID_RESPONSE)
+        return template.render(kmsKeyId=new_default_kms_arn)
+
 
 CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
@@ -499,3 +506,11 @@ DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
       {% endfor %}
     </volumeModificationSet>
 </DescribeVolumesModificationsResponse>"""
+
+
+MODIFY_EBS_DEFAULT_KMS_KEY_ID_RESPONSE = """
+<ModifyEbsDefaultKmsKeyIdResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    <requestId>666d2944-9276-4d6a-be12-1f4ada972fd8</requestId>
+    <kmsKeyId>{{ kmsKeyId }}</kmsKeyId>
+</ModifyEbsDefaultKmsKeyIdResponse>
+"""

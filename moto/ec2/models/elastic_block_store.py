@@ -269,6 +269,7 @@ class EBSBackend:
         self.volumes: Dict[str, Volume] = {}
         self.attachments: Dict[str, VolumeAttachment] = {}
         self.snapshots: Dict[str, Snapshot] = {}
+        self.default_kms_key_id: str = ""
 
     def create_volume(
         self,
@@ -284,7 +285,9 @@ class EBSBackend:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
         if encrypted and not kms_key_id:
-            kms_key_id = self._get_default_encryption_key()
+            if not self.default_kms_key_id:
+                self._create_default_encryption_key()
+            kms_key_id = self.default_kms_key_id
         if volume_type in IOPS_REQUIRED_VOLUME_TYPES and not iops:
             raise InvalidParameterDependency("VolumeType", "Iops")
         elif volume_type == "gp3" and not iops:
@@ -546,7 +549,7 @@ class EBSBackend:
         else:
             snapshot.create_volume_permission_groups.difference_update(groups)  # type: ignore[arg-type]
 
-    def _get_default_encryption_key(self) -> str:
+    def _create_default_encryption_key(self) -> str:
         # https://aws.amazon.com/kms/features/#AWS_Service_Integration
         # An AWS managed CMK is created automatically when you first create
         # an encrypted resource using an AWS service integrated with KMS.
@@ -564,4 +567,18 @@ class EBSBackend:
             )
             kms.create_alias(key.id, ebs_alias)
         ebs_key = kms.describe_key(ebs_alias)
+        self.default_kms_key_id = ebs_key.arn
         return ebs_key.arn
+
+    def modify_ebs_default_kms_key_id(self, kms_key_id: str) -> str:
+        # If this parameter is not specified, the standard KMS key for Amazon EBS is used.
+        if not kms_key_id:
+            return self._create_default_encryption_key()
+
+        # Determine if the value is a key ID, alias, key ARN, or alias ARN. All are valid possibilities.
+        from moto.kms import kms_backends
+
+        kms = kms_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
+        kms_key = kms.describe_key(kms_key_id)
+        self.default_kms_key_id = kms_key.arn
+        return kms_key.arn
