@@ -638,12 +638,17 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         if not self.parameters:
             return command
 
-        new_command = [
-            command_part.replace(f"Ref::{param}", value)
+        return [
+            next(
+                (
+                    command_part.replace(f"Ref::{param}", value)
+                    for param, value in self.parameters.items()
+                    if f"Ref::{param}" in command_part
+                ),
+                command_part,
+            )
             for command_part in command
-            for param, value in self.parameters.items()
         ]
-        return new_command
 
     def run(self) -> None:
         """
