@@ -17,10 +17,6 @@ wafv2
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] associate_web_acl
-  
-        Only APIGateway Stages can be associated at the moment.
-        
-
 - [ ] check_capacity
 - [ ] create_api_key
 - [X] create_ip_set
