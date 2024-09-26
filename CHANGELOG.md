@@ -1,6 +1,68 @@
 Moto Changelog
 ==============
 
+5.0.15
+-----
+Docker Digest for 5.0.15: _sha256:9d78f63668017ca6eb9bdb415418d8077e1e503a1e81edb4657f93cf7ff34be1_
+
+    New Services:
+        * MemoryDB:
+            * create_cluster()
+            * create_snapshot()
+            * create_subnet_group()
+            * delete_cluster()
+            * delete_snapshot()
+            * delete_subnet_group()
+            * describe_clusters()
+            * describe_snapshots()
+            * describe_subnet_groups()
+            * list_tags()
+            * tag_resource()
+            * untag_resource()
+            * update_cluster()
+
+        * WorkspacesWeb:
+            * associate_browser_settings()
+            * associate_network_settings()
+            * associate_user_access_logging_settings()
+            * associate_user_settings()
+            * create_browser_settings()
+            * create_network_settings()
+            * create_portal()
+            * create_user_access_logging_settings()
+            * create_user_settings()
+            * delete_browser_settings()
+            * delete_network_settings()
+            * delete_portal()
+            * delete_user_access_logging_settings()
+            * delete_user_settings()
+            * get_browser_settings()
+            * get_network_settings()
+            * get_portal()
+            * get_user_access_logging_settings()
+            * get_user_settings()
+            * list_browser_settings()
+            * list_network_settings()
+            * list_portals()
+            * list_user_access_logging_settings()
+            * list_user_settings()
+
+    New Methods:
+        * ApiGateway:
+            * get_account()
+            * update_account()
+
+        * AppSync:
+            * create_api_cache()
+            * delete_api_cache()
+            * get_api_cache()
+
+    Miscellaneous:
+        * DynamoDB: get/delete/update_item() now validates all provided keys exist
+        * Firehose: create_delivery_stream() now supports the SnowflakeDestinationConfiguration-parameter
+        * S3: put_object() now support conditional writes
+
+
 5.0.14
 -----
 Docker Digest for 5.0.14: _sha256:5399ffa0daadd1eb6c00250ec64453675f9635d0a210563f43c26b43e0dfd178_

@@ -39,6 +39,26 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_browser_settings()
 
     @staticmethod
+    def user_settings(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        handler = WorkSpacesWebResponse()
+        handler.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return handler.get_user_settings()
+        else:
+            return handler.delete_user_settings()
+
+    @staticmethod
+    def user_access_logging_settings(  # type: ignore[misc]
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        handler = WorkSpacesWebResponse()
+        handler.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return handler.get_user_access_logging_settings()
+        else:
+            return handler.delete_user_access_logging_settings()
+
+    @staticmethod
     def portal(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
@@ -183,3 +203,139 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps(
             dict(networkSettingsArn=network_settings_arn, portalArn=portal_arn)
         )
+
+    def create_user_settings(self) -> str:
+        params = self._get_params()
+        additional_encryption_context = params.get("additionalEncryptionContext")
+        client_token = params.get("clientToken")
+        cookie_synchronization_configuration = params.get(
+            "cookieSynchronizationConfiguration"
+        )
+        copy_allowed = params.get("copyAllowed")
+        customer_managed_key = params.get("customerManagedKey")
+        deep_link_allowed = params.get("deepLinkAllowed")
+        disconnect_timeout_in_minutes = params.get("disconnectTimeoutInMinutes")
+        download_allowed = params.get("downloadAllowed")
+        idle_disconnect_timeout_in_minutes = params.get(
+            "idleDisconnectTimeoutInMinutes"
+        )
+        paste_allowed = params.get("pasteAllowed")
+        print_allowed = params.get("printAllowed")
+        tags = params.get("tags")
+        upload_allowed = params.get("uploadAllowed")
+        user_settings_arn = self.workspacesweb_backend.create_user_settings(
+            additional_encryption_context=additional_encryption_context,
+            client_token=client_token,
+            cookie_synchronization_configuration=cookie_synchronization_configuration,
+            copy_allowed=copy_allowed,
+            customer_managed_key=customer_managed_key,
+            deep_link_allowed=deep_link_allowed,
+            disconnect_timeout_in_minutes=disconnect_timeout_in_minutes,
+            download_allowed=download_allowed,
+            idle_disconnect_timeout_in_minutes=idle_disconnect_timeout_in_minutes,
+            paste_allowed=paste_allowed,
+            print_allowed=print_allowed,
+            tags=tags,
+            upload_allowed=upload_allowed,
+        )
+        return json.dumps(dict(userSettingsArn=user_settings_arn))
+
+    def get_user_settings(self) -> TYPE_RESPONSE:
+        user_settings_arn = unquote(self.parsed_url.path.split("/userSettings/")[-1])
+        user_settings = self.workspacesweb_backend.get_user_settings(
+            user_settings_arn=user_settings_arn,
+        )
+        return 200, {}, json.dumps(dict(userSettings=user_settings))
+
+    def delete_user_settings(self) -> TYPE_RESPONSE:
+        user_settings_arn = unquote(self.parsed_url.path.split("/userSettings/")[-1])
+        self.workspacesweb_backend.delete_user_settings(
+            user_settings_arn=user_settings_arn,
+        )
+        return 200, {}, "{}"
+
+    def create_user_access_logging_settings(self) -> str:
+        params = self._get_params()
+        params = json.loads(list(params.keys())[0])
+        client_token = params.get("clientToken")
+        kinesis_stream_arn = params.get("kinesisStreamArn")
+        tags = params.get("tags")
+        user_access_logging_settings_arn = (
+            self.workspacesweb_backend.create_user_access_logging_settings(
+                client_token=client_token,
+                kinesis_stream_arn=kinesis_stream_arn,
+                tags=tags,
+            )
+        )
+        return json.dumps(
+            dict(userAccessLoggingSettingsArn=user_access_logging_settings_arn)
+        )
+
+    def get_user_access_logging_settings(self) -> TYPE_RESPONSE:
+        user_access_logging_settings_arn = unquote(
+            self.parsed_url.path.split("/userAccessLoggingSettings/")[-1]
+        )
+        user_access_logging_settings = (
+            self.workspacesweb_backend.get_user_access_logging_settings(
+                user_access_logging_settings_arn=user_access_logging_settings_arn,
+            )
+        )
+        return (
+            200,
+            {},
+            json.dumps(dict(userAccessLoggingSettings=user_access_logging_settings)),
+        )
+
+    def delete_user_access_logging_settings(self) -> TYPE_RESPONSE:
+        user_access_logging_settings_arn = unquote(
+            self.parsed_url.path.split("/userAccessLoggingSettings/")[-1]
+        )
+        self.workspacesweb_backend.delete_user_access_logging_settings(
+            user_access_logging_settings_arn=user_access_logging_settings_arn,
+        )
+        return 200, {}, "{}"
+
+    def associate_user_settings(self) -> str:
+        user_settings_arn = unquote(self._get_param("userSettingsArn"))
+        portal_arn = unquote(
+            self.parsed_url.path.split("/portals/")[-1].split("/userSettings")[0]
+        )
+        user_settings_arn, portal_arn = (
+            self.workspacesweb_backend.associate_user_settings(
+                user_settings_arn=user_settings_arn,
+                portal_arn=portal_arn,
+            )
+        )
+        return json.dumps(dict(userSettingsArn=user_settings_arn, portalArn=portal_arn))
+
+    def associate_user_access_logging_settings(self) -> str:
+        user_access_logging_settings_arn = unquote(
+            self._get_param("userAccessLoggingSettingsArn")
+        )
+        portal_arn = unquote(
+            self.parsed_url.path.split("/portals/")[-1].split(
+                "/userAccessLoggingSettings"
+            )[0]
+        )
+        user_access_logging_settings_arn, portal_arn = (
+            self.workspacesweb_backend.associate_user_access_logging_settings(
+                user_access_logging_settings_arn=user_access_logging_settings_arn,
+                portal_arn=portal_arn,
+            )
+        )
+        return json.dumps(
+            dict(
+                userAccessLoggingSettingsArn=user_access_logging_settings_arn,
+                portalArn=portal_arn,
+            )
+        )
+
+    def list_user_settings(self) -> str:
+        user_settings = self.workspacesweb_backend.list_user_settings()
+        return json.dumps(dict(userSettings=user_settings))
+
+    def list_user_access_logging_settings(self) -> str:
+        user_access_logging_settings = (
+            self.workspacesweb_backend.list_user_access_logging_settings()
+        )
+        return json.dumps(dict(userAccessLoggingSettings=user_access_logging_settings))

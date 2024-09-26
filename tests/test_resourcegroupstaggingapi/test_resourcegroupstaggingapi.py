@@ -332,20 +332,32 @@ def test_get_resources_ec2():
 def test_get_resources_ec2_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    ec2.create_tags(Resources=[vpc.id], Tags=[{"Key": "test", "Value": "test"}])
-
-    def assert_response(resp):
-        results = resp.get("ResourceTagMappingList", [])
-        assert len(results) == 1
-        assert vpc.id in results[0]["ResourceARN"]
+    ec2.create_tags(Resources=[vpc.id], Tags=[{"Key": "test", "Value": "test_vpc"}])
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.1.0/24")
+    ec2.create_tags(
+        Resources=[subnet.id], Tags=[{"Key": "test", "Value": "test_subnet"}]
+    )
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    # Check that we have one entry for VPC, one for the subnet
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2"])
-    assert_response(resp)
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # 1 Entry for VPC
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:vpc"])
-    assert_response(resp)
-    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test"]}])
-    assert_response(resp)
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "vpc/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test_vpc"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "vpc/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+    # 1 Entry for Subnet
+    resp = rtapi.get_resources(ResourceTypeFilters=["ec2:subnet"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "subnet/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test_subnet"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "subnet/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
 @mock_aws

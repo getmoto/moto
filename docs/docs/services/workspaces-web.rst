@@ -20,24 +20,24 @@ workspaces-web
 - [ ] associate_ip_access_settings
 - [X] associate_network_settings
 - [ ] associate_trust_store
-- [ ] associate_user_access_logging_settings
-- [ ] associate_user_settings
+- [X] associate_user_access_logging_settings
+- [X] associate_user_settings
 - [X] create_browser_settings
 - [ ] create_identity_provider
 - [ ] create_ip_access_settings
 - [X] create_network_settings
 - [X] create_portal
 - [ ] create_trust_store
-- [ ] create_user_access_logging_settings
-- [ ] create_user_settings
+- [X] create_user_access_logging_settings
+- [X] create_user_settings
 - [X] delete_browser_settings
 - [ ] delete_identity_provider
 - [ ] delete_ip_access_settings
 - [X] delete_network_settings
 - [X] delete_portal
 - [ ] delete_trust_store
-- [ ] delete_user_access_logging_settings
-- [ ] delete_user_settings
+- [X] delete_user_access_logging_settings
+- [X] delete_user_settings
 - [ ] disassociate_browser_settings
 - [ ] disassociate_ip_access_settings
 - [ ] disassociate_network_settings
@@ -52,8 +52,8 @@ workspaces-web
 - [ ] get_portal_service_provider_metadata
 - [ ] get_trust_store
 - [ ] get_trust_store_certificate
-- [ ] get_user_access_logging_settings
-- [ ] get_user_settings
+- [X] get_user_access_logging_settings
+- [X] get_user_settings
 - [X] list_browser_settings
 - [ ] list_identity_providers
 - [ ] list_ip_access_settings
@@ -62,8 +62,8 @@ workspaces-web
 - [ ] list_tags_for_resource
 - [ ] list_trust_store_certificates
 - [ ] list_trust_stores
-- [ ] list_user_access_logging_settings
-- [ ] list_user_settings
+- [X] list_user_access_logging_settings
+- [X] list_user_settings
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_browser_settings

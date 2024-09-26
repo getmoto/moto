@@ -499,6 +499,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "drs": {
                 "Value": "drs",
                 "endpoint": {
@@ -2906,6 +2915,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -3621,7 +3639,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -3918,15 +3942,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6360,7 +6375,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -6603,15 +6624,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10410,7 +10422,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -13284,6 +13302,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -13654,6 +13681,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14053,7 +14089,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -14350,15 +14392,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16714,7 +16747,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -17011,15 +17050,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20134,6 +20164,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -21833,6 +21872,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sso-oidc": {
                 "Value": "sso-oidc",
                 "endpoint": {
@@ -22245,6 +22293,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "efs": {
+                "Value": "efs",
+                "endpoint": {
+                  "Value": "elasticfilesystem.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eks": {
                 "Value": "eks",
                 "endpoint": {
@@ -22531,6 +22588,15 @@
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22892,7 +22958,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -23138,15 +23210,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29179,7 +29242,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -29494,15 +29563,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32907,6 +32967,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sso-oidc": {
                 "Value": "sso-oidc",
                 "endpoint": {
@@ -33470,15 +33539,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36942,6 +37002,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudtrail": {
                 "Value": "cloudtrail",
                 "endpoint": {
@@ -37075,6 +37144,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "drs": {
@@ -37545,6 +37623,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -37888,6 +37975,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38276,7 +38372,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -38573,15 +38675,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41139,7 +41232,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -41436,15 +41535,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46434,6 +46524,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -46669,6 +46768,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47698,6 +47806,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
@@ -48101,6 +48218,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52282,7 +52408,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -52636,15 +52768,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53899,7 +54022,13 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace"
+                "Value": "marketplace",
+                "endpoint": {
+                  "Value": "aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "marketplace-agreement": {
                 "Value": "marketplace-agreement",
@@ -55504,7 +55633,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -55756,15 +55891,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -61479,15 +61605,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "codestar-connections": {
                 "Value": "codestar-connections",
                 "endpoint": {
@@ -63385,7 +63502,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -63709,15 +63832,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64431,15 +64545,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "honeycode": {
-                "Value": "honeycode",
-                "endpoint": {
-                  "Value": "honeycode.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -64900,7 +65005,13 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace"
+                "Value": "marketplace",
+                "endpoint": {
+                  "Value": "aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mcs": {
                 "Value": "mcs",
