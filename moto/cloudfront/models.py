@@ -14,6 +14,7 @@ from .exceptions import (
     DomainNameNotAnS3Bucket,
     InvalidIfMatchVersion,
     NoSuchDistribution,
+    NoSuchInvalidation,
     NoSuchOriginAccessControl,
     OriginDoesNotExist,
 )
@@ -392,6 +393,19 @@ class CloudFrontBackend(BaseBackend):
         Pagination is not yet implemented
         """
         return self.invalidations.get(dist_id) or []
+
+    def get_invalidation(self, dist_id: str, id: str) -> Invalidation:
+        if dist_id not in self.distributions:
+            raise NoSuchDistribution
+        try:
+            invalidations = self.invalidations[dist_id]
+            if invalidations:
+                for invalidation in invalidations:
+                    if invalidation.invalidation_id == id:
+                        return invalidation
+        except KeyError:
+            pass
+        raise NoSuchInvalidation
 
     def list_tags_for_resource(self, resource: str) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
