@@ -296,7 +296,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 for subnet in self.ec2_backend.subnets.values()
                 for subnet in subnet.values()
             ),
-            # TODO: "ec2:vpc-peering-connection": self.ec2_backend.vpc_peering_connections.values(),
+            "ec2:vpc-peering-connection": self.ec2_backend.vpc_pcxs.values(),
             "ec2:transit-gateway": self.ec2_backend.transit_gateways.values(),
             "ec2:transit-gateway-attachment": self.ec2_backend.transit_gateway_attachments.values(),
             "ec2:route-table": self.ec2_backend.route_tables.values(),
@@ -306,8 +306,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ec2:internet-gateway": self.ec2_backend.internet_gateways.values(),
             "ec2:managed-prefix-lists": self.ec2_backend.managed_prefix_lists.values(),
             "ec2:flow-logs": self.ec2_backend.flow_logs.values(),
-            # TODO: "ec2:reserved-instance": self.ec2_backend.reserved_instances.values(),
             "ec2:spot-instance-request": self.ec2_backend.spot_instance_requests.values(),
+            # TODO: "ec2:reserved-instance": ...,
         }
 
         for resource_type, resources in ec2_resource_types.items():
