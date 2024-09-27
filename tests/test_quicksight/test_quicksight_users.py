@@ -246,7 +246,7 @@ def test_create_group_membership(request_params):
     )
 
     assert resp["GroupMember"] == {
-        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/{request_params["GroupName"]}/{request_params["UserName"]}",
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/{request_params['GroupName']}/{request_params['UserName']}",
         "MemberName": request_params["UserName"],
     }
     assert resp["Status"] == 200
@@ -303,7 +303,7 @@ def test_describe_group_membership(request_params):
     )
 
     assert resp["GroupMember"] == {
-        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/{request_params["GroupName"]}/{request_params["UserName"]}",
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/{request_params['GroupName']}/{request_params['UserName']}",
         "MemberName": request_params["UserName"],
     }
     assert resp["Status"] == 200
