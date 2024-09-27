@@ -276,114 +276,54 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         continue
                     yield {"ResourceARN": f"{task.task_arn}", "Tags": tags}
 
-        # EC2 AMI, resource type ec2:image
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:image" in resource_type_filters
-        ):
-            for ami in self.ec2_backend.amis.values():
-                tags = format_tags(self.ec2_backend.tags.get(ami.id, {}))
+        # EC2 Resources
+        ec2_resource_types = {
+            "ec2:image": self.ec2_backend.amis.values(),
+            "ec2:instance": (
+                instance
+                for reservation in self.ec2_backend.reservations.values()
+                for instance in reservation.instances
+            ),
+            "ec2:network-interface": self.ec2_backend.enis.values(),
+            "ec2:security-group": (
+                sg for vpc in self.ec2_backend.groups.values() for sg in vpc.values()
+            ),
+            "ec2:snapshot": self.ec2_backend.snapshots.values(),
+            "ec2:volume": self.ec2_backend.volumes.values(),
+            "ec2:vpc": self.ec2_backend.vpcs.values(),
+            "ec2:subnet": (
+                subnet
+                for subnet in self.ec2_backend.subnets.values()
+                for subnet in subnet.values()
+            ),
+            # TODO: "ec2:vpc-peering-connection": self.ec2_backend.vpc_peering_connections.values(),
+            "ec2:transit-gateway": self.ec2_backend.transit_gateways.values(),
+            "ec2:transit-gateway-attachment": self.ec2_backend.transit_gateway_attachments.values(),
+            "ec2:route-table": self.ec2_backend.route_tables.values(),
+            "ec2:customer-gateway": self.ec2_backend.customer_gateways.values(),
+            "ec2:vpn-connection": self.ec2_backend.vpn_connections.values(),
+            "ec2:natgateway": self.ec2_backend.nat_gateways.values(),
+            "ec2:internet-gateway": self.ec2_backend.internet_gateways.values(),
+            "ec2:managed-prefix-lists": self.ec2_backend.managed_prefix_lists.values(),
+            "ec2:flow-logs": self.ec2_backend.flow_logs.values(),
+            # TODO: "ec2:reserved-instance": self.ec2_backend.reserved_instances.values(),
+            "ec2:spot-instance-request": self.ec2_backend.spot_instance_requests.values(),
+        }
 
-                if not tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::image/{ami.id}",
-                    "Tags": tags,
-                }
-
-        # EC2 Instance, resource type ec2:instance
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:instance" in resource_type_filters
-        ):
-            for reservation in self.ec2_backend.reservations.values():
-                for instance in reservation.instances:
-                    tags = format_tags(self.ec2_backend.tags.get(instance.id, {}))
-
+        for resource_type, resources in ec2_resource_types.items():
+            if (
+                not resource_type_filters
+                or "ec2" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resources:
+                    tags = format_tags(self.ec2_backend.tags.get(resource.id, {}))
                     if not tags or not tag_filter(tags):
-                        # Skip if no tags, or invalid filter
                         continue
                     yield {
-                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::instance/{instance.id}",
+                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type}/{resource.id}",
                         "Tags": tags,
                     }
-
-        # EC2 NetworkInterface, resource type ec2:network-interface
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:network-interface" in resource_type_filters
-        ):
-            for eni in self.ec2_backend.enis.values():
-                tags = format_tags(self.ec2_backend.tags.get(eni.id, {}))
-
-                if not tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::network-interface/{eni.id}",
-                    "Tags": tags,
-                }
-
-        # TODO EC2 ReservedInstance
-
-        # EC2 SecurityGroup, resource type ec2:security-group
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:security-group" in resource_type_filters
-        ):
-            for vpc in self.ec2_backend.groups.values():
-                for sg in vpc.values():
-                    tags = format_tags(self.ec2_backend.tags.get(sg.id, {}))
-
-                    if not tags or not tag_filter(tags):
-                        # Skip if no tags, or invalid filter
-                        continue
-                    yield {
-                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::security-group/{sg.id}",
-                        "Tags": tags,
-                    }
-
-        # EC2 Snapshot, resource type ec2:snapshot
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:snapshot" in resource_type_filters
-        ):
-            for snapshot in self.ec2_backend.snapshots.values():
-                tags = format_tags(self.ec2_backend.tags.get(snapshot.id, {}))
-
-                if not tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::snapshot/{snapshot.id}",
-                    "Tags": tags,
-                }
-
-        # TODO EC2 SpotInstanceRequest
-
-        # EC2 Volume, resource type ec2:volume
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:volume" in resource_type_filters
-        ):
-            for volume in self.ec2_backend.volumes.values():
-                tags = format_tags(self.ec2_backend.tags.get(volume.id, {}))
-
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}::volume/{volume.id}",
-                    "Tags": tags,
-                }
 
         # EFS, resource type elasticfilesystem:access-point
         if (
@@ -646,46 +586,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces-web:{self.region_name}:{self.account_id}:portal/{portal.portal_id}",
                     "Tags": tags,
                 }
-
-        # VPC
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:vpc" in resource_type_filters
-        ):
-            for vpc in self.ec2_backend.vpcs.values():
-                tags = format_tags(self.ec2_backend.tags.get(vpc.id, {}))
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
-                    "Tags": tags,
-                }
-        # VPC Subnet
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:subnet" in resource_type_filters
-        ):
-            for subnet in self.ec2_backend.subnets.values():
-                for subnet_id in subnet.keys():
-                    tags = format_tags(self.ec2_backend.tags.get(subnet_id, {}))
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:subnet/{subnet_id}",
-                        "Tags": tags,
-                    }
-
-        # VPC Customer Gateway
-        # VPC DHCP Option Set
-        # VPC Internet Gateway
-        # VPC Network ACL
-        # VPC Route Table
-        # VPC Virtual Private Gateway
-        # VPC VPN Connection
 
         # Lambda Instance
         if (
