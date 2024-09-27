@@ -16,6 +16,12 @@ PAGINATION_MODEL = {
     "describe_ldaps_settings": {
         "input_token": "next_token",
         "limit_key": "limit",
-        "limit_default": 100,  # This should be the sum of the directory limits
+        "limit_default": 100,
+    },
+    "describe_trusts": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "trust_id",
     },
 }

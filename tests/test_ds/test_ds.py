@@ -329,23 +329,72 @@ def test_ds_disable_sso():
 
 @mock_aws
 def test_create_trust():
-    client = boto3.client("ds", region_name="us-east-2")
-    resp = client.create_trust()
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
 
-    raise Exception("NotYetImplemented")
+    # Create a trust
+    trust_id = client.create_trust(
+        DirectoryId=directory_id,
+        RemoteDomainName="example.com",
+        TrustPassword="password",
+        TrustDirection="One-Way: Outgoing",
+        TrustType="External",
+    )["TrustId"]
+
+    assert trust_id is not None
+
+    # Describe the trust
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 1
+    assert trusts[0]["TrustId"] == trust_id
+    assert trusts[0]["DirectoryId"] == directory_id
 
 
 @mock_aws
 def test_describe_trusts():
-    client = boto3.client("ds", region_name="eu-west-1")
-    resp = client.describe_trusts()
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
 
-    raise Exception("NotYetImplemented")
+    # Create several trusts
+    trust_ids = []
+    for x in range(5):
+        trust_id = client.create_trust(
+            DirectoryId=directory_id,
+            RemoteDomainName=f"example{x}.com",
+            TrustPassword="P@ssword1234!",
+            TrustDirection="One-Way: Outgoing",
+            TrustType="External",
+        )["TrustId"]
+        trust_ids.append(trust_id)
+
+    # Describe the trusts
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 5
+    for idx, trust in enumerate(trusts):
+        assert trust["TrustId"] == trust_ids[idx]
+        assert trust["DirectoryId"] == directory_id
+
+    # Describe a single trust
+    trust = client.describe_trusts(DirectoryId=directory_id, TrustIds=[trust_ids[2]])[
+        "Trusts"
+    ][0]
+    assert trust["TrustId"] == trust_ids[2]
+
+    # Describe multiple trusts
+    trusts = client.describe_trusts(DirectoryId=directory_id, TrustIds=trust_ids[1:3])[
+        "Trusts"
+    ]
+    assert len(trusts) == 2
+    assert trusts[0]["TrustId"] == trust_ids[1]
+    assert trusts[1]["TrustId"] == trust_ids[2]
 
 
 @mock_aws
 def test_ldaps_exceptions_non_microsoftad():
-    """Test good and bad invocations of describe_directories()."""
+    """Test LDAPS operations on non-Microsoft AD directories."""
+
     client = boto3.client("ds", region_name=TEST_REGION)
     ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
@@ -354,6 +403,8 @@ def test_ldaps_exceptions_non_microsoftad():
     # Test enabling LDAPS on a non-Microsoft AD directory.
     with pytest.raises(ClientError) as exc:
         client.enable_ldaps(DirectoryId=directory_id, Type="Client")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
 
     # Test describe_ldaps_settings on a non-Microsoft AD directory.
     with pytest.raises(ClientError) as exc:

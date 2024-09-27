@@ -25,7 +25,7 @@ from moto.utilities.tagging_service import TaggingService
 
 
 class LdapsSettingInfo(BaseModel):
-    def __init__(self):
+    def __init__(self) -> None:
         self.last_updated_date_time = unix_time()
         self.ldaps_status = "Enabled"
         self.ldaps_status_reason = ""
@@ -35,6 +35,47 @@ class LdapsSettingInfo(BaseModel):
             "LastUpdatedDateTime": self.last_updated_date_time,
             "LDAPSStatus": self.ldaps_status,
             "LDAPSStatusReason": self.ldaps_status_reason,
+        }
+
+
+class Trust(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+        trust_password: str,
+        trust_direction: str,
+        trust_type: Optional[str],
+        conditional_forwarder_ip_addrs: Optional[List[str]],
+        selective_auth: Optional[str],
+    ) -> None:
+        self.trust_id = f"t-{mock_random.get_random_hex(10)}"
+        self.created_date_time = unix_time()
+        self.last_updated_date_time = self.created_date_time
+        self.state_last_updated_date_time = self.created_date_time
+        self.trust_state = "Creating"
+        self.trust_state_reason = ""
+        self.directory_id = directory_id
+        self.remote_domain_name = remote_domain_name
+        self.trust_password = trust_password
+        self.trust_direction = trust_direction
+        self.trust_type = trust_type
+        self.conditional_forwarder_ip_addrs = conditional_forwarder_ip_addrs
+        self.selective_auth = selective_auth
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "CreatedDateTime": self.created_date_time,
+            "DirectoryId": self.directory_id,
+            "LastUpdatedDateTime": self.last_updated_date_time,
+            "RemoteDomainName": self.remote_domain_name,
+            "SelectiveAuth": self.selective_auth,
+            "StateLastUpdatedDateTime": self.state_last_updated_date_time,
+            "TrustDirection": self.trust_direction,
+            "TrustId": self.trust_id,
+            "TrustState": self.trust_state,
+            "TrustStateReason": self.trust_state_reason,
+            "TrustType": self.trust_type,
         }
 
 
@@ -97,7 +138,9 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.stage = "Active"
         self.launch_time = unix_time()
         self.stage_last_updated_date_time = unix_time()
-        self.ldaps_settings_info = []
+        # add type annotation to line below
+        self.ldaps_settings_info: List[LdapsSettingInfo] = []
+        self.trusts: List[Trust] = []
 
         if self.directory_type == "ADConnector":
             self.security_group_id = self.create_security_group(
@@ -567,23 +610,52 @@ class DirectoryServiceBackend(BaseBackend):
 
     def create_trust(
         self,
-        directory_id,
-        remote_domain_name,
-        trust_password,
-        trust_direction,
-        trust_type,
-        conditional_forwarder_ip_addrs,
-        selective_auth,
-    ):
-        # implement here
-        return trust_id
-
-    def describe_trusts(self, directory_id, trust_ids, next_token, limit):
-        # implement here
-        return trusts, next_token
+        directory_id: str,
+        remote_domain_name: str,
+        trust_password: str,
+        trust_direction: str,
+        trust_type: Optional[str],
+        conditional_forwarder_ip_addrs: Optional[List[str]],
+        selective_auth: Optional[str],
+    ) -> str:
+        self._validate_directory_id(directory_id)
+        validate_args(
+            [
+                ("ssoPassword", trust_password),
+                ("trustDirection", trust_direction),
+                ("remoteDomainName", remote_domain_name),
+            ]
+        )
+        directory = self.directories[directory_id]
+        trust = Trust(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            trust_password=trust_password,
+            trust_direction=trust_direction,
+            trust_type=trust_type,
+            conditional_forwarder_ip_addrs=conditional_forwarder_ip_addrs,
+            selective_auth=selective_auth,
+        )
+        directory.trusts.append(trust)
+        return trust.trust_id
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def describe_ldaps_settings(self, directory_id: str, type: str):
+    def describe_trusts(
+        self, directory_id: str, trust_ids: Optional[List[str]]
+    ) -> List[Trust]:
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        trusts = directory.trusts
+        if trust_ids:
+            trusts = [t for t in directory.trusts if t.trust_id in trust_ids]
+        else:
+            trusts = directory.trusts
+        return trusts
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_ldaps_settings(
+        self, directory_id: str, type: str
+    ) -> List[LdapsSettingInfo]:
         """Describe LDAPS settings for a Directory"""
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
