@@ -392,6 +392,44 @@ def test_describe_trusts():
 
 
 @mock_aws
+def test_delete_trust():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_directory(client, ec2_client)
+
+    # Create several trusts
+    trust_ids = []
+    for x in range(2):
+        trust_id = client.create_trust(
+            DirectoryId=directory_id,
+            RemoteDomainName=f"example{x}.com",
+            TrustPassword="P@ssword1234!",
+            TrustDirection="One-Way: Outgoing",
+            TrustType="External",
+        )["TrustId"]
+        trust_ids.append(trust_id)
+
+    # Verify the expected trusts exist
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 2
+
+    # Delete a trust
+    resp = client.delete_trust(TrustId=trust_ids[0])
+    assert resp["TrustId"] == trust_ids[0]
+
+    # Verify the trust was deleted
+    trusts = client.describe_trusts(DirectoryId=directory_id)["Trusts"]
+    assert len(trusts) == 1
+    assert trusts[0]["TrustId"] != trust_ids[0]
+
+    # Test deleting a trust that doesn't exist
+    with pytest.raises(ClientError) as exc:
+        client.delete_trust(TrustId="t-1234567890")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+
+
+@mock_aws
 def test_ldaps_exceptions_non_microsoftad():
     """Test LDAPS operations on non-Microsoft AD directories."""
 

@@ -199,6 +199,17 @@ class DirectoryServiceResponse(BaseResponse):
         trust_list = [trust.to_dict() for trust in trusts]
         return json.dumps(dict(Trusts=trust_list, nextToken=next_token))
 
+    def delete_trust(self) -> str:
+        trust_id = self._get_param("TrustId")
+        delete_associated_conditional_forwarder = self._get_param(
+            "DeleteAssociatedConditionalForwarder"
+        )
+        trust_id = self.ds_backend.delete_trust(
+            trust_id=trust_id,
+            delete_associated_conditional_forwarder=delete_associated_conditional_forwarder,
+        )
+        return json.dumps(dict(TrustId=trust_id))
+
     def describe_ldaps_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         type = self._get_param("Type")

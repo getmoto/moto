@@ -652,6 +652,20 @@ class DirectoryServiceBackend(BaseBackend):
             trusts = directory.trusts
         return trusts
 
+    def delete_trust(
+        self, trust_id: str, delete_associated_conditional_forwarder: Optional[bool]
+    ) -> str:
+        # TODO: Implement handle for delete_associated_conditional_forwarder once conditional forwarder is implemented
+        delete_associated_conditional_forwarder = (
+            delete_associated_conditional_forwarder or False
+        )
+        for directory in self.directories.values():
+            for trust in directory.trusts:
+                if trust.trust_id == trust_id:
+                    directory.trusts.remove(trust)
+                    return trust_id
+        raise EntityDoesNotExistException(f"Trust {trust_id} does not exist")
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_ldaps_settings(
         self, directory_id: str, type: str
