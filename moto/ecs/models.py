@@ -299,10 +299,14 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             properties.get("ContainerDefinitions", []), pascal_to_camelcase
         )
         volumes = remap_nested_keys(properties.get("Volumes", []), pascal_to_camelcase)
+        memory = properties.get("Memory")
 
         ecs_backend = ecs_backends[account_id][region_name]
         return ecs_backend.register_task_definition(
-            family=family, container_definitions=container_definitions, volumes=volumes
+            family=family,
+            container_definitions=container_definitions,
+            volumes=volumes,
+            memory=memory,
         )
 
     @classmethod
@@ -320,6 +324,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         )
         container_definitions = properties["ContainerDefinitions"]
         volumes = properties.get("Volumes")
+        memory = properties.get("Memory")
         if (
             original_resource.family != family
             or original_resource.container_definitions != container_definitions
@@ -333,6 +338,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
                 family=family,
                 container_definitions=container_definitions,
                 volumes=volumes,
+                memory=memory,
             )
         else:
             # no-op when nothing changed between old and new resources
