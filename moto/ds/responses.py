@@ -165,7 +165,7 @@ class DirectoryServiceResponse(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
-    
+
     def create_trust(self):
         params = self._get_params()
         directory_id = params.get("DirectoryId")
@@ -186,7 +186,7 @@ class DirectoryServiceResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(trustId=trust_id))
-    
+
     def describe_trusts(self):
         params = self._get_params()
         directory_id = params.get("DirectoryId")
@@ -203,33 +203,31 @@ class DirectoryServiceResponse(BaseResponse):
         return json.dumps(dict(trusts=trusts, nextToken=next_token))
 
     def describe_ldaps_settings(self):
-        params = self._get_params()
-        directory_id = params.get("DirectoryId")
-        type = params.get("Type")
-        next_token = params.get("NextToken")
-        limit = params.get("Limit")
+        directory_id = self._get_param("DirectoryId")
+        type = self._get_param("Type")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
         ldaps_settings_info, next_token = self.ds_backend.describe_ldaps_settings(
             directory_id=directory_id,
             type=type,
             next_token=next_token,
             limit=limit,
         )
-        return json.dumps(dict(LDAPSSettingsInfo=ldaps_settings_info, nextToken=next_token))
-    
+        ldaps = [ldap.to_dict() for ldap in ldaps_settings_info]
+        return json.dumps(dict(LDAPSSettingsInfo=ldaps, nextToken=next_token))
+
     def enable_ldaps(self):
-        params = self._get_params()
-        directory_id = params.get("DirectoryId")
-        type = params.get("Type")
+        directory_id = self._get_param("DirectoryId")
+        type = self._get_param("Type")
         self.ds_backend.enable_ldaps(
             directory_id=directory_id,
             type=type,
         )
         return ""
-    
+
     def disable_ldaps(self):
-        params = self._get_params()
-        directory_id = params.get("DirectoryId")
-        type = params.get("Type")
+        directory_id = self._get_param("DirectoryId")
+        type = self._get_param("Type")
         self.ds_backend.disable_ldaps(
             directory_id=directory_id,
             type=type,

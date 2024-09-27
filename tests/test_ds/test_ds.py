@@ -336,14 +336,6 @@ def test_create_trust():
 
 
 @mock_aws
-def test_describe_ldaps_settings():
-    client = boto3.client("ds", region_name="us-east-2")
-    resp = client.describe_ldaps_settings()
-
-    raise Exception("NotYetImplemented")
-
-
-@mock_aws
 def test_describe_trusts():
     client = boto3.client("ds", region_name="eu-west-1")
     resp = client.describe_trusts()
@@ -352,16 +344,21 @@ def test_describe_trusts():
 
 
 @mock_aws
-def test_enable_ldaps():
-    client = boto3.client("ds", region_name="eu-west-1")
-    resp = client.enable_ldaps()
+def test_ldaps_exceptions_non_microsoftad():
+    """Test good and bad invocations of describe_directories()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
-    raise Exception("NotYetImplemented")
+    directory_id = create_test_directory(client, ec2_client)
 
+    # Test enabling LDAPS on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.enable_ldaps(DirectoryId=directory_id, Type="Client")
 
-@mock_aws
-def test_disable_ldaps():
-    client = boto3.client("ds", region_name="ap-southeast-1")
-    resp = client.disable_ldaps()
+    # Test describe_ldaps_settings on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.describe_ldaps_settings(DirectoryId=directory_id, Type="Client")
 
-    raise Exception("NotYetImplemented")
+    # Test disable_ldaps on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.disable_ldaps(DirectoryId=directory_id, Type="Client")

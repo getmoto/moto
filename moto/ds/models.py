@@ -29,7 +29,7 @@ class LdapsSettingInfo(BaseModel):
         self.last_updated_date_time = unix_time()
         self.ldaps_status = "Enabled"
         self.ldaps_status_reason = ""
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "LastUpdatedDateTime": self.last_updated_date_time,
@@ -174,8 +174,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
     def enable_sso(self, new_state: bool) -> None:
         """Enable/disable sso based on whether new_state is True or False."""
         self.sso_enabled = new_state
-    
-    def enable_ldaps(self, new_state: bool) -> None:
+
+    def enable_ldaps(self, enable: bool) -> None:
         """Enable/disable ldaps based on whether new_state is True or False.
         This method is only for MicrosoftAD.
         """
@@ -183,11 +183,11 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
             raise UnsupportedOperationException(
                 "LDAPS operations are not supported for this Directory Type."
             )
-        if new_state == True and len(self.ldaps_settings_info)==0:
+        if enable and len(self.ldaps_settings_info) == 0:
             ldaps_setting = LdapsSettingInfo()
-            ldaps_setting.ldaps_status = "Enable"
+            ldaps_setting.ldaps_status = "Enabled"
             self.ldaps_settings_info.append(ldaps_setting)
-        elif new_state == False and len(self.ldaps_settings_info)>0:
+        elif not enable and len(self.ldaps_settings_info) > 0:
             for setting in self.ldaps_settings_info:
                 setting.ldaps_status = "Disabled"
 
@@ -565,29 +565,46 @@ class DirectoryServiceBackend(BaseBackend):
         self._validate_directory_id(resource_id)
         return self.tagger.list_tags_for_resource(resource_id).get("Tags")  # type: ignore[return-value]
 
-    def create_trust(self, directory_id, remote_domain_name, trust_password, trust_direction, trust_type, conditional_forwarder_ip_addrs, selective_auth):
+    def create_trust(
+        self,
+        directory_id,
+        remote_domain_name,
+        trust_password,
+        trust_direction,
+        trust_type,
+        conditional_forwarder_ip_addrs,
+        selective_auth,
+    ):
         # implement here
         return trust_id
-    
+
     def describe_trusts(self, directory_id, trust_ids, next_token, limit):
         # implement here
         return trusts, next_token
 
-    def describe_ldaps_settings(self, directory_id, type, next_token, limit):
-        # implement here
-        return ldaps_settings_info, next_token
-    
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_ldaps_settings(self, directory_id: str, type: str):
+        """Describe LDAPS settings for a Directory"""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "LDAPS operations are not supported for this Directory Type."
+            )
+
+        return directory.ldaps_settings_info
+
     def enable_ldaps(self, directory_id: str, type: str) -> None:
-        """ Enable LDAPS for a Directory """
+        """Enable LDAPS for a Directory"""
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
         directory.enable_ldaps(True)
-    
+
     def disable_ldaps(self, directory_id: str, type: str) -> None:
-        """ Disable LDAPS for a Directory """
+        """Disable LDAPS for a Directory"""
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
         directory.enable_ldaps(False)
-    
+
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")
