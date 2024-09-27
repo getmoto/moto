@@ -99,3 +99,26 @@ class SESV2Response(BaseResponse):
         contact_list_name = self._get_param("ContactListName")
         self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
         return json.dumps({})
+    
+    def create_email_identity(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        tags = self._get_param("Tags")
+        dkim_signing_attributes = self._get_param("DkimSigningAttributes")
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        identity_type, verified_for_sending_status, dkim_attributes = self.sesv2_backend.create_email_identity(
+            email_identity=email_identity,
+            tags=tags,
+            dkim_signing_attributes=dkim_signing_attributes,
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps(dict(IdentityType=identity_type, VerifiedForSendingStatus=verified_for_sending_status, DkimAttributes=dkim_attributes))
+    
+    def list_email_identities(self) -> str:
+        params = self._get_params()
+        next_token = params.get("NextToken")
+        page_size = params.get("PageSize")
+        email_identities, next_token = self.sesv2_backend.list_email_identities(
+            next_token=next_token,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(emailIdentities=email_identities, nextToken=next_token))

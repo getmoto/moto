@@ -456,3 +456,21 @@ def test_delete_contact():
 
     # Verify
     assert len(result["Contacts"]) == 0
+
+
+@mock_aws
+def test_create_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    resp = client.create_email_identity(EmailIdentity=test_email_domain)
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_email_identities():
+    client = boto3.client("sesv2", region_name="ap-southeast-1")
+    resp = client.list_email_identities()
+
+    raise Exception("NotYetImplemented")
