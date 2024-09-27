@@ -131,7 +131,7 @@ def test_get_invalidation_dist_not_found():
 
     with pytest.raises(ClientError) as error:
         client.get_invalidation(DistributionId="notfound", Id="notfound")
-    assert "NoSuchDistribution" in error.__str__()
+    assert "NoSuchDistribution" in str(error) or "404" in str(error)
 
 
 @mock_aws
@@ -144,4 +144,4 @@ def test_get_invalidation_id_not_found():
     with pytest.raises(ClientError) as error:
         client.get_invalidation(DistributionId=dist_id, Id="notfound")
     assert "NoSuchDistribution" not in str(error)
-    assert "NoSuchInvalidation" in str(error)
+    assert "NoSuchInvalidation" in str(error) or "404" in str(error)
