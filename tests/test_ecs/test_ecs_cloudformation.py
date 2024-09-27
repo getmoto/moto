@@ -368,6 +368,7 @@ def test_create_task_definition_through_cloudformation():
     for key, value in expected_properties["containerDefinitions"][0].items():
         assert task_definition["containerDefinitions"][0][key] == value
 
+
 @mock_aws
 def test_cloudformation_container_definition_validation():
     cfn_conn = boto3.client("cloudformation", region_name="us-west-1")
