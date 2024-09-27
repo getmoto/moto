@@ -404,12 +404,16 @@ def test_ldaps_exceptions_non_microsoftad():
     with pytest.raises(ClientError) as exc:
         client.enable_ldaps(DirectoryId=directory_id, Type="Client")
     err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
+    assert err["Code"] == "UnsupportedOperationException"
 
     # Test describe_ldaps_settings on a non-Microsoft AD directory.
     with pytest.raises(ClientError) as exc:
         client.describe_ldaps_settings(DirectoryId=directory_id, Type="Client")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "UnsupportedOperationException"
 
     # Test disable_ldaps on a non-Microsoft AD directory.
     with pytest.raises(ClientError) as exc:
         client.disable_ldaps(DirectoryId=directory_id, Type="Client")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "UnsupportedOperationException"
