@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 
 import boto3
 import pytest
@@ -6,6 +6,7 @@ from botocore.client import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
+
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -229,3 +230,59 @@ def test_delete_schedule_for_none_existing_schedule():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Schedule my-schedule does not exist."
+
+
+@mock_aws
+def test_create_get_schedule__with_start_date():
+    # Arrange
+    expected_start_date = start_date = datetime.now(UTC).replace(microsecond=0)
+
+    # Act
+    client = boto3.client("scheduler", region_name="eu-west-1")
+    client.create_schedule(
+        StartDate=start_date,
+        Name="my-schedule",
+        ScheduleExpression="some cron *",
+        FlexibleTimeWindow={
+            "MaximumWindowInMinutes": 4,
+            "Mode": "OFF",
+        },
+        Target={
+            "Arn": "not supported yet",
+            "RoleArn": "n/a",
+        },
+    )
+
+    # Assert
+    resp = client.get_schedule(Name="my-schedule")
+    start_date_as_utc = datetime.astimezone(resp["StartDate"], UTC)
+    assert start_date_as_utc == expected_start_date
+
+
+@mock_aws
+def test_create_schedule__exception_with_start_date():
+    # Arrange
+    expected_error = "ValidationException"
+    expected_error_message = "The StartDate you specify cannot be earlier than 5 minutes ago."
+
+    # Act
+    with pytest.raises(ClientError) as exc:
+        client = boto3.client("scheduler", region_name="eu-west-1")
+        client.create_schedule(
+            Name="my-schedule",
+            StartDate=datetime.now().strftime("%Y-%m-%d"),
+            ScheduleExpression="some cron *",
+            FlexibleTimeWindow={
+                "MaximumWindowInMinutes": 4,
+                "Mode": "OFF",
+            },
+            Target={
+                "Arn": "not supported yet",
+                "RoleArn": "n/a",
+            },
+        )
+
+    # Assert
+    err = exc.value.response["Error"]
+    assert err["Code"] == expected_error
+    assert err["Message"] == expected_error_message
