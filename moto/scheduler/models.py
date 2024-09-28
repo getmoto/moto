@@ -1,4 +1,5 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
+
 import datetime
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -8,7 +9,12 @@ from moto.core.utils import unix_time, utcfromtimestamp, utcnow
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import ScheduleExists, ScheduleGroupNotFound, ScheduleNotFound, ValidationException
+from .exceptions import (
+    ScheduleExists,
+    ScheduleGroupNotFound,
+    ScheduleNotFound,
+    ValidationException,
+)
 
 
 class Schedule(BaseModel):
@@ -64,7 +70,9 @@ class Schedule(BaseModel):
                 rule = datetime.timedelta(minutes=5)
                 within_rule = diff <= rule
                 if not within_rule:
-                    raise ValidationException(message="The StartDate you specify cannot be earlier than 5 minutes ago.")
+                    raise ValidationException(
+                        message="The StartDate you specify cannot be earlier than 5 minutes ago."
+                    )
         return start_date
 
     def to_dict(self, short: bool = False) -> Dict[str, Any]:

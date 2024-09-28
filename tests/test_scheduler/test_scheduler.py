@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 import boto3
 import pytest
@@ -6,7 +6,6 @@ from botocore.client import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
-
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -263,7 +262,9 @@ def test_create_get_schedule__with_start_date():
 def test_create_schedule__exception_with_start_date():
     # Arrange
     expected_error = "ValidationException"
-    expected_error_message = "The StartDate you specify cannot be earlier than 5 minutes ago."
+    expected_error_message = (
+        "The StartDate you specify cannot be earlier than 5 minutes ago."
+    )
     start_date = datetime.now(UTC) - timedelta(minutes=6)
 
     # Act
