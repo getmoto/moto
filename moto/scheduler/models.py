@@ -1,7 +1,7 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
 
 import datetime
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -59,11 +59,11 @@ class Schedule(BaseModel):
             }
         return target
 
-    def _validate_start_date(self, start_date: Optional[int]) -> Optional[int]:
+    def _validate_start_date(self, start_date: Optional[str]) -> Optional[str]:
         # `.count("*")` means a recurrence expression
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/scheduler/client/create_schedule.html (StartDate parameter)
         if self.schedule_expression.count("*") and start_date is not None:
-            start_date_as_dt = utcfromtimestamp(start_date)
+            start_date_as_dt = utcfromtimestamp(cast(int, start_date))
             now = utcnow()
             if start_date_as_dt.date() == now.date():
                 diff = abs(now - start_date_as_dt)
