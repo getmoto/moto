@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 
 import boto3
 import pytest
@@ -264,13 +264,14 @@ def test_create_schedule__exception_with_start_date():
     # Arrange
     expected_error = "ValidationException"
     expected_error_message = "The StartDate you specify cannot be earlier than 5 minutes ago."
+    start_date = datetime.now(UTC) - timedelta(minutes=6)
 
     # Act
     with pytest.raises(ClientError) as exc:
         client = boto3.client("scheduler", region_name="eu-west-1")
         client.create_schedule(
             Name="my-schedule",
-            StartDate=datetime.now().strftime("%Y-%m-%d"),
+            StartDate=start_date,
             ScheduleExpression="some cron *",
             FlexibleTimeWindow={
                 "MaximumWindowInMinutes": 4,

@@ -59,11 +59,12 @@ class Schedule(BaseModel):
         if self.schedule_expression.count("*") and start_date is not None:
             start_date_as_dt = utcfromtimestamp(start_date)
             now = utcnow()
-            diff = abs(now - start_date_as_dt)
-            rule = datetime.timedelta(minutes=5)
-            within_rule = diff <= rule
-            if not within_rule:
-                raise ValidationException(message="The StartDate you specify cannot be earlier than 5 minutes ago.")
+            if start_date_as_dt.date() == now.date():
+                diff = abs(now - start_date_as_dt)
+                rule = datetime.timedelta(minutes=5)
+                within_rule = diff <= rule
+                if not within_rule:
+                    raise ValidationException(message="The StartDate you specify cannot be earlier than 5 minutes ago.")
         return start_date
 
     def to_dict(self, short: bool = False) -> Dict[str, Any]:
