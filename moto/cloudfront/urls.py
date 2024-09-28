@@ -11,6 +11,7 @@ url_paths = {
     "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)/config$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)/invalidation": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/distribution/(?P<distribution_id>[^/]+)/invalidation/(?P<invalidation_id>[^/]+)": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/tagging$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/origin-access-control$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)$": CloudFrontResponse.dispatch,

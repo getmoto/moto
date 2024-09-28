@@ -103,6 +103,15 @@ class CloudFrontResponse(BaseResponse):
 
         return 200, {}, response
 
+    def get_invalidation(self) -> TYPE_RESPONSE:
+        pathItems = self.path.split("/")
+        dist_id = pathItems[-3]
+        id = pathItems[-1]
+        invalidation = self.backend.get_invalidation(dist_id, id)
+        template = self.response_template(GET_INVALIDATION_TEMPLATE)
+        response = template.render(invalidation=invalidation, xmlns=XMLNS)
+        return 200, {}, response
+
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         resource = unquote(self._get_param("Resource"))
         tags = self.backend.list_tags_for_resource(resource=resource)["Tags"]
@@ -633,6 +642,8 @@ CREATE_INVALIDATION_TEMPLATE = """<?xml version="1.0"?>
   </InvalidationBatch>
 </Invalidation>
 """
+
+GET_INVALIDATION_TEMPLATE = CREATE_INVALIDATION_TEMPLATE
 
 INVALIDATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 <InvalidationList>
