@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import boto3
 import pytest
@@ -6,6 +6,7 @@ from botocore.client import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
+from moto.core.utils import utcnow
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -234,7 +235,7 @@ def test_delete_schedule_for_none_existing_schedule():
 @mock_aws
 def test_create_get_schedule__with_start_date():
     # Arrange
-    expected_start_date = start_date = datetime.now(UTC).replace(microsecond=0)
+    expected_start_date = start_date = utcnow().replace(microsecond=0)
 
     # Act
     client = boto3.client("scheduler", region_name="eu-west-1")
@@ -254,7 +255,9 @@ def test_create_get_schedule__with_start_date():
 
     # Assert
     resp = client.get_schedule(Name="my-schedule")
-    start_date_as_utc = datetime.astimezone(resp["StartDate"], UTC)
+    start_date_as_utc = datetime.astimezone(resp["StartDate"], timezone.utc).replace(
+        tzinfo=None
+    )
     assert start_date_as_utc == expected_start_date
 
 
@@ -265,7 +268,7 @@ def test_create_schedule__exception_with_start_date():
     expected_error_message = (
         "The StartDate you specify cannot be earlier than 5 minutes ago."
     )
-    start_date = datetime.now(UTC) - timedelta(minutes=6)
+    start_date = utcnow() - timedelta(minutes=6)
 
     # Act
     with pytest.raises(ClientError) as exc:
