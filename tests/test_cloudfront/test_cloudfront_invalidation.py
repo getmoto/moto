@@ -129,9 +129,11 @@ def test_get_invalidation():
 def test_get_invalidation_dist_not_found():
     client = boto3.client("cloudfront", region_name="us-west-1")
 
-    with pytest.raises(ClientError) as error:
+    with pytest.raises(ClientError) as exc:
         client.get_invalidation(DistributionId="notfound", Id="notfound")
-    assert "NoSuchDistribution" in str(error) or "404" in str(error)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchDistribution"
+    assert err["Message"] == "The specified distribution does not exist."
 
 
 @mock_aws
@@ -141,7 +143,8 @@ def test_get_invalidation_id_not_found():
     resp = client.create_distribution(DistributionConfig=config)
     dist_id = resp["Distribution"]["Id"]
 
-    with pytest.raises(ClientError) as error:
+    with pytest.raises(ClientError) as exc:
         client.get_invalidation(DistributionId=dist_id, Id="notfound")
-    assert "NoSuchDistribution" not in str(error)
-    assert "NoSuchInvalidation" in str(error) or "404" in str(error)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchInvalidation"
+    assert err["Message"] == "The specified invalidation does not exist."
