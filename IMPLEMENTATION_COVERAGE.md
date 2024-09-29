@@ -1039,7 +1039,7 @@
 
 ## cloudfront
 <details>
-<summary>13% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] associate_alias
 - [ ] copy_distribution
@@ -1093,7 +1093,7 @@
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
 - [ ] get_function
-- [ ] get_invalidation
+- [X] get_invalidation
 - [ ] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription
@@ -2121,7 +2121,7 @@
 
 ## ds
 <details>
-<summary>17% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -2136,12 +2136,12 @@
 - [ ] create_log_subscription
 - [X] create_microsoft_ad
 - [ ] create_snapshot
-- [ ] create_trust
+- [X] create_trust
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
 - [ ] delete_log_subscription
 - [ ] delete_snapshot
-- [ ] delete_trust
+- [X] delete_trust
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
 - [ ] describe_certificate
@@ -2151,21 +2151,21 @@
 - [ ] describe_directory_data_access
 - [ ] describe_domain_controllers
 - [ ] describe_event_topics
-- [ ] describe_ldaps_settings
+- [X] describe_ldaps_settings
 - [ ] describe_regions
 - [ ] describe_settings
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
-- [ ] describe_trusts
+- [X] describe_trusts
 - [ ] describe_update_directory
 - [ ] disable_client_authentication
 - [ ] disable_directory_data_access
-- [ ] disable_ldaps
+- [X] disable_ldaps
 - [ ] disable_radius
 - [X] disable_sso
 - [ ] enable_client_authentication
 - [ ] enable_directory_data_access
-- [ ] enable_ldaps
+- [X] enable_ldaps
 - [ ] enable_radius
 - [X] enable_sso
 - [X] get_directory_limits
@@ -2781,7 +2781,7 @@
 - [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
-- [ ] modify_ebs_default_kms_key_id
+- [X] modify_ebs_default_kms_key_id
 - [ ] modify_fleet
 - [ ] modify_fpga_image_attribute
 - [X] modify_hosts
@@ -4983,7 +4983,7 @@
 
 ## lambda
 <details>
-<summary>58% implemented</summary>
+<summary>63% implemented</summary>
 
 - [ ] add_layer_version_permission
 - [X] add_permission
@@ -5002,7 +5002,6 @@
 - [X] delete_function_url_config
 - [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
-- [ ] delete_resource_policy
 - [ ] get_account_settings
 - [X] get_alias
 - [ ] get_code_signing_config
@@ -5019,8 +5018,6 @@
 - [ ] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
-- [ ] get_public_access_block_config
-- [ ] get_resource_policy
 - [ ] get_runtime_management_config
 - [X] invoke
 - [ ] invoke_async
@@ -5044,8 +5041,6 @@
 - [X] put_function_event_invoke_config
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
-- [ ] put_public_access_block_config
-- [ ] put_resource_policy
 - [ ] put_runtime_management_config
 - [ ] remove_layer_version_permission
 - [X] remove_permission
@@ -5918,6 +5913,26 @@
 - [X] update_policy
 </details>
 
+## osis
+<details>
+<summary>71% implemented</summary>
+
+- [X] create_pipeline
+- [X] delete_pipeline
+- [X] get_pipeline
+- [ ] get_pipeline_blueprint
+- [ ] get_pipeline_change_progress
+- [ ] list_pipeline_blueprints
+- [X] list_pipelines
+- [X] list_tags_for_resource
+- [X] start_pipeline
+- [X] stop_pipeline
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_pipeline
+- [ ] validate_pipeline
+</details>
+
 ## panorama
 <details>
 <summary>23% implemented</summary>
@@ -6287,6 +6302,7 @@
 - [ ] describe_ip_restriction
 - [ ] describe_key_registration
 - [ ] describe_namespace
+- [ ] describe_q_personalization_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
 - [ ] describe_template
@@ -6372,6 +6388,7 @@
 - [ ] update_ip_restriction
 - [ ] update_key_registration
 - [ ] update_public_sharing_settings
+- [ ] update_q_personalization_configuration
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
 - [ ] update_spice_capacity_configuration
@@ -9142,7 +9159,6 @@
 - oam
 - omics
 - opsworkscm
-- osis
 - outposts
 - payment-cryptography
 - payment-cryptography-data
@@ -9213,7 +9229,6 @@
 - wellarchitected
 - wisdom
 - workdocs
-- worklink
 - workmail
 - workmailmessageflow
 - workspaces-thin-client
