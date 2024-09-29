@@ -81,7 +81,7 @@ cloudfront
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
 - [ ] get_function
-- [ ] get_invalidation
+- [X] get_invalidation
 - [ ] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription

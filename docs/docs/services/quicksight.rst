@@ -95,6 +95,7 @@ quicksight
 - [ ] describe_ip_restriction
 - [ ] describe_key_registration
 - [ ] describe_namespace
+- [ ] describe_q_personalization_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
 - [ ] describe_template
@@ -197,6 +198,7 @@ quicksight
 - [ ] update_ip_restriction
 - [ ] update_key_registration
 - [ ] update_public_sharing_settings
+- [ ] update_q_personalization_configuration
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
 - [ ] update_spice_capacity_configuration

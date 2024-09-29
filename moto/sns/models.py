@@ -1137,7 +1137,7 @@ class SNSBackend(BaseBackend):
         self, topic_arn: str, publish_batch_request_entries: List[Dict[str, Any]]
     ) -> Tuple[List[Dict[str, str]], List[Dict[str, Any]]]:
         """
-        The MessageDeduplicationId-parameters have not yet been implemented.
+        The MessageDeduplicationId-parameter has not yet been implemented.
         """
         topic = self.get_topic(topic_arn)
 
