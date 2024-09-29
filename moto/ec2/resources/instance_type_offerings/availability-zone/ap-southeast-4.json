@@ -552,6 +552,10 @@
   "Location": "ap-southeast-4a"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "ap-southeast-4b"
  },

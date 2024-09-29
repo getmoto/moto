@@ -101,6 +101,7 @@ if TYPE_CHECKING:
     from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
     from moto.opsworks.models import OpsWorksBackend
     from moto.organizations.models import OrganizationsBackend
+    from moto.osis.models import OpenSearchIngestionBackend
     from moto.personalize.models import PersonalizeBackend
     from moto.pinpoint.models import PinpointBackend
     from moto.polly.models import PollyBackend
@@ -280,6 +281,7 @@ SERVICE_NAMES = Union[
     "Literal['opensearchserverless']",
     "Literal['opsworks']",
     "Literal['organizations']",
+    "Literal['osis']",
     "Literal['personalize']",
     "Literal['pinpoint']",
     "Literal['polly']",
@@ -591,6 +593,10 @@ def get_backend(
 ) -> "BackendDict[OpenSearchServiceServerlessBackend]": ...
 @overload
 def get_backend(name: "Literal['opsworks']") -> "BackendDict[OpsWorksBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['osis']",
+) -> "BackendDict[OpenSearchIngestionBackend]": ...
 @overload
 def get_backend(
     name: "Literal['organizations']",

@@ -276,7 +276,6 @@ def test_create_schedule__exception_with_start_date(start_date):
     expected_error_message = (
         "The StartDate you specify cannot be earlier than 5 minutes ago."
     )
-
     # Act
     with pytest.raises(ClientError) as exc:
         client = boto3.client("scheduler", region_name="eu-west-1")

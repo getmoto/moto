@@ -552,6 +552,10 @@
   "Location": "apse4-az1"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "apse4-az1"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "apse4-az2"
  },

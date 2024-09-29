@@ -46,7 +46,6 @@ lambda
 
 - [X] delete_layer_version
 - [ ] delete_provisioned_concurrency_config
-- [ ] delete_resource_policy
 - [ ] get_account_settings
 - [X] get_alias
 - [ ] get_code_signing_config
@@ -67,8 +66,6 @@ lambda
 - [ ] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
-- [ ] get_public_access_block_config
-- [ ] get_resource_policy
 - [ ] get_runtime_management_config
 - [X] invoke
   
@@ -129,8 +126,6 @@ lambda
 - [X] put_function_event_invoke_config
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
-- [ ] put_public_access_block_config
-- [ ] put_resource_policy
 - [ ] put_runtime_management_config
 - [ ] remove_layer_version_permission
 - [X] remove_permission
