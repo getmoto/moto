@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.16
 -----
-Docker Digest for 5.0.16: <autopopulateddigest>
+Docker Digest for 5.0.16: _sha256:9506ad3448a87082a436533855c61afaf3f1869e73f39f6575917db975569908_
 
     New Services:
         * OpenSearch Ingestion Service:
