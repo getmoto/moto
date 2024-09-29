@@ -65,8 +65,8 @@ class Schedule(BaseModel):
         if self.schedule_expression.count("*") and start_date is not None:
             start_date_as_dt = utcfromtimestamp(cast(int, start_date))
             now = utcnow()
-            if start_date_as_dt.date() == now.date():
-                diff = abs(now - start_date_as_dt)
+            if start_date_as_dt < now:
+                diff = now - start_date_as_dt
                 rule = datetime.timedelta(minutes=5)
                 within_rule = diff <= rule
                 if not within_rule:
