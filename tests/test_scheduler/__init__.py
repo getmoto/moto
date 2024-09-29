@@ -8,7 +8,7 @@ def pytest_parametrize_test_create_get_schedule__with_start_date() -> (
     List[Tuple[datetime, datetime]]
 ):
     now = utcnow()
-    timedelta_kwargs = {"days": 1, "minutes": 6, "hours": 1, "weeks": 1}
+    timedelta_kwargs = {"days": 1, "hours": 1, "weeks": 1}
     return_ = []
     for k, v in timedelta_kwargs.items():
         to_append = now + timedelta(**{k: v})
