@@ -550,5 +550,9 @@
  {
   "InstanceType": "t4g.xlarge",
   "Location": "ap-southeast-4"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "ap-southeast-4"
  }
 ]
