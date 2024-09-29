@@ -1,7 +1,6 @@
 """Handles incoming osis requests, invokes methods, returns responses."""
 
 import json
-from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -69,10 +68,8 @@ class OpenSearchIngestionResponse(BaseResponse):
         )
 
     def list_tags_for_resource(self) -> str:
-        arn = unquote(self.path).split("tags/")[-1]
-        tags = self.osis_backend.list_tags_for_resource(
-            arn=arn,
-        )
+        arn = self._get_param("arn")
+        tags = self.osis_backend.list_tags_for_resource(arn=arn)
         return json.dumps(dict(tags))
 
     def update_pipeline(self) -> str:
@@ -98,7 +95,7 @@ class OpenSearchIngestionResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
-        arn = params.get("Arn")
+        arn = self._get_param("arn")
         tags = params.get("Tags")
         self.osis_backend.tag_resource(
             arn=arn,
@@ -108,7 +105,7 @@ class OpenSearchIngestionResponse(BaseResponse):
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
-        arn = params.get("Arn")
+        arn = self._get_param("arn")
         tag_keys = params.get("TagKeys")
         self.osis_backend.untag_resource(
             arn=arn,

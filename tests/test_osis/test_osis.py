@@ -1,10 +1,13 @@
 """Unit tests for osis-supported APIs."""
 
+import json
+
 import boto3
 import pytest
+import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.moto_api import state_manager
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -28,9 +31,7 @@ BASIC_PIPELINE_KWARGS = {
 
 @mock_aws
 def test_create_pipeline():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "immediate"}
-    )
+    set_transition()
     client = boto3.client("osis", region_name="eu-west-1")
     resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
     assert resp["PipelineName"] == "test"
@@ -191,9 +192,7 @@ def test_create_pipeline():
 
 @mock_aws
 def test_create_pipeline_customer_endpoint():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
+    set_transition({"progression": "manual", "times": 1})
     client = boto3.client("osis", region_name="eu-west-1")
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24")
@@ -232,9 +231,7 @@ def test_create_pipeline_customer_endpoint():
 
 @mock_aws
 def test_create_pipeline_error():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "immediate"}
-    )
+    set_transition()
     client = boto3.client("osis", region_name="eu-west-1")
     kwargs = {
         "PipelineName": "test",
@@ -294,9 +291,7 @@ def test_create_pipeline_error():
 
 @mock_aws
 def test_update_pipeline():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "immediate"}
-    )
+    set_transition()
     client = boto3.client("osis", region_name="eu-west-1")
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
     vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24")
@@ -358,9 +353,7 @@ def test_update_pipeline():
 
 @mock_aws
 def test_update_pipeline_all_args():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
+    set_transition({"progression": "manual", "times": 1})
     client = boto3.client("osis", region_name="eu-west-1")
     kwargs = {
         "PipelineName": "test",
@@ -425,9 +418,7 @@ def test_update_pipeline_all_args():
 
 @mock_aws
 def test_update_pipeline_error():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
+    set_transition({"progression": "manual", "times": 1})
     client = boto3.client("osis", region_name="eu-west-1")
     client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
     with pytest.raises(ClientError) as exc:
@@ -448,9 +439,7 @@ def test_update_pipeline_error():
 
 @mock_aws
 def test_delete_pipeline():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 2}
-    )
+    set_transition({"progression": "manual", "times": 2})
     client = boto3.client("osis", region_name="eu-west-1")
     original = client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
     for _ in range(2):
@@ -466,9 +455,7 @@ def test_delete_pipeline():
 
 @mock_aws
 def test_delete_pipeline_error():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
+    set_transition({"progression": "manual", "times": 1})
     client = boto3.client("osis", region_name="eu-west-1")
 
     with pytest.raises(ClientError) as exc:
@@ -490,9 +477,6 @@ def test_delete_pipeline_error():
 
 @mock_aws
 def test_get_pipeline():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
     client = boto3.client("osis", region_name="eu-west-1")
     client.create_pipeline(**BASIC_PIPELINE_KWARGS)["Pipeline"]
     resp = client.get_pipeline(PipelineName=BASIC_PIPELINE_KWARGS["PipelineName"])[
@@ -621,9 +605,6 @@ def test_get_pipeline():
 
 @mock_aws
 def test_get_pipeline_error():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
     client = boto3.client("osis", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
         client.get_pipeline(PipelineName="test")
@@ -634,9 +615,7 @@ def test_get_pipeline_error():
 
 @mock_aws
 def test_list_pipelines():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 1}
-    )
+    set_transition({"progression": "manual", "times": 1})
     client = boto3.client("osis", region_name="ap-southeast-1")
     resp = client.list_pipelines()
     assert resp["Pipelines"] == []
@@ -678,7 +657,9 @@ def test_list_pipelines():
 @mock_aws
 def test_list_tags_for_resource():
     client = boto3.client("osis", region_name="eu-west-1")
-    resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS, Tags=[{"Key": "TestKey", "Value": "TestValue"}])["Pipeline"]
+    resp = client.create_pipeline(
+        **BASIC_PIPELINE_KWARGS, Tags=[{"Key": "TestKey", "Value": "TestValue"}]
+    )["Pipeline"]
     tags = client.list_tags_for_resource(Arn=resp["PipelineArn"])["Tags"]
     assert tags[0]["Key"] == "TestKey"
     assert tags[0]["Value"] == "TestValue"
@@ -686,9 +667,7 @@ def test_list_tags_for_resource():
 
 @mock_aws
 def test_stop_pipeline():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 2}
-    )
+    set_transition({"progression": "manual", "times": 2})
     client = boto3.client("osis", region_name="eu-west-1")
     client.create_pipeline(**BASIC_PIPELINE_KWARGS)
 
@@ -715,9 +694,7 @@ def test_stop_pipeline():
 
 @mock_aws
 def test_start_pipeline():
-    state_manager.set_transition(
-        model_name="osis::pipeline", transition={"progression": "manual", "times": 2}
-    )
+    set_transition({"progression": "manual", "times": 2})
     client = boto3.client("osis", region_name="eu-west-1")
     client.create_pipeline(**BASIC_PIPELINE_KWARGS)
 
@@ -753,14 +730,31 @@ def test_tag_resource():
     client.tag_resource(
         Arn=resp["PipelineArn"], Tags=[{"Key": "TestKey", "Value": "TestValue"}]
     )
-    resp = client.get_pipeline(PipelineName=BASIC_PIPELINE_KWARGS["PipelineName"])["Pipeline"]
+    resp = client.get_pipeline(PipelineName=BASIC_PIPELINE_KWARGS["PipelineName"])[
+        "Pipeline"
+    ]
     assert resp["Tags"] == [{"Key": "TestKey", "Value": "TestValue"}]
 
 
 @mock_aws
 def test_untag_resource():
     client = boto3.client("osis", region_name="eu-west-1")
-    resp = client.create_pipeline(**BASIC_PIPELINE_KWARGS, Tags=[{"Key": "TestKey", "Value": "TestValue"}])["Pipeline"]
+    resp = client.create_pipeline(
+        **BASIC_PIPELINE_KWARGS, Tags=[{"Key": "TestKey", "Value": "TestValue"}]
+    )["Pipeline"]
     client.untag_resource(Arn=resp["PipelineArn"], TagKeys=["TestKey"])
-    resp = client.get_pipeline(PipelineName=BASIC_PIPELINE_KWARGS["PipelineName"])["Pipeline"]
+    resp = client.get_pipeline(PipelineName=BASIC_PIPELINE_KWARGS["PipelineName"])[
+        "Pipeline"
+    ]
     assert resp["Tags"] == []
+
+
+def set_transition(transition={"progression": "immediate"}):
+    if settings.TEST_DECORATOR_MODE:
+        state_manager.set_transition(model_name="osis::pipeline", transition=transition)
+    else:
+        post_body = dict(model_name="osis::pipeline", transition=transition)
+        requests.post(
+            "http://localhost:5000/moto-api/state-manager/set-transition",
+            data=json.dumps(post_body),
+        )

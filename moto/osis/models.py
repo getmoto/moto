@@ -1,15 +1,12 @@
 """OpenSearchIngestionBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
 
 import yaml
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.ec2 import ec2_backends
-from moto.ec2.exceptions import InvalidSubnetIdError
-from moto.ec2.models import EC2Backend
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.paginator import paginate
@@ -24,6 +21,9 @@ from .exceptions import (
     SecurityGroupNotFoundException,
     SubnetNotFoundException,
 )
+
+if TYPE_CHECKING:
+    from moto.ec2.models import EC2Backend
 
 
 class Pipeline(ManagedState, BaseModel):
@@ -57,12 +57,12 @@ class Pipeline(ManagedState, BaseModel):
         vpc_options: Optional[Dict[str, Any]],
         buffer_options: Optional[Dict[str, Any]],
         encryption_at_rest_options: Optional[Dict[str, Any]],
-        tags: Optional[List[Dict[str, str]]],
         ingest_endpoint_urls: List[str],
         serverless: bool,
         vpc_endpoint_service: Optional[str],
         vpc_endpoint: Optional[str],
         vpc_id: Optional[str],
+        backend: "OpenSearchIngestionBackend",
     ):
         ManagedState.__init__(
             self,
@@ -87,12 +87,12 @@ class Pipeline(ManagedState, BaseModel):
         self.vpc_options = vpc_options
         self.buffer_options = buffer_options
         self.encryption_at_rest_options = encryption_at_rest_options
-        self.tags = tags if tags is not None else []
         self.ingest_endpoint_urls = ingest_endpoint_urls
         self.serverless = serverless
         self.vpc_endpoint_service = vpc_endpoint_service
         self.vpc_endpoint = vpc_endpoint
         self.vpc_id = vpc_id
+        self.backend = backend
 
         self.status = "CREATING"
         self.arn = self._get_arn(self.pipeline_name)
@@ -239,7 +239,7 @@ class Pipeline(ManagedState, BaseModel):
             "VpcEndpointService": self.vpc_endpoint_service,
             "ServiceVpcEndpoints": self.service_vpc_endpoints,
             "Destinations": self.destinations,
-            "Tags": self.tags,
+            "Tags": self.backend.list_tags_for_resource(self.arn)["Tags"],
         }
 
     def to_short_dict(self) -> Dict[str, Any]:
@@ -255,7 +255,7 @@ class Pipeline(ManagedState, BaseModel):
             "CreatedAt": self.get_created_at(),
             "LastUpdatedAt": self.get_last_updated_at(),
             "Destinations": self.destinations,
-            "Tags": self.tags,
+            "Tags": self.backend.list_tags_for_resource(self.arn)["Tags"],
         }
 
 
@@ -290,12 +290,12 @@ class OpenSearchIngestionBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._pipelines: Dict[str, Pipeline] = dict()
-        self.tagger = TaggingService(
-            tag_name="Tags", key_name="Key", value_name="Value"
-        )
+        self.tagger = TaggingService()
 
     @property
-    def ec2_backend(self) -> EC2Backend:  # type: ignore[misc]
+    def ec2_backend(self) -> "EC2Backend":  # type: ignore[misc]
+        from moto.ec2 import ec2_backends
+
         return ec2_backends[self.account_id][self.region_name]
 
     @property
@@ -342,6 +342,8 @@ class OpenSearchIngestionBackend(BaseBackend):
         return f"com.amazonaws.osis.{self.region_name}.{pipeline_name}-{endpoint_random_string}"
 
     def _validate_and_get_vpc(self, vpc_options: Dict[str, Any]) -> str:
+        from moto.ec2.exceptions import InvalidSubnetIdError
+
         vpc_id = ""
         for subnet_id in vpc_options["SubnetIds"]:
             try:
@@ -407,12 +409,12 @@ class OpenSearchIngestionBackend(BaseBackend):
             vpc_options,
             buffer_options,
             encryption_at_rest_options,
-            tags,
             ingestion_endpoint_urls,
             serverless,
             endpoint_service,
             vpc_endpoint,
             vpc_id,
+            backend=self,
         )
         self.pipelines[pipeline_name] = pipeline
         self.tag_resource(pipeline.arn, tags)
