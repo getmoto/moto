@@ -22,7 +22,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
         },
         {
             "Email": "authoremail@example.com",
-            "UserName": "QuickSightAuthor/authoremail@example.com",
+            "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
         },
@@ -64,7 +64,7 @@ def test_register_user__quicksight(request_params):
         },
         {
             "Email": "authoremail@example.com",
-            "UserName": "QuickSightAuthor/authoremail@example.com",
+            "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
         },
@@ -111,7 +111,7 @@ def test_describe_user__quicksight(request_params):
         },
         {
             "Email": "authoremail@example.com",
-            "UserName": "QuickSightAuthor/authoremail@example.com",
+            "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
         },
@@ -172,7 +172,7 @@ def test_list_users():
             Namespace="default",
             Email=f"fakeemail{i}@example.com",
             IdentityType="IAM",
-            UserName=f"QuickSightAuthor/fakeemail{i}@example.com",
+            UserName=f"fakeemail{i}@example.com",
             UserRole="AUTHOR",
         )
 
@@ -193,8 +193,8 @@ def test_list_users():
     } in resp["UserList"]
 
     assert {
-        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/QuickSightAuthor/fakeemail3@example.com",
-        "UserName": "QuickSightAuthor/fakeemail3@example.com",
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fakeemail3@example.com",
+        "UserName": "fakeemail3@example.com",
         "Email": "fakeemail3@example.com",
         "Role": "AUTHOR",
         "IdentityType": "IAM",
@@ -214,7 +214,7 @@ def test_list_users():
         },
         {
             "Email": "authoremail@example.com",
-            "UserName": "QuickSightAuthor/authoremail@example.com",
+            "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
             "GroupName": "group.2",
@@ -264,7 +264,7 @@ def test_create_group_membership(request_params):
         },
         {
             "Email": "authoremail@example.com",
-            "UserName": "QuickSightAuthor/authoremail@example.com",
+            "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
             "GroupName": "group.2",
@@ -327,7 +327,7 @@ def test_list_group_memberships():
             Namespace="default",
             Email=f"fakeemail{i}@example.com",
             IdentityType="IAM",
-            UserName=f"QuickSightAuthor/fakeemail{i}@example.com",
+            UserName=f"fakeemail{i}@example.com",
             UserRole="AUTHOR",
         )
 
@@ -345,7 +345,7 @@ def test_list_group_memberships():
         Namespace="default",
     )
     client.create_group_membership(
-        MemberName="QuickSightAuthor/fakeemail2@example.com",
+        MemberName="fakeemail2@example.com",
         GroupName="group1",
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
@@ -369,8 +369,8 @@ def test_list_group_memberships():
         "MemberName": "user0",
     } in resp["GroupMemberList"]
     assert {
-        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/QuickSightAuthor/fakeemail2@example.com",
-        "MemberName": "QuickSightAuthor/fakeemail2@example.com",
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group1/fakeemail2@example.com",
+        "MemberName": "fakeemail2@example.com",
     } in resp["GroupMemberList"]
 
     resp = client.list_group_memberships(
@@ -413,11 +413,11 @@ def test_list_group_memberships__after_deleting_user():
             Namespace="default",
             Email=f"fakeemail{i}@example.com",
             IdentityType="IAM",
-            UserName=f"QuickSightAuthor/fakeemail{i}@example.com",
+            UserName=f"fakeemail{i}@example.com",
             UserRole="AUTHOR",
         )
         client.create_group_membership(
-            MemberName=f"QuickSightAuthor/fakeemail{i}@example.com",
+            MemberName=f"fakeemail{i}@example.com",
             GroupName="group1",
             AwsAccountId=ACCOUNT_ID,
             Namespace="default",
@@ -430,7 +430,7 @@ def test_list_group_memberships__after_deleting_user():
 
     client.delete_user(UserName="user1", AwsAccountId=ACCOUNT_ID, Namespace="default")
     client.delete_user(
-        UserName="QuickSightAuthor/fakeemail2@example.com",
+        UserName="fakeemail2@example.com",
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
     )
