@@ -209,8 +209,11 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
 def test_create_role_and_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
+    assume_role_policy_document = {"value": "some policy"}
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument=json.dumps(assume_role_policy_document),
+        Path="/my-path/",
     )
 
     conn.add_role_to_instance_profile(
@@ -219,7 +222,7 @@ def test_create_role_and_instance_profile():
 
     role = conn.get_role(RoleName="my-role")["Role"]
     assert role["Path"] == "/my-path/"
-    assert role["AssumeRolePolicyDocument"] == "some policy"
+    assert role["AssumeRolePolicyDocument"] == assume_role_policy_document
 
     profile = conn.get_instance_profile(InstanceProfileName="my-profile")[
         "InstanceProfile"
