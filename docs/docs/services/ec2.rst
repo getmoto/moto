@@ -549,7 +549,7 @@ ec2
 - [ ] modify_capacity_reservation_fleet
 - [ ] modify_client_vpn_endpoint
 - [ ] modify_default_credit_specification
-- [ ] modify_ebs_default_kms_key_id
+- [X] modify_ebs_default_kms_key_id
 - [ ] modify_fleet
 - [ ] modify_fpga_image_attribute
 - [X] modify_hosts

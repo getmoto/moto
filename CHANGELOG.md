@@ -1,6 +1,53 @@
 Moto Changelog
 ==============
 
+5.0.16
+-----
+Docker Digest for 5.0.16: _sha256:9506ad3448a87082a436533855c61afaf3f1869e73f39f6575917db975569908_
+
+    New Services:
+        * OpenSearch Ingestion Service:
+            * create_pipeline()
+            * delete_pipeline()
+            * get_pipeline()
+            * list_pipelines()
+            * list_tags_for_resource()
+            * start_pipeline()
+            * stop_pipeline()
+            * tag_resource()
+            * untag_resource()
+            * update_pipeline()
+
+    New Methods:
+        * CloudFront:
+            * get_invalidation()
+
+        * Directory Service:
+            * create_trust()
+            * delete_trust()
+            * describe_ldaps_settings()
+            * describe_trusts()
+            * disable_ldaps()
+            * enable_ldaps()
+
+        * EC2: 
+            * modify_ebs_default_kms_key_id()
+
+    Miscellaneous:
+        * CloudFormation: AWS::ECS::TaskDefinition now correctly validates the provided memory parameters
+        * EC2: create_network_acl_entry() now supports the Ipv6CidrBlock-parameter 
+        * EC2: create_tags() now takes existing tags into account before throwing a TagLimitExceeded-exception
+        * Firehose: put_record_batch() no longer fails when the SnowflakeDestinationConfiguration-parameter is set
+        * FSx: The FileSystemID now uses the same pattern as AWS (fs-xxxxxxxx)
+        * GuardDuty: create_detector() now supports the Features-parameter
+        * Polly has been updated with the latest voices
+        * RDS: modify_option_groups() now correctly parses OptionsToInclude
+        * ResourceGroupsTaggingAPI: get_resources() now supports EC2 NAT Gateways, route tables, subnets
+        * Scheduler: create_chedule() now validates the start_date-parameter for recurrent schedule expressions
+        * SNS: publish() and publish_batch now support MessageStructure=json
+        * WAFv2: associate_web_acl() now allows any resource to be associated
+
+
 5.0.15
 -----
 Docker Digest for 5.0.15: _sha256:9d78f63668017ca6eb9bdb415418d8077e1e503a1e81edb4657f93cf7ff34be1_

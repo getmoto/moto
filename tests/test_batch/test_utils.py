@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 import pytest
 
 from moto.batch.exceptions import ValidationError
+from moto.batch.models import Job
 from moto.batch.utils import JobStatus
 
 
@@ -67,3 +70,14 @@ def test_JobStatus_status_transitions():
         else:
             assert before_status == JobStatus.STARTING
             assert after_status == JobStatus.RUNNING
+
+
+@patch.object(Job, "__init__", lambda self, *args, **kwargs: None)
+def test_add_parameters_to_command():
+    _parameters = {"dossier_md5": "abc", "study_id": "T123BC00001"}
+    _command = ["--dossier_md5", "Ref::dossier_md5", "--study_id", "Ref::study_id"]
+
+    job = Job()  # noqa
+    job.parameters = _parameters
+    output = job._add_parameters_to_command(command=_command)
+    assert output == ["--dossier_md5", "abc", "--study_id", "T123BC00001"]

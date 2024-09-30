@@ -24,6 +24,8 @@ Development Releases
 
 Every commit should result in a development release, marked as `Pre-releases in PyPi <https://pypi.org/project/moto/#history>`_ and with the `latest`-tag `in DockerHub <https://hub.docker.com/r/motoserver/moto/tags>`_.
 
+Note that old development releases will be periodically deleted. There is a limit on how much disk space we can use on PyPi, and we've already hit that limit in the past because of the large number of dev releases we do - deleting old development releases is the only way to keep disk usage under control.
+
 
 Versioning scheme
 ----------------------

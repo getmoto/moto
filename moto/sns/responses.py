@@ -346,6 +346,7 @@ class SNSResponse(BaseResponse):
         subject = self._get_param("Subject")
         message_group_id = self._get_param("MessageGroupId")
         message_deduplication_id = self._get_param("MessageDeduplicationId")
+        message_structure = self._get_param("MessageStructure")
 
         message_attributes = self._parse_message_attributes()
 
@@ -375,6 +376,7 @@ class SNSResponse(BaseResponse):
                 message_attributes=message_attributes,
                 group_id=message_group_id,
                 deduplication_id=message_deduplication_id,
+                message_structure=message_structure,
             )
         except ValueError as err:
             error_response = self._error("InvalidParameter", str(err))

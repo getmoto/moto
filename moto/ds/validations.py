@@ -32,6 +32,8 @@ def validate_args(validators: Any) -> None:
         "connectSettings.customerUserName": validate_user_name,
         "userName": validate_user_name,
         "vpcSettings.subnetIds": validate_subnet_ids,
+        "trustDirection": validate_trust_direction,
+        "remoteDomainName": validate_remote_domain_name,
     }
     err_msgs = []
     # This eventually could be a switch (python 3.10), elminating the need
@@ -146,4 +148,21 @@ def validate_user_name(value: str) -> str:
     username_pattern = r"^[a-zA-Z0-9._-]+$"
     if value and not re.match(username_pattern, value):
         return rf"satisfy regular expression pattern: {username_pattern}"
+    return ""
+
+
+def validate_trust_direction(value: str) -> str:
+    """Raise exception if trust direction fails to match constraints."""
+    if value not in ["One-Way: Outgoing", "One-Way: Incoming", "Two-Way"]:
+        return "satisfy enum value set: [One-Way: Outgoing, One-Way: Incoming, Two-Way]"
+    return ""
+
+
+def validate_remote_domain_name(value: str) -> str:
+    """Raise exception if remote domain name fails to match constraints."""
+    domain_name_pattern = r"^([a-zA-Z0-9]+[\\.-])+([a-zA-Z0-9])+[.]?$"
+    if not re.match(domain_name_pattern, value):
+        return rf"satisfy regular expression pattern: {domain_name_pattern}"
+    elif len(value) > 1024:
+        return "have length less than or equal to 1024"
     return ""

@@ -2500,3 +2500,114 @@ def test_filtering_message_body_nested_multiple_records_match():
     assert message_attributes == [{"match": {"Type": "String", "Value": "body"}}]
     message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
     assert message_bodies == [payload]
+
+
+@mock_aws
+def test_publish_with_message_structure_json():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "default": "message",
+                "sqs": "queue-message",
+            }
+        ),
+        MessageStructure="json",
+    )
+
+    queue_message = json.loads(queue.receive_messages()[0].body)
+    assert queue_message["Message"] == "queue-message"
+
+
+@mock_aws
+def test_publish_with_message_structure_json_fallback_to_default():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "default": "message",
+                "email": "email-message",
+            }
+        ),
+        MessageStructure="json",
+    )
+
+    queue_message = json.loads(queue.receive_messages()[0].body)
+    assert queue_message["Message"] == "message"
+
+
+@mock_aws
+def test_publish_with_message_structure_errors():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    try:
+        topic.publish(
+            Message="invalid-json",
+            MessageStructure="json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Message"] == "Message is not valid JSON."
+
+    try:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "email": "email-message",
+                }
+            ),
+            MessageStructure="json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert (
+            err.response["Error"]["Message"]
+            == "Message does not contain sqs or default keys."
+        )
+
+    try:
+        topic.publish(
+            Message="no-json-structure",
+            MessageStructure="no-json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert (
+            err.response["Error"]["Message"]
+            == "MessageStructure must be 'json' if provided"
+        )
