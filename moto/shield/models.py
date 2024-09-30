@@ -14,7 +14,6 @@ from moto.shield.exceptions import (
     InvalidResourceException,
     ResourceAlreadyExistsException,
     ResourceNotFoundException,
-    SubscriptionNotFoundError,
     ValidationException,
 )
 from moto.utilities.tagging_service import TaggingService
@@ -329,7 +328,7 @@ class ShieldBackend(BaseBackend):
 
     def describe_subscription(self) -> Subscription:
         if self.subscription is None:
-            raise SubscriptionNotFoundError()
+            raise ResourceNotFoundException("The subscription does not exist.")
         return self.subscription
 
 
