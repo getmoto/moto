@@ -745,10 +745,21 @@ class Role(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
+        assume_role_policy_document = properties["AssumeRolePolicyDocument"]
+        if not isinstance(assume_role_policy_document, str):
+
+            def _serialize_datetime(value):
+                if isinstance(value, datetime):
+                    return value.strftime("%Y-%m-%d")
+
+            assume_role_policy_document = json.dumps(
+                assume_role_policy_document, default=_serialize_datetime
+            )
+
         iam_backend = iam_backends[account_id][get_partition(region_name)]
         role = iam_backend.create_role(
             role_name=role_name,
-            assume_role_policy_document=properties["AssumeRolePolicyDocument"],
+            assume_role_policy_document=assume_role_policy_document,
             path=properties.get("Path", "/"),
             permissions_boundary=properties.get("PermissionsBoundary", ""),
             description=properties.get("Description", ""),
