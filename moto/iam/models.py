@@ -101,6 +101,12 @@ def mark_account_as_visited(
         pass
 
 
+def _serialize_version_datetime(value: Any) -> str:
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    raise TypeError("Unable to serialize value.")
+
+
 LIMIT_KEYS_PER_USER = 2
 
 
@@ -747,13 +753,8 @@ class Role(CloudFormationModel):
 
         assume_role_policy_document = properties["AssumeRolePolicyDocument"]
         if not isinstance(assume_role_policy_document, str):
-
-            def _serialize_datetime(value):
-                if isinstance(value, datetime):
-                    return value.strftime("%Y-%m-%d")
-
             assume_role_policy_document = json.dumps(
-                assume_role_policy_document, default=_serialize_datetime
+                assume_role_policy_document, default=_serialize_version_datetime
             )
 
         iam_backend = iam_backends[account_id][get_partition(region_name)]
