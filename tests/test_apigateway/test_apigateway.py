@@ -1522,35 +1522,45 @@ def test_get_api_key_include_value():
 
 
 @mock_aws
-def test_get_api_keys_include_values():
+def test_get_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "01234567890123456789"
-    apikey_name = "TESTKEY1"
-    payload = {"value": apikey_value, "name": apikey_name}
+    client.create_api_key(name="TESTKEY1", value="01234567890123456789")
+    client.create_api_key(name="TESTKEY2", value="01234567890123456789123")
 
-    apikey_value2 = "01234567890123456789123"
-    apikey_name2 = "TESTKEY1"
-    payload2 = {"value": apikey_value2, "name": apikey_name2}
-
-    client.create_api_key(**payload)
-    client.create_api_key(**payload2)
-
+    # Test without includeValues
     response = client.get_api_keys()
     assert len(response["items"]) == 2
     for api_key in response["items"]:
         assert "value" not in api_key
 
+    # Test with includeValues=True
     response = client.get_api_keys(includeValues=True)
     assert len(response["items"]) == 2
     for api_key in response["items"]:
         assert "value" in api_key
 
+    # Test with includeValues=False
     response = client.get_api_keys(includeValues=False)
     assert len(response["items"]) == 2
     for api_key in response["items"]:
         assert "value" not in api_key
+
+    # Test with nameQuery
+    response = client.get_api_keys(nameQuery="TESTKEY1")
+    assert len(response["items"]) == 1
+    assert response["items"][0]["name"] == "TESTKEY1"
+
+    # Test with nameQuery and includeValues
+    response = client.get_api_keys(nameQuery="TESTKEY2", includeValues=True)
+    assert len(response["items"]) == 1
+    assert response["items"][0]["name"] == "TESTKEY2"
+    assert "value" in response["items"][0]
+
+    # Test with non-matching nameQuery
+    response = client.get_api_keys(nameQuery="NONEXISTENT")
+    assert len(response["items"]) == 0
 
 
 @mock_aws

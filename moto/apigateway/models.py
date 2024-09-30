@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlparse
+from typing import List, Optional
 
 import requests
 import responses
@@ -2150,8 +2151,32 @@ class APIGatewayBackend(BaseBackend):
         self.keys[key.id] = key
         return key
 
-    def get_api_keys(self) -> List[ApiKey]:
-        return list(self.keys.values())
+    def get_api_keys(self, name_query=None, include_values=False, **kwargs):
+        all_keys = list(self.keys.values())
+
+        if name_query:
+            filtered_keys = [key for key in all_keys if name_query.lower() in key.name.lower()]
+        else:
+            filtered_keys = all_keys
+
+        response = {
+            "items": [
+                {
+                    "id": key.id,
+                    "name": key.name,
+                    "description": key.description,
+                    "enabled": key.enabled,
+                    "createdDate": key.created_date.strftime("%s"),
+                    "lastUpdatedDate": key.last_updated_date.strftime("%s"),
+                    "stageKeys": key.stage_keys,
+                    **({"value": key.value} if include_values else {})
+                }
+                for key in filtered_keys
+            ],
+            "position": None,  # Implement pagination if needed
+        }
+
+        return response
 
     def get_api_key(self, api_key_id: str) -> ApiKey:
         if api_key_id not in self.keys:
