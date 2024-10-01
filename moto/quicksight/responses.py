@@ -1,6 +1,7 @@
 """Handles incoming quicksight requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -42,7 +43,7 @@ class QuickSightResponse(BaseResponse):
         aws_account_id = self.path.split("/")[-7]
         namespace = self.path.split("/")[-5]
         group_name = self.path.split("/")[-3]
-        user_name = self.path.split("/")[-1]
+        user_name = unquote(self.path.split("/")[-1])
         member = self.quicksight_backend.create_group_membership(
             aws_account_id, namespace, group_name, user_name
         )
@@ -58,7 +59,7 @@ class QuickSightResponse(BaseResponse):
         aws_account_id = self.path.split("/")[-7]
         namespace = self.path.split("/")[-5]
         group_name = self.path.split("/")[-3]
-        user_name = self.path.split("/")[-1]
+        user_name = unquote(self.path.split("/")[-1])
         member = self.quicksight_backend.describe_group_membership(
             aws_account_id, namespace, group_name, user_name
         )
@@ -116,7 +117,7 @@ class QuickSightResponse(BaseResponse):
     def describe_user(self) -> str:
         aws_account_id = self.path.split("/")[-5]
         namespace = self.path.split("/")[-3]
-        user_name = self.path.split("/")[-1]
+        user_name = unquote(self.path.split("/")[-1])
 
         user = self.quicksight_backend.describe_user(
             aws_account_id, namespace, user_name
@@ -134,7 +135,7 @@ class QuickSightResponse(BaseResponse):
     def delete_user(self) -> TYPE_RESPONSE:
         aws_account_id = self.path.split("/")[-5]
         namespace = self.path.split("/")[-3]
-        user_name = self.path.split("/")[-1]
+        user_name = unquote(self.path.split("/")[-1])
 
         self.quicksight_backend.delete_user(aws_account_id, namespace, user_name)
         return 204, {"status": 204}, json.dumps({"Status": 204})
