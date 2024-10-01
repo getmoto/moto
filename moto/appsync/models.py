@@ -193,6 +193,7 @@ class GraphqlAPI(BaseModel):
         user_pool_config: str,
         open_id_connect_config: str,
         lambda_authorizer_config: str,
+        visibility: str,
     ):
         self.region = region
         self.name = name
@@ -204,6 +205,7 @@ class GraphqlAPI(BaseModel):
         self.open_id_connect_config = open_id_connect_config
         self.user_pool_config = user_pool_config
         self.xray_enabled = xray_enabled
+        self.visibility = visibility or "GLOBAL"  # Default to Global if not provided
 
         self.arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
         self.graphql_schema: Optional[GraphqlSchema] = None
@@ -318,6 +320,7 @@ class GraphqlAPI(BaseModel):
             "openIDConnectConfig": self.open_id_connect_config,
             "userPoolConfig": self.user_pool_config,
             "xrayEnabled": self.xray_enabled,
+            "visibility": self.visibility,
         }
 
 
@@ -340,6 +343,7 @@ class AppSyncBackend(BaseBackend):
         xray_enabled: str,
         lambda_authorizer_config: str,
         tags: Dict[str, str],
+        visibility: str,
     ) -> GraphqlAPI:
         graphql_api = GraphqlAPI(
             account_id=self.account_id,
@@ -352,6 +356,7 @@ class AppSyncBackend(BaseBackend):
             user_pool_config=user_pool_config,
             open_id_connect_config=open_id_connect_config,
             lambda_authorizer_config=lambda_authorizer_config,
+            visibility=visibility,
         )
         self.graphql_apis[graphql_api.api_id] = graphql_api
         self.tagger.tag_resource(
