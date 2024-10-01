@@ -231,9 +231,25 @@ class FakeKey(BaseModel, ManagedState):
             self._metadata = {}  # type: ignore
         self._metadata.update(metadata)
 
-    def set_storage_class(self, storage: Optional[str]) -> None:
+
+    @property
+    def storage_class_status(self) -> Optional[str]:
+        return self._storage_class
+
+
+    @storage_class_status.setter
+    def storage_class_status(self, storage: Optional[str]) -> None:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
+        if self._storage_class != storage:
+            s3_backend = s3_backends[self.account_id][self.partition]
+            bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.LIFECYCLE_TRANSITION_EVENT,
+                bucket,
+                key=self,
+            )
         self._storage_class = storage
 
     def set_expiry(self, expiry: Optional[datetime.datetime]) -> None:
