@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import boto3
 import pytest
@@ -6,7 +6,10 @@ from botocore.client import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
-from moto.core.utils import utcnow
+from tests.test_scheduler import (
+    pytest_parametrize_test_create_get_schedule__with_start_date,
+    pytest_parametrize_test_create_schedule__exception_with_start_date,
+)
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -233,10 +236,11 @@ def test_delete_schedule_for_none_existing_schedule():
 
 
 @mock_aws
-def test_create_get_schedule__with_start_date():
-    # Arrange
-    expected_start_date = start_date = utcnow().replace(microsecond=0)
-
+@pytest.mark.parametrize(
+    "start_date,expected_start_date",
+    pytest_parametrize_test_create_get_schedule__with_start_date(),
+)
+def test_create_get_schedule__with_start_date(start_date, expected_start_date):
     # Act
     client = boto3.client("scheduler", region_name="eu-west-1")
     client.create_schedule(
@@ -262,14 +266,16 @@ def test_create_get_schedule__with_start_date():
 
 
 @mock_aws
-def test_create_schedule__exception_with_start_date():
+@pytest.mark.parametrize(
+    "start_date",
+    pytest_parametrize_test_create_schedule__exception_with_start_date(),
+)
+def test_create_schedule__exception_with_start_date(start_date):
     # Arrange
     expected_error = "ValidationException"
     expected_error_message = (
         "The StartDate you specify cannot be earlier than 5 minutes ago."
     )
-    start_date = utcnow() - timedelta(minutes=6)
-
     # Act
     with pytest.raises(ClientError) as exc:
         client = boto3.client("scheduler", region_name="eu-west-1")
