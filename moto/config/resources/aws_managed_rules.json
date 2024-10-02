@@ -312,6 +312,35 @@
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Configuration changes"
     },
+    "AURORA_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::RDS::DBCluster",
+      "Trigger type": "Periodic"
+    },
     "AURORA_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -575,7 +604,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDFRONT_NO_DEPRECATED_SSL_PROTOCOLS": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Configuration changes"
@@ -593,19 +622,19 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDFRONT_S3_ORIGIN_ACCESS_CONTROL_ENABLED": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Configuration changes"
     },
     "CLOUDFRONT_S3_ORIGIN_NON_EXISTENT_BUCKET": {
-      "AWS Region": "Only available in China (Beijing), US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Periodic"
     },
     "CLOUDFRONT_SECURITY_POLICY_CHECK": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Configuration changes"
@@ -617,7 +646,7 @@
       "Trigger type": "Configuration changes"
     },
     "CLOUDFRONT_TRAFFIC_TO_ORIGIN_ENCRYPTED": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::CloudFront::Distribution",
       "Trigger type": "Configuration changes"
@@ -976,7 +1005,7 @@
       "Trigger type": "Configuration changes"
     },
     "CUSTOM_SCHEMA_REGISTRY_POLICY_ATTACHED": {
-      "AWS Region": "Only available in Europe (Stockholm), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::EventSchemas::Registry",
       "Trigger type": "Periodic"
@@ -1017,7 +1046,7 @@
       "Trigger type": "Periodic"
     },
     "DAX_TLS_ENDPOINT_ENCRYPTION": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::DAX::Cluster",
       "Trigger type": "Periodic"
@@ -1132,13 +1161,13 @@
       "Trigger type": "Configuration changes"
     },
     "DOCDB_CLUSTER_AUDIT_LOGGING_ENABLED": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Configuration changes"
     },
     "DOCDB_CLUSTER_BACKUP_RETENTION_CHECK": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "minimumBackupRetentionPeriod",
@@ -1150,13 +1179,13 @@
       "Trigger type": "Configuration changes"
     },
     "DOCDB_CLUSTER_DELETION_PROTECTION_ENABLED": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Configuration changes"
     },
     "DOCDB_CLUSTER_ENCRYPTED": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "kmsKeyArns",
@@ -1168,7 +1197,7 @@
       "Trigger type": "Configuration changes"
     },
     "DOCDB_CLUSTER_SNAPSHOT_PUBLIC_PROHIBITED": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBClusterSnapshot",
       "Trigger type": "Configuration changes"
@@ -1419,6 +1448,35 @@
       "Parameters": [],
       "Resource Types": "AWS::EC2::Instance",
       "Trigger type": "Configuration changes"
+    },
+    "EBS_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EC2::Volume",
+      "Trigger type": "Periodic"
     },
     "EBS_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
@@ -1692,10 +1750,39 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_PARAVIRTUAL_INSTANCE_CHECK": {
-      "AWS Region": "Only available in China (Beijing), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::EC2::Instance",
       "Trigger type": "Configuration changes"
+    },
+    "EC2_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EC2::Instance",
+      "Trigger type": "Periodic"
     },
     "EC2_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
@@ -1777,7 +1864,7 @@
       "Trigger type": "Configuration changes"
     },
     "EC2_TRANSIT_GATEWAY_AUTO_VPC_ATTACH_DISABLED": {
-      "AWS Region": "Only available in Europe (Stockholm), Europe (Paris), US East (Ohio), Africa (Cape Town), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Europe (Milan), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::EC2::TransitGateway",
       "Trigger type": "Configuration changes"
@@ -2008,6 +2095,35 @@
     "EFS_MOUNT_TARGET_PUBLIC_ACCESSIBLE": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
+      "Resource Types": "AWS::EFS::FileSystem",
+      "Trigger type": "Periodic"
+    },
+    "EFS_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
       "Resource Types": "AWS::EFS::FileSystem",
       "Trigger type": "Periodic"
     },
@@ -2563,7 +2679,7 @@
       "Trigger type": "Periodic"
     },
     "FSX_OPENZFS_COPY_TAGS_ENABLED": {
-      "AWS Region": "Only available in Europe (Stockholm), Asia Pacific (Mumbai), US East (Ohio), Europe (Ireland), Europe (Frankfurt), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::FSx::FileSystem",
       "Trigger type": "Periodic"
@@ -2617,7 +2733,7 @@
       "Trigger type": "Periodic"
     },
     "GLOBAL_ENDPOINT_EVENT_REPLICATION_ENABLED": {
-      "AWS Region": "Only available in Europe (Stockholm), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Asia Pacific (Osaka), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::Events::Endpoint",
       "Trigger type": "Configuration changes"
@@ -2882,7 +2998,7 @@
       "Trigger type": "Periodic"
     },
     "IAM_SERVER_CERTIFICATE_EXPIRATION_CHECK": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::IAM::ServerCertificate",
       "Trigger type": "Periodic"
@@ -2943,7 +3059,7 @@
       "Trigger type": "Periodic"
     },
     "INSPECTOR_LAMBDA_CODE_SCAN_ENABLED": {
-      "AWS Region": "Only available in Europe (Stockholm), US East (Ohio), Europe (Ireland), Europe (Frankfurt), US East (N. Virginia), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::::Account",
       "Trigger type": "Periodic"
@@ -3368,13 +3484,13 @@
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_ACCESS_CONTROL_ENABLED": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_AUDIT_LOGGING_ENABLED": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "cloudWatchLogsLogGroupArnList",
@@ -3386,19 +3502,19 @@
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_DATA_NODE_FAULT_TOLERANCE": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_ENCRYPTED_AT_REST": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_HTTPS_REQUIRED": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "tlsPolicies",
@@ -3410,13 +3526,13 @@
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_IN_VPC_ONLY": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_LOGS_TO_CLOUDWATCH": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
           "Name": "logTypes",
@@ -3428,7 +3544,7 @@
       "Trigger type": "Configuration changes"
     },
     "OPENSEARCH_NODE_TO_NODE_ENCRYPTION_CHECK": {
-      "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
@@ -3506,7 +3622,7 @@
       "Trigger type": "Configuration changes"
     },
     "RDS_DB_SECURITY_GROUP_NOT_ALLOWED": {
-      "AWS Region": "Only available in Europe (Ireland), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBSecurityGroup",
       "Trigger type": "Configuration changes"
@@ -3971,7 +4087,7 @@
       "Trigger type": "Periodic"
     },
     "ROUTE53_QUERY_LOGGING_ENABLED": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::Route53::HostedZone",
       "Trigger type": "Configuration changes"
@@ -4327,6 +4443,35 @@
       "Resource Types": "AWS::S3::Bucket",
       "Trigger type": "Periodic"
     },
+    "S3_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::S3::Bucket",
+      "Trigger type": "Periodic"
+    },
     "S3_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -4524,7 +4669,7 @@
       "Trigger type": "Periodic"
     },
     "SES_MALWARE_SCANNING_ENABLED": {
-      "AWS Region": "Only available in Europe (Ireland), US East (N. Virginia), US West (Oregon) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::SES::ReceiptRule",
       "Trigger type": "Periodic"
@@ -4609,6 +4754,35 @@
       "Resource Types": "AWS::StorageGateway::Volume",
       "Trigger type": "Periodic"
     },
+    "STORAGEGATEWAY_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::StorageGateway::Volume",
+      "Trigger type": "Periodic"
+    },
     "STORAGEGATEWAY_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -4664,6 +4838,35 @@
       "Trigger type": "Periodic"
     },
     "VIRTUALMACHINE_LAST_BACKUP_RECOVERY_POINT_CREATED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "resourceTags",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Name": "resourceId",
+          "Optional": true,
+          "Type": "String"
+        },
+        {
+          "Default": "1",
+          "Name": "recoveryPointAgeValue",
+          "Optional": true,
+          "Type": "int"
+        },
+        {
+          "Default": "days",
+          "Name": "recoveryPointAgeUnit",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::BackupGateway::VirtualMachine",
+      "Trigger type": "Periodic"
+    },
+    "VIRTUALMACHINE_RESOURCES_IN_LOGICALLY_AIR_GAPPED_VAULT": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
         {
@@ -4863,19 +5066,19 @@
       "Trigger type": "Periodic"
     },
     "WAF_GLOBAL_RULEGROUP_NOT_EMPTY": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::WAF::RuleGroup",
       "Trigger type": "Configuration changes"
     },
     "WAF_GLOBAL_RULE_NOT_EMPTY": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::WAF::Rule",
       "Trigger type": "Configuration changes"
     },
     "WAF_GLOBAL_WEBACL_NOT_EMPTY": {
-      "AWS Region": "Only available in US East (N. Virginia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::WAF::WebACL",
       "Trigger type": "Configuration changes"
@@ -4899,13 +5102,13 @@
       "Trigger type": "Configuration changes"
     },
     "WORKSPACES_ROOT_VOLUME_ENCRYPTION_ENABLED": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Africa (Cape Town), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::WorkSpaces::Workspace",
       "Trigger type": "Configuration changes"
     },
     "WORKSPACES_USER_VOLUME_ENCRYPTION_ENABLED": {
-      "AWS Region": "Only available in Asia Pacific (Mumbai), Africa (Cape Town), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central), China (Ningxia) Region",
+      "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::WorkSpaces::Workspace",
       "Trigger type": "Configuration changes"
