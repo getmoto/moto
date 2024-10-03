@@ -29,12 +29,14 @@ class StepFunctionResponse(BaseResponse):
         roleArn = self._get_param("roleArn")
         tags = self._get_param("tags")
         publish = self._get_param("publish")
+        encryptionConfiguration = self._get_param("encryptionConfiguration")
         state_machine = self.stepfunction_backend.create_state_machine(
             name=name,
             definition=definition,
             roleArn=roleArn,
             tags=tags,
             publish=publish,
+            encryption_configuration=encryptionConfiguration,
         )
         response = {
             "creationDate": state_machine.creation_date,

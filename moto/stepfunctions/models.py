@@ -34,6 +34,7 @@ class StateMachine(CloudFormationModel):
         definition: str,
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        encryptionConfiguration: Optional[Dict[str, Any]] = None,
     ):
         self.creation_date = iso_8601_datetime_with_milliseconds()
         self.update_date = self.creation_date
@@ -46,6 +47,7 @@ class StateMachine(CloudFormationModel):
         if tags:
             self.add_tags(tags)
         self.version = 0
+        self.encryptionConfiguration = encryptionConfiguration
 
     def start_execution(
         self,
@@ -523,6 +525,7 @@ class StepFunctionBackend(BaseBackend):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
         publish: Optional[bool] = None,
+        encryptionConfiguration: Optional[Dict[str, Any]] = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -530,7 +533,7 @@ class StepFunctionBackend(BaseBackend):
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
-            state_machine = StateMachine(arn, name, definition, roleArn, tags)
+            state_machine = StateMachine(arn, name, definition, roleArn, tags, encryptionConfiguration)
             if publish:
                 state_machine.version += 1
             self.state_machines.append(state_machine)

@@ -23,21 +23,35 @@ simple_definition = (
 )
 account_id = None
 
-
 @mock_aws
 def test_state_machine_creation_succeeds():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
-    #
     response = client.create_state_machine(
         name=name, definition=str(simple_definition), roleArn=_get_default_role()
     )
-    #
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert isinstance(response["creationDate"], datetime)
     assert response["stateMachineArn"] == (
         "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:" + name
     )
+
+@mock_aws
+def test_state_machine_with_cmk():
+    client = boto3.client("stepfunctions", region_name=region)
+    kms_key_id = boto3.client("kms", region_name=region).create_key()["KeyMetadata"]["KeyId"]
+    name = "example_step_function_cmk"
+    encryption_config = {
+      "kmsDataKeyReusePeriodSeconds": 30,
+      "kmsKeyId": kms_key_id,
+      "type": "CUSTOMER_MANAGED_CMK"
+   },
+
+    response = client.create_state_machine(
+        name=name, definition=str(simple_definition), roleArn=_get_default_role(), encryptionConfig=encryption_config
+    )
+
+    assert response["encryptionConfig"] == encryption_config
 
 
 @mock_aws
