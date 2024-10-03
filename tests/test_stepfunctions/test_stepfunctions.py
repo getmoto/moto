@@ -362,10 +362,21 @@ def test_state_machine_untagging_non_existent_resource_fails():
 @mock_aws
 def test_state_machine_tagging():
     client = boto3.client("stepfunctions", region_name=region)
+    # Test tags are added on resource creation
     tags = [
         {"key": "tag_key1", "value": "tag_value1"},
         {"key": "tag_key2", "value": "tag_value2"},
     ]
+    machine = client.create_state_machine(
+        name="test-with-tags",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        tags=tags,
+    )
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    assert resp["tags"] == tags
+
+    # Test tags are added after creation with tag_resource
     machine = client.create_state_machine(
         name="test", definition=str(simple_definition), roleArn=_get_default_role()
     )
