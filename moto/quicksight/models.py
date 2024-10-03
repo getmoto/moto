@@ -7,7 +7,7 @@ from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFoundException
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, QuicksightFilterList
 
 
 def _create_id(aws_account_id: str, namespace: str, _id: str) -> str:
@@ -213,6 +213,17 @@ class QuickSightBackend(BaseBackend):
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [
             group for _id, group in self.groups.items() if _id.startswith(id_for_ns)
+        ]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def search_groups(
+        self, aws_account_id: str, namespace: str, filter_list: QuicksightFilterList
+    ) -> List[QuicksightGroup]:
+        id_for_ns = _create_id(aws_account_id, namespace, _id="")
+        return [
+            group
+            for _id, group in self.groups.items()
+            if _id.startswith(id_for_ns) and filter_list.match(group)
         ]
 
     @paginate(pagination_model=PAGINATION_MODEL)

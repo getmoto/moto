@@ -235,3 +235,83 @@ def test_list_groups__paginated():
     length = len(all_users["GroupList"])
     # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
     assert length >= 125
+
+
+@mock_aws
+def test_search_groups():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    for i in range(4):
+        group_name = f"group{i}" if i < 2 else f"test{i}@test"
+        client.create_group(
+            AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName=group_name
+        )
+
+    resp = client.search_groups(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Filters=[
+            {"Operator": "StartsWith", "Name": "GROUP_NAME", "Value": "group"},
+        ],
+    )
+
+    assert len(resp["GroupList"]) == 2
+    assert resp["Status"] == 200
+
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group0",
+        "GroupName": "group0",
+        "PrincipalId": ACCOUNT_ID,
+    } in resp["GroupList"]
+
+    assert {
+        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group1",
+        "GroupName": "group1",
+        "PrincipalId": ACCOUNT_ID,
+    } in resp["GroupList"]
+
+
+@mock_aws
+def test_search_groups__paginated():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    for i in range(250):
+        group_name = f"group{i}" if i % 2 else f"test{i}@test"
+        client.create_group(
+            AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName=group_name
+        )
+
+    # default pagesize is 100
+    page1 = client.search_groups(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Filters=[
+            {"Operator": "StartsWith", "Name": "GROUP_NAME", "Value": "group"},
+        ],
+    )
+    assert len(page1["GroupList"]) == 100
+    assert "NextToken" in page1
+
+    # We can ask for a smaller pagesize
+    page2 = client.search_groups(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Filters=[
+            {"Operator": "StartsWith", "Name": "GROUP_NAME", "Value": "group"},
+        ],
+        MaxResults=15,
+        NextToken=page1["NextToken"],
+    )
+    assert len(page2["GroupList"]) == 15
+    assert "NextToken" in page2
+
+    # We could request all of them in one go
+    all_users = client.search_groups(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Filters=[
+            {"Operator": "StartsWith", "Name": "GROUP_NAME", "Value": "group"},
+        ],
+        MaxResults=1000,
+    )
+    length = len(all_users["GroupList"])
+    # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
+    assert length >= 125

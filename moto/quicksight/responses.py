@@ -7,6 +7,7 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import QuickSightBackend, quicksight_backends
+from .utils import QuicksightFilterList
 
 
 class QuickSightResponse(BaseResponse):
@@ -200,3 +201,21 @@ class QuickSightResponse(BaseResponse):
             aws_account_id, namespace, group_name, description
         )
         return json.dumps(dict(Group=group.to_json()))
+
+    def search_groups(self) -> str:
+        max_results = self._get_int_param("max-results")
+        next_token = self._get_param("next-token")
+        aws_account_id = self.path.split("/")[-4]
+        namespace = self.path.split("/")[-2]
+        body = json.loads(self.body)
+
+        groups, next_token = self.quicksight_backend.search_groups(
+            aws_account_id,
+            namespace,
+            QuicksightFilterList.parse_filters(body.get("Filters", None)),
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {"NextToken": next_token, "GroupList": [g.to_json() for g in groups]}
+        )
