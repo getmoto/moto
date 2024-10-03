@@ -1,11 +1,13 @@
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFoundException
+from .utils import PAGINATION_MODEL
 
 
 def _create_id(aws_account_id: str, namespace: str, _id: str) -> str:
@@ -84,8 +86,8 @@ class QuicksightGroup(BaseModel):
     def get_member(self, user_name: str) -> QuicksightMembership | None:
         return self.members.get(user_name, None)
 
-    def list_members(self) -> Iterable[QuicksightMembership]:
-        return self.members.values()
+    def list_members(self) -> List[QuicksightMembership]:
+        return list(self.members.values())
 
     def to_json(self) -> Dict[str, Any]:
         return {
@@ -206,41 +208,29 @@ class QuickSightBackend(BaseBackend):
             raise ResourceNotFoundException(f"User {user_name} not found")
         return self.users[_id]
 
-    def list_groups(
-        self, aws_account_id: str, namespace: str
-    ) -> Iterable[QuicksightGroup]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_groups(self, aws_account_id: str, namespace: str) -> List[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [
             group for _id, group in self.groups.items() if _id.startswith(id_for_ns)
         ]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_group_memberships(
         self, aws_account_id: str, namespace: str, group_name: str
-    ) -> Iterable[QuicksightMembership]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    ) -> List[QuicksightMembership]:
         group = self.describe_group(aws_account_id, namespace, group_name)
         return group.list_members()
 
-    def list_users(
-        self, aws_account_id: str, namespace: str
-    ) -> Iterable[QuicksightUser]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_users(self, aws_account_id: str, namespace: str) -> List[QuicksightUser]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [user for _id, user in self.users.items() if _id.startswith(id_for_ns)]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_groups(
         self, aws_account_id: str, namespace: str, user_name: str
-    ) -> Iterable[QuicksightGroup]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    ) -> List[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         group_list: dict[str, QuicksightGroup] = {}
         # Loop through all groups and check if the user is member.

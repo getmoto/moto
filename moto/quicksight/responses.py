@@ -66,34 +66,62 @@ class QuickSightResponse(BaseResponse):
         return json.dumps({"GroupMember": member.to_json()})
 
     def list_groups(self) -> str:
+        max_results = self._get_int_param("max-results")
+        next_token = self._get_param("next-token")
         aws_account_id = self.path.split("/")[-4]
         namespace = self.path.split("/")[-2]
-        groups = self.quicksight_backend.list_groups(aws_account_id, namespace)
-        return json.dumps(dict(GroupList=[g.to_json() for g in groups]))
+        groups, next_token = self.quicksight_backend.list_groups(
+            aws_account_id, namespace, max_results=max_results, next_token=next_token
+        )
+        return json.dumps(
+            {"NextToken": next_token, "GroupList": [g.to_json() for g in groups]}
+        )
 
     def list_group_memberships(self) -> str:
+        max_results = self._get_int_param("max-results")
+        next_token = self._get_param("next-token")
         aws_account_id = self.path.split("/")[-6]
         namespace = self.path.split("/")[-4]
         group_name = unquote(self.path.split("/")[-2])
-        members = self.quicksight_backend.list_group_memberships(
-            aws_account_id, namespace, group_name
+        members, next_token = self.quicksight_backend.list_group_memberships(
+            aws_account_id,
+            namespace,
+            group_name,
+            max_results=max_results,
+            next_token=next_token,
         )
-        return json.dumps({"GroupMemberList": [m.to_json() for m in members]})
+        return json.dumps(
+            {"NextToken": next_token, "GroupMemberList": [m.to_json() for m in members]}
+        )
 
     def list_users(self) -> str:
+        max_results = self._get_int_param("max-results")
+        next_token = self._get_param("next-token")
         aws_account_id = self.path.split("/")[-4]
         namespace = self.path.split("/")[-2]
-        users = self.quicksight_backend.list_users(aws_account_id, namespace)
-        return json.dumps(dict(UserList=[u.to_json() for u in users]))
+        users, next_token = self.quicksight_backend.list_users(
+            aws_account_id, namespace, max_results=max_results, next_token=next_token
+        )
+        return json.dumps(
+            {"NextToken": next_token, "UserList": [u.to_json() for u in users]}
+        )
 
     def list_user_groups(self) -> str:
+        max_results = self._get_int_param("max-results")
+        next_token = self._get_param("next-token")
         aws_account_id = self.path.split("/")[-6]
         namespace = self.path.split("/")[-4]
         user_name = unquote(self.path.split("/")[-2])
-        groups = self.quicksight_backend.list_user_groups(
-            aws_account_id, namespace, user_name
+        groups, next_token = self.quicksight_backend.list_user_groups(
+            aws_account_id,
+            namespace,
+            user_name,
+            max_results=max_results,
+            next_token=next_token,
         )
-        return json.dumps(dict(GroupList=[g.to_json() for g in groups]))
+        return json.dumps(
+            {"NextToken": next_token, "GroupList": [g.to_json() for g in groups]}
+        )
 
     def register_user(self) -> str:
         params = json.loads(self.body)

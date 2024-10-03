@@ -202,3 +202,36 @@ def test_list_groups():
         "GroupName": "group3@test",
         "PrincipalId": ACCOUNT_ID,
     } in resp["GroupList"]
+
+
+@mock_aws
+def test_list_groups__paginated():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    for i in range(125):
+        client.create_group(
+            AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName=f"group{i}"
+        )
+    # default pagesize is 100
+    page1 = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
+    assert len(page1["GroupList"]) == 100
+    assert "NextToken" in page1
+
+    # We can ask for a smaller pagesize
+    page2 = client.list_groups(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=15,
+        NextToken=page1["NextToken"],
+    )
+    assert len(page2["GroupList"]) == 15
+    assert "NextToken" in page2
+
+    # We could request all of them in one go
+    all_users = client.list_groups(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=1000,
+    )
+    length = len(all_users["GroupList"])
+    # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
+    assert length >= 125

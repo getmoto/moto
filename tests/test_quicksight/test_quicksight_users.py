@@ -202,6 +202,45 @@ def test_list_users():
     } in resp["UserList"]
 
 
+@mock_aws
+def test_list_users__paginated():
+    client = boto3.client("quicksight", region_name="us-east-2")
+    for i in range(125):
+        client.register_user(
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+            Email=f"fakeemail{i}@example.com",
+            IdentityType="QUICKSIGHT",
+            UserName=f"fake{i}",
+            UserRole="READER",
+        )
+
+    # default pagesize is 100
+    page1 = client.list_users(AwsAccountId=ACCOUNT_ID, Namespace="default")
+    assert len(page1["UserList"]) == 100
+    assert "NextToken" in page1
+
+    # We can ask for a smaller pagesize
+    page2 = client.list_users(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=15,
+        NextToken=page1["NextToken"],
+    )
+    assert len(page2["UserList"]) == 15
+    assert "NextToken" in page2
+
+    # We could request all of them in one go
+    all_users = client.list_users(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=1000,
+    )
+    length = len(all_users["UserList"])
+    # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
+    assert length >= 125
+
+
 @pytest.mark.parametrize(
     "request_params",
     [
@@ -447,9 +486,9 @@ def test_list_group_memberships__check_exceptions():
     client.register_user(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        Email=f"fakeemail@example.com",
+        Email="fakeemail@example.com",
         IdentityType="QUICKSIGHT",
-        UserName=f"user",
+        UserName="user",
         UserRole="READER",
     )
 
@@ -496,6 +535,60 @@ def test_list_group_memberships__check_exceptions():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_group_memberships__paginated():
+    client = boto3.client("quicksight", region_name="us-east-2")
+    client.create_group(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        GroupName="group",
+    )
+    for i in range(125):
+        client.register_user(
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+            Email=f"authoremail{i}@example.com",
+            IdentityType="QUICKSIGHT",
+            UserName=f"user.{i}",
+            UserRole="AUTHOR",
+        )
+        client.create_group_membership(
+            MemberName=f"user.{i}",
+            GroupName="group",
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+        )
+
+    # default pagesize is 100
+    page1 = client.list_group_memberships(
+        GroupName="group", AwsAccountId=ACCOUNT_ID, Namespace="default"
+    )
+    assert len(page1["GroupMemberList"]) == 100
+    assert "NextToken" in page1
+
+    # We can ask for a smaller pagesize
+    page2 = client.list_group_memberships(
+        GroupName="group",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=15,
+        NextToken=page1["NextToken"],
+    )
+    assert len(page2["GroupMemberList"]) == 15
+    assert "NextToken" in page2
+
+    # We could request all of them in one go
+    all_users = client.list_group_memberships(
+        GroupName="group",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=1000,
+    )
+    length = len(all_users["GroupMemberList"])
+    # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
+    assert length >= 125
 
 
 @pytest.mark.parametrize(
@@ -579,3 +672,60 @@ def test_list_user_groups(request_params):
         },
     ]
     assert resp["Status"] == 200
+
+
+@mock_aws
+def test_list_user_groups__paginate():
+    client = boto3.client("quicksight", region_name="us-east-2")
+    client.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email="fakeemail@example.com",
+        IdentityType="QUICKSIGHT",
+        UserName="fake_user",
+        UserRole="READER",
+    )
+    for i in range(125):
+        client.create_group(
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+            GroupName=f"group{i}",
+        )
+
+        client.create_group_membership(
+            MemberName="fake_user",
+            GroupName=f"group{i}",
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+        )
+
+    # default pagesize is 100
+    page1 = client.list_user_groups(
+        UserName="fake_user",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+    assert len(page1["GroupList"]) == 100
+    assert "NextToken" in page1
+
+    # We can ask for a smaller pagesize
+    page2 = client.list_user_groups(
+        UserName="fake_user",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=15,
+        NextToken=page1["NextToken"],
+    )
+    assert len(page2["GroupList"]) == 15
+    assert "NextToken" in page2
+
+    # We could request all of them in one go
+    all_users = client.list_user_groups(
+        UserName="fake_user",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        MaxResults=1000,
+    )
+    length = len(all_users["GroupList"])
+    # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
+    assert length >= 125
