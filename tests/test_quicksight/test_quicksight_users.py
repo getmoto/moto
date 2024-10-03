@@ -145,6 +145,61 @@ def test_delete_user__quicksight(request_params):
     assert err["Code"] == "ResourceNotFoundException"
 
 
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        {
+            "Email": "fakeemail@example.com",
+            "UserName": "tfacctestm9hpsr970z",
+            "UserRole": "READER",
+            "IdentityType": "QUICKSIGHT",
+        },
+        {
+            "Email": "authoremail@example.com",
+            "UserName": "authoremail@example.com",
+            "UserRole": "AUTHOR",
+            "IdentityType": "IAM",
+        },
+    ],
+)
+@mock_aws
+def test_update_user(request_params):
+    client = boto3.client("quicksight", region_name="us-west-2")
+    client.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email=request_params["Email"],
+        IdentityType=request_params["IdentityType"],
+        UserName=request_params["UserName"],
+        UserRole=request_params["UserRole"],
+    )
+
+    resp = client.update_user(
+        UserName=request_params["UserName"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email=request_params["Email"] + "_modified",
+        Role="AUTHOR",
+    )
+    assert resp["User"]["Email"] == request_params["Email"] + "_modified"
+
+    resp = client.describe_user(
+        UserName=request_params["UserName"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+
+    assert "User" in resp
+    assert resp["User"]["Arn"] == (
+        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:user/default/{request_params['UserName']}"
+    )
+    assert resp["User"]["UserName"] == request_params["UserName"]
+    assert resp["User"]["Email"] == request_params["Email"] + "_modified"
+    assert resp["User"]["Role"] == "AUTHOR"
+    assert resp["User"]["IdentityType"] == request_params["IdentityType"]
+    assert resp["User"]["Active"] is False
+
+
 @mock_aws
 def test_list_users__initial():
     client = boto3.client("quicksight", region_name="us-east-2")

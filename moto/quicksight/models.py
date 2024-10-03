@@ -264,6 +264,19 @@ class QuickSightBackend(BaseBackend):
         self.users[_id] = user
         return user
 
+    def update_user(
+        self,
+        aws_account_id: str,
+        namespace: str,
+        user_name: str,
+        email: str,
+        user_role: str,
+    ) -> QuicksightUser:
+        user = self.describe_user(aws_account_id, namespace, user_name)
+        user.email = email
+        user.user_role = user_role
+        return user
+
     def update_group(
         self, aws_account_id: str, namespace: str, group_name: str, description: str
     ) -> QuicksightGroup:

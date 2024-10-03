@@ -141,6 +141,19 @@ class QuickSightResponse(BaseResponse):
         )
         return json.dumps(dict(User=user.to_json(), UserInvitationUrl="TBD"))
 
+    def update_user(self) -> str:
+        aws_account_id = self.path.split("/")[-5]
+        namespace = self.path.split("/")[-3]
+        user_name = unquote(self.path.split("/")[-1])
+        body = json.loads(self.body)
+        email = body.get("Email", None)
+        user_role = body.get("Role", None)
+
+        user = self.quicksight_backend.update_user(
+            aws_account_id, namespace, user_name, email, user_role
+        )
+        return json.dumps(dict(User=user.to_json()))
+
     def describe_group(self) -> str:
         aws_account_id = self.path.split("/")[-5]
         namespace = self.path.split("/")[-3]
