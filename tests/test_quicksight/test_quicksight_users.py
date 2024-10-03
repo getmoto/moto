@@ -217,7 +217,7 @@ def test_list_users():
             "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
-            "GroupName": "group.2",
+            "GroupName": "group@test",
         },
     ],
 )
@@ -267,7 +267,7 @@ def test_create_group_membership(request_params):
             "UserName": "authoremail@example.com",
             "UserRole": "AUTHOR",
             "IdentityType": "IAM",
-            "GroupName": "group.2",
+            "GroupName": "group@test",
         },
     ],
 )
@@ -439,3 +439,86 @@ def test_list_group_memberships__after_deleting_user():
         GroupName="group1", AwsAccountId=ACCOUNT_ID, Namespace="default"
     )
     assert len(resp["GroupMemberList"]) == 2
+
+
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        {
+            "Email": "fakeemail@example.com",
+            "UserName": "user.1",
+            "UserRole": "READER",
+            "IdentityType": "QUICKSIGHT",
+            "GroupName1": "group1",
+            "GroupName2": "group2",
+            "GroupName3": "group3",
+        },
+        {
+            "Email": "authoremail@example.com",
+            "UserName": "authoremail@example.com",
+            "UserRole": "AUTHOR",
+            "IdentityType": "IAM",
+            "GroupName1": "group1@test",
+            "GroupName2": "group2@test",
+            "GroupName3": "group3@test",
+        },
+    ],
+)
+@mock_aws
+def test_list_user_groups(request_params):
+    client = boto3.client("quicksight", region_name="us-east-2")
+    client.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email=request_params["Email"],
+        IdentityType=request_params["IdentityType"],
+        UserName=request_params["UserName"],
+        UserRole=request_params["UserRole"],
+    )
+    client.create_group(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        GroupName=request_params["GroupName1"],
+    )
+    client.create_group(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        GroupName=request_params["GroupName2"],
+    )
+    client.create_group(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        GroupName=request_params["GroupName3"],
+    )
+    client.create_group_membership(
+        MemberName=request_params["UserName"],
+        GroupName=request_params["GroupName1"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+    client.create_group_membership(
+        MemberName=request_params["UserName"],
+        GroupName=request_params["GroupName2"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+
+    resp = client.list_user_groups(
+        UserName=request_params["UserName"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+
+    assert resp["GroupList"] == [
+        {
+            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/{request_params['GroupName1']}",
+            "GroupName": request_params["GroupName1"],
+            "PrincipalId": ACCOUNT_ID,
+        },
+        {
+            "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/{request_params['GroupName2']}",
+            "GroupName": request_params["GroupName2"],
+            "PrincipalId": ACCOUNT_ID,
+        },
+    ]
+    assert resp["Status"] == 200

@@ -42,7 +42,7 @@ class QuickSightResponse(BaseResponse):
     def create_group_membership(self) -> str:
         aws_account_id = self.path.split("/")[-7]
         namespace = self.path.split("/")[-5]
-        group_name = self.path.split("/")[-3]
+        group_name = unquote(self.path.split("/")[-3])
         user_name = unquote(self.path.split("/")[-1])
         member = self.quicksight_backend.create_group_membership(
             aws_account_id, namespace, group_name, user_name
@@ -58,7 +58,7 @@ class QuickSightResponse(BaseResponse):
     def describe_group_membership(self) -> str:
         aws_account_id = self.path.split("/")[-7]
         namespace = self.path.split("/")[-5]
-        group_name = self.path.split("/")[-3]
+        group_name = unquote(self.path.split("/")[-3])
         user_name = unquote(self.path.split("/")[-1])
         member = self.quicksight_backend.describe_group_membership(
             aws_account_id, namespace, group_name, user_name
@@ -74,7 +74,7 @@ class QuickSightResponse(BaseResponse):
     def list_group_memberships(self) -> str:
         aws_account_id = self.path.split("/")[-6]
         namespace = self.path.split("/")[-4]
-        group_name = self.path.split("/")[-2]
+        group_name = unquote(self.path.split("/")[-2])
         members = self.quicksight_backend.list_group_memberships(
             aws_account_id, namespace, group_name
         )
@@ -85,6 +85,15 @@ class QuickSightResponse(BaseResponse):
         namespace = self.path.split("/")[-2]
         users = self.quicksight_backend.list_users(aws_account_id, namespace)
         return json.dumps(dict(UserList=[u.to_json() for u in users]))
+
+    def list_user_groups(self) -> str:
+        aws_account_id = self.path.split("/")[-6]
+        namespace = self.path.split("/")[-4]
+        user_name = unquote(self.path.split("/")[-2])
+        groups = self.quicksight_backend.list_user_groups(
+            aws_account_id, namespace, user_name
+        )
+        return json.dumps(dict(GroupList=[g.to_json() for g in groups]))
 
     def register_user(self) -> str:
         params = json.loads(self.body)
@@ -107,7 +116,7 @@ class QuickSightResponse(BaseResponse):
     def describe_group(self) -> str:
         aws_account_id = self.path.split("/")[-5]
         namespace = self.path.split("/")[-3]
-        group_name = self.path.split("/")[-1]
+        group_name = unquote(self.path.split("/")[-1])
 
         group = self.quicksight_backend.describe_group(
             aws_account_id, namespace, group_name
@@ -127,7 +136,7 @@ class QuickSightResponse(BaseResponse):
     def delete_group(self) -> TYPE_RESPONSE:
         aws_account_id = self.path.split("/")[-5]
         namespace = self.path.split("/")[-3]
-        group_name = self.path.split("/")[-1]
+        group_name = unquote(self.path.split("/")[-1])
 
         self.quicksight_backend.delete_group(aws_account_id, namespace, group_name)
         return 204, {"status": 204}, json.dumps({"Status": 204})
@@ -143,7 +152,7 @@ class QuickSightResponse(BaseResponse):
     def update_group(self) -> str:
         aws_account_id = self.path.split("/")[-5]
         namespace = self.path.split("/")[-3]
-        group_name = self.path.split("/")[-1]
+        group_name = unquote(self.path.split("/")[-1])
         description = json.loads(self.body).get("Description")
 
         group = self.quicksight_backend.update_group(

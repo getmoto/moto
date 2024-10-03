@@ -11,62 +11,103 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        {
+            "GroupName": "mygroup",
+            "Description": "my new fancy group",
+        },
+        {
+            "GroupName": "users@munich",
+            "Description": "all munich users",
+        },
+    ],
+)
 @mock_aws
-def test_create_group():
+def test_create_group(request_params):
     client = boto3.client("quicksight", region_name="us-west-2")
     resp = client.create_group(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        GroupName="mygroup",
-        Description="my new fancy group",
+        GroupName=request_params["GroupName"],
+        Description=request_params["Description"],
     )
 
     assert "Group" in resp
 
     assert resp["Group"]["Arn"] == (
-        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/mygroup"
+        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/{request_params['GroupName']}"
     )
-    assert resp["Group"]["GroupName"] == "mygroup"
-    assert resp["Group"]["Description"] == "my new fancy group"
+    assert resp["Group"]["GroupName"] == request_params["GroupName"]
+    assert resp["Group"]["Description"] == request_params["Description"]
     assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        {
+            "GroupName": "mygroup",
+            "Description": "my new fancy group",
+        },
+        {
+            "GroupName": "users@munich",
+            "Description": "all munich users",
+        },
+    ],
+)
 @mock_aws
-def test_describe_group():
+def test_describe_group(request_params):
     client = boto3.client("quicksight", region_name="us-west-2")
     client.create_group(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        GroupName="mygroup",
-        Description="my new fancy group",
+        GroupName=request_params["GroupName"],
+        Description=request_params["Description"],
     )
 
     resp = client.describe_group(
-        GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
+        GroupName=request_params["GroupName"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
     )
 
     assert "Group" in resp
 
     assert resp["Group"]["Arn"] == (
-        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/mygroup"
+        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/{request_params['GroupName']}"
     )
-    assert resp["Group"]["GroupName"] == "mygroup"
-    assert resp["Group"]["Description"] == "my new fancy group"
+    assert resp["Group"]["GroupName"] == request_params["GroupName"]
+    assert resp["Group"]["Description"] == request_params["Description"]
     assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        {
+            "GroupName": "mygroup",
+            "Description": "my new fancy group",
+        },
+        {
+            "GroupName": "users@munich",
+            "Description": "all munich users",
+        },
+    ],
+)
 @mock_aws
-def test_update_group():
+def test_update_group(request_params):
     client = boto3.client("quicksight", region_name="us-west-2")
     client.create_group(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        GroupName="mygroup",
+        GroupName=request_params["GroupName"],
         Description="desc1",
     )
 
     resp = client.update_group(
-        GroupName="mygroup",
+        GroupName=request_params["GroupName"],
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
         Description="desc2",
@@ -74,35 +115,54 @@ def test_update_group():
     assert resp["Group"]["Description"] == "desc2"
 
     resp = client.describe_group(
-        GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
+        GroupName=request_params["GroupName"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
     )
 
     assert "Group" in resp
     assert resp["Group"]["Arn"] == (
-        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/mygroup"
+        f"arn:aws:quicksight:us-west-2:{ACCOUNT_ID}:group/default/{request_params['GroupName']}"
     )
-    assert resp["Group"]["GroupName"] == "mygroup"
+    assert resp["Group"]["GroupName"] == request_params["GroupName"]
     assert resp["Group"]["Description"] == "desc2"
     assert resp["Group"]["PrincipalId"] == f"{ACCOUNT_ID}"
 
 
+@pytest.mark.parametrize(
+    "request_params",
+    [
+        {
+            "GroupName": "mygroup",
+            "Description": "my new fancy group",
+        },
+        {
+            "GroupName": "users@munich",
+            "Description": "all munich users",
+        },
+    ],
+)
 @mock_aws
-def test_delete_group():
+def test_delete_group(request_params):
     client = boto3.client("quicksight", region_name="us-east-2")
     client.create_group(
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
-        GroupName="mygroup",
-        Description="my new fancy group",
+        GroupName=request_params["GroupName"],
+        Description=request_params["Description"],
     )
 
     client.delete_group(
-        GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
+        GroupName=request_params["GroupName"],
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
     )
 
     with pytest.raises(ClientError) as exc:
         client.describe_group(
-            GroupName="mygroup", AwsAccountId=ACCOUNT_ID, Namespace="default"
+            GroupName=request_params["GroupName"],
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
@@ -121,8 +181,9 @@ def test_list_groups__initial():
 def test_list_groups():
     client = boto3.client("quicksight", region_name="us-east-1")
     for i in range(4):
+        group_name = f"group{i}" if i < 2 else f"group{i}@test"
         client.create_group(
-            AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName=f"group{i}"
+            AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName=group_name
         )
 
     resp = client.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
@@ -137,7 +198,7 @@ def test_list_groups():
     } in resp["GroupList"]
 
     assert {
-        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group3",
-        "GroupName": "group3",
+        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group3@test",
+        "GroupName": "group3@test",
         "PrincipalId": ACCOUNT_ID,
     } in resp["GroupList"]

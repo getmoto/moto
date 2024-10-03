@@ -82,7 +82,7 @@ class QuicksightGroup(BaseModel):
         self.members.pop(user_name, None)
 
     def get_member(self, user_name: str) -> QuicksightMembership:
-        return self.members[user_name]
+        return self.members.get(user_name, None)
 
     def list_members(self) -> Iterable[QuicksightMembership]:
         return self.members.values()
@@ -231,6 +231,20 @@ class QuickSightBackend(BaseBackend):
         """
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [user for _id, user in self.users.items() if _id.startswith(id_for_ns)]
+
+    def list_user_groups(
+        self, aws_account_id: str, namespace: str, user_name: str
+    ) -> Iterable[QuicksightGroup]:
+        """
+        The NextToken and MaxResults parameters are not yet implemented
+        """
+        id_for_ns = _create_id(aws_account_id, namespace, _id="")
+        group_list: dict[str, QuicksightGroup] = {}
+        # Loop through all groups and check if the user is member.
+        for id, group in self.groups.items():
+            if group.get_member(user_name):
+                group_list[id] = group
+        return [group for _id, group in group_list.items() if _id.startswith(id_for_ns)]
 
     def register_user(
         self,
