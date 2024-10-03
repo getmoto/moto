@@ -81,7 +81,7 @@ class QuicksightGroup(BaseModel):
     def delete_member(self, user_name: str) -> None:
         self.members.pop(user_name, None)
 
-    def get_member(self, user_name: str) -> QuicksightMembership:
+    def get_member(self, user_name: str) -> QuicksightMembership | None:
         return self.members.get(user_name, None)
 
     def list_members(self) -> Iterable[QuicksightMembership]:
@@ -193,7 +193,10 @@ class QuickSightBackend(BaseBackend):
         self, aws_account_id: str, namespace: str, group_name: str, user_name: str
     ) -> QuicksightMembership:
         group = self.describe_group(aws_account_id, namespace, group_name)
-        return group.get_member(user_name)
+        member = group.get_member(user_name)
+        if member is None:
+            raise ResourceNotFoundException(f"User {user_name} not found")
+        return member
 
     def describe_user(
         self, aws_account_id: str, namespace: str, user_name: str

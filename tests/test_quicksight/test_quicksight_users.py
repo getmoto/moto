@@ -441,6 +441,63 @@ def test_list_group_memberships__after_deleting_user():
     assert len(resp["GroupMemberList"]) == 2
 
 
+@mock_aws
+def test_list_group_memberships__check_exceptions():
+    client = boto3.client("quicksight", region_name="us-east-2")
+    client.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email=f"fakeemail@example.com",
+        IdentityType="QUICKSIGHT",
+        UserName=f"user",
+        UserRole="READER",
+    )
+
+    client.create_group(AwsAccountId=ACCOUNT_ID, Namespace="default", GroupName="group")
+
+    client.create_group_membership(
+        MemberName="user",
+        GroupName="group",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+
+    # Test for user is member of group
+    resp = client.describe_group_membership(
+        MemberName="user",
+        GroupName="group",
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+    )
+    assert resp["Status"] == 200
+    assert resp["GroupMember"] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group/user",
+        "MemberName": "user",
+    }
+
+    # Test for user is not member of group
+    with pytest.raises(ClientError) as exc:
+        resp = client.describe_group_membership(
+            MemberName="fake_user",
+            GroupName="group",
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+    # Test for non existing group
+    with pytest.raises(ClientError) as exc:
+        resp = client.describe_group_membership(
+            MemberName="user",
+            GroupName="fake_group",
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
 @pytest.mark.parametrize(
     "request_params",
     [
