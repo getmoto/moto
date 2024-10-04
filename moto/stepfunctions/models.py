@@ -587,7 +587,7 @@ class StepFunctionBackend(BaseBackend):
         publish: Optional[bool] = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
-        updates = {
+        updates: Dict[str, Any] = {
             "definition": definition,
             "roleArn": role_arn,
         }
