@@ -5,6 +5,20 @@ from typing import Any, Dict
 import yaml
 
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.id_generator import generate_str_id
+
+
+def create_apigw_id(account_id, region, resource, name) -> str:
+    return generate_str_id(
+        account_id,
+        region,
+        "apigateway",
+        resource,
+        name,
+        length=10,
+        include_digits=True,
+        lower_case=True,
+    )
 
 
 def create_id() -> str:

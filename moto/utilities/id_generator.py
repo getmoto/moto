@@ -69,16 +69,6 @@ def moto_id(fn):
 
 
 @moto_id
-def generate_uid(account_id, region, service, resource, name, length=32):
-    return mock_random.get_random_hex(length)
-
-
-@moto_id
-def generate_short_uid(account_id, region, service, resource, name):
-    return mock_random.get_random_hex(8)
-
-
-@moto_id
 def generate_str_id(
     account_id,
     region,
