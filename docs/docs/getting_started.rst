@@ -1,10 +1,5 @@
 .. _getting_started:
 
-
-.. role:: raw-html(raw)
-    :format: html
-
-
 =========================
 Getting Started with Moto
 =========================
@@ -12,27 +7,26 @@ Getting Started with Moto
 Installing Moto
 ---------------
 
-You can use ``pip`` to install the latest released version of ``moto``, and specify which service(s) you will use::
+You can use ``pip`` to install the latest released version of ``moto`` and specify which service(s) you will use::
 
     pip install 'moto[ec2,s3,..]'
 
-This will install Moto, and the dependencies required for that specific service.
+This command will install Moto along with the dependencies required for the specified services.
 
-If you don't care about the number of dependencies, or if you want to mock many AWS services::
+If you want to mock many AWS services without worrying about the number of dependencies, you can use::
 
     pip install 'moto[all]'
 
-If you want to install ``moto`` from source::
+To install ``moto`` from source, you can clone the repository and install it as follows::
 
     git clone git://github.com/getmoto/moto.git
     cd moto
     pip install '.[all]'
 
-
-Moto usage
+Moto Usage
 ----------
 
-For example, we have the following code we want to test:
+Suppose you have the following code that you want to test:
 
 .. sourcecode:: python
 
@@ -52,7 +46,7 @@ There are several ways to verify that the value will be persisted successfully.
 Decorator
 ~~~~~~~~~
 
-With a simple decorator wrapping, all calls to AWS are automatically mocked out.
+Using a simple decorator, all calls to AWS are automatically mocked.
 
 .. sourcecode:: python
 
@@ -74,10 +68,10 @@ With a simple decorator wrapping, all calls to AWS are automatically mocked out.
 
         assert body == "is awesome"
 
-Context manager
+Context Manager
 ~~~~~~~~~~~~~~~
 
-Same as the Decorator, every call inside the ``with`` statement is mocked out.
+The context manager works similarly to the decorator, with all calls inside the ``with`` statement being mocked.
 
 .. sourcecode:: python
 
@@ -97,7 +91,7 @@ Same as the Decorator, every call inside the ``with`` statement is mocked out.
 Raw
 ~~~
 
-You can also start and stop the mocking manually.
+You can also manually start and stop the mocking process.
 
 .. sourcecode:: python
 
@@ -118,10 +112,10 @@ You can also start and stop the mocking manually.
 
         mock.stop()
 
-Unittest usage
+Unittest Usage
 ~~~~~~~~~~~~~~
 
-If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, you can do it with `.start()` and `.stop()` like:
+If you are using `unittest`_ to run tests and want to use `moto` inside `setUp`, you can do so with `.start()` and `.stop()`:
 
 .. sourcecode:: python
 
@@ -135,13 +129,12 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
         object.put(Body=content)
 
     class MyTest(unittest.TestCase):
-
         bucket_name = "test-bucket"
+
         def setUp(self):
             self.mock_aws = mock_aws()
             self.mock_aws.start()
 
-            # you can use boto3.client("s3") if you prefer
             s3 = boto3.resource("s3")
             bucket = s3.Bucket(self.bucket_name)
             bucket.create()
@@ -153,10 +146,10 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
             content = b"abc"
             key = "/path/to/obj"
 
-            # run the file which uploads to S3
+            # Run the file which uploads to S3
             func_to_test(self.bucket_name, key, content)
 
-            # check the file was uploaded as expected
+            # Check the file was uploaded as expected
             s3 = boto3.resource("s3")
             object = s3.Object(self.bucket_name, key)
             actual = object.get()["Body"].read()
@@ -165,9 +158,7 @@ If you use `unittest`_ to run tests, and you want to use `moto` inside `setUp`, 
 Class Decorator
 ~~~~~~~~~~~~~~~~~
 
-It is also possible to use decorators on the class-level.
-
-The decorator is effective for every test-method inside your class. State is not shared across test-methods.
+You can also use decorators at the class level. This decorator will apply to every test method within the class, ensuring that state is not shared across test methods.
 
 .. sourcecode:: python
 
@@ -179,69 +170,68 @@ The decorator is effective for every test-method inside your class. State is not
 
         def test_creating_a_bucket(self):
             # 'mybucket', created in setUp, is accessible in this test
-            # Other clients can be created at will
-
+            # Other clients can be created as needed
             s3 = boto3.client("s3", region_name="us-east-1")
             s3.create_bucket(Bucket="bucket_inside")
 
         def test_accessing_a_bucket(self):
-            # The state has been reset before this method has started
-            # 'mybucket' is recreated as part of the setUp-method
-            # 'bucket_inside' however, created inside the other test, no longer exists
+            # The state has been reset before this method starts
+            # 'mybucket' is recreated in the setUp method
+            # 'bucket_inside', however, created in another test, no longer exists
             pass
 
-.. note:: A tearDown-method can be used to destroy any buckets/state, but because state is automatically destroyed before a test-method start, this is not strictly necessary.
+    .. note:: A tearDown method can be used to destroy any buckets/state, but this is not strictly necessary as the state is automatically reset before each test method starts.
 
-Stand-alone server mode
+Stand-Alone Server Mode
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Moto also comes with a stand-alone server allowing you to mock out the AWS HTTP endpoints. This is useful if you are using any other language than Python.
+Moto also includes a stand-alone server that allows you to mock out the AWS HTTP endpoints. This can be useful if you are using a programming language other than Python.
 
-.. sourcecode:: bash
+To start the server, use the following command::
 
-    $ moto_server -p3000
-     * Running on http://127.0.0.1:3000/
+    $ moto_server -p 3000
+    * Running on http://127.0.0.1:3000/
 
 See :doc:`server_mode` for more information.
 
 Recommended Usage
 -----------------
-There are some important caveats to be aware of when using moto:
 
-How do I avoid tests from mutating my real infrastructure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-You need to ensure that the mocks are actually in place.
+There are several important caveats to consider when using Moto:
 
- #. Ensure that your tests have dummy environment variables set up:
+How do I avoid tests from mutating my real infrastructure?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    .. sourcecode:: bash
+To ensure that your mocks are properly in place, follow these guidelines:
 
-        export AWS_ACCESS_KEY_ID='testing'
-        export AWS_SECRET_ACCESS_KEY='testing'
-        export AWS_SECURITY_TOKEN='testing'
-        export AWS_SESSION_TOKEN='testing'
-        export AWS_DEFAULT_REGION='us-east-1'
+1. Ensure that your tests have dummy environment variables set up:
 
- #. Do not embed credentials directly in your code. This is always considered bad practice, regardless of whether you use Moto. It also makes it impossible to configure fake credentials for testing purposes.
+   .. sourcecode:: bash
 
+       export AWS_ACCESS_KEY_ID='testing'
+       export AWS_SECRET_ACCESS_KEY='testing'
+       export AWS_SECURITY_TOKEN='testing'
+       export AWS_SESSION_TOKEN='testing'
+       export AWS_DEFAULT_REGION='us-east-1'
 
- #. **VERY IMPORTANT**: ensure that you have your mocks set up *BEFORE* your `boto3` client is established.
-    This can typically happen if you import a module that has a `boto3` client instantiated outside of a function.
-    See :ref:`pesky_imports_section` below on how to work around this.
+2. Do not embed credentials directly in your code. This practice is always discouraged, regardless of whether you use Moto. It also makes it impossible to configure fake credentials for testing purposes.
 
-.. note:: By default, the region must be one supported by AWS, see :ref:`Can I mock the default AWS region?` for how to change this.
+3. **VERY IMPORTANT**: Ensure that you have your mocks set up *BEFORE* your `boto3` client is instantiated. This can often happen if you import a module that creates a `boto3` client outside of a function. Refer to :ref:`pesky_imports_section` below for strategies on how to work around this issue.
+
+.. note:: By default, the region must be one supported by AWS. See :ref:`Can I mock the default AWS region?` for instructions on changing this.
 
 Pytest Fixtures Example Usage
-~~~~~~~~~~~~~~~~
-If you are a user of `pytest`_, you can leverage `pytest fixtures`_ to help set up your mocks and other AWS resources that you would need.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here is an example:
+If you are a user of `pytest`_, you can leverage `pytest fixtures`_ to help set up your mocks and other AWS resources that you might need.
+
+Here’s an example:
 
 .. sourcecode:: python
 
     @pytest.fixture(scope="function")
     def aws_credentials():
-        """Mocked AWS Credentials for moto."""
+        """Mocked AWS Credentials for Moto."""
         os.environ["AWS_ACCESS_KEY_ID"] = "testing"
         os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
         os.environ["AWS_SECURITY_TOKEN"] = "testing"
@@ -250,18 +240,13 @@ Here is an example:
 
     @pytest.fixture(scope="function")
     def s3(aws_credentials):
-        """
-        Return a mocked S3 client
-        """
+        """Return a mocked S3 client."""
         with mock_aws():
             yield boto3.client("s3", region_name="us-east-1")
 
     @pytest.fixture(scope="function")
     def mocked_aws(aws_credentials):
-        """
-        Mock all AWS interactions
-        Requires you to create your own boto3 clients
-        """
+        """Mock all AWS interactions. Requires you to create your own boto3 clients."""
         with mock_aws():
             yield
 
@@ -275,7 +260,6 @@ Here is an example:
 
     def test_s3_bucket_creation(s3):
         s3.create_bucket(Bucket="somebucket")
-
         result = s3.list_buckets()
         assert len(result["Buckets"]) == 1
 
@@ -287,77 +271,4 @@ Here is an example:
         s3_client = boto3.client("s3")
         s3_client.create_bucket(Bucket="somebucket")
 
-
-In the code sample above, all of the AWS/mocked fixtures (indirectly) use `aws_credentials`,
-which sets the proper fake environment variables. This is recommended to ensure that `botocore` doesn't try to use any real
-credentials.
-
-With Moto activated within the fixture, we can pass it to a test-method to ensure that any other AWS-calls are also mocked inside that test method.
-We can also combine multiple fixtures.
-
-Moto will delete any data after the mock ends, so the state is not shared across methods.
-
-
-.. _pesky_imports_section:
-
-What about those pesky imports
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-As mentioned earlier, mocks should be established *BEFORE* the clients are set up.
-
-Some background on why this is necessary:  :raw-html:`<br />`
-Moto intercepts HTTP requests using a custom event handler that hooks into botocore's event-system.  :raw-html:`<br />`
-When creating clients/resources, `boto3` gathers all event handlers that have been registered at that point, and injects those handlers into the created client/resource. Event handlers registered after a client is created, are not used.
-
-The `moto.core`-package registers our event handler on initialization. So to be pedantic: `moto.core` should be imported before a client is created, in order for `boto3` to call our custom handler and therefore for Moto to be active.  :raw-html:`<br />`
-The easiest way to ensure this happens, is to establish a mock before the clients are setup, as `moto.core` is imported when the mock starts.
-
-
-One way to avoid import issues is to make use of local Python imports -- i.e. import the module that creates boto3-clients inside of the unit test you want to run.
-
-Example:
-
-.. sourcecode:: python
-
-    def test_something(aws):
-        # aws is a fixture defined above that yields a boto3 s3 client.
-        
-        from some.package.that.does.something.with.s3 import some_func # <-- Local import for unit test
-        # ^^ Importing here ensures that the mock has been established.
-
-        some_func()  # The mock has been established from the "s3" pytest fixture, so this function that uses
-                     # a package-level S3 client will properly use the mock and not reach out to AWS.
-
-Patching the client or resource
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If it is not possible to rearrange imports, we can patch the boto3-client or resource after the mock has started. See the following code sample:
-
-.. sourcecode:: python
-
-    # The client can come from an import, an __init__-file, wherever..
-    outside_client = boto3.client("s3")
-    s3 = boto3.resource("s3")
-
-    @mock_aws
-    def test_mock_works_with_client_or_resource_created_outside():
-        from moto.core import patch_client, patch_resource
-        patch_client(outside_client)
-        patch_resource(s3)
-
-        assert outside_client.list_buckets()["Buckets"] == []
-
-        assert list(s3.buckets.all()) == []
-
-This will ensure that the boto3 requests are still mocked.
-
-Other caveats
-~~~~~~~~~~~~~
-For Tox, Travis CI, Github Actions, and other build systems, you might need to also create fake AWS credentials. The following command will create the required file with some bogus-credentials:
-
-.. sourcecode:: bash
-
-    mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
-
-.. _unittest: https://docs.python.org/3/library/unittest.html
-.. _pytest: https://pytest.org/en/latest/
-.. _pytest fixtures: https://pytest.org/en/latest/fixture.html#fixture
+In the example above, all of the mocked AWS fixtures (indirectly) use `aws_credentials`, which sets the proper fake environment variables. This setup is recommended to ensure that `
