@@ -35,6 +35,8 @@ class StateMachine(CloudFormationModel):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
+        loggingConfiguration: Optional[Dict[str, Any]] = None,
+        tracingConfiguration: Optional[Dict[str, Any]] = None,
     ):
         self.creation_date = iso_8601_datetime_with_milliseconds()
         self.update_date = self.creation_date
@@ -47,7 +49,12 @@ class StateMachine(CloudFormationModel):
         if tags:
             self.add_tags(tags)
         self.version = 0
-        self.encryptionConfiguration = encryptionConfiguration
+        self.type = "STANDARD"
+        self.encryptionConfiguration = encryptionConfiguration or {
+            "type": "AWS_OWNED_KEY"
+        }
+        self.loggingConfiguration = loggingConfiguration or {"level": "OFF"}
+        self.tracingConfiguration = tracingConfiguration or {"enabled": False}
 
     def start_execution(
         self,
@@ -526,6 +533,8 @@ class StepFunctionBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
         publish: Optional[bool] = None,
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
+        loggingConfiguration: Optional[Dict[str, Any]] = None,
+        tracingConfiguration: Optional[Dict[str, Any]] = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -533,7 +542,16 @@ class StepFunctionBackend(BaseBackend):
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
-            state_machine = StateMachine(arn, name, definition, roleArn, tags, encryptionConfiguration)
+            state_machine = StateMachine(
+                arn,
+                name,
+                definition,
+                roleArn,
+                tags,
+                encryptionConfiguration,
+                loggingConfiguration,
+                tracingConfiguration,
+            )
             if publish:
                 state_machine.version += 1
             self.state_machines.append(state_machine)
@@ -565,6 +583,7 @@ class StepFunctionBackend(BaseBackend):
         role_arn: Optional[str] = None,
         logging_configuration: Optional[Dict[str, bool]] = None,
         tracing_configuration: Optional[Dict[str, bool]] = None,
+        encryption_configuration: Optional[Dict[str, Any]] = None,
         publish: Optional[bool] = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
@@ -572,6 +591,12 @@ class StepFunctionBackend(BaseBackend):
             "definition": definition,
             "roleArn": role_arn,
         }
+        if encryption_configuration:
+            updates["encryptionConfiguration"] = encryption_configuration
+        if logging_configuration:
+            updates["loggingConfiguration"] = logging_configuration
+        if tracing_configuration:
+            updates["tracingConfiguration"] = tracing_configuration
         sm.update(**updates)
         if publish:
             sm.version += 1
