@@ -445,6 +445,12 @@ class CreateStateMachineAliasOutput(TypedDict, total=False):
     creationDate: Timestamp
 
 
+class EncryptionConfiguration(TypedDict, total=False):
+    type: str
+    kmsDataKeyReusePeriodSeconds: Optional[int]
+    kmsKeyId: Optional[str]
+
+
 class TracingConfiguration(TypedDict, total=False):
     enabled: Optional[Enabled]
 
@@ -472,6 +478,7 @@ CreateStateMachineInput = TypedDict(
         "loggingConfiguration": Optional[LoggingConfiguration],
         "tags": Optional[TagList],
         "tracingConfiguration": Optional[TracingConfiguration],
+        "encryptionConfiguration": Optional[EncryptionConfiguration],
         "publish": Optional[Publish],
         "versionDescription": Optional[VersionDescription],
     },
