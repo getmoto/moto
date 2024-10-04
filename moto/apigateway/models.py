@@ -1166,7 +1166,10 @@ class RestAPI(CloudFormationModel):
 
     def add_child(self, path: str, parent_id: Optional[str] = None) -> Resource:
         child_id = create_apigw_id(
-            self.account_id, self.region_name, "resource", parent_id + "." + path
+            self.account_id,
+            self.region_name,
+            "resource",
+            (parent_id or "") + "." + path,
         )
         child = Resource(
             resource_id=child_id,
@@ -2158,7 +2161,7 @@ class APIGatewayBackend(BaseBackend):
                 if api_key.value == payload["value"]:
                     raise ApiKeyAlreadyExists()
         api_key_id = create_apigw_id(
-            self.account_id, self.region_name, "api_key", payload.get("name")
+            self.account_id, self.region_name, "api_key", payload["name"]
         )
         key = ApiKey(api_key_id=api_key_id, **payload)
         self.keys[key.id] = key

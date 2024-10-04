@@ -8,7 +8,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.id_generator import generate_str_id
 
 
-def create_apigw_id(account_id, region, resource, name) -> str:
+def create_apigw_id(account_id: str, region: str, resource: str, name: str) -> str:
     return generate_str_id(
         account_id,
         region,
