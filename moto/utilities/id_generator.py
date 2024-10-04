@@ -3,15 +3,13 @@ from typing import Any, Callable, Dict, List, Union
 
 from moto.moto_api._internal import mock_random
 
-IdSource = Callable[[str, str, str, str, str], str | None]
-
 
 class MotoIdManager:
     """class to manage custom ids. Do not create instance and instead
     use the `id_manager` instance created below."""
 
-    _custom_ids: dict[str, str]
-    _id_sources: List[IdSource]
+    _custom_ids: Dict[str, str]
+    _id_sources: List[Callable[[str, str, str, str, str], Union[str, None]]]
 
     _lock: threading.RLock
 
@@ -54,7 +52,9 @@ class MotoIdManager:
                 ".".join([account_id, region, service, resource, name]), None
             )
 
-    def add_id_source(self, id_source: IdSource) -> None:
+    def add_id_source(
+        self, id_source: Callable[[str, str, str, str, str], Union[str, None]]
+    ) -> None:
         self._id_sources.append(id_source)
 
     def find_id_from_sources(
