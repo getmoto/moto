@@ -602,6 +602,7 @@ class DescribeStateMachineForExecutionOutput(TypedDict, total=False):
     updateDate: Timestamp
     loggingConfiguration: Optional[LoggingConfiguration]
     tracingConfiguration: Optional[TracingConfiguration]
+    encryptionConfiguration: Optional[EncryptionConfiguration]
     mapRunArn: Optional[str]
     label: Optional[MapRunLabel]
     revisionId: Optional[RevisionId]
@@ -619,6 +620,7 @@ DescribeStateMachineOutput = TypedDict(
         "creationDate": Timestamp,
         "loggingConfiguration": Optional[LoggingConfiguration],
         "tracingConfiguration": Optional[TracingConfiguration],
+        "encryptionConfiguration": Optional[EncryptionConfiguration],
         "label": Optional[MapRunLabel],
         "revisionId": Optional[RevisionId],
         "description": Optional[VersionDescription],
