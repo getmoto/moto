@@ -1,5 +1,5 @@
 import threading
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Union
 
 from moto.moto_api._internal import mock_random
 
@@ -11,7 +11,7 @@ class MotoIdManager:
     use the `id_manager` instance created below."""
 
     _custom_ids: dict[str, str]
-    _id_sources: list[IdSource]
+    _id_sources: List[IdSource]
 
     _lock: threading.RLock
 
@@ -24,7 +24,7 @@ class MotoIdManager:
 
     def get_custom_id(
         self, account_id: str, region: str, service: str, resource: str, name: str
-    ) -> str | None:
+    ) -> Union[str, None]:
         # retrieves a custom_id for a resource. Returns None
         return self._custom_ids.get(
             ".".join([account_id, region, service, resource, name])
@@ -59,7 +59,7 @@ class MotoIdManager:
 
     def find_id_from_sources(
         self, account_id: str, region: str, service: str, resource: str, name: str
-    ) -> str | None:
+    ) -> Union[str, None]:
         for id_source in self._id_sources:
             if found_id := id_source(account_id, region, service, resource, name):
                 return found_id
@@ -77,7 +77,7 @@ def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
         service: str,
         resource: str,
         name: str,
-        **kwargs: dict[str, Any],
+        **kwargs: Dict[str, Any],
     ) -> str:
         if found_id := id_manager.find_id_from_sources(
             account_id, region, service, resource, name
