@@ -31,6 +31,8 @@ from moto.appmesh.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
+from moto.core import BaseBackend, BaseModel
+from moto.core.utils import unix_time_millis
 
 PAGINATION_MODEL = {
     "list_meshes": {
@@ -72,6 +74,12 @@ class AppMeshBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.meshes: Dict[str, Mesh] = dict()
+        self.virtual_services = {}
+        self.virtual_nodes = {}
+        self.virtual_routers = {}
+        self.routes = {}
+        self.virtual_gateways = {}
+        self.virtual_gateway_routes = {}
 
     def _validate_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> None:
         if mesh_name not in self.meshes:
@@ -616,6 +624,54 @@ class AppMeshBackend(BaseBackend):
             virtual_node.metadata.formatted_for_list_api()
             for virtual_node in virtual_nodes.values()
         ]
+
+class VirtualGateway(BaseModel):
+    def __init__(self, virtual_gateway_name, spec, mesh_name, metadata):
+        self.virtual_gateway_name = virtual_gateway_name
+        self.spec = spec
+        self.mesh_name = mesh_name
+        self.metadata = metadata
+        self.arn = f"arn:aws:appmesh:{self.metadata['region']}:{self.metadata['account_id']}:mesh/{mesh_name}/virtualGateway/{virtual_gateway_name}"
+        self.created_at = unix_time_millis()
+        self.last_updated_at = unix_time_millis()
+        self.resource_owner = self.metadata['account_id']
+        self.version = 1
+
+class VirtualGatewayRoute(BaseModel):
+    def __init__(self, virtual_gateway_route_name, spec, virtual_gateway_name, mesh_name, metadata):
+        self.virtual_gateway_route_name = virtual_gateway_route_name
+        self.spec = spec
+        self.virtual_gateway_name = virtual_gateway_name
+        self.mesh_name = mesh_name
+        self.metadata = metadata
+        self.arn = f"arn:aws:appmesh:{self.metadata['region']}:{self.metadata['account_id']}:mesh/{mesh_name}/virtualGateway/{virtual_gateway_name}/gatewayRoute/{virtual_gateway_route_name}"
+        self.created_at = unix_time_millis()
+        self.last_updated_at = unix_time_millis()
+        self.resource_owner = self.metadata['account_id']
+        self.version = 1
+
+    def create_virtual_gateway(self, virtual_gateway_name, spec, mesh_name, metadata):
+        virtual_gateway = VirtualGateway(virtual_gateway_name, spec, mesh_name, metadata)
+        self.virtual_gateways[virtual_gateway.arn] = virtual_gateway
+        return virtual_gateway
+
+    def describe_virtual_gateway(self, mesh_name, virtual_gateway_name):
+        for virtual_gateway in self.virtual_gateways.values():
+            if virtual_gateway.mesh_name == mesh_name and virtual_gateway.virtual_gateway_name == virtual_gateway_name:
+                return virtual_gateway
+        raise ResourceNotFoundException()
+
+    def create_virtual_gateway_route(self, virtual_gateway_route_name, spec, virtual_gateway_name, mesh_name, metadata):
+        virtual_gateway_route = VirtualGatewayRoute(virtual_gateway_route_name, spec, virtual_gateway_name, mesh_name, metadata)
+        self.virtual_gateway_routes[virtual_gateway_route.arn] = virtual_gateway_route
+        return virtual_gateway_route
+
+    def describe_virtual_gateway_route(self, mesh_name, virtual_gateway_name, route_name):
+        for route in self.virtual_gateway_routes.values():
+            if route.mesh_name == mesh_name and route.virtual_gateway_name == virtual_gateway_name and route.virtual_gateway_route_name == route_name:
+                return route
+        raise ResourceNotFoundException()
+
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")
