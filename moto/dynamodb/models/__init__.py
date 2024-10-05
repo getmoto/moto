@@ -558,6 +558,7 @@ class DynamoDBBackend(BaseBackend):
         expression_attribute_names: Optional[Dict[str, Any]] = None,
         expression_attribute_values: Optional[Dict[str, Any]] = None,
         condition_expression: Optional[str] = None,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Optional[Item]:
         table = self.get_table(table_name)
 
@@ -570,7 +571,13 @@ class DynamoDBBackend(BaseBackend):
             expression_attribute_values,
         )
         if not condition_op.expr(item):
-            raise ConditionalCheckFailed
+            if (
+                return_values_on_condition_check_failure == "ALL_OLD"
+                and item is not None
+            ):
+                raise ConditionalCheckFailed(item=item.to_json()["Attributes"])
+            else:
+                raise ConditionalCheckFailed
 
         return table.delete_item(hash_value, range_value)
 

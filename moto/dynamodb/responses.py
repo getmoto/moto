@@ -870,6 +870,9 @@ class DynamoHandler(BaseResponse):
         condition_expression = self.body.get("ConditionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
+        return_values_on_condition_check_failure = self.body.get(
+            "ReturnValuesOnConditionCheckFailure"
+        )
 
         item = self.dynamodb_backend.delete_item(
             name,
@@ -877,6 +880,7 @@ class DynamoHandler(BaseResponse):
             expression_attribute_names,
             expression_attribute_values,
             condition_expression,
+            return_values_on_condition_check_failure,
         )
 
         if item and return_values == "ALL_OLD":

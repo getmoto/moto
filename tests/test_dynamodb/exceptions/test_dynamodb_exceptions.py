@@ -1287,6 +1287,52 @@ def test_update_item_returns_old_item(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
+def test_delete_item_returns_old_item(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+    table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
+
+    with pytest.raises(ClientError) as exc:
+        table.delete_item(
+            Key={"pk": "mark"},
+            ExpressionAttributeNames={
+                "#lock": "lock",
+                "#acquired_at": "acquired_at",
+            },
+            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
+        )
+    resp = exc.value.response
+    assert resp["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert resp["message"] == "The conditional request failed"
+    assert "Item" not in resp
+
+    with pytest.raises(ClientError) as exc:
+        table.delete_item(
+            Key={"pk": "mark"},
+            ExpressionAttributeNames={
+                "#lock": "lock",
+                "#acquired_at": "acquired_at",
+            },
+            ReturnValuesOnConditionCheckFailure="ALL_OLD",
+            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
+        )
+    resp = exc.value.response
+    assert resp["Error"] == {
+        "Message": "The conditional request failed",
+        "Code": "ConditionalCheckFailedException",
+    }
+    assert "message" not in resp
+    assert resp["Item"] == {
+        "lock": {"M": {"acquired_at": {"N": "123"}}},
+        "pk": {"S": "mark"},
+    }
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
 def test_scan_with_missing_value(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
