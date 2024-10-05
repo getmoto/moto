@@ -616,7 +616,8 @@ class APIGatewayResponse(BaseResponse):
 
     def get_api_keys(self) -> str:
         include_values = self._get_bool_param("includeValues") or False
-        apikeys_response = self.backend.get_api_keys()
+        name = self._get_param("name")
+        apikeys_response = self.backend.get_api_keys(name=name)
         resp = [a.to_json() for a in apikeys_response]
         if not include_values:
             for key in resp:
@@ -680,8 +681,9 @@ class APIGatewayResponse(BaseResponse):
 
     def get_usage_plan_keys(self) -> str:
         usage_plan_id = self.path.split("/")[2]
-        usage_plans_response = self.backend.get_usage_plan_keys(usage_plan_id)
-        return json.dumps({"item": [u.to_json() for u in usage_plans_response]})
+        name = self._get_param("name")
+        usage_plans = self.backend.get_usage_plan_keys(usage_plan_id, name=name)
+        return json.dumps({"item": [u.to_json() for u in usage_plans]})
 
     def create_domain_name(self) -> TYPE_RESPONSE:
         domain_name = self._get_param("domainName")
