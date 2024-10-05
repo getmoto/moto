@@ -81,6 +81,29 @@ class AppMeshBackend(BaseBackend):
         self.virtual_gateways = {}
         self.virtual_gateway_routes = {}
 
+    def create_virtual_gateway(self, virtual_gateway_name, spec, mesh_name, metadata):
+        virtual_gateway = VirtualGateway(virtual_gateway_name, spec, mesh_name, metadata)
+        self.virtual_gateways[virtual_gateway.arn] = virtual_gateway
+        return virtual_gateway
+
+    def describe_virtual_gateway(self, mesh_name, virtual_gateway_name):
+        for virtual_gateway in self.virtual_gateways.values():
+            if virtual_gateway.mesh_name == mesh_name and virtual_gateway.virtual_gateway_name == virtual_gateway_name:
+                return virtual_gateway
+        raise ResourceNotFoundException()
+
+    def create_virtual_gateway_route(self, virtual_gateway_route_name, spec, virtual_gateway_name, mesh_name, metadata):
+        virtual_gateway_route = VirtualGatewayRoute(virtual_gateway_route_name, spec, virtual_gateway_name, mesh_name,
+                                                    metadata)
+        self.virtual_gateway_routes[virtual_gateway_route.arn] = virtual_gateway_route
+        return virtual_gateway_route
+
+    def describe_virtual_gateway_route(self, mesh_name, virtual_gateway_name, route_name):
+        for route in self.virtual_gateway_routes.values():
+            if route.mesh_name == mesh_name and route.virtual_gateway_name == virtual_gateway_name and route.virtual_gateway_route_name == route_name:
+                return route
+        raise ResourceNotFoundException()
+
     def _validate_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> None:
         if mesh_name not in self.meshes:
             raise MeshNotFoundError(mesh_name=mesh_name)
