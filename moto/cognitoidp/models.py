@@ -14,6 +14,11 @@ from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition, load_resource, md5_hash
+from moto.core import BaseBackend, BaseModel
+from moto.core.exceptions import UnauthorizedException
+import hmac
+import hashlib
+import base64
 
 from ..settings import get_cognito_idp_user_pool_id_strategy
 from .exceptions import (
@@ -2277,6 +2282,51 @@ class CognitoIdpBackend(BaseBackend):
         for user in user_pool.users.values():
             if user.attribute_lookup.get("email", "") == email:
                 raise AliasExistsException
+
+    def respond_to_auth_challenge(self, session, client_id, challenge_name, challenge_responses):
+        user = self._get_user_from_session(session)
+        if not user:
+            raise UnauthorizedException("Invalid session")
+
+        if challenge_name == "PASSWORD_VERIFIER":
+            if not self._validate_password_verifier(user, challenge_responses):
+                raise UnauthorizedException("Incorrect username or password")
+
+        # ... rest of the existing code ...
+
+    def _validate_password_verifier(self, user, challenge_responses):
+        required_keys = ["PASSWORD_CLAIM_SIGNATURE", "PASSWORD_CLAIM_SECRET_BLOCK", "TIMESTAMP", "USERNAME"]
+        if not all(key in challenge_responses for key in required_keys):
+            return False
+
+        # Verify username
+        if challenge_responses["USERNAME"] != user.username:
+            return False
+
+        # Verify secret block (this is a simplified check, in reality it would be more complex)
+        expected_secret_block = self._generate_secret_block(user)
+        if challenge_responses["PASSWORD_CLAIM_SECRET_BLOCK"] != expected_secret_block:
+            return False
+
+        # Verify signature (this is a simplified check, in reality it would involve more cryptographic operations)
+        expected_signature = self._generate_signature(user, challenge_responses)
+        if challenge_responses["PASSWORD_CLAIM_SIGNATURE"] != expected_signature:
+            return False
+
+        return True
+
+    def _generate_secret_block(self, user):
+        # This is a placeholder implementation
+        # In reality, this would involve complex cryptographic operations
+        return base64.b64encode(user.username.encode()).decode()
+
+    def _generate_signature(self, user, challenge_responses):
+        # This is a placeholder implementation
+        # In reality, this would involve complex cryptographic operations using SRP (Secure Remote Password) protocol
+        key = hmac.new(user.password.encode(), challenge_responses["PASSWORD_CLAIM_SECRET_BLOCK"].encode(),
+                       hashlib.sha256).digest()
+        signature = hmac.new(key, challenge_responses["TIMESTAMP"].encode(), hashlib.sha256).hexdigest()
+        return base64.b64encode(signature.encode()).decode()
 
 
 class RegionAgnosticBackend:
