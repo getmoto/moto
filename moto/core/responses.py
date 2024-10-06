@@ -521,16 +521,16 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return elem.replace("$", r"\$")
 
             # When the element ends with +} the parameter can contain a / otherwise not.
-            no_slash_allowed = False if "+" == elem[-2:-1] else True
+            slash_allowed = True if "+}" == elem[-2:] else False
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
                 .replace("+", "")
                 .replace("-", "_")
             )
-            if no_slash_allowed:
-                return f"(?P<{name}>[^/]+)"
-            return f"(?P<{name}>.+)"
+            if slash_allowed:
+                return f"(?P<{name}>.+)"
+            return f"(?P<{name}>[^/]+)"
 
         elems = uri.split("/")
         regexp = "/".join([_convert(elem) for elem in elems])
