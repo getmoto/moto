@@ -18704,7 +18704,7 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -19099,7 +19099,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -19347,7 +19347,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -19452,7 +19452,7 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -19834,7 +19834,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -57804,7 +57804,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -58157,7 +58157,7 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -58539,7 +58539,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -81385,7 +81385,7 @@
    ],
    "NetworkPerformance": "18.75 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -81780,7 +81780,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -82133,7 +82133,7 @@
    ],
    "NetworkPerformance": "12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -82515,7 +82515,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
