@@ -521,7 +521,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return elem.replace("$", r"\$")
 
             # When the element ends with +} the parameter can contain a / otherwise not.
-            slash_allowed = True if "+}" == elem[-2:] else False
+            slash_allowed = elem.endswith("+}")
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
