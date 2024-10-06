@@ -784,3 +784,85 @@ def test_list_user_groups__paginate():
     length = len(all_users["GroupList"])
     # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
     assert length >= 125
+
+
+@mock_aws
+def test_list_users__diff_account_region():
+    ACCOUNT_ID_2 = "998877665544"
+    client_us = boto3.client("quicksight", region_name="us-east-2")
+    client_eu = boto3.client("quicksight", region_name="eu-west-1")
+    client_us.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email="fake_us_1@example.com",
+        IdentityType="QUICKSIGHT",
+        UserName="fake_us_1",
+        UserRole="READER",
+    )
+    resp = client_us.register_user(
+        AwsAccountId=ACCOUNT_ID_2,
+        Namespace="default",
+        Email="fake_us_2@example.com",
+        IdentityType="QUICKSIGHT",
+        UserName="fake_us_2",
+        UserRole="AUTHOR",
+    )
+    client_eu.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email="fake_eu_1@example.com",
+        IdentityType="IAM",
+        UserName="fake_eu_1",
+        UserRole="AUTHOR",
+    )
+
+    # Return Account 1, Region US
+    resp = client_us.list_users(AwsAccountId=ACCOUNT_ID, Namespace="default")
+
+    assert len(resp["UserList"]) == 1
+    assert resp["Status"] == 200
+
+    resp["UserList"][0].pop("PrincipalId")
+
+    assert resp["UserList"][0] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:user/default/fake_us_1",
+        "UserName": "fake_us_1",
+        "Email": "fake_us_1@example.com",
+        "Role": "READER",
+        "IdentityType": "QUICKSIGHT",
+        "Active": False,
+    }
+
+    # Return Account 2, Region US
+    resp = client_us.list_users(AwsAccountId=ACCOUNT_ID_2, Namespace="default")
+
+    assert len(resp["UserList"]) == 1
+    assert resp["Status"] == 200
+
+    resp["UserList"][0].pop("PrincipalId")
+
+    assert resp["UserList"][0] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID_2}:user/default/fake_us_2",
+        "UserName": "fake_us_2",
+        "Email": "fake_us_2@example.com",
+        "Role": "AUTHOR",
+        "IdentityType": "QUICKSIGHT",
+        "Active": False,
+    }
+
+    # Return Account 1, Region EU
+    resp = client_eu.list_users(AwsAccountId=ACCOUNT_ID, Namespace="default")
+
+    assert len(resp["UserList"]) == 1
+    assert resp["Status"] == 200
+
+    resp["UserList"][0].pop("PrincipalId")
+
+    assert resp["UserList"][0] == {
+        "Arn": f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:user/default/fake_eu_1",
+        "UserName": "fake_eu_1",
+        "Email": "fake_eu_1@example.com",
+        "Role": "AUTHOR",
+        "IdentityType": "IAM",
+        "Active": False,
+    }

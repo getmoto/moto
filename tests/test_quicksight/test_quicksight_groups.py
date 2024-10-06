@@ -250,18 +250,12 @@ def test_search_groups():
         AwsAccountId=ACCOUNT_ID,
         Namespace="default",
         Filters=[
-            {"Operator": "StartsWith", "Name": "GROUP_NAME", "Value": "group"},
+            {"Operator": "StringEquals", "Name": "GROUP_NAME", "Value": "group1"},
         ],
     )
 
-    assert len(resp["GroupList"]) == 2
+    assert len(resp["GroupList"]) == 1
     assert resp["Status"] == 200
-
-    assert {
-        "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group0",
-        "GroupName": "group0",
-        "PrincipalId": ACCOUNT_ID,
-    } in resp["GroupList"]
 
     assert {
         "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:group/default/group1",
@@ -315,3 +309,90 @@ def test_search_groups__paginated():
     length = len(all_users["GroupList"])
     # We don't know exactly how much workspaces there are, because we are running multiple tests at the same time
     assert length >= 125
+
+
+@mock_aws
+def test_list_groups__diff_account_region():
+    ACCOUNT_ID_2 = "998877665544"
+    client_us = boto3.client("quicksight", region_name="us-east-2")
+    client_eu = boto3.client("quicksight", region_name="eu-west-1")
+    resp = client_us.create_group(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        GroupName="group_us_1",
+        Description="Group in US Account 1",
+    )
+    resp = client_us.create_group(
+        AwsAccountId=ACCOUNT_ID_2,
+        Namespace="default",
+        GroupName="group_us_2",
+        Description="Group in US Account 2",
+    )
+    resp = client_eu.create_group(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        GroupName="group_eu_1",
+        Description="Group in EU Account 1",
+    )
+
+    # Return Account 1, Region US
+    resp = client_us.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
+    assert len(resp["GroupList"]) == 1
+    assert resp["Status"] == 200
+
+    resp["GroupList"][0].pop("PrincipalId")
+
+    assert resp["GroupList"][0] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:group/default/group_us_1",
+        "GroupName": "group_us_1",
+        "Description": "Group in US Account 1",
+    }
+
+    # Return Account 2, Region US
+    resp = client_us.list_groups(AwsAccountId=ACCOUNT_ID_2, Namespace="default")
+
+    assert len(resp["GroupList"]) == 1
+    assert resp["Status"] == 200
+
+    resp["GroupList"][0].pop("PrincipalId")
+
+    assert resp["GroupList"][0] == {
+        "Arn": f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID_2}:group/default/group_us_2",
+        "GroupName": "group_us_2",
+        "Description": "Group in US Account 2",
+    }
+
+    # Return Account 1, Region EU
+    resp = client_eu.list_groups(AwsAccountId=ACCOUNT_ID, Namespace="default")
+
+    assert len(resp["GroupList"]) == 1
+    assert resp["Status"] == 200
+
+    resp["GroupList"][0].pop("PrincipalId")
+
+    assert resp["GroupList"][0] == {
+        "Arn": f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:group/default/group_eu_1",
+        "GroupName": "group_eu_1",
+        "Description": "Group in EU Account 1",
+    }
+
+
+@mock_aws
+def test_search_groups__check_exceptions():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    # Just do an exception test. No need to create a group first.
+
+    with pytest.raises(ClientError) as exc:
+        resp = client.search_groups(
+            AwsAccountId=ACCOUNT_ID,
+            Namespace="default",
+            Filters=[
+                {
+                    "Operator": "StringEquals",
+                    "Name": "GROUP_DESCRIPTION",
+                    "Value": "My Group 1",
+                },
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"

@@ -1,13 +1,12 @@
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import Any, Dict, List, Type, TypeVar
+
+from jsonschema import validate
+from jsonschema.exceptions import SchemaError, ValidationError
 
 from moto.core.common_models import BaseModel
 
-from .exceptions import InvalidParameterValueException
-
-if TYPE_CHECKING:
-    from .models import QuicksightGroup
-else:
-    QuicksightGroup = Any
+from .data_models import QuicksightGroup
+from .exceptions import ParamValidationError, SchemaException, ValidationException
 
 PAGINATION_MODEL = {
     "list_users": {
@@ -43,58 +42,103 @@ PAGINATION_MODEL = {
 }
 
 
-class QuicksightFilter(BaseModel):
+class QuicksightBaseSearchFilter(BaseModel):
+    """Base Search Filter."""
+
+    schema: Dict[str, Any] = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+    }
+
     def __init__(self, operator: str, name: str, value: str):
         self.operator = operator
         self.name = name
         self.value = value
 
-    def to_json(self) -> Dict[str, Any]:
-        return {"Operator": self.operator, "Name": self.name, "Value": self.value}
+    def match(self, input: BaseModel) -> bool:
+        raise NotImplementedError
 
-    def match(self, group: QuicksightGroup) -> bool:
-        if self.name == "GROUP_NAME":
-            group_attribute = group.group_name
-        else:
-            raise InvalidParameterValueException(
-                "GroupSearchFilter supports ony Name=GROUP_NAME"
-            )
-        if self.operator == "StartsWith":
-            return group_attribute.lower().startswith(self.value.lower())
-        else:
-            raise InvalidParameterValueException(
-                "GroupSearchFilter supports ony Operator=StartsWith"
-            )
+
+class QuicksightGroupSearchFilter(QuicksightBaseSearchFilter):
+    """Group Search Filter."""
+
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "Operator": {"type": "string", "enum": ["StringEquals", "StartsWith"]},
+                "Name": {"type": "string", "enum": ["GROUP_NAME"]},
+                "Value": {"type": "string"},
+            },
+            "required": ["Operator", "Name", "Value"],
+        },
+        "minItems": 1,
+        "maxItems": 1,
+    }
+
+    def __init__(self, operator: str, name: str, value: str):
+        super().__init__(operator, name, value)
+
+    def match(self, input: BaseModel) -> bool:
+        if isinstance(input, QuicksightGroup):
+            if self.name == "GROUP_NAME" and self.operator == "StringEquals":
+                return input.group_name.lower() == self.value.lower()
+            if self.name == "GROUP_NAME" and self.operator == "StartsWith":
+                return input.group_name.lower().startswith(self.value.lower())
+        return False
 
     @classmethod
-    def parse_filter(cls, filter: Dict[str, str]) -> "QuicksightFilter":
-        attribute_list = ["Operator", "Name", "Value"]
-        if not all([attribute in filter for attribute in attribute_list]):
-            raise InvalidParameterValueException(
-                "Attribute missing in GroupSearchFilter"
-            )
-        return QuicksightFilter(
+    def parse_filter(cls, filter: Dict[str, str]) -> QuicksightBaseSearchFilter:
+        return QuicksightGroupSearchFilter(
             operator=filter.get("Operator", ""),
             name=filter.get("Name", ""),
             value=filter.get("Value", ""),
         )
 
 
-class QuicksightFilterList(BaseModel):
-    def __init__(self, filters: List[QuicksightFilter]):
-        self.filters = filters
+T = TypeVar("T")
 
-    def to_json(self) -> Dict[str, Any]:
-        return {"Filters": [filter.to_json() for filter in self.filters]}
 
-    def match(self, group: QuicksightGroup) -> bool:
-        return any([filter.match(group) for filter in self.filters])
+class QuicksightSearchFilterList:
+    """Generic QuickSight Search Filter List."""
+
+    def __init__(self, filters: List[QuicksightBaseSearchFilter]):
+        self.filters: list[QuicksightBaseSearchFilter] = filters
+
+    def match(self, input: BaseModel) -> bool:
+        return any([filter.match(input) for filter in self.filters])
+
+
+class QuicksightSearchFilterFactory:
+    """Creates the appropriate search filter."""
 
     @classmethod
-    def parse_filters(cls, filter_list: List[Dict[str, str]]) -> "QuicksightFilterList":
-        filters: list[QuicksightFilter] = [
-            QuicksightFilter.parse_filter(filter) for filter in filter_list
-        ]
-        if len(filters) > 1:
-            raise InvalidParameterValueException("Only 1 filter is allowed.")
-        return QuicksightFilterList(filters)
+    def validate_and_create_filter(
+        cls, model_type: Type[T], input: List[Dict[str, str]] | None
+    ) -> QuicksightSearchFilterList:
+        if issubclass(model_type, QuicksightGroup):
+            if input is None:
+                # Should never happen as there are other validations before but just in case.
+                raise ParamValidationError(
+                    'Missing required parameter in input: "Filters"'
+                )
+            try:
+                validate(instance=input, schema=QuicksightGroupSearchFilter.schema)
+                return QuicksightSearchFilterList(
+                    filters=[
+                        QuicksightGroupSearchFilter.parse_filter(filter)
+                        for filter in input
+                    ]
+                )
+            except ValidationError as err:
+                raise ValidationException(err.message)
+
+            except SchemaError as err:
+                # This exception can happen only, when the schema defined in moto is wrong.
+                # The schema is not presented by the user.
+                raise SchemaException(f"Schema definition wrong in moto: {err.message}")
+
+        raise NotImplementedError(
+            f"Filter for '{model_type.__name__}' not implemented."
+        )
