@@ -110,14 +110,27 @@ def test_version_is_only_available_when_published():
         PolicyName="allowLambdaInvoke",
         RoleName=role_name,
     )
+    kms_key_id = boto3.client("kms", region_name="us-east-1").create_key()[
+        "KeyMetadata"
+    ]["KeyId"]
     sleep(10 if allow_aws_request() else 0)
 
     client = boto3.client("stepfunctions", region_name="us-east-1")
 
     try:
         name1 = f"sfn_name_{str(uuid4())[0:6]}"
+        encryption_config = {
+            "kmsDataKeyReusePeriodSeconds": 60,
+            "kmsKeyId": kms_key_id,
+            "type": "CUSTOMER_MANAGED_CMK",
+        }
         response = client.create_state_machine(
-            name=name1, definition=simple_definition, roleArn=sfn_role
+            name=name1,
+            definition=simple_definition,
+            roleArn=sfn_role,
+            tracingConfiguration={"enabled": False},
+            loggingConfiguration={"level": "NONE"},
+            encryptionConfiguration=encryption_config,
         )
         assert "stateMachineVersionArn" not in response
         arn1 = response["stateMachineArn"]
