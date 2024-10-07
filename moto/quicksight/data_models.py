@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random
@@ -74,7 +74,7 @@ class QuicksightGroup(BaseModel):
     def delete_member(self, user_name: str) -> None:
         self.members.pop(user_name, None)
 
-    def get_member(self, user_name: str) -> QuicksightMembership | None:
+    def get_member(self, user_name: str) -> Union[QuicksightMembership, None]:
         return self.members.get(user_name, None)
 
     def list_members(self) -> List[QuicksightMembership]:

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Type, Union
 
 from jsonschema import validate
 from jsonschema.exceptions import SchemaError, ValidationError
@@ -101,7 +101,7 @@ class QuicksightSearchFilterList:
     """Generic QuickSight Search Filter List."""
 
     def __init__(self, filters: List[QuicksightBaseSearchFilter]):
-        self.filters: list[QuicksightBaseSearchFilter] = filters
+        self.filters: List[QuicksightBaseSearchFilter] = filters
 
     def match(self, input: BaseModel) -> bool:
         return any([filter.match(input) for filter in self.filters])
@@ -112,7 +112,7 @@ class QuicksightSearchFilterFactory:
 
     @classmethod
     def validate_and_create_filter(
-        cls, model_type: Type[BaseModel], input: List[Dict[str, str]] | None
+        cls, model_type: Type[BaseModel], input: Union[List[Dict[str, str]], None]
     ) -> QuicksightSearchFilterList:
         if issubclass(model_type, QuicksightGroup):
             if input is None:

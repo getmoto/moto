@@ -135,7 +135,7 @@ class QuickSightBackend(BaseBackend):
         self, aws_account_id: str, namespace: str, user_name: str
     ) -> List[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
-        group_list: dict[str, QuicksightGroup] = {}
+        group_list: Dict[str, QuicksightGroup] = {}
         # Loop through all groups and check if the user is member.
         for id, group in self.groups.items():
             if group.get_member(user_name):
