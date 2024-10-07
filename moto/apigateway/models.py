@@ -2150,8 +2150,8 @@ class APIGatewayBackend(BaseBackend):
         self.keys[key.id] = key
         return key
 
-    def get_api_keys(self) -> List[ApiKey]:
-        return list(self.keys.values())
+    def get_api_keys(self, name: Optional[str] = None) -> List[ApiKey]:
+        return [key for key in self.keys.values() if not name or name == key.name]
 
     def get_api_key(self, api_key_id: str) -> ApiKey:
         if api_key_id not in self.keys:
@@ -2222,11 +2222,16 @@ class APIGatewayBackend(BaseBackend):
         self.usage_plan_keys[usage_plan_id][usage_plan_key.id] = usage_plan_key
         return usage_plan_key
 
-    def get_usage_plan_keys(self, usage_plan_id: str) -> List[UsagePlanKey]:
+    def get_usage_plan_keys(
+        self, usage_plan_id: str, name: Optional[str] = None
+    ) -> List[UsagePlanKey]:
         if usage_plan_id not in self.usage_plan_keys:
             return []
 
-        return list(self.usage_plan_keys[usage_plan_id].values())
+        plan_keys = self.usage_plan_keys[usage_plan_id].values()
+        if name:
+            return [key for key in plan_keys if not name or key.name == name]
+        return list(plan_keys)
 
     def get_usage_plan_key(self, usage_plan_id: str, key_id: str) -> UsagePlanKey:
         # first check if is a valid api key
