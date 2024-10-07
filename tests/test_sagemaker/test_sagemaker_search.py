@@ -129,6 +129,35 @@ def test_search_experiments_with_filter(sagemaker_client):
     )
 
 
+def test_search_model_packages(sagemaker_client):
+    group_name = "mpg_DEV"
+    sagemaker_client.create_model_package_group(
+        ModelPackageGroupName=group_name,
+        ModelPackageGroupDescription="test-model-package-group-description",
+    )
+    sagemaker_client.create_model_package(ModelPackageGroupName=group_name)
+    sagemaker_client.create_model_package(ModelPackageName="test")
+    sagemaker_client.create_model_package(ModelPackageName="prod")
+
+    _verify_search_results(
+        {"Name": "ModelPackageName", "Operator": "Contains", "Value": "test"},
+        1,
+        resource="ModelPackage",
+    )
+
+    _verify_search_results(
+        {"Name": "ModelPackageName", "Operator": "Contains", "Value": "prod"},
+        1,
+        resource="ModelPackage",
+    )
+
+    _verify_search_results(
+        {"Name": "ModelPackageName", "Operator": "Contains", "Value": "staging"},
+        0,
+        resource="ModelPackage",
+    )
+
+
 def test_search_model_package_groups_with_filter(sagemaker_client):
     sagemaker_client.create_model_package_group(
         ModelPackageGroupName="mpg_DEV",

@@ -1039,7 +1039,7 @@
 
 ## cloudfront
 <details>
-<summary>14% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] associate_alias
 - [ ] copy_distribution
@@ -1052,12 +1052,12 @@
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
 - [X] create_invalidation
-- [ ] create_key_group
+- [X] create_key_group
 - [ ] create_key_value_store
 - [ ] create_monitoring_subscription
 - [X] create_origin_access_control
 - [ ] create_origin_request_policy
-- [ ] create_public_key
+- [X] create_public_key
 - [ ] create_realtime_log_config
 - [ ] create_response_headers_policy
 - [ ] create_streaming_distribution
@@ -1074,7 +1074,7 @@
 - [ ] delete_monitoring_subscription
 - [X] delete_origin_access_control
 - [ ] delete_origin_request_policy
-- [ ] delete_public_key
+- [X] delete_public_key
 - [ ] delete_realtime_log_config
 - [ ] delete_response_headers_policy
 - [ ] delete_streaming_distribution
@@ -1094,14 +1094,14 @@
 - [ ] get_field_level_encryption_profile_config
 - [ ] get_function
 - [X] get_invalidation
-- [ ] get_key_group
+- [X] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription
 - [X] get_origin_access_control
 - [ ] get_origin_access_control_config
 - [ ] get_origin_request_policy
 - [ ] get_origin_request_policy_config
-- [ ] get_public_key
+- [X] get_public_key
 - [ ] get_public_key_config
 - [ ] get_realtime_log_config
 - [ ] get_response_headers_policy
@@ -1123,11 +1123,11 @@
 - [ ] list_field_level_encryption_profiles
 - [ ] list_functions
 - [X] list_invalidations
-- [ ] list_key_groups
+- [X] list_key_groups
 - [ ] list_key_value_stores
 - [X] list_origin_access_controls
 - [ ] list_origin_request_policies
-- [ ] list_public_keys
+- [X] list_public_keys
 - [ ] list_realtime_log_configs
 - [ ] list_response_headers_policies
 - [ ] list_streaming_distributions

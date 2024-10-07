@@ -505,35 +505,35 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @staticmethod
     def uri_to_regexp(uri: str) -> str:
         """converts uri w/ placeholder to regexp
-          '/cars/{carName}/drivers/{DriverName}'
-        -> '^/cars/.*/drivers/[^/]*$'
+          '/accounts/{AwsAccountId}/namespaces/{Namespace}/groups'
+        -> '^/accounts/(?P<AwsAccountId>[^/]+)/namespaces/(?P<Namespace>[^/]+)/groups$'
 
-          '/cars/{carName}/drivers/{DriverName}/drive'
-        -> '^/cars/.*/drivers/.*/drive$'
+          '/trustStores/{trustStoreArn+}'
+        -> '^/trustStores/(?P<trustStoreArn>.+)$'
 
         """
 
-        def _convert(elem: str, is_last: bool) -> str:
+        def _convert(elem: str) -> str:
             if not re.match("^{.*}$", elem):
                 # URL-parts sometimes contain a $
                 # Like Greengrass: /../deployments/$reset
                 # We don't want to our regex to think this marks an end-of-line, so let's escape it
                 return elem.replace("$", r"\$")
+
+            # When the element ends with +} the parameter can contain a / otherwise not.
+            slash_allowed = elem.endswith("+}")
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
                 .replace("+", "")
                 .replace("-", "_")
             )
-            if is_last:
-                return f"(?P<{name}>[^/]+)"
-            return f"(?P<{name}>.*)"
+            if slash_allowed:
+                return f"(?P<{name}>.+)"
+            return f"(?P<{name}>[^/]+)"
 
         elems = uri.split("/")
-        num_elems = len(elems)
-        regexp = "/".join(
-            [_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]
-        )
+        regexp = "/".join([_convert(elem) for elem in elems])
         return f"^{regexp}$"
 
     def _get_action_from_method_and_request_uri(

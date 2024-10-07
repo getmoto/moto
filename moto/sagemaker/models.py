@@ -1093,6 +1093,7 @@ class ModelPackageGroup(BaseObject):
             "ModelPackageGroupDescription",
             "CreationTime",
             "ModelPackageGroupStatus",
+            "Tags",
         ]
         response = {k: v for k, v in response_object.items() if k in response_values}
         response["ModelPackageGroupArn"] = response.pop("Arn")
@@ -3072,21 +3073,21 @@ class SageMakerModelBackend(BaseBackend):
         """
         next_index = None
 
-        valid_resources = [
-            "Pipeline",
-            "ModelPackageGroup",
-            "TrainingJob",
-            "ExperimentTrialComponent",
-            "FeatureGroup",
-            "Endpoint",
-            "PipelineExecution",
-            "Project",
-            "ExperimentTrial",
-            "Image",
-            "ImageVersion",
-            "ModelPackage",
-            "Experiment",
-        ]
+        valid_resources = {
+            "Pipeline": self.pipelines.values(),
+            "ModelPackageGroup": self.model_package_groups.values(),
+            "TrainingJob": self.training_jobs.values(),
+            "ExperimentTrialComponent": self.trial_components.values(),
+            "FeatureGroup": self.feature_groups.values(),
+            "Endpoint": self.endpoints.values(),
+            "PipelineExecution": self.pipeline_executions.values(),
+            "Project": [],
+            "ExperimentTrial": self.trials.values(),
+            "Image": [],
+            "ImageVersion": [],
+            "ModelPackage": self.model_packages.values(),
+            "Experiment": self.experiments.values(),
+        }
 
         if resource not in valid_resources:
             raise AWSValidationException(
@@ -3148,73 +3149,18 @@ class SageMakerModelBackend(BaseBackend):
             "Results": [],
             "NextToken": str(next_index) if next_index is not None else None,
         }
-        if resource == "Experiment":
-            experiments_fetched = list(self.experiments.values())
+        # ResourceName, ResultName, Resources
+        result_names = {
+            "ExperimentTrial": "Trial",
+            "ExperimentTrialComponent": "TrialComponent",
+        }
+        resources_found = [
+            x for x in valid_resources[resource] if evaluate_search_expression(x)
+        ]
+        result_name = result_names.get(resource, resource)
+        for found in resources_found:
+            result["Results"].append({result_name: found.gen_response_object()})
 
-            experiment_summaries = [
-                {
-                    "ExperimentName": experiment_data.experiment_name,
-                    "ExperimentArn": experiment_data.arn,
-                    "CreationTime": experiment_data.creation_time,
-                    "LastModifiedTime": experiment_data.last_modified_time,
-                }
-                for experiment_data in experiments_fetched
-                if evaluate_search_expression(experiment_data)
-            ]
-
-            for experiment_summary in experiment_summaries:
-                result["Results"].append({"Experiment": experiment_summary})
-
-        if resource == "ExperimentTrial":
-            trials_fetched = list(self.trials.values())
-
-            trial_summaries = [
-                {
-                    "TrialName": trial_data.trial_name,
-                    "TrialArn": trial_data.arn,
-                    "CreationTime": trial_data.creation_time,
-                    "LastModifiedTime": trial_data.last_modified_time,
-                }
-                for trial_data in trials_fetched
-                if evaluate_search_expression(trial_data)
-            ]
-
-            for trial_summary in trial_summaries:
-                result["Results"].append({"Trial": trial_summary})
-
-        if resource == "ExperimentTrialComponent":
-            trial_components_fetched = list(self.trial_components.values())
-
-            trial_component_summaries = [
-                {
-                    "TrialComponentName": trial_component_data.trial_component_name,
-                    "TrialComponentArn": trial_component_data.arn,
-                    "CreationTime": trial_component_data.creation_time,
-                    "LastModifiedTime": trial_component_data.last_modified_time,
-                }
-                for trial_component_data in trial_components_fetched
-                if evaluate_search_expression(trial_component_data)
-            ]
-
-            for trial_component_summary in trial_component_summaries:
-                result["Results"].append({"TrialComponent": trial_component_summary})
-
-        if resource == "ModelPackageGroup":
-            package_groups = [
-                {
-                    "ModelPackageGroupArn": group.arn,
-                    "ModelPackageGroupDescription": group.model_package_group_description,
-                    "CreationTime": group.creation_time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "ModelPackageGroupName": group.model_package_group_name,
-                    "ModelPackageGroupStatus": group.model_package_group_status,
-                    "Tags": group.tags,
-                }
-                for group in self.model_package_groups.values()
-                if evaluate_search_expression(group)
-            ]
-
-            for group in package_groups:
-                result["Results"].append({"ModelPackageGroup": group})
         return result
 
     def delete_experiment(self, experiment_name: str) -> None:
