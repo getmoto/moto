@@ -129,7 +129,7 @@ def test_version_is_only_available_when_published():
             definition=simple_definition,
             roleArn=sfn_role,
             tracingConfiguration={"enabled": False},
-            loggingConfiguration={"level": "NONE"},
+            loggingConfiguration={"level": "OFF"},
             encryptionConfiguration=encryption_config,
         )
         assert "stateMachineVersionArn" not in response

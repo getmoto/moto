@@ -31,6 +31,13 @@ def test_state_machine_cloudformation():
                     "StateMachineType": "STANDARD",
                     "DefinitionString": definition,
                     "RoleArn": role_arn,
+                    "TracingConfiguration": {"Enabled": True},
+                    "EncryptionConfiguration": {
+                        "KmsDataKeyReusePeriodSeconds": 60,
+                        "KmsKeyId": "arn:aws:kms:us-east-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+                        "Type": "CUSTOMER_MANAGED_KMS_KEY",
+                    },
+                    "LoggingConfiguration": {"Level": "OFF"},
                     "Tags": [
                         {"Key": "key1", "Value": "value1"},
                         {"Key": "key2", "Value": "value2"},
@@ -51,6 +58,11 @@ def test_state_machine_cloudformation():
     assert state_machine["name"] == output["StateMachineName"]
     assert state_machine["roleArn"] == role_arn
     assert state_machine["definition"] == definition
+    assert state_machine["tracingConfiguration"] == {"enabled": True}
+    assert (
+        state_machine["encryptionConfiguration"]["Type"] == "CUSTOMER_MANAGED_KMS_KEY"
+    )
+    assert state_machine["loggingConfiguration"]["level"] == "OFF"
     tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
     for i, tag in enumerate(tags, 1):
         assert tag["key"] == f"key{i}"
