@@ -181,7 +181,7 @@
       "$ref": "#/definitions/TracingConfiguration"
     },
     "EncryptionConfiguration": {
-      "$ref": "#/definitions/Encryptionfiguration"
+      "$ref": "#/definitions/EncryptionConfiguration"
     },
     "DefinitionS3Location": {
       "$ref": "#/definitions/S3Location"

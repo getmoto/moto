@@ -38,9 +38,9 @@ class StepFunctionResponse(BaseResponse):
             roleArn=roleArn,
             tags=tags,
             publish=publish,
-            encryptionConfiguration=encryptionConfiguration,
             loggingConfiguration=loggingConfiguration,
             tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
         )
         response = {
             "creationDate": state_machine.creation_date,

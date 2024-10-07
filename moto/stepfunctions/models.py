@@ -532,9 +532,9 @@ class StepFunctionBackend(BaseBackend):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
         publish: Optional[bool] = None,
-        encryptionConfiguration: Optional[Dict[str, Any]] = None,
         loggingConfiguration: Optional[Dict[str, Any]] = None,
         tracingConfiguration: Optional[Dict[str, Any]] = None,
+        encryptionConfiguration: Optional[Dict[str, Any]] = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)

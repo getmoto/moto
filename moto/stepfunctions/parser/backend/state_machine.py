@@ -50,6 +50,7 @@ class StateMachineInstance:
         logging_config: Optional[LoggingConfiguration] = None,
         tags: Optional[TagList] = None,
         tracing_config: Optional[TracingConfiguration] = None,
+        encryption_config: Optional[EncryptionConfiguration] = None,
     ):
         self.name = name
         self.arn = arn
@@ -63,6 +64,7 @@ class StateMachineInstance:
         self.logging_config = logging_config
         self.tags = tags
         self.tracing_config = tracing_config
+        self.encryption_config = encryption_config
 
     def describe(self) -> DescribeStateMachineOutput:
         describe_output = DescribeStateMachineOutput(
@@ -74,6 +76,7 @@ class StateMachineInstance:
             type=self.sm_type,
             creationDate=self.create_date,
             loggingConfiguration=self.logging_config,
+            encryptionConfiguration=self.encryption_config,
         )
         if self.revision_id:
             describe_output["revisionId"] = self.revision_id

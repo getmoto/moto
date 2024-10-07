@@ -6,6 +6,7 @@ from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
+    EncryptionConfiguration,
     ExecutionStatus,
     GetExecutionHistoryOutput,
     InvalidDefinition,
@@ -81,6 +82,9 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
         publish: Optional[bool] = None,
+        loggingConfiguration: Optional[LoggingConfiguration] = None,
+        tracingConfiguration: Optional[TracingConfiguration] = None,
+        encryptionConfiguration: Optional[EncryptionConfiguration] = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
@@ -90,6 +94,9 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             roleArn=roleArn,
             tags=tags,
             publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:
