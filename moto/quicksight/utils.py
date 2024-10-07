@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Dict, List, Type
 
 from jsonschema import validate
 from jsonschema.exceptions import SchemaError, ValidationError

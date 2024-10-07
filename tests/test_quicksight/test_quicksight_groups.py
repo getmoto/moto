@@ -383,7 +383,7 @@ def test_search_groups__check_exceptions():
     # Just do an exception test. No need to create a group first.
 
     with pytest.raises(ClientError) as exc:
-        resp = client.search_groups(
+        client.search_groups(
             AwsAccountId=ACCOUNT_ID,
             Namespace="default",
             Filters=[
