@@ -97,9 +97,6 @@ class QuicksightGroupSearchFilter(QuicksightBaseSearchFilter):
         )
 
 
-T = TypeVar("T")
-
-
 class QuicksightSearchFilterList:
     """Generic QuickSight Search Filter List."""
 
@@ -115,7 +112,7 @@ class QuicksightSearchFilterFactory:
 
     @classmethod
     def validate_and_create_filter(
-        cls, model_type: Type[T], input: List[Dict[str, str]] | None
+        cls, model_type: Type[BaseModel], input: List[Dict[str, str]] | None
     ) -> QuicksightSearchFilterList:
         if issubclass(model_type, QuicksightGroup):
             if input is None:

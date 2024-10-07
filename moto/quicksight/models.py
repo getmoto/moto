@@ -46,10 +46,10 @@ class QuickSightBackend(BaseBackend):
         return group
 
     def create_group_membership(
-        self, aws_account_id: str, namespace: str, group_name: str, user_name: str
+        self, aws_account_id: str, namespace: str, group_name: str, member_name: str
     ) -> QuicksightMembership:
         group = self.describe_group(aws_account_id, namespace, group_name)
-        return group.add_member(user_name)
+        return group.add_member(member_name)
 
     def create_ingestion(
         self, data_set_id: str, ingestion_id: str
@@ -81,12 +81,12 @@ class QuickSightBackend(BaseBackend):
         return self.groups[_id]
 
     def describe_group_membership(
-        self, aws_account_id: str, namespace: str, group_name: str, user_name: str
+        self, aws_account_id: str, namespace: str, group_name: str, member_name: str
     ) -> QuicksightMembership:
         group = self.describe_group(aws_account_id, namespace, group_name)
-        member = group.get_member(user_name)
+        member = group.get_member(member_name)
         if member is None:
-            raise ResourceNotFoundException(f"User {user_name} not found")
+            raise ResourceNotFoundException(f"Member {member_name} not found")
         return member
 
     def describe_user(

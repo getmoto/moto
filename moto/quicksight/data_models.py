@@ -64,11 +64,11 @@ class QuicksightGroup(BaseModel):
 
         self.members: Dict[str, QuicksightMembership] = dict()
 
-    def add_member(self, user_name: str) -> QuicksightMembership:
+    def add_member(self, member_name: str) -> QuicksightMembership:
         membership = QuicksightMembership(
-            self.aws_account_id, self.region, self.group_name, user_name
+            self.aws_account_id, self.region, self.group_name, member_name
         )
-        self.members[user_name] = membership
+        self.members[member_name] = membership
         return membership
 
     def delete_member(self, user_name: str) -> None:
