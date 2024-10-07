@@ -224,6 +224,7 @@ class StateMachineVersion(StateMachineInstance):
             logging_config=state_machine_revision.logging_config,
             tags=state_machine_revision.tags,
             tracing_config=state_machine_revision.tracing_config,
+            encryption_config=state_machine_revision.encryption_config,
         )
         self.source_arn = state_machine_revision.arn
         self.revision_id = state_machine_revision.revision_id
