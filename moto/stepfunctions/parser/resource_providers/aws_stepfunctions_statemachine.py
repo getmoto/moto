@@ -31,6 +31,7 @@ class StepFunctionsStateMachineProperties(TypedDict):
     StateMachineType: Optional[str]
     Tags: Optional[List[TagsEntry]]
     TracingConfiguration: Optional[TracingConfiguration]
+    EncryptionConfiguration: Optional[EncryptionConfiguration]
 
 
 class CloudWatchLogsLogGroup(TypedDict):
@@ -49,6 +50,12 @@ class LoggingConfiguration(TypedDict):
 
 class TracingConfiguration(TypedDict):
     Enabled: Optional[bool]
+
+
+class EncryptionConfiguration(TypedDict):
+    Type: Optional[str]
+    KmsKeyID: Optional[str]
+    KmsDataKeyReusePeriodSeconds: Optional[int]
 
 
 class S3Location(TypedDict):

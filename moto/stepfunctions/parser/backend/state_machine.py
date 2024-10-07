@@ -10,6 +10,7 @@ from moto.moto_api._internal import mock_random
 from moto.stepfunctions.parser.api import (
     Definition,
     DescribeStateMachineOutput,
+    EncryptionConfiguration,
     LoggingConfiguration,
     Name,
     RevisionId,
@@ -36,6 +37,7 @@ class StateMachineInstance:
     logging_config: Optional[LoggingConfiguration]
     tags: Optional[TagList]
     tracing_config: Optional[TracingConfiguration]
+    encryption_config: Optional[EncryptionConfiguration]
 
     def __init__(
         self,
