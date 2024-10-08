@@ -290,20 +290,20 @@ def test_create_user_settings():
 def test_get_user_settings():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
     resp = client.create_user_settings(
-        copyAllowed="Disabled",
+        copyAllowed="Enabled",
         pasteAllowed="Disabled",
-        printAllowed="Disabled",
+        printAllowed="Enabled",
         uploadAllowed="Disabled",
-        downloadAllowed="Disabled",
+        downloadAllowed="Enabled",
     )
     user_settings_arn = resp["userSettingsArn"]
     resp = client.get_user_settings(userSettingsArn=user_settings_arn)["userSettings"]
     assert resp["userSettingsArn"] == user_settings_arn
-    assert resp["copyAllowed"] == "Disabled"
+    assert resp["copyAllowed"] == "Enabled"
     assert resp["pasteAllowed"] == "Disabled"
-    assert resp["printAllowed"] == "Disabled"
+    assert resp["printAllowed"] == "Enabled"
     assert resp["uploadAllowed"] == "Disabled"
-    assert resp["downloadAllowed"] == "Disabled"
+    assert resp["downloadAllowed"] == "Enabled"
 
 
 @mock_aws
