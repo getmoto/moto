@@ -6,6 +6,7 @@ from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
+    EncryptionConfiguration,
     ExecutionStatus,
     GetExecutionHistoryOutput,
     InvalidDefinition,
@@ -81,6 +82,9 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
         publish: Optional[bool] = None,
+        loggingConfiguration: Optional[LoggingConfiguration] = None,
+        tracingConfiguration: Optional[TracingConfiguration] = None,
+        encryptionConfiguration: Optional[EncryptionConfiguration] = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
@@ -90,6 +94,9 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             roleArn=roleArn,
             tags=tags,
             publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:
@@ -192,14 +199,21 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         role_arn: str = None,
         logging_configuration: LoggingConfiguration = None,
         tracing_configuration: TracingConfiguration = None,
+        encryption_configuration: EncryptionConfiguration = None,
         publish: Optional[bool] = None,
         version_description: VersionDescription = None,
     ) -> StateMachine:
         if not any(
-            [definition, role_arn, logging_configuration, tracing_configuration]
+            [
+                definition,
+                role_arn,
+                logging_configuration,
+                tracing_configuration,
+                encryption_configuration,
+            ]
         ):
             raise MissingRequiredParameter(
-                "Either the definition, the role ARN, the LoggingConfiguration, or the TracingConfiguration must be specified"
+                "Either the definition, the role ARN, the LoggingConfiguration, the EncryptionConfiguration or the TracingConfiguration must be specified"
             )
 
         if definition is not None:
@@ -211,6 +225,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             role_arn,
             logging_configuration=logging_configuration,
             tracing_configuration=tracing_configuration,
+            encryption_configuration=encryption_configuration,
             publish=publish,
         )
 
