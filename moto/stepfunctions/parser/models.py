@@ -199,15 +199,21 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         role_arn: str = None,
         logging_configuration: LoggingConfiguration = None,
         tracing_configuration: TracingConfiguration = None,
-        encryption_configuration: Optional[Dict[str, Any]] = None,
+        encryption_configuration: EncryptionConfiguration = None,
         publish: Optional[bool] = None,
         version_description: VersionDescription = None,
     ) -> StateMachine:
         if not any(
-            [definition, role_arn, logging_configuration, tracing_configuration]
+            [
+                definition,
+                role_arn,
+                logging_configuration,
+                tracing_configuration,
+                encryption_configuration,
+            ]
         ):
             raise MissingRequiredParameter(
-                "Either the definition, the role ARN, the LoggingConfiguration, or the TracingConfiguration must be specified"
+                "Either the definition, the role ARN, the LoggingConfiguration, the EncryptionConfiguration or the TracingConfiguration must be specified"
             )
 
         if definition is not None:

@@ -153,7 +153,11 @@ def test_version_is_only_available_when_published():
         assert response["stateMachineVersionArn"] == f"{arn2}:1"
 
         resp = client.update_state_machine(
-            stateMachineArn=arn2, publish=True, tracingConfiguration={"enabled": True}
+            stateMachineArn=arn2,
+            publish=True,
+            tracingConfiguration={"enabled": True},
+            loggingConfiguration={"level": "OFF"},
+            encryptionConfiguration=encryption_config,
         )
         assert resp["stateMachineVersionArn"] == f"{arn2}:2"
     finally:
