@@ -33,16 +33,16 @@ class FakeUserSettings(BaseModel):
         self.additional_encryption_context = additional_encryption_context
         self.client_token = client_token
         self.cookie_synchronization_configuration = cookie_synchronization_configuration
-        self.copy_allowed = "Enabled" if copy_allowed else "Disabled"
+        self.copy_allowed = copy_allowed if copy_allowed else "Disabled"
         self.customer_managed_key = customer_managed_key
-        self.deep_link_allowed = "Enabled" if deep_link_allowed else "Disabled"
+        self.deep_link_allowed = deep_link_allowed if deep_link_allowed else "Disabled"
         self.disconnect_timeout_in_minutes = disconnect_timeout_in_minutes
-        self.download_allowed = "Enabled" if download_allowed else "Disabled"
+        self.download_allowed = download_allowed if download_allowed else "Disabled"
         self.idle_disconnect_timeout_in_minutes = idle_disconnect_timeout_in_minutes
-        self.paste_allowed = "Enabled" if paste_allowed else "Disabled"
-        self.print_allowed = "Enabled" if print_allowed else "Disabled"
+        self.paste_allowed = paste_allowed if paste_allowed else "Disabled"
+        self.print_allowed = print_allowed if print_allowed else "Disabled"
         self.tags = tags
-        self.upload_allowed = "Enabled" if upload_allowed else "Disabled"
+        self.upload_allowed = upload_allowed if upload_allowed else "Disabled"
         self.associated_portal_arns: List[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:

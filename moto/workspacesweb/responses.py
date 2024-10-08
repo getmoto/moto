@@ -205,24 +205,23 @@ class WorkSpacesWebResponse(BaseResponse):
         )
 
     def create_user_settings(self) -> str:
-        params = self._get_params()
-        additional_encryption_context = params.get("additionalEncryptionContext")
-        client_token = params.get("clientToken")
-        cookie_synchronization_configuration = params.get(
+        additional_encryption_context = self._get_param("additionalEncryptionContext")
+        client_token = self._get_param("clientToken")
+        cookie_synchronization_configuration = self._get_param(
             "cookieSynchronizationConfiguration"
         )
-        copy_allowed = params.get("copyAllowed")
-        customer_managed_key = params.get("customerManagedKey")
-        deep_link_allowed = params.get("deepLinkAllowed")
-        disconnect_timeout_in_minutes = params.get("disconnectTimeoutInMinutes")
-        download_allowed = params.get("downloadAllowed")
-        idle_disconnect_timeout_in_minutes = params.get(
+        copy_allowed = self._get_param("copyAllowed")
+        customer_managed_key = self._get_param("customerManagedKey")
+        deep_link_allowed = self._get_param("deepLinkAllowed")
+        disconnect_timeout_in_minutes = self._get_param("disconnectTimeoutInMinutes")
+        download_allowed = self._get_param("downloadAllowed")
+        idle_disconnect_timeout_in_minutes = self._get_param(
             "idleDisconnectTimeoutInMinutes"
         )
-        paste_allowed = params.get("pasteAllowed")
-        print_allowed = params.get("printAllowed")
-        tags = params.get("tags")
-        upload_allowed = params.get("uploadAllowed")
+        paste_allowed = self._get_param("pasteAllowed")
+        print_allowed = self._get_param("printAllowed")
+        tags = self._get_param("tags")
+        upload_allowed = self._get_param("uploadAllowed")
         user_settings_arn = self.workspacesweb_backend.create_user_settings(
             additional_encryption_context=additional_encryption_context,
             client_token=client_token,
