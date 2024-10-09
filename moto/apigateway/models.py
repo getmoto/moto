@@ -68,7 +68,19 @@ from .exceptions import (
     ValidationException,
     VpcLinkNotFound,
 )
-from .utils import create_apigw_id, create_id, to_path
+from .utils import (
+    ApigwApiKeyIdentifier,
+    ApigwAuthorizerIdentifier,
+    ApigwDeploymentIdentifier,
+    ApigwModelIdentifier,
+    ApigwRequestValidatorIdentifier,
+    ApigwResourceIdentifier,
+    ApigwRestApiValidatorIdentifier,
+    ApigwUsagePlanIdentifier,
+    ApigwVpcLinkIdentifier,
+    create_id,
+    to_path,
+)
 
 STAGE_URL = "https://{api_id}.execute-api.{region_name}.amazonaws.com/{stage_name}"
 PATCH_OPERATIONS = ["add", "remove", "replace", "move", "copy", "test"]
@@ -1165,12 +1177,9 @@ class RestAPI(CloudFormationModel):
         )
 
     def add_child(self, path: str, parent_id: Optional[str] = None) -> Resource:
-        child_id = create_apigw_id(
-            self.account_id,
-            self.region_name,
-            "resource",
-            (parent_id or "") + "." + path,
-        )
+        child_id = ApigwResourceIdentifier(
+            self.account_id, self.region_name, parent_id or "", path
+        ).generate()
         child = Resource(
             resource_id=child_id,
             account_id=self.account_id,
@@ -1189,7 +1198,9 @@ class RestAPI(CloudFormationModel):
         schema: str,
         content_type: str,
     ) -> "Model":
-        model_id = create_apigw_id(self.account_id, self.region_name, "model", name)
+        model_id = ApigwModelIdentifier(
+            self.account_id, self.region_name, name
+        ).generate()
         new_model = Model(
             model_id=model_id,
             name=name,
@@ -1301,9 +1312,9 @@ class RestAPI(CloudFormationModel):
     ) -> Deployment:
         if stage_variables is None:
             stage_variables = {}
-        deployment_id = create_apigw_id(
-            self.account_id, self.region_name, "deployment", name
-        )
+        deployment_id = ApigwDeploymentIdentifier(
+            self.account_id, self.region_name, name
+        ).generate()
         deployment = Deployment(deployment_id, name, description)
         self.deployments[deployment_id] = deployment
         if name:
@@ -1342,9 +1353,9 @@ class RestAPI(CloudFormationModel):
         validateRequestBody: Optional[bool],
         validateRequestParameters: Any,
     ) -> RequestValidator:
-        validator_id = create_apigw_id(
-            self.account_id, self.region_name, "request_validator", name
-        )
+        validator_id = ApigwRequestValidatorIdentifier(
+            self.account_id, self.region_name, name
+        ).generate()
         request_validator = RequestValidator(
             _id=validator_id,
             name=name,
@@ -1643,7 +1654,9 @@ class APIGatewayBackend(BaseBackend):
         minimum_compression_size: Optional[int] = None,
         disable_execute_api_endpoint: Optional[bool] = None,
     ) -> RestAPI:
-        api_id = create_apigw_id(self.account_id, self.region_name, "rest_api", name)
+        api_id = ApigwRestApiValidatorIdentifier(
+            self.account_id, self.region_name, name
+        ).generate()
         rest_api = RestAPI(
             api_id,
             self.account_id,
@@ -1894,9 +1907,9 @@ class APIGatewayBackend(BaseBackend):
         self, restapi_id: str, name: str, authorizer_type: str, **kwargs: Any
     ) -> Authorizer:
         api = self.get_rest_api(restapi_id)
-        authorizer_id = create_apigw_id(
-            self.account_id, self.region_name, "authorizer", name
-        )
+        authorizer_id = ApigwAuthorizerIdentifier(
+            self.account_id, self.region_name, name
+        ).generate()
         return api.create_authorizer(
             authorizer_id,
             name,
@@ -2160,9 +2173,12 @@ class APIGatewayBackend(BaseBackend):
             for api_key in self.get_api_keys():
                 if api_key.value == payload["value"]:
                     raise ApiKeyAlreadyExists()
-        api_key_id = create_apigw_id(
-            self.account_id, self.region_name, "api_key", payload["name"]
-        )
+        api_key_id = ApigwApiKeyIdentifier(
+            self.account_id,
+            self.region_name,
+            # The value of an api key must be unique on aws
+            payload["value"],
+        ).generate()
         key = ApiKey(api_key_id=api_key_id, **payload)
         self.keys[key.id] = key
         return key
@@ -2183,9 +2199,9 @@ class APIGatewayBackend(BaseBackend):
         self.keys.pop(api_key_id)
 
     def create_usage_plan(self, payload: Any) -> UsagePlan:
-        usage_plan_id = create_apigw_id(
-            self.account_id, self.region_name, "usage_plan", payload["name"]
-        )
+        usage_plan_id = ApigwUsagePlanIdentifier(
+            self.account_id, self.region_name, payload["name"]
+        ).generate()
         plan = UsagePlan(usage_plan_id=usage_plan_id, **payload)
         self.usage_plans[plan.id] = plan
         return plan
@@ -2509,9 +2525,9 @@ class APIGatewayBackend(BaseBackend):
         target_arns: List[str],
         tags: List[Dict[str, str]],
     ) -> VpcLink:
-        vpc_link_id = create_apigw_id(
-            self.account_id, self.region_name, "vpc_link", name
-        )
+        vpc_link_id = ApigwVpcLinkIdentifier(
+            self.account_id, self.region_name, name
+        ).generate()
         vpc_link = VpcLink(
             vpc_link_id,
             name,

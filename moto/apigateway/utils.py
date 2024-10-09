@@ -5,20 +5,70 @@ from typing import Any, Dict
 import yaml
 
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.id_generator import generate_str_id
+from moto.utilities.id_generator import ResourceIdentifier, generate_str_id
 
 
-def create_apigw_id(account_id: str, region: str, resource: str, name: str) -> str:
-    return generate_str_id(
-        account_id,
-        region,
-        "apigateway",
-        resource,
-        name,
-        length=10,
-        include_digits=True,
-        lower_case=True,
-    )
+class ApigwIdentifier(ResourceIdentifier):
+    service = "apigateway"
+
+    def __init__(self, account_id: str, region: str, name: str):
+        super().__init__(account_id, region, name)
+
+    def generate(self) -> str:
+        return generate_str_id(
+            self,
+            length=10,
+            include_digits=True,
+            lower_case=True,
+        )
+
+
+class ApigwApiKeyIdentifier(ApigwIdentifier):
+    resource = "api_key"
+
+    def __init__(self, account_id: str, region: str, value: str):
+        super().__init__(account_id, region, value)
+
+
+class ApigwAuthorizerIdentifier(ApigwIdentifier):
+    resource = "authorizer"
+
+
+class ApigwDeploymentIdentifier(ApigwIdentifier):
+    resource = "deployment"
+
+
+class ApigwModelIdentifier(ApigwIdentifier):
+    resource = "model"
+
+
+class ApigwRequestValidatorIdentifier(ApigwIdentifier):
+    resource = "request_validator"
+
+
+class ApigwResourceIdentifier(ApigwIdentifier):
+    resource = "resource"
+
+    def __init__(
+        self, account_id: str, region: str, parent_id: str = "", path_name: str = "/"
+    ):
+        super().__init__(
+            account_id,
+            region,
+            ".".join((parent_id, path_name)),
+        )
+
+
+class ApigwRestApiValidatorIdentifier(ApigwIdentifier):
+    resource = "rest_api"
+
+
+class ApigwUsagePlanIdentifier(ApigwIdentifier):
+    resource = "usage_plan"
+
+
+class ApigwVpcLinkIdentifier(ApigwIdentifier):
+    resource = "vpc_link"
 
 
 def create_id() -> str:

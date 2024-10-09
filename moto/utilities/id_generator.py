@@ -1,7 +1,35 @@
+import abc
 import threading
 from typing import Any, Callable, Dict, List, Union
 
 from moto.moto_api._internal import mock_random
+
+
+class ResourceIdentifier(abc.ABC):
+    """
+    Base class for resource identifiers. When implementing a new resource, it is important to set
+    the service and resource as they will be used to create the unique identifier for that resource.
+
+    It is recommended to implement the `generate` method using functions decorated with `@moto_id`.
+    This will ensure that your resource can be assigned a custom id.
+    """
+
+    service: str
+    resource: str
+
+    def __init__(self, account_id: str, region: str, name: str):
+        self.account_id = account_id
+        self.region = region
+        self.name = name
+
+    @abc.abstractmethod
+    def generate(self) -> str: ...
+
+    @property
+    def unique_identifier(self) -> str:
+        return ".".join(
+            [self.account_id, self.region, self.service, self.resource, self.name]
+        )
 
 
 class MotoIdManager:
@@ -9,7 +37,7 @@ class MotoIdManager:
     use the `id_manager` instance created below."""
 
     _custom_ids: Dict[str, str]
-    _id_sources: List[Callable[[str, str, str, str, str], Union[str, None]]]
+    _id_sources: List[Callable[[ResourceIdentifier], Union[str, None]]]
 
     _lock: threading.RLock
 
@@ -21,80 +49,55 @@ class MotoIdManager:
         self.add_id_source(self.get_custom_id)
 
     def get_custom_id(
-        self, account_id: str, region: str, service: str, resource: str, name: str
+        self, resource_identifier: ResourceIdentifier
     ) -> Union[str, None]:
         # retrieves a custom_id for a resource. Returns None
-        return self._custom_ids.get(
-            ".".join([account_id, region, service, resource, name])
-        )
+        return self._custom_ids.get(resource_identifier.unique_identifier)
 
     def set_custom_id(
-        self,
-        account_id: str,
-        region: str,
-        service: str,
-        resource: str,
-        name: str,
-        custom_id: str,
+        self, resource_identifier: ResourceIdentifier, custom_id: str
     ) -> None:
         # sets a custom_id for a resource
         with self._lock:
-            self._custom_ids[
-                ".".join([account_id, region, service, resource, name])
-            ] = custom_id
+            self._custom_ids[resource_identifier.unique_identifier] = custom_id
 
-    def unset_custom_id(
-        self, account_id: str, region: str, service: str, resource: str, name: str
-    ) -> None:
+    def unset_custom_id(self, resource_identifier: ResourceIdentifier) -> None:
         # removes a set custom_id for a resource
         with self._lock:
-            self._custom_ids.pop(
-                ".".join([account_id, region, service, resource, name]), None
-            )
+            self._custom_ids.pop(resource_identifier.unique_identifier, None)
 
     def add_id_source(
-        self, id_source: Callable[[str, str, str, str, str], Union[str, None]]
+        self, id_source: Callable[[ResourceIdentifier], Union[str, None]]
     ) -> None:
         self._id_sources.append(id_source)
 
     def find_id_from_sources(
-        self, account_id: str, region: str, service: str, resource: str, name: str
+        self, resource_identifier: ResourceIdentifier
     ) -> Union[str, None]:
         for id_source in self._id_sources:
-            if found_id := id_source(account_id, region, service, resource, name):
+            if found_id := id_source(resource_identifier):
                 return found_id
         return None
 
 
-id_manager = MotoIdManager()
+moto_id_manager = MotoIdManager()
 
 
 def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
     # Decorator for helping in creation of static ids within Moto.
     def _wrapper(
-        account_id: str,
-        region: str,
-        service: str,
-        resource: str,
-        name: str,
-        **kwargs: Dict[str, Any],
+        resource_identifier: ResourceIdentifier, **kwargs: Dict[str, Any]
     ) -> str:
-        if found_id := id_manager.find_id_from_sources(
-            account_id, region, service, resource, name
-        ):
+        if found_id := moto_id_manager.find_id_from_sources(resource_identifier):
             return found_id
-        return fn(account_id, region, service, resource, name, **kwargs)
+        return fn(resource_identifier, **kwargs)
 
     return _wrapper
 
 
 @moto_id
 def generate_str_id(  # type: ignore
-    account_id: str,
-    region: str,
-    service: str,
-    resource: str,
-    name: str,
+    resource_identifier: ResourceIdentifier,
     length: int = 20,
     include_digits: bool = True,
     lower_case: bool = False,
