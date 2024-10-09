@@ -20,7 +20,7 @@ class ResourceIdentifier(abc.ABC):
     def __init__(self, account_id: str, region: str, name: str):
         self.account_id = account_id
         self.region = region
-        self.name = name
+        self.name = name or ""
 
     @abc.abstractmethod
     def generate(self) -> str: ...
@@ -57,7 +57,9 @@ class MotoIdManager:
     def set_custom_id(
         self, resource_identifier: ResourceIdentifier, custom_id: str
     ) -> None:
-        # sets a custom_id for a resource
+        # Do not set a custom_id for a resource no value was found for the name
+        if not resource_identifier.name:
+            return
         with self._lock:
             self._custom_ids[resource_identifier.unique_identifier] = custom_id
 

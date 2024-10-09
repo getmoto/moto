@@ -2177,7 +2177,7 @@ class APIGatewayBackend(BaseBackend):
             self.account_id,
             self.region_name,
             # The value of an api key must be unique on aws
-            payload["value"],
+            payload.get("value"),
         ).generate()
         key = ApiKey(api_key_id=api_key_id, **payload)
         self.keys[key.id] = key
