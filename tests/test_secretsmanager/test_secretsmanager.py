@@ -1954,6 +1954,7 @@ def test_update_secret_version_stage_dont_specify_current_stage(secret_arn=None)
 
 
 @mock_aws
+@pytest.mark.skipif(not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode")
 def test_create_secret_custom_id(account_id, set_custom_id):
     secret_suffix = "randomSuffix"
     secret_name = "secret-name"

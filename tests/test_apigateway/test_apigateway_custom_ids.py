@@ -1,6 +1,7 @@
 import boto3
+import pytest
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.apigateway.utils import (
     ApigwApiKeyIdentifier,
     ApigwDeploymentIdentifier,
@@ -23,6 +24,7 @@ USAGE_PLAN_ID = "UPlanId"
 
 
 @mock_aws
+@pytest.mark.skipif(not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode")
 def test_custom_id_rest_api(set_custom_id, account_id):
     region_name = "us-west-2"
     rest_api_name = "my-api"
@@ -106,6 +108,7 @@ def test_custom_id_rest_api(set_custom_id, account_id):
 
 
 @mock_aws
+@pytest.mark.skipif(not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode")
 def test_custom_id_api_key(account_id, set_custom_id):
     region_name = "us-west-2"
     api_key_value = "01234567890123456789"
