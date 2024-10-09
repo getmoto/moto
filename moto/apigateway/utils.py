@@ -1,6 +1,6 @@
 import json
 import string
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 import yaml
 
@@ -14,9 +14,10 @@ class ApigwIdentifier(ResourceIdentifier):
     def __init__(self, account_id: str, region: str, name: str):
         super().__init__(account_id, region, name)
 
-    def generate(self) -> str:
+    def generate(self, existing_ids: Union[List[str], None] = None) -> str:
         return generate_str_id(
             self,
+            existing_ids,
             length=10,
             include_digits=True,
             lower_case=True,
@@ -36,6 +37,9 @@ class ApigwAuthorizerIdentifier(ApigwIdentifier):
 
 class ApigwDeploymentIdentifier(ApigwIdentifier):
     resource = "deployment"
+
+    def __init__(self, account_id: str, region: str, stage_name: str):
+        super().__init__(account_id, region, stage_name)
 
 
 class ApigwModelIdentifier(ApigwIdentifier):

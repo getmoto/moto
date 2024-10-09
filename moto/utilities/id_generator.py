@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List, Union
 
 from moto.moto_api._internal import mock_random
 
+ExistingIds = Union[List[str], None]
+
 
 class ResourceIdentifier(abc.ABC):
     """
@@ -23,7 +25,9 @@ class ResourceIdentifier(abc.ABC):
         self.name = name or ""
 
     @abc.abstractmethod
-    def generate(self) -> str: ...
+    def generate(self, existing_ids: ExistingIds = None) -> str: ...
+
+    """ If `existing_ids` is provided, we will not return a custom id if it is already on the list"""
 
     @property
     def unique_identifier(self) -> str:
@@ -74,10 +78,12 @@ class MotoIdManager:
         self._id_sources.append(id_source)
 
     def find_id_from_sources(
-        self, resource_identifier: ResourceIdentifier
+        self, resource_identifier: ResourceIdentifier, existing_ids: List[str]
     ) -> Union[str, None]:
         for id_source in self._id_sources:
-            if found_id := id_source(resource_identifier):
+            if (
+                found_id := id_source(resource_identifier)
+            ) and found_id not in existing_ids:
                 return found_id
         return None
 
@@ -88,11 +94,15 @@ moto_id_manager = MotoIdManager()
 def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
     # Decorator for helping in creation of static ids within Moto.
     def _wrapper(
-        resource_identifier: ResourceIdentifier, **kwargs: Dict[str, Any]
+        resource_identifier: ResourceIdentifier,
+        existing_ids: ExistingIds,
+        **kwargs: Dict[str, Any],
     ) -> str:
-        if found_id := moto_id_manager.find_id_from_sources(resource_identifier):
+        if found_id := moto_id_manager.find_id_from_sources(
+            resource_identifier, existing_ids or []
+        ):
             return found_id
-        return fn(resource_identifier, **kwargs)
+        return fn(resource_identifier, existing_ids, **kwargs)
 
     return _wrapper
 
@@ -100,6 +110,7 @@ def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
 @moto_id
 def generate_str_id(  # type: ignore
     resource_identifier: ResourceIdentifier,
+    existing_ids: ExistingIds,
     length: int = 20,
     include_digits: bool = True,
     lower_case: bool = False,

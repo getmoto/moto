@@ -1312,9 +1312,11 @@ class RestAPI(CloudFormationModel):
     ) -> Deployment:
         if stage_variables is None:
             stage_variables = {}
+        # Since there are no unique values to a deployment, we will use the stage name for the deployment.
+        # We are also passing a list of deployment ids to generate to prevent overwriting deployments.
         deployment_id = ApigwDeploymentIdentifier(
-            self.account_id, self.region_name, name
-        ).generate()
+            self.account_id, self.region_name, stage_name=name
+        ).generate(list(self.deployments.keys()))
         deployment = Deployment(deployment_id, name, description)
         self.deployments[deployment_id] = deployment
         if name:
@@ -2177,7 +2179,7 @@ class APIGatewayBackend(BaseBackend):
             self.account_id,
             self.region_name,
             # The value of an api key must be unique on aws
-            payload.get("value"),
+            payload.get("value", ""),
         ).generate()
         key = ApiKey(api_key_id=api_key_id, **payload)
         self.keys[key.id] = key
