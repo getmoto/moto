@@ -75,7 +75,7 @@ from .utils import (
     ApigwModelIdentifier,
     ApigwRequestValidatorIdentifier,
     ApigwResourceIdentifier,
-    ApigwRestApiValidatorIdentifier,
+    ApigwRestApiIdentifier,
     ApigwUsagePlanIdentifier,
     ApigwVpcLinkIdentifier,
     create_id,
@@ -1656,7 +1656,7 @@ class APIGatewayBackend(BaseBackend):
         minimum_compression_size: Optional[int] = None,
         disable_execute_api_endpoint: Optional[bool] = None,
     ) -> RestAPI:
-        api_id = ApigwRestApiValidatorIdentifier(
+        api_id = ApigwRestApiIdentifier(
             self.account_id, self.region_name, name
         ).generate()
         rest_api = RestAPI(

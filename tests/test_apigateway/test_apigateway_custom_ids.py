@@ -8,7 +8,7 @@ from moto.apigateway.utils import (
     ApigwModelIdentifier,
     ApigwRequestValidatorIdentifier,
     ApigwResourceIdentifier,
-    ApigwRestApiValidatorIdentifier,
+    ApigwRestApiIdentifier,
     ApigwUsagePlanIdentifier,
 )
 
@@ -37,7 +37,7 @@ def test_custom_id_rest_api(set_custom_id, account_id):
     client = boto3.client("apigateway", region_name=region_name)
 
     set_custom_id(
-        ApigwRestApiValidatorIdentifier(account_id, region_name, rest_api_name), API_ID
+        ApigwRestApiIdentifier(account_id, region_name, rest_api_name), API_ID
     )
     set_custom_id(
         ApigwResourceIdentifier(account_id, region_name, path_name="/"),

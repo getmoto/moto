@@ -63,7 +63,7 @@ class ApigwResourceIdentifier(ApigwIdentifier):
         )
 
 
-class ApigwRestApiValidatorIdentifier(ApigwIdentifier):
+class ApigwRestApiIdentifier(ApigwIdentifier):
     resource = "rest_api"
 
 
