@@ -47,7 +47,7 @@ class ResourceIdentifier(abc.ABC):
             [self.account_id, self.region, self.service, self.resource, self.name]
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.unique_identifier
 
 
