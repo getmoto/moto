@@ -26,7 +26,11 @@ from .list_secrets.filters import (
     tag_key,
     tag_value,
 )
-from .utils import get_secret_name_from_partial_arn, random_password, secret_arn
+from .utils import (
+    SecretsManagerSecretIdentifier,
+    get_secret_name_from_partial_arn,
+    random_password,
+)
 
 MAX_RESULTS_DEFAULT = 100
 
@@ -94,7 +98,9 @@ class FakeSecret:
     ):
         self.secret_id = secret_id
         self.name = secret_id
-        self.arn = secret_arn(account_id, region_name, secret_id)
+        self.arn = SecretsManagerSecretIdentifier(
+            account_id, region_name, secret_id
+        ).generate()
         self.account_id = account_id
         self.region = region_name
         self.secret_string = secret_string
@@ -935,7 +941,9 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                arn = secret_arn(self.account_id, self.region_name, secret_id=secret_id)
+                arn = SecretsManagerSecretIdentifier(
+                    self.account_id, self.region_name, secret_id=secret_id
+                ).generate()
                 name = secret_id
                 deletion_date = utcnow()
                 return arn, name, self._unix_time_secs(deletion_date)
