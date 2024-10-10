@@ -348,3 +348,35 @@ def test_logging_configuration_crud():
             ResourceArn=logging_configuration["ResourceArn"]
         )
     e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
+
+
+@mock_aws
+def test_create_rule_group():
+    client = boto3.client("wafv2", region_name="ap-southeast-1")
+    resp = client.create_rule_group()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_update_rule_group():
+    client = boto3.client("wafv2", region_name="ap-southeast-1")
+    resp = client.update_rule_group()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_rule_group():
+    client = boto3.client("wafv2", region_name="eu-west-1")
+    resp = client.delete_rule_group()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_get_rule_group():
+    client = boto3.client("wafv2", region_name="us-east-2")
+    resp = client.get_rule_group()
+
+    raise Exception("NotYetImplemented")

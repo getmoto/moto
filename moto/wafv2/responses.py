@@ -316,9 +316,87 @@ class WAFV2Response(BaseResponse):
         self.wafv2_backend.delete_logging_configuration(resource_arn)
         return 200, {}, "{}"
 
+    def create_rule_group(self):
+        params = self._get_params()
+        name = params.get("Name")
+        scope = params.get("Scope")
+        capacity = params.get("Capacity")
+        description = params.get("Description")
+        rules = params.get("Rules")
+        visibility_config = params.get("VisibilityConfig")
+        tags = params.get("Tags")
+        custom_response_bodies = params.get("CustomResponseBodies")
+        summary = self.wafv2_backend.create_rule_group(
+            name=name,
+            scope=scope,
+            capacity=capacity,
+            description=description,
+            rules=rules,
+            visibility_config=visibility_config,
+            tags=tags,
+            custom_response_bodies=custom_response_bodies,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(summary=summary))
 
-# notes about region and scope
-# --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)
+    def update_rule_group(self):
+        params = self._get_params()
+        name = params.get("Name")
+        scope = params.get("Scope")
+        id = params.get("Id")
+        description = params.get("Description")
+        rules = params.get("Rules")
+        visibility_config = params.get("VisibilityConfig")
+        lock_token = params.get("LockToken")
+        custom_response_bodies = params.get("CustomResponseBodies")
+        next_lock_token = self.wafv2_backend.update_rule_group(
+            name=name,
+            scope=scope,
+            id=id,
+            description=description,
+            rules=rules,
+            visibility_config=visibility_config,
+            lock_token=lock_token,
+            custom_response_bodies=custom_response_bodies,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(nextLockToken=next_lock_token))
+
+    # notes about region and scope
+
+    def delete_rule_group(self):
+        params = self._get_params()
+        name = params.get("Name")
+        scope = params.get("Scope")
+        id = params.get("Id")
+        lock_token = params.get("LockToken")
+        self.wafv2_backend.delete_rule_group(
+            name=name,
+            scope=scope,
+            id=id,
+            lock_token=lock_token,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)
+
+    def get_rule_group(self):
+        params = self._get_params()
+        name = params.get("Name")
+        scope = params.get("Scope")
+        id = params.get("Id")
+        arn = params.get("ARN")
+        rule_group, lock_token = self.wafv2_backend.get_rule_group(
+            name=name,
+            scope=scope,
+            id=id,
+            arn=arn,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(ruleGroup=rule_group, lockToken=lock_token))
+
+
 # --scope = REGIONAL defaults to us-east-1, but could be anything if specified with --region=<anyRegion>
 # region is grabbed from the auth header, NOT from the body - even with --region flag
 # The CLOUDFRONT wacls in aws console are located in us-east-1 but the us-east-1 REGIONAL wacls are not included

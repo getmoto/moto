@@ -14,7 +14,7 @@ from .exceptions import (
     WAFOptimisticLockException,
     WAFV2DuplicateItemException,
 )
-from .utils import make_arn_for_ip_set, make_arn_for_wacl
+from .utils import make_arn_for_ip_set, make_arn_for_rule_group, make_arn_for_wacl
 
 if TYPE_CHECKING:
     from moto.apigateway.models import Stage
@@ -152,6 +152,100 @@ class FakeLoggingConfiguration:
             "RedactedFields": self.redacted_fields,
             "ManagedByFirewallManager": self.managed_by_firewall_manager,
             "LoggingFilter": self.logging_filter,
+        }
+
+
+class FakeRule:
+    def __init__(
+        self,
+        name: str,
+        priority: int,
+        statement: Dict[str, Any],
+        visibility_config: Dict[str, str | bool],
+        action: Dict[str, Any],
+        captcha_config: Optional[Dict[str, Dict[str, int]]],
+        challenge_config: Optional[Dict[str, Dict[str, int]]],
+        override_action: Optional[Dict[str, Any]],
+    ):
+        self.name = name
+        self.priority = priority
+        self.statement = statement
+        self.visibility_config = visibility_config
+        self.action = action
+        if captcha_config is not None:
+            self.captcha_config = captcha_config
+        if challenge_config is not None:
+            self.challenge_config = challenge_config
+        if override_action is not None:
+            self.override_action = override_action
+
+    def to_dict(self):
+        return {
+            "Name": self.name,
+            "Action": self.action,
+            "Priority": self.priority,
+            "Statement": self.statement,
+            "VisibilityConfig": self.visibility_config,
+            "CaptchaConfig": self.captcha_config,
+            "ChallengeConfig": self.challenge_config,
+            "OverrideAction": self.override_action,
+        }
+
+
+class FakeRuleGroup:
+    def __init__(
+        self,
+        name,
+        scope,
+        capacity,
+        description,
+        rules,
+        visibility_config,
+        custom_response_bodies,
+    ):
+        self.name = name
+        self.arn = make_arn_for_rule_group()
+        self.id = self._generate_id()
+        self.scope = scope
+        self.capacity = capacity
+        self.description = description
+        self.rules = rules
+        self.visibility_config = visibility_config
+        self.custom_response_bodies = custom_response_bodies
+        self.lock_token = self._generate_lock_token()
+
+    def _generate_id(self):
+        return str(mock_random.uuid4())
+
+    def _generate_lock_token(self):
+        return str(mock_random.uuid4())
+
+    def update(
+        self, description, rules, visibility_config, lock_token, custom_response_bodies
+    ):
+        self.lock_token = self._generate_lock_token()
+        return next_lock_token
+
+    def to_short_dict(self):
+        return {
+            "Name": self.name,
+            "Id": self.id,
+            "Description": self.description,
+            "LockToken": self.lock_token,
+            "ARN": self.arn,
+        }
+
+    def to_dict(self):
+        return {
+            "Name": self.name,
+            "Id": self.id,
+            "Capacity": self.capacity,
+            "ARN": self.arn,
+            "Description": self.description,
+            "Rules": self.rules,
+            "VisibilityConfig": self.visibility_config,
+            "LabelNamespace": self.label_namespace,
+            "CustomResponseBodies": self.custom_response_bodies,
         }
 
 
@@ -424,6 +518,42 @@ class WAFV2Backend(BaseBackend):
             for arn, logging_configuration in self.logging_configurations.items()
             if f":{scope}:" in arn
         ]
+
+    def create_rule_group(
+        self,
+        name: str,
+        scope: str,
+        capacity: int,
+        description: Optional[str],
+        rules: Optional[List[Dict[str, Any]]],
+        visibility_config: Dict[str, bool | str],
+        tags: Optional[List[Dict[str, str]]],
+        custom_response_bodies: Optional[Dict[str, str]],
+    ) -> FakeRuleGroup:
+        # implement here
+        return summary
+
+    def update_rule_group(
+        self,
+        name,
+        scope,
+        id,
+        description,
+        rules,
+        visibility_config,
+        lock_token,
+        custom_response_bodies,
+    ):
+        # implement here
+        return next_lock_token
+
+    def delete_rule_group(self, name, scope, id, lock_token):
+        # implement here
+        return
+
+    def get_rule_group(self, name, scope, id, arn):
+        # implement here
+        return rule_group, lock_token
 
 
 wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)
