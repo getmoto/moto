@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Union
 import yaml
 
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.id_generator import ResourceIdentifier, generate_str_id
+from moto.utilities.id_generator import ResourceIdentifier, Tags, generate_str_id
 
 
 class ApigwIdentifier(ResourceIdentifier):
@@ -14,10 +14,13 @@ class ApigwIdentifier(ResourceIdentifier):
     def __init__(self, account_id: str, region: str, name: str):
         super().__init__(account_id, region, name)
 
-    def generate(self, existing_ids: Union[List[str], None] = None) -> str:
+    def generate(
+        self, existing_ids: Union[List[str], None] = None, tags: Tags = None
+    ) -> str:
         return generate_str_id(
-            self,
-            existing_ids,
+            resource_identifier=self,
+            existing_ids=existing_ids,
+            tags=tags,
             length=10,
             include_digits=True,
             lower_case=True,

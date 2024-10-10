@@ -2,7 +2,12 @@ import re
 import string
 
 from moto.moto_api._internal import mock_random as random
-from moto.utilities.id_generator import ExistingIds, ResourceIdentifier, generate_str_id
+from moto.utilities.id_generator import (
+    ExistingIds,
+    ResourceIdentifier,
+    Tags,
+    generate_str_id,
+)
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 
@@ -104,10 +109,11 @@ class SecretsManagerSecretIdentifier(ResourceIdentifier):
     def __init__(self, account_id: str, region: str, secret_id: str):
         super().__init__(account_id, region, name=secret_id)
 
-    def generate(self, existing_ids: ExistingIds = None) -> str:
+    def generate(self, existing_ids: ExistingIds = None, tags: Tags = None) -> str:
         id_string = generate_str_id(
-            existing_ids=existing_ids,
             resource_identifier=self,
+            existing_ids=existing_ids,
+            tags=tags,
             length=6,
             include_digits=False,
         )

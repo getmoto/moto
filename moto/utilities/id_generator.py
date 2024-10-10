@@ -1,10 +1,23 @@
 import abc
+import logging
 import threading
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, TypedDict, Union
 
 from moto.moto_api._internal import mock_random
 
+log = logging.getLogger(__name__)
+
 ExistingIds = Union[List[str], None]
+Tags = Union[Dict[str, str], None]
+
+# Custom resource tag to override the generated resource ID.
+TAG_KEY_CUSTOM_ID = "_custom_id_"
+
+
+class IdSourceContext(TypedDict, total=False):
+    resource_identifier: "ResourceIdentifier"
+    tags: Tags
+    existing_ids: ExistingIds
 
 
 class ResourceIdentifier(abc.ABC):
@@ -25,9 +38,8 @@ class ResourceIdentifier(abc.ABC):
         self.name = name or ""
 
     @abc.abstractmethod
-    def generate(self, existing_ids: ExistingIds = None) -> str: ...
-
-    """ If `existing_ids` is provided, we will not return a custom id if it is already on the list"""
+    def generate(self, existing_ids: ExistingIds = None, tags: Tags = None) -> str:
+        """Method to generate a resource id"""
 
     @property
     def unique_identifier(self) -> str:
@@ -35,13 +47,16 @@ class ResourceIdentifier(abc.ABC):
             [self.account_id, self.region, self.service, self.resource, self.name]
         )
 
+    def __str__(self):
+        return self.unique_identifier
+
 
 class MotoIdManager:
     """class to manage custom ids. Do not create instance and instead
     use the `id_manager` instance created below."""
 
     _custom_ids: Dict[str, str]
-    _id_sources: List[Callable[[ResourceIdentifier], Union[str, None]]]
+    _id_sources: List[Callable[[IdSourceContext], Union[str, None]]]
 
     _lock: threading.RLock
 
@@ -50,13 +65,14 @@ class MotoIdManager:
         self._lock = threading.RLock()
         self._id_sources = []
 
+        self.add_id_source(self.get_id_from_tags)
         self.add_id_source(self.get_custom_id)
 
-    def get_custom_id(
-        self, resource_identifier: ResourceIdentifier
-    ) -> Union[str, None]:
+    def get_custom_id(self, id_source_context: IdSourceContext) -> Union[str, None]:
         # retrieves a custom_id for a resource. Returns None
-        return self._custom_ids.get(resource_identifier.unique_identifier)
+        if resource_identifier := id_source_context.get("resource_identifier"):
+            return self._custom_ids.get(resource_identifier.unique_identifier)
+        return None
 
     def set_custom_id(
         self, resource_identifier: ResourceIdentifier, custom_id: str
@@ -73,18 +89,29 @@ class MotoIdManager:
             self._custom_ids.pop(resource_identifier.unique_identifier, None)
 
     def add_id_source(
-        self, id_source: Callable[[ResourceIdentifier], Union[str, None]]
+        self, id_source: Callable[[IdSourceContext], Union[str, None]]
     ) -> None:
         self._id_sources.append(id_source)
 
-    def find_id_from_sources(
-        self, resource_identifier: ResourceIdentifier, existing_ids: List[str]
-    ) -> Union[str, None]:
+    @staticmethod
+    def get_id_from_tags(id_source_context: IdSourceContext) -> Union[str, None]:
+        if tags := id_source_context.get("tags"):
+            return tags.get(TAG_KEY_CUSTOM_ID)
+
+        return None
+
+    def find_id_from_sources(self, id_source_context: IdSourceContext) -> Union[str, None]:
+        existing_ids = id_source_context.get("existing_ids") or []
         for id_source in self._id_sources:
-            if (
-                found_id := id_source(resource_identifier)
-            ) and found_id not in existing_ids:
-                return found_id
+            if found_id := id_source(id_source_context):
+                if found_id in existing_ids:
+                    log.debug(
+                        f"Found id {found_id} for resource {id_source_context.get('resource_identifier')}, "
+                        "but a resource already exists with this id."
+                    )
+                else:
+                    return found_id
+
         return None
 
 
@@ -92,17 +119,41 @@ moto_id_manager = MotoIdManager()
 
 
 def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
-    # Decorator for helping in creation of static ids within Moto.
+    """
+    Decorator for helping in creation of static ids.
+
+    The decorated function should accept the following parameters
+
+    :param resource_identifier
+    :param existing_ids
+        If provided, we will omit returning a custom id if it is already on the list
+    :param tags
+        If provided will look for a tag named `_custom_id_`. This will take precedence over registered custom ids
+    """
+
     def _wrapper(
         resource_identifier: ResourceIdentifier,
-        existing_ids: ExistingIds,
+        existing_ids: ExistingIds = None,
+        tags: Tags = None,
         **kwargs: Dict[str, Any],
     ) -> str:
-        if found_id := moto_id_manager.find_id_from_sources(
-            resource_identifier, existing_ids or []
+        if resource_identifier and (
+            found_id := moto_id_manager.find_id_from_sources(
+                IdSourceContext(
+                    resource_identifier=resource_identifier,
+                    existing_ids=existing_ids,
+                    tags=tags,
+                )
+            )
         ):
             return found_id
-        return fn(resource_identifier, existing_ids, **kwargs)
+
+        return fn(
+            resource_identifier=resource_identifier,
+            existing_ids=existing_ids,
+            tags=tags,
+            **kwargs,
+        )
 
     return _wrapper
 
@@ -110,7 +161,8 @@ def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
 @moto_id
 def generate_str_id(  # type: ignore
     resource_identifier: ResourceIdentifier,
-    existing_ids: ExistingIds,
+    existing_ids: ExistingIds = None,
+    tags: Tags = None,
     length: int = 20,
     include_digits: bool = True,
     lower_case: bool = False,
