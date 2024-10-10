@@ -2232,7 +2232,7 @@ class APIGatewayBackend(BaseBackend):
 
         plan_keys = self.usage_plan_keys[usage_plan_id].values()
         if name:
-            return [key for key in plan_keys if not name or key.name == name]
+            return [key for key in plan_keys if not name or key.name.startswith(name)]
         return list(plan_keys)
 
     def get_usage_plan_key(self, usage_plan_id: str, key_id: str) -> UsagePlanKey:

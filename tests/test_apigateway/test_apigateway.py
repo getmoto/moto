@@ -1799,6 +1799,9 @@ def test_usage_plan_keys():
     # Query By Name
     plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery=key_name)
     assert len(plans["items"]) == 1
+    # test using only a prefix
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="test-")
+    assert len(plans["items"]) == 1
     plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="unknown")
     assert len(plans["items"]) == 0
 
