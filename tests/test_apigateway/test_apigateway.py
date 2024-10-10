@@ -1555,7 +1555,15 @@ def test_get_api_keys():
     keys = client.get_api_keys(nameQuery="TESTKEY2")["items"]
     assert [key["name"] for key in keys] == ["TESTKEY2"]
 
+    # assert that passing only a prefix works
+    keys = client.get_api_keys(nameQuery="TESTKEY")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY1", "TESTKEY2"]
+
     keys = client.get_api_keys(nameQuery="TESTKEY3")["items"]
+    assert keys == []
+
+    # assert that suffix of a name does not work
+    keys = client.get_api_keys(nameQuery="KEY2")["items"]
     assert keys == []
 
 
@@ -1790,6 +1798,9 @@ def test_usage_plan_keys():
 
     # Query By Name
     plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery=key_name)
+    assert len(plans["items"]) == 1
+    # test using only a prefix
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="test-")
     assert len(plans["items"]) == 1
     plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="unknown")
     assert len(plans["items"]) == 0
