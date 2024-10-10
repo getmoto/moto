@@ -25,6 +25,7 @@ from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
+from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
@@ -120,6 +121,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
+
+    @property
+    def stepfunctions_backend(self) -> StepFunctionBackend:
+        return stepfunctions_backends[self.account_id][self.region_name]
 
     @property
     def backup_backend(self) -> BackupBackend:
@@ -525,6 +530,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": f"arn:{get_partition(self.region_name)}:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
                     "Tags": tags,
                 }
+        # Step Functions
+        if not resource_type_filters or "states:stateMachine" in resource_type_filters:
+            for state_machine in self.stepfunctions_backend.state_machines:
+                tags = format_tag_keys(state_machine.tags, ["key", "value"])
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": state_machine.arn, "Tags": tags}
 
         # Workspaces
         if self.workspaces_backend and (
@@ -845,10 +857,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         new_token = str(mock_random.uuid4())
         self._pages[new_token] = {"gen": generator, "misc": next_item}
 
-        # Token used up, might as well bin now, if you call it again your an idiot
+        # Token used up, might as well bin now, if you call it again you're an idiot
         if pagination_token:
             del self._pages[pagination_token]
-
         return new_token, result
 
     def get_tag_keys(
