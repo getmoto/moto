@@ -939,9 +939,9 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
                 <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
               </DBSubnetGroup>
               {% endif %}
-              <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
-              <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
-              <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+              <PubliclyAccessible>{{ 'true' if database.publicly_accessible else 'false' }}</PubliclyAccessible>
+              <CopyTagsToSnapshot>{{ 'true' if database.copy_tags_to_snapshot else 'false' }}</CopyTagsToSnapshot>
+              <AutoMinorVersionUpgrade>{{ 'true' if database.auto_minor_version_upgrade else 'false' }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
               <StorageEncrypted>{{ 'true' if database.storage_encrypted else 'false' }}</StorageEncrypted>
               {% if database.kms_key_id %}
