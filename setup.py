@@ -25,7 +25,7 @@ class CompressJsonCommand(Command):
                 print(f"Compressing {file} into {target_filename}...")  # noqa
                 with open(file, "rb") as source:
                     with open(target_filename, "wb") as target:
-                        target.write(gzip.compress(source.read()))
+                        target.write(gzip.compress(source.read(), mtime=0))
                 print(f"Removing {file}...")  # noqa
                 Path(file).unlink()
 
