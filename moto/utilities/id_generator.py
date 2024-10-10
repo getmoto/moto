@@ -100,7 +100,9 @@ class MotoIdManager:
 
         return None
 
-    def find_id_from_sources(self, id_source_context: IdSourceContext) -> Union[str, None]:
+    def find_id_from_sources(
+        self, id_source_context: IdSourceContext
+    ) -> Union[str, None]:
         existing_ids = id_source_context.get("existing_ids") or []
         for id_source in self._id_sources:
             if found_id := id_source(id_source_context):
