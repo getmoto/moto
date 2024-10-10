@@ -2151,7 +2151,9 @@ class APIGatewayBackend(BaseBackend):
         return key
 
     def get_api_keys(self, name: Optional[str] = None) -> List[ApiKey]:
-        return [key for key in self.keys.values() if not name or name == key.name]
+        return [
+            key for key in self.keys.values() if not name or key.name.startswith(name)
+        ]
 
     def get_api_key(self, api_key_id: str) -> ApiKey:
         if api_key_id not in self.keys:

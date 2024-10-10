@@ -1555,7 +1555,15 @@ def test_get_api_keys():
     keys = client.get_api_keys(nameQuery="TESTKEY2")["items"]
     assert [key["name"] for key in keys] == ["TESTKEY2"]
 
+    # assert that passing only a prefix works
+    keys = client.get_api_keys(nameQuery="TESTKEY")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY1", "TESTKEY2"]
+
     keys = client.get_api_keys(nameQuery="TESTKEY3")["items"]
+    assert keys == []
+
+    # assert that suffix of a name does not work
+    keys = client.get_api_keys(nameQuery="KEY2")["items"]
     assert keys == []
 
 
