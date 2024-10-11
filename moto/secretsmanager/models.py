@@ -948,7 +948,7 @@ class SecretsManagerBackend(BaseBackend):
                 msg = f"You can't delete secret {secret_id} that still has replica regions [{replica_regions}]"
                 raise InvalidParameterException(msg)
 
-            if secret.is_deleted():
+            if secret.is_deleted() and not force_delete_without_recovery:
                 raise InvalidRequestException(
                     "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
                     perform the operation on a secret that's currently marked deleted."
