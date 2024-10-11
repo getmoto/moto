@@ -66,13 +66,13 @@ class MotoIdManager:
         self._id_sources = []
 
         self.add_id_source(self.get_id_from_tags)
-        self.add_id_source(self.get_custom_id)
+        self.add_id_source(self.get_custom_id_from_context)
 
-    def get_custom_id(self, id_source_context: IdSourceContext) -> Union[str, None]:
+    def get_custom_id(
+        self, resource_identifier: ResourceIdentifier
+    ) -> Union[str, None]:
         # retrieves a custom_id for a resource. Returns None
-        if resource_identifier := id_source_context.get("resource_identifier"):
-            return self._custom_ids.get(resource_identifier.unique_identifier)
-        return None
+        return self._custom_ids.get(resource_identifier.unique_identifier)
 
     def set_custom_id(
         self, resource_identifier: ResourceIdentifier, custom_id: str
@@ -98,6 +98,14 @@ class MotoIdManager:
         if tags := id_source_context.get("tags"):
             return tags.get(TAG_KEY_CUSTOM_ID)
 
+        return None
+
+    def get_custom_id_from_context(
+        self, id_source_context: IdSourceContext
+    ) -> Union[str, None]:
+        # retrieves a custom_id for a resource. Returns None
+        if resource_identifier := id_source_context.get("resource_identifier"):
+            return self.get_custom_id(resource_identifier)
         return None
 
     def find_id_from_sources(

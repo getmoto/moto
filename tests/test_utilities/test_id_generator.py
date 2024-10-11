@@ -4,6 +4,7 @@ from moto.utilities.id_generator import (
     ResourceIdentifier,
     Tags,
     moto_id,
+    moto_id_manager,
 )
 
 ACCOUNT = "account"
@@ -110,3 +111,24 @@ def test_generate_with_tags_fallback(set_custom_id):
         tags={TAG_KEY_CUSTOM_ID: TAG_ID},
     )
     assert generated_id == CUSTOM_ID
+
+
+def test_set_custom_id_lifecycle():
+    resource_identifier = TestResourceIdentifier(ACCOUNT, REGION, RESOURCE_NAME)
+
+    moto_id_manager.set_custom_id(resource_identifier, CUSTOM_ID)
+
+    found_id = moto_id_manager.get_custom_id(resource_identifier)
+    assert found_id == CUSTOM_ID
+
+    moto_id_manager.unset_custom_id(resource_identifier)
+
+    found_id = moto_id_manager.get_custom_id(resource_identifier)
+    assert found_id is None
+
+
+def test_set_custom_id_name_is_not_set():
+    resource_identifier = TestResourceIdentifier(ACCOUNT, REGION, None)
+    moto_id_manager.set_custom_id(resource_identifier, CUSTOM_ID)
+
+    assert moto_id_manager._custom_ids == {}
