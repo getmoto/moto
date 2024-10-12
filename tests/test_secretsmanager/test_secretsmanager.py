@@ -629,6 +629,17 @@ def test_delete_secret_that_is_marked_deleted():
 
 
 @mock_aws
+def test_force_delete_secret_that_is_marked_deleted():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    conn.delete_secret(SecretId="test-secret")
+
+    conn.delete_secret(SecretId="test-secret", ForceDeleteWithoutRecovery=True)
+
+
+@mock_aws
 def test_get_random_password_default_length():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
