@@ -76,6 +76,41 @@ def test_create_target_group_with_tags():
 
 
 @mock_aws
+def test_remove_tags_to_invalid_target_group():
+    response, vpc, _, _, _, elbv2 = create_load_balancer()
+
+    response = elbv2.create_target_group(
+        Name="a-target",
+        Protocol="HTTP",
+        Port=8080,
+        VpcId=vpc.id,
+        HealthCheckProtocol="HTTP",
+        HealthCheckPort="8080",
+        HealthCheckPath="/",
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=3,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+        Matcher={"HttpCode": "200"},
+        Tags=[{"Key": "key1", "Value": "val1"}],
+    )
+    target_group = response["TargetGroups"][0]
+    target_group_arn = target_group["TargetGroupArn"]
+
+    # add a random string in the ARN to make the resource non-existent
+    BAD_ARN = target_group_arn + "randomstring"
+
+    # test for exceptions on remove tags
+    with pytest.raises(ClientError) as err:
+        elbv2.remove_tags(ResourceArns=[BAD_ARN], TagKeys=["a"])
+
+    assert err.value.response["Error"]["Code"] == "TargetGroupNotFound"
+    assert (
+        err.value.response["Error"]["Message"] == "One or more target groups not found"
+    )
+
+
+@mock_aws
 def test_create_target_group_and_listeners():
     response, vpc, _, _, _, conn = create_load_balancer()
 
