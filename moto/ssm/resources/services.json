@@ -7116,6 +7116,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "backup.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -56962,6 +56971,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1",
+                "endpoint": {
+                  "Value": "schemas.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "schemas.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "us-west-1": {
                 "Value": "us-west-1",
                 "endpoint": {
@@ -66871,6 +66898,15 @@
                 "Value": "ap-northeast-2",
                 "endpoint": {
                   "Value": "vpc-lattice.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -10166,6 +10166,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -22192,6 +22201,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "backup": {
+                "Value": "backup",
+                "endpoint": {
+                  "Value": "backup.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "batch": {
@@ -59320,6 +59338,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "schemas": {
+                "Value": "schemas",
+                "endpoint": {
+                  "Value": "schemas.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -61044,6 +61071,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "schemas": {
+                "Value": "schemas",
+                "endpoint": {
+                  "Value": "schemas.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
