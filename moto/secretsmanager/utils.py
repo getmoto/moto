@@ -2,6 +2,12 @@ import re
 import string
 
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.id_generator import (
+    ExistingIds,
+    ResourceIdentifier,
+    Tags,
+    generate_str_id,
+)
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 
@@ -62,11 +68,6 @@ def random_password(
     return password
 
 
-def secret_arn(account_id: str, region: str, secret_id: str) -> str:
-    id_string = "".join(random.choice(string.ascii_letters) for _ in range(6))
-    return f"arn:{get_partition(region)}:secretsmanager:{region}:{account_id}:secret:{secret_id}-{id_string}"
-
-
 def get_secret_name_from_partial_arn(partial_arn: str) -> str:
     # We can retrieve a secret either using a full ARN, or using a partial ARN
     # name:        testsecret
@@ -99,3 +100,24 @@ def _add_password_require_each_included_type(
     password_with_required_char += required_characters
 
     return password_with_required_char
+
+
+class SecretsManagerSecretIdentifier(ResourceIdentifier):
+    service = "secretsmanager"
+    resource = "secret"
+
+    def __init__(self, account_id: str, region: str, secret_id: str):
+        super().__init__(account_id, region, name=secret_id)
+
+    def generate(self, existing_ids: ExistingIds = None, tags: Tags = None) -> str:
+        id_string = generate_str_id(
+            resource_identifier=self,
+            existing_ids=existing_ids,
+            tags=tags,
+            length=6,
+            include_digits=False,
+        )
+        return (
+            f"arn:{get_partition(self.region)}:secretsmanager:{self.region}:"
+            f"{self.account_id}:secret:{self.name}-{id_string}"
+        )
