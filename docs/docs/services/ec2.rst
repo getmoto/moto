@@ -17,6 +17,7 @@ ec2
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_address_transfer
+- [ ] accept_capacity_reservation_billing_ownership
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
@@ -32,6 +33,7 @@ ec2
 - [X] assign_private_ip_addresses
 - [ ] assign_private_nat_gateway_address
 - [X] associate_address
+- [ ] associate_capacity_reservation_billing_owner
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
 - [ ] associate_enclave_certificate_iam_role
@@ -257,6 +259,7 @@ ec2
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
 - [ ] describe_capacity_block_offerings
+- [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
@@ -449,6 +452,7 @@ ec2
 - [X] disable_vpc_classic_link
 - [X] disable_vpc_classic_link_dns_support
 - [X] disassociate_address
+- [ ] disassociate_capacity_reservation_billing_owner
 - [ ] disassociate_client_vpn_target_network
 - [ ] disassociate_enclave_certificate_iam_role
 - [X] disassociate_iam_instance_profile
@@ -558,6 +562,7 @@ ec2
 - [X] modify_image_attribute
 - [X] modify_instance_attribute
 - [ ] modify_instance_capacity_reservation_attributes
+- [ ] modify_instance_cpu_options
 - [ ] modify_instance_credit_specification
 - [ ] modify_instance_event_start_time
 - [ ] modify_instance_event_window
@@ -629,6 +634,7 @@ ec2
 - [ ] register_instance_event_notification_attributes
 - [ ] register_transit_gateway_multicast_group_members
 - [ ] register_transit_gateway_multicast_group_sources
+- [ ] reject_capacity_reservation_billing_ownership
 - [ ] reject_transit_gateway_multicast_domain_associations
 - [X] reject_transit_gateway_peering_attachment
 - [ ] reject_transit_gateway_vpc_attachment

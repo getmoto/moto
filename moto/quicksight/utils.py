@@ -1,8 +1,5 @@
 from typing import Any, Dict, List, Type, Union
 
-from jsonschema import validate
-from jsonschema.exceptions import SchemaError, ValidationError
-
 from moto.core.common_models import BaseModel
 
 from .data_models import QuicksightGroup
@@ -120,6 +117,9 @@ class QuicksightSearchFilterFactory:
                 raise ParamValidationError(
                     'Missing required parameter in input: "Filters"'
                 )
+            from jsonschema import validate
+            from jsonschema.exceptions import SchemaError, ValidationError
+
             try:
                 validate(instance=input, schema=QuicksightGroupSearchFilter.schema)
                 return QuicksightSearchFilterList(
