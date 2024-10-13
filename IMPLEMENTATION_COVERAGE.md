@@ -805,7 +805,7 @@
 
 ## bedrock-agent
 <details>
-<summary>18% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] associate_agent_knowledge_base
 - [X] create_agent
@@ -857,6 +857,7 @@
 - [ ] prepare_agent
 - [ ] prepare_flow
 - [ ] start_ingestion_job
+- [ ] stop_ingestion_job
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_agent
@@ -2015,6 +2016,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] batch_start_recommendations
 - [ ] cancel_replication_task_assessment_run
+- [ ] create_data_migration
 - [ ] create_data_provider
 - [ ] create_endpoint
 - [ ] create_event_subscription
@@ -2027,6 +2029,7 @@
 - [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
+- [ ] delete_data_migration
 - [ ] delete_data_provider
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
@@ -2044,6 +2047,7 @@
 - [ ] describe_certificates
 - [ ] describe_connections
 - [ ] describe_conversion_configuration
+- [ ] describe_data_migrations
 - [ ] describe_data_providers
 - [ ] describe_endpoint_settings
 - [ ] describe_endpoint_types
@@ -2086,6 +2090,7 @@
 - [ ] import_certificate
 - [ ] list_tags_for_resource
 - [ ] modify_conversion_configuration
+- [ ] modify_data_migration
 - [ ] modify_data_provider
 - [ ] modify_endpoint
 - [ ] modify_event_subscription
@@ -2102,6 +2107,7 @@
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [ ] run_fleet_advisor_lsa_analysis
+- [ ] start_data_migration
 - [ ] start_extension_pack_association
 - [ ] start_metadata_model_assessment
 - [ ] start_metadata_model_conversion
@@ -2113,6 +2119,7 @@
 - [X] start_replication_task
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
+- [ ] stop_data_migration
 - [ ] stop_replication
 - [X] stop_replication_task
 - [ ] test_connection
@@ -2285,6 +2292,7 @@
 <summary>33% implemented</summary>
 
 - [ ] accept_address_transfer
+- [ ] accept_capacity_reservation_billing_ownership
 - [ ] accept_reserved_instances_exchange_quote
 - [ ] accept_transit_gateway_multicast_domain_associations
 - [X] accept_transit_gateway_peering_attachment
@@ -2300,6 +2308,7 @@
 - [X] assign_private_ip_addresses
 - [ ] assign_private_nat_gateway_address
 - [X] associate_address
+- [ ] associate_capacity_reservation_billing_owner
 - [ ] associate_client_vpn_target_network
 - [X] associate_dhcp_options
 - [ ] associate_enclave_certificate_iam_role
@@ -2516,6 +2525,7 @@
 - [ ] describe_bundle_tasks
 - [ ] describe_byoip_cidrs
 - [ ] describe_capacity_block_offerings
+- [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
@@ -2681,6 +2691,7 @@
 - [X] disable_vpc_classic_link
 - [X] disable_vpc_classic_link_dns_support
 - [X] disassociate_address
+- [ ] disassociate_capacity_reservation_billing_owner
 - [ ] disassociate_client_vpn_target_network
 - [ ] disassociate_enclave_certificate_iam_role
 - [X] disassociate_iam_instance_profile
@@ -2790,6 +2801,7 @@
 - [X] modify_image_attribute
 - [X] modify_instance_attribute
 - [ ] modify_instance_capacity_reservation_attributes
+- [ ] modify_instance_cpu_options
 - [ ] modify_instance_credit_specification
 - [ ] modify_instance_event_start_time
 - [ ] modify_instance_event_window
@@ -2857,6 +2869,7 @@
 - [ ] register_instance_event_notification_attributes
 - [ ] register_transit_gateway_multicast_group_members
 - [ ] register_transit_gateway_multicast_group_sources
+- [ ] reject_capacity_reservation_billing_ownership
 - [ ] reject_transit_gateway_multicast_domain_associations
 - [X] reject_transit_gateway_peering_attachment
 - [ ] reject_transit_gateway_vpc_attachment
@@ -6221,7 +6234,7 @@
 
 ## quicksight
 <details>
-<summary>7% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_topic_reviewed_answer
@@ -6351,7 +6364,7 @@
 - [ ] list_topic_refresh_schedules
 - [ ] list_topic_reviewed_answers
 - [ ] list_topics
-- [ ] list_user_groups
+- [X] list_user_groups
 - [X] list_users
 - [ ] list_vpc_connections
 - [ ] put_data_set_refresh_properties
@@ -6362,7 +6375,7 @@
 - [ ] search_data_sets
 - [ ] search_data_sources
 - [ ] search_folders
-- [ ] search_groups
+- [X] search_groups
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
@@ -6401,7 +6414,7 @@
 - [ ] update_topic
 - [ ] update_topic_permissions
 - [ ] update_topic_refresh_schedule
-- [ ] update_user
+- [X] update_user
 - [ ] update_vpc_connection
 </details>
 
@@ -6929,20 +6942,25 @@
 
 ## resource-groups
 <details>
-<summary>61% implemented</summary>
+<summary>47% implemented</summary>
 
+- [ ] cancel_tag_sync_task
 - [X] create_group
 - [X] delete_group
 - [ ] get_account_settings
 - [X] get_group
 - [X] get_group_configuration
 - [ ] get_group_query
+- [ ] get_tag_sync_task
 - [X] get_tags
 - [ ] group_resources
 - [ ] list_group_resources
+- [ ] list_grouping_statuses
 - [X] list_groups
+- [ ] list_tag_sync_tasks
 - [X] put_group_configuration
 - [ ] search_resources
+- [ ] start_tag_sync_task
 - [X] tag
 - [ ] ungroup_resources
 - [X] untag
@@ -8919,7 +8937,7 @@
 
 ## workspaces-web
 <details>
-<summary>39% implemented</summary>
+<summary>44% implemented</summary>
 
 - [X] associate_browser_settings
 - [ ] associate_ip_access_settings
@@ -8967,13 +8985,13 @@
 - [X] list_network_settings
 - [X] list_portals
 - [ ] list_sessions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_trust_store_certificates
 - [ ] list_trust_stores
 - [X] list_user_access_logging_settings
 - [X] list_user_settings
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_browser_settings
 - [ ] update_identity_provider
 - [ ] update_ip_access_settings
@@ -9137,6 +9155,7 @@
 - marketplace-catalog
 - marketplace-deployment
 - marketplace-entitlement
+- marketplace-reporting
 - marketplacecommerceanalytics
 - mediaconvert
 - mediapackage-vod
@@ -9206,6 +9225,7 @@
 - sms-voice
 - snow-device-management
 - snowball
+- socialmessaging
 - ssm-contacts
 - ssm-incidents
 - ssm-quicksetup

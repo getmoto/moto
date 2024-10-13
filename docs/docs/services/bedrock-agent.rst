@@ -66,6 +66,7 @@ bedrock-agent
 - [ ] prepare_agent
 - [ ] prepare_flow
 - [ ] start_ingestion_job
+- [ ] stop_ingestion_job
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_agent

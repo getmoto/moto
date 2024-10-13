@@ -14,22 +14,27 @@ resource-groups
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] cancel_tag_sync_task
 - [X] create_group
 - [X] delete_group
 - [ ] get_account_settings
 - [X] get_group
 - [X] get_group_configuration
 - [ ] get_group_query
+- [ ] get_tag_sync_task
 - [X] get_tags
 - [ ] group_resources
 - [ ] list_group_resources
+- [ ] list_grouping_statuses
 - [X] list_groups
   
         Pagination or the Filters-parameter is not yet implemented
         
 
+- [ ] list_tag_sync_tasks
 - [X] put_group_configuration
 - [ ] search_resources
+- [ ] start_tag_sync_task
 - [X] tag
 - [ ] ungroup_resources
 - [X] untag
