@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.17
 -----
-Docker Digest for 5.0.17: <autopopulateddigest>
+Docker Digest for 5.0.17: _sha256:39372432cb24ab46211ca45648ca787e104589070b0d0a13ea0d73c6eb550079_
 
     New Methods:
         * CloudFront:
