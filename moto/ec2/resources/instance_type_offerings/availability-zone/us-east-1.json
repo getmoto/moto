@@ -2960,6 +2960,10 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "u-24tb1.112xlarge",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "us-east-1a"
  },
