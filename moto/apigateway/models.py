@@ -1658,7 +1658,7 @@ class APIGatewayBackend(BaseBackend):
     ) -> RestAPI:
         api_id = ApigwRestApiIdentifier(
             self.account_id, self.region_name, name
-        ).generate()
+        ).generate(tags=tags)
         rest_api = RestAPI(
             api_id,
             self.account_id,

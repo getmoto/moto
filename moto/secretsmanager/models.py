@@ -100,7 +100,7 @@ class FakeSecret:
         self.name = secret_id
         self.arn = SecretsManagerSecretIdentifier(
             account_id, region_name, secret_id
-        ).generate()
+        ).generate(tags=tags)
         self.account_id = account_id
         self.region = region_name
         self.secret_string = secret_string
