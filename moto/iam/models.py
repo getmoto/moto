@@ -3,7 +3,7 @@ import json
 import os
 import re
 import string
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from urllib import parse
 
@@ -102,7 +102,7 @@ def mark_account_as_visited(
 
 
 def _serialize_version_datetime(value: Any) -> str:
-    if isinstance(value, datetime):
+    if isinstance(value, date):
         return value.strftime("%Y-%m-%d")
     raise TypeError("Unable to serialize value.")
 
