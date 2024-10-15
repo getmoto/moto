@@ -71,7 +71,8 @@ class MotoIdManager:
     def get_custom_id(
         self, resource_identifier: ResourceIdentifier
     ) -> Union[str, None]:
-        # retrieves a custom_id for a resource. Returns None
+        # retrieves a custom_id for a resource. Returns None if no id were registered
+        # that matches the `resource_identifier`
         return self._custom_ids.get(resource_identifier.unique_identifier)
 
     def set_custom_id(
