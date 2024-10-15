@@ -154,7 +154,7 @@ def test_custom_id_api_key(set_custom_id):
 def test_create_rest_api_with_custom_id_tag():
     rest_api_name = "rest_api"
     api_id = "testTagId"
-    client = boto3.client("apigateway")
+    client = boto3.client("apigateway", region_name="us-west-2")
     rest_api = client.create_rest_api(
         name=rest_api_name, tags={TAG_KEY_CUSTOM_ID: api_id}
     )
