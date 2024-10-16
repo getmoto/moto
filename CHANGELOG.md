@@ -1,6 +1,43 @@
 Moto Changelog
 ==============
 
+5.0.17
+-----
+Docker Digest for 5.0.17: _sha256:39372432cb24ab46211ca45648ca787e104589070b0d0a13ea0d73c6eb550079_
+
+    New Methods:
+        * CloudFront:
+            * create_key_group()
+            * create_public_key()
+            * delete_public_key()
+            * get_key_group()
+            * get_public_key()
+            * list_key_groups()
+            * list_public_keys()
+
+        * QuickSight:
+            * list_user_groups()
+            * search_groups()
+            * update_user()
+
+        * Workspaces Web:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * APIGateway: get_api_keys()/get_usage_plan_keys() now support the nameQuery param
+        * AppSync: create_graphql_api() now supports the visibility-parameter
+        * DynamoDB: delete_item() now returns the item when a ConditionalCheckFailed is thrown and ReturnValuesOnConditionCheckFailure == ALL_OLD
+        * QuickSight: Users can now have special characters in their name
+        * QuickSight: list_group_memberships() now supports pagination
+        * QuickSight: list_groups() now supports pagination
+        * QuickSight: list_users() now supports pagination
+        * SageMaker: search() now also supports ModelPackages/Pipelines/Jobs/Executions
+        * SecretsManager: delete_secret() now allows force deletion of already marked-for-delete secret
+        * StepFunctions: create_state_machine() now supports the parameters encryptionConfiguration, tracingConfiguration, loggingConfiguration
+
+
 5.0.16
 -----
 Docker Digest for 5.0.16: _sha256:9506ad3448a87082a436533855c61afaf3f1869e73f39f6575917db975569908_

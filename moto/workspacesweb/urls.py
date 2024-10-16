@@ -21,4 +21,5 @@ url_paths = {
     "{0}/portals/(?P<portalArn>.*)/networkSettings$": WorkSpacesWebResponse.dispatch,
     "{0}/portals/(?P<portalArn>.*)/userSettings$": WorkSpacesWebResponse.dispatch,
     "{0}/portals/(?P<portalArn>.*)/userAccessLoggingSettings$": WorkSpacesWebResponse.dispatch,
+    "{0}/tags/(?P<resourceArn>.+)$": WorkSpacesWebResponse.dispatch,
 }

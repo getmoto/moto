@@ -1,130 +1,21 @@
-from typing import Any, Dict, Iterable
+from typing import Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.common_models import BaseModel
-from moto.moto_api._internal import mock_random as random
-from moto.utilities.utils import get_partition
+from moto.utilities.paginator import paginate
 
+from .data_models import (
+    QuicksightDataSet,
+    QuicksightGroup,
+    QuicksightIngestion,
+    QuicksightMembership,
+    QuicksightUser,
+)
 from .exceptions import ResourceNotFoundException
+from .utils import PAGINATION_MODEL, QuicksightSearchFilterFactory
 
 
 def _create_id(aws_account_id: str, namespace: str, _id: str) -> str:
     return f"{aws_account_id}:{namespace}:{_id}"
-
-
-class QuicksightDataSet(BaseModel):
-    def __init__(self, account_id: str, region: str, _id: str, name: str):
-        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{_id}"
-        self._id = _id
-        self.name = name
-        self.region = region
-        self.account_id = account_id
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "Arn": self.arn,
-            "DataSetId": self._id,
-            "IngestionArn": f"arn:{get_partition(self.region)}:quicksight:{self.region}:{self.account_id}:ingestion/tbd",
-        }
-
-
-class QuicksightIngestion(BaseModel):
-    def __init__(
-        self, account_id: str, region: str, data_set_id: str, ingestion_id: str
-    ):
-        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{data_set_id}/ingestions/{ingestion_id}"
-        self.ingestion_id = ingestion_id
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "Arn": self.arn,
-            "IngestionId": self.ingestion_id,
-            "IngestionStatus": "INITIALIZED",
-        }
-
-
-class QuicksightMembership(BaseModel):
-    def __init__(self, account_id: str, region: str, group: str, user: str):
-        self.group = group
-        self.user = user
-        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:group/default/{group}/{user}"
-
-    def to_json(self) -> Dict[str, str]:
-        return {"Arn": self.arn, "MemberName": self.user}
-
-
-class QuicksightGroup(BaseModel):
-    def __init__(
-        self,
-        region: str,
-        group_name: str,
-        description: str,
-        aws_account_id: str,
-        namespace: str,
-    ):
-        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{aws_account_id}:group/default/{group_name}"
-        self.group_name = group_name
-        self.description = description
-        self.aws_account_id = aws_account_id
-        self.namespace = namespace
-        self.region = region
-
-        self.members: Dict[str, QuicksightMembership] = dict()
-
-    def add_member(self, user_name: str) -> QuicksightMembership:
-        membership = QuicksightMembership(
-            self.aws_account_id, self.region, self.group_name, user_name
-        )
-        self.members[user_name] = membership
-        return membership
-
-    def delete_member(self, user_name: str) -> None:
-        self.members.pop(user_name, None)
-
-    def get_member(self, user_name: str) -> QuicksightMembership:
-        return self.members[user_name]
-
-    def list_members(self) -> Iterable[QuicksightMembership]:
-        return self.members.values()
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "Arn": self.arn,
-            "GroupName": self.group_name,
-            "Description": self.description,
-            "PrincipalId": self.aws_account_id,
-            "Namespace": self.namespace,
-        }
-
-
-class QuicksightUser(BaseModel):
-    def __init__(
-        self,
-        account_id: str,
-        region: str,
-        email: str,
-        identity_type: str,
-        username: str,
-        user_role: str,
-    ):
-        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:user/default/{username}"
-        self.email = email
-        self.identity_type = identity_type
-        self.username = username
-        self.user_role = user_role
-        self.active = False
-        self.principal_id = random.get_random_hex(10)
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "Arn": self.arn,
-            "Email": self.email,
-            "IdentityType": self.identity_type,
-            "Role": self.user_role,
-            "UserName": self.username,
-            "Active": self.active,
-            "PrincipalId": self.principal_id,
-        }
 
 
 class QuickSightBackend(BaseBackend):
@@ -155,10 +46,10 @@ class QuickSightBackend(BaseBackend):
         return group
 
     def create_group_membership(
-        self, aws_account_id: str, namespace: str, group_name: str, user_name: str
+        self, aws_account_id: str, namespace: str, group_name: str, member_name: str
     ) -> QuicksightMembership:
         group = self.describe_group(aws_account_id, namespace, group_name)
-        return group.add_member(user_name)
+        return group.add_member(member_name)
 
     def create_ingestion(
         self, data_set_id: str, ingestion_id: str
@@ -190,10 +81,13 @@ class QuickSightBackend(BaseBackend):
         return self.groups[_id]
 
     def describe_group_membership(
-        self, aws_account_id: str, namespace: str, group_name: str, user_name: str
+        self, aws_account_id: str, namespace: str, group_name: str, member_name: str
     ) -> QuicksightMembership:
         group = self.describe_group(aws_account_id, namespace, group_name)
-        return group.get_member(user_name)
+        member = group.get_member(member_name)
+        if member is None:
+            raise ResourceNotFoundException(f"Member {member_name} not found")
+        return member
 
     def describe_user(
         self, aws_account_id: str, namespace: str, user_name: str
@@ -203,34 +97,50 @@ class QuickSightBackend(BaseBackend):
             raise ResourceNotFoundException(f"User {user_name} not found")
         return self.users[_id]
 
-    def list_groups(
-        self, aws_account_id: str, namespace: str
-    ) -> Iterable[QuicksightGroup]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_groups(self, aws_account_id: str, namespace: str) -> List[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [
             group for _id, group in self.groups.items() if _id.startswith(id_for_ns)
         ]
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def search_groups(
+        self, aws_account_id: str, namespace: str, filters: List[Dict[str, str]]
+    ) -> List[QuicksightGroup]:
+        id_for_ns = _create_id(aws_account_id, namespace, _id="")
+        filter_list = QuicksightSearchFilterFactory.validate_and_create_filter(
+            model_type=QuicksightGroup, input=filters
+        )
+        return [
+            group
+            for _id, group in self.groups.items()
+            if _id.startswith(id_for_ns) and filter_list.match(group)
+        ]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_group_memberships(
         self, aws_account_id: str, namespace: str, group_name: str
-    ) -> Iterable[QuicksightMembership]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    ) -> List[QuicksightMembership]:
         group = self.describe_group(aws_account_id, namespace, group_name)
         return group.list_members()
 
-    def list_users(
-        self, aws_account_id: str, namespace: str
-    ) -> Iterable[QuicksightUser]:
-        """
-        The NextToken and MaxResults parameters are not yet implemented
-        """
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_users(self, aws_account_id: str, namespace: str) -> List[QuicksightUser]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [user for _id, user in self.users.items() if _id.startswith(id_for_ns)]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_user_groups(
+        self, aws_account_id: str, namespace: str, user_name: str
+    ) -> List[QuicksightGroup]:
+        id_for_ns = _create_id(aws_account_id, namespace, _id="")
+        group_list: Dict[str, QuicksightGroup] = {}
+        # Loop through all groups and check if the user is member.
+        for id, group in self.groups.items():
+            if group.get_member(user_name):
+                group_list[id] = group
+        return [group for _id, group in group_list.items() if _id.startswith(id_for_ns)]
 
     def register_user(
         self,
@@ -246,7 +156,7 @@ class QuickSightBackend(BaseBackend):
         IamArn, SessionName, CustomsPermissionsName, ExternalLoginFederationProviderType, CustomFederationProviderUrl, ExternalLoginId
         """
         user = QuicksightUser(
-            account_id=self.account_id,
+            account_id=aws_account_id,
             region=self.region_name,
             email=email,
             identity_type=identity_type,
@@ -255,6 +165,19 @@ class QuickSightBackend(BaseBackend):
         )
         _id = _create_id(aws_account_id, namespace, user_name)
         self.users[_id] = user
+        return user
+
+    def update_user(
+        self,
+        aws_account_id: str,
+        namespace: str,
+        user_name: str,
+        email: str,
+        user_role: str,
+    ) -> QuicksightUser:
+        user = self.describe_user(aws_account_id, namespace, user_name)
+        user.email = email
+        user.user_role = user_role
         return user
 
     def update_group(

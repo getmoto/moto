@@ -1990,6 +1990,7 @@ Member must satisfy regular expression pattern: {expression}"
 
     def remove_tags(self, resource_arns: List[str], tag_keys: List[str]) -> None:
         for arn in resource_arns:
+            self._get_resource_by_arn(arn)
             self.tagging_service.untag_resource_using_names(arn, tag_keys)
 
     def describe_tags(self, resource_arns: List[str]) -> Dict[str, Dict[str, str]]:

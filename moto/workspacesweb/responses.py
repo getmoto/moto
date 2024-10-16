@@ -205,24 +205,23 @@ class WorkSpacesWebResponse(BaseResponse):
         )
 
     def create_user_settings(self) -> str:
-        params = self._get_params()
-        additional_encryption_context = params.get("additionalEncryptionContext")
-        client_token = params.get("clientToken")
-        cookie_synchronization_configuration = params.get(
+        additional_encryption_context = self._get_param("additionalEncryptionContext")
+        client_token = self._get_param("clientToken")
+        cookie_synchronization_configuration = self._get_param(
             "cookieSynchronizationConfiguration"
         )
-        copy_allowed = params.get("copyAllowed")
-        customer_managed_key = params.get("customerManagedKey")
-        deep_link_allowed = params.get("deepLinkAllowed")
-        disconnect_timeout_in_minutes = params.get("disconnectTimeoutInMinutes")
-        download_allowed = params.get("downloadAllowed")
-        idle_disconnect_timeout_in_minutes = params.get(
+        copy_allowed = self._get_param("copyAllowed")
+        customer_managed_key = self._get_param("customerManagedKey")
+        deep_link_allowed = self._get_param("deepLinkAllowed")
+        disconnect_timeout_in_minutes = self._get_param("disconnectTimeoutInMinutes")
+        download_allowed = self._get_param("downloadAllowed")
+        idle_disconnect_timeout_in_minutes = self._get_param(
             "idleDisconnectTimeoutInMinutes"
         )
-        paste_allowed = params.get("pasteAllowed")
-        print_allowed = params.get("printAllowed")
-        tags = params.get("tags")
-        upload_allowed = params.get("uploadAllowed")
+        paste_allowed = self._get_param("pasteAllowed")
+        print_allowed = self._get_param("printAllowed")
+        tags = self._get_param("tags")
+        upload_allowed = self._get_param("uploadAllowed")
         user_settings_arn = self.workspacesweb_backend.create_user_settings(
             additional_encryption_context=additional_encryption_context,
             client_token=client_token,
@@ -339,3 +338,30 @@ class WorkSpacesWebResponse(BaseResponse):
             self.workspacesweb_backend.list_user_access_logging_settings()
         )
         return json.dumps(dict(userAccessLoggingSettings=user_access_logging_settings))
+
+    def tag_resource(self) -> str:
+        client_token = self._get_param("clientToken")
+        resource_arn = unquote(self._get_param("resourceArn"))
+        tags = self._get_param("tags")
+        self.workspacesweb_backend.tag_resource(
+            client_token=client_token,
+            resource_arn=resource_arn,
+            tags=tags,
+        )
+        return json.dumps(dict())
+
+    def untag_resource(self) -> str:
+        tagKeys = self.__dict__["data"]["tagKeys"]
+        resource_arn = unquote(self._get_param("resourceArn"))
+        self.workspacesweb_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tagKeys,
+        )
+        return json.dumps(dict())
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tags = self.workspacesweb_backend.list_tags_for_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict(tags=tags))

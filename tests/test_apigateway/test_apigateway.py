@@ -1522,35 +1522,49 @@ def test_get_api_key_include_value():
 
 
 @mock_aws
-def test_get_api_keys_include_values():
+def test_get_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "01234567890123456789"
-    apikey_name = "TESTKEY1"
-    payload = {"value": apikey_value, "name": apikey_name}
+    payload = {"value": "aaaaaaaaaaaaaaaaaaaa", "name": "TESTKEY1"}
 
-    apikey_value2 = "01234567890123456789123"
-    apikey_name2 = "TESTKEY1"
-    payload2 = {"value": apikey_value2, "name": apikey_name2}
+    payload2 = {"value": "aaaaaaaacccaaaaaaaaa", "name": "TESTKEY2"}
 
     client.create_api_key(**payload)
     client.create_api_key(**payload2)
 
-    response = client.get_api_keys()
-    assert len(response["items"]) == 2
-    for api_key in response["items"]:
+    keys = client.get_api_keys()["items"]
+    assert len(keys) == 2
+    for api_key in keys:
         assert "value" not in api_key
 
-    response = client.get_api_keys(includeValues=True)
-    assert len(response["items"]) == 2
-    for api_key in response["items"]:
-        assert "value" in api_key
+    keys = client.get_api_keys(includeValues=True)["items"]
+    short_keys = [{"name": key["name"], "value": key["value"]} for key in keys]
+    assert payload in short_keys
+    assert payload2 in short_keys
 
-    response = client.get_api_keys(includeValues=False)
-    assert len(response["items"]) == 2
-    for api_key in response["items"]:
+    keys = client.get_api_keys(includeValues=False)["items"]
+    assert len(keys) == 2
+    for api_key in keys:
         assert "value" not in api_key
+
+    # Query By Name
+    keys = client.get_api_keys(nameQuery="TESTKEY1")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY1"]
+
+    keys = client.get_api_keys(nameQuery="TESTKEY2")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY2"]
+
+    # assert that passing only a prefix works
+    keys = client.get_api_keys(nameQuery="TESTKEY")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY1", "TESTKEY2"]
+
+    keys = client.get_api_keys(nameQuery="TESTKEY3")["items"]
+    assert keys == []
+
+    # assert that suffix of a name does not work
+    keys = client.get_api_keys(nameQuery="KEY2")["items"]
+    assert keys == []
 
 
 @mock_aws
@@ -1781,6 +1795,15 @@ def test_usage_plan_keys():
     # Get current plan keys (expect 1)
     response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
     assert len(response["items"]) == 1
+
+    # Query By Name
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery=key_name)
+    assert len(plans["items"]) == 1
+    # test using only a prefix
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="test-")
+    assert len(plans["items"]) == 1
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="unknown")
+    assert len(plans["items"]) == 0
 
     # Get a single usage plan key and check it matches the created one
     usage_plan_key = client.get_usage_plan_key(

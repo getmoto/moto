@@ -126,15 +126,7 @@ quicksight
 - [ ] list_folders
 - [ ] list_folders_for_resource
 - [X] list_group_memberships
-  
-        The NextToken and MaxResults parameters are not yet implemented
-        
-
 - [X] list_groups
-  
-        The NextToken and MaxResults parameters are not yet implemented
-        
-
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_identity_propagation_configs
@@ -152,12 +144,8 @@ quicksight
 - [ ] list_topic_refresh_schedules
 - [ ] list_topic_reviewed_answers
 - [ ] list_topics
-- [ ] list_user_groups
+- [X] list_user_groups
 - [X] list_users
-  
-        The NextToken and MaxResults parameters are not yet implemented
-        
-
 - [ ] list_vpc_connections
 - [ ] put_data_set_refresh_properties
 - [X] register_user
@@ -172,7 +160,7 @@ quicksight
 - [ ] search_data_sets
 - [ ] search_data_sources
 - [ ] search_folders
-- [ ] search_groups
+- [X] search_groups
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
@@ -211,6 +199,6 @@ quicksight
 - [ ] update_topic
 - [ ] update_topic_permissions
 - [ ] update_topic_refresh_schedule
-- [ ] update_user
+- [X] update_user
 - [ ] update_vpc_connection
 

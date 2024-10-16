@@ -672,6 +672,30 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "d3en.12xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "d3en.2xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "d3en.4xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "d3en.6xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "d3en.8xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "d3en.xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "f1.16xlarge",
   "Location": "ap-southeast-2"
  },

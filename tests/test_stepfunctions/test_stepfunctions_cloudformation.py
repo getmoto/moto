@@ -31,6 +31,9 @@ def test_state_machine_cloudformation():
                     "StateMachineType": "STANDARD",
                     "DefinitionString": definition,
                     "RoleArn": role_arn,
+                    "TracingConfiguration": {"Enabled": False},
+                    "EncryptionConfiguration": {"Type": "AWS_OWNED_KEY"},
+                    "LoggingConfiguration": {"Level": "OFF"},
                     "Tags": [
                         {"Key": "key1", "Value": "value1"},
                         {"Key": "key2", "Value": "value2"},
@@ -51,6 +54,9 @@ def test_state_machine_cloudformation():
     assert state_machine["name"] == output["StateMachineName"]
     assert state_machine["roleArn"] == role_arn
     assert state_machine["definition"] == definition
+    assert state_machine["tracingConfiguration"] == {"enabled": False}
+    assert state_machine["encryptionConfiguration"]["type"] == "AWS_OWNED_KEY"
+    assert state_machine["loggingConfiguration"]["level"] == "OFF"
     tags = sf.list_tags_for_resource(resourceArn=output["StateMachineArn"]).get("tags")
     for i, tag in enumerate(tags, 1):
         assert tag["key"] == f"key{i}"

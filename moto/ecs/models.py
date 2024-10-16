@@ -1692,6 +1692,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         task_definition_str = service_properties.pop("task_definition", None)
         cluster = self._get_cluster(cluster_str)
         service_name = service_properties.pop("service").split("/")[-1]
+        force_new_deployment = service_properties.pop("force_new_deployment", False)
         cluster_service_pair = f"{cluster.name}:{service_name}"
 
         if cluster_service_pair in self.services:
@@ -1705,6 +1706,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             if task_definition_str:
                 self.describe_task_definition(task_definition_str)
                 current_service.task_definition = task_definition_str
+            if force_new_deployment and current_service.deployments:
+                deployment = current_service.deployments[0]
+                deployment["id"] = f"ecs-svc/{mock_random.randint(0, 32**12)}"
+                now = datetime.now(timezone.utc)
+                deployment["createdAt"] = now
+                deployment["updatedAt"] = now
             return current_service
         else:
             raise ServiceNotFoundException

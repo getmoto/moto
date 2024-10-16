@@ -8,6 +8,8 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.utils import get_partition
 
+from ..utilities.tagging_service import TaggingService
+
 
 class FakeUserSettings(BaseModel):
     def __init__(
@@ -23,7 +25,6 @@ class FakeUserSettings(BaseModel):
         idle_disconnect_timeout_in_minutes: int,
         paste_allowed: bool,
         print_allowed: bool,
-        tags: Dict[str, str],
         upload_allowed: bool,
         region_name: str,
         account_id: str,
@@ -33,16 +34,15 @@ class FakeUserSettings(BaseModel):
         self.additional_encryption_context = additional_encryption_context
         self.client_token = client_token
         self.cookie_synchronization_configuration = cookie_synchronization_configuration
-        self.copy_allowed = "Enabled" if copy_allowed else "Disabled"
+        self.copy_allowed = copy_allowed if copy_allowed else "Disabled"
         self.customer_managed_key = customer_managed_key
-        self.deep_link_allowed = "Enabled" if deep_link_allowed else "Disabled"
+        self.deep_link_allowed = deep_link_allowed if deep_link_allowed else "Disabled"
         self.disconnect_timeout_in_minutes = disconnect_timeout_in_minutes
-        self.download_allowed = "Enabled" if download_allowed else "Disabled"
+        self.download_allowed = download_allowed if download_allowed else "Disabled"
         self.idle_disconnect_timeout_in_minutes = idle_disconnect_timeout_in_minutes
-        self.paste_allowed = "Enabled" if paste_allowed else "Disabled"
-        self.print_allowed = "Enabled" if print_allowed else "Disabled"
-        self.tags = tags
-        self.upload_allowed = "Enabled" if upload_allowed else "Disabled"
+        self.paste_allowed = paste_allowed if paste_allowed else "Disabled"
+        self.print_allowed = print_allowed if print_allowed else "Disabled"
+        self.upload_allowed = upload_allowed if upload_allowed else "Disabled"
         self.associated_portal_arns: List[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
@@ -62,7 +62,6 @@ class FakeUserSettings(BaseModel):
             "idleDisconnectTimeoutInMinutes": self.idle_disconnect_timeout_in_minutes,
             "pasteAllowed": self.paste_allowed,
             "printAllowed": self.print_allowed,
-            "tags": self.tags,
             "uploadAllowed": self.upload_allowed,
             "userSettingsArn": self.arn,
         }
@@ -73,7 +72,6 @@ class FakeUserAccessLoggingSettings(BaseModel):
         self,
         client_token: str,
         kinesis_stream_arn: str,
-        tags: Dict[str, str],
         region_name: str,
         account_id: str,
     ):
@@ -83,7 +81,6 @@ class FakeUserAccessLoggingSettings(BaseModel):
         )
         self.client_token = client_token
         self.kinesis_stream_arn = kinesis_stream_arn
-        self.tags = tags
         self.associated_portal_arns: List[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
@@ -93,7 +90,6 @@ class FakeUserAccessLoggingSettings(BaseModel):
         return {
             "associatedPortalArns": self.associated_portal_arns,
             "kinesisStreamArn": self.kinesis_stream_arn,
-            "tags": self.tags,
             "userAccessLoggingSettingsArn": self.arn,
         }
 
@@ -103,7 +99,6 @@ class FakeNetworkSettings(BaseModel):
         self,
         security_group_ids: List[str],
         subnet_ids: List[str],
-        tags: Dict[str, str],
         vpc_id: str,
         region_name: str,
         account_id: str,
@@ -112,7 +107,6 @@ class FakeNetworkSettings(BaseModel):
         self.arn = self.arn_formatter(self.network_settings_id, account_id, region_name)
         self.security_group_ids = security_group_ids
         self.subnet_ids = subnet_ids
-        self.tags = tags
         self.vpc_id = vpc_id
         self.associated_portal_arns: List[str] = []
 
@@ -125,7 +119,6 @@ class FakeNetworkSettings(BaseModel):
             "networkSettingsArn": self.arn,
             "securityGroupIds": self.security_group_ids,
             "subnetIds": self.subnet_ids,
-            "Tags": self.tags,
             "vpcId": self.vpc_id,
         }
 
@@ -137,7 +130,6 @@ class FakeBrowserSettings(BaseModel):
         browser_policy: str,
         client_token: str,
         customer_managed_key: str,
-        tags: Dict[str, str],
         region_name: str,
         account_id: str,
     ):
@@ -147,7 +139,6 @@ class FakeBrowserSettings(BaseModel):
         self.browser_policy = browser_policy
         self.client_token = client_token
         self.customer_managed_key = customer_managed_key
-        self.tags = tags
         self.associated_portal_arns: List[str] = []
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
@@ -160,7 +151,6 @@ class FakeBrowserSettings(BaseModel):
             "additionalEncryptionContext": self.additional_encryption_context,
             "browserPolicy": self.browser_policy,
             "customerManagedKey": self.customer_managed_key,
-            "tags": self.tags,
         }
 
 
@@ -174,7 +164,6 @@ class FakePortal(BaseModel):
         display_name: str,
         instance_type: str,
         max_concurrent_sessions: str,
-        tags: Dict[str, str],
         region_name: str,
         account_id: str,
     ):
@@ -187,7 +176,6 @@ class FakePortal(BaseModel):
         self.display_name = display_name
         self.instance_type = instance_type
         self.max_concurrent_sessions = max_concurrent_sessions
-        self.tags = tags
         self.portal_endpoint = f"{self.portal_id}.portal.aws"
         self.browser_type = "Chrome"
         self.creation_time = datetime.datetime.now().isoformat()
@@ -225,7 +213,6 @@ class FakePortal(BaseModel):
             "trustStoreArn": self.trust_store_arn,
             "userAccessLoggingSettingsArn": self.user_access_logging_settings_arn,
             "userSettingsArn": self.user_settings_arn,
-            "tags": self.tags,
         }
 
 
@@ -239,6 +226,7 @@ class WorkSpacesWebBackend(BaseBackend):
         self.user_settings: Dict[str, FakeUserSettings] = {}
         self.user_access_logging_settings: Dict[str, FakeUserAccessLoggingSettings] = {}
         self.portals: Dict[str, FakePortal] = {}
+        self.tagger = TaggingService()
 
     def create_network_settings(
         self,
@@ -250,12 +238,13 @@ class WorkSpacesWebBackend(BaseBackend):
         network_settings_object = FakeNetworkSettings(
             security_group_ids,
             subnet_ids,
-            tags,
             vpc_id,
             self.region_name,
             self.account_id,
         )
         self.network_settings[network_settings_object.arn] = network_settings_object
+        if tags:
+            self.tag_resource("TEMP_CLIENT_TOKEN", network_settings_object.arn, tags)
         return network_settings_object.arn
 
     def list_network_settings(self) -> List[Dict[str, str]]:
@@ -276,18 +265,19 @@ class WorkSpacesWebBackend(BaseBackend):
         browser_policy: str,
         client_token: str,
         customer_managed_key: str,
-        tags: Dict[str, str],
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> str:
         browser_settings_object = FakeBrowserSettings(
             additional_encryption_context,
             browser_policy,
             client_token,
             customer_managed_key,
-            tags,
             self.region_name,
             self.account_id,
         )
         self.browser_settings[browser_settings_object.arn] = browser_settings_object
+        if tags:
+            self.tag_resource(client_token, browser_settings_object.arn, tags)
         return browser_settings_object.arn
 
     def list_browser_settings(self) -> List[Dict[str, str]]:
@@ -311,7 +301,7 @@ class WorkSpacesWebBackend(BaseBackend):
         display_name: str,
         instance_type: str,
         max_concurrent_sessions: str,
-        tags: Dict[str, str],
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> Tuple[str, str]:
         portal_object = FakePortal(
             additional_encryption_context,
@@ -321,11 +311,12 @@ class WorkSpacesWebBackend(BaseBackend):
             display_name,
             instance_type,
             max_concurrent_sessions,
-            tags,
             self.region_name,
             self.account_id,
         )
         self.portals[portal_object.arn] = portal_object
+        if tags:
+            self.tag_resource(client_token, portal_object.arn, tags)
         return portal_object.arn, portal_object.portal_endpoint
 
     def list_portals(self) -> List[Dict[str, Any]]:
@@ -405,12 +396,13 @@ class WorkSpacesWebBackend(BaseBackend):
             idle_disconnect_timeout_in_minutes,
             paste_allowed,
             print_allowed,
-            tags,
             upload_allowed,
             self.region_name,
             self.account_id,
         )
         self.user_settings[user_settings_object.arn] = user_settings_object
+        if tags:
+            self.tag_resource(client_token, user_settings_object.arn, tags)
         return user_settings_object.arn
 
     def get_user_settings(self, user_settings_arn: str) -> Dict[str, Any]:
@@ -423,11 +415,15 @@ class WorkSpacesWebBackend(BaseBackend):
         self, client_token: Any, kinesis_stream_arn: Any, tags: Any
     ) -> str:
         user_access_logging_settings_object = FakeUserAccessLoggingSettings(
-            client_token, kinesis_stream_arn, tags, self.region_name, self.account_id
+            client_token, kinesis_stream_arn, self.region_name, self.account_id
         )
         self.user_access_logging_settings[user_access_logging_settings_object.arn] = (
             user_access_logging_settings_object
         )
+        if tags:
+            self.tag_resource(
+                client_token, user_access_logging_settings_object.arn, tags
+            )
         return user_access_logging_settings_object.arn
 
     def get_user_access_logging_settings(
@@ -475,6 +471,19 @@ class WorkSpacesWebBackend(BaseBackend):
             {"userAccessLoggingSettingsArn": user_access_logging_settings.arn}
             for user_access_logging_settings in self.user_access_logging_settings.values()
         ]
+
+    def tag_resource(self, client_token: str, resource_arn: str, tags: Any) -> None:
+        self.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: Any) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+        tags = self.tagger.get_tag_dict_for_resource(resource_arn)
+        Tags = []
+        for key, value in tags.items():
+            Tags.append({"Key": key, "Value": value})
+        return Tags
 
 
 workspacesweb_backends = BackendDict(WorkSpacesWebBackend, "workspaces-web")

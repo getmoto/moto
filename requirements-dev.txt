@@ -13,6 +13,9 @@ prompt_toolkit
 
 # type stubs that mypy doesn't install automatically
 botocore-stubs
+types-requests
+types-python-dateutil
+types-PyYAML
 
 
 # typing_extensions is currently used for:

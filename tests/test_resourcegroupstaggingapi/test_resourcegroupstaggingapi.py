@@ -5,6 +5,7 @@ import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_ds.test_ds_simple_ad_directory import create_test_directory
 
@@ -1175,3 +1176,30 @@ def test_get_resources_efs():
     assert fs_two["FileSystemArn"] in returned_arns
     assert ap_one["AccessPointArn"] not in returned_arns
     assert ap_two["AccessPointArn"] in returned_arns
+
+
+@mock_aws
+def test_get_resources_stepfunction():
+    simple_definition = (
+        '{"Comment": "An example of the Amazon States Language using a choice state.",'
+        '"StartAt": "DefaultState",'
+        '"States": '
+        '{"DefaultState": {"Type": "Fail","Error": "DefaultStateError","Cause": "No Matches!"}}}'
+    )
+    role_arn = "arn:aws:iam::" + ACCOUNT_ID + ":role/unknown_sf_role"
+
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+    client.create_state_machine(
+        name="name1",
+        definition=str(simple_definition),
+        roleArn=role_arn,
+        tags=[{"key": "Name", "value": "Alice"}],
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["states:stateMachine"])
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Name", "Value": "Alice"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]

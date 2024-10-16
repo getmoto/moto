@@ -62,13 +62,13 @@ workspaces-web
 - [X] list_network_settings
 - [X] list_portals
 - [ ] list_sessions
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_trust_store_certificates
 - [ ] list_trust_stores
 - [X] list_user_access_logging_settings
 - [X] list_user_settings
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_browser_settings
 - [ ] update_identity_provider
 - [ ] update_ip_access_settings
