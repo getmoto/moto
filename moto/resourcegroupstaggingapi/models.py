@@ -591,7 +591,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             not resource_type_filters or "workspaces-web" in resource_type_filters
         ):
             for portal in self.workspacesweb_backends.portals.values():
-                tags = format_tag_keys(portal.tags, ["Key", "Value"])  # type: ignore
+                tags = self.workspacesweb_backends.tagger.list_tags_for_resource(
+                    portal.arn
+                )["Tags"]
                 if not tags or not tag_filter(tags):
                     continue
                 yield {
