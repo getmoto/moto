@@ -1225,6 +1225,8 @@ def test_update_service():
         desiredCount=2,
     )
     assert response["service"]["desiredCount"] == 2
+    id = response["service"]["deployments"][0]["id"]
+    created_at = response["service"]["deployments"][0]["createdAt"]
 
     response = client.update_service(
         cluster="test_ecs_cluster",
@@ -1247,6 +1249,20 @@ def test_update_service():
     assert response["service"]["desiredCount"] == 1
     assert response["service"]["runningCount"] == 1
     assert response["service"]["pendingCount"] == 0
+
+    response = client.update_service(
+        cluster="test_ecs_cluster",
+        service="test_ecs_service",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+        forceNewDeployment=True,
+    )
+    assert response["service"]["deployments"][0]["id"] != id
+    assert response["service"]["deployments"][0]["createdAt"] != created_at
+    assert (
+        response["service"]["deployments"][0]["createdAt"]
+        == response["service"]["deployments"][0]["updatedAt"]
+    )
 
 
 @mock_aws
