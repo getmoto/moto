@@ -47,6 +47,11 @@ class WAFV2Response(BaseResponse):
         description = body.get("Description")
         tags = body.get("Tags", [])
         rules = body.get("Rules", [])
+        association_config = body.get("AssociationConfig")
+        captcha_config = body.get("CaptchaConfig")
+        challenge_config = body.get("ChallengeConfig")
+        custom_response_bodies = body.get("CustomResponseBodies")
+        token_domains = body.get("TokenDomains")
         web_acl = self.wafv2_backend.create_web_acl(
             name,
             body["VisibilityConfig"],
@@ -55,8 +60,13 @@ class WAFV2Response(BaseResponse):
             description,
             tags,
             rules,
+            association_config,
+            captcha_config,
+            challenge_config,
+            custom_response_bodies,
+            token_domains,
         )
-        response = {"Summary": web_acl.to_dict()}
+        response = {"Summary": web_acl.to_short_dict()}
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -66,7 +76,8 @@ class WAFV2Response(BaseResponse):
             self.region = GLOBAL_REGION
         name = self._get_param("Name")
         _id = self._get_param("Id")
-        self.wafv2_backend.delete_web_acl(name, _id)
+        lock_token = self._get_param("LockToken")
+        self.wafv2_backend.delete_web_acl(name, scope, _id, lock_token)
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, "{}"
 
@@ -96,8 +107,8 @@ class WAFV2Response(BaseResponse):
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        rule_groups = self.wafv2_backend.list_rule_groups()
-        response = {"RuleGroups": [rg.to_dict() for rg in rule_groups]}
+        rule_groups = self.wafv2_backend.list_rule_groups(scope)
+        response = {"RuleGroups": [rg.to_short_dict() for rg in rule_groups]}
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -136,10 +147,27 @@ class WAFV2Response(BaseResponse):
         rules = body.get("Rules")
         description = body.get("Description")
         visibility_config = body.get("VisibilityConfig")
-        lock_token = self.wafv2_backend.update_web_acl(
-            name, _id, default_action, rules, description, visibility_config
+        lock_token = body.get("LockToken")
+        custom_response_bodies = body.get("CustomResponseBodies")
+        captcha_config = body.get("CaptchaConfig")
+        challenge_config = body.get("ChallengeConfig")
+        token_domains = body.get("TokenDomains")
+        association_config = body.get("AssociationConfig")
+        new_lock_token = self.wafv2_backend.update_web_acl(
+            name,
+            _id,
+            default_action,
+            rules,
+            description,
+            visibility_config,
+            lock_token,
+            custom_response_bodies,
+            captcha_config,
+            challenge_config,
+            token_domains,
+            association_config,
         )
-        return 200, {}, json.dumps({"NextLockToken": lock_token})
+        return 200, {}, json.dumps({"NextLockToken": new_lock_token})
 
     def create_ip_set(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
@@ -316,17 +344,18 @@ class WAFV2Response(BaseResponse):
         self.wafv2_backend.delete_logging_configuration(resource_arn)
         return 200, {}, "{}"
 
-    def create_rule_group(self):
-        params = self._get_params()
-        name = params.get("Name")
-        scope = params.get("Scope")
-        capacity = params.get("Capacity")
-        description = params.get("Description")
-        rules = params.get("Rules")
-        visibility_config = params.get("VisibilityConfig")
-        tags = params.get("Tags")
-        custom_response_bodies = params.get("CustomResponseBodies")
-        summary = self.wafv2_backend.create_rule_group(
+    def create_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        capacity = self._get_param("Capacity")
+        description = self._get_param("Description")
+        rules = self._get_param("Rules", [])
+        visibility_config = self._get_param("VisibilityConfig")
+        tags = self._get_param("Tags")
+        custom_response_bodies = self._get_param("CustomResponseBodies")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        group = self.wafv2_backend.create_rule_group(
             name=name,
             scope=scope,
             capacity=capacity,
@@ -336,20 +365,20 @@ class WAFV2Response(BaseResponse):
             tags=tags,
             custom_response_bodies=custom_response_bodies,
         )
-        # TODO: adjust response
-        return json.dumps(dict(summary=summary))
+        return 200, {}, json.dumps(dict(Summary=group.to_short_dict()))
 
-    def update_rule_group(self):
-        params = self._get_params()
-        name = params.get("Name")
-        scope = params.get("Scope")
-        id = params.get("Id")
-        description = params.get("Description")
-        rules = params.get("Rules")
-        visibility_config = params.get("VisibilityConfig")
-        lock_token = params.get("LockToken")
-        custom_response_bodies = params.get("CustomResponseBodies")
-        next_lock_token = self.wafv2_backend.update_rule_group(
+    def update_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        id = self._get_param("Id")
+        description = self._get_param("Description")
+        rules = self._get_param("Rules")
+        visibility_config = self._get_param("VisibilityConfig")
+        lock_token = self._get_param("LockToken")
+        custom_response_bodies = self._get_param("CustomResponseBodies")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        updated_group = self.wafv2_backend.update_rule_group(
             name=name,
             scope=scope,
             id=id,
@@ -359,44 +388,45 @@ class WAFV2Response(BaseResponse):
             lock_token=lock_token,
             custom_response_bodies=custom_response_bodies,
         )
-        # TODO: adjust response
-        return json.dumps(dict(nextLockToken=next_lock_token))
+        return 200, {}, json.dumps(dict(NextLockToken=updated_group.lock_token))
 
-    # notes about region and scope
-
-    def delete_rule_group(self):
-        params = self._get_params()
-        name = params.get("Name")
-        scope = params.get("Scope")
-        id = params.get("Id")
-        lock_token = params.get("LockToken")
+    def delete_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        id = self._get_param("Id")
+        lock_token = self._get_param("LockToken")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
         self.wafv2_backend.delete_rule_group(
             name=name,
             scope=scope,
             id=id,
             lock_token=lock_token,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return 200, {}, json.dumps(dict())
 
-    # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)
-
-    def get_rule_group(self):
-        params = self._get_params()
-        name = params.get("Name")
-        scope = params.get("Scope")
-        id = params.get("Id")
-        arn = params.get("ARN")
-        rule_group, lock_token = self.wafv2_backend.get_rule_group(
+    def get_rule_group(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        scope = self._get_param("Scope")
+        id = self._get_param("Id")
+        arn = self._get_param("ARN")
+        if scope == "CLOUDFRONT" or (
+            isinstance(arn, str) and arn.split(":")[3] == GLOBAL_REGION
+        ):
+            self.region = GLOBAL_REGION
+        rule_group = self.wafv2_backend.get_rule_group(
             name=name,
             scope=scope,
             id=id,
             arn=arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(ruleGroup=rule_group, lockToken=lock_token))
+        group_dict = rule_group.to_dict()
+        lock_token = group_dict.pop("LockToken")
+        return 200, {}, json.dumps(dict(RuleGroup=group_dict, LockToken=lock_token))
 
 
+# notes about region and scope
+# --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)
 # --scope = REGIONAL defaults to us-east-1, but could be anything if specified with --region=<anyRegion>
 # region is grabbed from the auth header, NOT from the body - even with --region flag
 # The CLOUDFRONT wacls in aws console are located in us-east-1 but the us-east-1 REGIONAL wacls are not included
