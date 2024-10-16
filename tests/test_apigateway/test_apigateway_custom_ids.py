@@ -11,6 +11,8 @@ from moto.apigateway.utils import (
     ApigwRestApiIdentifier,
     ApigwUsagePlanIdentifier,
 )
+from moto.utilities.id_generator import TAG_KEY_CUSTOM_ID
+from tests import DEFAULT_ACCOUNT_ID
 
 API_ID = "ApiId"
 API_KEY_ID = "ApiKeyId"
@@ -27,7 +29,7 @@ USAGE_PLAN_ID = "UPlanId"
 @pytest.mark.skipif(
     not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
 )
-def test_custom_id_rest_api(set_custom_id, account_id):
+def test_custom_id_rest_api(set_custom_id):
     region_name = "us-west-2"
     rest_api_name = "my-api"
     model_name = "modelName"
@@ -37,33 +39,40 @@ def test_custom_id_rest_api(set_custom_id, account_id):
     client = boto3.client("apigateway", region_name=region_name)
 
     set_custom_id(
-        ApigwRestApiIdentifier(account_id, region_name, rest_api_name), API_ID
+        ApigwRestApiIdentifier(DEFAULT_ACCOUNT_ID, region_name, rest_api_name), API_ID
     )
     set_custom_id(
-        ApigwResourceIdentifier(account_id, region_name, path_name="/"),
+        ApigwResourceIdentifier(DEFAULT_ACCOUNT_ID, region_name, path_name="/"),
         ROOT_RESOURCE_ID,
     )
     set_custom_id(
         ApigwResourceIdentifier(
-            account_id, region_name, parent_id=ROOT_RESOURCE_ID, path_name="pet"
+            DEFAULT_ACCOUNT_ID, region_name, parent_id=ROOT_RESOURCE_ID, path_name="pet"
         ),
         PET_1_RESOURCE_ID,
     )
     set_custom_id(
         ApigwResourceIdentifier(
-            account_id, region_name, parent_id=PET_1_RESOURCE_ID, path_name="pet"
+            DEFAULT_ACCOUNT_ID,
+            region_name,
+            parent_id=PET_1_RESOURCE_ID,
+            path_name="pet",
         ),
         PET_2_RESOURCE_ID,
     )
-    set_custom_id(ApigwModelIdentifier(account_id, region_name, model_name), MODEL_ID)
+    set_custom_id(
+        ApigwModelIdentifier(DEFAULT_ACCOUNT_ID, region_name, model_name), MODEL_ID
+    )
     set_custom_id(
         ApigwRequestValidatorIdentifier(
-            account_id, region_name, request_validator_name
+            DEFAULT_ACCOUNT_ID, region_name, request_validator_name
         ),
         REQUEST_VALIDATOR_ID,
     )
     set_custom_id(
-        ApigwDeploymentIdentifier(account_id, region_name, stage_name=stage_name),
+        ApigwDeploymentIdentifier(
+            DEFAULT_ACCOUNT_ID, region_name, stage_name=stage_name
+        ),
         DEPLOYMENT_ID,
     )
 
@@ -113,7 +122,7 @@ def test_custom_id_rest_api(set_custom_id, account_id):
 @pytest.mark.skipif(
     not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
 )
-def test_custom_id_api_key(account_id, set_custom_id):
+def test_custom_id_api_key(set_custom_id):
     region_name = "us-west-2"
     api_key_value = "01234567890123456789"
     usage_plan_name = "usage-plan"
@@ -121,10 +130,11 @@ def test_custom_id_api_key(account_id, set_custom_id):
     client = boto3.client("apigateway", region_name=region_name)
 
     set_custom_id(
-        ApigwApiKeyIdentifier(account_id, region_name, value=api_key_value), API_KEY_ID
+        ApigwApiKeyIdentifier(DEFAULT_ACCOUNT_ID, region_name, value=api_key_value),
+        API_KEY_ID,
     )
     set_custom_id(
-        ApigwUsagePlanIdentifier(account_id, region_name, usage_plan_name),
+        ApigwUsagePlanIdentifier(DEFAULT_ACCOUNT_ID, region_name, usage_plan_name),
         USAGE_PLAN_ID,
     )
 
@@ -138,3 +148,15 @@ def test_custom_id_api_key(account_id, set_custom_id):
 
     assert api_key["id"] == API_KEY_ID
     assert usage_plan["id"] == USAGE_PLAN_ID
+
+
+@mock_aws
+def test_create_rest_api_with_custom_id_tag():
+    rest_api_name = "rest_api"
+    api_id = "testTagId"
+    client = boto3.client("apigateway", region_name="us-west-2")
+    rest_api = client.create_rest_api(
+        name=rest_api_name, tags={TAG_KEY_CUSTOM_ID: api_id}
+    )
+
+    assert rest_api["id"] == api_id
