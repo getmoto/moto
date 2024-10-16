@@ -175,10 +175,11 @@ class CloudFormationResponse(BaseResponse):
         change_set_name = self._get_param("ChangeSetName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
-        if self._get_param("ChangeSetType", "CREATE") == "UPDATE":
-            use_previous_template = (
+        update_or_create = self._get_param("ChangeSetType", "CREATE")
+        use_previous_template = (
                 self._get_param("UsePreviousTemplate", "false").lower() == "true"
             )
+        if update_or_create == "UPDATE":
             stack = self.cloudformation_backend.get_stack(stack_name)
             self.validate_template_and_stack_body()
 
