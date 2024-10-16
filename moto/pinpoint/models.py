@@ -14,7 +14,7 @@ from .exceptions import ApplicationNotFound, EventStreamNotFound
 class App(BaseModel):
     def __init__(self, account_id: str, region_name: str, name: str):
         self.application_id = str(mock_random.uuid4()).replace("-", "")
-        self.arn = f"arn:{get_partition(region_name)}:mobiletargeting:us-east-1:{account_id}:apps/{self.application_id}"
+        self.arn = f"arn:{get_partition(region_name)}:mobiletargeting:{region_name}:{account_id}:apps/{self.application_id}"
         self.name = name
         self.created = unix_time()
         self.settings = AppSettings()
