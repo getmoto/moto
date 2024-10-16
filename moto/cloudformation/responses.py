@@ -177,8 +177,8 @@ class CloudFormationResponse(BaseResponse):
         template_url = self._get_param("TemplateURL")
         update_or_create = self._get_param("ChangeSetType", "CREATE")
         use_previous_template = (
-                self._get_param("UsePreviousTemplate", "false").lower() == "true"
-            )
+            self._get_param("UsePreviousTemplate", "false").lower() == "true"
+        )
         if update_or_create == "UPDATE":
             stack = self.cloudformation_backend.get_stack(stack_name)
             self.validate_template_and_stack_body()
@@ -187,7 +187,6 @@ class CloudFormationResponse(BaseResponse):
                 stack_body = stack.template
         description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
-        update_or_create = self._get_param("ChangeSetType", "CREATE")
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict(
             (item["key"], item["value"])
