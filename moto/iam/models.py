@@ -3,7 +3,7 @@ import json
 import os
 import re
 import string
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from urllib import parse
 
@@ -99,6 +99,12 @@ def mark_account_as_visited(
     else:
         # User provided access credentials unknown to us
         pass
+
+
+def _serialize_version_datetime(value: Any) -> str:
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
+    raise TypeError("Unable to serialize value.")
 
 
 LIMIT_KEYS_PER_USER = 2
@@ -745,10 +751,16 @@ class Role(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
+        assume_role_policy_document = properties["AssumeRolePolicyDocument"]
+        if not isinstance(assume_role_policy_document, str):
+            assume_role_policy_document = json.dumps(
+                assume_role_policy_document, default=_serialize_version_datetime
+            )
+
         iam_backend = iam_backends[account_id][get_partition(region_name)]
         role = iam_backend.create_role(
             role_name=role_name,
-            assume_role_policy_document=properties["AssumeRolePolicyDocument"],
+            assume_role_policy_document=assume_role_policy_document,
             path=properties.get("Path", "/"),
             permissions_boundary=properties.get("PermissionsBoundary", ""),
             description=properties.get("Description", ""),
@@ -898,7 +910,7 @@ class Role(CloudFormationModel):
       <Path>{{ role.path }}</Path>
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
       {% if role.description is not none %}
       <Description>{{ role.description_escaped }}</Description>
       {% endif %}

@@ -658,6 +658,9 @@ def get_canned_acl(acl: str) -> FakeAcl:
 
 
 class LifecycleFilter(BaseModel):
+    tag_key: Optional[str]
+    tag_value: Optional[str]
+
     def __init__(
         self,
         prefix: Optional[str] = None,

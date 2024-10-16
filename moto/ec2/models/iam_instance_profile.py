@@ -62,7 +62,7 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_association = IamInstanceProfileAssociation(
             self,
             iam_association_id,
-            self.get_instance(instance_id) if instance_id else None,  # type: ignore[attr-defined]
+            self.get_instance(instance_id) if instance_id else None,  # type: ignore[attr-defined, arg-type]
             instance_profile,
         )
         # Regarding to AWS there can be only one association with ec2.
