@@ -6,7 +6,10 @@ provider "aws" {
   skip_requesting_account_id  = true
 
   endpoints {
-    rds = "http://localhost:5000"
+    ec2            = "http://localhost:5000"
+    iam            = "http://localhost:5000"
+    rds            = "http://localhost:5000"
+    secretsmanager = "http://localhost:5000"
   }
 
   access_key = "my-access-key"
