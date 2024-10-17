@@ -1,5 +1,6 @@
 import base64
 import fnmatch
+import hashlib
 import ipaddress
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
@@ -600,7 +601,7 @@ def random_rsa_key_pair() -> Dict[str, str]:
         encoding=serialization.Encoding.OpenSSH,
         format=serialization.PublicFormat.OpenSSH,
     )
-    fingerprint = public_key_fingerprint(public_key)
+    fingerprint = public_key_fingerprint(public_key, is_created=True)
 
     return {
         "fingerprint": fingerprint,
@@ -753,14 +754,19 @@ def public_key_parse(
     return public_key
 
 
-def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:
-    # TODO: Use different fingerprint calculation methods based on key type and source
-    # see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html#how-ec2-key-fingerprints-are-calculated
+def public_key_fingerprint(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey], is_created: bool = False
+) -> str:
     key_data = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint_hex = md5_hash(key_data).hexdigest()
+    if isinstance(public_key, Ed25519PublicKey):
+        fingerprint_hex = hashlib.sha256(key_data).hexdigest()
+    elif is_created:
+        fingerprint_hex = hashlib.sha1(key_data).hexdigest()
+    else:
+        fingerprint_hex = md5_hash(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
 
