@@ -24,7 +24,7 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_int_param("AllocatedStorage"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
-            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
@@ -57,7 +57,7 @@ class RDSResponse(BaseResponse):
             "preferred_maintenance_window": self._get_param(
                 "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
             ).lower(),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible"),
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
@@ -79,7 +79,7 @@ class RDSResponse(BaseResponse):
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
             "backtrack_window": self._get_param("BacktrackWindow"),
-            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "new_db_cluster_identifier": self._get_param("NewDBClusterIdentifier"),
@@ -112,7 +112,7 @@ class RDSResponse(BaseResponse):
             "preferred_maintenance_window": self._get_param(
                 "PreferredMaintenanceWindow"
             ),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible"),
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
@@ -137,7 +137,7 @@ class RDSResponse(BaseResponse):
             "iops": self._get_int_param("Iops"),
             # OptionGroupName
             "port": self._get_param("Port"),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible"),
             "source_db_identifier": self._get_param("SourceDBInstanceIdentifier"),
             "storage_type": self._get_param("StorageType"),
         }
@@ -868,6 +868,63 @@ class RDSResponse(BaseResponse):
         )
         template = self.response_template(CREATE_DB_PROXY_TEMPLATE)
         return template.render(dbproxy=db_proxy)
+
+    def register_db_proxy_targets(self) -> str:
+        db_proxy_name = self._get_param("DBProxyName")
+        target_group_name = self._get_param("TargetGroupName")
+        db_cluster_identifiers = self._get_params().get("DBClusterIdentifiers", [])
+        db_instance_identifiers = self._get_params().get("DBInstanceIdentifiers", [])
+        targets = self.backend.register_db_proxy_targets(
+            db_proxy_name=db_proxy_name,
+            target_group_name=target_group_name,
+            db_cluster_identifiers=db_cluster_identifiers,
+            db_instance_identifiers=db_instance_identifiers,
+        )
+
+        template = self.response_template(REGISTER_DB_PROXY_TARGET)
+        return template.render(targets=targets)
+
+    def deregister_db_proxy_targets(self) -> str:
+        db_proxy_name = self._get_param("DBProxyName")
+        target_group_name = self._get_param("TargetGroupName")
+        db_cluster_identifiers = self._get_params().get("DBClusterIdentifiers", [])
+        db_instance_identifiers = self._get_params().get("DBInstanceIdentifiers", [])
+        self.backend.deregister_db_proxy_targets(
+            db_proxy_name=db_proxy_name,
+            target_group_name=target_group_name,
+            db_cluster_identifiers=db_cluster_identifiers,
+            db_instance_identifiers=db_instance_identifiers,
+        )
+
+        template = self.response_template(DEREGISTER_DB_PROXY_TARGET)
+        return template.render()
+
+    def describe_db_proxy_targets(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        targets = self.backend.describe_db_proxy_targets(proxy_name=proxy_name)
+        template = self.response_template(DESCRIBE_DB_PROXY_TARGETS)
+        return template.render(targets=targets)
+
+    def delete_db_proxy(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        proxy = self.backend.delete_db_proxy(proxy_name=proxy_name)
+        template = self.response_template(DELETE_DB_PROXY_TEMPLATE)
+        return template.render(dbproxy=proxy)
+
+    def describe_db_proxy_target_groups(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        groups = self.backend.describe_db_proxy_target_groups(proxy_name=proxy_name)
+        template = self.response_template(DESCRIBE_DB_PROXY_TARGET_GROUPS)
+        return template.render(groups=groups)
+
+    def modify_db_proxy_target_group(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        config = self._get_params().get("ConnectionPoolConfig", {})
+        group = self.backend.modify_db_proxy_target_group(
+            proxy_name=proxy_name, config=config
+        )
+        template = self.response_template(MODIFY_DB_PROXY_TARGET_GROUP)
+        return template.render(group=group)
 
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
@@ -1717,3 +1774,79 @@ REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE = """<RemoveFromGlobalClusterResponse xmlns=
   {% endif %}
   </RemoveFromGlobalClusterResult>
 </RemoveFromGlobalClusterResponse>"""
+
+
+DEREGISTER_DB_PROXY_TARGET = """<DeregisterDBProxyTargetsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+<DeregisterDBProxyTargetsResult>
+</DeregisterDBProxyTargetsResult>
+</DeregisterDBProxyTargetsResponse>"""
+
+
+REGISTER_DB_PROXY_TARGET = """<RegisterDBProxyTargetsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+<RegisterDBProxyTargetsResult>
+<DBProxyTargets>
+  {% for target in targets %}
+  <member>
+    <RdsResourceId>{{ target.rds_resource_id }}</RdsResourceId>
+    <Port>5432</Port>
+    <Type>{{ target.type }}</Type>
+    <TargetHealth>
+        <State>REGISTERING</State>
+    </TargetHealth>
+    {% if target.endpoint %}<Endpoint>{{ target.endpoint }}</Endpoint>{% endif %}
+  </member>
+  {% endfor %}
+</DBProxyTargets>
+</RegisterDBProxyTargetsResult>
+</RegisterDBProxyTargetsResponse>"""
+
+
+DESCRIBE_DB_PROXY_TARGETS = """<DescribeDBProxyTargetsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+<DescribeDBProxyTargetsResult>
+  <Targets>
+    {% for target in targets %}
+      <member>
+        <RdsResourceId>{{ target.rds_resource_id }}</RdsResourceId>
+        <Port>5432</Port>
+        <Type>{{ target.type }}</Type>
+        <TargetHealth>
+            <State>AVAILABLE</State>
+        </TargetHealth>
+        {% if target.endpoint %}<Endpoint>{{ target.endpoint }}</Endpoint>{% endif %}
+      </member>
+    {% endfor %}
+  </Targets>
+</DescribeDBProxyTargetsResult>
+</DescribeDBProxyTargetsResponse>
+"""
+
+
+DELETE_DB_PROXY_TEMPLATE = """<DeleteDBProxyResponse>
+<DeleteDBProxyResult>
+  <DBProxy>
+    {{ dbproxy.to_xml() }}
+  </DBProxy>
+</DeleteDBProxyResult>
+</DeleteDBProxyResponse>"""
+
+
+DESCRIBE_DB_PROXY_TARGET_GROUPS = """<DescribeDBProxyTargetGroupsResponse>
+<DescribeDBProxyTargetGroupsResult>
+  <TargetGroups>
+  {% for group in groups %}
+    <member>
+      {{ group.to_xml() }}
+    </member>
+  {% endfor %}
+  </TargetGroups>
+</DescribeDBProxyTargetGroupsResult>
+</DescribeDBProxyTargetGroupsResponse>"""
+
+
+MODIFY_DB_PROXY_TARGET_GROUP = """<ModifyDBProxyTargetGroupResponse>
+<ModifyDBProxyTargetGroupResult>
+  <DBProxyTargetGroup>
+    {{ group.to_xml() }}
+  </DBProxyTargetGroup>
+</ModifyDBProxyTargetGroupResult>
+</ModifyDBProxyTargetGroupResponse>"""
