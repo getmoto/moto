@@ -6460,7 +6460,7 @@
 
 ## rds
 <details>
-<summary>38% implemented</summary>
+<summary>42% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -6505,7 +6505,7 @@
 - [X] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
-- [ ] delete_db_proxy
+- [X] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
 - [ ] delete_db_shard_group
@@ -6516,7 +6516,7 @@
 - [ ] delete_integration
 - [X] delete_option_group
 - [ ] delete_tenant_database
-- [ ] deregister_db_proxy_targets
+- [X] deregister_db_proxy_targets
 - [ ] describe_account_attributes
 - [ ] describe_blue_green_deployments
 - [ ] describe_certificates
@@ -6536,8 +6536,8 @@
 - [ ] describe_db_parameters
 - [X] describe_db_proxies
 - [ ] describe_db_proxy_endpoints
-- [ ] describe_db_proxy_target_groups
-- [ ] describe_db_proxy_targets
+- [X] describe_db_proxy_target_groups
+- [X] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
 - [ ] describe_db_shard_groups
@@ -6580,7 +6580,7 @@
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
-- [ ] modify_db_proxy_target_group
+- [X] modify_db_proxy_target_group
 - [ ] modify_db_recommendation
 - [ ] modify_db_shard_group
 - [ ] modify_db_snapshot
@@ -6597,7 +6597,7 @@
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] reboot_db_shard_group
-- [ ] register_db_proxy_targets
+- [X] register_db_proxy_targets
 - [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster
 - [ ] remove_role_from_db_instance
