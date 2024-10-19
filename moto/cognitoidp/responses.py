@@ -624,20 +624,24 @@ class CognitoIdpResponse(BaseResponse):
     def associate_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
         session = self._get_param("Session")
-        result = self.backend.associate_software_token(access_token, session)
+        result = self._get_region_agnostic_backend().associate_software_token(
+            access_token, session
+        )
         return json.dumps(result)
 
     def verify_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
         session = self._get_param("Session")
-        result = self.backend.verify_software_token(access_token, session)
+        result = self._get_region_agnostic_backend().verify_software_token(
+            access_token, session
+        )
         return json.dumps(result)
 
     def set_user_mfa_preference(self) -> str:
         access_token = self._get_param("AccessToken")
         software_token_mfa_settings = self._get_param("SoftwareTokenMfaSettings")
         sms_mfa_settings = self._get_param("SMSMfaSettings")
-        self.backend.set_user_mfa_preference(
+        self._get_region_agnostic_backend().set_user_mfa_preference(
             access_token, software_token_mfa_settings, sms_mfa_settings
         )
         return ""
@@ -671,7 +675,9 @@ class CognitoIdpResponse(BaseResponse):
     def update_user_attributes(self) -> str:
         access_token = self._get_param("AccessToken")
         attributes = self._get_param("UserAttributes")
-        self.backend.update_user_attributes(access_token, attributes)
+        self._get_region_agnostic_backend().update_user_attributes(
+            access_token, attributes
+        )
         return json.dumps({})
 
 
