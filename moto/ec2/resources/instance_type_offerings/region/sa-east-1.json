@@ -640,6 +640,46 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "g6.12xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "sa-east-1"
  },
