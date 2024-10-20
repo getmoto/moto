@@ -6379,6 +6379,7 @@
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
+- [ ] start_dashboard_snapshot_job_schedule
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
@@ -6640,7 +6641,7 @@
 
 ## redshift
 <details>
-<summary>22% implemented</summary>
+<summary>21% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -6664,6 +6665,7 @@
 - [ ] create_event_subscription
 - [ ] create_hsm_client_certificate
 - [ ] create_hsm_configuration
+- [ ] create_integration
 - [ ] create_redshift_idc_application
 - [ ] create_scheduled_action
 - [X] create_snapshot_copy_grant
@@ -6682,6 +6684,7 @@
 - [ ] delete_event_subscription
 - [ ] delete_hsm_client_certificate
 - [ ] delete_hsm_configuration
+- [ ] delete_integration
 - [ ] delete_partner
 - [ ] delete_redshift_idc_application
 - [ ] delete_resource_policy
@@ -6714,6 +6717,7 @@
 - [ ] describe_hsm_client_certificates
 - [ ] describe_hsm_configurations
 - [ ] describe_inbound_integrations
+- [ ] describe_integrations
 - [ ] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
@@ -6755,6 +6759,7 @@
 - [ ] modify_custom_domain_association
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
+- [ ] modify_integration
 - [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period
@@ -8755,6 +8760,7 @@
 - [ ] list_certificates
 - [ ] list_connectors
 - [ ] list_executions
+- [ ] list_file_transfer_results
 - [ ] list_host_keys
 - [ ] list_profiles
 - [ ] list_security_policies

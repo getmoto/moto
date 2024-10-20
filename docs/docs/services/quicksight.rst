@@ -164,6 +164,7 @@ quicksight
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
+- [ ] start_dashboard_snapshot_job_schedule
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization

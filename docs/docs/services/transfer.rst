@@ -52,6 +52,7 @@ transfer
 - [ ] list_certificates
 - [ ] list_connectors
 - [ ] list_executions
+- [ ] list_file_transfer_results
 - [ ] list_host_keys
 - [ ] list_profiles
 - [ ] list_security_policies

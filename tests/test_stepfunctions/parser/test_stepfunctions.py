@@ -110,9 +110,9 @@ def test_version_is_only_available_when_published():
         PolicyName="allowLambdaInvoke",
         RoleName=role_name,
     )
-    kms_key_id = boto3.client("kms", region_name="us-east-1").create_key()[
-        "KeyMetadata"
-    ]["KeyId"]
+
+    kms = boto3.client("kms", region_name="us-east-1")
+    kms_key_id = kms.create_key()["KeyMetadata"]["KeyId"]
     sleep(10 if allow_aws_request() else 0)
 
     client = boto3.client("stepfunctions", region_name="us-east-1")
@@ -122,7 +122,7 @@ def test_version_is_only_available_when_published():
         encryption_config = {
             "kmsDataKeyReusePeriodSeconds": 60,
             "kmsKeyId": kms_key_id,
-            "type": "CUSTOMER_MANAGED_CMK",
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
         }
         response = client.create_state_machine(
             name=name1,
@@ -165,3 +165,4 @@ def test_version_is_only_available_when_published():
         client.delete_state_machine(stateMachineArn=arn2)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
         iam.delete_role(RoleName=role_name)
+        kms.schedule_key_deletion(KeyId=kms_key_id, PendingWindowInDays=7)
