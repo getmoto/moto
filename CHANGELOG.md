@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.18
 -----
-Docker Digest for 5.0.18: <autopopulateddigest>
+Docker Digest for 5.0.18: _sha256:62423941446f8863f499ebdfd04c1d1743b5afd84c3837799df7ce08ce3bb750_
 
     New Methods:
         * RDS:
