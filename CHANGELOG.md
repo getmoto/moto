@@ -1,6 +1,26 @@
 Moto Changelog
 ==============
 
+5.0.18
+-----
+Docker Digest for 5.0.18: <autopopulateddigest>
+
+    New Methods:
+        * RDS:
+            * delete_db_proxy()
+            * deregister_db_proxy_targets()
+            * describe_db_proxy_target_groups()
+            * describe_db_proxy_targets()
+            * modify_db_proxy_target_group()
+            * register_db_proxy_targets()
+
+    Miscellaneous:
+        * CloudFormation: create_change_set() now supports the UsePreviousTemplate-parameter
+        * CognitoIDP: MFA-related features (like AssociateSoftwareToken) now also work with non-Python SDK's
+        * ECS: update_service() now correctly sets the createdAt/updatedAt values when forceNewDeployment=True
+        * ELBv2: remove_tags() now throws a ResourceNotFound Exception
+
+
 5.0.17
 -----
 Docker Digest for 5.0.17: _sha256:39372432cb24ab46211ca45648ca787e104589070b0d0a13ea0d73c6eb550079_

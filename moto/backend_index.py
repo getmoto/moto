@@ -8,9 +8,7 @@ backend_url_patterns = [
     ("apigateway", re.compile("https?://apigateway\\.(.+)\\.amazonaws.com")),
     (
         "apigatewaymanagementapi",
-        re.compile(
-            "https?://([^.]+\\.)*execute-api\\.[a-z]{2}-[-a-z]+-\\d+\\.amazonaws\\.com"
-        ),
+        re.compile("https?://([^.]+\\.)*execute-api\\.[^.]+\\.amazonaws\\.com"),
     ),
     ("appconfig", re.compile("https?://appconfig\\.(.+)\\.amazonaws\\.com")),
     (
@@ -121,10 +119,13 @@ backend_url_patterns = [
     ("memorydb", re.compile("https?://memory-db\\.(.+)\\.amazonaws\\.com")),
     (
         "meteringmarketplace",
-        re.compile("https?://metering.marketplace.(.+).amazonaws.com"),
+        re.compile("https?://metering\\.marketplace\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("meteringmarketplace", re.compile("https?://aws-marketplace.(.+).amazonaws.com")),
-    ("moto_api._internal", re.compile("https?://motoapi.amazonaws.com")),
+    (
+        "meteringmarketplace",
+        re.compile("https?://aws-marketplace\\.(.+)\\.amazonaws\\.com"),
+    ),
+    ("moto_api._internal", re.compile("https?://motoapi\\.amazonaws\\.com")),
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
     ("networkmanager", re.compile("https?://networkmanager\\.(.+)\\.amazonaws\\.com")),
     ("opensearchserverless", re.compile("https?://aoss\\.(.+)\\.amazonaws\\.com")),
@@ -171,7 +172,7 @@ backend_url_patterns = [
     ("sagemaker", re.compile("https?://api\\.sagemaker\\.(.+)\\.amazonaws.com")),
     (
         "sagemakermetrics",
-        re.compile("https?://metrics.sagemaker\\.(.+)\\.amazonaws\\.com"),
+        re.compile("https?://metrics\\.sagemaker\\.(.+)\\.amazonaws\\.com"),
     ),
     (
         "sagemakerruntime",
@@ -202,7 +203,7 @@ backend_url_patterns = [
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
         "timestreamquery",
-        re.compile("https?://query.timestream\\.(.+)\\.amazonaws\\.com"),
+        re.compile("https?://query\\.timestream\\.(.+)\\.amazonaws\\.com"),
     ),
     (
         "timestreamwrite",

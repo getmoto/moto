@@ -385,7 +385,7 @@ Notification
 
     @lru_cache()
     def private_key(self) -> rsa.RSAPrivateKey:
-        return rsa.generate_private_key(public_exponent=65537, key_size=2028)
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     def _parse_message_structure(self, message: str, protocol: str) -> str:
         try:

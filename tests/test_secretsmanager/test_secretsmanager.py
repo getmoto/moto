@@ -1991,7 +1991,7 @@ def test_create_secret_with_tag_custom_id(set_custom_id):
     secret_suffix = "randomSuffix"
     secret_name = "secret-name"
 
-    client = boto3.client("secretsmanager")
+    client = boto3.client("secretsmanager", "us-east-1")
 
     secret = client.create_secret(
         Name=secret_name,

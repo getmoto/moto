@@ -3,7 +3,7 @@
 from .responses import SageMakerMetricsResponse
 
 url_bases = [
-    r"https?://metrics.sagemaker\.(.+)\.amazonaws\.com",
+    r"https?://metrics\.sagemaker\.(.+)\.amazonaws\.com",
 ]
 
 url_paths = {

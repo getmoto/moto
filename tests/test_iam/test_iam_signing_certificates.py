@@ -191,7 +191,7 @@ def test_update_unknown_certificate(user_name=None):
 
 
 def create_certificate():
-    key = rsa.generate_private_key(public_exponent=65537, key_size=2028)
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     cert_subject = [NameAttribute(NameOID.COMMON_NAME, "iam.amazonaws.com")]
     issuer = [
         NameAttribute(NameOID.COUNTRY_NAME, "US"),
