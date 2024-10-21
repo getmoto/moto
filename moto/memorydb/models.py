@@ -67,12 +67,9 @@ class MemoryDBCluster(BaseModel):
         self.maintenance_window = maintenance_window or "wed:08:00-wed:09:00"
         self.port = port or 6379  # Default is set to 6379
         self.sns_topic_arn = sns_topic_arn
-        self.tls_enabled = True
-        self.acl_name = acl_name
+        self.tls_enabled = tls_enabled if tls_enabled is not None else True
         # Clusters that do not have TLS enabled must use the "open-access" ACL to provide open authentication.
-        if tls_enabled is False:
-            self.tls_enabled = tls_enabled
-            self.acl_name = "open-access"
+        self.acl_name = "open-access" if tls_enabled is False else acl_name
         self.kms_key_id = kms_key_id
         self.snapshot_arns = snapshot_arns
         self.snapshot_name = snapshot_name
@@ -87,9 +84,7 @@ class MemoryDBCluster(BaseModel):
         else:
             self.engine_version = "7.1"  # Default is '7.1'.
             self.engine_patch_version = "7.1.1"
-        self.auto_minor_version_upgrade = True
-        if auto_minor_version_upgrade is False:
-            self.auto_minor_version_upgrade = auto_minor_version_upgrade
+        self.auto_minor_version_upgrade = auto_minor_version_upgrade if auto_minor_version_upgrade is not None else True
         self.data_tiering = "true" if data_tiering else "false"
         # The initial status of the cluster will be set to 'creating'."
         self.status = (
