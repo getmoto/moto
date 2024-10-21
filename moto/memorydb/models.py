@@ -84,7 +84,11 @@ class MemoryDBCluster(BaseModel):
         else:
             self.engine_version = "7.1"  # Default is '7.1'.
             self.engine_patch_version = "7.1.1"
-        self.auto_minor_version_upgrade = auto_minor_version_upgrade if auto_minor_version_upgrade is not None else True
+        self.auto_minor_version_upgrade = (
+            auto_minor_version_upgrade
+            if auto_minor_version_upgrade is not None
+            else True
+        )
         self.data_tiering = "true" if data_tiering else "false"
         # The initial status of the cluster will be set to 'creating'."
         self.status = (
