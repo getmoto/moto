@@ -14,6 +14,7 @@ from ..utils import (
     random_ed25519_key_pair,
     random_key_pair_id,
     random_rsa_key_pair,
+    select_hash_algorithm,
 )
 from .core import TaggedEC2Resource
 
@@ -107,7 +108,8 @@ class KeyPairBackend:
         except ValueError:
             raise InvalidKeyPairFormatError()
 
-        fingerprint = public_key_fingerprint(public_key)
+        hash_constructor = select_hash_algorithm(public_key)
+        fingerprint = public_key_fingerprint(public_key, hash_constructor)
         keypair = KeyPair(
             key_name,
             material_public=public_key_material,

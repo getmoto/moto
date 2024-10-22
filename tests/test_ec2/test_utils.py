@@ -1,5 +1,7 @@
+import hashlib
 import ipaddress
 from copy import deepcopy
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -9,8 +11,12 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from pytest import raises
 
 from moto.ec2 import utils
+from moto.utilities.utils import md5_hash
 
 from .helpers import check_private_key
+
+if TYPE_CHECKING:
+    from hashlib import _Hash
 
 
 def test_random_key_pair():
@@ -67,22 +73,39 @@ def test_gen_moto_amis():
         utils.gen_moto_amis(images, drop_images_missing_keys=False)
 
 
-@pytest.mark.parametrize("is_created, fingerprint_len", [(True, 59), (False, 47)])
-def test_public_key_fingerprint__rsa(is_created: bool, fingerprint_len: int):
+@pytest.mark.parametrize(
+    "is_imported, algorithm", [(True, md5_hash), (False, hashlib.sha1)]
+)
+def test_select_hash_algorithm__rsa(is_imported: bool, algorithm: "_Hash"):
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
     public_key = private_key.public_key()
 
-    fingerprint = utils.public_key_fingerprint(public_key, is_created=is_created)
+    selected_algorithm = utils.select_hash_algorithm(public_key, is_imported)
 
-    assert len(fingerprint) == fingerprint_len
+    assert selected_algorithm == algorithm
 
 
-def test_public_key_fingerprint__ed25519():
+def test_select_hash_algorithm__ed25519():
     private_key = Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
 
-    fingerprint = utils.public_key_fingerprint(public_key)
+    selected_algorithm = utils.select_hash_algorithm(public_key)
+
+    assert selected_algorithm == hashlib.sha256
+
+
+def test_public_key_fingerprint__ed25519():
+    """Checks the function with SHA256.
+
+    Hash algorithm is selected in `select_hash_algorithm`.
+    """
+    private_key = Ed25519PrivateKey.generate()
+    public_key = private_key.public_key()
+
+    fingerprint = utils.public_key_fingerprint(
+        public_key, hash_constructor=hashlib.sha256
+    )
 
     assert len(fingerprint) == 95
