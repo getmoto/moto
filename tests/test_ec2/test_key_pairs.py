@@ -152,7 +152,7 @@ def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
     assert "KeyFingerprint" in kps[0]
     # Naive check for hash type
     # SHA1 - 40 + 19 `:` symbols
-    # SHA256 - 64 + 15 `:` symbols
+    # SHA256 - 64 + 31 `:` symbols
     assert len(kps[0]["KeyFingerprint"]) == fingerprint_len
     assert isinstance(kps[0]["CreateTime"], datetime)
 
