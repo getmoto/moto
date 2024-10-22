@@ -67,14 +67,14 @@ class MemoryDBCluster(BaseModel):
         self.maintenance_window = maintenance_window or "wed:08:00-wed:09:00"
         self.port = port or 6379  # Default is set to 6379
         self.sns_topic_arn = sns_topic_arn
-        self.tls_enabled = tls_enabled or True
+        self.tls_enabled = tls_enabled if tls_enabled is not None else True
+        # Clusters that do not have TLS enabled must use the "open-access" ACL to provide open authentication.
+        self.acl_name = "open-access" if tls_enabled is False else acl_name
         self.kms_key_id = kms_key_id
         self.snapshot_arns = snapshot_arns
         self.snapshot_name = snapshot_name
         self.snapshot_retention_limit = snapshot_retention_limit or 0
         self.snapshot_window = snapshot_window or "03:00-04:00"
-        # When tlsenable is set to false, the acl_name must be open-access.
-        self.acl_name = "open-access" if not tls_enabled else acl_name
         self.region = region
         self.engine_version = engine_version
         if engine_version == "7.0":
@@ -84,7 +84,11 @@ class MemoryDBCluster(BaseModel):
         else:
             self.engine_version = "7.1"  # Default is '7.1'.
             self.engine_patch_version = "7.1.1"
-        self.auto_minor_version_upgrade = auto_minor_version_upgrade or True
+        self.auto_minor_version_upgrade = (
+            auto_minor_version_upgrade
+            if auto_minor_version_upgrade is not None
+            else True
+        )
         self.data_tiering = "true" if data_tiering else "false"
         # The initial status of the cluster will be set to 'creating'."
         self.status = (
@@ -204,7 +208,6 @@ class MemoryDBCluster(BaseModel):
             "ParameterGroupStatus": self.parameter_group_status,
             "SecurityGroups": self.security_groups,
             "SubnetGroupName": self.subnet_group_name,
-            "TLSEnabled": self.tls_enabled,
             "KmsKeyId": self.kms_key_id,
             "ARN": self.arn,
             "SnsTopicArn": self.sns_topic_arn,
@@ -212,10 +215,11 @@ class MemoryDBCluster(BaseModel):
             "MaintenanceWindow": self.maintenance_window,
             "SnapshotWindow": self.snapshot_window,
             "ACLName": self.acl_name,
-            "AutoMinorVersionUpgrade": self.auto_minor_version_upgrade,
             "DataTiering": self.data_tiering,
         }
         dct_items = {k: v for k, v in dct.items() if v}
+        dct_items["TLSEnabled"] = self.tls_enabled
+        dct_items["AutoMinorVersionUpgrade"] = self.auto_minor_version_upgrade
         dct_items["SnapshotRetentionLimit"] = self.snapshot_retention_limit
         return dct_items
 
