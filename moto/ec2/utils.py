@@ -1,8 +1,20 @@
 import base64
 import fnmatch
+import hashlib
 import ipaddress
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -12,11 +24,15 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from typing_extensions import TypeAlias
 
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
+
+if TYPE_CHECKING:
+    HashType: TypeAlias = hashlib._Hash
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -577,7 +593,8 @@ def random_ed25519_key_pair() -> Dict[str, str]:
         encoding=serialization.Encoding.OpenSSH,
         format=serialization.PublicFormat.OpenSSH,
     )
-    fingerprint = public_key_fingerprint(public_key)
+    hash_constructor = select_hash_algorithm(public_key)
+    fingerprint = public_key_fingerprint(public_key, hash_constructor)
 
     return {
         "fingerprint": fingerprint,
@@ -600,7 +617,8 @@ def random_rsa_key_pair() -> Dict[str, str]:
         encoding=serialization.Encoding.OpenSSH,
         format=serialization.PublicFormat.OpenSSH,
     )
-    fingerprint = public_key_fingerprint(public_key)
+    hash_constructor = select_hash_algorithm(public_key, is_imported=False)
+    fingerprint = public_key_fingerprint(public_key, hash_constructor)
 
     return {
         "fingerprint": fingerprint,
@@ -753,16 +771,28 @@ def public_key_parse(
     return public_key
 
 
-def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:
-    # TODO: Use different fingerprint calculation methods based on key type and source
-    # see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html#how-ec2-key-fingerprints-are-calculated
+def public_key_fingerprint(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey],
+    hash_constructor: Callable[[bytes], "HashType"],
+) -> str:
     key_data = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint_hex = md5_hash(key_data).hexdigest()
+    fingerprint_hex = hash_constructor(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
+
+
+def select_hash_algorithm(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey], is_imported: bool = True
+) -> Callable[[bytes], "HashType"]:
+    if isinstance(public_key, Ed25519PublicKey):
+        return hashlib.sha256
+    elif is_imported:
+        return md5_hash
+
+    return hashlib.sha1
 
 
 def filter_iam_instance_profile_associations(
