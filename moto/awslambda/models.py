@@ -1027,7 +1027,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         ]
                     )
                     for image_repo in image_repos:
-                        image_ref = f"{image_repo}:{self.run_time}"
+                        image_ref = image_repo if ":" in image_repo else f"{image_repo}:{self.run_time}"
                         try:
                             self.ensure_image_exists(image_ref)
                             break
