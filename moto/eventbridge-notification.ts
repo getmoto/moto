@@ -31,7 +31,7 @@ class EventbridgeNotificationStack extends cdk.Stack {
       },
     });
 
-    // Add the Lambda function as a target for the rule
+    // Add the Lambda function as a target.
     rule.addTarget(new targets.LambdaFunction(myFunction));
   }
 }
