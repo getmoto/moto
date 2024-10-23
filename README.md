@@ -10,7 +10,7 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dw/moto.svg)](https://pypistats.org/packages/moto)
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Financial Contributors](https://opencollective.com/moto/tiers/badge.svg)](https://opencollective.com/moto)
-
+[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Moto%20Guru-006BFF)](https://gurubase.io/g/moto)
 
 ## Install
 
