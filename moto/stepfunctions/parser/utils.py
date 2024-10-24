@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Set, Type
 
 TMP_THREADS = []
@@ -55,6 +56,20 @@ def to_str(obj, encoding: str = "utf-8", errors="strict") -> str:
     """If ``obj`` is an instance of ``binary_type``, return
     ``obj.decode(encoding, errors)``, otherwise return ``obj``"""
     return obj.decode(encoding, errors) if isinstance(obj, bytes) else obj
+
+
+_re_camel_to_snake_case = re.compile("((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))")
+
+
+def camel_to_snake_case(string: str) -> str:
+    return _re_camel_to_snake_case.sub(r"_\1", string).replace("__", "_").lower()
+
+
+def snake_to_camel_case(string: str, capitalize_first: bool = True) -> str:
+    components = string.split("_")
+    start_idx = 0 if capitalize_first else 1
+    components = [x.title() for x in components[start_idx:]]
+    return "".join(components)
 
 
 def get_all_subclasses(clazz: Type) -> Set[Type]:
