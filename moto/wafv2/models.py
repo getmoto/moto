@@ -1,6 +1,6 @@
 import re
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -38,7 +38,7 @@ class FakeRule(BaseModel):
         name: str,
         priority: int,
         statement: Dict[str, Any],
-        visibility_config: Dict[str, str | bool],
+        visibility_config: Dict[str, Union[str, bool]],
         action: Optional[Dict[str, Any]] = None,
         captcha_config: Optional[Dict[str, Dict[str, int]]] = None,
         challenge_config: Optional[Dict[str, Dict[str, int]]] = None,
@@ -684,7 +684,7 @@ class WAFV2Backend(BaseBackend):
         capacity: int,
         description: Optional[str],
         rules: Optional[List[Dict[str, Any]]],
-        visibility_config: Dict[str, bool | str],
+        visibility_config: Dict[str, Union[bool, str]],
         tags: Optional[List[Dict[str, str]]],
         custom_response_bodies: Optional[Dict[str, str]],
     ) -> FakeRuleGroup:
