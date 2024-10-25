@@ -463,7 +463,7 @@ class OrganizationsBackend(BaseBackend):
             master_account_id, partition = organizations_backends.master_accounts[
                 self.account_id
             ]
-            return organizations_backends[master_account_id][partition].org.describe()
+            return organizations_backends[master_account_id][partition].org.describe()  # type: ignore[union-attr]
 
         raise AWSOrganizationsNotInUseException
 
@@ -1004,7 +1004,7 @@ class OrganizationsBackend(BaseBackend):
         self.accounts.remove(account)
 
 
-class OrganizationsBackendDict(BackendDict):
+class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
     """
     Specialised to keep track of master accounts.
     """
@@ -1019,7 +1019,7 @@ class OrganizationsBackendDict(BackendDict):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
         # Maps account IDs to the (partition, master account ID) which owns the organisation
-        self.master_accounts: dict[str, [str, str]] = {}
+        self.master_accounts: dict[str, tuple[str, str]] = {}
 
 
 organizations_backends = OrganizationsBackendDict(
