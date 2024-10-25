@@ -122,14 +122,17 @@ def test_describe_organization():
     response = client.describe_organization()
     validate_organization(response)
 
-    # Ensure member accounts can also describe the organisation
+    # Ensure member accounts can also describe the organisation from any region
     account_id = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
     ]["AccountId"]
 
-    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
-        response = client.describe_organization()
-        validate_organization(response)
+    for region_name in ["ap-south-1", "eu-west-1"]:
+        with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+            response = boto3.client(
+                "organizations", region_name=region_name
+            ).describe_organization()
+            validate_organization(response)
 
 
 @mock_aws
