@@ -400,12 +400,9 @@ class FakeDelegatedAdministrator(BaseModel):
 
 
 class OrganizationsBackend(BaseBackend):
-    _organizations_backend_refs = set()
-
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._reset()
-        self._organizations_backend_refs.add(weakref.ref(self))  # type: set[weakref.ReferenceType["OrganizationsBackend"]]
 
     def _reset(self) -> None:
         self.org: Optional[FakeOrganization] = None
@@ -421,13 +418,6 @@ class OrganizationsBackend(BaseBackend):
             raise RootNotFoundException
 
         return root  # type: ignore[return-value]
-
-    @classmethod
-    def _get_organizations_backend_refs(cls) -> Iterator["OrganizationsBackend"]:
-        for backend_ref in cls._organizations_backend_refs:
-            backend = backend_ref()
-            if backend is not None:
-                yield backend
 
     def create_organization(self, region: str, **kwargs: Any) -> Dict[str, Any]:
         self.org = FakeOrganization(
