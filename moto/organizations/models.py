@@ -1018,7 +1018,7 @@ class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
-        # Maps account IDs to the (partition, master account ID) which owns the organisation
+        # Maps member account IDs to the (master account ID, partition) which owns the organisation
         self.master_accounts: Dict[str, Tuple[str, str]] = {}
 
 
