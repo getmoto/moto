@@ -455,9 +455,11 @@ class OrganizationsBackend(BaseBackend):
 
     def describe_organization(self) -> Dict[str, Any]:
         if self.org:
+            # This is a master account
             return self.org.describe()
 
         if self.account_id in organizations_backends.master_accounts:
+            # This is a member account
             master_account_id, partition = organizations_backends.master_accounts[
                 self.account_id
             ]
@@ -995,8 +997,8 @@ class OrganizationsBackend(BaseBackend):
         account_id = kwargs["AccountId"]
         if account_id not in organizations_backends.master_accounts:
             raise AWSOrganizationsNotInUseException
-        organizations_backends.master_accounts.pop(kwargs["AccountId"], None)
-        account = self.get_account_by_id(kwargs["AccountId"])
+        organizations_backends.master_accounts.pop(account_id, None)
+        account = self.get_account_by_id(account_id)
         for policy in account.attached_policies:
             policy.attachments.remove(account)
         self.accounts.remove(account)

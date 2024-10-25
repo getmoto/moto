@@ -645,6 +645,13 @@ def test_remove_account_from_organization():
     assert len(accounts) == 1
     assert not created_account_exists(accounts)
 
+    # After the account is removed from an organisation, calling DescribeOrganization from the removed account should raise
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        with pytest.raises(ClientError) as exc:
+            client.describe_organization()
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWSOrganizationsNotInUse" in exc.value.response["Error"]["Code"]
+
     # Attempting to remove invalid account must raise
     bad_account_id = "010101010101"
     with pytest.raises(ClientError) as exc:
