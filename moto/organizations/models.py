@@ -529,7 +529,6 @@ class OrganizationsBackend(BaseBackend):
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
-        # TODO@viren
         organizations_backends.master_accounts[new_account.id] = (self.account_id, self.partition)
         return new_account.create_account_status
 
@@ -538,7 +537,6 @@ class OrganizationsBackend(BaseBackend):
             if account.id == kwargs["AccountId"]:
                 account.close()
                 return
-        # TODO@viren
         organizations_backends.master_accounts.pop(kwargs['AccountID'], None)
         raise AccountNotFoundException
 
@@ -987,17 +985,19 @@ class OrganizationsBackend(BaseBackend):
             raise InvalidInputException("You specified an invalid value.")
 
     def remove_account_from_organization(self, **kwargs: str) -> None:
+        account_id = kwargs['AccountId']
+        if account_id not in organizations_backends:
+            raise AWSOrganizationsNotInUseException
+        organizations_backends.master_accounts.pop(kwargs['AccountId'], None)
         account = self.get_account_by_id(kwargs["AccountId"])
         for policy in account.attached_policies:
             policy.attachments.remove(account)
         self.accounts.remove(account)
-        # TODO@viren
-        organizations_backends.master_accounts.pop(kwargs['AccountId'], None)
 
 
 class OrganizationsBackendDict(BackendDict):
     """
-    Specialised to maintain organisations and account membership.
+    Specialised to keep track of master accounts.
     """
     def __init__(
         self,
@@ -1008,7 +1008,7 @@ class OrganizationsBackendDict(BackendDict):
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
-        # Maps account IDs to the (partition, master account ID) which holds the organisation details
+        # Maps account IDs to the (partition, master account ID) which owns the organisation
         self.master_accounts: dict[str, [str, str]] = {}
 
 
