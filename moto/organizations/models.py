@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Iterator
+import weakref
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -399,9 +400,12 @@ class FakeDelegatedAdministrator(BaseModel):
 
 
 class OrganizationsBackend(BaseBackend):
+    _organizations_backend_refs = set()
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self._reset()
+        self._organizations_backend_refs.add(weakref.ref(self))  # type: set[weakref.ReferenceType["OrganizationsBackend"]]
 
     def _reset(self) -> None:
         self.org: Optional[FakeOrganization] = None
@@ -417,6 +421,13 @@ class OrganizationsBackend(BaseBackend):
             raise RootNotFoundException
 
         return root  # type: ignore[return-value]
+
+    @classmethod
+    def _get_organizations_backend_refs(cls) -> Iterator["OrganizationsBackend"]:
+        for backend_ref in cls._organizations_backend_refs:
+            backend = backend_ref()
+            if backend is not None:
+                yield backend
 
     def create_organization(self, region: str, **kwargs: Any) -> Dict[str, Any]:
         self.org = FakeOrganization(
@@ -451,9 +462,14 @@ class OrganizationsBackend(BaseBackend):
         return self.org.describe()
 
     def describe_organization(self) -> Dict[str, Any]:
-        if not self.org:
-            raise AWSOrganizationsNotInUseException
-        return self.org.describe()
+        if self.org:
+            return self.org.describe()
+
+        if self.account_id in organizations_backends.master_accounts:
+            master_account_id, partition = organizations_backends.master_accounts[self.account_id]
+            return organizations_backends[master_account_id][partition].org.describe()
+
+        raise AWSOrganizationsNotInUseException
 
     def delete_organization(self) -> None:
         if [account for account in self.accounts if account.name != "master"]:
@@ -523,6 +539,8 @@ class OrganizationsBackend(BaseBackend):
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
+        # TODO@viren
+        organizations_backends.master_accounts[new_account.id] = (self.account_id, self.partition)
         return new_account.create_account_status
 
     def close_account(self, **kwargs: Any) -> None:
@@ -530,6 +548,8 @@ class OrganizationsBackend(BaseBackend):
             if account.id == kwargs["AccountId"]:
                 account.close()
                 return
+        # TODO@viren
+        organizations_backends.master_accounts.pop(kwargs['AccountID'], None)
         raise AccountNotFoundException
 
     def get_account_by_id(self, account_id: str) -> FakeAccount:
@@ -981,9 +1001,28 @@ class OrganizationsBackend(BaseBackend):
         for policy in account.attached_policies:
             policy.attachments.remove(account)
         self.accounts.remove(account)
+        # TODO@viren
+        organizations_backends.master_accounts.pop(kwargs['AccountId'], None)
 
 
-organizations_backends = BackendDict(
+class OrganizationsBackendDict(BackendDict):
+    """
+    Specialised to maintain organisations and account membership.
+    """
+    def __init__(
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
+    ):
+        super().__init__(backend, service_name, use_boto3_regions, additional_regions)
+
+        # Maps account IDs to the (partition, master account ID) which holds the organisation details
+        self.master_accounts: dict[str, [str, str]] = {}
+
+
+organizations_backends = OrganizationsBackendDict(
     OrganizationsBackend,
     "organizations",
     use_boto3_regions=False,
