@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -1019,7 +1019,7 @@ class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
         # Maps account IDs to the (partition, master account ID) which owns the organisation
-        self.master_accounts: dict[str, tuple[str, str]] = {}
+        self.master_accounts: Dict[str, Tuple[str, str]] = {}
 
 
 organizations_backends = OrganizationsBackendDict(
