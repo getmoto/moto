@@ -305,6 +305,14 @@ def test_close_account_puts_account_in_suspended_status():
     account = client.describe_account(AccountId=created_account_id)["Account"]
     assert account["Status"] == "SUSPENDED"
 
+    with pytest.raises(ClientError) as exc:
+        client.close_account(AccountId=created_account_id)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AccountAlreadyClosedException" in exc.value.response["Error"]["Code"]
+    assert exc.value.response["Error"]["Message"] == (
+        "The provided account is already closed."
+    )
+
 
 @mock_aws
 def test_close_account_id_not_in_org_raises_exception():
@@ -641,7 +649,8 @@ def test_remove_account_from_organization():
     bad_account_id = "010101010101"
     with pytest.raises(ClientError) as exc:
         client.remove_account_from_organization(AccountId=bad_account_id)
-    exc.match("AWSOrganizationsNotInUseException")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWSOrganizationsNotInUse" in exc.value.response["Error"]["Code"]
 
 
 @mock_aws

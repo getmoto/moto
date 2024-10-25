@@ -8,6 +8,7 @@ from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, utcnow
 from moto.organizations import utils
 from moto.organizations.exceptions import (
+    AccountAlreadyClosedException,
     AccountAlreadyRegisteredException,
     AccountNotFoundException,
     AccountNotRegisteredException,
@@ -149,6 +150,8 @@ class FakeAccount(BaseModel):
         }
 
     def close(self) -> None:
+        if self.status == "SUSPENDED":
+            raise AccountAlreadyClosedException
         # TODO: The CloseAccount spec allows the account to pass through a
         # "PENDING_CLOSURE" state before reaching the SUSPENDED state.
         self.status = "SUSPENDED"
@@ -541,7 +544,7 @@ class OrganizationsBackend(BaseBackend):
             if account.id == kwargs["AccountId"]:
                 account.close()
                 return
-        organizations_backends.master_accounts.pop(kwargs["AccountID"], None)
+        organizations_backends.master_accounts.pop(kwargs["AccountId"], None)
         raise AccountNotFoundException
 
     def get_account_by_id(self, account_id: str) -> FakeAccount:
@@ -990,7 +993,7 @@ class OrganizationsBackend(BaseBackend):
 
     def remove_account_from_organization(self, **kwargs: str) -> None:
         account_id = kwargs["AccountId"]
-        if account_id not in organizations_backends:
+        if account_id not in organizations_backends.master_accounts:
             raise AWSOrganizationsNotInUseException
         organizations_backends.master_accounts.pop(kwargs["AccountId"], None)
         account = self.get_account_by_id(kwargs["AccountId"])
