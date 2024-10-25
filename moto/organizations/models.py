@@ -1,7 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Optional, Iterator
-import weakref
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -456,7 +455,9 @@ class OrganizationsBackend(BaseBackend):
             return self.org.describe()
 
         if self.account_id in organizations_backends.master_accounts:
-            master_account_id, partition = organizations_backends.master_accounts[self.account_id]
+            master_account_id, partition = organizations_backends.master_accounts[
+                self.account_id
+            ]
             return organizations_backends[master_account_id][partition].org.describe()
 
         raise AWSOrganizationsNotInUseException
@@ -529,7 +530,10 @@ class OrganizationsBackend(BaseBackend):
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
-        organizations_backends.master_accounts[new_account.id] = (self.account_id, self.partition)
+        organizations_backends.master_accounts[new_account.id] = (
+            self.account_id,
+            self.partition,
+        )
         return new_account.create_account_status
 
     def close_account(self, **kwargs: Any) -> None:
@@ -537,7 +541,7 @@ class OrganizationsBackend(BaseBackend):
             if account.id == kwargs["AccountId"]:
                 account.close()
                 return
-        organizations_backends.master_accounts.pop(kwargs['AccountID'], None)
+        organizations_backends.master_accounts.pop(kwargs["AccountID"], None)
         raise AccountNotFoundException
 
     def get_account_by_id(self, account_id: str) -> FakeAccount:
@@ -985,10 +989,10 @@ class OrganizationsBackend(BaseBackend):
             raise InvalidInputException("You specified an invalid value.")
 
     def remove_account_from_organization(self, **kwargs: str) -> None:
-        account_id = kwargs['AccountId']
+        account_id = kwargs["AccountId"]
         if account_id not in organizations_backends:
             raise AWSOrganizationsNotInUseException
-        organizations_backends.master_accounts.pop(kwargs['AccountId'], None)
+        organizations_backends.master_accounts.pop(kwargs["AccountId"], None)
         account = self.get_account_by_id(kwargs["AccountId"])
         for policy in account.attached_policies:
             policy.attachments.remove(account)
@@ -999,6 +1003,7 @@ class OrganizationsBackendDict(BackendDict):
     """
     Specialised to keep track of master accounts.
     """
+
     def __init__(
         self,
         backend: Any,
