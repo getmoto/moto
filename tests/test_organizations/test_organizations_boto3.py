@@ -31,6 +31,11 @@ from .organizations_test_utils import (
     validate_service_control_policy,
 )
 
+# Accounts
+mockname = "mock-account"
+mockdomain = "moto-example.org"
+mockemail = "@".join([mockname, mockdomain])
+
 
 @mock_aws
 @pytest.mark.parametrize(
@@ -116,6 +121,15 @@ def test_describe_organization():
     client.create_organization(FeatureSet="ALL")
     response = client.describe_organization()
     validate_organization(response)
+
+    # Ensure member accounts can also describe the organisation
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        response = client.describe_organization()
+        validate_organization(response)
 
 
 @mock_aws
@@ -248,12 +262,6 @@ def test_list_organizational_units_for_parent_exception():
     assert ex.operation_name == "ListOrganizationalUnitsForParent"
     assert ex.response["Error"]["Code"] == "400"
     assert "ParentNotFoundException" in ex.response["Error"]["Message"]
-
-
-# Accounts
-mockname = "mock-account"
-mockdomain = "moto-example.org"
-mockemail = "@".join([mockname, mockdomain])
 
 
 @mock_aws
@@ -628,6 +636,12 @@ def test_remove_account_from_organization():
     accounts = client.list_accounts()["Accounts"]
     assert len(accounts) == 1
     assert not created_account_exists(accounts)
+
+    # Attempting to remove invalid account must raise
+    bad_account_id = "010101010101"
+    with pytest.raises(ClientError) as exc:
+        client.remove_account_from_organization(AccountId=bad_account_id)
+    exc.match("AWSOrganizationsNotInUseException")
 
 
 @mock_aws
