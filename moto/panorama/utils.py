@@ -17,10 +17,10 @@ def deep_convert_datetime_to_isoformat(obj: Any) -> Any:
         return obj
 
 
-def hash_device_name(name: str) -> str:
+def hash_name(name: str) -> str:
     digest = hashlib.md5(name.encode("utf-8")).digest()
-    token = base64.b64encode(digest)
-    return token.decode("utf-8")
+    token = base64.urlsafe_b64encode(digest)
+    return token.decode("utf-8").rstrip("=")
 
 
 def generate_package_id(name: str) -> str:
