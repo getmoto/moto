@@ -42,7 +42,7 @@ PROVISION_DEVICE_PARAMS = {
 @mock_aws
 def test_create_application_instance() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "eu-west-1")
     response_device_creation = panorama_client.provision_device(
         **PROVISION_DEVICE_PARAMS
     )
@@ -72,7 +72,7 @@ def test_create_application_instance() -> None:
 @mock_aws
 def test_describe_application_instance() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "eu-west-1")
     response_device_creation = panorama_client.provision_device(
         **PROVISION_DEVICE_PARAMS
     )
@@ -126,7 +126,7 @@ def test_create_application_instance_should_set_created_time() -> None:
     # Given
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't use ManagedState in ServerMode")
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "eu-west-1")
     response_device_creation = panorama_client.provision_device(
         **PROVISION_DEVICE_PARAMS
     )
@@ -166,7 +166,7 @@ def test_create_application_instance_should_set_created_time() -> None:
 @mock_aws
 def test_describe_application_instance_details() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "eu-west-1")
     given_application_instance_name = "not-a-name"
     given_application_instance_arn = "not-an-arn"
     response_device_creation = panorama_client.provision_device(
@@ -213,7 +213,7 @@ def test_describe_application_instance_details() -> None:
 @mock_aws
 def test_list_application_instances() -> None:
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "eu-west-1")
     given_application_instance_name = "not-a-name"
     given_application_instance_arn = "not-an-arn"
     given_device_name = "not-a-device-name"
@@ -329,7 +329,7 @@ def test_list_application_should_return_only_filtered_results_if_status_filter_u
     None
 ):
     # Given
-    panorama_client = boto3.client("panorama")
+    panorama_client = boto3.client("panorama", "eu-west-1")
     given_application_instance_name = "not-a-name"
     given_application_instance_name_2 = "not-a-name-2"
     given_application_instance_arn = "not-an-arn"
