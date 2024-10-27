@@ -5,6 +5,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from ..moto_api._internal import mock_random
 from .exceptions import (
@@ -39,7 +40,7 @@ class User(BaseModel):
         self.minimum_engine_version = "6.0"
         self.usergroupids: List[str] = []
         self.region = region
-        self.arn = f"arn:aws:elasticache:{self.region}:{account_id}:user:{self.id}"
+        self.arn = f"arn:{get_partition(self.region)}:elasticache:{self.region}:{account_id}:user:{self.id}"
 
 
 class CacheCluster(BaseModel):
@@ -124,9 +125,7 @@ class CacheCluster(BaseModel):
         self.cache_cluster_create_time = utcnow()
         self.auth_token_last_modified_date = utcnow()
         self.cache_cluster_status = "available"
-        self.arn = (
-            f"arn:aws:elasticache:{region_name}:{account_id}:cluster:{cache_cluster_id}"
-        )
+        self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:cluster:{cache_cluster_id}"
         self.cache_node_id = str(mock_random.uuid4())
 
     def get_tags(self) -> List[Dict[str, str]]:

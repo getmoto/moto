@@ -1,3 +1,4 @@
+import re
 import time
 from collections import OrderedDict
 from enum import Enum, unique
@@ -7,6 +8,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.ecs import ecs_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import AWSValidationException
 
@@ -306,6 +308,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 a
                 for a in self.scheduled_actions
                 if a.service_namespace == service_namespace
+                and a.scheduled_action_name == scheduled_action_name
                 and a.resource_id == resource_id
                 and a.scalable_dimension == scalable_dimension
             ),
@@ -378,7 +381,7 @@ def _get_resource_type_from_resource_id(resource_id: str) -> str:
     #    - ...except for sagemaker endpoints, dynamodb GSIs and keyspaces tables, where it's the third.
     #  - Comprehend uses an arn, with the resource type being the last element.
 
-    if resource_id.startswith("arn:aws:comprehend"):
+    if re.match(ARN_PARTITION_REGEX + ":comprehend", resource_id):
         resource_id = resource_id.split(":")[-1]
     resource_split = (
         resource_id.split("/") if "/" in resource_id else resource_id.split(":")
@@ -463,7 +466,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.policy_name = policy_name
         self.policy_type = policy_type
         self._guid = mock_random.uuid4()
-        self.policy_arn = f"arn:aws:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
+        self.policy_arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
         self.alarms: List["FakeAlarm"] = []
 
@@ -638,7 +641,7 @@ class FakeScheduledAction(BaseModel):
         account_id: str,
         region: str,
     ) -> None:
-        self.arn = f"arn:aws:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
+        self.arn = f"arn:{get_partition(region)}:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}/{resource_id}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
         self.timezone = timezone
@@ -671,4 +674,6 @@ class FakeScheduledAction(BaseModel):
         self.end_time = end_time
 
 
-applicationautoscaling_backends = BackendDict(ApplicationAutoscalingBackend, "ec2")
+applicationautoscaling_backends = BackendDict(
+    ApplicationAutoscalingBackend, "application-autoscaling"
+)

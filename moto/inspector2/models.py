@@ -6,6 +6,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class FilterResource(BaseModel):
@@ -22,7 +23,7 @@ class FilterResource(BaseModel):
     ):
         filter_id = mock_random.get_random_hex(10)
         self.owner_id = account_id
-        self.arn = f"arn:aws:inspector2:{region}:{account_id}:owner/{self.owner_id}/filter/{filter_id}"
+        self.arn = f"arn:{get_partition(region)}:inspector2:{region}:{account_id}:owner/{self.owner_id}/filter/{filter_id}"
         self.name = name
         self.reason = reason
         self.action = action

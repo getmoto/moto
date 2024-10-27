@@ -8,6 +8,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .configuration import DEFAULT_CONFIGURATION_DATA
 from .exceptions import (
@@ -75,7 +76,7 @@ class Configuration(BaseModel):
         engine_version: str,
     ):
         self.id = f"c-{mock_random.get_random_hex(6)}"
-        self.arn = f"arn:aws:mq:{region}:{account_id}:configuration:{self.id}"
+        self.arn = f"arn:{get_partition(region)}:mq:{region}:{account_id}:configuration:{self.id}"
         self.created = unix_time()
 
         self.name = name
@@ -185,7 +186,9 @@ class Broker(BaseModel):
     ):
         self.name = name
         self.id = mock_random.get_random_hex(6)
-        self.arn = f"arn:aws:mq:{region}:{account_id}:broker:{self.id}"
+        self.arn = (
+            f"arn:{get_partition(region)}:mq:{region}:{account_id}:broker:{self.id}"
+        )
         self.state = "RUNNING"
         self.created = unix_time()
 

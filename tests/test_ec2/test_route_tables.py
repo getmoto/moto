@@ -270,6 +270,48 @@ def test_route_tables_filters_vpc_peering_connection():
 
 
 @mock_aws
+def test_route_tables_filters_transit_gateway():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    main_route_table_id = client.describe_route_tables(
+        Filters=[{"Name": "vpc-id", "Values": [vpc.id]}]
+    )["RouteTables"][0]["RouteTableId"]
+    main_route_table = ec2.RouteTable(main_route_table_id)
+
+    response = client.create_transit_gateway()
+
+    gateway = response["TransitGateway"]
+    main_route_table.create_route(TransitGatewayId=gateway["TransitGatewayId"])
+    route_tables = client.describe_route_tables(
+        Filters=[
+            {
+                "Name": "route.transit-gateway-id",
+                "Values": [gateway["TransitGatewayId"]],
+            }
+        ]
+    )["RouteTables"]
+
+    assert len(route_tables) == 1
+    route_table = route_tables[0]
+    assert route_table["RouteTableId"] == main_route_table_id
+
+    # Filter using regex
+    route_tables = client.describe_route_tables(
+        Filters=[
+            {
+                "Name": "route.transit-gateway-id",
+                "Values": ["tgw-*"],
+            }
+        ]
+    )["RouteTables"]
+
+    assert len(route_tables) == 1
+    route_table = route_tables[0]
+    assert route_table["RouteTableId"] == main_route_table_id
+
+
+@mock_aws
 def test_route_table_associations():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

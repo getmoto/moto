@@ -8,6 +8,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import CostCategoryNotFound
 
@@ -27,6 +28,7 @@ class CostCategoryDefinition(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         name: str,
         effective_start: Optional[str],
         rule_version: str,
@@ -39,7 +41,7 @@ class CostCategoryDefinition(BaseModel):
         self.rules = rules
         self.default_value = default_value
         self.split_charge_rules = split_charge_rules
-        self.arn = f"arn:aws:ce::{account_id}:costcategory/{str(mock_random.uuid4())}"
+        self.arn = f"arn:{get_partition(region_name)}:ce::{account_id}:costcategory/{str(mock_random.uuid4())}"
         self.effective_start: str = effective_start or first_day()
 
     def update(
@@ -92,13 +94,14 @@ class CostExplorerBackend(BaseBackend):
         The EffectiveOn and ResourceTags-parameters are not yet implemented
         """
         ccd = CostCategoryDefinition(
-            self.account_id,
-            name,
-            effective_start,
-            rule_version,
-            rules,
-            default_value,
-            split_charge_rules,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            effective_start=effective_start,
+            rule_version=rule_version,
+            rules=rules,
+            default_value=default_value,
+            split_charge_rules=split_charge_rules,
         )
         self.cost_categories[ccd.arn] = ccd
         self.tag_resource(ccd.arn, tags)
@@ -209,5 +212,8 @@ class CostExplorerBackend(BaseBackend):
 
 
 ce_backends = BackendDict(
-    CostExplorerBackend, "ce", use_boto3_regions=False, additional_regions=["global"]
+    CostExplorerBackend,
+    "ce",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )

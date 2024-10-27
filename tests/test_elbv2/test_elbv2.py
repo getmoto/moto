@@ -198,6 +198,13 @@ def test_add_remove_tags():
 
     conn.remove_tags(ResourceArns=[lb["LoadBalancerArn"]], TagKeys=["a"])
 
+    with pytest.raises(ClientError) as exc:
+        # add a random string in the ARN to make the resource non-existent
+        BAD_LB_ARN = lb["LoadBalancerArn"] + "randomstring"
+        conn.remove_tags(ResourceArns=[BAD_LB_ARN], TagKeys=["a"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "LoadBalancerNotFound"
+
     tags = {
         d["Key"]: d["Value"]
         for d in conn.describe_tags(ResourceArns=[lb["LoadBalancerArn"]])[
@@ -482,7 +489,7 @@ def test_register_targets():
         return None
 
     def assert_target_not_registered(target):
-        assert target["TargetHealth"]["State"] == "unavailable"
+        assert target["TargetHealth"]["State"] == "unused"
         assert target["TargetHealth"]["Reason"] == "Target.NotRegistered"
 
     response = conn.describe_target_health(
@@ -1247,6 +1254,27 @@ def test_modify_load_balancer_attributes_crosszone_enabled():
 
 
 @mock_aws
+def test_modify_load_balancer_attributes_client_keep_alive():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "client_keep_alive.seconds", "Value": "600"}],
+    )
+
+    # Check its 600 not the default value 3600
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    client_keep_alive = list(
+        filter(
+            lambda item: item["Key"] == "client_keep_alive.seconds",
+            response["Attributes"],
+        )
+    )[0]
+    assert client_keep_alive["Value"] == "600"
+
+
+@mock_aws
 def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields_enabled():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1560,6 +1588,12 @@ def test_add_listener_certificate():
         "Certificates"
     ]
     assert len(certs) == 0
+
+    with pytest.raises(ClientError) as exc:
+        client.add_listener_certificates(
+            ListenerArn=listener_arn, Certificates=[{"CertificateArn": google_arn}] * 50
+        )
+    assert exc.value.response["Error"]["Code"] == "TooManyCertificates"
 
 
 @mock_aws

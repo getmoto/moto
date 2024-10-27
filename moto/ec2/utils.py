@@ -1,8 +1,20 @@
 import base64
 import fnmatch
+import hashlib
 import ipaddress
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -12,11 +24,15 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from typing_extensions import TypeAlias
 
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
+
+if TYPE_CHECKING:
+    HashType: TypeAlias = hashlib._Hash
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -517,13 +533,13 @@ def filter_internet_gateways(
 
 def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
     value = obj.get_filter_value(_filter)
-
     if filter_value is None:
         return False
 
     if isinstance(value, str):
         if not isinstance(filter_value, list):
             filter_value = [filter_value]
+
         if any(fnmatch.fnmatch(value, pattern) for pattern in filter_value):
             return True
         return False
@@ -534,6 +550,9 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
     try:
         value = set(value)
+        if isinstance(filter_value, list) and len(filter_value) == 1:
+            return any(fnmatch.fnmatch(element, filter_value[0]) for element in value)
+
         return (value and value.issubset(filter_value)) or value.issuperset(
             filter_value
         )
@@ -569,11 +588,18 @@ def random_ed25519_key_pair() -> Dict[str, str]:
         format=serialization.PrivateFormat.OpenSSH,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    fingerprint = public_key_fingerprint(private_key.public_key())
+    public_key = private_key.public_key()
+    public_key_material = public_key.public_bytes(
+        encoding=serialization.Encoding.OpenSSH,
+        format=serialization.PublicFormat.OpenSSH,
+    )
+    hash_constructor = select_hash_algorithm(public_key)
+    fingerprint = public_key_fingerprint(public_key, hash_constructor)
 
     return {
         "fingerprint": fingerprint,
         "material": private_key_material.decode("ascii"),
+        "material_public": public_key_material.decode("ascii"),
     }
 
 
@@ -586,11 +612,18 @@ def random_rsa_key_pair() -> Dict[str, str]:
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption(),
     )
-    fingerprint = public_key_fingerprint(private_key.public_key())
+    public_key = private_key.public_key()
+    public_key_material = public_key.public_bytes(
+        encoding=serialization.Encoding.OpenSSH,
+        format=serialization.PublicFormat.OpenSSH,
+    )
+    hash_constructor = select_hash_algorithm(public_key, is_imported=False)
+    fingerprint = public_key_fingerprint(public_key, hash_constructor)
 
     return {
         "fingerprint": fingerprint,
         "material": private_key_material.decode("ascii"),
+        "material_public": public_key_material.decode("ascii"),
     }
 
 
@@ -738,16 +771,28 @@ def public_key_parse(
     return public_key
 
 
-def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:
-    # TODO: Use different fingerprint calculation methods based on key type and source
-    # see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html#how-ec2-key-fingerprints-are-calculated
+def public_key_fingerprint(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey],
+    hash_constructor: Callable[[bytes], "HashType"],
+) -> str:
     key_data = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint_hex = md5_hash(key_data).hexdigest()
+    fingerprint_hex = hash_constructor(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
+
+
+def select_hash_algorithm(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey], is_imported: bool = True
+) -> Callable[[bytes], "HashType"]:
+    if isinstance(public_key, Ed25519PublicKey):
+        return hashlib.sha256
+    elif is_imported:
+        return md5_hash
+
+    return hashlib.sha1
 
 
 def filter_iam_instance_profile_associations(
@@ -774,21 +819,23 @@ def filter_iam_instance_profile_associations(
 
 def filter_iam_instance_profiles(
     account_id: str,
+    partition: str,
     iam_instance_profile_arn: Optional[str],
     iam_instance_profile_name: Optional[str],
 ) -> Any:
     instance_profile = None
     instance_profile_by_name = None
     instance_profile_by_arn = None
+    backend = iam_backends[account_id][partition]
     if iam_instance_profile_name:
-        instance_profile_by_name = iam_backends[account_id][
-            "global"
-        ].get_instance_profile(iam_instance_profile_name)
+        instance_profile_by_name = backend.get_instance_profile(
+            iam_instance_profile_name
+        )
         instance_profile = instance_profile_by_name
     if iam_instance_profile_arn:
-        instance_profile_by_arn = iam_backends[account_id][
-            "global"
-        ].get_instance_profile_by_arn(iam_instance_profile_arn)
+        instance_profile_by_arn = backend.get_instance_profile_by_arn(
+            iam_instance_profile_arn
+        )
         instance_profile = instance_profile_by_arn
     # We would prefer instance profile that we found by arn
     if iam_instance_profile_arn and iam_instance_profile_name:

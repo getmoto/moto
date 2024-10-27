@@ -102,6 +102,69 @@ def create_http_delivery_stream(client, stream_name):
     )
 
 
+def create_snowflake_delivery_stream(client, stream_name):
+    """Return delivery stream ARN of a Snowflake destination."""
+    return client.create_delivery_stream(
+        DeliveryStreamName=stream_name,
+        DeliveryStreamType="DirectPut",
+        SnowflakeDestinationConfiguration={
+            "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+            "AccountUrl": f"fake-account.{TEST_REGION}.snowflakecomputing.com",
+            "Database": "myDatabase",
+            "Schema": "mySchema",
+            "Table": "myTable",
+            "S3BackupMode": "FailedDataOnly",
+            "S3Configuration": {
+                "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                "BucketARN": "arn:aws:s3:::firehose-test",
+            },
+        },
+    )
+
+
+@mock_aws
+def test_create_snowflake_delivery_stream():
+    """Verify fields of a Snowflake delivery stream."""
+    client = boto3.client("firehose", region_name=TEST_REGION)
+
+    stream_name = f"stream_{mock_random.get_random_hex(6)}"
+    response = create_snowflake_delivery_stream(client, stream_name)
+    stream_arn = response["DeliveryStreamARN"]
+
+    response = client.describe_delivery_stream(DeliveryStreamName=stream_name)
+    stream_description = response["DeliveryStreamDescription"]
+
+    # Sure and Freezegun don't play nicely together
+    stream_description.pop("CreateTimestamp")
+    stream_description.pop("LastUpdateTimestamp")
+
+    assert stream_description == {
+        "DeliveryStreamName": stream_name,
+        "DeliveryStreamARN": stream_arn,
+        "DeliveryStreamStatus": "ACTIVE",
+        "DeliveryStreamType": "DirectPut",
+        "Destinations": [
+            {
+                "DestinationId": "destinationId-000000000001",
+                "SnowflakeDestinationDescription": {
+                    "AccountUrl": f"fake-account.{TEST_REGION}.snowflakecomputing.com",
+                    "Database": "myDatabase",
+                    "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                    "S3BackupMode": "FailedDataOnly",
+                    "S3DestinationDescription": {
+                        "RoleARN": f"arn:aws:iam::{ACCOUNT_ID}:role/firehose_delivery_role",
+                        "BucketARN": "arn:aws:s3:::firehose-test",
+                    },
+                    "Schema": "mySchema",
+                    "Table": "myTable",
+                },
+            },
+        ],
+        "HasMoreDestinations": False,
+        "VersionId": "1",
+    }
+
+
 @mock_aws
 def test_create_redshift_delivery_stream():
     """Verify fields of a Redshift delivery stream."""

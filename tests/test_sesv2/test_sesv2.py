@@ -41,7 +41,9 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
     assert e.value.response["Error"]["Code"] == "MessageRejected"
 
     ses_v1.verify_domain_identity(Domain="example.com")
-    conn.send_email(**kwargs)
+    resp = conn.send_email(**kwargs)
+    assert resp["MessageId"] is not None
+
     send_quota = ses_v1.get_send_quota()
 
     # Verify

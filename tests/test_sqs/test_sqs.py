@@ -22,8 +22,8 @@ from moto.sqs.models import (
     Queue,
 )
 from moto.utilities.distutils_version import LooseVersion
-
-from . import sqs_aws_verified
+from tests import aws_verified
+from tests.test_sqs import sqs_aws_verified
 
 TEST_POLICY = """
 {
@@ -279,6 +279,15 @@ def test_create_queue_with_policy():
     }
 
 
+@aws_verified
+@pytest.mark.aws_verified
+def test_get_unknown_queue_by_name():
+    sqs = boto3.resource("sqs", "us-east-1")
+    with pytest.raises(sqs.meta.client.exceptions.QueueDoesNotExist) as exc:
+        sqs.get_queue_by_name(QueueName="doesnotexist")
+    _verify_unknown_queue_error(exc)
+
+
 @mock_aws
 def test_set_queue_attribute_empty_policy_removes_attr():
     client = boto3.client("sqs", region_name=REGION)
@@ -356,37 +365,35 @@ def test_get_queue_url():
     assert q_name in response["QueueUrl"]
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_get_queue_url_error_not_exists():
-    # given
     client = boto3.client("sqs", region_name=REGION)
+    sqs = boto3.resource("sqs", region_name=REGION)
 
-    # when
     with pytest.raises(ClientError) as e:
         client.get_queue_url(QueueName="not-exists")
-
-    # then
-    ex = e.value
-    assert ex.operation_name == "GetQueueUrl"
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
-
-
-@mock_aws
-def test_get_nonexistent_queue():
-    sqs = boto3.resource("sqs", region_name=REGION)
+    _verify_unknown_queue_error(e)
 
     with pytest.raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
-    ex = err.value
-    assert ex.operation_name == "GetQueueAttributes"
-    assert ex.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue"
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(err, "GetQueueAttributes")
+
+
+def _verify_unknown_queue_error(e, op_name="GetQueueUrl", status_code=400):
+    response = e.value.response
+    assert e.value.operation_name == op_name
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == status_code
+    assert "AWS.SimpleQueueService.NonExistentQueue" == response["Error"]["Code"]
+
+    botocore_version = sys.modules["botocore"].__version__
+    if LooseVersion(botocore_version) >= LooseVersion("1.34.90"):
+        assert response["Error"]["Message"] == "The specified queue does not exist."
+    else:
+        assert (
+            response["Error"]["Message"]
+            == "The specified queue does not exist for this wsdl version."
+        )
 
 
 @mock_aws
@@ -743,22 +750,16 @@ def test_delete_queue():
     assert q_name not in [u[u.rfind("/") + 1 :] for u in all_urls]
 
 
-@mock_aws
-def test_delete_queue_error_not_exists():
+@aws_verified
+@pytest.mark.aws_verified
+def test_delete_queue_error_not_exists(account_id):
     client = boto3.client("sqs", region_name=REGION)
 
     with pytest.raises(ClientError) as e:
         client.delete_queue(
-            QueueUrl=f"https://queue.amazonaws.com/{ACCOUNT_ID}/not-exists"
+            QueueUrl=f"https://queue.amazonaws.com/{account_id}/unknown"
         )
-
-    ex = e.value
-    assert ex.operation_name == "DeleteQueue"
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(e, op_name="DeleteQueue")
 
 
 @mock_aws
@@ -851,25 +852,20 @@ def test_get_queue_attributes_errors():
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
-@mock_aws
-def test_get_queue_attributes_error_not_exists():
+@aws_verified
+@pytest.mark.aws_verified
+def test_get_queue_attributes_error_not_exists(account_id):
     # given
     client = boto3.client("sqs", region_name=REGION)
 
     # when
     with pytest.raises(ClientError) as e:
         client.get_queue_attributes(
-            QueueUrl=f"https://queue.amazonaws.com/{ACCOUNT_ID}/not-exists"
+            QueueUrl=f"https://queue.amazonaws.com/{account_id}/unknown"
         )
 
     # then
-    ex = e.value
-    assert ex.operation_name == "GetQueueAttributes"
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(e, op_name="GetQueueAttributes")
 
 
 @mock_aws
@@ -1769,16 +1765,7 @@ def test_delete_message_errors():
     response = client.create_queue(QueueName=str(uuid4())[0:6])
     queue_url = response["QueueUrl"]
     client.send_message(QueueUrl=queue_url, MessageBody="body")
-    response = client.receive_message(QueueUrl=queue_url)
-    receipt_handle = response["Messages"][0]["ReceiptHandle"]
-
-    with pytest.raises(ClientError) as client_error:
-        client.delete_message(
-            QueueUrl=queue_url + "-not-existing", ReceiptHandle=receipt_handle
-        )
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    client.receive_message(QueueUrl=queue_url)
 
     with pytest.raises(ClientError) as client_error:
         client.delete_message(QueueUrl=queue_url, ReceiptHandle="not-existing")
@@ -1786,6 +1773,18 @@ def test_delete_message_errors():
         client_error.value.response["Error"]["Message"]
         == "The input receipt handle is invalid."
     )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_delete_message_from_unknown_url(account_id):
+    client = boto3.client("sqs", region_name=REGION)
+    with pytest.raises(ClientError) as client_error:
+        client.delete_message(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/unknown",
+            ReceiptHandle="unknown",
+        )
+    _verify_unknown_queue_error(client_error, op_name="DeleteMessage")
 
 
 @mock_aws
@@ -1973,6 +1972,20 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
 
 
+@sqs_aws_verified()
+@pytest.mark.aws_verified
+def test_delete_message_batch_with_zero_entries(queue_name=None, queue_url=None):
+    sqs = boto3.client("sqs", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        sqs.delete_message_batch(QueueUrl=queue_url, Entries=[])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AWS.SimpleQueueService.EmptyBatchRequest"
+    assert (
+        err["Message"]
+        == "There should be at least one DeleteMessageBatchRequestEntry in the request."
+    )
+
+
 @mock_aws
 def test_message_attributes_in_receive_message():
     sqs = boto3.resource("sqs", region_name=REGION)
@@ -2038,21 +2051,17 @@ def test_message_attributes_in_receive_message():
     }
 
 
-@mock_aws
-def test_send_message_batch_errors():
+@sqs_aws_verified()
+@pytest.mark.aws_verified
+def test_send_message_batch_errors(queue_name=None, queue_url=None):
     client = boto3.client("sqs", region_name=REGION)
-
-    response = client.create_queue(QueueName="test-queue")
-    queue_url = response["QueueUrl"]
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(
             QueueUrl=queue_url + "-not-existing",
             Entries=[{"Id": "id_1", "MessageBody": "body_1"}],
         )
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(client_error, op_name="SendMessageBatch")
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(QueueUrl=queue_url, Entries=[])
@@ -2455,20 +2464,28 @@ def test_tags():
     assert client.list_queue_tags(QueueUrl=queue_url)["Tags"] == {"test1": "value1"}
 
 
-@mock_aws
-def test_list_queue_tags_errors():
+@aws_verified
+@pytest.mark.aws_verified
+def test_list_queue_tags_errors(account_id):
     client = boto3.client("sqs", region_name=REGION)
 
-    response = client.create_queue(
-        QueueName=str(uuid4())[0:6], tags={"tag_key_1": "tag_value_X"}
-    )
-    queue_url = response["QueueUrl"]
-
     with pytest.raises(ClientError) as client_error:
-        client.list_queue_tags(QueueUrl=queue_url + "-not-existing")
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+        client.list_queue_tags(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/not-existing"
+        )
+    _verify_unknown_queue_error(client_error, op_name="ListQueueTags")
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_tag_unknown_queue(account_id):
+    client = boto3.client("sqs", region_name=REGION)
+    with pytest.raises(ClientError) as client_error:
+        client.tag_queue(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/unknown",
+            Tags={"t": "v"},
+        )
+    _verify_unknown_queue_error(client_error, op_name="TagQueue")
 
 
 @mock_aws
@@ -2478,14 +2495,6 @@ def test_tag_queue_errors():
     q_name = str(uuid4())[0:6]
     response = client.create_queue(QueueName=q_name, tags={"tag_key_1": "tag_value_X"})
     queue_url = response["QueueUrl"]
-
-    with pytest.raises(ClientError) as client_error:
-        client.tag_queue(
-            QueueUrl=queue_url + "-not-existing", Tags={"tag_key_1": "tag_value_1"}
-        )
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
 
     with pytest.raises(ClientError) as client_error:
         client.tag_queue(QueueUrl=queue_url, Tags={})
@@ -2506,6 +2515,18 @@ def test_tag_queue_errors():
     )
 
 
+@aws_verified
+@pytest.mark.aws_verified
+def test_untag_unknown_queue(account_id):
+    client = boto3.client("sqs", region_name=REGION)
+    with pytest.raises(ClientError) as client_error:
+        client.untag_queue(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/unknown",
+            TagKeys=["tag1"],
+        )
+    _verify_unknown_queue_error(client_error, op_name="UntagQueue")
+
+
 @mock_aws
 def test_untag_queue_errors():
     client = boto3.client("sqs", region_name=REGION)
@@ -2514,12 +2535,6 @@ def test_untag_queue_errors():
         QueueName=str(uuid4())[0:6], tags={"tag_key_1": "tag_value_1"}
     )
     queue_url = response["QueueUrl"]
-
-    with pytest.raises(ClientError) as client_error:
-        client.untag_queue(QueueUrl=queue_url + "-not-existing", TagKeys=["tag_key_1"])
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
 
     with pytest.raises(ClientError) as client_error:
         client.untag_queue(QueueUrl=queue_url, TagKeys=[])
@@ -3337,7 +3352,7 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
     )
 
 
-@sqs_aws_verified
+@aws_verified
 @pytest.mark.aws_verified
 @pytest.mark.parametrize(
     "queue_config", [{"FifoQueue": "true"}, {"FifoQueue": "true", "DelaySeconds": "10"}]

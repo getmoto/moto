@@ -17,6 +17,7 @@ from moto.core.utils import (
 from moto.moto_api._internal import mock_random
 from moto.organizations.models import OrganizationsBackend, organizations_backends
 from moto.sns.models import sns_backends
+from moto.utilities.utils import get_partition
 
 from .custom_model import CustomModel
 from .exceptions import StackSetNotEmpty, StackSetNotFoundException, ValidationError
@@ -27,6 +28,7 @@ from .utils import (
     generate_stackset_arn,
     generate_stackset_id,
     get_stack_from_s3_url,
+    validate_create_change_set,
     validate_template_cfn_lint,
     yaml_tag_constructor,
 )
@@ -54,12 +56,19 @@ class FakeStackSet(BaseModel):
         self.description = description
         self.parameters = parameters
         self.tags = tags
-        self.admin_role = admin_role
-        self.admin_role_arn = f"arn:aws:iam::{account_id}:role/{self.admin_role}"
+        self.admin_role = (
+            admin_role
+            or f"arn:{get_partition(region)}:iam::{account_id}:role/AWSCloudFormationStackSetAdministrationRole"
+        )
         self.execution_role = execution_role or "AWSCloudFormationStackSetExecutionRole"
         self.status = "ACTIVE"
         self.instances = FakeStackInstances(
-            account_id, template, parameters, self.id, self.name
+            account_id=account_id,
+            region=region,
+            template=template,
+            parameters=parameters,
+            stackset_id=self.id,
+            stackset_name=self.name,
         )
         self.stack_instances = self.instances.stack_instances
         self.operations: List[Dict[str, Any]] = []
@@ -281,12 +290,14 @@ class FakeStackInstances(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region: str,
         template: str,
         parameters: Dict[str, str],
         stackset_id: str,
         stackset_name: str,
     ):
         self.account_id = account_id
+        self.partition = get_partition(region)
         self.template = template
         self.parameters = parameters or {}
         self.stackset_id = stackset_id
@@ -296,7 +307,7 @@ class FakeStackInstances(BaseModel):
 
     @property
     def org_backend(self) -> OrganizationsBackend:
-        return organizations_backends[self.account_id]["global"]
+        return organizations_backends[self.account_id][self.partition]
 
     def create_instances(
         self,
@@ -526,6 +537,8 @@ class FakeStack(CloudFormationModel):
         self._add_stack_event("UPDATE_COMPLETE")
         self.status = "UPDATE_COMPLETE"
         self.role_arn = role_arn
+        if parameters:
+            self.parameters = parameters
         # only overwrite tags if passed
         if tags is not None:
             self.tags = tags
@@ -565,7 +578,11 @@ class FakeStack(CloudFormationModel):
         ]
         properties = cloudformation_json["Properties"]
 
-        template_body = get_stack_from_s3_url(properties["TemplateURL"], account_id)
+        template_body = get_stack_from_s3_url(
+            properties["TemplateURL"],
+            account_id=account_id,
+            partition=get_partition(region_name),
+        )
         parameters = properties.get("Parameters", {})
 
         return cf_backend.create_stack(
@@ -776,7 +793,7 @@ class CloudFormationBackend(BaseBackend):
                     instance.parameters[parameter["parameter_key"]],
                 )
                 for parameter in incoming_params
-                if "use_previous_value" in parameter
+                if parameter.get("use_previous_value") == "true"
             ]
         )
         parameters.update(previous)
@@ -991,6 +1008,7 @@ class CloudFormationBackend(BaseBackend):
         tags: Optional[Dict[str, str]] = None,
         role_arn: Optional[str] = None,
     ) -> Tuple[str, str]:
+        validate_create_change_set(change_set_name)
         if change_set_type == "UPDATE":
             for stack in self.stacks.values():
                 if stack.name == stack_name:

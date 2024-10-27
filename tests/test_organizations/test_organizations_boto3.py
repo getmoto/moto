@@ -1,12 +1,14 @@
 import json
+import os
 import re
 from datetime import datetime
+from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.organizations import utils
 from moto.organizations.exceptions import InvalidInputException, TargetNotFoundException
@@ -31,17 +33,26 @@ from .organizations_test_utils import (
 
 
 @mock_aws
-def test_create_organization():
-    client = boto3.client("organizations", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_create_organization(region, partition):
+    client = boto3.client("organizations", region_name=region)
     response = client.create_organization(FeatureSet="ALL")
-    validate_organization(response)
-    assert response["Organization"]["FeatureSet"] == "ALL"
+    validate_organization(response, partition=partition)
+    organization = response["Organization"]
+    assert organization["FeatureSet"] == "ALL"
 
     response = client.list_accounts()
     assert len(response["Accounts"]) == 1
     assert response["Accounts"][0]["Name"] == "master"
     assert response["Accounts"][0]["Id"] == ACCOUNT_ID
     assert response["Accounts"][0]["Email"] == utils.MASTER_ACCOUNT_EMAIL
+    assert (
+        response["Accounts"][0]["Arn"]
+        == f"arn:{partition}:organizations::{ACCOUNT_ID}:account/{organization['Id']}/{ACCOUNT_ID}"
+    )
 
     response = client.list_policies(Filter="SERVICE_CONTROL_POLICY")
     assert len(response["Policies"]) == 1
@@ -64,6 +75,39 @@ def test_create_organization_without_feature_set():
     response = client.describe_organization()
     validate_organization(response)
     assert response["Organization"]["FeatureSet"] == "ALL"
+
+
+@mock_aws
+def test_create_account_creates_role():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+    orgs_client = boto3.client("organizations", region_name="us-west-2")
+    orgs_client.create_organization()
+    account = orgs_client.create_account(AccountName="test", Email="test@test.xyz")
+    account_id = account["CreateAccountStatus"]["AccountId"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        iam_client = boto3.client("iam", "us-east-1")
+        iam_client.get_role(RoleName="OrganizationAccountAccessRole")
+
+
+@mock_aws
+def test_create_account_creates_custom_role():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+
+    orgs_client = boto3.client("organizations", region_name="us-west-2")
+    _ = orgs_client.create_organization()
+    account = orgs_client.create_account(
+        AccountName="test_account",
+        Email="test@test.xyz",
+        RoleName="CustomOrganizationRole",
+    )
+    account_id = account["CreateAccountStatus"]["AccountId"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        iam_client = boto3.client("iam", "us-east-1")
+        iam_client.get_role(RoleName="CustomOrganizationRole")
 
 
 @mock_aws
@@ -1248,17 +1292,29 @@ def test_tag_resource_organization_organizational_unit():
 
 
 @mock_aws
-def test_tag_resource_policy():
-    client = boto3.client("organizations", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "policy_type", ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]
+)
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_tag_resource_policy(policy_type, region, partition):
+    client = boto3.client("organizations", region_name=region)
     client.create_organization(FeatureSet="ALL")
     _ = client.list_roots()["Roots"][0]["Id"]
 
-    resource_id = client.create_policy(
+    policy = client.create_policy(
         Content=json.dumps(policy_doc01),
         Description="A dummy service control policy",
         Name="MockServiceControlPolicy",
-        Type="SERVICE_CONTROL_POLICY",
-    )["Policy"]["PolicySummary"]["Id"]
+        Type=policy_type,
+    )["Policy"]["PolicySummary"]
+    assert policy["Arn"].startswith(
+        f"arn:{partition}:organizations::{ACCOUNT_ID}:policy/"
+    )
+
+    resource_id = policy["Id"]
 
     client.tag_resource(ResourceId=resource_id, Tags=[{"Key": "key", "Value": "value"}])
 
@@ -1309,7 +1365,7 @@ def test_tag_resource_errors():
 
 
 def test__get_resource_for_tagging_existing_root():
-    org = FakeOrganization(ACCOUNT_ID, "ALL")
+    org = FakeOrganization(ACCOUNT_ID, region_name="us-east-1", feature_set="ALL")
     root = FakeRoot(org)
 
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
@@ -1329,7 +1385,7 @@ def test__get_resource_for_tagging_existing_non_root():
 
 
 def test__get_resource_for_tagging_existing_ou():
-    org = FakeOrganization(ACCOUNT_ID, "ALL")
+    org = FakeOrganization(ACCOUNT_ID, region_name="us-east-1", feature_set="ALL")
     ou = FakeOrganizationalUnit(org)
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
 
@@ -1349,7 +1405,7 @@ def test__get_resource_for_tagging_non_existing_ou():
 
 
 def test__get_resource_for_tagging_existing_account():
-    org = FakeOrganization(ACCOUNT_ID, "ALL")
+    org = FakeOrganization(ACCOUNT_ID, region_name="us-east-1", feature_set="ALL")
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     account = FakeAccount(org, AccountName="test", Email="test@test.test")
 
@@ -1369,7 +1425,7 @@ def test__get_resource_for_tagging_non_existing_account():
 
 
 def test__get_resource_for_tagging_existing_policy():
-    org = FakeOrganization(ACCOUNT_ID, "ALL")
+    org = FakeOrganization(ACCOUNT_ID, region_name="us-east-1", feature_set="ALL")
     org_backend = OrganizationsBackend(region_name="N/A", account_id="N/A")
     policy = FakePolicy(org, Type="SERVICE_CONTROL_POLICY")
 
@@ -1969,26 +2025,33 @@ def test_deregister_delegated_administrator_erros():
 
 
 @mock_aws
-def test_enable_policy_type():
+@pytest.mark.parametrize(
+    "policy_type", ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]
+)
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_enable_policy_type(policy_type, region, partition):
     # given
-    client = boto3.client("organizations", region_name="us-east-1")
+    client = boto3.client("organizations", region_name=region)
     org = client.create_organization(FeatureSet="ALL")["Organization"]
     root_id = client.list_roots()["Roots"][0]["Id"]
 
     # when
-    response = client.enable_policy_type(
-        RootId=root_id, PolicyType="AISERVICES_OPT_OUT_POLICY"
-    )
+    response = client.enable_policy_type(RootId=root_id, PolicyType=policy_type)
 
     # then
     root = response["Root"]
     assert root["Id"] == root_id
     assert root["Arn"] == (
-        utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
+        utils.ROOT_ARN_FORMAT.format(
+            partition, org["MasterAccountId"], org["Id"], root_id
+        )
     )
     assert root["Name"] == "Root"
     assert sorted(root["PolicyTypes"], key=lambda x: x["Type"]) == (
-        [{"Type": "AISERVICES_OPT_OUT_POLICY", "Status": "ENABLED"}]
+        [{"Type": policy_type, "Status": "ENABLED"}]
     )
 
 
@@ -2062,7 +2125,7 @@ def test_disable_policy_type():
     root = response["Root"]
     assert root["Id"] == root_id
     assert root["Arn"] == (
-        utils.ROOT_ARN_FORMAT.format(org["MasterAccountId"], org["Id"], root_id)
+        utils.ROOT_ARN_FORMAT.format("aws", org["MasterAccountId"], org["Id"], root_id)
     )
     assert root["Name"] == "Root"
     assert root["PolicyTypes"] == []
@@ -2154,7 +2217,7 @@ def test_aiservices_opt_out_policy():
     assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
     assert summary["Arn"] == (
         utils.AI_POLICY_ARN_FORMAT.format(
-            org["MasterAccountId"], org["Id"], summary["Id"]
+            "aws", org["MasterAccountId"], org["Id"], summary["Id"]
         )
     )
     assert summary["Name"] == "ai-opt-out"

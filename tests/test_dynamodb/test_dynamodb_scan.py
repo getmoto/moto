@@ -355,6 +355,150 @@ def test_scan_by_global_and_local_index():
     assert last_eval_key["lsi_range_key"]["S"] == "1"
 
 
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_gsi_range=True)
+def test_scan_gsi_pagination_with_string_gsi_range(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    for i in range(3, 7):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    for i in range(9, 6, -1):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    for i in range(3):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    page1 = table.scan(IndexName="test_gsi", Limit=6)
+    assert page1["Count"] == 6
+    assert page1["ScannedCount"] == 6
+    assert len(page1["Items"]) == 6
+
+    page2 = table.scan(
+        IndexName="test_gsi",
+        Limit=6,
+        ExclusiveStartKey=page1["LastEvaluatedKey"],
+    )
+    assert page2["Count"] == 4
+    assert page2["ScannedCount"] == 4
+    assert len(page2["Items"]) == 4
+    assert "LastEvaluatedKey" not in page2
+
+    results = page1["Items"] + page2["Items"]
+    subjects = set([int(r["sk"]) for r in results])
+    assert subjects == set(range(10))
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_gsi_range=True)
+def test_scan_gsi_pagination_with_string_gsi_range_and_empty_gsi_pk(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    for i in range(3, 7):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    for i in range(9, 6, -1):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    for i in range(3):
+        table.put_item(Item={"pk": "the-key", "sk": f"{i}", "gsi_sk": "jane"})
+
+    page1 = table.scan(IndexName="test_gsi", Limit=6)
+    assert page1["Count"] == 6
+
+    page2 = table.scan(
+        IndexName="test_gsi",
+        Limit=6,
+        ExclusiveStartKey=page1["LastEvaluatedKey"],
+    )
+    assert page2["Count"] == 1
+    assert "LastEvaluatedKey" not in page2
+
+    results = page1["Items"] + page2["Items"]
+    assert set([r["sk"] for r in results]) == {"3", "4", "5", "6", "7", "8", "9"}
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_gsi_range=True)
+def test_scan_gsi_pagination_with_string_gsi_range_and_empty_gsi_sk(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    for i in range(3, 7):
+        table.put_item(Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john"})
+
+    for i in range(9, 6, -1):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    for i in range(3):
+        table.put_item(
+            Item={"pk": "the-key", "sk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"}
+        )
+
+    page1 = table.scan(IndexName="test_gsi", Limit=5)
+    assert page1["Count"] == 5
+
+    page2 = table.scan(
+        IndexName="test_gsi",
+        Limit=6,
+        ExclusiveStartKey=page1["LastEvaluatedKey"],
+    )
+    assert page2["Count"] == 1
+    assert "LastEvaluatedKey" not in page2
+
+    results = page1["Items"] + page2["Items"]
+    assert set([r["sk"] for r in results]) == {"0", "1", "2", "7", "8", "9"}
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=False, add_gsi_range=True)
+def test_scan_gsi_pagination_with_string_gsi_range_no_sk(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    for i in range(3, 7):
+        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"})
+
+    for i in range(9, 6, -1):
+        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"})
+
+    for i in range(3):
+        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": "jane"})
+
+    page1 = table.scan(IndexName="test_gsi", Limit=6)
+    assert page1["Count"] == 6
+    assert page1["ScannedCount"] == 6
+    assert len(page1["Items"]) == 6
+
+    page2 = table.scan(
+        IndexName="test_gsi",
+        Limit=6,
+        ExclusiveStartKey=page1["LastEvaluatedKey"],
+    )
+    assert page2["Count"] == 4
+    assert page2["ScannedCount"] == 4
+    assert len(page2["Items"]) == 4
+    assert "LastEvaluatedKey" not in page2
+
+    results = page1["Items"] + page2["Items"]
+    subjects = set([int(r["pk"]) for r in results])
+    assert subjects == set(range(10))
+
+
 @mock_aws
 class TestFilterExpression:
     def test_scan_filter(self):

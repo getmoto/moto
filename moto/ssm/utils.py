@@ -1,10 +1,12 @@
 from typing import Any, Dict, List
 
+from moto.utilities.utils import get_partition
+
 
 def parameter_arn(account_id: str, region: str, parameter_name: str) -> str:
     if parameter_name[0] == "/":
         parameter_name = parameter_name[1:]
-    return f"arn:aws:ssm:{region}:{account_id}:parameter/{parameter_name}"
+    return f"arn:{get_partition(region)}:ssm:{region}:{account_id}:parameter/{parameter_name}"
 
 
 def convert_to_tree(parameters: List[Dict[str, Any]]) -> Dict[str, Any]:

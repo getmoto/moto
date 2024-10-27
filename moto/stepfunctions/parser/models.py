@@ -6,6 +6,7 @@ from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
+    EncryptionConfiguration,
     ExecutionStatus,
     GetExecutionHistoryOutput,
     InvalidDefinition,
@@ -14,7 +15,6 @@ from moto.stepfunctions.parser.api import (
     LoggingConfiguration,
     MissingRequiredParameter,
     Name,
-    Publish,
     ResourceNotFound,
     SendTaskFailureOutput,
     SendTaskHeartbeatOutput,
@@ -67,15 +67,13 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         try:
             AmazonStateLanguageParser.parse(definition)
         except ASLParserException as asl_parser_exception:
-            invalid_definition = InvalidDefinition()
-            invalid_definition.message = repr(asl_parser_exception)
-            raise invalid_definition
+            raise InvalidDefinition(message=repr(asl_parser_exception))
         except Exception as exception:
             exception_name = exception.__class__.__name__
             exception_args = list(exception.args)
-            invalid_definition = InvalidDefinition()
-            invalid_definition.message = f"Error={exception_name} Args={exception_args} in definition '{definition}'."
-            raise invalid_definition
+            raise InvalidDefinition(
+                message=f"Error={exception_name} Args={exception_args} in definition '{definition}'."
+            )
 
     def create_state_machine(
         self,
@@ -83,11 +81,22 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         definition: str,
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        publish: Optional[bool] = None,
+        loggingConfiguration: Optional[LoggingConfiguration] = None,
+        tracingConfiguration: Optional[TracingConfiguration] = None,
+        encryptionConfiguration: Optional[EncryptionConfiguration] = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
         return super().create_state_machine(
-            name=name, definition=definition, roleArn=roleArn, tags=tags
+            name=name,
+            definition=definition,
+            roleArn=roleArn,
+            tags=tags,
+            publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:
@@ -190,20 +199,35 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         role_arn: str = None,
         logging_configuration: LoggingConfiguration = None,
         tracing_configuration: TracingConfiguration = None,
-        publish: Publish = None,
+        encryption_configuration: EncryptionConfiguration = None,
+        publish: Optional[bool] = None,
         version_description: VersionDescription = None,
     ) -> StateMachine:
         if not any(
-            [definition, role_arn, logging_configuration, tracing_configuration]
+            [
+                definition,
+                role_arn,
+                logging_configuration,
+                tracing_configuration,
+                encryption_configuration,
+            ]
         ):
             raise MissingRequiredParameter(
-                "Either the definition, the role ARN, the LoggingConfiguration, or the TracingConfiguration must be specified"
+                "Either the definition, the role ARN, the LoggingConfiguration, the EncryptionConfiguration or the TracingConfiguration must be specified"
             )
 
         if definition is not None:
             self._validate_definition(definition=definition)
 
-        return super().update_state_machine(arn, definition, role_arn)
+        return super().update_state_machine(
+            arn,
+            definition,
+            role_arn,
+            logging_configuration=logging_configuration,
+            tracing_configuration=tracing_configuration,
+            encryption_configuration=encryption_configuration,
+            publish=publish,
+        )
 
     def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
         for execution in self._get_executions():

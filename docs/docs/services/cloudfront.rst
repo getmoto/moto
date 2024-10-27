@@ -31,12 +31,12 @@ cloudfront
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
 - [X] create_invalidation
-- [ ] create_key_group
+- [X] create_key_group
 - [ ] create_key_value_store
 - [ ] create_monitoring_subscription
 - [X] create_origin_access_control
 - [ ] create_origin_request_policy
-- [ ] create_public_key
+- [X] create_public_key
 - [ ] create_realtime_log_config
 - [ ] create_response_headers_policy
 - [ ] create_streaming_distribution
@@ -62,7 +62,11 @@ cloudfront
         
 
 - [ ] delete_origin_request_policy
-- [ ] delete_public_key
+- [X] delete_public_key
+  
+        IfMatch is not yet implemented - deletion always succeeds
+        
+
 - [ ] delete_realtime_log_config
 - [ ] delete_response_headers_policy
 - [ ] delete_streaming_distribution
@@ -81,15 +85,15 @@ cloudfront
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
 - [ ] get_function
-- [ ] get_invalidation
-- [ ] get_key_group
+- [X] get_invalidation
+- [X] get_key_group
 - [ ] get_key_group_config
 - [ ] get_monitoring_subscription
 - [X] get_origin_access_control
 - [ ] get_origin_access_control_config
 - [ ] get_origin_request_policy
 - [ ] get_origin_request_policy_config
-- [ ] get_public_key
+- [X] get_public_key
 - [ ] get_public_key_config
 - [ ] get_realtime_log_config
 - [ ] get_response_headers_policy
@@ -119,7 +123,11 @@ cloudfront
         Pagination is not yet implemented
         
 
-- [ ] list_key_groups
+- [X] list_key_groups
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_key_value_stores
 - [X] list_origin_access_controls
   
@@ -127,7 +135,11 @@ cloudfront
         
 
 - [ ] list_origin_request_policies
-- [ ] list_public_keys
+- [X] list_public_keys
+  
+        Pagination is not yet implemented
+        
+
 - [ ] list_realtime_log_configs
 - [ ] list_response_headers_policies
 - [ ] list_streaming_distributions

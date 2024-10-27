@@ -2,7 +2,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from moto.core.common_models import CloudFormationModel
 
-from ..exceptions import InvalidNetworkAttachmentIdError, InvalidNetworkInterfaceIdError
+from ..exceptions import (
+    InvalidNetworkAttachmentIdError,
+    InvalidNetworkInterfaceIdError,
+    LastEniDetachError,
+)
 from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
 
@@ -30,6 +34,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         group_ids: Optional[List[str]] = None,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
+        delete_on_termination: Optional[bool] = False,
         **kwargs: Any,
     ):
         self.ec2_backend = ec2_backend
@@ -47,7 +52,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.instance: Optional[Instance] = None
         self.attachment_id: Optional[str] = None
         self.attach_time: Optional[str] = None
-        self.delete_on_termination = False
+        self.delete_on_termination = delete_on_termination
         self.description = description
         self.source_dest_check = True
 
@@ -128,9 +133,9 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                         group_id,
                         group_id,
                         group_id,
-                        vpc_id=subnet.vpc_id,
+                        vpc_id=self.subnet.vpc_id,
                     )
-                    self.ec2_backend.groups[subnet.vpc_id][group_id] = group
+                    self.ec2_backend.groups[self.subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
         if not group_ids:
@@ -196,6 +201,9 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             description=description,
         )
         return network_interface
+
+    def delete(self) -> None:
+        self.ec2_backend.delete_network_interface(eni_id=self.id)
 
     def stop(self) -> None:
         if self.public_ip_auto_assign:
@@ -274,6 +282,7 @@ class NetworkInterfaceBackend:
         group_ids: Optional[List[str]] = None,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
+        delete_on_termination: Optional[bool] = False,
         **kwargs: Any,
     ) -> NetworkInterface:
         eni = NetworkInterface(
@@ -284,6 +293,7 @@ class NetworkInterfaceBackend:
             group_ids=group_ids,
             description=description,
             tags=tags,
+            delete_on_termination=delete_on_termination,
             **kwargs,
         )
         self.enis[eni.id] = eni
@@ -331,6 +341,8 @@ class NetworkInterfaceBackend:
     def detach_network_interface(self, attachment_id: str) -> None:
         for eni in self.enis.values():
             if eni.attachment_id == attachment_id:
+                if eni.instance and len(eni.instance.nics) == 1:
+                    raise LastEniDetachError
                 eni.instance.detach_eni(eni)  # type: ignore
                 return
         raise InvalidNetworkAttachmentIdError(attachment_id)

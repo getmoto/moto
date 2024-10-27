@@ -142,7 +142,7 @@ def test_start_export_task_fail_already_exists():
         )
 
     err = ex.value.response["Error"]
-    assert err["Code"] == "ExportTaskAlreadyExistsFault"
+    assert err["Code"] == "ExportTaskAlreadyExists"
     assert err["Message"] == (
         "Cannot start export task because a task with the identifier "
         "export-snapshot-1 already exists."
@@ -156,7 +156,7 @@ def test_cancel_export_task_fails_unknown_task():
         client.cancel_export_task(ExportTaskIdentifier="export-snapshot-1")
 
     err = ex.value.response["Error"]
-    assert err["Code"] == "ExportTaskNotFoundFault"
+    assert err["Code"] == "ExportTaskNotFound"
     assert err["Message"] == (
         "Cannot cancel export task because a task with the identifier "
         "export-snapshot-1 is not exist."
@@ -207,7 +207,7 @@ def test_describe_export_tasks_fails_unknown_task():
         client.describe_export_tasks(ExportTaskIdentifier="export-snapshot-1")
 
     err = ex.value.response["Error"]
-    assert err["Code"] == "ExportTaskNotFoundFault"
+    assert err["Code"] == "ExportTaskNotFound"
     assert err["Message"] == (
         "Cannot cancel export task because a task with the identifier "
         "export-snapshot-1 is not exist."

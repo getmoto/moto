@@ -30,6 +30,7 @@ from moto.iam.exceptions import MalformedPolicyDocument
 from moto.iam.policy_validation import IAMPolicyDocumentValidator
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 ECR_REPOSITORY_ARN_PATTERN = "^arn:(?P<partition>[^:]+):ecr:(?P<region>[^:]+):(?P<account_id>[^:]+):repository/(?P<repo_name>.*)$"
 ECR_REPOSITORY_NAME_PATTERN = (
@@ -79,9 +80,7 @@ class Repository(BaseObject, CloudFormationModel):
         self.account_id = account_id
         self.region_name = region_name
         self.registry_id = registry_id or account_id
-        self.arn = (
-            f"arn:aws:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
-        )
+        self.arn = f"arn:{get_partition(region_name)}:ecr:{region_name}:{self.registry_id}:repository/{repository_name}"
         self.name = repository_name
         self.created_at = utcnow()
         self.uri = (
@@ -110,7 +109,7 @@ class Repository(BaseObject, CloudFormationModel):
             return {"encryptionType": "AES256"}
         if encryption_config == {"encryptionType": "KMS"}:
             encryption_config["kmsKey"] = (
-                f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{random.uuid4()}"
+                f"arn:{get_partition(self.region_name)}:kms:{self.region_name}:{self.account_id}:key/{random.uuid4()}"
             )
         return encryption_config
 

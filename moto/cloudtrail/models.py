@@ -7,6 +7,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds, utcnow
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     InsufficientSnsTopicPolicyException,
@@ -90,6 +91,7 @@ class Trail(BaseModel):
     ):
         self.account_id = account_id
         self.region_name = region_name
+        self.partition = get_partition(region_name)
         self.trail_name = trail_name
         self.bucket_name = bucket_name
         self.s3_key_prefix = s3_key_prefix
@@ -111,12 +113,12 @@ class Trail(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:cloudtrail:{self.region_name}:{self.account_id}:trail/{self.trail_name}"
+        return f"arn:{get_partition(self.region_name)}:cloudtrail:{self.region_name}:{self.account_id}:trail/{self.trail_name}"
 
     @property
     def topic_arn(self) -> Optional[str]:
         if self.sns_topic_name:
-            return f"arn:aws:sns:{self.region_name}:{self.account_id}:{self.sns_topic_name}"
+            return f"arn:{get_partition(self.region_name)}:sns:{self.region_name}:{self.account_id}:{self.sns_topic_name}"
         return None
 
     def check_name(self) -> None:
@@ -135,7 +137,7 @@ class Trail(BaseModel):
         from moto.s3.models import s3_backends
 
         try:
-            s3_backends[self.account_id]["global"].get_bucket(self.bucket_name)
+            s3_backends[self.account_id][self.partition].get_bucket(self.bucket_name)
         except Exception:
             raise S3BucketDoesNotExistException(
                 f"S3 bucket {self.bucket_name} does not exist!"
@@ -312,9 +314,7 @@ class CloudTrailBackend(BaseBackend):
         )
         if not trail:
             # This particular method returns the ARN as part of the error message
-            arn = (
-                f"arn:aws:cloudtrail:{self.region_name}:{self.account_id}:trail/{name}"
-            )
+            arn = f"arn:{get_partition(self.region_name)}:cloudtrail:{self.region_name}:{self.account_id}:trail/{name}"
             raise TrailNotFoundException(account_id=self.account_id, name=arn)
         return trail.status
 

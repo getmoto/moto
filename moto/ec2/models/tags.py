@@ -26,7 +26,14 @@ class TagBackend:
             if resource_id in self.tags:
                 if (
                     len(self.tags[resource_id])
-                    + len([tag for tag in tags if not tag.startswith("aws:")])
+                    + len(
+                        [
+                            tag
+                            for tag in tags
+                            if not tag.startswith("aws:")
+                            and tag not in self.tags[resource_id]
+                        ]
+                    )
                     > 50
                 ):
                     raise TagLimitExceeded()

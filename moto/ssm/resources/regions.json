@@ -232,15 +232,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.af-south-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -506,6 +497,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "drs": {
@@ -1057,7 +1057,7 @@
                   "Value": "api.mediatailor.af-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -1153,6 +1153,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -1191,6 +1200,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -1293,6 +1311,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -1636,6 +1657,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -1896,15 +1926,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-east-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -2828,6 +2849,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -2903,6 +2933,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -2959,6 +2998,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -3311,6 +3353,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -3615,7 +3666,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -3671,15 +3728,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-northeast-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -3690,7 +3738,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -3906,15 +3969,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5099,7 +5153,7 @@
                   "Value": "api.mediatailor.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -5315,10 +5369,22 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5554,6 +5620,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -5841,6 +5910,15 @@
                 "Value": "ssm-incidents",
                 "endpoint": {
                   "Value": "ssm-incidents.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6342,7 +6420,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -6389,19 +6473,28 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
+              "batch": {
+                "Value": "batch",
                 "endpoint": {
-                  "Value": "cell-1.prod.ap-northeast-2.storage.cryo.aws.a2z.com"
+                  "Value": "batch.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
                 }
               },
-              "batch": {
-                "Value": "batch",
+              "bedrock": {
+                "Value": "bedrock",
                 "endpoint": {
-                  "Value": "batch.ap-northeast-2.amazonaws.com"
+                  "Value": "bedrock.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6594,15 +6687,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -7667,7 +7751,7 @@
                   "Value": "api.mediatailor.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -7766,6 +7850,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -7806,6 +7899,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8032,6 +8134,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -8303,6 +8408,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -8455,6 +8569,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -8757,15 +8880,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.ap-northeast-3.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-northeast-3.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9456,13 +9570,7 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace",
-                "endpoint": {
-                  "Value": "marketplace.ap-northeast-3.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "marketplace"
               },
               "mediaconnect": {
                 "Value": "mediaconnect",
@@ -9524,7 +9632,7 @@
                   "Value": "api.mediatailor.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -9558,6 +9666,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9624,6 +9741,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9760,6 +9886,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -10094,6 +10223,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -10386,7 +10524,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -10433,15 +10577,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-south-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -10452,7 +10587,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -11588,7 +11738,7 @@
                   "Value": "api.mediatailor.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -11687,6 +11837,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -11727,6 +11886,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11953,6 +12121,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -12236,6 +12407,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -12318,7 +12498,10 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.ap-south-1.amazonaws.com"
+                }
               },
               "timestream-influxdb": {
                 "Value": "timestream-influxdb",
@@ -12391,6 +12574,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -12619,15 +12811,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.ap-south-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-south-2.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13239,13 +13422,22 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
                   "Value": "api.mediatailor.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -13270,6 +13462,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13309,6 +13510,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13436,6 +13646,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -13597,6 +13810,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13996,7 +14218,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -14043,15 +14271,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -14062,7 +14281,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -14287,15 +14521,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14973,15 +15198,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector-scan": {
                 "Value": "inspector-scan",
                 "endpoint": {
@@ -15396,7 +15612,7 @@
                   "Value": "api.mediatailor.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -15597,10 +15813,22 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15771,6 +15999,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "repostspace": {
+                "Value": "repostspace",
+                "endpoint": {
+                  "Value": "repostspace.ap-southeast-1.amazonaws.com"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -15836,6 +16070,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -16123,6 +16360,15 @@
                 "Value": "ssm-incidents",
                 "endpoint": {
                   "Value": "ssm-incidents.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16455,6 +16701,15 @@
                   "Value": "https"
                 }
               },
+              "ahl": {
+                "Value": "ahl",
+                "endpoint": {
+                  "Value": "healthlake.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aiq": {
                 "Value": "aiq"
               },
@@ -16599,6 +16854,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -16639,7 +16903,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -16686,15 +16956,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -16705,7 +16966,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -16930,15 +17206,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18096,7 +18363,7 @@
                   "Value": "api.mediatailor.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -18339,6 +18606,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "personalize": {
                 "Value": "personalize",
                 "endpoint": {
@@ -18522,6 +18798,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "repostspace": {
+                "Value": "repostspace",
+                "endpoint": {
+                  "Value": "repostspace.ap-southeast-2.amazonaws.com"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -18578,6 +18860,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -18874,6 +19159,15 @@
                 "Value": "ssm-incidents",
                 "endpoint": {
                   "Value": "ssm-incidents.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19343,15 +19637,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.ap-southeast-3.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-3.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20044,6 +20329,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -20101,6 +20404,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -20130,6 +20442,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -20171,6 +20492,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20223,6 +20553,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -20503,6 +20836,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transfer": {
                 "Value": "transfer",
                 "endpoint": {
@@ -20675,6 +21017,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -20736,15 +21087,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.ap-southeast-4.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.ap-southeast-4.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21362,7 +21704,7 @@
                   "Value": "api.mediatailor.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -21387,6 +21729,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21426,6 +21777,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21544,6 +21904,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -21710,6 +22073,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sso-oidc": {
                 "Value": "sso-oidc",
                 "endpoint": {
@@ -21840,6 +22212,730 @@
                 "Value": "xray",
                 "endpoint": {
                   "Value": "xray.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              }
+            }
+          },
+          "ap-southeast-5": {
+            "Value": "ap-southeast-5",
+            "availability-zones": {
+              "apse5-az1": {
+                "Value": "apse5-az1"
+              },
+              "apse5-az2": {
+                "Value": "apse5-az2"
+              },
+              "apse5-az3": {
+                "Value": "apse5-az3"
+              }
+            },
+            "domain": {
+              "Value": "amazonaws.com"
+            },
+            "geolocationCountry": {
+              "Value": "MY"
+            },
+            "geolocationRegion": {
+              "Value": "MY-14"
+            },
+            "longName": {
+              "Value": "Asia Pacific (Malaysia)"
+            },
+            "partition": {
+              "Value": "aws"
+            },
+            "services": {
+              "accessanalyzer": {
+                "Value": "accessanalyzer",
+                "endpoint": {
+                  "Value": "access-analyzer.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "acm": {
+                "Value": "acm",
+                "endpoint": {
+                  "Value": "acm.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
+              "apigateway": {
+                "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appconfig": {
+                "Value": "appconfig",
+                "endpoint": {
+                  "Value": "appconfig.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appconfigdata": {
+                "Value": "appconfigdata",
+                "endpoint": {
+                  "Value": "appconfigdata.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "arc-zonal-shift": {
+                "Value": "arc-zonal-shift",
+                "endpoint": {
+                  "Value": "arc-zonal-shift.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "artifact": {
+                "Value": "artifact"
+              },
+              "aurora": {
+                "Value": "aurora",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "autoscaling": {
+                "Value": "autoscaling",
+                "endpoint": {
+                  "Value": "autoscaling.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "awshealthdashboard": {
+                "Value": "awshealthdashboard",
+                "endpoint": {
+                  "Value": "phd.aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "backup": {
+                "Value": "backup",
+                "endpoint": {
+                  "Value": "backup.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "batch": {
+                "Value": "batch",
+                "endpoint": {
+                  "Value": "batch.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudcontrolapi": {
+                "Value": "cloudcontrolapi",
+                "endpoint": {
+                  "Value": "cloudcontrolapi.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudformation": {
+                "Value": "cloudformation",
+                "endpoint": {
+                  "Value": "cloudformation.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudfront": {
+                "Value": "cloudfront",
+                "endpoint": {
+                  "Value": "cloudfront.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudtrail": {
+                "Value": "cloudtrail",
+                "endpoint": {
+                  "Value": "cloudtrail.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudwatch": {
+                "Value": "cloudwatch",
+                "endpoint": {
+                  "Value": "monitoring.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "config": {
+                "Value": "config",
+                "endpoint": {
+                  "Value": "config.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-southeast-5.amazonaws.com"
+                }
+              },
+              "datasync": {
+                "Value": "datasync",
+                "endpoint": {
+                  "Value": "datasync.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "directconnect": {
+                "Value": "directconnect",
+                "endpoint": {
+                  "Value": "directconnect.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dlm": {
+                "Value": "dlm",
+                "endpoint": {
+                  "Value": "dlm.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dms": {
+                "Value": "dms",
+                "endpoint": {
+                  "Value": "dms.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dynamodb": {
+                "Value": "dynamodb",
+                "endpoint": {
+                  "Value": "dynamodb.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "dynamodbstreams": {
+                "Value": "dynamodbstreams",
+                "endpoint": {
+                  "Value": "streams.dynamodb.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "ebs": {
+                "Value": "ebs",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ec2": {
+                "Value": "ec2",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ecr": {
+                "Value": "ecr",
+                "endpoint": {
+                  "Value": "ecr.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ecs": {
+                "Value": "ecs",
+                "endpoint": {
+                  "Value": "ecs.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "efs": {
+                "Value": "efs",
+                "endpoint": {
+                  "Value": "elasticfilesystem.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eks": {
+                "Value": "eks",
+                "endpoint": {
+                  "Value": "eks.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eks-auth": {
+                "Value": "eks-auth",
+                "endpoint": {
+                  "Value": "eks-auth.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "elasticache": {
+                "Value": "elasticache",
+                "endpoint": {
+                  "Value": "elasticache.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "elb": {
+                "Value": "elb",
+                "endpoint": {
+                  "Value": "elasticloadbalancing.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr": {
+                "Value": "emr",
+                "endpoint": {
+                  "Value": "elasticmapreduce.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "es": {
+                "Value": "es",
+                "endpoint": {
+                  "Value": "es.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eventbridge": {
+                "Value": "eventbridge",
+                "endpoint": {
+                  "Value": "events.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "events": {
+                "Value": "events",
+                "endpoint": {
+                  "Value": "events.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fargate": {
+                "Value": "fargate"
+              },
+              "firehose": {
+                "Value": "firehose",
+                "endpoint": {
+                  "Value": "firehose.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iam": {
+                "Value": "iam",
+                "endpoint": {
+                  "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "imagebuilder": {
+                "Value": "imagebuilder",
+                "endpoint": {
+                  "Value": "imagebuilder.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesis": {
+                "Value": "kinesis",
+                "endpoint": {
+                  "Value": "kinesis.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kms": {
+                "Value": "kms",
+                "endpoint": {
+                  "Value": "kms.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "lambda": {
+                "Value": "lambda",
+                "endpoint": {
+                  "Value": "lambda.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "logs": {
+                "Value": "logs",
+                "endpoint": {
+                  "Value": "logs.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "marketplace": {
+                "Value": "marketplace"
+              },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "organizations": {
+                "Value": "organizations",
+                "endpoint": {
+                  "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pi": {
+                "Value": "pi",
+                "endpoint": {
+                  "Value": "pi.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "privatelink": {
+                "Value": "privatelink"
+              },
+              "ram": {
+                "Value": "ram",
+                "endpoint": {
+                  "Value": "ram.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rbin": {
+                "Value": "rbin",
+                "endpoint": {
+                  "Value": "rbin.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rds": {
+                "Value": "rds",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift": {
+                "Value": "redshift",
+                "endpoint": {
+                  "Value": "redshift.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-data": {
+                "Value": "redshift-data",
+                "endpoint": {
+                  "Value": "redshift-data.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resource-groups": {
+                "Value": "resource-groups",
+                "endpoint": {
+                  "Value": "resource-groups.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resourcegroupstaggingapi": {
+                "Value": "resourcegroupstaggingapi",
+                "endpoint": {
+                  "Value": "tagging.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53": {
+                "Value": "route53",
+                "endpoint": {
+                  "Value": "route53.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
+              },
+              "route53-recovery-control-config": {
+                "Value": "route53-recovery-control-config",
+                "endpoint": {
+                  "Value": "route53-recovery-control-config.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53resolver": {
+                "Value": "route53resolver",
+                "endpoint": {
+                  "Value": "route53resolver.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "s3": {
+                "Value": "s3",
+                "endpoint": {
+                  "Value": "s3.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "savingsplans": {
+                "Value": "savingsplans",
+                "endpoint": {
+                  "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "secretsmanager": {
+                "Value": "secretsmanager",
+                "endpoint": {
+                  "Value": "secretsmanager.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "service-quotas": {
+                "Value": "service-quotas",
+                "endpoint": {
+                  "Value": "servicequotas.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "servicediscovery": {
+                "Value": "servicediscovery",
+                "endpoint": {
+                  "Value": "servicediscovery.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sns": {
+                "Value": "sns",
+                "endpoint": {
+                  "Value": "sns.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "sqs": {
+                "Value": "sqs",
+                "endpoint": {
+                  "Value": "sqs.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "ssm": {
+                "Value": "ssm",
+                "endpoint": {
+                  "Value": "ssm.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "stepfunctions": {
+                "Value": "stepfunctions",
+                "endpoint": {
+                  "Value": "states.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sts": {
+                "Value": "sts",
+                "endpoint": {
+                  "Value": "sts.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "support": {
+                "Value": "support",
+                "endpoint": {
+                  "Value": "support.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "swf": {
+                "Value": "swf",
+                "endpoint": {
+                  "Value": "swf.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "synthetics": {
+                "Value": "synthetics",
+                "endpoint": {
+                  "Value": "synthetics.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "transitgateway": {
+                "Value": "transitgateway",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "trustedadvisor": {
+                "Value": "trustedadvisor"
+              },
+              "vpc": {
+                "Value": "vpc"
+              },
+              "vpn": {
+                "Value": "vpn",
+                "endpoint": {
+                  "Value": "ec2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "xray": {
+                "Value": "xray",
+                "endpoint": {
+                  "Value": "xray.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22078,7 +23174,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -22125,19 +23227,28 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
+              "batch": {
+                "Value": "batch",
                 "endpoint": {
-                  "Value": "cell-1.prod.ca-central-1.storage.cryo.aws.a2z.com"
+                  "Value": "batch.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
                 }
               },
-              "batch": {
-                "Value": "batch",
+              "bedrock": {
+                "Value": "bedrock",
                 "endpoint": {
-                  "Value": "batch.ca-central-1.amazonaws.com"
+                  "Value": "bedrock.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22315,15 +23426,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22986,7 +24088,7 @@
                   "Value": "iot.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -23310,7 +24412,7 @@
                   "Value": "api.mediatailor.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -23418,6 +24520,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -23467,6 +24578,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23637,6 +24757,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "repostspace": {
+                "Value": "repostspace",
+                "endpoint": {
+                  "Value": "repostspace.ca-central-1.amazonaws.com"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -23693,6 +24819,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -23967,6 +25096,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -24049,7 +25187,19 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.ca-central-1.amazonaws.com"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "tnb": {
                 "Value": "tnb",
@@ -24307,6 +25457,15 @@
                 "Value": "appconfigdata",
                 "endpoint": {
                   "Value": "appconfigdata.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24732,6 +25891,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "imagebuilder": {
                 "Value": "imagebuilder",
                 "endpoint": {
@@ -24813,6 +25981,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -24824,6 +26001,27 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "notifications": {
+                "Value": "notifications"
               },
               "oam": {
                 "Value": "oam",
@@ -24843,10 +26041,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
                   "Value": "pi.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pinpoint-sms-voice-v2": {
+                "Value": "pinpoint-sms-voice-v2",
+                "endpoint": {
+                  "Value": "sms-voice.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24944,6 +26160,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -25053,6 +26272,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "shield": {
+                "Value": "shield",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sns": {
                 "Value": "sns",
                 "endpoint": {
@@ -25075,6 +26303,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25252,6 +26489,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -25376,15 +26622,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.cn-north-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.cn-north-1.storage.cryo.aws.a2z.org.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25909,15 +27146,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector2": {
                 "Value": "inspector2",
                 "endpoint": {
@@ -26320,6 +27548,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
+              },
               "route53resolver": {
                 "Value": "route53resolver",
                 "endpoint": {
@@ -26675,6 +27906,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -26799,15 +28039,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.cn-northwest-1.amazonaws.com.cn"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.cn-northwest-1.storage.cryo.aws.a2z.org.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27332,15 +28563,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector2": {
                 "Value": "inspector2",
                 "endpoint": {
@@ -27668,6 +28890,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -27703,6 +28934,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -28220,6 +29454,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -28260,7 +29503,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -28307,15 +29556,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-central-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -28326,7 +29566,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -28569,15 +29824,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29735,7 +30981,7 @@
                   "Value": "api.mediatailor.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -29954,10 +31200,22 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30226,6 +31484,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -30527,6 +31788,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -30609,7 +31879,10 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.eu-central-1.amazonaws.com"
+                }
               },
               "timestream": {
                 "Value": "timestream"
@@ -30917,6 +32190,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appmesh": {
+                "Value": "appmesh",
+                "endpoint": {
+                  "Value": "appmesh.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -30978,15 +32260,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.eu-central-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-central-2.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31287,6 +32560,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-containers": {
+                "Value": "emr-containers",
+                "endpoint": {
+                  "Value": "emr-containers.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31607,6 +32889,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -31628,6 +32919,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -31641,6 +32941,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31675,6 +32984,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -31721,6 +33039,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
@@ -31757,6 +33084,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "rosa": {
+                "Value": "rosa"
+              },
               "route53": {
                 "Value": "route53",
                 "endpoint": {
@@ -31765,6 +33095,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -31935,6 +33268,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32325,15 +33667,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-north-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -32517,15 +33850,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "codestar-connections": {
                 "Value": "codestar-connections",
                 "endpoint": {
@@ -32614,6 +33938,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "dax": {
+                "Value": "dax",
+                "endpoint": {
+                  "Value": "dax.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "detective": {
@@ -33360,7 +34693,7 @@
                   "Value": "api.mediatailor.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -33499,6 +34832,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33662,6 +35004,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -33937,6 +35282,15 @@
                 "Value": "ssm-incidents",
                 "endpoint": {
                   "Value": "ssm-incidents.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34379,15 +35733,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.eu-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-south-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35233,6 +36578,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -35262,6 +36616,15 @@
               },
               "privatelink": {
                 "Value": "privatelink"
+              },
+              "quicksight": {
+                "Value": "quicksight",
+                "endpoint": {
+                  "Value": "quicksight.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ram": {
                 "Value": "ram",
@@ -35364,6 +36727,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -35662,6 +37028,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transfer": {
                 "Value": "transfer",
                 "endpoint": {
@@ -35706,6 +37081,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -35810,6 +37194,9 @@
                   "Value": "https"
                 }
               },
+              "amazonlocationservice": {
+                "Value": "amazonlocationservice"
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
@@ -35841,6 +37228,15 @@
                 "Value": "application-insights",
                 "endpoint": {
                   "Value": "applicationinsights.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appmesh": {
+                "Value": "appmesh",
+                "endpoint": {
+                  "Value": "appmesh.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -35912,15 +37308,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-south-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -35955,6 +37342,15 @@
                 "Value": "cloudfront",
                 "endpoint": {
                   "Value": "cloudfront.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cloudshell": {
+                "Value": "cloudshell",
+                "endpoint": {
+                  "Value": "cloudshell.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36059,6 +37455,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dax": {
+                "Value": "dax",
+                "endpoint": {
+                  "Value": "dax.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "directconnect": {
                 "Value": "directconnect",
                 "endpoint": {
@@ -36084,6 +37489,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "drs": {
@@ -36518,6 +37932,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "memorydb": {
+                "Value": "memorydb",
+                "endpoint": {
+                  "Value": "memory-db.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "meteringmarketplace": {
                 "Value": "meteringmarketplace",
                 "endpoint": {
@@ -36543,6 +37966,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "neptune": {
+                "Value": "neptune",
+                "endpoint": {
+                  "Value": "rds.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
                 }
               },
               "network-firewall": {
@@ -36575,10 +38016,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "outposts": {
+                "Value": "outposts",
+                "endpoint": {
+                  "Value": "outposts.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36659,6 +38118,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
@@ -36706,6 +38174,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -36890,6 +38361,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sso-oidc": {
                 "Value": "sso-oidc",
                 "endpoint": {
@@ -36948,6 +38428,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37273,7 +38762,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -37329,15 +38824,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-west-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -37348,7 +38834,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -37564,15 +39065,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38250,15 +39742,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -38784,7 +40267,7 @@
                   "Value": "api.mediatailor.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -39030,10 +40513,22 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39222,6 +40717,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "repostspace": {
+                "Value": "repostspace",
+                "endpoint": {
+                  "Value": "repostspace.eu-west-1.amazonaws.com"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -39287,6 +40788,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -39597,6 +41101,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -39688,7 +41201,10 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.eu-west-1.amazonaws.com"
+                }
               },
               "timestream": {
                 "Value": "timestream"
@@ -39940,6 +41456,15 @@
                   "Value": "https"
                 }
               },
+              "ahl": {
+                "Value": "ahl",
+                "endpoint": {
+                  "Value": "healthlake.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aiq": {
                 "Value": "aiq"
               },
@@ -40124,7 +41649,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -40171,19 +41702,28 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
+              "batch": {
+                "Value": "batch",
                 "endpoint": {
-                  "Value": "cell-1.prod.eu-west-2.storage.cryo.aws.a2z.com"
+                  "Value": "batch.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
                 }
               },
-              "batch": {
-                "Value": "batch",
+              "bedrock": {
+                "Value": "bedrock",
                 "endpoint": {
-                  "Value": "batch.eu-west-2.amazonaws.com"
+                  "Value": "bedrock.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40412,15 +41952,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41620,6 +43151,15 @@
               "omics": {
                 "Value": "omics"
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -41660,6 +43200,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41877,6 +43426,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -42151,6 +43703,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -42233,7 +43794,19 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.eu-west-2.amazonaws.com"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "transcribe": {
                 "Value": "transcribe",
@@ -42673,15 +44246,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.eu-west-3.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -42692,7 +44256,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "budgets": {
                 "Value": "budgets",
@@ -43639,7 +45218,7 @@
                   "Value": "api.mediatailor.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -43738,6 +45317,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -43769,6 +45357,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43941,6 +45538,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -44215,6 +45815,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -44296,6 +45905,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "tnb": {
                 "Value": "tnb",
                 "endpoint": {
@@ -44358,6 +45976,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -44484,6 +46111,15 @@
                 "Value": "appconfigdata",
                 "endpoint": {
                   "Value": "appconfigdata.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "application-insights": {
+                "Value": "application-insights",
+                "endpoint": {
+                  "Value": "applicationinsights.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45206,6 +46842,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "neptune": {
                 "Value": "neptune",
                 "endpoint": {
@@ -45261,6 +46906,15 @@
                 "Value": "outposts",
                 "endpoint": {
                   "Value": "outposts.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45332,6 +46986,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rekognition": {
                 "Value": "rekognition",
                 "endpoint": {
@@ -45385,6 +47048,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -45564,6 +47230,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45892,15 +47567,6 @@
                 "Value": "backup",
                 "endpoint": {
                   "Value": "backup.me-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.me-central-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46602,13 +48268,22 @@
                   "Value": "HTTPS"
                 }
               },
+              "mediapackagev2": {
+                "Value": "mediapackagev2",
+                "endpoint": {
+                  "Value": "mediapackagev2.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mediatailor": {
                 "Value": "mediatailor",
                 "endpoint": {
                   "Value": "api.mediatailor.me-central-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "meteringmarketplace": {
@@ -46633,6 +48308,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mwaa": {
+                "Value": "mwaa",
+                "endpoint": {
+                  "Value": "api.airflow.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46690,6 +48374,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46770,6 +48463,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
@@ -46817,6 +48519,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53resolver": {
                 "Value": "route53resolver",
@@ -46998,6 +48703,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-sap": {
+                "Value": "ssm-sap",
+                "endpoint": {
+                  "Value": "ssm-sap.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sso-oidc": {
                 "Value": "sso-oidc",
                 "endpoint": {
@@ -47056,6 +48770,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47363,15 +49086,6 @@
                 "Value": "backup-gateway",
                 "endpoint": {
                   "Value": "backup-gateway.me-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.me-south-1.storage.cryo.aws.a2z.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48277,6 +49991,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -48417,6 +50140,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -48763,6 +50489,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -49001,6 +50736,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -49076,19 +50820,28 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
+              "batch": {
+                "Value": "batch",
                 "endpoint": {
-                  "Value": "cell-1.prod.sa-east-1.storage.cryo.aws.a2z.com"
+                  "Value": "batch.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
                 }
               },
-              "batch": {
-                "Value": "batch",
+              "bedrock": {
+                "Value": "bedrock",
                 "endpoint": {
-                  "Value": "batch.sa-east-1.amazonaws.com"
+                  "Value": "bedrock.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50054,7 +51807,7 @@
                   "Value": "api.mediatailor.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -50153,6 +51906,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworks": {
                 "Value": "opsworks",
                 "endpoint": {
@@ -50193,6 +51955,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50291,6 +52062,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -50347,6 +52127,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -50625,6 +52408,15 @@
                 "Value": "ssm-incidents",
                 "endpoint": {
                   "Value": "ssm-incidents.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51101,6 +52893,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apptest": {
+                "Value": "apptest",
+                "endpoint": {
+                  "Value": "apptest.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -51141,7 +52942,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -51206,15 +53013,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-east-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -51225,7 +53023,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "billingconductor": {
                 "Value": "billingconductor",
@@ -51489,15 +53302,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52292,15 +54096,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -52397,7 +54192,7 @@
                   "Value": "iot.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -52761,7 +54556,22 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace"
+                "Value": "marketplace",
+                "endpoint": {
+                  "Value": "aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "marketplace-agreement": {
+                "Value": "marketplace-agreement",
+                "endpoint": {
+                  "Value": "agreement-marketplace.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "marketplace-catalog": {
                 "Value": "marketplace-catalog",
@@ -52871,7 +54681,7 @@
                   "Value": "api.mediatailor.us-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -52941,15 +54751,6 @@
                 "Value": "migrationhubstrategy",
                 "endpoint": {
                   "Value": "migrationhub-strategy.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mobile": {
-                "Value": "mobile",
-                "endpoint": {
-                  "Value": "mobile.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53147,6 +54948,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "personalize": {
                 "Value": "personalize",
                 "endpoint": {
@@ -53258,6 +55068,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.us-east-1.amazonaws.com"
+                }
+              },
               "qldb": {
                 "Value": "qldb",
                 "endpoint": {
@@ -53360,6 +55176,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "repostspace": {
+                "Value": "repostspace",
+                "endpoint": {
+                  "Value": "repostspace.us-east-1.amazonaws.com"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -53425,6 +55247,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -53744,6 +55569,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -53835,7 +55669,10 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.us-east-1.amazonaws.com"
+                }
               },
               "timestream": {
                 "Value": "timestream"
@@ -54348,7 +56185,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -54404,19 +56247,28 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
+              "batch": {
+                "Value": "batch",
                 "endpoint": {
-                  "Value": "cell-1.prod.us-east-2.storage.cryo.aws.a2z.com"
+                  "Value": "batch.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
                 }
               },
-              "batch": {
-                "Value": "batch",
+              "bedrock": {
+                "Value": "bedrock",
                 "endpoint": {
-                  "Value": "batch.us-east-2.amazonaws.com"
+                  "Value": "bedrock.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54609,15 +56461,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55364,7 +57207,7 @@
                   "Value": "iot.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -55688,7 +57531,7 @@
                   "Value": "api.mediatailor.us-east-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "memorydb": {
@@ -55884,6 +57727,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56128,6 +57980,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -56415,6 +58270,15 @@
                 "Value": "ssm-incidents",
                 "endpoint": {
                   "Value": "ssm-incidents.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56829,15 +58693,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-gov-east-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -57135,6 +58990,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eks-auth": {
+                "Value": "eks-auth",
+                "endpoint": {
+                  "Value": "eks-auth.us-gov-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "elasticache": {
                 "Value": "elasticache",
                 "endpoint": {
@@ -57423,7 +59287,7 @@
                   "Value": "iot.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -57630,6 +59494,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -57753,6 +59635,9 @@
               "rosa": {
                 "Value": "rosa"
               },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
+              },
               "route53resolver": {
                 "Value": "route53resolver",
                 "endpoint": {
@@ -57813,6 +59698,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "schemas": {
+                "Value": "schemas",
+                "endpoint": {
+                  "Value": "schemas.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -57826,6 +59720,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58309,15 +60212,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-gov-west-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -58328,7 +60222,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "chime": {
                 "Value": "chime"
@@ -58681,6 +60590,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eks-auth": {
+                "Value": "eks-auth",
+                "endpoint": {
+                  "Value": "eks-auth.us-gov-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "elasticache": {
                 "Value": "elasticache",
                 "endpoint": {
@@ -58978,7 +60896,7 @@
                   "Value": "iot.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -59269,6 +61187,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "oam": {
+                "Value": "oam",
+                "endpoint": {
+                  "Value": "oam.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -59437,6 +61373,9 @@
               "rosa": {
                 "Value": "rosa"
               },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
+              },
               "route53resolver": {
                 "Value": "route53resolver",
                 "endpoint": {
@@ -59497,6 +61436,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "schemas": {
+                "Value": "schemas",
+                "endpoint": {
+                  "Value": "schemas.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -59510,6 +61458,15 @@
                 "Value": "securityhub",
                 "endpoint": {
                   "Value": "securityhub.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securitylake": {
+                "Value": "securitylake",
+                "endpoint": {
+                  "Value": "securitylake.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60095,15 +62052,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-west-1.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -60267,15 +62215,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60779,15 +62718,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "inspector": {
                 "Value": "inspector",
                 "endpoint": {
@@ -60857,7 +62787,7 @@
                   "Value": "iot.us-west-1.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -61020,13 +62950,7 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace",
-                "endpoint": {
-                  "Value": "marketplace.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "marketplace"
               },
               "mcs": {
                 "Value": "mcs",
@@ -61247,6 +63171,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -61414,6 +63347,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -61697,6 +63633,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -61840,6 +63785,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -62175,7 +64129,13 @@
                 }
               },
               "augmentedairuntime": {
-                "Value": "augmentedairuntime"
+                "Value": "augmentedairuntime",
+                "endpoint": {
+                  "Value": "a2i-runtime.sagemaker.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -62231,15 +64191,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "backupstorage": {
-                "Value": "backupstorage",
-                "endpoint": {
-                  "Value": "cell-1.prod.us-west-2.storage.cryo.aws.a2z.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -62250,7 +64201,22 @@
                 }
               },
               "bedrock": {
-                "Value": "bedrock"
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "braket": {
                 "Value": "braket",
@@ -62493,15 +64459,6 @@
                 "Value": "codepipeline",
                 "endpoint": {
                   "Value": "codepipeline.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "codestar": {
-                "Value": "codestar",
-                "endpoint": {
-                  "Value": "codestar.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -63215,15 +65172,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "honeycode": {
-                "Value": "honeycode",
-                "endpoint": {
-                  "Value": "honeycode.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -63255,15 +65203,6 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "importexport": {
-                "Value": "importexport",
-                "endpoint": {
-                  "Value": "importexport.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -63374,7 +65313,7 @@
                   "Value": "iot.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS"
+                  "Value": "https"
                 }
               },
               "iotdevicemanagement": {
@@ -63693,7 +65632,13 @@
                 }
               },
               "marketplace": {
-                "Value": "marketplace"
+                "Value": "marketplace",
+                "endpoint": {
+                  "Value": "aws.amazon.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mcs": {
                 "Value": "mcs",
@@ -63776,7 +65721,7 @@
                   "Value": "api.mediatailor.us-west-2.amazonaws.com"
                 },
                 "protocols": {
-                  "Value": "HTTPS, HTTP"
+                  "Value": "HTTPS"
                 }
               },
               "medical-imaging": {
@@ -63846,15 +65791,6 @@
                 "Value": "migrationhubstrategy",
                 "endpoint": {
                   "Value": "migrationhub-strategy.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mobile": {
-                "Value": "mobile",
-                "endpoint": {
-                  "Value": "mobile.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64029,6 +65965,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64306,6 +66251,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "route53-application-recovery-controller": {
+                "Value": "route53-application-recovery-controller"
               },
               "route53-recovery-control-config": {
                 "Value": "route53-recovery-control-config",
@@ -64643,6 +66591,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ssm-quicksetup": {
+                "Value": "ssm-quicksetup",
+                "endpoint": {
+                  "Value": "ssm-quicksetup.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ssm-sap": {
                 "Value": "ssm-sap",
                 "endpoint": {
@@ -64734,7 +66691,10 @@
                 }
               },
               "thinclient": {
-                "Value": "thinclient"
+                "Value": "thinclient",
+                "endpoint": {
+                  "Value": "api.thinclient.us-west-2.amazonaws.com"
+                }
               },
               "timestream": {
                 "Value": "timestream"

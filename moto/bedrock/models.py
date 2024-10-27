@@ -14,6 +14,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class ModelCustomizationJob(BaseModel):
@@ -80,16 +81,16 @@ class ModelCustomizationJob(BaseModel):
         self.vpc_config = vpc_config
         self.region_name = region_name
         self.account_id = account_id
-        self.job_arn = f"arn:aws:bedrock:{self.region_name}:{self.account_id}:model-customization-job/{self.job_name}"
+        self.job_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:model-customization-job/{self.job_name}"
         self.output_model_name = f"{self.custom_model_name}-{self.job_name}"
-        self.output_model_arn = f"arn:aws:bedrock:{self.region_name}:{self.account_id}:custom-model/{self.output_model_name}"
+        self.output_model_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:custom-model/{self.output_model_name}"
         self.status = "InProgress"
         self.failure_message = "Failure Message"
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.last_modified_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.base_model_arn = f"arn:aws:bedrock:{self.region_name}::foundation-model/{self.base_model_identifier}"
-        self.output_model_kms_key_arn = f"arn:aws:kms:{self.region_name}:{self.account_id}:key/{self.output_model_name}-kms-key"
+        self.base_model_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}::foundation-model/{self.base_model_identifier}"
+        self.output_model_kms_key_arn = f"arn:{get_partition(self.region_name)}:kms:{self.region_name}:{self.account_id}:key/{self.output_model_name}-kms-key"
         self.training_metrics = {"trainingLoss": 0.0}  # hard coded
         self.validation_metrics = [{"validationLoss": 0.0}]  # hard coded
 
@@ -153,7 +154,7 @@ class CustomModel(BaseModel):
         self.validation_metrics = validation_metrics
         self.region_name = region_name
         self.account_id = account_id
-        self.model_arn = f"arn:aws:bedrock:{self.region_name}:{self.account_id}:custom-model/{self.model_name}"
+        self.model_arn = f"arn:{get_partition(self.region_name)}:bedrock:{self.region_name}:{self.account_id}:custom-model/{self.model_name}"
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.base_model_name = base_model_name
 

@@ -304,9 +304,9 @@ class MetricAggregatedDatum(MetricDatumBase):
 
 
 class Dashboard(BaseModel):
-    def __init__(self, account_id: str, name: str, body: str):
+    def __init__(self, account_id: str, region_name: str, name: str, body: str):
         # Guaranteed to be unique for now as the name is also the key of a dictionary where they are stored
-        self.arn = make_arn_for_dashboard(account_id, name)
+        self.arn = make_arn_for_dashboard(account_id, region_name, name)
         self.name = name
         self.body = body
         self.last_modified = datetime.now()
@@ -449,7 +449,11 @@ class CloudWatchBackend(BaseBackend):
         providers = CloudWatchMetricProvider.__subclasses__()
         md = []
         for provider in providers:
-            md.extend(provider.get_cloudwatch_metrics(self.account_id))
+            md.extend(
+                provider.get_cloudwatch_metrics(
+                    self.account_id, region=self.region_name
+                )
+            )
         return md
 
     def put_metric_alarm(
@@ -655,7 +659,16 @@ class CloudWatchBackend(BaseBackend):
         results = []
         results_to_return = []
         metric_stat_queries = [q for q in queries if "MetricStat" in q]
-        expression_queries = [q for q in queries if "Expression" in q]
+        metric_math_expression_queries = [
+            q
+            for q in queries
+            if "Expression" in q and not q["Expression"].startswith("SELECT")
+        ]
+        metric_insights_expression_queries = [
+            q
+            for q in queries
+            if "Expression" in q and q["Expression"].startswith("SELECT")
+        ]
         for query in metric_stat_queries:
             period_start_time = start_time
             metric_stat = query["MetricStat"]
@@ -726,8 +739,9 @@ class CloudWatchBackend(BaseBackend):
                         "timestamps": timestamps,
                     }
                 )
-        for query in expression_queries:
-            label = query.get("Label") or f"{query_name} {stat}"
+        # Metric Math expression Queries run on top of the results of other queries
+        for query in metric_math_expression_queries:
+            label = query.get("Label") or query["Id"]
             result_vals, timestamps = parse_expression(query["Expression"], results)
             results_to_return.append(
                 {
@@ -737,6 +751,44 @@ class CloudWatchBackend(BaseBackend):
                     "timestamps": timestamps,
                 }
             )
+        # Metric Insights Expression Queries act on all results, and are essentially SQL queries
+        for query in metric_insights_expression_queries:
+            period_start_time = start_time
+            delta = timedelta(seconds=int(query["Period"]))
+            result_vals: List[SupportsFloat] = []  # type: ignore[no-redef]
+            timestamps: List[str] = []  # type: ignore[no-redef]
+            while period_start_time <= end_time:
+                period_end_time = period_start_time + delta
+                period_md = [
+                    period_md
+                    for period_md in period_data
+                    if period_start_time <= period_md.timestamp < period_end_time
+                ]
+
+                # https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch-metrics-insights-querylanguage.html
+                # We should filter even further, but Moto currently does not support Metrics Insights Queries
+                # Let's just add all metric data found within this period
+
+                if len(period_md) > 0:
+                    stats = Statistics(["Sum"], period_start_time)
+                    stats.metric_data = period_md
+                    result_vals.append(stats.get_statistics_for_type("Sum"))  # type: ignore[arg-type]
+
+                    timestamps.append(stats.timestamp)
+                period_start_time += delta
+            if scan_by == "TimestampDescending" and len(timestamps) > 0:
+                timestamps.reverse()
+                result_vals.reverse()
+
+            results_to_return.append(
+                {
+                    "id": query["Id"],
+                    "label": (query.get("Label") or query["Id"]),
+                    "vals": result_vals,
+                    "timestamps": timestamps,
+                }
+            )
+
         return results_to_return
 
     def get_metric_statistics(
@@ -805,7 +857,7 @@ class CloudWatchBackend(BaseBackend):
         return self.metric_data + self.aws_metric_data
 
     def put_dashboard(self, name: str, body: str) -> None:
-        self.dashboards[name] = Dashboard(self.account_id, name, body)
+        self.dashboards[name] = Dashboard(self.account_id, self.region_name, name, body)
 
     def list_dashboards(self, prefix: str = "") -> Iterable[Dashboard]:
         for key, value in self.dashboards.items():

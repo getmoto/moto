@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.utilities.utils import get_partition
 
 from ..exceptions import (
     CidrLimitExceeded,
@@ -22,8 +23,8 @@ from ..exceptions import (
     InvalidVpcEndPointIdError,
     InvalidVPCIdError,
     InvalidVPCRangeError,
-    OperationNotPermitted,
     UnsupportedTenancy,
+    VPCCidrBlockAssociationError,
 )
 from ..utils import (
     create_dns_entries,
@@ -348,7 +349,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         client_token: Optional[str] = None,
         security_group_ids: Optional[List[str]] = None,
         tags: Optional[Dict[str, str]] = None,
-        private_dns_enabled: Optional[str] = None,
+        private_dns_enabled: Optional[bool] = None,
         destination_prefix_list_id: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
@@ -675,7 +676,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         if self.cidr_block == self.cidr_block_association_set.get(
             association_id, {}
         ).get("cidr_block"):
-            raise OperationNotPermitted(association_id)
+            raise VPCCidrBlockAssociationError(association_id)
 
         entry = response = self.cidr_block_association_set.get(association_id, {})
         if entry:
@@ -905,7 +906,7 @@ class VPCBackend:
         client_token: Optional[str] = None,
         security_group_ids: Optional[List[str]] = None,
         tags: Optional[Dict[str, str]] = None,
-        private_dns_enabled: Optional[str] = None,
+        private_dns_enabled: Optional[bool] = None,
     ) -> VPCEndPoint:
         vpc_endpoint_id = random_vpc_ep_id()
 
@@ -1034,8 +1035,9 @@ class VPCBackend:
                     if service:
                         DEFAULT_VPC_ENDPOINT_SERVICES[region].extend(service)
 
-                if "global" in account_backend:
-                    service = account_backend["global"].default_vpc_endpoint_service(
+                partition = get_partition(region)
+                if partition in account_backend:
+                    service = account_backend[partition].default_vpc_endpoint_service(
                         region, zones
                     )
                     if service:

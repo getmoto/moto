@@ -49,9 +49,14 @@ class SageMakerRuntimeResponse(BaseResponse):
         endpoint_name = self.path.split("/")[2]
         input_location = self.headers.get("X-Amzn-SageMaker-InputLocation")
         inference_id = self.headers.get("X-Amzn-SageMaker-Inference-Id")
-        location = self.sagemakerruntime_backend.invoke_endpoint_async(
-            endpoint_name, input_location
+        output_location, failure_location = (
+            self.sagemakerruntime_backend.invoke_endpoint_async(
+                endpoint_name, input_location
+            )
         )
         resp = {"InferenceId": inference_id or str(random.uuid4())}
-        headers = {"X-Amzn-SageMaker-OutputLocation": location}
+        headers = {
+            "X-Amzn-SageMaker-OutputLocation": output_location,
+            "X-Amzn-SageMaker-FailureLocation": failure_location,
+        }
         return 200, headers, json.dumps(resp)

@@ -1,4 +1,5 @@
 import datetime
+import re
 from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -7,6 +8,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 from .exceptions import (
     BadHealthCheckDefinition,
@@ -83,7 +85,6 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id: Optional[str],
         subnets: Optional[List[str]],
         security_groups: Optional[List[str]],
-        elb_backend: "ELBBackend",
     ):
         self.name = name
         self.health_check: Optional[FakeHealthCheck] = None
@@ -113,14 +114,6 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
-            if (
-                listener.ssl_certificate_id
-                and not listener.ssl_certificate_id.startswith("arn:aws:iam:")
-            ):
-                elb_backend._register_certificate(
-                    listener.ssl_certificate_id, self.dns_name
-                )
-
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -344,8 +337,17 @@ class ELBBackend(BaseBackend):
             subnets=subnets,
             security_groups=security_groups,
             vpc_id=vpc_id,
-            elb_backend=self,
         )
+        for listener in new_load_balancer.listeners:
+            if listener.ssl_certificate_id and not re.search(
+                f"{ARN_PARTITION_REGEX}:iam:", listener.ssl_certificate_id
+            ):
+                register_certificate(
+                    self.account_id,
+                    self.region_name,
+                    listener.ssl_certificate_id,
+                    new_load_balancer.dns_name,
+                )
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
@@ -369,11 +371,14 @@ class ELBBackend(BaseBackend):
                             raise DuplicateListenerError(name, lb_port)
                         break
                 else:
-                    if ssl_certificate_id and not ssl_certificate_id.startswith(
-                        "arn:aws:iam::"
+                    if ssl_certificate_id and not re.search(
+                        f"{ARN_PARTITION_REGEX}:iam::", ssl_certificate_id
                     ):
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
+                        register_certificate(
+                            self.account_id,
+                            self.region_name,
+                            ssl_certificate_id,
+                            balancer.dns_name,
                         )
                     balancer.listeners.append(
                         FakeListener(
@@ -492,8 +497,11 @@ class ELBBackend(BaseBackend):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
                     if ssl_certificate_id:
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
+                        register_certificate(
+                            self.account_id,
+                            self.region_name,
+                            ssl_certificate_id,
+                            balancer.dns_name,
                         )
         return balancer
 
@@ -620,15 +628,6 @@ class ELBBackend(BaseBackend):
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
-    def _register_certificate(self, ssl_certificate_id: str, dns_name: str) -> None:
-        from moto.acm.models import CertificateNotFound, acm_backends
-
-        acm_backend = acm_backends[self.account_id][self.region_name]
-        try:
-            acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
-        except CertificateNotFound:
-            raise CertificateNotFoundException()
-
     def enable_availability_zones_for_load_balancer(
         self, load_balancer_name: str, availability_zones: List[str]
     ) -> List[str]:
@@ -664,5 +663,16 @@ class ELBBackend(BaseBackend):
         return load_balancer.subnets
 
 
-# Use the same regions as EC2
-elb_backends = BackendDict(ELBBackend, "ec2")
+def register_certificate(
+    account_id: str, region: str, arn_certificate: str, arn_user: str
+) -> None:
+    from moto.acm.models import CertificateNotFound, acm_backends
+
+    acm_backend = acm_backends[account_id][region]
+    try:
+        acm_backend.set_certificate_in_use_by(arn_certificate, arn_user)
+    except CertificateNotFound:
+        raise CertificateNotFoundException()
+
+
+elb_backends = BackendDict(ELBBackend, "elb")

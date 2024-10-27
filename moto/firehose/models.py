@@ -37,6 +37,7 @@ from moto.firehose.exceptions import (
 from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
 
@@ -46,6 +47,7 @@ DESTINATION_TYPES_TO_NAMES = {
     "http_endpoint": "HttpEndpoint",
     "elasticsearch": "Elasticsearch",
     "redshift": "Redshift",
+    "snowflake": "Snowflake",
     "splunk": "Splunk",  # Unimplemented
 }
 
@@ -160,7 +162,7 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods,too-m
                 del self.destinations[0][destination_name][old]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:{get_partition(region)}:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
@@ -199,6 +201,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_configuration: Dict[str, Any],
         splunk_destination_configuration: Dict[str, Any],
         http_endpoint_destination_configuration: Dict[str, Any],
+        snowflake_destination_configuration: Dict[str, Any],
         tags: List[Dict[str, str]],
     ) -> str:
         """Create a Kinesis Data Firehose delivery stream."""
@@ -444,7 +447,7 @@ class FirehoseBackend(BaseBackend):
         # Path prefix pattern: myApp/YYYY/MM/DD/HH/
         # Object name pattern:
         # DeliveryStreamName-DeliveryStreamVersion-YYYY-MM-DD-HH-MM-SS-RandomString
-        prefix = f"{prefix}{'' if prefix.endswith('/') else '/'}"
+        prefix = f"{prefix}{'' if prefix.endswith('/') or prefix == '' else '/'}"
         now = utcnow()
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
@@ -469,7 +472,7 @@ class FirehoseBackend(BaseBackend):
 
         batched_data = b"".join([b64decode(r["Data"]) for r in records])
         try:
-            s3_backends[self.account_id]["global"].put_object(
+            s3_backends[self.account_id][self.partition].put_object(
                 bucket_name, object_path, batched_data
             )
         except Exception as exc:
@@ -514,8 +517,8 @@ class FirehoseBackend(BaseBackend):
                 request_responses = self.put_http_records(
                     destination["HttpEndpoint"], records
                 )
-            elif "Elasticsearch" in destination or "Redshift" in destination:
-                # This isn't implmented as these services aren't implemented,
+            elif {"Elasticsearch", "Redshift", "Snowflake"} & set(destination):
+                # This isn't implemented as these services aren't implemented,
                 # so ignore the data, but return a "proper" response.
                 request_responses = [
                     {"RecordId": str(mock_random.uuid4())} for _ in range(len(records))
@@ -599,6 +602,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_update: Dict[str, Any],
         splunk_destination_update: Dict[str, Any],
         http_endpoint_destination_update: Dict[str, Any],
+        snowflake_destination_configuration: Dict[str, Any],
     ) -> None:
         (dest_name, dest_config) = find_destination_config_in_args(locals())
 

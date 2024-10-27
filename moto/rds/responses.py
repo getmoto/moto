@@ -1,42 +1,22 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.ec2.models import ec2_backends
-from moto.neptune.responses import (
-    CREATE_GLOBAL_CLUSTER_TEMPLATE,
-    DELETE_GLOBAL_CLUSTER_TEMPLATE,
-    DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE,
-    REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE,
-    NeptuneResponse,
-)
 
 from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
 
 
 class RDSResponse(BaseResponse):
-    def __init__(self) -> None:
-        super().__init__(service_name="rds")
-        # Neptune and RDS share a HTTP endpoint RDS is the lucky guy that catches all requests
-        # So we have to determine whether we can handle an incoming request here, or whether it needs redirecting to Neptune
-        self.neptune = NeptuneResponse()
-
     @property
     def backend(self) -> RDSBackend:
         return rds_backends[self.current_account][self.region]
 
-    def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        # Because some requests are send through to Neptune, we have to prepare the NeptuneResponse-class
-        self.neptune.setup_class(request, full_url, headers)
-        return super()._dispatch(request, full_url, headers)
-
-    def __getattribute__(self, name: str) -> Any:
-        if name in ["create_db_cluster", "create_global_cluster"]:
-            if self._get_param("Engine") == "neptune":
-                return object.__getattribute__(self.neptune, name)
-        return object.__getattribute__(self, name)
+    @property
+    def global_backend(self) -> RDSBackend:
+        """Return backend instance of the region that stores Global Clusters"""
+        return rds_backends[self.current_account]["us-east-1"]
 
     def _get_db_kwargs(self) -> Dict[str, Any]:
         args = {
@@ -44,7 +24,7 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_int_param("AllocatedStorage"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
-            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_instance_identifier": self._get_param("DBInstanceIdentifier"),
@@ -56,6 +36,9 @@ class RDSResponse(BaseResponse):
             "engine_version": self._get_param("EngineVersion"),
             "enable_cloudwatch_logs_exports": self._get_params().get(
                 "EnableCloudwatchLogsExports"
+            ),
+            "cloudwatch_logs_exports_config": self._get_params().get(
+                "CloudwatchLogsExportConfiguration"
             ),
             "enable_iam_database_authentication": self._get_bool_param(
                 "EnableIAMDatabaseAuthentication"
@@ -74,13 +57,11 @@ class RDSResponse(BaseResponse):
             "preferred_maintenance_window": self._get_param(
                 "PreferredMaintenanceWindow", "wed:06:38-wed:07:08"
             ).lower(),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
-            "region": self.region,
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible"),
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
-            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_encrypted": self._get_bool_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType", None),
             "vpc_security_group_ids": self._get_multi_param(
                 "VpcSecurityGroupIds.VpcSecurityGroupId"
@@ -97,7 +78,8 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_int_param("AllocatedStorage"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "backup_retention_period": self._get_param("BackupRetentionPeriod"),
-            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "backtrack_window": self._get_param("BacktrackWindow"),
+            "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
             "db_instance_class": self._get_param("DBInstanceClass"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "new_db_cluster_identifier": self._get_param("NewDBClusterIdentifier"),
@@ -130,13 +112,11 @@ class RDSResponse(BaseResponse):
             "preferred_maintenance_window": self._get_param(
                 "PreferredMaintenanceWindow"
             ),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "account_id": self.current_account,
-            "region": self.region,
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible"),
             "security_groups": self._get_multi_param(
                 "DBSecurityGroups.DBSecurityGroupName"
             ),
-            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_encrypted": self._get_bool_param("StorageEncrypted"),
             "storage_type": self._get_param("StorageType", None),
             "vpc_security_group_ids": self._get_multi_param(
                 "VpcSecurityGroupIds.VpcSecurityGroupId"
@@ -157,7 +137,7 @@ class RDSResponse(BaseResponse):
             "iops": self._get_int_param("Iops"),
             # OptionGroupName
             "port": self._get_param("Port"),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible"),
             "source_db_identifier": self._get_param("SourceDBInstanceIdentifier"),
             "storage_type": self._get_param("StorageType"),
         }
@@ -184,7 +164,11 @@ class RDSResponse(BaseResponse):
             "availability_zones": self._get_multi_param(
                 "AvailabilityZones.AvailabilityZone"
             ),
+            "backtrack_window": self._get_int_param("BacktrackWindow"),
             "enable_cloudwatch_logs_exports": params.get("EnableCloudwatchLogsExports"),
+            "enable_iam_database_authentication": self._get_bool_param(
+                "EnableIAMDatabaseAuthentication"
+            ),
             "db_name": self._get_param("DatabaseName"),
             "db_cluster_identifier": self._get_param("DBClusterIdentifier"),
             "db_subnet_group_name": self._get_param("DBSubnetGroupName"),
@@ -195,7 +179,7 @@ class RDSResponse(BaseResponse):
             "allocated_storage": self._get_param("AllocatedStorage"),
             "global_cluster_identifier": self._get_param("GlobalClusterIdentifier"),
             "iops": self._get_param("Iops"),
-            "storage_encrypted": self._get_param("StorageEncrypted"),
+            "storage_encrypted": self._get_bool_param("StorageEncrypted"),
             "enable_global_write_forwarding": self._get_param(
                 "EnableGlobalWriteForwarding"
             ),
@@ -206,10 +190,9 @@ class RDSResponse(BaseResponse):
             "network_type": self._get_param("NetworkType"),
             "port": self._get_param("Port"),
             "parameter_group": self._get_param("DBClusterParameterGroupName"),
-            "region": self.region,
             "db_cluster_instance_class": self._get_param("DBClusterInstanceClass"),
             "enable_http_endpoint": self._get_bool_param("EnableHttpEndpoint"),
-            "copy_tags_to_snapshot": self._get_param("CopyTagsToSnapshot"),
+            "copy_tags_to_snapshot": self._get_bool_param("CopyTagsToSnapshot"),
             "tags": self.unpack_list_params("Tags", "Tag"),
             "scaling_configuration": self._get_dict_param("ScalingConfiguration."),
             "serverless_v2_scaling_configuration": params.get(
@@ -221,6 +204,8 @@ class RDSResponse(BaseResponse):
             "vpc_security_group_ids": self.unpack_list_params(
                 "VpcSecurityGroupIds", "VpcSecurityGroupId"
             ),
+            "preferred_backup_window": self._get_param("PreferredBackupWindow"),
+            "backup_retention_period": self._get_param("BackupRetentionPeriod"),
         }
 
     def _get_export_task_kwargs(self) -> Dict[str, Any]:
@@ -243,7 +228,7 @@ class RDSResponse(BaseResponse):
                 "EventCategories", "EventCategory"
             ),
             "source_ids": self.unpack_list_params("SourceIds", "SourceId"),
-            "enabled": self._get_param("Enabled"),
+            "enabled": self._get_bool_param("Enabled"),
             "tags": self.unpack_list_params("Tags", "Tag"),
         }
 
@@ -273,20 +258,7 @@ class RDSResponse(BaseResponse):
                 db_instance_identifier, filters=filter_dict
             )
         )
-        marker = self._get_param("Marker")
-        all_ids = [instance.db_instance_identifier for instance in all_instances]
-        if marker:
-            start = all_ids.index(marker) + 1
-        else:
-            start = 0
-        page_size = self._get_int_param(
-            "MaxRecords", 50
-        )  # the default is 100, but using 50 to make testing easier
-        instances_resp = all_instances[start : start + page_size]
-        next_marker = None
-        if len(all_instances) > start + page_size:
-            next_marker = instances_resp[-1].db_instance_identifier
-
+        instances_resp, next_marker = self._paginate(all_instances)
         template = self.response_template(DESCRIBE_DATABASES_TEMPLATE)
         return template.render(databases=instances_resp, marker=next_marker)
 
@@ -503,9 +475,8 @@ class RDSResponse(BaseResponse):
 
     def describe_option_groups(self) -> str:
         kwargs = self._get_option_group_kwargs()
-        kwargs["max_records"] = self._get_int_param("MaxRecords")
-        kwargs["marker"] = self._get_param("Marker")
         option_groups = self.backend.describe_option_groups(kwargs)
+        option_groups, _ = self._paginate(option_groups)
         template = self.response_template(DESCRIBE_OPTION_GROUP_TEMPLATE)
         return template.render(option_groups=option_groups)
 
@@ -518,34 +489,11 @@ class RDSResponse(BaseResponse):
 
     def modify_option_group(self) -> str:
         option_group_name = self._get_param("OptionGroupName")
-        count = 1
-        options_to_include = []
-        # TODO: This can probably be refactored with a single call to super.get_multi_param, but there are not enough tests (yet) to verify this
-        while self._get_param(f"OptionsToInclude.member.{count}.OptionName"):
-            options_to_include.append(
-                {
-                    "Port": self._get_param(f"OptionsToInclude.member.{count}.Port"),
-                    "OptionName": self._get_param(
-                        f"OptionsToInclude.member.{count}.OptionName"
-                    ),
-                    "DBSecurityGroupMemberships": self._get_param(
-                        f"OptionsToInclude.member.{count}.DBSecurityGroupMemberships"
-                    ),
-                    "OptionSettings": self._get_param(
-                        f"OptionsToInclude.member.{count}.OptionSettings"
-                    ),
-                    "VpcSecurityGroupMemberships": self._get_param(
-                        f"OptionsToInclude.member.{count}.VpcSecurityGroupMemberships"
-                    ),
-                }
-            )
-            count += 1
+        options_to_include = (self._get_multi_param_dict("OptionsToInclude") or {}).get(
+            "OptionConfiguration", []
+        )
+        options_to_remove = self._get_params().get("OptionsToRemove", [])
 
-        count = 1
-        options_to_remove = []
-        while self._get_param(f"OptionsToRemove.member.{count}"):
-            options_to_remove.append(self._get_param(f"OptionsToRemove.member.{count}"))
-            count += 1
         option_group = self.backend.modify_option_group(
             option_group_name, options_to_include, options_to_remove
         )
@@ -560,9 +508,8 @@ class RDSResponse(BaseResponse):
 
     def describe_db_parameter_groups(self) -> str:
         kwargs = self._get_db_parameter_group_kwargs()
-        kwargs["max_records"] = self._get_int_param("MaxRecords")
-        kwargs["marker"] = self._get_param("Marker")
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
+        db_parameter_groups, _ = self._paginate(db_parameter_groups)
         template = self.response_template(DESCRIBE_DB_PARAMETER_GROUPS_TEMPLATE)
         return template.render(db_parameter_groups=db_parameter_groups)
 
@@ -754,13 +701,13 @@ class RDSResponse(BaseResponse):
         return template.render(options=options, marker=None)
 
     def describe_global_clusters(self) -> str:
-        clusters = self.backend.describe_global_clusters()
+        clusters = self.global_backend.describe_global_clusters()
         template = self.response_template(DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE)
         return template.render(clusters=clusters)
 
     def create_global_cluster(self) -> str:
         params = self._get_params()
-        cluster = self.backend.create_global_cluster(
+        cluster = self.global_backend.create_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
             source_db_cluster_identifier=params.get("SourceDBClusterIdentifier"),
             engine=params.get("Engine"),
@@ -773,7 +720,7 @@ class RDSResponse(BaseResponse):
 
     def delete_global_cluster(self) -> str:
         params = self._get_params()
-        cluster = self.backend.delete_global_cluster(
+        cluster = self.global_backend.delete_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
         )
         template = self.response_template(DELETE_GLOBAL_CLUSTER_TEMPLATE)
@@ -921,6 +868,86 @@ class RDSResponse(BaseResponse):
         )
         template = self.response_template(CREATE_DB_PROXY_TEMPLATE)
         return template.render(dbproxy=db_proxy)
+
+    def register_db_proxy_targets(self) -> str:
+        db_proxy_name = self._get_param("DBProxyName")
+        target_group_name = self._get_param("TargetGroupName")
+        db_cluster_identifiers = self._get_params().get("DBClusterIdentifiers", [])
+        db_instance_identifiers = self._get_params().get("DBInstanceIdentifiers", [])
+        targets = self.backend.register_db_proxy_targets(
+            db_proxy_name=db_proxy_name,
+            target_group_name=target_group_name,
+            db_cluster_identifiers=db_cluster_identifiers,
+            db_instance_identifiers=db_instance_identifiers,
+        )
+
+        template = self.response_template(REGISTER_DB_PROXY_TARGET)
+        return template.render(targets=targets)
+
+    def deregister_db_proxy_targets(self) -> str:
+        db_proxy_name = self._get_param("DBProxyName")
+        target_group_name = self._get_param("TargetGroupName")
+        db_cluster_identifiers = self._get_params().get("DBClusterIdentifiers", [])
+        db_instance_identifiers = self._get_params().get("DBInstanceIdentifiers", [])
+        self.backend.deregister_db_proxy_targets(
+            db_proxy_name=db_proxy_name,
+            target_group_name=target_group_name,
+            db_cluster_identifiers=db_cluster_identifiers,
+            db_instance_identifiers=db_instance_identifiers,
+        )
+
+        template = self.response_template(DEREGISTER_DB_PROXY_TARGET)
+        return template.render()
+
+    def describe_db_proxy_targets(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        targets = self.backend.describe_db_proxy_targets(proxy_name=proxy_name)
+        template = self.response_template(DESCRIBE_DB_PROXY_TARGETS)
+        return template.render(targets=targets)
+
+    def delete_db_proxy(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        proxy = self.backend.delete_db_proxy(proxy_name=proxy_name)
+        template = self.response_template(DELETE_DB_PROXY_TEMPLATE)
+        return template.render(dbproxy=proxy)
+
+    def describe_db_proxy_target_groups(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        groups = self.backend.describe_db_proxy_target_groups(proxy_name=proxy_name)
+        template = self.response_template(DESCRIBE_DB_PROXY_TARGET_GROUPS)
+        return template.render(groups=groups)
+
+    def modify_db_proxy_target_group(self) -> str:
+        proxy_name = self._get_param("DBProxyName")
+        config = self._get_params().get("ConnectionPoolConfig", {})
+        group = self.backend.modify_db_proxy_target_group(
+            proxy_name=proxy_name, config=config
+        )
+        template = self.response_template(MODIFY_DB_PROXY_TARGET_GROUP)
+        return template.render(group=group)
+
+    def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
+        from moto.rds.exceptions import InvalidParameterValue
+
+        marker = self._get_param("Marker")
+        # Default was originally set to 50 instead of 100 for ease of testing.  Should fix.
+        page_size = self._get_int_param("MaxRecords", 50)
+        if page_size < 20 or page_size > 100:
+            msg = (
+                f"Invalid value {page_size} for MaxRecords. Must be between 20 and 100"
+            )
+            raise InvalidParameterValue(msg)
+        all_resources = list(resources)
+        all_ids = [resource.name for resource in all_resources]
+        if marker:
+            start = all_ids.index(marker) + 1
+        else:
+            start = 0
+        paginated_resources = all_resources[start : start + page_size]
+        next_marker = None
+        if len(all_resources) > start + page_size:
+            next_marker = paginated_resources[-1].name
+        return paginated_resources, next_marker
 
 
 CREATE_DATABASE_TEMPLATE = """<CreateDBInstanceResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
@@ -1312,7 +1339,7 @@ REMOVE_TAGS_FROM_RESOURCE_TEMPLATE = """<RemoveTagsFromResourceResponse xmlns="h
 
 CREATE_DB_CLUSTER_TEMPLATE = """<CreateDBClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-09-01/">
   <CreateDBClusterResult>
-  {{ cluster.to_xml() }}
+  {{ cluster.to_xml(initial=True) }}
   </CreateDBClusterResult>
   <ResponseMetadata>
     <RequestId>523e3218-afc7-11c3-90f5-f90431260ab4</RequestId>
@@ -1697,3 +1724,129 @@ DESCRIBE_DB_PROXIES_TEMPLATE = """<DescribeDBProxiesResponse xmlns="http://rds.a
     </ResponseMetadata>
 </DescribeDBProxiesResponse>
 """
+
+CREATE_GLOBAL_CLUSTER_TEMPLATE = """<CreateGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <CreateGlobalClusterResult>
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  </CreateGlobalClusterResult>
+</CreateGlobalClusterResponse>"""
+
+DELETE_GLOBAL_CLUSTER_TEMPLATE = """<DeleteGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DeleteGlobalClusterResult>
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  </DeleteGlobalClusterResult>
+</DeleteGlobalClusterResponse>"""
+
+DESCRIBE_GLOBAL_CLUSTERS_TEMPLATE = """<DescribeGlobalClustersResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeGlobalClustersResult>
+    <GlobalClusters>
+{% for cluster in clusters %}
+    <GlobalClusterMember>
+        {{ cluster.to_xml() }}
+        </GlobalClusterMember>
+{% endfor %}
+    </GlobalClusters>
+  </DescribeGlobalClustersResult>
+</DescribeGlobalClustersResponse>"""
+
+REMOVE_FROM_GLOBAL_CLUSTER_TEMPLATE = """<RemoveFromGlobalClusterResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <RemoveFromGlobalClusterResult>
+  {% if cluster %}
+  <GlobalCluster>
+    {{ cluster.to_xml() }}
+  </GlobalCluster>
+  {% endif %}
+  </RemoveFromGlobalClusterResult>
+</RemoveFromGlobalClusterResponse>"""
+
+
+DEREGISTER_DB_PROXY_TARGET = """<DeregisterDBProxyTargetsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+<DeregisterDBProxyTargetsResult>
+</DeregisterDBProxyTargetsResult>
+</DeregisterDBProxyTargetsResponse>"""
+
+
+REGISTER_DB_PROXY_TARGET = """<RegisterDBProxyTargetsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+<RegisterDBProxyTargetsResult>
+<DBProxyTargets>
+  {% for target in targets %}
+  <member>
+    <RdsResourceId>{{ target.rds_resource_id }}</RdsResourceId>
+    <Port>5432</Port>
+    <Type>{{ target.type }}</Type>
+    <TargetHealth>
+        <State>REGISTERING</State>
+    </TargetHealth>
+    {% if target.endpoint %}<Endpoint>{{ target.endpoint }}</Endpoint>{% endif %}
+  </member>
+  {% endfor %}
+</DBProxyTargets>
+</RegisterDBProxyTargetsResult>
+</RegisterDBProxyTargetsResponse>"""
+
+
+DESCRIBE_DB_PROXY_TARGETS = """<DescribeDBProxyTargetsResponse xmlns="http://rds.amazonaws.com/doc/2014-10-31/">
+<DescribeDBProxyTargetsResult>
+  <Targets>
+    {% for target in targets %}
+      <member>
+        <RdsResourceId>{{ target.rds_resource_id }}</RdsResourceId>
+        <Port>5432</Port>
+        <Type>{{ target.type }}</Type>
+        <TargetHealth>
+            <State>AVAILABLE</State>
+        </TargetHealth>
+        {% if target.endpoint %}<Endpoint>{{ target.endpoint }}</Endpoint>{% endif %}
+      </member>
+    {% endfor %}
+  </Targets>
+</DescribeDBProxyTargetsResult>
+</DescribeDBProxyTargetsResponse>
+"""
+
+
+DELETE_DB_PROXY_TEMPLATE = """<DeleteDBProxyResponse>
+<DeleteDBProxyResult>
+  <DBProxy>
+    {{ dbproxy.to_xml() }}
+  </DBProxy>
+</DeleteDBProxyResult>
+</DeleteDBProxyResponse>"""
+
+
+DESCRIBE_DB_PROXY_TARGET_GROUPS = """<DescribeDBProxyTargetGroupsResponse>
+<DescribeDBProxyTargetGroupsResult>
+  <TargetGroups>
+  {% for group in groups %}
+    <member>
+      {{ group.to_xml() }}
+    </member>
+  {% endfor %}
+  </TargetGroups>
+</DescribeDBProxyTargetGroupsResult>
+</DescribeDBProxyTargetGroupsResponse>"""
+
+
+MODIFY_DB_PROXY_TARGET_GROUP = """<ModifyDBProxyTargetGroupResponse>
+<ModifyDBProxyTargetGroupResult>
+  <DBProxyTargetGroup>
+    {{ group.to_xml() }}
+  </DBProxyTargetGroup>
+</ModifyDBProxyTargetGroupResult>
+</ModifyDBProxyTargetGroupResponse>"""

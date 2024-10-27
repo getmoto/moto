@@ -130,7 +130,10 @@ class AWSCertificateManagerResponse(BaseResponse):
         certs = []
         statuses = self._get_param("CertificateStatuses")
         for cert_bundle in self.acm_backend.list_certificates(statuses):
-            certs.append(cert_bundle.describe()["Certificate"])
+            _cert = cert_bundle.describe()["Certificate"]
+            _in_use_by = _cert.pop("InUseBy", [])
+            _cert["InUse"] = bool(_in_use_by)
+            certs.append(_cert)
 
         result = {"CertificateSummaryList": certs}
         return json.dumps(result)
@@ -176,6 +179,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
         tags = self._get_param("Tags")  # Optional
+        cert_authority_arn = self._get_param("CertificateAuthorityArn")  # Optional
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -192,6 +196,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             idempotency_token,
             subject_alt_names,
             tags,
+            cert_authority_arn,
         )
 
         return json.dumps({"CertificateArn": arn})

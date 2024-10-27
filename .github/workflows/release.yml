@@ -57,6 +57,14 @@ jobs:
         docker run -p 5000:5000 --name moto motoserver/moto &
         TEST_SERVER_MODE=true pytest -sv tests/test_core tests/test_s3/test_s3.py
         docker stop moto
+    - name: Commit Version Change
+      run: |
+        git config --local user.email "admin@getmoto.org"
+        git config --local user.name "Moto Admin"
+        git add moto/__init__.py
+        git add setup.cfg
+        git commit -m "Pre-Release: Up Version Number"
+        git push
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
     - name: Tag version on Github
@@ -93,7 +101,7 @@ jobs:
     - name: Push to DockerHub and GHCR
       if: ${{ inputs.current_release }}
       id: build_and_push
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
       with:
         platforms: linux/amd64,linux/arm64
         push: true
@@ -108,6 +116,7 @@ jobs:
         git config --local user.email "admin@getmoto.org"
         git config --local user.name "Moto Admin"
         git add moto/__init__.py
+        git add setup.cfg
         git add CHANGELOG.md
-        git commit -m "Post-release steps"
+        git commit -m "Admin: Post-release steps"
         git push

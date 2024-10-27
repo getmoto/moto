@@ -52,7 +52,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:ec2:{self.ec2_backend.region_name}:{self.ec2_backend.account_id}:transit-gateway/{self.id}"
+        return f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}:{self.ec2_backend.account_id}:transit-gateway/{self.id}"
 
     @staticmethod
     def cloudformation_name_type() -> str:

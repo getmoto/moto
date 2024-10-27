@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
+from moto.utilities.utils import PARTITION_NAMES
 
 from .comparisons import get_comparison_func
 
@@ -397,5 +398,5 @@ dynamodb_backends = BackendDict(
     DynamoDBBackend,
     "dynamodb_v20111205",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

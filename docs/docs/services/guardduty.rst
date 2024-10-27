@@ -20,6 +20,7 @@ guardduty
 - [X] create_detector
 - [X] create_filter
 - [ ] create_ip_set
+- [ ] create_malware_protection_plan
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
@@ -29,6 +30,7 @@ guardduty
 - [X] delete_filter
 - [ ] delete_invitations
 - [ ] delete_ip_set
+- [ ] delete_malware_protection_plan
 - [ ] delete_members
 - [ ] delete_publishing_destination
 - [ ] delete_threat_intel_set
@@ -48,6 +50,7 @@ guardduty
 - [ ] get_findings_statistics
 - [ ] get_invitations_count
 - [ ] get_ip_set
+- [ ] get_malware_protection_plan
 - [ ] get_malware_scan_settings
 - [ ] get_master_account
 - [ ] get_member_detectors
@@ -67,6 +70,7 @@ guardduty
 - [ ] list_findings
 - [ ] list_invitations
 - [ ] list_ip_sets
+- [ ] list_malware_protection_plans
 - [ ] list_members
 - [X] list_organization_admin_accounts
   
@@ -86,6 +90,7 @@ guardduty
 - [X] update_filter
 - [ ] update_findings_feedback
 - [ ] update_ip_set
+- [ ] update_malware_protection_plan
 - [ ] update_malware_scan_settings
 - [ ] update_member_detectors
 - [ ] update_organization_configuration

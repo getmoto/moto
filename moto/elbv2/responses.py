@@ -680,6 +680,7 @@ class ELBV2Response(BaseResponse):
             "network-load-balancers": 20,
             "targets-per-network-load-balancer": 200,
             "listeners-per-network-load-balancer": 50,
+            "certificates-per-application-load-balancer": 25,
         }
 
         template = self.response_template(DESCRIBE_LIMITS_TEMPLATE)

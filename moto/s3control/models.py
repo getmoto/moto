@@ -11,6 +11,7 @@ from moto.s3.exceptions import (
     WrongPublicAccessBlockAccountIdError,
 )
 from moto.s3.models import PublicAccessBlock
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import AccessPointNotFound, AccessPointPolicyNotFound
 
@@ -19,6 +20,7 @@ class AccessPoint(BaseModel):
     def __init__(
         self,
         account_id: str,
+        region_name: str,
         name: str,
         bucket: str,
         vpc_configuration: Dict[str, Any],
@@ -28,7 +30,7 @@ class AccessPoint(BaseModel):
         self.alias = f"{name}-{mock_random.get_random_hex(34)}-s3alias"
         self.bucket = bucket
         self.created = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        self.arn = f"arn:aws:s3:us-east-1:{account_id}:accesspoint/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:s3:us-east-1:{account_id}:accesspoint/{name}"
         self.policy: Optional[str] = None
         self.network_origin = "VPC" if vpc_configuration else "Internet"
         self.vpc_id = (vpc_configuration or {}).get("VpcId")
@@ -100,10 +102,11 @@ class S3ControlBackend(BaseBackend):
     ) -> AccessPoint:
         access_point = AccessPoint(
             account_id,
-            name,
-            bucket,
-            vpc_configuration,
-            public_access_block_configuration,
+            region_name=self.region_name,
+            name=name,
+            bucket=bucket,
+            vpc_configuration=vpc_configuration,
+            public_access_block_configuration=public_access_block_configuration,
         )
         self.access_points[account_id][name] = access_point
         return access_point
@@ -142,5 +145,5 @@ s3control_backends = BackendDict(
     S3ControlBackend,
     "s3control",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

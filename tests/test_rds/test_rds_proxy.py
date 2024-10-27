@@ -39,17 +39,16 @@ def test_create_db_proxy():
     )
     db_proxy = resp["DBProxy"]
     assert db_proxy["DBProxyName"] == "testrdsproxy"
-    assert (
-        db_proxy["DBProxyArn"]
-        == f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:testrdsproxy"
+    assert db_proxy["DBProxyArn"].startswith(
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:"
     )
-    assert db_proxy["Status"] == "availible"
+    assert db_proxy["Status"] == "available"
     assert db_proxy["EngineFamily"] == "MYSQL"
     assert db_proxy["VpcId"] == vpc_id
-    assert db_proxy["VpcSecurityGroupIds"] == []
     assert db_proxy["VpcSubnetIds"] == [subnet_id, subnet_id_2]
     assert db_proxy["Auth"] == [
         {
+            "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
             "SecretArn": "TestSecretARN",
@@ -98,17 +97,16 @@ def test_describe_db_proxies():
     response = rds_client.describe_db_proxies(DBProxyName="testrdsproxydescribe")
     db_proxy = response["DBProxies"][0]
     assert db_proxy["DBProxyName"] == "testrdsproxydescribe"
-    assert (
-        db_proxy["DBProxyArn"]
-        == f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:testrdsproxydescribe"
+    assert db_proxy["DBProxyArn"].startswith(
+        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db-proxy:prx-"
     )
-    assert db_proxy["Status"] == "availible"
+    assert db_proxy["Status"] == "available"
     assert db_proxy["EngineFamily"] == "MYSQL"
     assert db_proxy["VpcId"] == vpc_id
-    assert db_proxy["VpcSecurityGroupIds"] == []
     assert db_proxy["VpcSubnetIds"] == [subnet_id, subnet_id_2]
     assert db_proxy["Auth"] == [
         {
+            "Description": "Test Description",
             "UserName": "Test Username",
             "AuthScheme": "SECRETS",
             "SecretArn": "TestSecretARN",

@@ -18,6 +18,7 @@ from moto.packages.boto.ec2.blockdevicemapping import (
     BlockDeviceMapping,
     BlockDeviceType,
 )
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AutoscalingClientError,
@@ -112,7 +113,7 @@ class FakeScalingPolicy(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:autoscaling:{self.autoscaling_backend.region_name}:{self.autoscaling_backend.account_id}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
+        return f"arn:{get_partition(self.autoscaling_backend.region_name)}:autoscaling:{self.autoscaling_backend.region_name}:{self.autoscaling_backend.account_id}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
 
     def execute(self) -> None:
         if self.adjustment_type == "ExactCapacity":
@@ -174,7 +175,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self.metadata_options = metadata_options
         self.classic_link_vpc_id = classic_link_vpc_id
         self.classic_link_vpc_security_groups = classic_link_vpc_security_groups
-        self.arn = f"arn:aws:autoscaling:{region_name}:{account_id}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
+        self.arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
 
     @classmethod
     def create_from_instance(
@@ -448,7 +449,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self._id = str(random.uuid4())
         self.region = self.autoscaling_backend.region_name
         self.account_id = self.autoscaling_backend.account_id
-        self.service_linked_role = f"arn:aws:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+        partition = get_partition(self.region)
+        self.service_linked_role = f"arn:{partition}:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
 
         self.vpc_zone_identifier: Optional[str] = None
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
@@ -485,7 +487,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: List[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
-        self.created_time = created_time
+        self.created_time = created_time.isoformat()
 
     @property
     def tags(self) -> List[Dict[str, str]]:
@@ -502,7 +504,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:autoscaling:{self.region}:{self.account_id}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
+        return f"arn:{get_partition(self.region)}:autoscaling:{self.region}:{self.account_id}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
 
     def active_instances(self) -> List[InstanceState]:
         return [x for x in self.instance_states if x.lifecycle_state == "InService"]
@@ -718,6 +720,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         return self.launch_config.security_groups  # type: ignore[union-attr]
 
+    @property
+    def instance_tags(self) -> Dict[str, str]:
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.instance_tags
+        return {}
+
     def update(
         self,
         availability_zones: List[str],
@@ -813,6 +822,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self, count_needed: int, propagated_tags: Dict[str, str]
     ) -> None:
         propagated_tags[ASG_NAME_TAG] = self.name
+        propagated_tags.update(self.instance_tags)
 
         # VPCZoneIdentifier:
         # A comma-separated list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created.
@@ -1169,6 +1179,8 @@ class AutoScalingBackend(BaseBackend):
                 "Valid requests must contain either LaunchTemplate, LaunchConfigurationName "
                 "or MixedInstancesPolicy parameter."
             )
+        if name not in self.autoscaling_groups:
+            raise ValidationError("AutoScalingGroup name not found - null")
 
         group = self.autoscaling_groups[name]
         group.update(

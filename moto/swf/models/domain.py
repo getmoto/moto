@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from ..exceptions import (
     SWFUnknownResourceFault,
@@ -51,7 +52,7 @@ class Domain(BaseModel):
         if self.description:
             hsh["description"] = self.description
         hsh["arn"] = (
-            f"arn:aws:swf:{self.region_name}:{self.account_id}:/domain/{self.name}"
+            f"arn:{get_partition(self.region_name)}:swf:{self.region_name}:{self.account_id}:/domain/{self.name}"
         )
         return hsh
 

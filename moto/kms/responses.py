@@ -6,6 +6,7 @@ from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AlreadyExistsException,
@@ -43,7 +44,7 @@ class KmsResponse(BaseResponse):
         else:
             id_type = "key/"
 
-        return f"arn:aws:kms:{self.region}:{self.current_account}:{id_type}{key_id}"
+        return f"arn:{get_partition(self.region)}:kms:{self.region}:{self.current_account}:{id_type}{key_id}"
 
     def _validate_cmk_id(self, key_id: str) -> None:
         """Determine whether a CMK ID exists.
@@ -245,7 +246,10 @@ class KmsResponse(BaseResponse):
             )
 
         self._validate_cmk_id(target_key_id)
-        self.kms_backend.add_alias(target_key_id, alias_name)
+        if update:
+            self.kms_backend.update_alias(target_key_id, alias_name)
+        else:
+            self.kms_backend.create_alias(target_key_id, alias_name)
 
         return json.dumps(None)
 
@@ -272,13 +276,13 @@ class KmsResponse(BaseResponse):
 
         response_aliases = []
 
-        backend_aliases = self.kms_backend.get_all_aliases()
+        backend_aliases = self.kms_backend.list_aliases()
         for target_key_id, aliases in backend_aliases.items():
             for alias_name in aliases:
                 # TODO: add creation date and last updated in response_aliases
                 response_aliases.append(
                     {
-                        "AliasArn": f"arn:aws:kms:{region}:{self.current_account}:{alias_name}",
+                        "AliasArn": f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{alias_name}",
                         "AliasName": alias_name,
                         "TargetKeyId": target_key_id,
                     }
@@ -288,7 +292,7 @@ class KmsResponse(BaseResponse):
                 a for a in response_aliases if a["AliasName"] == reserved_alias
             ]
             if not exsisting:
-                arn = f"arn:aws:kms:{region}:{self.current_account}:{reserved_alias}"
+                arn = f"arn:{get_partition(region)}:kms:{region}:{self.current_account}:{reserved_alias}"
                 response_aliases.append(
                     {
                         "TargetKeyId": target_key_id,

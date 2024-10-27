@@ -23,12 +23,13 @@ from moto.organizations.exceptions import (
     TargetNotFoundException,
 )
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .utils import PAGINATION_MODEL
 
 
 class FakeOrganization(BaseModel):
-    def __init__(self, account_id: str, feature_set: str):
+    def __init__(self, account_id: str, region_name: str, feature_set: str):
         self.id = utils.make_random_org_id()
         self.root_id = utils.make_random_root_id()
         self.feature_set = feature_set
@@ -40,14 +41,21 @@ class FakeOrganization(BaseModel):
             # This field is deprecated in AWS, but we'll return it for old time's sake
             {"Type": "SERVICE_CONTROL_POLICY", "Status": "ENABLED"}
         ]
+        self.region = region_name
 
     @property
     def arn(self) -> str:
-        return utils.ORGANIZATION_ARN_FORMAT.format(self.master_account_id, self.id)
+        partition = get_partition(self.region)
+        return utils.ORGANIZATION_ARN_FORMAT.format(
+            partition, self.master_account_id, self.id
+        )
 
     @property
     def master_account_arn(self) -> str:
-        return utils.MASTER_ACCOUNT_ARN_FORMAT.format(self.master_account_id, self.id)
+        partition = get_partition(self.region)
+        return utils.MASTER_ACCOUNT_ARN_FORMAT.format(
+            partition, self.master_account_id, self.id
+        )
 
     def describe(self) -> Dict[str, Any]:
         return {
@@ -66,6 +74,7 @@ class FakeOrganization(BaseModel):
 class FakeAccount(BaseModel):
     def __init__(self, organization: FakeOrganization, **kwargs: Any):
         self.type = "ACCOUNT"
+        self.region = organization.region
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.create_account_status_id = utils.make_random_create_account_status_id()
@@ -79,10 +88,40 @@ class FakeAccount(BaseModel):
         self.attached_policies: List[FakePolicy] = []
         self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
 
+        role_name = kwargs.get("RoleName", "OrganizationAccountAccessRole")
+
+        from moto.iam import iam_backends
+        from moto.iam.exceptions import EntityAlreadyExists
+
+        trust_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": f"arn:aws:iam::{self.master_account_id}:root"},
+                    "Action": "sts:AssumeRole",
+                }
+            ],
+        }
+        iam = iam_backends[self.id]["global"]
+        try:
+            iam.create_role(
+                role_name=role_name,
+                assume_role_policy_document=json.dumps(trust_policy),
+                path="",
+                permissions_boundary=None,
+                description="",
+                tags=[],
+                max_session_duration="3600",
+            )
+        except EntityAlreadyExists:
+            pass
+
     @property
     def arn(self) -> str:
+        partition = get_partition(self.region)
         return utils.ACCOUNT_ARN_FORMAT.format(
-            self.master_account_id, self.organization_id, self.id
+            partition, self.master_account_id, self.organization_id, self.id
         )
 
     @property
@@ -118,6 +157,7 @@ class FakeAccount(BaseModel):
 class FakeOrganizationalUnit(BaseModel):
     def __init__(self, organization: FakeOrganization, **kwargs: Any):
         self.type = "ORGANIZATIONAL_UNIT"
+        self.region = organization.region
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.id = utils.make_random_ou_id(organization.root_id)
@@ -129,8 +169,9 @@ class FakeOrganizationalUnit(BaseModel):
 
     @property
     def arn(self) -> str:
+        partition = get_partition(self.region)
         return self._arn_format.format(
-            self.master_account_id, self.organization_id, self.id
+            partition, self.master_account_id, self.organization_id, self.id
         )
 
     def describe(self) -> Dict[str, Dict[str, Any]]:
@@ -199,6 +240,7 @@ class FakePolicy(BaseModel):
         self.type = kwargs.get("Type", "")
         self.id = utils.make_random_policy_id()
         self.aws_managed = False
+        self.region = organization.region
         self.organization_id = organization.id
         self.master_account_id = organization.master_account_id
         self.attachments: List[Any] = []
@@ -217,8 +259,9 @@ class FakePolicy(BaseModel):
 
     @property
     def arn(self) -> str:
+        partition = get_partition(self.region)
         return self._arn_format.format(
-            self.master_account_id, self.organization_id, self.id
+            partition, self.master_account_id, self.organization_id, self.id
         )
 
     def describe(self) -> Dict[str, Any]:
@@ -375,8 +418,12 @@ class OrganizationsBackend(BaseBackend):
 
         return root  # type: ignore[return-value]
 
-    def create_organization(self, **kwargs: Any) -> Dict[str, Any]:
-        self.org = FakeOrganization(self.account_id, kwargs.get("FeatureSet") or "ALL")
+    def create_organization(self, region: str, **kwargs: Any) -> Dict[str, Any]:
+        self.org = FakeOrganization(
+            self.account_id,
+            region_name=region,
+            feature_set=kwargs.get("FeatureSet") or "ALL",
+        )
         root_ou = FakeRoot(self.org)
         self.ou.append(root_ou)
         master_account = FakeAccount(
@@ -940,5 +987,5 @@ organizations_backends = BackendDict(
     OrganizationsBackend,
     "organizations",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

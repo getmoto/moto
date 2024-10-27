@@ -8,6 +8,7 @@ from moto.core.exceptions import RESTError
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
+from moto.efs.models import EFSBackend, efs_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
@@ -20,11 +21,15 @@ from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
+from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
+from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
+from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
 # Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
@@ -43,11 +48,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def s3_backend(self) -> S3Backend:
-        return s3_backends[self.account_id]["global"]
+        return s3_backends[self.account_id][self.partition]
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
         return ec2_backends[self.account_id][self.region_name]
+
+    @property
+    def efs_backend(self) -> EFSBackend:
+        return efs_backends[self.account_id][self.region_name]
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -114,6 +123,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return sqs_backends[self.account_id][self.region_name]
 
     @property
+    def stepfunctions_backend(self) -> StepFunctionBackend:
+        return stepfunctions_backends[self.account_id][self.region_name]
+
+    @property
     def backup_backend(self) -> BackupBackend:
         return backup_backends[self.account_id][self.region_name]
 
@@ -127,6 +140,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspaces_backends[self.account_id][self.region_name]
         return None
+
+    @property
+    def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
+        # Workspaces service has limited region availability
+        if self.region_name in workspaces_backends[self.account_id].regions:
+            return workspacesweb_backends[self.account_id][self.region_name]
+        return None
+
+    @property
+    def sagemaker_backend(self) -> SageMakerModelBackend:
+        return sagemaker_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -205,14 +229,18 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
         # S3
-        if not resource_type_filters or "s3" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "s3" in resource_type_filters
+            or "s3:bucket" in resource_type_filters
+        ):
             for bucket in self.s3_backend.buckets.values():
                 tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
                 if not tags or not tag_filter(
                     tags
                 ):  # Skip if no tags, or invalid filter
                     continue
-                yield {"ResourceARN": "arn:aws:s3:::" + bucket.name, "Tags": tags}
+                yield {"ResourceARN": bucket.arn, "Tags": tags}
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
@@ -253,114 +281,78 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         continue
                     yield {"ResourceARN": f"{task.task_arn}", "Tags": tags}
 
-        # EC2 AMI, resource type ec2:image
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:image" in resource_type_filters
-        ):
-            for ami in self.ec2_backend.amis.values():
-                tags = format_tags(self.ec2_backend.tags.get(ami.id, {}))
+        # EC2 Resources
+        ec2_resource_types = {
+            "ec2:image": self.ec2_backend.amis.values(),
+            "ec2:instance": (
+                instance
+                for reservation in self.ec2_backend.reservations.values()
+                for instance in reservation.instances
+            ),
+            "ec2:network-interface": self.ec2_backend.enis.values(),
+            "ec2:security-group": (
+                sg for vpc in self.ec2_backend.groups.values() for sg in vpc.values()
+            ),
+            "ec2:snapshot": self.ec2_backend.snapshots.values(),
+            "ec2:volume": self.ec2_backend.volumes.values(),
+            "ec2:vpc": self.ec2_backend.vpcs.values(),
+            "ec2:subnet": (
+                subnet
+                for subnet in self.ec2_backend.subnets.values()
+                for subnet in subnet.values()
+            ),
+            "ec2:vpc-peering-connection": self.ec2_backend.vpc_pcxs.values(),
+            "ec2:transit-gateway": self.ec2_backend.transit_gateways.values(),
+            "ec2:transit-gateway-attachment": self.ec2_backend.transit_gateway_attachments.values(),
+            "ec2:route-table": self.ec2_backend.route_tables.values(),
+            "ec2:customer-gateway": self.ec2_backend.customer_gateways.values(),
+            "ec2:vpn-connection": self.ec2_backend.vpn_connections.values(),
+            "ec2:natgateway": self.ec2_backend.nat_gateways.values(),
+            "ec2:internet-gateway": self.ec2_backend.internet_gateways.values(),
+            "ec2:managed-prefix-lists": self.ec2_backend.managed_prefix_lists.values(),
+            "ec2:flow-logs": self.ec2_backend.flow_logs.values(),
+            "ec2:spot-instance-request": self.ec2_backend.spot_instance_requests.values(),
+            # TODO: "ec2:reserved-instance": ...,
+        }
 
-                if not tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::image/{ami.id}",
-                    "Tags": tags,
-                }
-
-        # EC2 Instance, resource type ec2:instance
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:instance" in resource_type_filters
-        ):
-            for reservation in self.ec2_backend.reservations.values():
-                for instance in reservation.instances:
-                    tags = format_tags(self.ec2_backend.tags.get(instance.id, {}))
-
+        for resource_type, resources in ec2_resource_types.items():
+            if (
+                not resource_type_filters
+                or "ec2" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resources:
+                    tags = format_tags(self.ec2_backend.tags.get(resource.id, {}))
                     if not tags or not tag_filter(tags):
-                        # Skip if no tags, or invalid filter
                         continue
                     yield {
-                        "ResourceARN": f"arn:aws:ec2:{self.region_name}::instance/{instance.id}",
+                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type}/{resource.id}",
                         "Tags": tags,
                     }
 
-        # EC2 NetworkInterface, resource type ec2:network-interface
+        # EFS, resource type elasticfilesystem:access-point
         if (
             not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:network-interface" in resource_type_filters
+            or "elasticfilesystem" in resource_type_filters
+            or "elasticfilesystem:access-point" in resource_type_filters
         ):
-            for eni in self.ec2_backend.enis.values():
-                tags = format_tags(self.ec2_backend.tags.get(eni.id, {}))
-
-                if not tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
+            for ap in self.efs_backend.access_points.values():
+                tags = self.efs_backend.list_tags_for_resource(ap.access_point_id)
+                if not tag_filter(tags):
                     continue
-                yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::network-interface/{eni.id}",
-                    "Tags": tags,
-                }
+                yield {"ResourceARN": f"{ap.access_point_arn}", "Tags": tags}
 
-        # TODO EC2 ReservedInstance
-
-        # EC2 SecurityGroup, resource type ec2:security-group
+        # EFS, resource type elasticfilesystem:file-system
         if (
             not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:security-group" in resource_type_filters
+            or "elasticfilesystem" in resource_type_filters
+            or "elasticfilesystem:file-system" in resource_type_filters
         ):
-            for vpc in self.ec2_backend.groups.values():
-                for sg in vpc.values():
-                    tags = format_tags(self.ec2_backend.tags.get(sg.id, {}))
-
-                    if not tags or not tag_filter(tags):
-                        # Skip if no tags, or invalid filter
-                        continue
-                    yield {
-                        "ResourceARN": f"arn:aws:ec2:{self.region_name}::security-group/{sg.id}",
-                        "Tags": tags,
-                    }
-
-        # EC2 Snapshot, resource type ec2:snapshot
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:snapshot" in resource_type_filters
-        ):
-            for snapshot in self.ec2_backend.snapshots.values():
-                tags = format_tags(self.ec2_backend.tags.get(snapshot.id, {}))
-
-                if not tags or not tag_filter(tags):
-                    # Skip if no tags, or invalid filter
+            for fs in self.efs_backend.file_systems_by_id.values():
+                tags = self.efs_backend.list_tags_for_resource(fs.file_system_id)
+                if not tag_filter(tags):
                     continue
-                yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::snapshot/{snapshot.id}",
-                    "Tags": tags,
-                }
-
-        # TODO EC2 SpotInstanceRequest
-
-        # EC2 Volume, resource type ec2:volume
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:volume" in resource_type_filters
-        ):
-            for volume in self.ec2_backend.volumes.values():
-                tags = format_tags(self.ec2_backend.tags.get(volume.id, {}))
-
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
-                    continue
-                yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}::volume/{volume.id}",
-                    "Tags": tags,
-                }
+                yield {"ResourceARN": f"{fs.file_system_arn}", "Tags": tags}
 
         # ELB (Classic Load Balancers)
         if (
@@ -376,7 +368,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:elasticloadbalancing:{self.region_name}:{self.account_id}:loadbalancer/{elb.name}",
                     "Tags": tags,
                 }
 
@@ -421,7 +413,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         ):
             if not resource_type_filters or "glue" in resource_type_filters:
                 arns_starting_with = [
-                    f"arn:aws:glue:{self.region_name}:{self.account_id}:"
+                    f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:"
                 ]
             else:
                 arns_starting_with = []
@@ -429,7 +421,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if resource_type.startswith("glue:"):
                         glue_type = resource_type.split(":")[-1]
                         arns_starting_with.append(
-                            f"arn:aws:glue:{self.region_name}:{self.account_id}:{glue_type}"
+                            f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:{glue_type}"
                         )
             for glue_arn in self.glue_backend.tagger.tags.keys():
                 if any(glue_arn.startswith(arn) for arn in arns_starting_with):
@@ -535,9 +527,16 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:ssm:{self.region_name}:{self.account_id}:document/{doc_name}",
                     "Tags": tags,
                 }
+        # Step Functions
+        if not resource_type_filters or "states:stateMachine" in resource_type_filters:
+            for state_machine in self.stepfunctions_backend.state_machines:
+                tags = format_tag_keys(state_machine.tags, ["key", "value"])
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": state_machine.arn, "Tags": tags}
 
         # Workspaces
         if self.workspaces_backend and (
@@ -551,7 +550,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspace/{ws.workspace_id}",
                     "Tags": tags,
                 }
 
@@ -567,7 +566,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:directory/{wd.directory_id}",
                     "Tags": tags,
                 }
 
@@ -583,37 +582,31 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {
-                    "ResourceARN": f"arn:aws:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
                     "Tags": tags,
                 }
 
-        # VPC
-        if (
-            not resource_type_filters
-            or "ec2" in resource_type_filters
-            or "ec2:vpc" in resource_type_filters
+        # Workspaces Web
+        if self.workspacesweb_backends and (
+            not resource_type_filters or "workspaces-web" in resource_type_filters
         ):
-            for vpc in self.ec2_backend.vpcs.values():
-                tags = format_tags(self.ec2_backend.tags.get(vpc.id, {}))
-                if not tags or not tag_filter(
-                    tags
-                ):  # Skip if no tags, or invalid filter
+            for portal in self.workspacesweb_backends.portals.values():
+                tags = self.workspacesweb_backends.tagger.list_tags_for_resource(
+                    portal.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
                     continue
                 yield {
-                    "ResourceARN": f"arn:aws:ec2:{self.region_name}:{self.account_id}:vpc/{vpc.id}",
+                    "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces-web:{self.region_name}:{self.account_id}:portal/{portal.portal_id}",
                     "Tags": tags,
                 }
-        # VPC Customer Gateway
-        # VPC DHCP Option Set
-        # VPC Internet Gateway
-        # VPC Network ACL
-        # VPC Route Table
-        # VPC Subnet
-        # VPC Virtual Private Gateway
-        # VPC VPN Connection
 
         # Lambda Instance
-        if not resource_type_filters or "lambda" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "lambda" in resource_type_filters
+            or "lambda:function" in resource_type_filters
+        ):
             for f in self.lambda_backend.list_functions():
                 tags = format_tags(f.tags)
                 if not tags or not tag_filter(tags):
@@ -637,6 +630,50 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "ResourceARN": table.table_arn,
                     "Tags": tags,
                 }
+
+        # sagemaker cluster, automljob, compilation-job, domain, model-explainability-job-definition, model-quality-job-definition, and hyper-parameter-tuning-job currently supported
+        sagemaker_resource_map: Dict[str, Dict[str, Any]] = {
+            "sagemaker:cluster": self.sagemaker_backend.clusters,
+            "sagemaker:automl-job": self.sagemaker_backend.auto_ml_jobs,
+            "sagemaker:compilation-job": self.sagemaker_backend.compilation_jobs,
+            "sagemaker:domain": self.sagemaker_backend.domains,
+            "sagemaker:model-explainability-job-definition": self.sagemaker_backend.model_explainability_job_definitions,
+            "sagemaker:model-quality-job-definition": self.sagemaker_backend.model_quality_job_definitions,
+            "sagemaker:hyper-parameter-tuning-job": self.sagemaker_backend.hyper_parameter_tuning_jobs,
+            "sagemaker:model-bias-job-definition": self.sagemaker_backend.model_bias_job_definitions,
+            "sagemaker:data-quality-job-definition": self.sagemaker_backend.data_quality_job_definitions,
+            "sagemaker:model": self.sagemaker_backend._models,
+            "sagemaker:notebook-instance": self.sagemaker_backend.notebook_instances,
+            "sagemaker:endpoint-config": self.sagemaker_backend.endpoint_configs,
+            "sagemaker:endpoint": self.sagemaker_backend.endpoints,
+            "sagemaker:experiment": self.sagemaker_backend.experiments,
+            "sagemaker:pipeline": self.sagemaker_backend.pipelines,
+            "sagemaker:pipeline-execution": self.sagemaker_backend.pipeline_executions,
+            "sagemaker:processing-job": self.sagemaker_backend.processing_jobs,
+            "sagemaker:trial": self.sagemaker_backend.trials,
+            "sagemaker:trial-component": self.sagemaker_backend.trial_components,
+            "sagemaker:training-job": self.sagemaker_backend.training_jobs,
+            "sagemaker:transform-job": self.sagemaker_backend.transform_jobs,
+            "sagemaker:notebook-instance-lifecycle-config": self.sagemaker_backend.notebook_instance_lifecycle_configurations,
+            "sagemaker:model-card": self.sagemaker_backend.model_cards,
+            "sagemaker:model-package-group": self.sagemaker_backend.model_package_groups,
+            "sagemaker:model-package": self.sagemaker_backend.model_packages,
+            "sagemaker:feature-group": self.sagemaker_backend.feature_groups,
+        }
+        for resource_type, resource_source in sagemaker_resource_map.items():
+            if (
+                not resource_type_filters
+                or "sagemaker" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resource_source.values():
+                    tags = self.sagemaker_backend.list_tags(resource.arn)[0]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": resource.arn,
+                        "Tags": tags,
+                    }
 
     def _get_tag_keys_generator(self) -> Iterator[str]:
         # Look at
@@ -822,10 +859,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         new_token = str(mock_random.uuid4())
         self._pages[new_token] = {"gen": generator, "misc": next_item}
 
-        # Token used up, might as well bin now, if you call it again your an idiot
+        # Token used up, might as well bin now, if you call it again you're an idiot
         if pagination_token:
             del self._pages[pagination_token]
-
         return new_token, result
 
     def get_tag_keys(
@@ -926,7 +962,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only DynamoDB, Logs and RDS resources are currently supported
+        Only DynamoDB, Logs, RDS, and SageMaker resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -935,19 +971,32 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             "ErrorMessage": "Service not yet supported",
         }
         for arn in resource_arns:
-            if arn.startswith("arn:aws:rds:") or arn.startswith("arn:aws:snapshot:"):
+            if arn.startswith(
+                f"arn:{get_partition(self.region_name)}:rds:"
+            ) or arn.startswith(f"arn:{get_partition(self.region_name)}:snapshot:"):
                 self.rds_backend.add_tags_to_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith("arn:aws:workspaces:"):
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:workspaces-web:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
+                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces:"):
                 resource_id = arn.split("/")[-1]
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
-            elif arn.startswith("arn:aws:logs:"):
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
-            elif arn.startswith("arn:aws:dynamodb"):
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:dynamodb"):
                 self.dynamodb_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:sagemaker:"):
+                self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
             else:

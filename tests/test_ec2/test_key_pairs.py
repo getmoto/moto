@@ -15,7 +15,10 @@ ssh-ed25519 \
 AAAAC3NzaC1lZDI1NTE5AAAAIEwsSB9HbTeKCdkSlMZeTq9jZggaPJUwAsUi/7wakB+B \
 moto@getmoto"""
 
-ED25519_PUBLIC_KEY_FINGERPRINT = "6c:d9:cf:90:d7:f7:bc:46:83:9e:f5:56:aa:e1:13:38"
+ED25519_PUBLIC_KEY_FINGERPRINT = (
+    "6e:bc:8a:45:e5:fa:ba:e4:c9:a4:a3:f6:7b:da:05:16:fb:cc:88:66:05"
+    ":33:b8:a1:c2:80:9a:6b:06:ac:38:76"
+)
 
 RSA_PUBLIC_KEY_OPENSSH = b"""\
 ssh-rsa \
@@ -122,8 +125,8 @@ def test_key_pairs_create_dryrun_boto3():
 
 
 @mock_aws
-@pytest.mark.parametrize("key_type", ["rsa", "ed25519"])
-def test_key_pairs_create_boto3(key_type):
+@pytest.mark.parametrize("key_type, fingerprint_len", [("rsa", 59), ("ed25519", 95)])
+def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -147,6 +150,10 @@ def test_key_pairs_create_boto3(key_type):
     assert "KeyPairId" in kps[0]
     assert kps[0]["KeyName"] == key_name
     assert "KeyFingerprint" in kps[0]
+    # Naive check for hash type
+    # SHA1 - 40 + 19 `:` symbols
+    # SHA256 - 64 + 31 `:` symbols
+    assert len(kps[0]["KeyFingerprint"]) == fingerprint_len
     assert isinstance(kps[0]["CreateTime"], datetime)
 
 

@@ -1225,6 +1225,8 @@ def test_update_service():
         desiredCount=2,
     )
     assert response["service"]["desiredCount"] == 2
+    id = response["service"]["deployments"][0]["id"]
+    created_at = response["service"]["deployments"][0]["createdAt"]
 
     response = client.update_service(
         cluster="test_ecs_cluster",
@@ -1233,6 +1235,8 @@ def test_update_service():
         desiredCount=0,
     )
     assert response["service"]["desiredCount"] == 0
+    assert response["service"]["runningCount"] == 0
+    assert response["service"]["pendingCount"] == 0
     assert response["service"]["schedulingStrategy"] == "REPLICA"
 
     # Verify we can pass the ARNs of the cluster and service
@@ -1243,6 +1247,22 @@ def test_update_service():
         desiredCount=1,
     )
     assert response["service"]["desiredCount"] == 1
+    assert response["service"]["runningCount"] == 1
+    assert response["service"]["pendingCount"] == 0
+
+    response = client.update_service(
+        cluster="test_ecs_cluster",
+        service="test_ecs_service",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+        forceNewDeployment=True,
+    )
+    assert response["service"]["deployments"][0]["id"] != id
+    assert response["service"]["deployments"][0]["createdAt"] != created_at
+    assert (
+        response["service"]["deployments"][0]["createdAt"]
+        == response["service"]["deployments"][0]["updatedAt"]
+    )
 
 
 @mock_aws
@@ -2087,6 +2107,43 @@ def test_run_task_awsvpc_network():
     assert {"name": "privateIPv4Address", "value": eni["PrivateIpAddress"]} in details
     assert {"name": "networkInterfaceId", "value": eni["NetworkInterfaceId"]} in details
     assert {"name": "macAddress", "value": eni["MacAddress"]} in details
+
+
+@mock_aws
+def test_run_task_awsvpc_network__unknown_sec_group():
+    # Setup
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2_client = boto3.client("ec2", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    setup_resources = setup_ecs(client, ec2)
+
+    # Execute
+    task = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [setup_resources[0].id],
+                "securityGroups": ["unknown_sg"],
+            }
+        },
+    )["tasks"][0]
+    eni_id = next(
+        t["value"]
+        for t in task["attachments"][0]["details"]
+        if t["name"] == "networkInterfaceId"
+    )
+
+    eni = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
+    # Unknown SecurityGroup is created for us
+    assert eni["Groups"] == [{"GroupId": "unknown_sg", "GroupName": "unknown_sg"}]
 
 
 @mock_aws

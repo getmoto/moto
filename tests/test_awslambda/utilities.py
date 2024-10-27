@@ -182,9 +182,9 @@ def create_invalid_lambda(role):
     return err
 
 
-def get_role_name():
+def get_role_name(region=None):
     with mock_aws():
-        iam = boto3.client("iam", region_name=_lambda_region)
+        iam = boto3.client("iam", region_name=region or _lambda_region)
         while True:
             try:
                 return iam.get_role(RoleName="my-role")["Role"]["Arn"]

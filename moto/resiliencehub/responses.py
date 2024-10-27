@@ -1,5 +1,4 @@
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -9,15 +8,6 @@ from .models import ResilienceHubBackend, resiliencehub_backends
 
 
 class ResilienceHubResponse(BaseResponse):
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-        if request.method == "DELETE":
-            return self.untag_resource()
-
     def __init__(self) -> None:
         super().__init__(service_name="resiliencehub")
 
@@ -97,7 +87,23 @@ class ResilienceHubResponse(BaseResponse):
         )
 
     def list_app_assessments(self) -> str:
-        summaries = self.resiliencehub_backend.list_app_assessments()
+        supported_params = [
+            "appArn",
+            "assessmentName",
+            "assessmentStatus",
+            "complianceStatus",
+            "invoker",
+            "maxResults",
+            "nextToken",
+            "reverseOrder",
+        ]
+        provided_params = [p for p in self.querystring.keys() if p in supported_params]
+        request_identifier = json.dumps(
+            {key: self.querystring[key] for key in sorted(provided_params)}
+        )
+        summaries = self.resiliencehub_backend.list_app_assessments(
+            request_identifier=request_identifier,
+        )
         return json.dumps(dict(assessmentSummaries=summaries))
 
     def describe_app(self) -> str:

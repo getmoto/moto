@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import settings
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+from tests.test_s3 import s3_aws_verified
 
 
 class TestBucketPolicy:
@@ -70,7 +71,10 @@ class TestBucketPolicy:
 
         assert requests.get(self.key_name).status_code == unauthorized_status
 
-    def test_block_put_object(self):
+    @pytest.mark.parametrize(
+        "key", ["test_txt", "new_txt"], ids=["update_object", "create_object"]
+    )
+    def test_block_put_object(self, key):
         # Block Put-access
         self._put_policy(**{"effect": "Deny", "actions": ["s3:PutObject"]})
 
@@ -79,7 +83,7 @@ class TestBucketPolicy:
 
         # But Put (via boto3 or requests) is not allowed
         with pytest.raises(ClientError) as exc:
-            self.client.put_object(Bucket="mybucket", Key="test_txt", Body="new data")
+            self.client.put_object(Bucket="mybucket", Key=key, Body="new data")
         err = exc.value.response["Error"]
         assert err["Message"] == "Forbidden"
 
@@ -134,3 +138,41 @@ class TestBucketPolicy:
             ],
         }
         self.client.put_bucket_policy(Bucket="mybucket", Policy=json.dumps(policy))
+
+
+@s3_aws_verified
+def test_deny_delete_policy(bucket_name=None):
+    # This test sometimes passes against AWS
+    # The put_bucket_policy is async though, so it may not be active by the time we try to delete an object
+    # In the same vain, deletion of the resource policy may still be ongoing when we try to delete an object
+    # We can either wait for x seconds until it works, or (as we've done here) remove the `aws_verified` marker so it doesn't run against AWS
+    client = boto3.client("s3", "us-east-1")
+    resource = boto3.resource("s3", "us-east-1")
+
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "DenyDelete",
+                "Effect": "Deny",
+                "Principal": "*",
+                "Action": "s3:DeleteObject",
+                "Resource": f"arn:aws:s3:::{bucket_name}/*",
+            }
+        ],
+    }
+    client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(policy))
+
+    client.put_object(Bucket=bucket_name, Key="obj", Body=b"")
+
+    with pytest.raises(ClientError):
+        client.delete_object(Bucket=bucket_name, Key="obj")
+
+    result = resource.Bucket(bucket_name).objects.all().delete()
+    assert result[0]["Errors"][0]["Key"] == "obj"
+    assert result[0]["Errors"][0]["Code"] == "AccessDenied"
+    # Message:
+    # User: {user_arn} is not authorized to perform: s3:DeleteObject on resource: "arn:aws:s3:::{bucket}/{key}" with an explicit deny in a resource-based policy
+
+    # Delete Policy to make sure bucket can be emptied during teardown
+    client.delete_bucket_policy(Bucket=bucket_name)

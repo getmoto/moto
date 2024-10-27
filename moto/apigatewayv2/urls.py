@@ -9,6 +9,7 @@ url_bases = [
 
 url_paths = {
     "{0}/v2/apis$": ApiGatewayV2Response.dispatch,
+    "{0}/v2/apis/$": ApiGatewayV2Response.get_api_without_id,
     "{0}/v2/apis/(?P<api_id>[^/]+)$": ApiGatewayV2Response.dispatch,
     "{0}/v2/apis/(?P<api_id>[^/]+)/authorizers$": ApiGatewayV2Response.dispatch,
     "{0}/v2/apis/(?P<api_id>[^/]+)/authorizers/(?P<authorizer_id>[^/]+)$": ApiGatewayV2Response.dispatch,

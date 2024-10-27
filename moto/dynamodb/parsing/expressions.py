@@ -481,7 +481,7 @@ class UpdateExpressionParser(ExpressionParser, NestableExpressionParserMixin):
         return self._create_node()
 
     @classmethod
-    def make(cls, expression_str):
+    def make(cls, expression_str) -> UpdateExpression:
         token_list = ExpressionTokenizer.make_list(expression_str)
         return cls(token_list).parse()
 

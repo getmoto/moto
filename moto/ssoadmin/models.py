@@ -7,6 +7,7 @@ from moto.core.utils import unix_time
 from moto.iam.aws_managed_policies import aws_managed_policies_data
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ConflictException,
@@ -94,12 +95,7 @@ class PermissionSet(BaseModel):
 
     @staticmethod
     def generate_id(instance_arn: str) -> str:
-        chars = list(range(10)) + ["a", "b", "c", "d", "e", "f"]
-        return (
-            instance_arn
-            + "/ps-"
-            + "".join(str(random.choice(chars)) for _ in range(16))
-        )
+        return instance_arn + "/ps-" + random.get_random_string(length=16).lower()
 
 
 class ManagedPolicy(BaseModel):
@@ -124,6 +120,30 @@ class CustomerManagedPolicy(BaseModel):
         return f"{self.path}{self.name}" == f"{other.path}{other.name}"
 
 
+class Instance:
+    def __init__(self, account_id: str, region: str):
+        self.created_date = unix_time()
+        self.identity_store_id = (
+            f"d-{random.get_random_string(length=10, lower_case=True)}"
+        )
+        self.instance_arn = f"arn:{get_partition(region)}:sso:::instance/ssoins-{random.get_random_string(length=16, lower_case=True)}"
+        self.account_id = account_id
+        self.status = "ACTIVE"
+        self.name: Optional[str] = None
+
+        self.provisioned_permission_sets: List[PermissionSet] = []
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "CreatedDate": self.created_date,
+            "IdentityStoreId": self.identity_store_id,
+            "InstanceArn": self.instance_arn,
+            "Name": self.name,
+            "OwnerAccountId": self.account_id,
+            "Status": self.status,
+        }
+
+
 class SSOAdminBackend(BaseBackend):
     """Implementation of SSOAdmin APIs."""
 
@@ -133,6 +153,9 @@ class SSOAdminBackend(BaseBackend):
         self.deleted_account_assignments: List[AccountAssignment] = list()
         self.permission_sets: List[PermissionSet] = list()
         self.aws_managed_policies: Optional[Dict[str, Any]] = None
+        self.instances: List[Instance] = []
+
+        self.instances.append(Instance(self.account_id, self.region_name))
 
     def create_account_assignment(
         self,
@@ -215,7 +238,8 @@ class SSOAdminBackend(BaseBackend):
         managed_policy = self.aws_managed_policies.get(policy_name, None)
         if managed_policy is not None:
             path = managed_policy.get("path", "/")
-            expected_arn = f"arn:aws:iam::aws:policy{path}{policy_name}"
+            expected_arn = f"arn:{self.partition}:iam::aws:policy{path}{policy_name}"
+
             if managed_policy_arn == expected_arn:
                 return ManagedPolicy(managed_policy_arn, policy_name)
         raise ResourceNotFoundException(
@@ -326,6 +350,13 @@ class SSOAdminBackend(BaseBackend):
             permission_set_arn,
         )
         self.permission_sets.remove(permission_set)
+
+        for instance in self.instances:
+            try:
+                instance.provisioned_permission_sets.remove(permission_set)
+            except ValueError:
+                pass
+
         return permission_set.to_json(include_creation_date=True)
 
     def _find_permission_set(
@@ -541,5 +572,47 @@ class SSOAdminBackend(BaseBackend):
 
         raise ResourceNotFoundException
 
+    def list_instances(self) -> List[Instance]:
+        return self.instances
 
-ssoadmin_backends = BackendDict(SSOAdminBackend, "sso")
+    def update_instance(self, instance_arn: str, name: str) -> None:
+        for instance in self.instances:
+            if instance.instance_arn == instance_arn:
+                instance.name = name
+
+    def provision_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> None:
+        """
+        The TargetType/TargetId parameters are currently ignored - PermissionSets are simply provisioned to the caller's account
+        """
+        permission_set = self._find_permission_set(instance_arn, permission_set_arn)
+        instance = [i for i in self.instances if i.instance_arn == instance_arn][0]
+        instance.provisioned_permission_sets.append(permission_set)
+
+    def list_permission_sets_provisioned_to_account(
+        self, instance_arn: str
+    ) -> List[PermissionSet]:
+        """
+        The following parameters are not yet implemented: AccountId, ProvisioningStatus, MaxResults, NextToken
+        """
+        for instance in self.instances:
+            if instance.instance_arn == instance_arn:
+                return instance.provisioned_permission_sets
+        return []
+
+    def list_accounts_for_provisioned_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> List[str]:
+        """
+        The following parameters are not yet implemented: MaxResults, NextToken, ProvisioningStatus
+        """
+        for instance in self.instances:
+            if instance.instance_arn == instance_arn:
+                for ps in instance.provisioned_permission_sets:
+                    if ps.permission_set_arn == permission_set_arn:
+                        return [self.account_id]
+        return []
+
+
+ssoadmin_backends = BackendDict(SSOAdminBackend, "sso-admin")

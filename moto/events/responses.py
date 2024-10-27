@@ -159,9 +159,10 @@ class EventsHandler(BaseResponse):
             return self.error("ValidationException", "Parameter Rule is required.")
 
         try:
-            targets = self.events_backend.list_targets_by_rule(
-                rule_name, event_bus_arn, next_token, limit
+            target_page, token = self.events_backend.list_targets_by_rule(
+                rule_name, event_bus_arn, next_token=next_token, limit=limit
             )
+            targets = {"Targets": target_page, "NextToken": token}
         except KeyError:
             return self.error(
                 "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
@@ -423,6 +424,7 @@ class EventsHandler(BaseResponse):
                     "ConnectionArn": connection.arn,
                     "ConnectionState": "AUTHORIZED",
                     "CreationTime": connection.creation_time,
+                    "Name": connection.name,
                     "LastModifiedTime": connection.creation_time,
                     "AuthorizationType": connection.authorization_type,
                 }

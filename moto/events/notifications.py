@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from moto.utilities.utils import get_partition
+
 from .utils import EventMessageType
 
 _EVENT_S3_OBJECT_CREATED: EventMessageType = {
@@ -54,7 +56,9 @@ def _send_safe_notification(
                             applicable_targets.extend(rule.targets)
 
             for target in applicable_targets:
-                if target.get("Arn", "").startswith("arn:aws:lambda"):
+                if target.get("Arn", "").startswith(
+                    f"arn:{get_partition(region)}:lambda"
+                ):
                     _invoke_lambda(account_id, target.get("Arn"), event=event)  # type: ignore[arg-type]
 
 

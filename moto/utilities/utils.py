@@ -1,7 +1,30 @@
+import gzip
 import hashlib
 import json
 import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
+
+DEFAULT_PARTITION = "aws"
+REGION_PREFIX_TO_PARTITION = {
+    # (region prefix, aws partition)
+    "cn-": "aws-cn",
+    "us-gov-": "aws-us-gov",
+    "us-iso-": "aws-iso",
+    "us-isob-": "aws-iso-b",
+}
+PARTITION_NAMES = list(REGION_PREFIX_TO_PARTITION.values()) + [DEFAULT_PARTITION]
+ARN_PARTITION_REGEX = r"^arn:(" + "|".join(sorted(PARTITION_NAMES)) + ")"
+
+
+def get_partition(region: str) -> str:
+    if not region:
+        return DEFAULT_PARTITION
+    if region in PARTITION_NAMES:
+        return region
+    for prefix in REGION_PREFIX_TO_PARTITION:
+        if region.startswith(prefix):
+            return REGION_PREFIX_TO_PARTITION[prefix]
+    return DEFAULT_PARTITION
 
 
 def str2bool(v: Any) -> Optional[bool]:
@@ -15,10 +38,18 @@ def str2bool(v: Any) -> Optional[bool]:
 def load_resource(package: str, resource: str) -> Any:
     """
     Open a file, and return the contents as JSON.
+    Will try to load a compressed version (resources/file.json.gz) first, if it exists.
     Usage:
     load_resource(__name__, "resources/file.json")
     """
-    return json.loads(pkgutil.get_data(package, resource))  # type: ignore
+    try:
+        compressed_resource = resource
+        if not resource.endswith(".gz"):
+            compressed_resource = f"{resource}.gz"
+        data = gzip.decompress(pkgutil.get_data(package, compressed_resource))  # type: ignore
+    except FileNotFoundError:
+        data = pkgutil.get_data(package, resource)  # type: ignore
+    return json.loads(data)
 
 
 def load_resource_as_str(package: str, resource: str) -> str:
@@ -101,3 +132,36 @@ class LowercaseDict(MutableMapping[str, Any]):
 
     def _keytransform(self, key: str) -> str:
         return key.lower()
+
+
+class CamelToUnderscoresWalker:
+    """A class to convert the keys in dict/list hierarchical data structures from CamelCase to snake_case (underscores)"""
+
+    @staticmethod
+    def parse(x: Any) -> Any:  # type: ignore[misc]
+        if isinstance(x, dict):
+            return CamelToUnderscoresWalker.parse_dict(x)
+        elif isinstance(x, list):
+            return CamelToUnderscoresWalker.parse_list(x)
+        else:
+            return CamelToUnderscoresWalker.parse_scalar(x)
+
+    @staticmethod
+    def parse_dict(x: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+        from moto.core.utils import camelcase_to_underscores
+
+        temp = {}
+        for key in x.keys():
+            temp[camelcase_to_underscores(key)] = CamelToUnderscoresWalker.parse(x[key])
+        return temp
+
+    @staticmethod
+    def parse_list(x: Any) -> Any:  # type: ignore[misc]
+        temp = []
+        for i in x:
+            temp.append(CamelToUnderscoresWalker.parse(i))
+        return temp
+
+    @staticmethod
+    def parse_scalar(x: Any) -> Any:  # type: ignore[misc]
+        return x

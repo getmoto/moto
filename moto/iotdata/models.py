@@ -72,12 +72,17 @@ class FakeShadow(BaseModel):
 
     @classmethod
     def parse_payload(cls, desired: Optional[str], reported: Optional[str]) -> Any:  # type: ignore[misc]
-        if desired is None:
-            delta = reported
-        elif reported is None:
+        if not desired and not reported:
+            delta = None
+        elif reported is None and desired:
             delta = desired
+        elif desired and reported:
+            delta = jsondiff.diff(reported, desired)
+            delta.pop(jsondiff.add, None)  # type: ignore
+            delta.pop(jsondiff.delete, None)  # type: ignore
+            delta.pop(jsondiff.replace, None)  # type: ignore
         else:
-            delta = jsondiff.diff(desired, reported)
+            delta = None
         return delta
 
     def _create_metadata_from_state(self, state: Any, ts: Any) -> Any:
@@ -129,11 +134,11 @@ class FakeShadow(BaseModel):
             return {"timestamp": self.timestamp, "version": self.version}
         delta = self.parse_payload(self.desired, self.reported)
         payload = {}
-        if self.desired is not None:
+        if self.desired:
             payload["desired"] = self.desired
-        if self.reported is not None:
+        if self.reported:
             payload["reported"] = self.reported
-        if include_delta and (delta is not None and len(delta.keys()) != 0):
+        if include_delta and delta:
             payload["delta"] = delta
 
         metadata = {}
@@ -214,11 +219,9 @@ class IoTDataPlaneBackend(BaseBackend):
     def publish(self, topic: str, payload: bytes) -> None:
         self.published_payloads.append((topic, payload))
 
-    def list_named_shadows_for_thing(self, thing_name: str) -> List[FakeShadow]:
+    def list_named_shadows_for_thing(self, thing_name: str) -> List[str]:
         thing = self.iot_backend.describe_thing(thing_name)
-        return [
-            shadow for name, shadow in thing.thing_shadows.items() if name is not None
-        ]
+        return [name for name in thing.thing_shadows.keys() if name is not None]
 
 
-iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot")
+iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")

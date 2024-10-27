@@ -32,6 +32,8 @@ def main():
     """
 
     regions = boto3.Session().get_available_regions("ssm")
+    # Malaysia is a new region, and not yet exposed by get_available_regions
+    regions.append("ap-southeast-5")
 
     for region in regions:
         client = boto3.client("ssm", region_name=region)

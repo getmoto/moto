@@ -27,6 +27,7 @@ def test_create_graphql_api():
     assert api["xrayEnabled"] is False
     assert "additionalAuthenticationProviders" not in api
     assert "logConfig" not in api
+    assert api["visibility"] == "GLOBAL"
 
 
 @mock_aws
@@ -41,6 +42,7 @@ def test_create_graphql_api_advanced():
             "cloudWatchLogsRoleArn": "arn:aws:cloudwatch:role",
         },
         xrayEnabled=True,
+        visibility="PRIVATE",
     )
 
     assert "graphqlApi" in resp
@@ -61,6 +63,7 @@ def test_create_graphql_api_advanced():
         "fieldLogLevel": "ERROR",
     }
     assert api["xrayEnabled"] is True
+    assert api["visibility"] == "PRIVATE"
 
 
 @mock_aws
@@ -77,6 +80,7 @@ def test_get_graphql_api():
     assert api["name"] == "api1"
     assert "apiId" in api
     assert api["authenticationType"] == "API_KEY"
+    assert api["visibility"] == "GLOBAL"
 
 
 @mock_aws
@@ -162,3 +166,299 @@ def test_list_graphql_apis():
 
     resp = client.list_graphql_apis()
     assert len(resp["graphqlApis"]) == 3
+
+
+@mock_aws
+def test_get_api_cache():
+    client = boto3.client("appsync", region_name="ap-southeast-1")
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    client.create_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="T2_SMALL",
+        transitEncryptionEnabled=False,
+        atRestEncryptionEnabled=False,
+        healthMetricsConfig="DISABLED",
+    )
+
+    cache = client.get_api_cache(apiId=api_id)["apiCache"]
+
+    assert cache["ttl"] == 300
+    assert cache["apiCachingBehavior"] == "FULL_REQUEST_CACHING"
+    assert cache["transitEncryptionEnabled"] is False
+    assert cache["atRestEncryptionEnabled"] is False
+    assert cache["type"] == "T2_SMALL"
+    assert cache["status"] == "AVAILABLE"
+    assert cache["healthMetricsConfig"] == "DISABLED"
+
+
+@mock_aws
+def test_get_api_cache_error():
+    client = boto3.client("appsync", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_api_cache(apiId="unknown")
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "GraphQL API unknown not found."
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    with pytest.raises(ClientError) as exc:
+        client.get_api_cache(apiId=api_id)
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == (
+        "Unable to get the cache as it doesn't exist, please create the cache first."
+    )
+
+
+@mock_aws
+def test_delete_api_cache():
+    client = boto3.client("appsync", region_name="eu-west-1")
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    client.create_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="T2_SMALL",
+    )
+
+    client.delete_api_cache(apiId=api_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_api_cache(apiId=api_id)
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == (
+        "Unable to get the cache as it doesn't exist, please create the cache first."
+    )
+
+
+@mock_aws
+def test_delete_api_cache_error():
+    client = boto3.client("appsync", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_api_cache(apiId="unknown")
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "GraphQL API unknown not found."
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_api_cache(apiId=api_id)
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == (
+        "Unable to delete the cache as it doesn't exist, please create the cache first."
+    )
+
+
+@mock_aws
+def test_create_api_cache():
+    client = boto3.client("appsync", region_name="eu-west-1")
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    cache = client.create_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="T2_SMALL",
+    )["apiCache"]
+
+    assert cache["ttl"] == 300
+    assert cache["apiCachingBehavior"] == "FULL_REQUEST_CACHING"
+    assert cache["transitEncryptionEnabled"] is False
+    assert cache["atRestEncryptionEnabled"] is False
+    assert cache["type"] == "T2_SMALL"
+    assert cache["status"] == "AVAILABLE"
+    assert cache["healthMetricsConfig"] == "DISABLED"
+
+
+@mock_aws
+def test_create_api_cache_advanced():
+    client = boto3.client("appsync", region_name="eu-west-1")
+    api_id = client.create_graphql_api(name="api2", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+    cache = client.create_api_cache(
+        apiId=api_id,
+        ttl=500,
+        apiCachingBehavior="PER_RESOLVER_CACHING",
+        type="R4_4XLARGE",
+        transitEncryptionEnabled=True,
+        atRestEncryptionEnabled=True,
+        healthMetricsConfig="ENABLED",
+    )["apiCache"]
+    assert cache["ttl"] == 500
+    assert cache["apiCachingBehavior"] == "PER_RESOLVER_CACHING"
+    assert cache["transitEncryptionEnabled"] is True
+    assert cache["atRestEncryptionEnabled"] is True
+    assert cache["type"] == "R4_4XLARGE"
+    assert cache["status"] == "AVAILABLE"
+    assert cache["healthMetricsConfig"] == "ENABLED"
+
+
+@mock_aws
+def test_create_api_cache_error():
+    client = boto3.client("appsync", region_name="ap-southeast-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_api_cache(
+            apiId="unknown",
+            ttl=100,
+            apiCachingBehavior="FULL_REQUEST_CACHING",
+            type="SMALL",
+        )
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "GraphQL API unknown not found."
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    client.create_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="T2_SMALL",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_api_cache(
+            apiId=api_id,
+            ttl=100,
+            apiCachingBehavior="FULL_REQUEST_CACHING",
+            type="SMALL",
+        )
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "BadRequestException"
+    assert err["Message"] == "The API has already enabled caching."
+
+
+@mock_aws
+def test_update_api_cache():
+    client = boto3.client("appsync", region_name="eu-west-1")
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    client.create_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="T2_SMALL",
+    )["apiCache"]
+
+    cache = client.update_api_cache(
+        apiId=api_id,
+        ttl=500,
+        apiCachingBehavior="PER_RESOLVER_CACHING",
+        type="R4_4XLARGE",
+    )["apiCache"]
+    assert cache["ttl"] == 500
+    assert cache["apiCachingBehavior"] == "PER_RESOLVER_CACHING"
+    assert cache["transitEncryptionEnabled"] is False
+    assert cache["atRestEncryptionEnabled"] is False
+    assert cache["type"] == "R4_4XLARGE"
+    assert cache["status"] == "AVAILABLE"
+    assert cache["healthMetricsConfig"] == "DISABLED"
+
+    cache = client.update_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="SMALL",
+        healthMetricsConfig="ENABLED",
+    )["apiCache"]
+
+    assert cache["healthMetricsConfig"] == "ENABLED"
+
+
+@mock_aws
+def test_update_api_cache_error():
+    client = boto3.client("appsync", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.update_api_cache(
+            apiId="unknown",
+            ttl=100,
+            apiCachingBehavior="FULL_REQUEST_CACHING",
+            type="SMALL",
+        )
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "GraphQL API unknown not found."
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    with pytest.raises(ClientError) as exc:
+        client.update_api_cache(
+            apiId=api_id,
+            ttl=100,
+            apiCachingBehavior="FULL_REQUEST_CACHING",
+            type="SMALL",
+        )
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Unable to update the cache as it doesn't exist, please create the cache first."
+    )
+
+
+@mock_aws
+def test_flush_api_cache():
+    client = boto3.client("appsync", region_name="us-east-2")
+    with pytest.raises(ClientError) as exc:
+        client.flush_api_cache(apiId="unknown")
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "GraphQL API unknown not found."
+
+    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
+        "graphqlApi"
+    ]["apiId"]
+
+    with pytest.raises(ClientError) as exc:
+        client.flush_api_cache(apiId=api_id)
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "NotFoundException"
+    assert (
+        err["Message"]
+        == "Unable to flush the cache as it doesn't exist, please create the cache first."
+    )
+
+    client.create_api_cache(
+        apiId=api_id,
+        ttl=300,
+        apiCachingBehavior="FULL_REQUEST_CACHING",
+        type="T2_SMALL",
+    )["apiCache"]
+    client.flush_api_cache(apiId=api_id)

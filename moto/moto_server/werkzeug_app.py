@@ -163,6 +163,8 @@ class DomainDispatcherApplication:
             host = "s3control"
         elif service == "ses" and path.startswith("/v2/"):
             host = "sesv2"
+        elif service == "memorydb":
+            host = f"memory-db.{region}.amazonaws.com"
         else:
             host = f"{service}.{region}.amazonaws.com"
 
@@ -284,7 +286,7 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
         if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
             backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
         else:
-            backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+            backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
     else:
         backend = backend_dict["global"]
 

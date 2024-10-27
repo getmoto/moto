@@ -1,7 +1,7 @@
 import datetime
 import inspect
 import re
-from gzip import decompress
+from gzip import compress, decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
 
@@ -337,12 +337,22 @@ def merge_dicts(
                 merge_dicts(dict1[key], dict2[key], remove_nulls)
             else:
                 dict1[key] = dict2[key]
+                if isinstance(dict1[key], dict):
+                    remove_null_from_dict(dict1)
             if dict1[key] == {} and remove_nulls:
                 dict1.pop(key)
         else:
             dict1[key] = dict2[key]
             if dict1[key] is None and remove_nulls:
                 dict1.pop(key)
+
+
+def remove_null_from_dict(dct: Dict[str, Any]) -> None:
+    for key in list(dct.keys()):
+        if dct[key] is None:
+            dct.pop(key)
+        elif isinstance(dct[key], dict):
+            remove_null_from_dict(dct[key])
 
 
 def aws_api_matches(pattern: str, string: Any) -> bool:
@@ -393,12 +403,17 @@ def gzip_decompress(body: bytes) -> bytes:
     return decompress(body)
 
 
-def get_partition_from_region(region_name: str) -> str:
-    # Very rough implementation
-    # In an ideal world we check `boto3.Session.get_partition_for_region`, but that is quite computationally heavy
-    if region_name.startswith("cn-"):
-        return "aws-cn"
-    return "aws"
+def gzip_compress(body: bytes) -> bytes:
+    return compress(body)
+
+
+ISO_REGION_DOMAINS = {
+    "iso": "c2s.ic.gov",
+    "isob": "sc2s.sgov.gov",
+    "isoe": "cloud.adc-e.uk",
+    "isof": "csp.hci.ic.gov",
+}
+ALT_DOMAIN_SUFFIXES = list(ISO_REGION_DOMAINS.values()) + ["amazonaws.com.cn"]
 
 
 def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
@@ -414,14 +429,7 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
 
     # https://github.com/getmoto/moto/pull/6412
     # Support ISO regions
-    iso_region_domains = [
-        "amazonaws.com.cn",
-        "c2s.ic.gov",
-        "sc2s.sgov.gov",
-        "cloud.adc-e.uk",
-        "csp.hci.ic.gov",
-    ]
-    for domain in iso_region_domains:
+    for domain in ALT_DOMAIN_SUFFIXES:
         if host.endswith(domain):
             host = host.replace(domain, "amazonaws.com")
 

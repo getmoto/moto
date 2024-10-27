@@ -72,6 +72,10 @@ def get_s3_default_key_buffer_size() -> int:
     )
 
 
+def get_s3_default_max_keys() -> int:
+    return int(os.environ.get("MOTO_S3_DEFAULT_MAX_KEYS", 1000))
+
+
 def s3_allow_crossdomain_access() -> bool:
     return os.environ.get("MOTO_S3_ALLOW_CROSSACCOUNT_ACCESS", "true").lower() == "true"
 
@@ -187,3 +191,11 @@ def load_iam_aws_managed_policies() -> bool:
         is True
         or os.environ.get("MOTO_IAM_LOAD_MANAGED_POLICIES", "").lower() == "true"
     )
+
+
+#
+# NOTE:  Recommend the next major release to set this to True for proper
+# default behavior
+#
+def iot_use_valid_cert() -> bool:
+    return default_user_config.get("iot", {}).get("use_valid_cert", False)

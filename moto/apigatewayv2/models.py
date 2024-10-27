@@ -11,6 +11,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ApiMappingNotFound,
@@ -594,7 +595,9 @@ class Api(BaseModel):
         self.routes: Dict[str, Route] = dict()
         self.stages: Dict[str, Stage] = dict()
 
-        self.arn = f"arn:aws:apigateway:{region}::/apis/{self.api_id}"
+        self.arn = (
+            f"arn:{get_partition(region)}:apigateway:{region}::/apis/{self.api_id}"
+        )
         self.backend.tag_resource(self.arn, tags)
 
     def clear(self) -> None:
@@ -1061,7 +1064,7 @@ class VpcLink(BaseModel):
         self.sg_ids = sg_ids
         self.subnet_ids = subnet_ids
 
-        self.arn = f"arn:aws:apigateway:{backend.region_name}::/vpclinks/{self.id}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:apigateway:{backend.region_name}::/vpclinks/{self.id}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 

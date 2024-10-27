@@ -1,3 +1,5 @@
+from xml.sax.saxutils import escape
+
 from moto.core.responses import BaseResponse
 
 from .models import IAMBackend, User, iam_backends
@@ -9,7 +11,7 @@ class IamResponse(BaseResponse):
 
     @property
     def backend(self) -> IAMBackend:
-        return iam_backends[self.current_account]["global"]
+        return iam_backends[self.current_account][self.partition]
 
     def attach_role_policy(self) -> str:
         policy_arn = self._get_param("PolicyArn")
@@ -858,7 +860,10 @@ class IamResponse(BaseResponse):
 
     def create_saml_provider(self) -> str:
         saml_provider_name = self._get_param("Name")
-        saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        _saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        saml_metadata_document = escape(
+            _saml_metadata_document, entities={"'": "&apos;", '"': "&quot;"}
+        )
         saml_provider = self.backend.create_saml_provider(
             saml_provider_name, saml_metadata_document
         )
@@ -868,7 +873,10 @@ class IamResponse(BaseResponse):
 
     def update_saml_provider(self) -> str:
         saml_provider_arn = self._get_param("SAMLProviderArn")
-        saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        _saml_metadata_document = self._get_param("SAMLMetadataDocument")
+        saml_metadata_document = escape(
+            _saml_metadata_document, entities={"'": "&apos;", '"': "&quot;"}
+        )
         saml_provider = self.backend.update_saml_provider(
             saml_provider_arn, saml_metadata_document
         )
@@ -1239,14 +1247,16 @@ CREATE_POLICY_TEMPLATE = """<CreatePolicyResponse>
       <PolicyId>{{ policy.id }}</PolicyId>
       <PolicyName>{{ policy.name }}</PolicyName>
       <UpdateDate>{{ policy.updated_iso_8601 }}</UpdateDate>
+      {% if policy.tags %}
       <Tags>
-        {% for tag_key, tag_value in policy.tags.items() %}
+        {% for tag in policy.get_tags() %}
         <member>
-          <Key>{{ tag_key }}</Key>
-          <Value>{{ tag_value }}</Value>
+            <Key>{{ tag['Key'] }}</Key>
+            <Value>{{ tag['Value'] }}</Value>
         </member>
         {% endfor %}
       </Tags>
+      {% endif %}
     </Policy>
   </CreatePolicyResult>
   <ResponseMetadata>
@@ -1393,7 +1403,7 @@ CREATE_INSTANCE_PROFILE_TEMPLATE = """<CreateInstanceProfileResponse xmlns="http
           <Path>{{ role.path }}</Path>
           <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
-          <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+          <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
           <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
           <RoleId>{{ role.id }}</RoleId>
         </member>
@@ -1434,7 +1444,7 @@ GET_INSTANCE_PROFILE_TEMPLATE = """<GetInstanceProfileResponse xmlns="https://ia
           <Path>{{ role.path }}</Path>
           <Arn>{{ role.arn }}</Arn>
           <RoleName>{{ role.name }}</RoleName>
-          <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+          <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
           <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
           <RoleId>{{ role.id }}</RoleId>
         </member>
@@ -1472,7 +1482,7 @@ GET_ROLE_POLICY_TEMPLATE = """<GetRolePolicyResponse xmlns="https://iam.amazonaw
 <GetRolePolicyResult>
   <PolicyName>{{ policy_name }}</PolicyName>
   <RoleName>{{ role_name }}</RoleName>
-  <PolicyDocument>{{ policy_document }}</PolicyDocument>
+  <PolicyDocument>{{ policy_document | urlencode }}</PolicyDocument>
 </GetRolePolicyResult>
 <ResponseMetadata>
   <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
@@ -1556,7 +1566,7 @@ LIST_ROLES_TEMPLATE = """<ListRolesResponse xmlns="https://iam.amazonaws.com/doc
         <Path>{{ role.path }}</Path>
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
-        <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+        <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
         <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
@@ -1652,7 +1662,7 @@ LIST_INSTANCE_PROFILES_TEMPLATE = """<ListInstanceProfilesResponse xmlns="https:
             <Path>{{ role.path }}</Path>
             <Arn>{{ role.arn }}</Arn>
             <RoleName>{{ role.name }}</RoleName>
-            <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+            <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
             <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
             <RoleId>{{ role.id }}</RoleId>
           </member>
@@ -1821,7 +1831,7 @@ GET_GROUP_POLICY_TEMPLATE = """<GetGroupPolicyResponse xmlns="https://iam.amazon
 <GetGroupPolicyResult>
   <PolicyName>{{ policy_name }}</PolicyName>
   <GroupName>{{ group_name }}</GroupName>
-  <PolicyDocument>{{ policy_document }}</PolicyDocument>
+  <PolicyDocument>{{ policy_document | urlencode }}</PolicyDocument>
 </GetGroupPolicyResult>
 <ResponseMetadata>
   <RequestId>7e7cd8bc-99ef-11e1-a4c3-27EXAMPLE804</RequestId>
@@ -1917,7 +1927,7 @@ GET_USER_POLICY_TEMPLATE = """<GetUserPolicyResponse>
       <UserName>{{ user_name }}</UserName>
       <PolicyName>{{ policy_name }}</PolicyName>
       <PolicyDocument>
-      {{ policy_document }}
+      {{ policy_document | urlencode }}
       </PolicyDocument>
    </GetUserPolicyResult>
    <ResponseMetadata>
@@ -2124,7 +2134,7 @@ LIST_INSTANCE_PROFILES_FOR_ROLE_TEMPLATE = """<ListInstanceProfilesForRoleRespon
         <Path>{{ role.path }}</Path>
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
-        <AssumeRolePolicyDocument>{{ role.assume_policy_document }}</AssumeRolePolicyDocument>
+        <AssumeRolePolicyDocument>{{ role.assume_policy_document | urlencode }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
@@ -2309,7 +2319,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% for policy in user.policies %}
             <member>
                 <PolicyName>{{ policy }}</PolicyName>
-                <PolicyDocument>{{ user.policies[policy] }}</PolicyDocument>
+                <PolicyDocument>{{ user.policies[policy] | urlencode }}</PolicyDocument>
             </member>
         {% endfor %}
         </UserPolicyList>
@@ -2345,7 +2355,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% for policy in group.policies %}
             <member>
                 <PolicyName>{{ policy }}</PolicyName>
-                <PolicyDocument>{{ group.policies[policy] }}</PolicyDocument>
+                <PolicyDocument>{{ group.policies[policy] | urlencode }}</PolicyDocument>
             </member>
         {% endfor %}
         </GroupPolicyList>
@@ -2359,7 +2369,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         {% for inline_policy in role.policies %}
             <member>
                 <PolicyName>{{ inline_policy }}</PolicyName>
-                <PolicyDocument>{{ role.policies[inline_policy] }}</PolicyDocument>
+                <PolicyDocument>{{ role.policies[inline_policy] | urlencode }}</PolicyDocument>
             </member>
         {% endfor %}
         </RolePolicyList>
@@ -2389,7 +2399,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
                 <Path>{{ role.path }}</Path>
                 <Arn>{{ role.arn }}</Arn>
                 <RoleName>{{ role.name }}</RoleName>
-                <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+                <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
                 {% if role.description is not none %}
                 <Description>{{ role.description_escaped }}</Description>
                 {% endif %}
@@ -2414,7 +2424,7 @@ GET_ACCOUNT_AUTHORIZATION_DETAILS_TEMPLATE = """<GetAccountAuthorizationDetailsR
         <Path>{{ role.path }}</Path>
         <Arn>{{ role.arn }}</Arn>
         <RoleName>{{ role.name }}</RoleName>
-        <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+        <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
         <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
         <RoleId>{{ role.id }}</RoleId>
       </member>
@@ -2479,7 +2489,7 @@ LIST_SAML_PROVIDERS_TEMPLATE = """<ListSAMLProvidersResponse xmlns="https://iam.
 
 GET_SAML_PROVIDER_TEMPLATE = """<GetSAMLProviderResponse xmlns="https://iam.amazonaws.com/doc/2010-05-08/">
 <GetSAMLProviderResult>
-  <CreateDate>2012-05-09T16:27:11Z</CreateDate>
+  <CreateDate>{{ saml_provider.created_iso_8601 }}</CreateDate>
   <ValidUntil>2015-12-31T21:59:59Z</ValidUntil>
   <SAMLMetadataDocument>{{ saml_provider.saml_metadata_document }}</SAMLMetadataDocument>
 </GetSAMLProviderResult>

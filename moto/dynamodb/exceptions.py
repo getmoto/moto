@@ -305,11 +305,11 @@ class DuplicateUpdateExpression(InvalidUpdateExpression):
         )
 
 
-class TooManyAddClauses(InvalidUpdateExpression):
-    msg = 'The "ADD" section can only be used once in an update expression;'
-
-    def __init__(self) -> None:
-        super().__init__(self.msg)
+class TooManyClauses(InvalidUpdateExpression):
+    def __init__(self, _type: str) -> None:
+        super().__init__(
+            f'The "{_type}" section can only be used once in an update expression;'
+        )
 
 
 class ResourceNotFoundException(JsonRESTError):
@@ -325,6 +325,14 @@ class TableNotFoundException(JsonRESTError):
     def __init__(self, name: str):
         err = ERROR_TYPE_PREFIX + "TableNotFoundException"
         super().__init__(err, f"Table not found: {name}")
+
+
+class PointInTimeRecoveryUnavailable(JsonRESTError):
+    def __init__(self, name: str):
+        err = ERROR_TYPE_PREFIX + "PointInTimeRecoveryUnavailableException"
+        super().__init__(
+            err, f"Point in time recovery is not enabled for table '{name}'"
+        )
 
 
 class SourceTableNotFoundException(JsonRESTError):
@@ -387,3 +395,11 @@ class DeletionProtectedException(MockValidationException):
     def __init__(self, table_name: str):
         msg = f"1 validation error detected: Table '{table_name}' can't be deleted while DeletionProtectionEnabled is set to True"
         super().__init__(msg)
+
+
+class PolicyNotFoundException(DynamodbException):
+    error_type = ERROR_TYPE_PREFIX + "PolicyNotFoundException"
+
+    def __init__(self, message: str):
+        super().__init__(PolicyNotFoundException.error_type, message=message)
+        self.exception_msg = message

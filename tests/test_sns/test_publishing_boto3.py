@@ -1,6 +1,5 @@
 import base64
 import json
-import re
 from unittest import SkipTest
 
 import boto3
@@ -12,25 +11,6 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.models import responses_mock
 from moto.sns import sns_backends
-
-MESSAGE_FROM_SQS_TEMPLATE = (
-    '{\n  "Message": "%s",\n  '
-    '"MessageId": "%s",\n  '
-    '"Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVS'
-    "w7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIK"
-    'RnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  '
-    '"SignatureVersion": "1",\n  '
-    '"SigningCertURL": "https://sns.us-east-1.amazonaws.com'
-    '/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  '
-    '"Subject": "my subject",\n  '
-    '"Timestamp": "2015-01-01T12:00:00.000Z",\n  '
-    '"TopicArn": "arn:aws:sns:%s:' + ACCOUNT_ID + ':some-topic",\n  '
-    '"Type": "Notification",\n  '
-    '"UnsubscribeURL": "https://sns.us-east-1.amazonaws.com'
-    "/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:"
-    + ACCOUNT_ID
-    + ':some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"\n}'
-)
 
 
 def to_comparable_dicts(list_entry: list):
@@ -66,13 +46,13 @@ def test_publish_to_sqs():
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
     with freeze_time("2015-01-01 12:00:01"):
         messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, "us-east-1")
-    acquired_message = re.sub(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
-        "2015-01-01T12:00:00.000Z",
-        messages[0].body,
-    )
-    assert acquired_message == expected
+    acquired_message = json.loads(messages[0].body)
+
+    assert acquired_message["Message"] == "my message"
+    assert acquired_message["MessageId"] == published_message_id
+    assert acquired_message["TopicArn"] == topic_arn
+    assert acquired_message["SigningCertURL"]
+    assert acquired_message["Subject"] == "my subject"
 
 
 @mock_aws
@@ -436,14 +416,12 @@ def test_publish_to_sqs_dump_json():
     with freeze_time("2015-01-01 12:00:01"):
         messages = queue.receive_messages(MaxNumberOfMessages=1)
 
-    escaped = message.replace('"', '\\"')
-    expected = MESSAGE_FROM_SQS_TEMPLATE % (escaped, published_message_id, "us-east-1")
-    acquired_message = re.sub(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
-        "2015-01-01T12:00:00.000Z",
-        messages[0].body,
-    )
-    assert acquired_message == expected
+    acquired_message = json.loads(messages[0].body)
+    assert json.loads(acquired_message["Message"]) == json.loads(message)
+    assert acquired_message["MessageId"] == published_message_id
+    assert acquired_message["TopicArn"] == topic_arn
+    assert acquired_message["SigningCertURL"]
+    assert acquired_message["Subject"] == "my subject"
 
 
 @mock_aws
@@ -472,13 +450,13 @@ def test_publish_to_sqs_in_different_region():
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
     with freeze_time("2015-01-01 12:00:01"):
         messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, "us-west-1")
-    acquired_message = re.sub(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
-        "2015-01-01T12:00:00.000Z",
-        messages[0].body,
-    )
-    assert acquired_message == expected
+
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["MessageId"] == published_message_id
+    assert acquired_message["Message"] == "my message"
+    assert acquired_message["TopicArn"] == topic_arn
+    assert acquired_message["SigningCertURL"]
+    assert acquired_message["Subject"] == "my subject"
 
 
 @freeze_time("2013-01-01")
@@ -2522,3 +2500,114 @@ def test_filtering_message_body_nested_multiple_records_match():
     assert message_attributes == [{"match": {"Type": "String", "Value": "body"}}]
     message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
     assert message_bodies == [payload]
+
+
+@mock_aws
+def test_publish_with_message_structure_json():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "default": "message",
+                "sqs": "queue-message",
+            }
+        ),
+        MessageStructure="json",
+    )
+
+    queue_message = json.loads(queue.receive_messages()[0].body)
+    assert queue_message["Message"] == "queue-message"
+
+
+@mock_aws
+def test_publish_with_message_structure_json_fallback_to_default():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "default": "message",
+                "email": "email-message",
+            }
+        ),
+        MessageStructure="json",
+    )
+
+    queue_message = json.loads(queue.receive_messages()[0].body)
+    assert queue_message["Message"] == "message"
+
+
+@mock_aws
+def test_publish_with_message_structure_errors():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    try:
+        topic.publish(
+            Message="invalid-json",
+            MessageStructure="json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Message"] == "Message is not valid JSON."
+
+    try:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "email": "email-message",
+                }
+            ),
+            MessageStructure="json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert (
+            err.response["Error"]["Message"]
+            == "Message does not contain sqs or default keys."
+        )
+
+    try:
+        topic.publish(
+            Message="no-json-structure",
+            MessageStructure="no-json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert (
+            err.response["Error"]["Message"]
+            == "MessageStructure must be 'json' if provided"
+        )

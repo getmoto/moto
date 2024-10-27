@@ -203,6 +203,26 @@ class IllegalLocationConstraintException(S3ClientError):
         )
 
 
+class IncompatibleLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self, location: str) -> None:
+        super().__init__(
+            "IllegalLocationConstraintException",
+            f"The {location} location constraint is incompatible for the region specific endpoint this request was sent to.",
+        )
+
+
+class InvalidLocationConstraintException(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "InvalidLocationConstraint",
+            "The specified location-constraint is not valid",
+        )
+
+
 class MalformedXML(S3ClientError):
     code = 400
 
@@ -481,6 +501,13 @@ class InvalidRange(S3ClientError):
         )
 
 
+class RangeNotSatisfiable(S3ClientError):
+    code = 416
+
+    def __init__(self) -> None:
+        super().__init__(RangeNotSatisfiable.code, "Requested Range Not Satisfiable")
+
+
 class InvalidContinuationToken(S3ClientError):
     code = 400
 
@@ -488,6 +515,13 @@ class InvalidContinuationToken(S3ClientError):
         super().__init__(
             "InvalidArgument", "The continuation token provided is incorrect"
         )
+
+
+class InvalidBucketState(S3ClientError):
+    code = 400
+
+    def __init__(self, msg: str):
+        super().__init__("InvalidBucketState", msg)
 
 
 class InvalidObjectState(BucketError):
@@ -510,6 +544,13 @@ class LockNotEnabled(S3ClientError):
         super().__init__("InvalidRequest", "Bucket is missing ObjectLockConfiguration")
 
 
+class MissingRequestBody(S3ClientError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__("MissingRequestBodyError", "Request Body is empty")
+
+
 class AccessDeniedByLock(S3ClientError):
     code = 400
 
@@ -529,16 +570,6 @@ class BucketNeedsToBeNew(S3ClientError):
 
     def __init__(self) -> None:
         super().__init__("InvalidBucket", "Bucket needs to be empty")
-
-
-class BucketMustHaveLockeEnabled(S3ClientError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "InvalidBucketState",
-            "Object Lock configuration cannot be enabled on existing buckets",
-        )
 
 
 class CopyObjectMustChangeSomething(S3ClientError):

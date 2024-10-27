@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import InvalidRequestException
 
@@ -21,7 +22,7 @@ class Location(BaseModel):
         self.metadata = metadata
         self.typ = typ
         # Generate ARN
-        self.arn = f"arn:aws:datasync:{region_name}:111222333444:location/loc-{str(arn_counter).zfill(17)}"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:location/loc-{str(arn_counter).zfill(17)}"
 
 
 class Task(BaseModel):
@@ -42,7 +43,7 @@ class Task(BaseModel):
         self.status = "AVAILABLE"
         self.current_task_execution_arn: Optional[str] = None
         # Generate ARN
-        self.arn = f"arn:aws:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
 
 
 class TaskExecution(BaseModel):

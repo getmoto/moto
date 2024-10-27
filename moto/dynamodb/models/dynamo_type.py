@@ -148,6 +148,11 @@ class DynamoType(object):
         else:
             raise NotImplementedError(f"No set_item for {type(key)}")
 
+    def __delitem__(self, item: str) -> "DynamoType":
+        if isinstance(item, str) and self.type == DDBType.MAP:
+            del self.value[item]
+        return self
+
     @property
     def cast_value(self) -> Any:  # type: ignore[misc]
         if self.is_number():
@@ -315,7 +320,7 @@ class Item(BaseModel):
     def size(self) -> int:
         return sum(bytesize(key) + value.size() for key, value in self.attrs.items())
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self, root_attr_name: str = "Attributes") -> Dict[str, Any]:
         attributes: Dict[str, Any] = {}
         for attribute_key, attribute in self.attrs.items():
             if isinstance(attribute.value, dict):
@@ -333,7 +338,7 @@ class Item(BaseModel):
             else:
                 attributes[attribute_key] = {attribute.type: attribute.value}
 
-        return {"Attributes": attributes}
+        return {root_attr_name: attributes}
 
     def to_regular_json(self) -> Dict[str, Any]:
         attributes = {}

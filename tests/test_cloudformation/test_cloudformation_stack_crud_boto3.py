@@ -1,7 +1,9 @@
+import base64
 import copy
 import json
 import os
 import sys
+import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
@@ -14,7 +16,7 @@ from moto import mock_aws, settings
 from moto.cloudformation import cloudformation_backends
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
-from tests import EXAMPLE_AMI_ID
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 TEST_STACK_NAME = "test_stack"
 REGION_NAME = "us-east-1"
@@ -202,9 +204,19 @@ dummy_empty_template = {
 dummy_parametrized_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Parameters": {
-        "KeyName": {"Description": "A template parameter", "Type": "String"}
+        "BucketName": {"Type": "String"},
+        "KeyName": {"Description": "A template parameter", "Type": "String"},
+        "KeyDesc": {"Description": "Param 2", "Type": "String"},
     },
-    "Resources": {},
+    "Resources": {
+        "Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {"Ref": "BucketName"},
+                "Tags": [{"Key": {"Ref": "KeyName"}, "Value": {"Ref": "KeyDesc"}}],
+            },
+        }
+    },
 }
 
 dummy_update_template = {
@@ -228,16 +240,16 @@ dummy_output_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "Stack 1",
     "Resources": {
-        "Instance": {
-            "Type": "AWS::EC2::Instance",
-            "Properties": {"ImageId": EXAMPLE_AMI_ID},
+        "mybucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {"Tags": [{"Key": "type", "Value": "testbucket"}]},
         }
     },
     "Outputs": {
         "StackVPC": {
             "Description": "The ID of the VPC",
             "Value": "VPCID",
-            "Export": {"Name": "My VPC ID"},
+            "Export": {"Name": "My-VPC-ID"},
         }
     },
 }
@@ -248,7 +260,7 @@ dummy_import_template = {
         "Queue": {
             "Type": "AWS::SQS::Queue",
             "Properties": {
-                "QueueName": {"Fn::ImportValue": "My VPC ID"},
+                "QueueName": {"Fn::ImportValue": "My-VPC-ID"},
                 "VisibilityTimeout": 60,
             },
         }
@@ -363,6 +375,18 @@ dummy_template_launch_template = {
                 "DesiredCapacity": "5",
             },
         },
+    },
+}
+
+template_with_base64 = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "Queue": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+                "Tags": [{"Key": "baseencodedtag", "Value": {"Fn::Base64": "value"}}]
+            },
+        }
     },
 }
 
@@ -487,9 +511,17 @@ def test_stop_stack_set_operation():
 
 
 @mock_aws
-def test_describe_stack_set_operation():
-    cf = boto3.client("cloudformation", region_name=REGION_NAME)
-    cf.create_stack_set(StackSetName="name", TemplateBody=dummy_template_json)
+@pytest.mark.parametrize(
+    "region,partition", [(REGION_NAME, "aws"), ("cn-north-1", "aws-cn")]
+)
+@pytest.mark.parametrize("include_role", [True, False])
+def test_describe_stack_set_operation(region, partition, include_role):
+    cf = boto3.client("cloudformation", region_name=region)
+    kwargs = (
+        {"AdministrationRoleARN": "arn:my_role_with_long_name"} if include_role else {}
+    )
+    cf.create_stack_set(StackSetName="name", TemplateBody=dummy_template_json, **kwargs)
+
     operation_id = cf.create_stack_instances(
         StackSetName="name",
         Accounts=[ACCOUNT_ID],
@@ -497,12 +529,20 @@ def test_describe_stack_set_operation():
     )["OperationId"]
 
     cf.stop_stack_set_operation(StackSetName="name", OperationId=operation_id)
-    response = cf.describe_stack_set_operation(
+    stack_set_op = cf.describe_stack_set_operation(
         StackSetName="name", OperationId=operation_id
-    )
+    )["StackSetOperation"]
 
-    assert response["StackSetOperation"]["Status"] == "STOPPED"
-    assert response["StackSetOperation"]["Action"] == "CREATE"
+    if include_role:
+        assert stack_set_op["AdministrationRoleARN"] == "arn:my_role_with_long_name"
+    else:
+        assert (
+            stack_set_op["AdministrationRoleARN"]
+            == f"arn:{partition}:iam::123456789012:role/AWSCloudFormationStackSetAdministrationRole"
+        )
+    assert stack_set_op["Status"] == "STOPPED"
+    assert stack_set_op["Action"] == "CREATE"
+
     with pytest.raises(ClientError) as exp:
         cf.describe_stack_set_operation(
             StackSetName="name", OperationId="non_existing_operation"
@@ -852,6 +892,21 @@ def test_create_stack_set():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "region,partition", [(REGION_NAME, "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_create_stack_set__without_admin_role(region, partition):
+    cf = boto3.client("cloudformation", region_name=region)
+    cf.create_stack_set(StackSetName="teststackset", TemplateBody=dummy_template_json)
+
+    stack_set = cf.describe_stack_set(StackSetName="teststackset")["StackSet"]
+    assert (
+        stack_set["AdministrationRoleARN"]
+        == f"arn:{partition}:iam::{ACCOUNT_ID}:role/AWSCloudFormationStackSetAdministrationRole"
+    )
+
+
+@mock_aws
 @pytest.mark.parametrize("name", ["1234", "stack_set", "-set"])
 def test_create_stack_set__invalid_name(name):
     client = boto3.client("cloudformation", region_name=REGION_NAME)
@@ -940,7 +995,7 @@ def test_describe_stack_set_by_id():
 def test_create_stack_fail_missing_parameter():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
 
-    with pytest.raises(ClientError, match="Missing parameter KeyName"):
+    with pytest.raises(ClientError, match="Missing parameter BucketName"):
         cf.create_stack(StackName="ts", TemplateBody=dummy_parametrized_template_json)
 
 
@@ -1036,7 +1091,7 @@ def test_get_template_summary_for_stack_created_by_changeset_execution():
     conn.create_change_set(
         StackName="stack_from_changeset",
         TemplateBody=json.dumps(dummy_template3),
-        ChangeSetName="test_changeset",
+        ChangeSetName="test-changeset",
         ChangeSetType="CREATE",
     )
     with pytest.raises(
@@ -1044,7 +1099,7 @@ def test_get_template_summary_for_stack_created_by_changeset_execution():
         match="GetTemplateSummary cannot be called on REVIEW_IN_PROGRESS stacks",
     ):
         conn.get_template_summary(StackName="stack_from_changeset")
-    conn.execute_change_set(ChangeSetName="test_changeset")
+    conn.execute_change_set(ChangeSetName="test-changeset")
     result = conn.get_template_summary(StackName="stack_from_changeset")
     assert result["ResourceTypes"] == ["AWS::EC2::VPC"]
     assert result["Version"] == "2010-09-09"
@@ -1227,7 +1282,7 @@ def test_update_stack_fail_missing_new_parameter():
 
     cf.create_stack(StackName=name, TemplateBody=dummy_empty_template_json)
 
-    with pytest.raises(ClientError, match="Missing parameter KeyName"):
+    with pytest.raises(ClientError, match="Missing parameter BucketName"):
         cf.update_stack(StackName=name, TemplateBody=dummy_parametrized_template_json)
 
 
@@ -1329,39 +1384,111 @@ def test_update_stack_deleted_resources_can_reference_deleted_resources():
     assert len(response["StackResources"]) == 0
 
 
-@mock_aws
+@pytest.mark.aws_verified
+@aws_verified
 def test_update_stack_with_previous_value():
-    name = "update_stack_with_previous_value"
+    name = f"update-stack-with-previous-value-{str(uuid.uuid4())[0:6]}"
+    bucket_name = str(uuid.uuid4())
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    s3 = boto3.client("s3", REGION_NAME)
     cf.create_stack(
         StackName=name,
-        TemplateBody=dummy_template_yaml_with_ref,
+        TemplateBody=dummy_parametrized_template_json,
         Parameters=[
-            {"ParameterKey": "TagName", "ParameterValue": "foo"},
-            {"ParameterKey": "TagDescription", "ParameterValue": "bar"},
+            {"ParameterKey": "BucketName", "ParameterValue": bucket_name},
+            {"ParameterKey": "KeyName", "ParameterValue": "foo"},
+            {"ParameterKey": "KeyDesc", "ParameterValue": "bar"},
         ],
     )
-    cf.update_stack(
-        StackName=name,
-        UsePreviousTemplate=True,
-        Parameters=[
-            {"ParameterKey": "TagName", "UsePreviousValue": True},
-            {"ParameterKey": "TagDescription", "ParameterValue": "not bar"},
-        ],
-    )
+    waiter = cf.get_waiter("stack_create_complete")
+    waiter.wait(StackName=name)
+
+    # Verify that correct parameters are used
     stack = cf.describe_stacks(StackName=name)["Stacks"][0]
-    tag_name = [
-        x["ParameterValue"]
-        for x in stack["Parameters"]
-        if x["ParameterKey"] == "TagName"
-    ][0]
-    tag_desc = [
-        x["ParameterValue"]
-        for x in stack["Parameters"]
-        if x["ParameterKey"] == "TagDescription"
-    ][0]
-    assert tag_name == "foo"
-    assert tag_desc == "not bar"
+    assert {"ParameterKey": "KeyName", "ParameterValue": "foo"} in stack["Parameters"]
+    assert {"ParameterKey": "KeyDesc", "ParameterValue": "bar"} in stack["Parameters"]
+
+    # Verify that correct parameters are applied
+    tags = s3.get_bucket_tagging(Bucket=bucket_name)["TagSet"]
+    assert {"Key": "foo", "Value": "bar"} in tags
+
+    try:
+        cf.update_stack(
+            StackName=name,
+            UsePreviousTemplate=True,
+            Parameters=[
+                {"ParameterKey": "BucketName", "UsePreviousValue": True},
+                {"ParameterKey": "KeyName", "UsePreviousValue": True},
+                {"ParameterKey": "KeyDesc", "ParameterValue": "not bar"},
+            ],
+        )
+        waiter = cf.get_waiter("stack_update_complete")
+        waiter.wait(StackName=name)
+
+        # Verify that correct parameters are used
+        params = cf.describe_stacks(StackName=name)["Stacks"][0]["Parameters"]
+        assert {"ParameterKey": "KeyName", "ParameterValue": "foo"} in params
+        assert {"ParameterKey": "KeyDesc", "ParameterValue": "not bar"} in params
+
+        # Verify that correct parameters are applied
+        tags = s3.get_bucket_tagging(Bucket=bucket_name)["TagSet"]
+        assert {"Key": "foo", "Value": "not bar"} in tags
+
+        # Update Stack - Can't specify ParameterValue and UsePreviousValue
+        with pytest.raises(ClientError) as exc:
+            cf.update_stack(
+                StackName=name,
+                UsePreviousTemplate=True,
+                Parameters=[
+                    {"ParameterKey": "BucketName", "UsePreviousValue": True},
+                    {"ParameterKey": "KeyName", "ParameterValue": "foo2"},
+                    {
+                        "ParameterKey": "KeyDesc",
+                        "UsePreviousValue": True,
+                        "ParameterValue": "n/a",
+                    },
+                ],
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationError"
+        assert (
+            err["Message"]
+            == "Invalid input for parameter key KeyDesc. Cannot specify usePreviousValue as true and non empty value for a parameter"
+        )
+
+        # UsePreviousValue=True can be used if value is empty
+        # UsePreviousValue=False just means - use the new value
+        cf.update_stack(
+            StackName=name,
+            UsePreviousTemplate=True,
+            Parameters=[
+                {"ParameterKey": "BucketName", "UsePreviousValue": True},
+                {
+                    "ParameterKey": "KeyName",
+                    "ParameterValue": "foo2",
+                    "UsePreviousValue": False,
+                },
+                {
+                    "ParameterKey": "KeyDesc",
+                    "UsePreviousValue": True,
+                    "ParameterValue": "",
+                },
+            ],
+        )
+        waiter = cf.get_waiter("stack_update_complete")
+        waiter.wait(StackName=name)
+
+        # Verify that correct parameters are used
+        params = cf.describe_stacks(StackName=name)["Stacks"][0]["Parameters"]
+        assert {"ParameterKey": "KeyName", "ParameterValue": "foo2"} in params
+        assert {"ParameterKey": "KeyDesc", "ParameterValue": "not bar"} in params
+
+        # Verify that correct parameters are applied
+        tags = s3.get_bucket_tagging(Bucket=bucket_name)["TagSet"]
+        assert {"Key": "foo2", "Value": "not bar"} in tags
+
+    finally:
+        cf.delete_stack(StackName=name)
 
 
 @mock_aws
@@ -1441,18 +1568,18 @@ def test_describe_change_set(stack_template, change_template):
         ChangeSetType="CREATE",
     )
 
-    stack = cf.describe_change_set(ChangeSetName="NewChangeSet")
+    change_set = cf.describe_change_set(ChangeSetName="NewChangeSet")
 
-    assert stack["ChangeSetName"] == "NewChangeSet"
-    assert stack["StackName"] == "NewStack"
-    assert stack["Status"] == "CREATE_COMPLETE"
-    assert stack["ExecutionStatus"] == "AVAILABLE"
+    assert change_set["ChangeSetName"] == "NewChangeSet"
+    assert change_set["StackName"] == "NewStack"
+    assert change_set["Status"] == "CREATE_COMPLETE"
+    assert change_set["ExecutionStatus"] == "AVAILABLE"
     two_secs_ago = datetime.now(tz=timezone.utc) - timedelta(seconds=2)
     assert (
-        two_secs_ago < stack["CreationTime"] < datetime.now(tz=timezone.utc)
+        two_secs_ago < change_set["CreationTime"] < datetime.now(tz=timezone.utc)
     ), "Change set should have been created recently"
-    assert len(stack["Changes"]) == 1
-    assert stack["Changes"][0] == {
+    assert len(change_set["Changes"]) == 1
+    assert change_set["Changes"][0] == {
         "Type": "Resource",
         "ResourceChange": {
             "Action": "Add",
@@ -1484,10 +1611,10 @@ def test_describe_change_set(stack_template, change_template):
         Parameters=[{"ParameterKey": "KeyName", "ParameterValue": "value"}],
     )
 
-    stack = cf.describe_change_set(ChangeSetName="NewChangeSet2")
-    assert stack["ChangeSetName"] == "NewChangeSet2"
-    assert stack["StackName"] == "NewStack"
-    assert len(stack["Changes"]) == 2
+    change_set = cf.describe_change_set(ChangeSetName="NewChangeSet2")
+    assert change_set["ChangeSetName"] == "NewChangeSet2"
+    assert change_set["StackName"] == "NewStack"
+    assert len(change_set["Changes"]) == 2
 
     # Execute change set
     cf.execute_change_set(ChangeSetName="NewChangeSet2")
@@ -2211,23 +2338,33 @@ def test_stack_events():
     assert exp_metadata.get("HTTPStatusCode") == 400
 
 
-@mock_aws
+@pytest.mark.aws_verified
+@aws_verified
 def test_list_exports():
     cf_client = boto3.client("cloudformation", region_name=REGION_NAME)
     cf_resource = boto3.resource("cloudformation", region_name=REGION_NAME)
+    stack_name = f"mototest-with-exports-{str(uuid.uuid4())[0:6]}"
     stack = cf_resource.create_stack(
-        StackName=TEST_STACK_NAME, TemplateBody=dummy_output_template_json
+        StackName=stack_name, TemplateBody=dummy_output_template_json
     )
+    waiter = cf_client.get_waiter("stack_create_complete")
+    waiter.wait(StackName=stack_name)
     output_value = "VPCID"
-    exports = cf_client.list_exports()["Exports"]
+    try:
+        assert len(stack.outputs) == 1
+        assert stack.outputs[0]["OutputKey"] == "StackVPC"
+        assert stack.outputs[0]["OutputValue"] == output_value
+        assert stack.outputs[0]["Description"] == "The ID of the VPC"
+        assert stack.outputs[0]["ExportName"] == "My-VPC-ID"
 
-    assert len(stack.outputs) == 1
-    assert stack.outputs[0]["OutputValue"] == output_value
+        exports = cf_client.list_exports()["Exports"]
 
-    assert len(exports) == 1
-    assert exports[0]["ExportingStackId"] == stack.stack_id
-    assert exports[0]["Name"] == "My VPC ID"
-    assert exports[0]["Value"] == output_value
+        assert len(exports) == 1
+        assert exports[0]["ExportingStackId"] == stack.stack_id
+        assert exports[0]["Name"] == "My-VPC-ID"
+        assert exports[0]["Value"] == output_value
+    finally:
+        cf_client.delete_stack(StackName=stack_name)
 
 
 @mock_aws
@@ -2429,6 +2566,213 @@ def test_create_and_update_stack_with_unknown_resource():
             cf.update_stack(
                 StackName=TEST_STACK_NAME, TemplateBody=json.dumps(new_template)
             )
+
+
+@mock_aws
+def test_invalid_change_set_name_starting_char():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    with pytest.raises(ClientError):
+        cf.create_change_set(
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="1invalid-change-set-name",
+            TemplateBody=json.dumps(dummy_template),
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
+        )
+
+
+@mock_aws
+def test_invalid_change_set_name_length():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    long_name = "a" * 129  # Exceeds the 128 character limit
+    with pytest.raises(ClientError):
+        cf.create_change_set(
+            StackName=TEST_STACK_NAME,
+            ChangeSetName=long_name,
+            TemplateBody=json.dumps(dummy_template),
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
+        )
+
+
+@mock_aws
+def test_invalid_change_set_name_special_chars():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    with pytest.raises(ClientError):
+        cf.create_change_set(
+            StackName=TEST_STACK_NAME,
+            ChangeSetName="invalid@name",
+            TemplateBody=json.dumps(dummy_template),
+            Description="Test Change Set",
+            ChangeSetType="CREATE",
+        )
+
+
+@pytest.mark.aws_verified
+@aws_verified
+def test_base64_function():
+    name = f"stack-{str(uuid.uuid4())[0:6]}"
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    sqs = boto3.client("sqs", REGION_NAME)
+    cf.create_stack(StackName=name, TemplateBody=json.dumps(template_with_base64))
+    waiter = cf.get_waiter("stack_create_complete")
+    waiter.wait(StackName=name)
+
+    qurl = sqs.list_queues(QueueNamePrefix=name)["QueueUrls"][0]
+
+    expected = base64.b64encode(b"value").decode("utf-8")
+    tags = sqs.list_queue_tags(QueueUrl=qurl)["Tags"]
+    assert tags == {"baseencodedtag": expected}
+
+    cf.delete_stack(StackName=name)
+    waiter = cf.get_waiter("stack_delete_complete")
+    waiter.wait(StackName=name)
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "error_message, kwargs",
+    [
+        ("No updates are to be performed.", {"UsePreviousTemplate": True}),
+        (
+            "An error occurred (ValidationError) when calling the CreateChangeSet operation: Either Template URL or Template Body must be specified.",
+            {},
+        ),
+        (
+            "An error occurred (ValidationError) when calling the CreateChangeSet operation: You cannot specify both usePreviousTemplate and Template Body/Template URL.",
+            {
+                "UsePreviousTemplate": True,
+                "TemplateBody": json.dumps(dummy_template_with_parameters),
+            },
+        ),
+        (
+            "An error occurred (ValidationError) when calling the CreateChangeSet operation: You cannot specify both usePreviousTemplate and Template Body/Template URL.",
+            {"UsePreviousTemplate": True, "TemplateURL": ""},
+        ),
+    ],
+    ids=[
+        "no_changes",
+        "no_template_body_or_url",
+        "use_previous_w_template_body",
+        "use_previous_w_template_url",
+    ],
+)
+def test_create_change_set_w_previous_template_faillures(error_message, kwargs):
+    stack_name = "stack-name"
+    bucket_name = "test-bucket"
+    change_set_name = "test-change-set"
+    if "TemplateURL" in kwargs.keys():
+        cf = boto3.client("cloudformation", region_name=REGION_NAME)
+
+        s3 = boto3.client("s3", region_name=REGION_NAME)
+        s3_conn = boto3.resource("s3", region_name=REGION_NAME)
+        s3_conn.create_bucket(Bucket="foobar")
+
+        s3_conn.Object("foobar", "template-key").put(
+            Body=json.dumps(dummy_template_with_parameters)
+        )
+        key_url = s3.generate_presigned_url(
+            ClientMethod="get_object",
+            Params={"Bucket": "foobar", "Key": "template-key"},
+        )
+
+        cf.create_stack(
+            StackName=stack_name,
+            TemplateURL=key_url,
+            Parameters=[
+                {"ParameterKey": "Name", "ParameterValue": bucket_name},
+                {"ParameterKey": "Another", "ParameterValue": "A"},
+            ],
+        )
+        kwargs["TemplateURL"] = key_url
+    else:
+        cf = boto3.client("cloudformation", region_name=REGION_NAME)
+        cf.create_stack(
+            StackName=stack_name,
+            TemplateBody=json.dumps(dummy_template_with_parameters),
+            Parameters=[
+                {"ParameterKey": "Name", "ParameterValue": bucket_name},
+                {"ParameterKey": "Another", "ParameterValue": "A"},
+            ],
+        )
+
+    with pytest.raises(ClientError) as exp:
+        cf.create_change_set(
+            StackName=stack_name,
+            ChangeSetName=change_set_name,
+            ChangeSetType="UPDATE",
+            Parameters=[
+                {"ParameterKey": "Name", "UsePreviousValue": True},
+                {"ParameterKey": "Another", "UsePreviousValue": True},
+            ],
+            **kwargs,
+        )
+    exp_err = exp.value.response.get("Error")
+    exp_metadata = exp.value.response.get("ResponseMetadata")
+
+    assert exp_err["Code"] == "ValidationError"
+    assert exp_err["Message"] == error_message
+    assert exp_metadata.get("HTTPStatusCode") == 400
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "params_list, updated_params",
+    [
+        (
+            [
+                {"ParameterKey": "Name", "ParameterValue": "test-bucket-2"},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["test-bucket-2", "B"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "ParameterValue": "test-bucket-2"},
+                {"ParameterKey": "Another", "UsePreviousValue": True},
+            ],
+            ["test-bucket-2", "A"],
+        ),
+    ],
+    ids=["all_new_values", "some_new_values"],
+)
+def test_create_change_set_w_previous_template_success(params_list, updated_params):
+    stack_name = "stack-name"
+    bucket_name = "test-bucket"
+    change_set_name = "test-change-set"
+
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(
+        StackName=stack_name,
+        TemplateBody=json.dumps(dummy_template_with_parameters),
+        Parameters=[
+            {"ParameterKey": "Name", "ParameterValue": bucket_name},
+            {"ParameterKey": "Another", "ParameterValue": "A"},
+        ],
+    )
+    cf.create_change_set(
+        StackName=stack_name,
+        UsePreviousTemplate=True,
+        ChangeSetName=change_set_name,
+        ChangeSetType="UPDATE",
+        Parameters=params_list,
+    )
+
+    change_set = cf.describe_change_set(ChangeSetName=change_set_name)
+    assert change_set["ChangeSetName"] == change_set_name
+    assert change_set["StackName"] == stack_name
+
+    cf.execute_change_set(ChangeSetName=change_set_name)
+
+    change_set = cf.describe_change_set(ChangeSetName=change_set_name)
+    assert change_set["ChangeSetName"] == change_set_name
+    assert change_set["StackName"] == stack_name
+    assert change_set["ExecutionStatus"] == "EXECUTE_COMPLETE"
+
+    stacks = cf.describe_stacks(StackName=stack_name)["Stacks"]
+    assert len(stacks) == 1
+    stack = stacks[0]
+    assert [param["ParameterValue"] for param in stack["Parameters"]] == updated_params
 
 
 def get_role_name():

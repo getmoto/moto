@@ -358,7 +358,9 @@ class SESBackend(BaseBackend):
                     f"Did not have authority to send from email {source}"
                 )
 
-        fieldvalues = [message.get(header, "") for header in ["TO", "CC", "BCC"]]
+        fieldvalues = [
+            message[header] for header in ["TO", "CC", "BCC"] if header in message
+        ]
         destinations += [
             formataddr((realname, email_address))
             for realname, email_address in getaddresses(fieldvalues)

@@ -1,11 +1,12 @@
-from time import sleep
+from unittest import SkipTest, mock
 from uuid import uuid4
 
 import boto3
 import pytest
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.s3.responses import DEFAULT_REGION_NAME
+from tests.test_s3.test_s3 import enable_versioning
 
 from . import s3_aws_verified
 
@@ -630,12 +631,23 @@ def test_list_object_versions__sort_order(bucket_name=None):
     assert version_list["DeleteMarkers"][0]["VersionId"] == b_del
 
 
-def enable_versioning(bucket_name, s3_client):
-    s3_client.put_bucket_versioning(
-        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
-    )
-    # Versioning is not active immediately, so wait until we have confirmation the change has gone through
-    resp = {}
-    while resp.get("Status") != "Enabled":
-        sleep(0.1)
-        resp = s3_client.get_bucket_versioning(Bucket=bucket_name)
+@mock_aws
+@mock.patch.dict("os.environ", {"MOTO_S3_DEFAULT_MAX_KEYS": "5"})
+def test_list_object_versions_with_custom_limit():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only set env var in DecoratorMode")
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = "foobar"
+    bucket = s3_resource.Bucket(bucket_name)
+    bucket.create()
+    bucket.Versioning().enable()
+
+    for i in range(10):
+        s3_client.put_object(
+            Bucket=bucket_name, Key="obj", Body=b"ver" + str(i).encode("utf-8")
+        )
+
+    page1 = s3_client.list_object_versions(Bucket=bucket_name)
+    assert page1["MaxKeys"] == 5
+    assert len(page1["Versions"]) == 5

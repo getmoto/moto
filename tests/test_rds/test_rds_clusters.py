@@ -249,6 +249,7 @@ def test_create_db_cluster_additional_parameters():
             "MaxCapacity": 4,
         },
         VpcSecurityGroupIds=["sg1", "sg2"],
+        EnableIAMDatabaseAuthentication=True,
     )
 
     cluster = resp["DBCluster"]
@@ -276,6 +277,7 @@ def test_create_db_cluster_additional_parameters():
     assert len(security_groups) == 2
     assert {"VpcSecurityGroupId": "sg1", "Status": "active"} in security_groups
     assert {"VpcSecurityGroupId": "sg2", "Status": "active"} in security_groups
+    assert cluster["IAMDatabaseAuthenticationEnabled"] is True
 
 
 @mock_aws
@@ -813,6 +815,7 @@ def test_add_tags_to_cluster_snapshot():
         MasterUserPassword="hunter2000",
         Port=1234,
         Tags=[{"Key": "k1", "Value": "v1"}],
+        CopyTagsToSnapshot=True,
     )
     resp = conn.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
@@ -1087,6 +1090,11 @@ def test_modify_db_cluster_snapshot_attribute():
         AttributeName="restore",
         ValuesToRemove=["test"],
     )
+    resp = conn.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier="g-1",
+        AttributeName="restore",
+        ValuesToAdd=["test3"],
+    )
     assert (
         resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
         == "g-1"
@@ -1099,4 +1107,72 @@ def test_modify_db_cluster_snapshot_attribute():
     )
     assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
         "AttributeValues"
-    ] == ["test2"]
+    ] == ["test2", "test3"]
+
+
+@mock_aws
+def test_backtrack_window():
+    client = boto3.client("rds", region_name=RDS_REGION)
+    window = 86400
+    resp = client.create_db_cluster(
+        AvailabilityZones=["eu-north-1b"],
+        DatabaseName="users",
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora-mysql",
+        EngineVersion="8.0.mysql_aurora.3.01.0",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        Port=1234,
+        DeletionProtection=True,
+        EnableCloudwatchLogsExports=["audit"],
+        NetworkType="IPV4",
+        DBSubnetGroupName="subnetgroupname",
+        StorageEncrypted=True,
+        VpcSecurityGroupIds=["sg1", "sg2"],
+        BacktrackWindow=window,
+    )
+
+    assert resp["DBCluster"]["BacktrackWindow"] == window
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "params",
+    [
+        (
+            "aurora-mysql",
+            -1,
+            "The specified value (-1) is not a valid Backtrack Window. Allowed values are within the range of 0 to 259200",
+        ),
+        (
+            "aurora-mysql",
+            10000000,
+            "The specified value (10000000) is not a valid Backtrack Window. Allowed values are within the range of 0 to 259200",
+        ),
+        (
+            "aurora-postgresql",
+            20,
+            "Backtrack is not enabled for the postgres engine.",
+        ),
+    ],
+)
+def test_backtrack_errors(params):
+    client = boto3.client("rds", region_name=RDS_REGION)
+
+    with pytest.raises(ClientError) as ex:
+        client.create_db_cluster(
+            AvailabilityZones=["eu-north-1b"],
+            DatabaseName="users",
+            DBClusterIdentifier="cluster-id",
+            Engine=params[0],
+            EngineVersion="8.0.mysql_aurora.3.01.0",
+            MasterUsername="root",
+            MasterUserPassword="hunter2_",
+            DBSubnetGroupName="subnetgroupname",
+            StorageEncrypted=True,
+            VpcSecurityGroupIds=["sg1", "sg2"],
+            BacktrackWindow=params[1],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == params[2]

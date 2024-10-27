@@ -34,6 +34,7 @@ appconfig
 - [ ] delete_extension
 - [ ] delete_extension_association
 - [X] delete_hosted_configuration_version
+- [ ] get_account_settings
 - [X] get_application
 - [ ] get_configuration
 - [X] get_configuration_profile
@@ -56,6 +57,7 @@ appconfig
 - [ ] stop_deployment
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_account_settings
 - [X] update_application
 - [X] update_configuration_profile
 - [ ] update_deployment_strategy

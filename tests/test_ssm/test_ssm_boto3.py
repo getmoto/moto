@@ -13,10 +13,12 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ssm.models import PARAMETER_HISTORY_MAX_RESULTS, PARAMETER_VERSION_LIMIT
 from tests import EXAMPLE_AMI_ID
 
+SSM_REGION = "us-east-1"
+
 
 @mock_aws
 def test_delete_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="test", Description="A test parameter", Value="value", Type="String"
@@ -33,7 +35,7 @@ def test_delete_parameter():
 
 @mock_aws
 def test_delete_nonexistent_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as ex:
         client.delete_parameter(Name="test_noexist")
@@ -43,7 +45,7 @@ def test_delete_nonexistent_parameter():
 
 @mock_aws
 def test_delete_parameters():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="test", Description="A test parameter", Value="value", Type="String"
@@ -62,7 +64,7 @@ def test_delete_parameters():
 
 @mock_aws
 def test_get_parameters_by_path():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(Name="/foo/name1", Value="value1", Type="String")
 
@@ -214,7 +216,7 @@ def test_get_parameters_by_path():
 @pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
 @mock_aws
 def test_put_parameter(name):
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     response = client.put_parameter(
         Name=name, Description="A test parameter", Value="value", Type="String"
     )
@@ -310,7 +312,7 @@ def test_put_parameter_overwrite_preserves_metadata(name):
     test_description = "A test parameter"
     test_pattern = ".*"
     test_key_id = "someKeyId"
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     response = client.put_parameter(
         Name=name,
         Description=test_description,
@@ -408,7 +410,7 @@ def test_put_parameter_overwrite_preserves_metadata(name):
 def test_put_parameter_with_invalid_policy():
     name = "some_param"
     test_description = "A test parameter"
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     client.put_parameter(
         Name=name,
         Description=test_description,
@@ -426,7 +428,7 @@ def test_put_parameter_with_invalid_policy():
 
 @mock_aws
 def test_put_parameter_empty_string_value():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     with pytest.raises(ClientError) as e:
         client.put_parameter(Name="test_name", Value="", Type="String")
     ex = e.value
@@ -442,7 +444,7 @@ def test_put_parameter_empty_string_value():
 
 @mock_aws
 def test_put_parameter_invalid_names():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     invalid_prefix_err = (
         'Parameter name: can\'t be prefixed with "aws" or "ssm" (case-insensitive).'
@@ -513,7 +515,7 @@ def test_put_parameter_china():
 @mock_aws
 @pytest.mark.parametrize("bad_data_type", ["not_text", "not_ec2", "something weird"])
 def test_put_parameter_invalid_data_type(bad_data_type):
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     with pytest.raises(ClientError) as e:
         client.put_parameter(
             Name="test_name", Value="some_value", Type="String", DataType=bad_data_type
@@ -530,7 +532,7 @@ def test_put_parameter_invalid_data_type(bad_data_type):
 
 @mock_aws
 def test_put_parameter_invalid_type():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     bad_type = "str"  # correct value is String
     with pytest.raises(ClientError) as e:
         client.put_parameter(
@@ -625,17 +627,23 @@ def test_update_parameter_already_exists_error():
     )
 
 
+@pytest.mark.parametrize(
+    "param",
+    ["/test", "arn:aws:ssm:us-east-1:123456789012:parameter/test"],
+)
 @mock_aws
-def test_get_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
-
+def test_get_parameter(param):
+    # Setup
+    client = boto3.client("ssm", region_name=SSM_REGION)
     client.put_parameter(
-        Name="test", Description="A test parameter", Value="value", Type="String"
+        Name="/test", Description="A test parameter", Value="value", Type="String"
     )
 
-    response = client.get_parameter(Name="test", WithDecryption=False)
+    # Execute
+    response = client.get_parameter(Name=param, WithDecryption=False)
 
-    assert response["Parameter"]["Name"] == "test"
+    # Verify
+    assert response["Parameter"]["Name"] == "/test"
     assert response["Parameter"]["Value"] == "value"
     assert response["Parameter"]["Type"] == "String"
     assert response["Parameter"]["DataType"] == "text"
@@ -647,7 +655,7 @@ def test_get_parameter():
 
 @mock_aws
 def test_get_parameter_with_version_and_labels():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="test-1", Description="A test parameter", Value="value", Type="String"
@@ -711,7 +719,7 @@ def test_get_parameter_with_version_and_labels():
 
 @mock_aws
 def test_get_parameters_errors():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     ssm_parameters = {name: "value" for name in string.ascii_lowercase[:11]}
 
@@ -734,7 +742,7 @@ def test_get_parameters_errors():
 
 @mock_aws
 def test_get_nonexistant_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     try:
         client.get_parameter(Name="test_noexist", WithDecryption=False)
@@ -746,7 +754,7 @@ def test_get_nonexistant_parameter():
 
 @mock_aws
 def test_describe_parameters():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="test",
@@ -768,7 +776,7 @@ def test_describe_parameters():
 
 @mock_aws
 def test_describe_parameters_paging():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     for i in range(50):
         client.put_parameter(Name=f"param-{i}", Value=f"value-{i}", Type="String")
@@ -800,7 +808,7 @@ def test_describe_parameters_paging():
 
 @mock_aws
 def test_describe_parameters_filter_names():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     for i in range(50):
         p = {"Name": f"param-{i}", "Value": f"value-{i}", "Type": "String"}
@@ -822,7 +830,7 @@ def test_describe_parameters_filter_names():
 
 @mock_aws
 def test_describe_parameters_filter_type():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     for i in range(50):
         p = {"Name": f"param-{i}", "Value": f"value-{i}", "Type": "String"}
@@ -843,7 +851,7 @@ def test_describe_parameters_filter_type():
 
 @mock_aws
 def test_describe_parameters_filter_keyid():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     for i in range(50):
         p = {"Name": f"param-{i}", "Value": f"value-{i}", "Type": "String"}
@@ -865,7 +873,7 @@ def test_describe_parameters_filter_keyid():
 
 @mock_aws
 def test_describe_parameters_with_parameter_filters_keyid():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     client.put_parameter(Name="secure-param", Value="secure-value", Type="SecureString")
     client.put_parameter(
         Name="custom-secure-param",
@@ -906,7 +914,7 @@ def test_describe_parameters_with_parameter_filters_keyid():
 
 @mock_aws
 def test_describe_parameters_with_parameter_filters_name():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     client.put_parameter(Name="param", Value="value", Type="String")
     client.put_parameter(Name="/param-2", Value="value-2", Type="String")
     client.put_parameter(Name="/tangent-3", Value="value-3", Type="String")
@@ -970,7 +978,7 @@ def test_describe_parameters_with_parameter_filters_name():
 
 @mock_aws
 def test_describe_parameters_with_parameter_filters_path():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     client.put_parameter(Name="/foo/name1", Value="value1", Type="String")
 
     client.put_parameter(Name="/foo/name2", Value="value2", Type="String")
@@ -1095,7 +1103,7 @@ def test_describe_parameters_with_parameter_filters_path():
 
 @mock_aws
 def test_describe_parameters_needs_param():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     with pytest.raises(ClientError) as client_err:
         client.describe_parameters(
             Filters=[{"Key": "Name", "Values": ["test"]}],
@@ -1199,7 +1207,7 @@ def test_describe_parameters_needs_param():
 )
 @mock_aws
 def test_describe_parameters_invalid_parameter_filters(filters, error_msg):
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as e:
         client.describe_parameters(ParameterFilters=filters)
@@ -1209,7 +1217,7 @@ def test_describe_parameters_invalid_parameter_filters(filters, error_msg):
 @pytest.mark.parametrize("value", ["/###", "//", "test"])
 @mock_aws
 def test_describe_parameters_invalid_path(value):
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as e:
         client.describe_parameters(
@@ -1232,7 +1240,7 @@ def test_describe_parameters_invalid_path(value):
 
 @mock_aws
 def test_describe_parameters_attributes():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="aa", Value="11", Type="String", Description="my description"
@@ -1256,7 +1264,7 @@ def test_describe_parameters_attributes():
 
 @mock_aws
 def test_describe_parameters_tags():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(Name="/foo/bar", Value="spam", Type="String")
     client.put_parameter(
@@ -1281,7 +1289,7 @@ def test_describe_parameters_tags():
 
 @mock_aws
 def test_describe_parameters__multiple_tags():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     for x in "ab":
         client.put_parameter(
@@ -1333,7 +1341,7 @@ def test_describe_parameters__multiple_tags():
 
 @mock_aws
 def test_tags_in_list_tags_from_resource_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="/spam/eggs",
@@ -1356,7 +1364,7 @@ def test_tags_in_list_tags_from_resource_parameter():
 
 @mock_aws
 def test_tags_invalid_resource_id():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as ex:
         client.list_tags_for_resource(ResourceType="Parameter", ResourceId="bar")
@@ -1365,7 +1373,7 @@ def test_tags_invalid_resource_id():
 
 @mock_aws
 def test_tags_invalid_resource_type():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as ex:
         client.list_tags_for_resource(ResourceType="foo", ResourceId="bar")
@@ -1374,7 +1382,7 @@ def test_tags_invalid_resource_type():
 
 @mock_aws
 def test_get_parameter_invalid():
-    client = client = boto3.client("ssm", region_name="us-east-1")
+    client = client = boto3.client("ssm", region_name=SSM_REGION)
     response = client.get_parameters(Names=["invalid"], WithDecryption=False)
 
     assert len(response["Parameters"]) == 0
@@ -1384,7 +1392,7 @@ def test_get_parameter_invalid():
 
 @mock_aws
 def test_put_parameter_secure_default_kms():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="test", Description="A test parameter", Value="value", Type="SecureString"
@@ -1407,7 +1415,7 @@ def test_put_parameter_secure_default_kms():
 
 @mock_aws
 def test_put_parameter_secure_custom_kms():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     client.put_parameter(
         Name="test",
@@ -1434,7 +1442,7 @@ def test_put_parameter_secure_custom_kms():
 
 @mock_aws
 def test_get_parameter_history():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
 
@@ -1463,7 +1471,7 @@ def test_get_parameter_history():
 
 @mock_aws
 def test_get_parameter_history_with_secure_string():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
 
@@ -1500,7 +1508,7 @@ def test_get_parameter_history_with_secure_string():
 
 @mock_aws
 def test_label_parameter_version():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     client.put_parameter(
@@ -1519,7 +1527,7 @@ def test_label_parameter_version():
 
 @mock_aws
 def test_label_parameter_version_with_specific_version():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     client.put_parameter(
@@ -1538,7 +1546,7 @@ def test_label_parameter_version_with_specific_version():
 
 @mock_aws
 def test_label_parameter_version_twice():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     test_labels = ["test-label"]
@@ -1567,7 +1575,7 @@ def test_label_parameter_version_twice():
 
 @mock_aws
 def test_label_parameter_moving_versions():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     test_labels = ["test-label"]
@@ -1609,7 +1617,7 @@ def test_label_parameter_moving_versions():
 
 @mock_aws
 def test_label_parameter_moving_versions_complex():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
 
@@ -1658,7 +1666,7 @@ def test_label_parameter_moving_versions_complex():
 
 @mock_aws
 def test_label_parameter_version_exception_ten_labels_at_once():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     test_labels = [
@@ -1695,7 +1703,7 @@ def test_label_parameter_version_exception_ten_labels_at_once():
 
 @mock_aws
 def test_label_parameter_version_exception_ten_labels_over_multiple_calls():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
 
@@ -1739,7 +1747,7 @@ def test_label_parameter_version_exception_ten_labels_over_multiple_calls():
 
 @mock_aws
 def test_label_parameter_version_invalid_name():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
 
@@ -1750,7 +1758,7 @@ def test_label_parameter_version_invalid_name():
 
 @mock_aws
 def test_label_parameter_version_invalid_parameter_version():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     client.put_parameter(
@@ -1772,7 +1780,7 @@ def test_label_parameter_version_invalid_parameter_version():
 
 @mock_aws
 def test_label_parameter_version_invalid_label():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     client.put_parameter(
@@ -1817,7 +1825,7 @@ def test_label_parameter_version_invalid_label():
 
 @mock_aws
 def test_get_parameter_history_with_label():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     test_labels = ["test-label"]
@@ -1852,7 +1860,7 @@ def test_get_parameter_history_with_label():
 
 @mock_aws
 def test_get_parameter_history_with_label_non_latest():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     test_labels = ["test-label"]
@@ -1887,7 +1895,7 @@ def test_get_parameter_history_with_label_non_latest():
 
 @mock_aws
 def test_get_parameter_history_with_label_latest_assumed():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     test_parameter_name = "test"
     test_labels = ["test-label"]
@@ -1920,7 +1928,7 @@ def test_get_parameter_history_with_label_latest_assumed():
 
 @mock_aws
 def test_get_parameter_history_missing_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     try:
         client.get_parameter_history(Name="test_noexist")
@@ -1932,7 +1940,7 @@ def test_get_parameter_history_missing_parameter():
 
 @mock_aws
 def test_add_remove_list_tags_for_resource():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as ce:
         client.add_tags_to_resource(
@@ -1971,7 +1979,7 @@ def test_send_command():
     ssm_document = "AWS-RunShellScript"
     params = {"commands": ["#!/bin/bash\necho 'hello world'"]}
 
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     # note the timeout is determined server side, so this is a simpler check.
     before = datetime.datetime.now()
 
@@ -2016,7 +2024,7 @@ def test_send_command():
 
 @mock_aws
 def test_list_commands():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     ssm_document = "AWS-RunShellScript"
     params = {"commands": ["#!/bin/bash\necho 'hello world'"]}
@@ -2060,7 +2068,7 @@ def test_list_commands():
 
 @mock_aws
 def test_get_command_invocation():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     ssm_document = "AWS-RunShellScript"
     params = {"commands": ["#!/bin/bash\necho 'hello world'"]}
@@ -2100,8 +2108,8 @@ def test_get_command_invocation():
 
 @mock_aws
 def test_get_command_invocations_by_instance_tag():
-    ec2 = boto3.client("ec2", region_name="us-east-1")
-    ssm = boto3.client("ssm", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name=SSM_REGION)
+    ssm = boto3.client("ssm", region_name=SSM_REGION)
     tag_specifications = [
         {"ResourceType": "instance", "Tags": [{"Key": "Name", "Value": "test-tag"}]}
     ]
@@ -2132,7 +2140,7 @@ def test_get_command_invocations_by_instance_tag():
 
 @mock_aws
 def test_parameter_version_limit():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
     for i in range(PARAMETER_VERSION_LIMIT + 1):
         client.put_parameter(
@@ -2157,7 +2165,7 @@ def test_parameter_version_limit():
 
 @mock_aws
 def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_label():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
     for i in range(PARAMETER_VERSION_LIMIT):
         client.put_parameter(
@@ -2190,7 +2198,7 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
 
 @mock_aws
 def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_version():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
     versions_to_create = 5
 
@@ -2220,7 +2228,7 @@ def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_versi
 
 @mock_aws
 def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_label():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
     versions_to_create = 5
 
@@ -2253,7 +2261,7 @@ def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_label
 
 @mock_aws
 def test_get_parameters_should_only_return_unique_requests():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
 
     client.put_parameter(Name=parameter_name, Value="value", Type="String")
@@ -2265,7 +2273,7 @@ def test_get_parameters_should_only_return_unique_requests():
 
 @mock_aws
 def test_get_parameter_history_should_throw_exception_when_MaxResults_is_too_large():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
 
     for _ in range(100):
@@ -2290,7 +2298,7 @@ def test_get_parameter_history_should_throw_exception_when_MaxResults_is_too_lar
 
 @mock_aws
 def test_get_parameter_history_NextTokenImplementation():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
     parameter_name = "test-param"
 
     for _ in range(100):
@@ -2317,7 +2325,7 @@ def test_get_parameter_history_NextTokenImplementation():
 
 @mock_aws
 def test_get_parameter_history_exception_when_requesting_invalid_parameter():
-    client = boto3.client("ssm", region_name="us-east-1")
+    client = boto3.client("ssm", region_name=SSM_REGION)
 
     with pytest.raises(ClientError) as ex:
         client.get_parameter_history(Name="invalid_parameter_name")

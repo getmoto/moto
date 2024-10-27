@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     DetectPIIValidationException,
@@ -78,7 +79,7 @@ class EntityRecognizer(BaseModel):
         model_policy: str,
     ):
         self.name = recognizer_name
-        self.arn = f"arn:aws:comprehend:{region_name}:{account_id}:entity-recognizer/{recognizer_name}"
+        self.arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:entity-recognizer/{recognizer_name}"
         if version_name:
             self.arn += f"/version/{version_name}"
         self.language_code = language_code

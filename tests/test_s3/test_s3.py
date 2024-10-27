@@ -24,7 +24,7 @@ from moto.core.utils import utcnow
 from moto.moto_api import state_manager
 from moto.s3.models import s3_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
-from tests import DEFAULT_ACCOUNT_ID
+from tests import DEFAULT_ACCOUNT_ID, aws_verified
 
 from . import s3_aws_verified
 
@@ -35,8 +35,8 @@ class MyModel:
         self.value = value
         self.metadata = metadata or {}
 
-    def save(self):
-        s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    def save(self, region=None):
+        s3_client = boto3.client("s3", region_name=region or DEFAULT_REGION_NAME)
         s3_client.put_object(
             Bucket="mybucket", Key=self.name, Body=self.value, Metadata=self.metadata
         )
@@ -45,7 +45,9 @@ class MyModel:
 @mock_aws
 def test_keys_are_pickleable():
     """Keys must be pickleable due to boto3 implementation details."""
-    key = s3model.FakeKey("name", b"data!", account_id=DEFAULT_ACCOUNT_ID)
+    key = s3model.FakeKey(
+        "name", b"data!", account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert key.value == b"data!"
 
     pickled = pickle.dumps(key)
@@ -55,14 +57,20 @@ def test_keys_are_pickleable():
 
 
 @mock_aws
-def test_my_model_save():
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-west-2", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_my_model_save(region, partition):
     # Create Bucket so that test can run
-    conn = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    conn.create_bucket(Bucket="mybucket")
+    conn = boto3.resource("s3", region_name=region)
+    conn.create_bucket(
+        Bucket="mybucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
     ####################################
 
     model_instance = MyModel("steve", "is awesome")
-    model_instance.save()
+    model_instance.save(region)
 
     body = conn.Object("mybucket", "steve").get()["Body"].read().decode()
 
@@ -263,6 +271,43 @@ def test_create_existing_bucket():
     )
 
 
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "constraint", ["us-east-1", "us-east-2", "eu-central-1", "us-gov-east-2"]
+)
+def test_create_bucket_with_wrong_location_constraint(constraint):
+    client = boto3.client("s3", region_name="us-west-2")
+    kwargs = {
+        "Bucket": str(uuid.uuid4()),
+        "CreateBucketConfiguration": {"LocationConstraint": constraint},
+    }
+    with pytest.raises(ClientError) as ex:
+        client.create_bucket(**kwargs)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "IllegalLocationConstraintException"
+    assert (
+        err["Message"]
+        == f"The {constraint} location constraint is incompatible for the region specific endpoint this request was sent to."
+    )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("constraint", ["us-east-2", "eu-central-1"])
+def test_create_bucket_in_regions_from_us_east_1(constraint):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket_name = str(uuid.uuid4())
+    client.create_bucket(
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": constraint}
+    )
+    assert (
+        client.get_bucket_location(Bucket=bucket_name)["LocationConstraint"]
+        == constraint
+    )
+    client.delete_bucket(Bucket=bucket_name)
+
+
 @mock_aws
 def test_create_existing_bucket_in_us_east_1():
     """Creating a bucket that already exists in us-east-1 returns the bucket.
@@ -407,16 +452,16 @@ def test_delete_versioned_objects():
     assert delete_markers is None
 
 
-@mock_aws
-def test_delete_missing_key():
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_delete_missing_key(bucket_name=None):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
-    bucket.create()
+    bucket = s3_resource.Bucket(bucket_name)
 
-    s3_resource.Object("foobar", "key1").put(Body=b"some value")
-    s3_resource.Object("foobar", "key2").put(Body=b"some value")
-    s3_resource.Object("foobar", "key3").put(Body=b"some value")
-    s3_resource.Object("foobar", "key4").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key1").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key2").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key3").put(Body=b"some value")
+    s3_resource.Object(bucket_name, "key4").put(Body=b"some value")
 
     result = bucket.delete_objects(
         Delete={
@@ -428,9 +473,11 @@ def test_delete_missing_key():
             ]
         }
     )
-    assert result["Deleted"] == (
-        [{"Key": "unknown"}, {"Key": "key1"}, {"Key": "key3"}, {"Key": "typo"}]
-    )
+    assert len(result["Deleted"]) == 4
+    assert {"Key": "unknown"} in result["Deleted"]
+    assert {"Key": "key1"} in result["Deleted"]
+    assert {"Key": "key3"} in result["Deleted"]
+    assert {"Key": "typo"} in result["Deleted"]
     assert "Errors" not in result
 
     objects = list(bucket.objects.all())
@@ -479,6 +526,37 @@ def test_key_with_special_characters(key):
     assert resp["Body"].read() == b"value"
 
 
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("versioned", [True, False], ids=["versioned", "not versioned"])
+def test_conditional_write(versioned, bucket_name=None):
+    s3 = boto3.client("s3", region_name="us-east-1")
+    if versioned:
+        enable_versioning(bucket_name, s3)
+
+    s3.put_object(
+        Key="test_object",
+        Body="test",
+        Bucket=bucket_name,
+        IfNoneMatch="*",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        s3.put_object(
+            Key="test_object",
+            Body="another_test",
+            Bucket=bucket_name,
+            IfNoneMatch="*",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+    assert err["Condition"] == "If-None-Match"
+
+
 @mock_aws
 def test_bucket_key_listing_order():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -520,11 +598,17 @@ def test_bucket_key_listing_order():
 
 
 @mock_aws
-def test_key_with_reduced_redundancy():
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+@pytest.mark.parametrize(
+    "region,partition",
+    [("us-west-2", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
+)
+def test_key_with_reduced_redundancy(region, partition):
+    s3_resource = boto3.resource("s3", region_name=region)
     bucket_name = "test_bucket"
+    s3_resource.create_bucket(
+        Bucket=bucket_name, CreateBucketConfiguration={"LocationConstraint": region}
+    )
     bucket = s3_resource.Bucket(bucket_name)
-    bucket.create()
 
     bucket.put_object(
         Key="test_rr_key", Body=b"somedata", StorageClass="REDUCED_REDUNDANCY"
@@ -875,6 +959,22 @@ def test_upload_file_with_checksum_algorithm():
 
 
 @mock_aws
+def test_put_large_with_checksum_algorithm():
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    bucket = "mybucket"
+    s3_client.create_bucket(Bucket=bucket)
+    s3_client.put_object(
+        Bucket=bucket,
+        Key="the-key",
+        Body=b"test" * 1000000,
+        ChecksumAlgorithm="SHA256",
+    )
+
+    resp = s3_client.get_object(Bucket="mybucket", Key="the-key")
+    assert resp["Body"].read() == b"test" * 1000000
+
+
+@mock_aws
 def test_put_chunked_with_v4_signature_in_body():
     bucket_name = "mybucket"
     file_name = "file"
@@ -920,11 +1020,9 @@ def test_put_chunked_with_v4_signature_in_body():
 
 @mock_aws
 def test_s3_object_in_private_bucket():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", "us-east-1")
     bucket = s3_resource.Bucket("test-bucket")
-    bucket.create(
-        ACL="private", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    bucket.create(ACL="private")
     bucket.put_object(ACL="private", Body=b"ABCD", Key="file.txt")
 
     s3_anonymous = boto3.resource("s3")
@@ -1566,7 +1664,8 @@ def test_bucket_create():
     )
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_bucket_create_force_us_east_1():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     with pytest.raises(ClientError) as exc:
@@ -1575,6 +1674,10 @@ def test_bucket_create_force_us_east_1():
             CreateBucketConfiguration={"LocationConstraint": DEFAULT_REGION_NAME},
         )
     assert exc.value.response["Error"]["Code"] == "InvalidLocationConstraint"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "The specified location-constraint is not valid"
+    )
 
 
 @mock_aws
@@ -1601,37 +1704,73 @@ def test_bucket_create_empty_bucket_configuration_should_return_malformed_xml_er
     assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
-@mock_aws
-def test_head_object():
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("size", [10, 10000000])
+def test_head_object(size, bucket_name=None):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="blah")
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    s3_resource.Object("blah", "hello.txt").put(Body="some text")
+    s3_resource.Object(bucket_name, "hello.txt").put(Body="x" * size)
 
-    s3_resource.Object("blah", "hello.txt").meta.client.head_object(
-        Bucket="blah", Key="hello.txt"
+    resp = client.head_object(Bucket=bucket_name, Key="hello.txt")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "content-range" not in resp["ResponseMetadata"]["HTTPHeaders"]
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
+
+    resp = client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=1)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+    assert (
+        resp["ResponseMetadata"]["HTTPHeaders"]["content-range"]
+        == f"bytes 0-{size-1}/{size}"
     )
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
 
     with pytest.raises(ClientError) as exc:
-        s3_resource.Object("blah", "hello2.txt").meta.client.head_object(
-            Bucket="blah", Key="hello_bad.txt"
-        )
+        client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=2)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "416"
+    assert err["Message"] == "Requested Range Not Satisfiable"
+
+    with pytest.raises(ClientError) as exc:
+        client.head_object(Bucket=bucket_name, Key="hello_bad.txt")
     assert exc.value.response["Error"]["Code"] == "404"
 
 
-@mock_aws
-def test_get_object():
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("size", [10, 10000000])
+def test_get_object(size, bucket_name=None):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    s3_resource.create_bucket(Bucket="blah")
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    s3_resource.Object("blah", "hello.txt").put(Body="some text")
+    s3_resource.Object(bucket_name, "hello.txt").put(Body="x" * size)
 
-    s3_resource.Object("blah", "hello.txt").meta.client.head_object(
-        Bucket="blah", Key="hello.txt"
+    resp = client.get_object(Bucket=bucket_name, Key="hello.txt")
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "content-range" not in resp["ResponseMetadata"]["HTTPHeaders"]
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
+
+    resp = client.get_object(Bucket=bucket_name, Key="hello.txt", PartNumber=1)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
+    assert (
+        resp["ResponseMetadata"]["HTTPHeaders"]["content-range"]
+        == f"bytes 0-{size - 1}/{size}"
     )
+    assert resp["ContentLength"] == size
+    assert resp["AcceptRanges"] == "bytes"
 
     with pytest.raises(ClientError) as exc:
-        s3_resource.Object("blah", "hello2.txt").get()
+        client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=2)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "416"
+    assert err["Message"] == "Requested Range Not Satisfiable"
+
+    with pytest.raises(ClientError) as exc:
+        s3_resource.Object(bucket_name, "hello2.txt").get()
 
     assert exc.value.response["Error"]["Code"] == "NoSuchKey"
 
@@ -1712,27 +1851,35 @@ def test_deleted_versionings_list():
     assert len(listed["Contents"]) == 1
 
 
-@mock_aws
-def test_delete_objects_for_specific_version_id():
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_delete_objects_for_specific_version_id(bucket_name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    client.create_bucket(Bucket="blah")
-    client.put_bucket_versioning(
-        Bucket="blah", VersioningConfiguration={"Status": "Enabled"}
-    )
+    enable_versioning(bucket_name, client)
 
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1a")
-    client.put_object(Bucket="blah", Key="test1", Body=b"test1b")
+    client.put_object(Bucket=bucket_name, Key="test1", Body=b"test1a")
+    client.put_object(Bucket=bucket_name, Key="test1", Body=b"test1b")
 
-    response = client.list_object_versions(Bucket="blah", Prefix="test1")
+    response = client.list_object_versions(Bucket=bucket_name, Prefix="test1")
     id_to_delete = [v["VersionId"] for v in response["Versions"] if v["IsLatest"]][0]
 
     response = client.delete_objects(
-        Bucket="blah", Delete={"Objects": [{"Key": "test1", "VersionId": id_to_delete}]}
+        Bucket=bucket_name,
+        Delete={"Objects": [{"Key": "test1", "VersionId": id_to_delete}]},
     )
     assert response["Deleted"] == [{"Key": "test1", "VersionId": id_to_delete}]
 
-    listed = client.list_objects_v2(Bucket="blah")
+    listed = client.list_objects_v2(Bucket=bucket_name)
     assert len(listed["Contents"]) == 1
+
+    # DeleteObjects without specifying VersionId
+    response = client.delete_objects(
+        Bucket=bucket_name, Delete={"Objects": [{"Key": "test1"}]}
+    )
+    assert "Deleted" in response
+    assert response["Deleted"][0]["DeleteMarker"] is True
+    assert response["Deleted"][0]["DeleteMarkerVersionId"]
+    assert response["Deleted"][0]["Key"] == "test1"
 
 
 @mock_aws
@@ -1752,27 +1899,27 @@ def test_delete_versioned_bucket():
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_delete_versioned_bucket_returns_metadata(name=None):
+def test_delete_versioned_bucket_returns_metadata(bucket_name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = resource.Bucket(name)
+    bucket = resource.Bucket(bucket_name)
     versions = bucket.object_versions
 
-    enable_versioning(name, client)
+    enable_versioning(bucket_name, client)
 
-    client.put_object(Bucket=name, Key="test1", Body=b"test1")
+    client.put_object(Bucket=bucket_name, Key="test1", Body=b"test1")
 
     # We now have zero delete markers
-    assert "DeleteMarkers" not in client.list_object_versions(Bucket=name)
+    assert "DeleteMarkers" not in client.list_object_versions(Bucket=bucket_name)
 
     # Delete the object
-    del_file = client.delete_object(Bucket=name, Key="test1")
+    del_file = client.delete_object(Bucket=bucket_name, Key="test1")
     deleted_version_id = del_file["VersionId"]
     assert del_file["DeleteMarker"] is True
     assert deleted_version_id is not None
 
     # We now have one DeleteMarker
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 1
 
     # list_object_versions returns the object itself, and a DeleteMarker
     # object.head() returns a 'x-amz-delete-marker' header
@@ -1794,7 +1941,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     # Note that delete_marker.head() returns a regular 404
     # i.e., without specifying the versionId
     with pytest.raises(ClientError) as exc:
-        client.head_object(Bucket=name, Key="test1")
+        client.head_object(Bucket=bucket_name, Key="test1")
     err = exc.value.response
     assert err["Error"] == {"Code": "404", "Message": "Not Found"}
     assert err["ResponseMetadata"]["HTTPStatusCode"] == 404
@@ -1804,16 +1951,16 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
     )
 
     # Delete the same object gives a new version id
-    del_mrk1 = client.delete_object(Bucket=name, Key="test1")
+    del_mrk1 = client.delete_object(Bucket=bucket_name, Key="test1")
     assert del_mrk1["DeleteMarker"] is True
     assert del_mrk1["VersionId"] != del_file["VersionId"]
 
     # We now have two DeleteMarkers
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 2
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 2
 
     # Delete the delete marker
     del_mrk2 = client.delete_object(
-        Bucket=name, Key="test1", VersionId=del_mrk1["VersionId"]
+        Bucket=bucket_name, Key="test1", VersionId=del_mrk1["VersionId"]
     )
     assert del_mrk2["DeleteMarker"] is True
     assert del_mrk2["VersionId"] == del_mrk1["VersionId"]
@@ -1833,19 +1980,19 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
             assert version.head()["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # We now have only one DeleteMarker
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 1
 
     # Delete the actual file
-    actual_version = client.list_object_versions(Bucket=name)["Versions"][0]
+    actual_version = client.list_object_versions(Bucket=bucket_name)["Versions"][0]
     del_mrk3 = client.delete_object(
-        Bucket=name, Key="test1", VersionId=actual_version["VersionId"]
+        Bucket=bucket_name, Key="test1", VersionId=actual_version["VersionId"]
     )
     assert "DeleteMarker" not in del_mrk3
     assert del_mrk3["VersionId"] == actual_version["VersionId"]
 
     # We still have one DeleteMarker, but zero objects
-    assert len(client.list_object_versions(Bucket=name)["DeleteMarkers"]) == 1
-    assert "Versions" not in client.list_object_versions(Bucket=name)
+    assert len(client.list_object_versions(Bucket=bucket_name)["DeleteMarkers"]) == 1
+    assert "Versions" not in client.list_object_versions(Bucket=bucket_name)
 
     # Because we only have DeleteMarkers, we can not call `head()` on any of othem
     for version in versions.filter(Prefix="test1"):
@@ -1856,7 +2003,7 @@ def test_delete_versioned_bucket_returns_metadata(name=None):
 
     # Delete the last marker
     del_mrk4 = client.delete_object(
-        Bucket=name, Key="test1", VersionId=del_mrk2["VersionId"]
+        Bucket=bucket_name, Key="test1", VersionId=del_mrk2["VersionId"]
     )
     assert "DeleteMarker" not in del_mrk4
     assert del_mrk4["VersionId"] == del_mrk2["VersionId"]
@@ -2192,9 +2339,14 @@ def test_delete_bucket_cors(bucket_name=None):
 
 
 @mock_aws
-def test_put_bucket_notification():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    s3_client.create_bucket(Bucket="bucket")
+@pytest.mark.parametrize(
+    "region,partition", [("us-west-2", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_put_bucket_notification(region, partition):
+    s3_client = boto3.client("s3", region_name=region)
+    s3_client.create_bucket(
+        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": region}
+    )
 
     # With no configuration:
     result = s3_client.get_bucket_notification(Bucket="bucket")
@@ -2208,11 +2360,11 @@ def test_put_bucket_notification():
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
-                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                    "TopicArn": f"arn:{partition}:sns:{region}:012345678910:mytopic",
                     "Events": ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"],
                 },
                 {
-                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:myothertopic",
+                    "TopicArn": f"arn:{partition}:sns:{region}:012345678910:myothertopic",
                     "Events": ["s3:ObjectCreated:*"],
                     "Filter": {
                         "Key": {
@@ -2234,11 +2386,11 @@ def test_put_bucket_notification():
     assert not result.get("LambdaFunctionConfigurations")
     assert (
         result["TopicConfigurations"][0]["TopicArn"]
-        == "arn:aws:sns:us-east-1:012345678910:mytopic"
+        == f"arn:{partition}:sns:{region}:012345678910:mytopic"
     )
     assert (
         result["TopicConfigurations"][1]["TopicArn"]
-        == "arn:aws:sns:us-east-1:012345678910:myothertopic"
+        == f"arn:{partition}:sns:{region}:012345678910:myothertopic"
     )
     assert len(result["TopicConfigurations"][0]["Events"]) == 2
     assert len(result["TopicConfigurations"][1]["Events"]) == 1
@@ -2273,7 +2425,7 @@ def test_put_bucket_notification():
             "QueueConfigurations": [
                 {
                     "Id": "SomeID",
-                    "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                    "QueueArn": f"arn:{partition}:sqs:{region}:012345678910:myQueue",
                     "Events": ["s3:ObjectCreated:*"],
                     "Filter": {
                         "Key": {"FilterRules": [{"Name": "prefix", "Value": "images/"}]}
@@ -2289,7 +2441,7 @@ def test_put_bucket_notification():
     assert result["QueueConfigurations"][0]["Id"] == "SomeID"
     assert (
         result["QueueConfigurations"][0]["QueueArn"]
-        == "arn:aws:sqs:us-east-1:012345678910:myQueue"
+        == f"arn:{partition}:sqs:{region}:012345678910:myQueue"
     )
     assert result["QueueConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
     assert len(result["QueueConfigurations"][0]["Events"]) == 1
@@ -2309,7 +2461,7 @@ def test_put_bucket_notification():
         NotificationConfiguration={
             "LambdaFunctionConfigurations": [
                 {
-                    "LambdaFunctionArn": "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                    "LambdaFunctionArn": f"arn:{partition}:lambda:{region}:012345678910:function:lambda",
                     "Events": ["s3:ObjectCreated:*"],
                     "Filter": {
                         "Key": {"FilterRules": [{"Name": "prefix", "Value": "images/"}]}
@@ -2325,7 +2477,7 @@ def test_put_bucket_notification():
     assert result["LambdaFunctionConfigurations"][0]["Id"]
     assert (
         result["LambdaFunctionConfigurations"][0]["LambdaFunctionArn"]
-        == "arn:aws:lambda:us-east-1:012345678910:function:lambda"
+        == f"arn:{partition}:lambda:{region}:012345678910:function:lambda"
     )
     assert (
         result["LambdaFunctionConfigurations"][0]["Events"][0] == "s3:ObjectCreated:*"
@@ -2354,19 +2506,19 @@ def test_put_bucket_notification():
         NotificationConfiguration={
             "TopicConfigurations": [
                 {
-                    "TopicArn": "arn:aws:sns:us-east-1:012345678910:mytopic",
+                    "TopicArn": f"arn:{partition}:sns:{region}:012345678910:mytopic",
                     "Events": ["s3:ObjectCreated:*", "s3:ObjectRemoved:*"],
                 }
             ],
             "LambdaFunctionConfigurations": [
                 {
-                    "LambdaFunctionArn": "arn:aws:lambda:us-east-1:012345678910:function:lambda",
+                    "LambdaFunctionArn": f"arn:{partition}:lambda:{region}:012345678910:function:lambda",
                     "Events": ["s3:ObjectCreated:*"],
                 }
             ],
             "QueueConfigurations": [
                 {
-                    "QueueArn": "arn:aws:sqs:us-east-1:012345678910:myQueue",
+                    "QueueArn": f"arn:{partition}:sqs:{region}:012345678910:myQueue",
                     "Events": ["s3:ObjectCreated:*"],
                 }
             ],
@@ -2641,11 +2793,8 @@ def test_can_suspend_bucket_acceleration():
 @mock_aws
 def test_suspending_acceleration_on_not_configured_bucket_does_nothing():
     bucket_name = "some_bucket"
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket=bucket_name)
     resp = s3_client.put_bucket_accelerate_configuration(
         Bucket=bucket_name, AccelerateConfiguration={"Status": "Suspended"}
     )
@@ -3305,6 +3454,41 @@ def test_head_versioned_key_in_not_versioned_bucket():
 
     response = ex.value.response
     assert response["Error"]["Code"] == "400"
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_head_object_with_range_header(bucket_name=None):
+    # HeadObject returns only the metadata for an object.
+    # If the Range is satisfiable, only the ContentLength is affected in the response.
+    # If the Range is not satisfiable, S3 returns a 416 - Requested Range Not Satisfiable error.
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    client.put_object(Bucket=bucket_name, Key="f1", Body="f1")
+
+    for valid in ["0-9", "0-"]:
+        resp = client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={valid}")
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        assert headers["content-range"] == "bytes 0-1/2"
+        assert headers["content-length"] == "2"
+
+    for valid in ["-1", "1-1"]:
+        resp = client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={valid}")
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        assert headers["content-range"] == "bytes 1-1/2"
+        assert headers["content-length"] == "1"
+
+    for valid in ["1-0"]:
+        resp = client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={valid}")
+        headers = resp["ResponseMetadata"]["HTTPHeaders"]
+        assert "content-range" not in headers
+        assert headers["content-length"] == "2"
+
+    for invalid in ["5-9", "100-"]:
+        with pytest.raises(ClientError) as exc:
+            client.head_object(Bucket=bucket_name, Key="f1", Range=f"bytes={invalid}")
+        err = exc.value.response["Error"]
+        assert err["Code"] == "416"
+        assert "Range Not Satisfiable" in err["Message"]
 
 
 @mock_aws

@@ -6,14 +6,14 @@ from moto.moto_api._internal import mock_random as random
 
 MASTER_ACCOUNT_EMAIL = "master@example.com"
 DEFAULT_POLICY_ID = "p-FullAWSAccess"
-ORGANIZATION_ARN_FORMAT = "arn:aws:organizations::{0}:organization/{1}"
-MASTER_ACCOUNT_ARN_FORMAT = "arn:aws:organizations::{0}:account/{1}/{0}"
-ACCOUNT_ARN_FORMAT = "arn:aws:organizations::{0}:account/{1}/{2}"
-ROOT_ARN_FORMAT = "arn:aws:organizations::{0}:root/{1}/{2}"
-OU_ARN_FORMAT = "arn:aws:organizations::{0}:ou/{1}/{2}"
-SCP_ARN_FORMAT = "arn:aws:organizations::{0}:policy/{1}/service_control_policy/{2}"
+ORGANIZATION_ARN_FORMAT = "arn:{0}:organizations::{1}:organization/{2}"
+MASTER_ACCOUNT_ARN_FORMAT = "arn:{0}:organizations::{1}:account/{2}/{1}"
+ACCOUNT_ARN_FORMAT = "arn:{0}:organizations::{1}:account/{2}/{3}"
+ROOT_ARN_FORMAT = "arn:{0}:organizations::{1}:root/{2}/{3}"
+OU_ARN_FORMAT = "arn:{0}:organizations::{1}:ou/{2}/{3}"
+SCP_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/service_control_policy/{3}"
 AI_POLICY_ARN_FORMAT = (
-    "arn:aws:organizations::{0}:policy/{1}/aiservices_opt_out_policy/{2}"
+    "arn:{0}:organizations::{1}:policy/{2}/aiservices_opt_out_policy/{3}"
 )
 
 CHARSET = string.ascii_lowercase + string.digits

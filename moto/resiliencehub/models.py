@@ -6,6 +6,7 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import AppNotFound, AppVersionNotFound, ResiliencyPolicyNotFound
 
@@ -51,7 +52,7 @@ class App(BaseModel):
         policy_arn: str,
     ):
         self.backend = backend
-        self.arn = f"arn:aws:resiliencehub:{backend.region_name}:{backend.account_id}:app/{mock_random.uuid4()}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:resiliencehub:{backend.region_name}:{backend.account_id}:app/{mock_random.uuid4()}"
         self.assessment_schedule = assessment_schedule or "Disabled"
         self.compliance_status = "NotAssessed"
         self.description = description
@@ -154,7 +155,7 @@ class Policy(BaseModel):
         policy_description: str,
         tier: str,
     ):
-        self.arn = f"arn:aws:resiliencehub:{backend.region_name}:{backend.account_id}:resiliency-policy/{mock_random.uuid4()}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:resiliencehub:{backend.region_name}:{backend.account_id}:resiliency-policy/{mock_random.uuid4()}"
         self.backend = backend
         self.data_location_constraint = data_location_constraint
         self.creation_time = unix_time()
@@ -185,6 +186,9 @@ class ResilienceHubBackend(BaseBackend):
         self.apps: Dict[str, App] = dict()
         self.policies: Dict[str, Policy] = dict()
         self.tagger = TaggingService()
+
+        self.app_assessments_queue: List[List[Dict[str, Any]]] = []
+        self.app_assessments_results: Dict[str, List[Dict[str, Any]]] = {}
 
     def create_app(
         self,
@@ -251,7 +255,49 @@ class ResilienceHubBackend(BaseBackend):
             app_summaries.reverse()
         return app_summaries
 
-    def list_app_assessments(self) -> List[str]:
+    def list_app_assessments(self, request_identifier: str) -> List[Dict[str, Any]]:
+        """
+        Moto will not actually execute any assessments, so this operation will return an empty list by default.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `list_app_assessments` will take the first result from that queue, with subsequent calls with the same parameters returning the same result.
+
+        Calling `list_app_assessments` with a different set of parameters will return the second result from that queue - and so on, or an empty list of the queue is empty.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/resilience-hub-assessments/response`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            summary1 = {"appArn": "app_arn1", "appVersion": "some version", ...}
+            summary2 = {"appArn": "app_arn2", ...}
+            results = {"results": [[summary1, summary2], [summary2]], "region": "us-east-1"}
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/resilience-hub-assessments/response",
+                json=results,
+            )
+
+            assert resp.status_code == 201
+
+            client = boto3.client("lambda", region_name="us-east-1")
+            # First result
+            resp = client.list_app_assessments() # [summary1, summary2]
+            # Second result
+            resp = client.list_app_assessments(assessmentStatus="Pending") # [summary2]
+
+        If you're using MotoServer, make sure to make this request to where MotoServer is running:
+
+        .. sourcecode:: python
+
+            http://localhost:5000/moto-api/static/resilience-hub-assessments/response
+
+        """
+        if request_identifier in self.app_assessments_results:
+            return self.app_assessments_results[request_identifier]
+        if self.app_assessments_queue:
+            self.app_assessments_results[request_identifier] = (
+                self.app_assessments_queue.pop(0)
+            )
+            return self.app_assessments_results[request_identifier]
         return []
 
     def describe_app(self, app_arn: str) -> App:

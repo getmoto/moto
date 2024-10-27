@@ -1,4 +1,6 @@
 import boto3
+import pytest
+from botocore.errorfactory import ClientError
 
 from moto import mock_aws
 
@@ -97,3 +99,52 @@ def test_list_invalidations__no_entries():
     assert resp["InvalidationList"]["IsTruncated"] is False
     assert resp["InvalidationList"]["Quantity"] == 0
     assert "Items" not in resp["InvalidationList"]
+
+
+@mock_aws
+def test_get_invalidation():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    resp = client.create_distribution(DistributionConfig=config)
+    dist_id = resp["Distribution"]["Id"]
+
+    createResp = client.create_invalidation(
+        DistributionId=dist_id,
+        InvalidationBatch={
+            "Paths": {"Quantity": 1, "Items": ["/path1"]},
+            "CallerReference": "ref2",
+        },
+    )
+    existed = createResp["Invalidation"]
+    resp = client.get_invalidation(DistributionId=dist_id, Id=existed["Id"])
+    assert "Invalidation" in resp
+    returned = resp["Invalidation"]
+    assert returned["Id"] == existed["Id"]
+    assert returned["Status"] == existed["Status"]
+    assert returned["CreateTime"] == existed["CreateTime"]
+    assert returned["InvalidationBatch"] == existed["InvalidationBatch"]
+
+
+@mock_aws
+def test_get_invalidation_dist_not_found():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_invalidation(DistributionId="notfound", Id="notfound")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchDistribution"
+    assert err["Message"] == "The specified distribution does not exist."
+
+
+@mock_aws
+def test_get_invalidation_id_not_found():
+    client = boto3.client("cloudfront", region_name="us-west-1")
+    config = scaffold.example_distribution_config("ref")
+    resp = client.create_distribution(DistributionConfig=config)
+    dist_id = resp["Distribution"]["Id"]
+
+    with pytest.raises(ClientError) as exc:
+        client.get_invalidation(DistributionId=dist_id, Id="notfound")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NoSuchInvalidation"
+    assert err["Message"] == "The specified invalidation does not exist."

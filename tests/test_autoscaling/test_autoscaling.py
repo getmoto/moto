@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from tests import EXAMPLE_AMI_ID
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 from .utils import setup_instance_with_networking, setup_networking
 
@@ -649,6 +649,22 @@ def test_update_autoscaling_group_max_size_desired_capacity_change():
     assert group["DesiredCapacity"] == 5
     assert group["MaxSize"] == 5
     assert len(group["Instances"]) == 5
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_update_unknown_group():
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.update_auto_scaling_group(
+            AutoScalingGroupName="fake-asg",
+            MinSize=2,
+            MaxSize=2,
+            DesiredCapacity=2,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "AutoScalingGroup name not found - null"
 
 
 @mock_aws
@@ -1348,6 +1364,6 @@ def test_sets_created_time():
 
     asgs = conn.describe_auto_scaling_groups()["AutoScalingGroups"]
     assert len(asgs) == 1
-    assert asgs[0]["CreatedTime"] != datetime.strptime(
-        "2013-05-06T17:47:15.107Z", "%Y-%m-%dT%H:%M:%S.%f%z"
+    assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
+        "%Y %m %d"
     )

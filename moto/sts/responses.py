@@ -12,7 +12,7 @@ class TokenResponse(BaseResponse):
 
     @property
     def backend(self) -> STSBackend:
-        return sts_backends[self.current_account]["global"]
+        return sts_backends[self.current_account][self.partition]
 
     def _determine_resource(self) -> str:
         if "AssumeRole" in self.querystring.get("Action", []):
@@ -40,7 +40,9 @@ class TokenResponse(BaseResponse):
         name = self.querystring.get("Name")[0]  # type: ignore
         token = self.backend.get_federation_token(duration=duration, name=name)
         template = self.response_template(GET_FEDERATION_TOKEN_RESPONSE)
-        return template.render(token=token, account_id=self.current_account)
+        return template.render(
+            token=token, account_id=self.current_account, partition=self.partition
+        )
 
     def assume_role(self) -> str:
         role_session_name = self.querystring.get("RoleSessionName")[0]  # type: ignore
@@ -128,7 +130,7 @@ GET_FEDERATION_TOKEN_RESPONSE = """<GetFederationTokenResponse xmlns="https://st
       <AccessKeyId>AKIAIOSFODNN7EXAMPLE</AccessKeyId>
     </Credentials>
     <FederatedUser>
-      <Arn>arn:aws:sts::{{ account_id }}:federated-user/{{ token.name }}</Arn>
+      <Arn>arn:{{ partition }}:sts::{{ account_id }}:federated-user/{{ token.name }}</Arn>
       <FederatedUserId>{{ account_id }}:{{ token.name }}</FederatedUserId>
     </FederatedUser>
     <PackedPolicySize>6</PackedPolicySize>

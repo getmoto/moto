@@ -2,7 +2,7 @@
 
 import re
 from typing import Any
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, unquote
 
 import xmltodict
 from jinja2 import Template
@@ -34,7 +34,7 @@ class Route53(BaseResponse):
 
     @property
     def backend(self) -> Route53Backend:
-        return route53_backends[self.current_account]["global"]
+        return route53_backends[self.current_account][self.partition]
 
     def create_hosted_zone(self) -> TYPE_RESPONSE:
         vpcid = None
@@ -346,8 +346,10 @@ class Route53(BaseResponse):
     ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
 
-        id_ = self.parsed_url.path.split("/")[-1]
-        type_ = self.parsed_url.path.split("/")[-2]
+        id_matcher = re.search(r"/tags/([-a-z]+)/(.+)", self.parsed_url.path)
+        assert id_matcher
+        type_ = id_matcher.group(1)
+        id_ = unquote(id_matcher.group(2))
 
         if request.method == "GET":
             tags = self.backend.list_tags_for_resource(id_)
@@ -369,6 +371,21 @@ class Route53(BaseResponse):
             self.backend.change_tags_for_resource(id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
+
+    def list_tags_for_resources(self) -> str:
+        if id_matcher := re.search(r"/tags/(.+)", self.parsed_url.path):
+            resource_type = unquote(id_matcher.group(1))
+        else:
+            resource_type = ""
+        resource_ids = xmltodict.parse(self.body)["ListTagsForResourcesRequest"][
+            "ResourceIds"
+        ]["ResourceId"]
+        # If only one resource id is passed, it is a string, not a list
+        if not isinstance(resource_ids, list):
+            resource_ids = [resource_ids]
+        tag_sets = self.backend.list_tags_for_resources(resource_ids=resource_ids)
+        template = Template(LIST_TAGS_FOR_RESOURCES_RESPONSE)
+        return template.render(tag_sets=tag_sets, resource_type=resource_type)
 
     def get_change(self) -> str:
         change_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
@@ -479,6 +496,27 @@ LIST_TAGS_FOR_RESOURCE_RESPONSE = """
         </Tags>
     </ResourceTagSet>
 </ListTagsForResourceResponse>
+"""
+
+LIST_TAGS_FOR_RESOURCES_RESPONSE = """
+<ListTagsForResourcesResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ResourceTagSets>
+        {% for set in tag_sets %}
+        <ResourceTagSet>
+            <ResourceType>{{resource_type}}</ResourceType>
+            <ResourceId>{{set["ResourceId"]}}</ResourceId>
+            <Tags>
+                {% for key, value in set["Tags"].items() %}
+                <Tag>
+                    <Key>{{key}}</Key>
+                    <Value>{{value}}</Value>
+                </Tag>
+                {% endfor %}
+            </Tags>
+        </ResourceTagSet>
+        {% endfor %}
+    </ResourceTagSets>
+</ListTagsForResourcesResponse>
 """
 
 CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">

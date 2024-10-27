@@ -13,6 +13,7 @@ from moto.ram.exceptions import (
     OperationNotPermittedException,
     UnknownResourceException,
 )
+from moto.utilities.utils import get_partition
 
 
 def random_resource_id(size: int) -> str:
@@ -41,11 +42,10 @@ class ResourceShare(BaseModel):
     def __init__(self, account_id: str, region: str, **kwargs: Any):
         self.account_id = account_id
         self.region = region
+        self.partition = get_partition(region)
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
-        self.arn = (
-            f"arn:aws:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
-        )
+        self.arn = f"arn:{get_partition(self.region)}:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
         self.creation_time = utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = utcnow()
@@ -57,7 +57,7 @@ class ResourceShare(BaseModel):
 
     @property
     def organizations_backend(self) -> OrganizationsBackend:
-        return organizations_backends[self.account_id]["global"]
+        return organizations_backends[self.account_id][self.partition]
 
     def add_principals(self, principals: List[str]) -> None:
         for principal in principals:
@@ -158,7 +158,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     @property
     def organizations_backend(self) -> OrganizationsBackend:
-        return organizations_backends[self.account_id]["global"]
+        return organizations_backends[self.account_id][self.partition]
 
     def create_resource_share(self, **kwargs: Any) -> Dict[str, Any]:
         resource = ResourceShare(self.account_id, self.region_name, **kwargs)

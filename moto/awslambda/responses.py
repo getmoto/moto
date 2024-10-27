@@ -1,10 +1,12 @@
 import json
+import re
 import sys
 from typing import Any, Dict, List, Tuple, Union
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
 from moto.utilities.aws_headers import amz_crc32
+from moto.utilities.utils import ARN_PARTITION_REGEX
 
 from .exceptions import FunctionAlreadyExists, UnknownFunctionException
 from .models import LambdaBackend
@@ -224,7 +226,7 @@ class LambdaResponse(BaseResponse):
         configuration: Dict[str, Any], function_name: str, qualifier: str
     ) -> Dict[str, Any]:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
-        if function_name.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, function_name):
             # Extract from ARN
             if ":" in function_name.split(":function:")[-1]:
                 qualifier = function_name.split(":")[-1]
@@ -319,20 +321,14 @@ class LambdaResponse(BaseResponse):
 
     def get_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function_name = self.backend.get_function(path_function_name)
-
-        if function_name is None:
-            return 404, {"status": 404}, "{}"
+        self.backend.get_function(path_function_name)
 
         resp = self.backend.get_function_concurrency(path_function_name)
         return 200, {}, json.dumps({"ReservedConcurrentExecutions": resp})
 
     def delete_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function_name = self.backend.get_function(path_function_name)
-
-        if function_name is None:
-            return 404, {}, "{}"
+        self.backend.get_function(path_function_name)
 
         self.backend.delete_function_concurrency(path_function_name)
 
@@ -340,10 +336,7 @@ class LambdaResponse(BaseResponse):
 
     def put_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])
-        function = self.backend.get_function(path_function_name)
-
-        if function is None:
-            return 404, {}, "{}"
+        self.backend.get_function(path_function_name)
 
         concurrency = self._get_param("ReservedConcurrentExecutions", None)
         resp = self.backend.put_function_concurrency(path_function_name, concurrency)

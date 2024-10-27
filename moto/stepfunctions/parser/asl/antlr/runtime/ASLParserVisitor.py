@@ -142,6 +142,12 @@ class ASLParserVisitor(ParseTreeVisitor):
     def visitMax_concurrency_decl(self, ctx: ASLParser.Max_concurrency_declContext):
         return self.visitChildren(ctx)
 
+    # Visit a parse tree produced by ASLParser#max_concurrency_path_decl.
+    def visitMax_concurrency_path_decl(
+        self, ctx: ASLParser.Max_concurrency_path_declContext
+    ):
+        return self.visitChildren(ctx)
+
     # Visit a parse tree produced by ASLParser#parameters_decl.
     def visitParameters_decl(self, ctx: ASLParser.Parameters_declContext):
         return self.visitChildren(ctx)
@@ -354,6 +360,34 @@ class ASLParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by ASLParser#max_items_path_decl.
     def visitMax_items_path_decl(self, ctx: ASLParser.Max_items_path_declContext):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#tolerated_failure_count_decl.
+    def visitTolerated_failure_count_decl(
+        self, ctx: ASLParser.Tolerated_failure_count_declContext
+    ):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#tolerated_failure_count_path_decl.
+    def visitTolerated_failure_count_path_decl(
+        self, ctx: ASLParser.Tolerated_failure_count_path_declContext
+    ):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#tolerated_failure_percentage_decl.
+    def visitTolerated_failure_percentage_decl(
+        self, ctx: ASLParser.Tolerated_failure_percentage_declContext
+    ):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#tolerated_failure_percentage_path_decl.
+    def visitTolerated_failure_percentage_path_decl(
+        self, ctx: ASLParser.Tolerated_failure_percentage_path_declContext
+    ):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLParser#label_decl.
+    def visitLabel_decl(self, ctx: ASLParser.Label_declContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by ASLParser#retry_decl.

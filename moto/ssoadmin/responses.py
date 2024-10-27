@@ -1,6 +1,8 @@
 import json
+from uuid import uuid4
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import unix_time
 
 from .models import SSOAdminBackend, ssoadmin_backends
 
@@ -325,3 +327,58 @@ class SSOAdminResponse(BaseResponse):
         return json.dumps(
             dict(AccountAssignmentDeletionStatus=account_assignment_deletion_status)
         )
+
+    def list_instances(self) -> str:
+        instances = self.ssoadmin_backend.list_instances()
+
+        return json.dumps({"Instances": [i.to_json() for i in instances]})
+
+    def update_instance(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        name = self._get_param("Name")
+
+        self.ssoadmin_backend.update_instance(instance_arn=instance_arn, name=name)
+
+        return "{}"
+
+    def provision_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+
+        self.ssoadmin_backend.provision_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps(
+            {
+                "PermissionSetProvisioningStatus": {
+                    "AccountId": self.current_account,
+                    "CreatedDate": unix_time(),
+                    "PermissionSetArn": permission_set_arn,
+                    "RequestId": str(uuid4()),
+                    "Status": "SUCCEEDED",
+                }
+            }
+        )
+
+    def list_permission_sets_provisioned_to_account(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+
+        permission_sets = (
+            self.ssoadmin_backend.list_permission_sets_provisioned_to_account(
+                instance_arn
+            )
+        )
+        arns = [p.permission_set_arn for p in permission_sets]
+        return json.dumps({"PermissionSets": arns})
+
+    def list_accounts_for_provisioned_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+
+        account_ids = (
+            self.ssoadmin_backend.list_accounts_for_provisioned_permission_set(
+                instance_arn=instance_arn, permission_set_arn=permission_set_arn
+            )
+        )
+        return json.dumps({"AccountIds": account_ids})

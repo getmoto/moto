@@ -1,4 +1,5 @@
 import datetime
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -6,6 +7,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests import aws_verified
 
 DEFAULT_REGION = "us-west-2"
 
@@ -551,7 +553,7 @@ def test_describe_non_existent_database():
 def test_modify_db_instance():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
+        DBInstanceIdentifier="db-id",
         AllocatedStorage=10,
         DBInstanceClass="postgres",
         Engine="postgres",
@@ -560,23 +562,22 @@ def test_modify_db_instance():
         Port=1234,
         DBSecurityGroups=["my_sg"],
     )
-    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert instances["DBInstances"][0]["AllocatedStorage"] == 10
+    inst = conn.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
+    assert inst["AllocatedStorage"] == 10
+    assert inst["EnabledCloudwatchLogsExports"] == []
+
     conn.modify_db_instance(
-        DBInstanceIdentifier="db-master-1",
+        DBInstanceIdentifier="db-id",
         AllocatedStorage=20,
         ApplyImmediately=True,
         VpcSecurityGroupIds=["sg-123456"],
+        CloudwatchLogsExportConfiguration={"EnableLogTypes": ["error"]},
     )
-    instances = conn.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert instances["DBInstances"][0]["AllocatedStorage"] == 20
-    assert instances["DBInstances"][0]["PreferredMaintenanceWindow"] == (
-        "wed:06:38-wed:07:08"
-    )
-    assert (
-        instances["DBInstances"][0]["VpcSecurityGroups"][0]["VpcSecurityGroupId"]
-        == "sg-123456"
-    )
+    inst = conn.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
+    assert inst["AllocatedStorage"] == 20
+    assert inst["PreferredMaintenanceWindow"] == "wed:06:38-wed:07:08"
+    assert inst["VpcSecurityGroups"][0]["VpcSecurityGroupId"] == "sg-123456"
+    assert inst["EnabledCloudwatchLogsExports"] == ["error"]
 
 
 @mock_aws
@@ -1262,6 +1263,34 @@ def test_restore_db_instance_to_point_in_time():
         )
         == 1
     )
+    # ensure another pit restore can be made
+    new_instance = conn.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier="db-primary-1",
+        TargetDBInstanceIdentifier="db-restore-2",
+    )["DBInstance"]
+    assert new_instance["DBInstanceIdentifier"] == "db-restore-2"
+    assert new_instance["DBInstanceClass"] == "db.m1.small"
+    assert new_instance["StorageType"] == "gp2"
+    assert new_instance["Engine"] == "postgres"
+    assert new_instance["DBName"] == "staging-postgres"
+    assert new_instance["DBParameterGroups"][0]["DBParameterGroupName"] == (
+        "default.postgres9.3"
+    )
+    assert new_instance["DBSecurityGroups"] == [
+        {"DBSecurityGroupName": "my_sg", "Status": "active"}
+    ]
+    assert new_instance["Endpoint"]["Port"] == 5432
+
+    # Verify it exists
+    assert len(conn.describe_db_instances()["DBInstances"]) == 3
+    assert (
+        len(
+            conn.describe_db_instances(DBInstanceIdentifier="db-restore-2")[
+                "DBInstances"
+            ]
+        )
+        == 1
+    )
 
 
 @mock_aws
@@ -1441,27 +1470,96 @@ def test_describe_option_group_options():
         )
 
 
-@mock_aws
+@pytest.mark.aws_verified
+@aws_verified
 def test_modify_option_group():
-    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    conn = boto3.client("rds", region_name="us-east-1")
+    option_group_name = f"og-{str(uuid4())[0:6]}"
     conn.create_option_group(
-        OptionGroupName="test",
+        OptionGroupName=option_group_name,
         EngineName="mysql",
         MajorEngineVersion="5.6",
         OptionGroupDescription="test option group",
     )
-    # TODO: create option and validate before deleting.
-    # if Someone can tell me how the hell to use this function
-    # to add options to an option_group, I can finish coding this.
-    result = conn.modify_option_group(
-        OptionGroupName="test",
-        OptionsToInclude=[],
-        OptionsToRemove=["MEMCACHED"],
-        ApplyImmediately=True,
-    )
-    assert result["OptionGroup"]["EngineName"] == "mysql"
-    assert result["OptionGroup"]["Options"] == []
-    assert result["OptionGroup"]["OptionGroupName"] == "test"
+
+    try:
+        # Verify OptionsToRemove do not have to exist
+        option_group = conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToInclude=[],
+            OptionsToRemove=["MEMCACHED"],
+            ApplyImmediately=True,
+        )["OptionGroup"]
+        assert option_group["EngineName"] == "mysql"
+        assert option_group["Options"] == []
+        assert option_group["OptionGroupName"] == option_group_name
+
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+        assert option_groups[0]["Options"] == []
+
+        # Include option
+        # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.MySQL.Options.AuditPlugin.html
+        conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToInclude=[{"OptionName": "MARIADB_AUDIT_PLUGIN"}],
+            OptionsToRemove=[],
+            ApplyImmediately=True,
+        )["OptionGroup"]
+
+        # Verify it was added successfully
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+
+        options = option_groups[0]["Options"]
+        assert len(options) == 1
+        assert options[0]["OptionName"] == "MARIADB_AUDIT_PLUGIN"
+        # AWS automatically adds a description + default option settings, but Moto does not support that yet
+
+        # Change setting for an existing option
+        conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToInclude=[
+                {
+                    "OptionName": "MARIADB_AUDIT_PLUGIN",
+                    "OptionSettings": [
+                        {"Name": "SERVER_AUDIT_FILE_ROTATE_SIZE", "Value": "1000"},
+                    ],
+                }
+            ],
+            ApplyImmediately=True,
+        )["OptionGroup"]
+
+        # Verify it was added successfully
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+
+        options = option_groups[0]["Options"]
+        assert len(options) == 1
+        assert options[0]["OptionName"] == "MARIADB_AUDIT_PLUGIN"
+
+        option_settings = options[0]["OptionSettings"]
+        audit_plugin = [
+            o for o in option_settings if o["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
+        ][0]
+        audit_plugin["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
+        audit_plugin["Value"] == "1000"
+
+        # Verify option can be deleted
+        conn.modify_option_group(
+            OptionGroupName=option_group_name,
+            OptionsToRemove=["MARIADB_AUDIT_PLUGIN"],
+            ApplyImmediately=True,
+        )
+        option_groups = conn.describe_option_groups(OptionGroupName=option_group_name)[
+            "OptionGroupsList"
+        ]
+        assert option_groups[0]["Options"] == []
+    finally:
+        conn.delete_option_group(OptionGroupName=option_group_name)
 
 
 @mock_aws
@@ -2780,6 +2878,11 @@ def test_modify_db_snapshot_attribute():
         AttributeName="restore",
         ValuesToRemove=["Test"],
     )
+    resp = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier="snapshot-1",
+        AttributeName="restore",
+        ValuesToAdd=["Test3"],
+    )
 
     assert (
         resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0]["AttributeName"]
@@ -2787,7 +2890,7 @@ def test_modify_db_snapshot_attribute():
     )
     assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0][
         "AttributeValues"
-    ] == ["Test2"]
+    ] == ["Test2", "Test3"]
 
 
 def validation_helper(exc):

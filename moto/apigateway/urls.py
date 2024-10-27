@@ -5,13 +5,14 @@ url_bases = [r"https?://apigateway\.(.+)\.amazonaws.com"]
 
 url_paths = {
     "{0}/restapis$": APIGatewayResponse.dispatch,
+    "{0}/restapis/$": APIGatewayResponse.get_rest_api_without_id,
     "{0}/restapis/(?P<function_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/resources$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers/(?P<authorizer_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/stages$": APIGatewayResponse.dispatch,
     "{0}/tags/(?P<resourceArn>[^/]+)$": APIGatewayResponse.dispatch,
-    "{0}/tags/arn:aws:apigateway:(?P<region_name>[^/]+)::/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)$": APIGatewayResponse.dispatch,
+    "{0}/tags/arn:(?P<partition>[^/]+):apigateway:(?P<region_name>[^/]+)::/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/stages/(?P<stage_name>[^/]+)/exports/(?P<export_type>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/deployments$": APIGatewayResponse.dispatch,
@@ -40,7 +41,8 @@ url_paths = {
     "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/(?P<response_type>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/vpclinks$": APIGatewayResponse.dispatch,
     "{0}/vpclinks/(?P<vpclink_id>[^/]+)": APIGatewayResponse.dispatch,
+    "{0}/account$": APIGatewayResponse.dispatch,
 }
 
 # Also manages the APIGatewayV2
-url_paths.update(url_paths_v2)  # type: ignore[arg-type]
+url_paths.update(url_paths_v2)

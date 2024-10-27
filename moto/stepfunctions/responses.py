@@ -28,13 +28,28 @@ class StepFunctionResponse(BaseResponse):
         definition = self._get_param("definition")
         roleArn = self._get_param("roleArn")
         tags = self._get_param("tags")
+        publish = self._get_param("publish")
+        encryptionConfiguration = self._get_param("encryptionConfiguration")
+        loggingConfiguration = self._get_param("loggingConfiguration")
+        tracingConfiguration = self._get_param("tracingConfiguration")
         state_machine = self.stepfunction_backend.create_state_machine(
-            name=name, definition=definition, roleArn=roleArn, tags=tags
+            name=name,
+            definition=definition,
+            roleArn=roleArn,
+            tags=tags,
+            publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
         )
         response = {
             "creationDate": state_machine.creation_date,
             "stateMachineArn": state_machine.arn,
         }
+        if publish:
+            response["stateMachineVersionArn"] = (
+                f"{state_machine.arn}:{state_machine.version}"
+            )
         return 200, {}, json.dumps(response)
 
     def list_state_machines(self) -> TYPE_RESPONSE:
@@ -71,6 +86,10 @@ class StepFunctionResponse(BaseResponse):
             "name": state_machine.name,
             "roleArn": state_machine.roleArn,
             "status": "ACTIVE",
+            "type": state_machine.type,
+            "encryptionConfiguration": state_machine.encryptionConfiguration,
+            "tracingConfiguration": state_machine.tracingConfiguration,
+            "loggingConfiguration": state_machine.loggingConfiguration,
         }
         return 200, {}, json.dumps(response)
 
@@ -83,12 +102,26 @@ class StepFunctionResponse(BaseResponse):
         arn = self._get_param("stateMachineArn")
         definition = self._get_param("definition")
         role_arn = self._get_param("roleArn")
+        tracing_config = self._get_param("tracingConfiguration")
+        encryption_config = self._get_param("encryptionConfiguration")
+        logging_config = self._get_param("loggingConfiguration")
+        publish = self._get_param("publish")
         state_machine = self.stepfunction_backend.update_state_machine(
-            arn=arn, definition=definition, role_arn=role_arn
+            arn=arn,
+            definition=definition,
+            role_arn=role_arn,
+            tracing_configuration=tracing_config,
+            encryption_configuration=encryption_config,
+            logging_configuration=logging_config,
+            publish=publish,
         )
         response = {
             "updateDate": state_machine.update_date,
         }
+        if publish:
+            response["stateMachineVersionArn"] = (
+                f"{state_machine.arn}:{state_machine.version}"
+            )
         return 200, {}, json.dumps(response)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:

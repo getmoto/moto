@@ -412,6 +412,26 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "ap-northeast-2"
  },
@@ -1825,6 +1845,10 @@
  },
  {
   "InstanceType": "u-9tb1.112xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "ap-northeast-2"
  },
  {

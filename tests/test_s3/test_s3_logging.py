@@ -1,4 +1,5 @@
 import json
+from time import sleep
 from unittest import SkipTest
 from unittest.mock import patch
 from uuid import uuid4
@@ -18,13 +19,14 @@ from tests.test_s3 import empty_bucket, s3_aws_verified
 @mock_aws
 def test_put_bucket_logging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    wrong_region_client = boto3.client("s3", region_name="us-west-2")
     bucket_name = "mybucket"
     log_bucket = "logbucket"
     wrong_region_bucket = "wrongregionlogbucket"
     s3_client.create_bucket(Bucket=bucket_name)
     # Adding the ACL for log-delivery later...
     s3_client.create_bucket(Bucket=log_bucket)
-    s3_client.create_bucket(
+    wrong_region_client.create_bucket(
         Bucket=wrong_region_bucket,
         CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
     )
@@ -620,6 +622,11 @@ def test_put_logging_w_bucket_policy_no_prefix(bucket_name=None):
         },
     )
     result = s3_client.get_bucket_logging(Bucket=bucket_name)
+    # Logging Config is not immediately available
+    for _ in range(5):
+        if "LoggingEnabled" not in result:
+            sleep(1)
+            result = s3_client.get_bucket_logging(Bucket=bucket_name)
     assert result["LoggingEnabled"]["TargetBucket"] == log_bucket_name
     assert result["LoggingEnabled"]["TargetPrefix"] == ""
 
@@ -657,6 +664,11 @@ def test_put_logging_w_bucket_policy_w_prefix(bucket_name=None):
         },
     )
     result = s3_client.get_bucket_logging(Bucket=bucket_name)
+    # Logging Config is not immediately available
+    for _ in range(5):
+        if "LoggingEnabled" not in result:
+            sleep(1)
+            result = s3_client.get_bucket_logging(Bucket=bucket_name)
     assert result["LoggingEnabled"]["TargetBucket"] == log_bucket_name
     assert result["LoggingEnabled"]["TargetPrefix"] == prefix
 

@@ -228,7 +228,7 @@ class FlowLogsBackend:
 
                 arn = log_destination.split(":", 5)[5]
                 try:
-                    s3_backends[self.account_id]["global"].get_bucket(arn)  # type: ignore[attr-defined]
+                    s3_backends[self.account_id][self.partition].get_bucket(arn)  # type: ignore[attr-defined]
                 except MissingBucket:
                     # Instead of creating FlowLog report
                     # the unsuccessful status for the

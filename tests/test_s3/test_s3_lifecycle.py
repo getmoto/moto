@@ -5,14 +5,13 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 @mock_aws
 def test_lifecycle_with_filters():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     # Create a lifecycle rule with a Filter (no tags):
     lfc = {
@@ -223,10 +222,8 @@ def test_lifecycle_with_filters():
 
 @mock_aws
 def test_lifecycle_with_eodm():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     lfc = {
         "Rules": [
@@ -273,10 +270,8 @@ def test_lifecycle_with_eodm():
 
 @mock_aws
 def test_lifecycle_with_nve():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     lfc = {
         "Rules": [
@@ -309,10 +304,8 @@ def test_lifecycle_with_nve():
 
 @mock_aws
 def test_lifecycle_with_nvt():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     lfc = {
         "Rules": [
@@ -377,10 +370,8 @@ def test_lifecycle_with_nvt():
 
 @mock_aws
 def test_lifecycle_with_multiple_nvt():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     lfc = {
         "Rules": [
@@ -412,10 +403,8 @@ def test_lifecycle_with_multiple_nvt():
 
 @mock_aws
 def test_lifecycle_with_multiple_transitions():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     lfc = {
         "Rules": [
@@ -447,10 +436,8 @@ def test_lifecycle_with_multiple_transitions():
 
 @mock_aws
 def test_lifecycle_with_aimu():
-    client = boto3.client("s3")
-    client.create_bucket(
-        Bucket="bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="bucket")
 
     lfc = {
         "Rules": [

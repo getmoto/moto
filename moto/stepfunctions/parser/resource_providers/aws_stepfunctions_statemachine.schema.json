@@ -78,6 +78,20 @@
         }
       }
     },
+    "EncryptionConfiguration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "Type": {
+          "type": "string"
+        },
+        "KmsKeyId": {
+          "type": "string"
+      },
+      "KmsDataKeyReusePeriodSeconds": {
+        "type": "integer"
+      }
+    },
     "S3Location": {
       "type": "object",
       "additionalProperties": false,
@@ -165,6 +179,9 @@
     },
     "TracingConfiguration": {
       "$ref": "#/definitions/TracingConfiguration"
+    },
+    "EncryptionConfiguration": {
+      "$ref": "#/definitions/EncryptionConfiguration"
     },
     "DefinitionS3Location": {
       "$ref": "#/definitions/S3Location"

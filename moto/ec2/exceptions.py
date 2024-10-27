@@ -170,7 +170,7 @@ class InvalidNetworkInterfaceIdError(EC2ClientError):
     def __init__(self, eni_id: str):
         super().__init__(
             "InvalidNetworkInterfaceID.NotFound",
-            f"The network interface ID '{eni_id}' does not exist",
+            f"The networkInterface ID '{eni_id}' does not exist",
         )
 
 
@@ -580,11 +580,23 @@ class UnsupportedTenancy(EC2ClientError):
         )
 
 
-class OperationNotPermitted(EC2ClientError):
+class VPCCidrBlockAssociationError(EC2ClientError):
     def __init__(self, association_id: str):
         super().__init__(
             "OperationNotPermitted",
             f"The vpc CIDR block with association ID {association_id} may not be disassociated. It is the primary IPv4 CIDR block of the VPC",
+        )
+
+
+class OperationNotPermitted(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("OperationNotPermitted", message)
+
+
+class LastEniDetachError(OperationNotPermitted):
+    def __init__(self) -> None:
+        super().__init__(
+            "The network interface at device index 0 and networkCard index 0 cannot be detached."
         )
 
 

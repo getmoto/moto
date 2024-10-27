@@ -5,7 +5,11 @@ from collections import deque
 
 from moto.dynamodb.models import DynamoType
 
-from ..exceptions import DuplicateUpdateExpression, TooManyAddClauses
+from ..exceptions import (
+    DuplicateUpdateExpression,
+    MockValidationException,
+    TooManyClauses,
+)
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -23,11 +27,12 @@ class Node(metaclass=abc.ABCMeta):
     def set_parent(self, parent_node):
         self.parent = parent_node
 
-    def validate(self) -> None:
+    def validate(self, limit_set_actions: bool = False) -> None:
         if self.type == "UpdateExpression":
-            nr_of_clauses = len(self.find_clauses([UpdateExpressionAddClause]))
-            if nr_of_clauses > 1:
-                raise TooManyAddClauses()
+            if len(self.find_clauses([UpdateExpressionAddClause])) > 1:
+                raise TooManyClauses("ADD")
+            if len(self.find_clauses([UpdateExpressionRemoveClause])) > 1:
+                raise TooManyClauses("REMOVE")
             set_actions = self.find_clauses([UpdateExpressionSetAction])
             # set_attributes = ["attr", "map.attr", attr.list[2], ..]
             set_attributes = [s.children[0].to_str() for s in set_actions]
@@ -35,6 +40,12 @@ class Node(metaclass=abc.ABCMeta):
             # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
             if len(set_attributes) != len(set(set_attributes)):
                 raise DuplicateUpdateExpression(set_attributes)
+
+            set_clauses = self.find_clauses([UpdateExpressionSetClause])
+            if limit_set_actions and len(set_clauses) > 1:
+                raise MockValidationException(
+                    'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+                )
 
     def normalize(self):
         """
@@ -82,6 +93,8 @@ class Node(metaclass=abc.ABCMeta):
             if type(child) in clause_types:
                 clauses.append(child)
             elif isinstance(child, Expression):
+                clauses.extend(child.find_clauses(clause_types))
+            elif isinstance(child, UpdateExpressionFunction):
                 clauses.extend(child.find_clauses(clause_types))
         return clauses
 
@@ -164,8 +177,11 @@ class UpdateExpressionRemoveAction(UpdateExpressionClause):
 
     def __lt__(self, other):
         self_value = self._get_value()
-
-        return self_value < other._get_value()
+        other_value = other._get_value()
+        if isinstance(self_value, int) and isinstance(other_value, int):
+            return self_value < other_value
+        else:
+            return str(self_value) < str(other_value)
 
 
 class UpdateExpressionAddActions(UpdateExpressionClause):

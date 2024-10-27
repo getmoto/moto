@@ -87,7 +87,7 @@ class LaunchTemplates(EC2BaseResponse):
             "launchTemplate",
             {
                 "createTime": version.create_time,
-                "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                 "defaultVersionNumber": template.default_version_number,
                 "latestVersionNumber": version.number,
                 "launchTemplateId": template.id,
@@ -120,7 +120,7 @@ class LaunchTemplates(EC2BaseResponse):
             "launchTemplateVersion",
             {
                 "createTime": version.create_time,
-                "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                 "defaultVersion": template.is_default(version),
                 "launchTemplateData": version.data,
                 "launchTemplateId": template.id,
@@ -187,11 +187,7 @@ class LaunchTemplates(EC2BaseResponse):
         ret_versions = []
         if versions and template is not None:
             for v in versions:
-                if str(v).lower() == "$latest" or "$default":
-                    tv = template.get_version(v)
-                else:
-                    tv = template.get_version(int(v))
-                ret_versions.append(tv)
+                ret_versions.append(template.get_version(v))
         elif min_version:
             if max_version:
                 vMax = max_version
@@ -214,7 +210,7 @@ class LaunchTemplates(EC2BaseResponse):
                 "item",
                 {
                     "createTime": version.create_time,
-                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                    "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                     "defaultVersion": True,
                     "launchTemplateData": version.data,
                     "launchTemplateId": template.id,
@@ -251,7 +247,7 @@ class LaunchTemplates(EC2BaseResponse):
                 "item",
                 {
                     "createTime": template.create_time,
-                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                    "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                     "defaultVersionNumber": template.default_version_number,
                     "latestVersionNumber": template.latest_version_number,
                     "launchTemplateId": template.id,

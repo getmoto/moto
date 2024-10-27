@@ -1602,8 +1602,8 @@ Resources:
 
 
 @pytest.mark.aws_verified
-@iam_aws_verified
-def test_delete_instance_profile_with_existing_role():
+@iam_aws_verified()
+def test_delete_instance_profile_with_existing_role(user_name=None):
     region = "us-east-1"
     iam = boto3.client("iam", region_name=region)
     iam_role_name = f"moto_{str(uuid4())[0:6]}"

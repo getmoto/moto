@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 
 class Input(BaseModel):
@@ -135,7 +136,7 @@ class MediaLiveBackend(BaseBackend):
         The RequestID and Reserved parameters are not yet implemented
         """
         channel_id = mock_random.uuid4().hex
-        arn = f"arn:aws:medialive:channel:{channel_id}"
+        arn = f"arn:{get_partition(self.region_name)}:medialive:channel:{channel_id}"
         channel = Channel(
             arn=arn,
             cdi_input_specification=cdi_input_specification,
@@ -231,7 +232,7 @@ class MediaLiveBackend(BaseBackend):
         The VPC and RequestId parameters are not yet implemented
         """
         input_id = mock_random.uuid4().hex
-        arn = f"arn:aws:medialive:input:{input_id}"
+        arn = f"arn:{get_partition(self.region_name)}:medialive:input:{input_id}"
         a_input = Input(
             arn=arn,
             input_id=input_id,

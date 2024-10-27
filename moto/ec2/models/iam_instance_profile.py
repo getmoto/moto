@@ -51,8 +51,9 @@ class IamInstanceProfileAssociationBackend:
 
         instance_profile = filter_iam_instance_profiles(
             self.account_id,  # type: ignore[attr-defined]
-            iam_instance_profile_arn,
-            iam_instance_profile_name,
+            partition=self.partition,  # type: ignore[attr-defined]
+            iam_instance_profile_arn=iam_instance_profile_arn,
+            iam_instance_profile_name=iam_instance_profile_name,
         )
 
         if instance_id in self.iam_instance_profile_associations.keys():
@@ -61,7 +62,7 @@ class IamInstanceProfileAssociationBackend:
         iam_instance_profile_association = IamInstanceProfileAssociation(
             self,
             iam_association_id,
-            self.get_instance(instance_id) if instance_id else None,  # type: ignore[attr-defined]
+            self.get_instance(instance_id) if instance_id else None,  # type: ignore[attr-defined, arg-type]
             instance_profile,
         )
         # Regarding to AWS there can be only one association with ec2.
@@ -128,8 +129,9 @@ class IamInstanceProfileAssociationBackend:
     ) -> IamInstanceProfileAssociation:
         instance_profile = filter_iam_instance_profiles(
             self.account_id,  # type: ignore[attr-defined]
-            iam_instance_profile_arn,
-            iam_instance_profile_name,
+            partition=self.partition,  # type: ignore[attr-defined]
+            iam_instance_profile_arn=iam_instance_profile_arn,
+            iam_instance_profile_name=iam_instance_profile_name,
         )
 
         iam_instance_profile_association = None

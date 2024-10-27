@@ -16,6 +16,8 @@ quicksight
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] batch_create_topic_reviewed_answer
+- [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
@@ -91,7 +93,9 @@ quicksight
 - [ ] describe_iam_policy_assignment
 - [ ] describe_ingestion
 - [ ] describe_ip_restriction
+- [ ] describe_key_registration
 - [ ] describe_namespace
+- [ ] describe_q_personalization_configuration
 - [ ] describe_refresh_schedule
 - [ ] describe_role_custom_permission
 - [ ] describe_template
@@ -120,16 +124,9 @@ quicksight
 - [ ] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
+- [ ] list_folders_for_resource
 - [X] list_group_memberships
-  
-        The NextToken and MaxResults parameters are not yet implemented
-        
-
 - [X] list_groups
-  
-        The NextToken and MaxResults parameters are not yet implemented
-        
-
 - [ ] list_iam_policy_assignments
 - [ ] list_iam_policy_assignments_for_user
 - [ ] list_identity_propagation_configs
@@ -145,13 +142,10 @@ quicksight
 - [ ] list_theme_versions
 - [ ] list_themes
 - [ ] list_topic_refresh_schedules
+- [ ] list_topic_reviewed_answers
 - [ ] list_topics
-- [ ] list_user_groups
+- [X] list_user_groups
 - [X] list_users
-  
-        The NextToken and MaxResults parameters are not yet implemented
-        
-
 - [ ] list_vpc_connections
 - [ ] put_data_set_refresh_properties
 - [X] register_user
@@ -166,10 +160,11 @@ quicksight
 - [ ] search_data_sets
 - [ ] search_data_sources
 - [ ] search_folders
-- [ ] search_groups
+- [X] search_groups
 - [ ] start_asset_bundle_export_job
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
+- [ ] start_dashboard_snapshot_job_schedule
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
@@ -190,7 +185,9 @@ quicksight
 - [ ] update_iam_policy_assignment
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
+- [ ] update_key_registration
 - [ ] update_public_sharing_settings
+- [ ] update_q_personalization_configuration
 - [ ] update_refresh_schedule
 - [ ] update_role_custom_permission
 - [ ] update_spice_capacity_configuration
@@ -203,6 +200,6 @@ quicksight
 - [ ] update_topic
 - [ ] update_topic_permissions
 - [ ] update_topic_refresh_schedule
-- [ ] update_user
+- [X] update_user
 - [ ] update_vpc_connection
 

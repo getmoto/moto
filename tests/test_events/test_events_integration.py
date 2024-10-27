@@ -1,9 +1,11 @@
+import contextlib
 import json
 import os
 from datetime import datetime
 from unittest import SkipTest, mock
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -110,16 +112,23 @@ def test_send_to_sqs_fifo_queue():
 
     # when
     event_time = datetime(2021, 1, 1, 12, 23, 34)
-    client_events.put_events(
-        Entries=[
-            {
-                "Time": event_time,
-                "Source": "source",
-                "DetailType": "type",
-                "Detail": json.dumps({"key": "value"}),
-            }
-        ]
+    # Catch and validate a UserWarning when running locally.
+    context = (
+        pytest.warns(UserWarning, match="you must enable content-based deduplication")
+        if not settings.TEST_SERVER_MODE
+        else contextlib.nullcontext()
     )
+    with context:
+        client_events.put_events(
+            Entries=[
+                {
+                    "Time": event_time,
+                    "Source": "source",
+                    "DetailType": "type",
+                    "Detail": json.dumps({"key": "value"}),
+                }
+            ]
+        )
 
     # then
     response = client_sqs.receive_message(

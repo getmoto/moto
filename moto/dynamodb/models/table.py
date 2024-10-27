@@ -19,6 +19,7 @@ from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 RESULT_SIZE_LIMIT = 1000000  # DynamoDB has a 1MB size limit
 
@@ -210,9 +211,7 @@ class StreamShard(BaseModel):
         from moto.awslambda.utils import get_backend
 
         for arn, esm in self.table.lambda_event_source_mappings.items():
-            region = arn[
-                len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
-            ]
+            region = arn.split(":")[3]
 
             result = get_backend(self.account_id, region).send_dynamodb_items(
                 arn, self.items, esm.event_source_arn
@@ -325,7 +324,7 @@ class Table(CloudFormationModel):
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
             )
-            kms.add_alias(key.id, ddb_alias)
+            kms.create_alias(key.id, ddb_alias)
         ebs_key = kms.describe_key(ddb_alias)
         return ebs_key.arn
 
@@ -421,7 +420,7 @@ class Table(CloudFormationModel):
         dynamodb_backends[account_id][region_name].delete_table(name=resource_name)
 
     def _generate_arn(self, name: str) -> str:
-        return f"arn:aws:dynamodb:{self.region_name}:{self.account_id}:table/{name}"
+        return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{name}"
 
     def set_stream_specification(self, streams: Optional[Dict[str, Any]]) -> None:
         self.stream_specification = streams
@@ -703,36 +702,41 @@ class Table(CloudFormationModel):
                     key for key in index.schema if key["KeyType"] == "RANGE"
                 ][0]
             except IndexError:
-                if isinstance(index, GlobalSecondaryIndex):
-                    # If we're querying a GSI that does not have an index, the main hash key acts as a range key
-                    index_range_key = {"AttributeName": self.hash_key_attr}
+                if isinstance(index, GlobalSecondaryIndex) and self.range_key_attr:
+                    # If we're querying a GSI that does not have a range key, the main range key acts as a range key
+                    index_range_key = {"AttributeName": self.range_key_attr}
                 else:
-                    index_range_key = None
+                    # If we don't have a range key on the main table either, the hash key acts as a range key
+                    index_range_key = {"AttributeName": self.hash_key_attr}
                 if range_comparison:
                     raise ValueError(
                         f"Range Key comparison but no range key found for index: {index_name}"
                     )
 
-            actual_hash_attr = index_hash_key["AttributeName"]
-            actual_range_attr = (
-                index_range_key["AttributeName"] if index_range_key else None
-            )
+            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
+            if index_range_key:
+                range_attrs = [
+                    index_range_key["AttributeName"],
+                    self.range_key_attr,
+                ]
+            else:
+                range_attrs = [self.range_key_attr]
 
             possible_results = []
             for item in self.all_items():
                 if not isinstance(item, Item):
                     continue
-                item_hash_key = item.attrs.get(actual_hash_attr)
-                if actual_range_attr is None:
+                item_hash_key = item.attrs.get(hash_attrs[0])
+                if len(range_attrs) == 1:
                     if item_hash_key and item_hash_key == hash_key:
                         possible_results.append(item)
                 else:
-                    item_range_key = item.attrs.get(actual_range_attr)
+                    item_range_key = item.attrs.get(range_attrs[0])  # type: ignore
                     if item_hash_key and item_hash_key == hash_key and item_range_key:
                         possible_results.append(item)
         else:
-            actual_hash_attr = self.hash_key_attr
-            actual_range_attr = self.range_key_attr
+            hash_attrs = [self.hash_key_attr]
+            range_attrs = [self.range_key_attr]
 
             possible_results = [
                 item
@@ -742,15 +746,15 @@ class Table(CloudFormationModel):
 
         # SORT
         if index_name:
-            if actual_range_attr is not None:
+            if len(range_attrs) == 2:
                 # Convert to float if necessary to ensure proper ordering
                 def conv(x: DynamoType) -> Any:
                     return float(x.value) if x.type == "N" else x.value
 
                 possible_results.sort(
                     key=lambda item: (  # type: ignore
-                        conv(item.attrs[actual_range_attr])  # type: ignore
-                        if item.attrs.get(actual_range_attr)
+                        conv(item.attrs[range_attrs[0]])  # type: ignore
+                        if item.attrs.get(range_attrs[0])  # type: ignore
                         else None
                     )
                 )
@@ -773,8 +777,8 @@ class Table(CloudFormationModel):
                 if self._item_comes_before_dct(
                     result,
                     exclusive_start_key,
-                    actual_hash_attr,
-                    actual_range_attr,
+                    hash_attrs,
+                    range_attrs,
                     scan_index_forward,
                 ):
                     continue
@@ -798,7 +802,11 @@ class Table(CloudFormationModel):
                 scanned_count += 1
 
             if range_comparison:
-                if index_name:
+                if (
+                    index_name
+                    and index_range_key
+                    and result.attrs.get(index_range_key["AttributeName"])
+                ):
                     if result.attrs.get(index_range_key["AttributeName"]).compare(  # type: ignore
                         range_comparison, range_objs
                     ):
@@ -918,15 +926,16 @@ class Table(CloudFormationModel):
             except IndexError:
                 index_range_key = None
 
-            actual_hash_attr = index_hash_key["AttributeName"]
-            actual_range_attr = (
-                index_range_key["AttributeName"] if index_range_key else None
-            )
+            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
+            if index_range_key:
+                range_attrs = [index_range_key["AttributeName"], self.range_key_attr]
+            else:
+                range_attrs = [self.range_key_attr]
 
             items = self.has_idx_items(index_name)
         else:
-            actual_hash_attr = self.hash_key_attr
-            actual_range_attr = self.range_key_attr
+            hash_attrs = [self.hash_key_attr]
+            range_attrs = [self.range_key_attr]
 
             items = self.all_items()
 
@@ -939,8 +948,8 @@ class Table(CloudFormationModel):
                 if self._item_comes_before_dct(
                     item,
                     exclusive_start_key,
-                    actual_hash_attr,
-                    actual_range_attr,
+                    hash_attrs,
+                    range_attrs,
                     True,
                 ):
                     continue
@@ -1000,27 +1009,50 @@ class Table(CloudFormationModel):
         self,
         item: Item,
         dct: Dict[str, Any],
-        hash_key_attr: str,
-        range_key_attr: Optional[str],
+        hash_key_attrs: List[str],
+        range_key_attrs: List[Optional[str]],
         scan_index_forward: bool,
     ) -> bool:
-        """Does item appear before or at dct relative to sort options?"""
-        dict_hash_val = DynamoType(dct.get(hash_key_attr))  # type: ignore[arg-type]
-        item_hash_val = item.attrs[hash_key_attr]
-        if item_hash_val != dict_hash_val:
-            # If hash keys are different, order immediately
-            return bool(item_hash_val < dict_hash_val) == scan_index_forward
-        if range_key_attr is None:
-            # If hash keys match and no range key, items are identical
-            return True
-        # We know hash keys are equal, use range key as tiebreaker
-        dict_range_val = DynamoType(dct.get(range_key_attr))  # type: ignore[arg-type]
-        item_range_val = item.attrs[range_key_attr]
-        if item_range_val == dict_range_val:
-            # If range keys (also) match, items are identical
-            return True
-        # Range keys are different, order accordingly
-        return bool(item_range_val < dict_range_val) == scan_index_forward  # type: ignore[arg-type]
+        """
+        Does item appear before or at dct relative to sort options?
+
+        hash_key_attrs: The list of hash keys.
+        Includes the key of the GSI (first, if it exists) and the key of the main table.
+
+        range_key_attrs: A list of range keys (RK).
+        Includes the RK-name of the GSI (first, if it exists) and the RK-name of the main table (second - can be None).
+        When sorting a GSI, we'll try to sort by the GSI RK first.
+        However, because GSI RK's are not unique (by design), item and dct can have the same RK-value
+        If that is the case, we compare by the RK of the main table instead
+        Related: https://github.com/getmoto/moto/issues/7761
+        """
+        gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
+        table_hash_key = str(
+            hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
+        )
+        gsi_range_key = range_key_attrs[0] if len(range_key_attrs) == 2 else None
+        table_range_key = str(
+            range_key_attrs[0] if gsi_range_key is None else range_key_attrs[1]
+        )
+        # Gets the GSI and table hash and range keys in the order to try sorting by
+        attrs_to_sort_by = [
+            gsi_hash_key,
+            gsi_range_key,
+            table_hash_key,
+            table_range_key,
+        ]
+        for attr in attrs_to_sort_by:
+            if (
+                attr is not None
+                and attr in item.attrs
+                and item.attrs[attr] != DynamoType(dct.get(attr))  # type: ignore
+            ):
+                return (
+                    (item.attrs[attr] < DynamoType(dct.get(attr)))  # type: ignore
+                    == scan_index_forward
+                )
+        # Keys were equal, items are identical
+        return True
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]
@@ -1069,7 +1101,7 @@ class Backup:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:dynamodb:{self.region_name}:{self.account_id}:table/{self.table.name}/backup/{self.identifier}"
+        return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{self.table.name}/backup/{self.identifier}"
 
     @property
     def details(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -1166,3 +1198,10 @@ class RestoredPITTable(Table):
             "RestoreInProgress": False,
         }
         return result
+
+
+class ResourcePolicy:
+    def __init__(self, resource_arn: str, policy_doc: str):
+        self.resource_arn = resource_arn
+        self.policy_doc = policy_doc
+        self.revision_id = str(int(unix_time_millis()))

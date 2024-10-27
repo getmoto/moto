@@ -29,6 +29,7 @@ glue
 - [ ] batch_get_table_optimizer
 - [X] batch_get_triggers
 - [ ] batch_get_workflows
+- [ ] batch_put_data_quality_statistic_annotation
 - [ ] batch_stop_job_run
 - [X] batch_update_partition
 - [ ] cancel_data_quality_rule_recommendation_run
@@ -60,6 +61,7 @@ glue
 - [X] create_table
 - [ ] create_table_optimizer
 - [X] create_trigger
+- [ ] create_usage_profile
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
@@ -86,6 +88,7 @@ glue
 - [ ] delete_table_optimizer
 - [X] delete_table_version
 - [X] delete_trigger
+- [ ] delete_usage_profile
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
 - [ ] get_blueprint
@@ -105,6 +108,8 @@ glue
 - [X] get_crawlers
 - [ ] get_custom_entity_type
 - [ ] get_data_catalog_encryption_settings
+- [ ] get_data_quality_model
+- [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
 - [ ] get_data_quality_rule_recommendation_run
 - [ ] get_data_quality_ruleset
@@ -162,6 +167,7 @@ glue
 - [ ] get_unfiltered_partition_metadata
 - [ ] get_unfiltered_partitions_metadata
 - [ ] get_unfiltered_table_metadata
+- [ ] get_usage_profile
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
 - [ ] get_workflow
@@ -178,6 +184,8 @@ glue
 - [ ] list_data_quality_rule_recommendation_runs
 - [ ] list_data_quality_ruleset_evaluation_runs
 - [ ] list_data_quality_rulesets
+- [ ] list_data_quality_statistic_annotations
+- [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
 - [X] list_jobs
 - [ ] list_ml_transforms
@@ -188,8 +196,10 @@ glue
 - [ ] list_statements
 - [ ] list_table_optimizer_runs
 - [X] list_triggers
+- [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] put_data_catalog_encryption_settings
+- [ ] put_data_quality_profile_annotation
 - [ ] put_resource_policy
 - [X] put_schema_version_metadata
 - [ ] put_workflow_run_properties
@@ -220,6 +230,7 @@ glue
 - [X] stop_trigger
 - [ ] stop_workflow_run
 - [X] tag_resource
+- [ ] test_connection
 - [X] untag_resource
 - [ ] update_blueprint
 - [ ] update_classifier
@@ -245,6 +256,7 @@ glue
 - [X] update_table
 - [ ] update_table_optimizer
 - [ ] update_trigger
+- [ ] update_usage_profile
 - [ ] update_user_defined_function
 - [ ] update_workflow
 
