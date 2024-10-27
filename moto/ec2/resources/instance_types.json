@@ -28371,7 +28371,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -28637,7 +28637,7 @@
     "MaximumEfaInterfaces": 2
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -28903,7 +28903,7 @@
     "MaximumEfaInterfaces": 4
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
