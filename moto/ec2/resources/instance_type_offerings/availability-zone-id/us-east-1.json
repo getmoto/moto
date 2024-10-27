@@ -13468,6 +13468,38 @@
   "Location": "use1-az6"
  },
  {
+  "InstanceType": "g6e.12xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.16xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.24xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.2xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.48xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.4xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.8xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "g6e.xlarge",
+  "Location": "use1-az6"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "use1-az6"
  },
