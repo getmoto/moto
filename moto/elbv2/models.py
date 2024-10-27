@@ -635,6 +635,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "routing.http.xff_header_processing.mode",
         "routing.http2.enabled",
         "waf.fail_open.enabled",
+        "zonal_shift.config.enabled",
     }
 
     def __init__(
