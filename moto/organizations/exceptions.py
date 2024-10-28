@@ -11,6 +11,16 @@ class AccountAlreadyRegisteredException(JsonRESTError):
         )
 
 
+class AccountAlreadyClosedException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "AccountAlreadyClosedException",
+            "The provided account is already closed.",
+        )
+
+
 class AccountNotRegisteredException(JsonRESTError):
     code = 400
 

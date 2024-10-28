@@ -31,6 +31,11 @@ from .organizations_test_utils import (
     validate_service_control_policy,
 )
 
+# Accounts
+mockname = "mock-account"
+mockdomain = "moto-example.org"
+mockemail = "@".join([mockname, mockdomain])
+
 
 @mock_aws
 @pytest.mark.parametrize(
@@ -112,10 +117,25 @@ def test_create_account_creates_custom_role():
 
 @mock_aws
 def test_describe_organization():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
     response = client.describe_organization()
     validate_organization(response)
+
+    # Ensure member accounts can also describe the organisation from any region
+    account_id = client.create_account(AccountName=mockname, Email=mockemail)[
+        "CreateAccountStatus"
+    ]["AccountId"]
+
+    for region_name in ["ap-south-1", "eu-west-1"]:
+        with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+            response = boto3.client(
+                "organizations", region_name=region_name
+            ).describe_organization()
+            validate_organization(response)
 
 
 @mock_aws
@@ -250,12 +270,6 @@ def test_list_organizational_units_for_parent_exception():
     assert "ParentNotFoundException" in ex.response["Error"]["Message"]
 
 
-# Accounts
-mockname = "mock-account"
-mockdomain = "moto-example.org"
-mockemail = "@".join([mockname, mockdomain])
-
-
 @mock_aws
 def test_create_account():
     client = boto3.client("organizations", region_name="us-east-1")
@@ -296,6 +310,14 @@ def test_close_account_puts_account_in_suspended_status():
 
     account = client.describe_account(AccountId=created_account_id)["Account"]
     assert account["Status"] == "SUSPENDED"
+
+    with pytest.raises(ClientError) as exc:
+        client.close_account(AccountId=created_account_id)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AccountAlreadyClosedException" in exc.value.response["Error"]["Code"]
+    assert exc.value.response["Error"]["Message"] == (
+        "The provided account is already closed."
+    )
 
 
 @mock_aws
@@ -607,6 +629,9 @@ def test_get_paginated_list_create_account_status():
 
 @mock_aws
 def test_remove_account_from_organization():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]
     create_account_status = client.create_account(
@@ -628,6 +653,20 @@ def test_remove_account_from_organization():
     accounts = client.list_accounts()["Accounts"]
     assert len(accounts) == 1
     assert not created_account_exists(accounts)
+
+    # After the account is removed from an organisation, calling DescribeOrganization from the removed account should raise
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        with pytest.raises(ClientError) as exc:
+            client.describe_organization()
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWSOrganizationsNotInUse" in exc.value.response["Error"]["Code"]
+
+    # Attempting to remove invalid account must raise
+    bad_account_id = "010101010101"
+    with pytest.raises(ClientError) as exc:
+        client.remove_account_from_organization(AccountId=bad_account_id)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWSOrganizationsNotInUse" in exc.value.response["Error"]["Code"]
 
 
 @mock_aws
