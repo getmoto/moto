@@ -2286,7 +2286,7 @@ class LambdaBackend(BaseBackend):
             "Records": [
                 {
                     "eventID": item.to_json()["eventID"],
-                    "eventName": "INSERT",
+                    "eventName": item.to_json()["eventName"],
                     "eventVersion": item.to_json()["eventVersion"],
                     "eventSource": item.to_json()["eventSource"],
                     "awsRegion": self.region_name,
