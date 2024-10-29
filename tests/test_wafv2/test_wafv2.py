@@ -41,6 +41,38 @@ def test_create_web_acl(region, partition):
 @mock_aws
 def test_create_web_acl_with_all_arguments():
     client = boto3.client("wafv2", region_name="us-east-2")
+    rule_1 = {
+        "Action": {"Allow": {}},
+        "Name": "tf-acc-test-8205974093017792151-2",
+        "Priority": 10,
+        "Statement": {"GeoMatchStatement": {"CountryCodes": ["US", "NL"]}},
+        "VisibilityConfig": {
+            "CloudWatchMetricsEnabled": False,
+            "MetricName": "tf-acc-test-8205974093017792151-2",
+            "SampledRequestsEnabled": False,
+        },
+    }
+    rule_2 = {
+        "Action": {"Count": {}},
+        "Name": "tf-acc-test-8205974093017792151-1",
+        "Priority": 5,
+        "Statement": {
+            "SizeConstraintStatement": {
+                "ComparisonOperator": "LT",
+                "FieldToMatch": {"QueryString": {}},
+                "Size": 50,
+                "TextTransformations": [
+                    {"Priority": 2, "Type": "CMD_LINE"},
+                    {"Priority": 5, "Type": "NONE"},
+                ],
+            }
+        },
+        "VisibilityConfig": {
+            "CloudWatchMetricsEnabled": False,
+            "MetricName": "tf-acc-test-8205974093017792151-1",
+            "SampledRequestsEnabled": False,
+        },
+    }
     web_acl_id = client.create_web_acl(
         Name="test",
         Scope="CLOUDFRONT",
@@ -51,39 +83,35 @@ def test_create_web_acl_with_all_arguments():
             "CloudWatchMetricsEnabled": False,
             "MetricName": "idk",
         },
+        AssociationConfig={
+            "RequestBody": {
+                "Test": {
+                    "DefaultSizeInspectionLimit": "KB_64",
+                },
+            },
+        },
+        CustomResponseBodies={
+            "Test": {
+                "Content": "test",
+                "ContentType": "TEXT_PLAIN",
+            },
+        },
+        CaptchaConfig={
+            "ImmunityTimeProperty": {"ImmunityTime": 60},
+        },
+        ChallengeConfig={
+            "ImmunityTimeProperty": {"ImmunityTime": 60},
+        },
+        TokenDomains=[
+            "test1.com",
+            "test2.com",
+        ],
+        Tags=[
+            {"Key": "TestKey", "Value": "TestValue"},
+        ],
         Rules=[
-            {
-                "Action": {"Allow": {}},
-                "Name": "tf-acc-test-8205974093017792151-2",
-                "Priority": 10,
-                "Statement": {"GeoMatchStatement": {"CountryCodes": ["US", "NL"]}},
-                "VisibilityConfig": {
-                    "CloudWatchMetricsEnabled": False,
-                    "MetricName": "tf-acc-test-8205974093017792151-2",
-                    "SampledRequestsEnabled": False,
-                },
-            },
-            {
-                "Action": {"Count": {}},
-                "Name": "tf-acc-test-8205974093017792151-1",
-                "Priority": 5,
-                "Statement": {
-                    "SizeConstraintStatement": {
-                        "ComparisonOperator": "LT",
-                        "FieldToMatch": {"QueryString": {}},
-                        "Size": 50,
-                        "TextTransformations": [
-                            {"Priority": 2, "Type": "CMD_LINE"},
-                            {"Priority": 5, "Type": "NONE"},
-                        ],
-                    }
-                },
-                "VisibilityConfig": {
-                    "CloudWatchMetricsEnabled": False,
-                    "MetricName": "tf-acc-test-8205974093017792151-1",
-                    "SampledRequestsEnabled": False,
-                },
-            },
+            rule_1,
+            rule_2,
         ],
     )["Summary"]["Id"]
 
@@ -96,6 +124,27 @@ def test_create_web_acl_with_all_arguments():
         "MetricName": "idk",
     }
     assert len(wacl["Rules"]) == 2
+    assert rule_1 in wacl["Rules"] and rule_2 in wacl["Rules"]
+    assert wacl["AssociationConfig"] == {
+        "RequestBody": {
+            "Test": {
+                "DefaultSizeInspectionLimit": "KB_64",
+            },
+        },
+    }
+    assert wacl["CustomResponseBodies"] == {
+        "Test": {
+            "Content": "test",
+            "ContentType": "TEXT_PLAIN",
+        },
+    }
+    assert wacl["CaptchaConfig"] == {
+        "ImmunityTimeProperty": {"ImmunityTime": 60},
+    }
+    assert wacl["ChallengeConfig"] == {
+        "ImmunityTimeProperty": {"ImmunityTime": 60},
+    }
+    assert wacl["TokenDomains"] == ["test1.com", "test2.com"]
 
 
 @mock_aws
@@ -106,6 +155,7 @@ def test_get_web_acl():
     wacl = conn.get_web_acl(Name="John", Scope="REGIONAL", Id=web_acl_id)["WebACL"]
     assert wacl["Name"] == "John"
     assert wacl["Id"] == web_acl_id
+    assert wacl["LabelNamespace"] == f"awswaf:{ACCOUNT_ID}:webacl:John:"
 
 
 @mock_aws
@@ -129,17 +179,23 @@ def test_list_web_acl():
 @mock_aws
 def test_delete_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
-    wacl_id = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))[
-        "Summary"
-    ]["Id"]
+    wacl = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))["Summary"]
 
-    conn.delete_web_acl(Name="Daphne", Id=wacl_id, Scope="REGIONAL", LockToken="n/a")
+    with pytest.raises(ClientError) as e:
+        conn.delete_web_acl(
+            Name="Daphne", Id=wacl["Id"], Scope="REGIONAL", LockToken="123"
+        )
+    assert e.value.response["Error"]["Code"] == "WAFOptimisticLockException"
+
+    conn.delete_web_acl(
+        Name="Daphne", Id=wacl["Id"], Scope="REGIONAL", LockToken=wacl["LockToken"]
+    )
 
     res = conn.list_web_acls(**LIST_WEB_ACL_BODY("REGIONAL"))
     assert len(res["WebACLs"]) == 0
 
     with pytest.raises(ClientError) as exc:
-        conn.get_web_acl(Name="Daphne", Scope="REGIONAL", Id=wacl_id)
+        conn.get_web_acl(Name="Daphne", Scope="REGIONAL", Id=wacl["Id"])
     err = exc.value.response["Error"]
     assert err["Code"] == "WAFNonexistentItemException"
     assert err["Message"] == (
@@ -150,14 +206,12 @@ def test_delete_web_acl():
 @mock_aws
 def test_update_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
-    wacl_id = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))[
-        "Summary"
-    ]["Id"]
+    wacl = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))["Summary"]
 
     resp = conn.update_web_acl(
         Name="Daphne",
         Scope="REGIONAL",
-        Id=wacl_id,
+        Id=wacl["Id"],
         DefaultAction={"Block": {"CustomResponse": {"ResponseCode": 412}}},
         Description="updated_desc",
         Rules=[
@@ -172,7 +226,7 @@ def test_update_web_acl():
                 },
             }
         ],
-        LockToken="n/a",
+        LockToken=wacl["LockToken"],
         VisibilityConfig={
             "SampledRequestsEnabled": True,
             "CloudWatchMetricsEnabled": True,
@@ -181,7 +235,22 @@ def test_update_web_acl():
     )
     assert "NextLockToken" in resp
 
-    acl = conn.get_web_acl(Name="Daphne", Scope="REGIONAL", Id=wacl_id)["WebACL"]
+    with pytest.raises(ClientError) as e:
+        conn.update_web_acl(
+            Name="Daphne",
+            Scope="REGIONAL",
+            Id=wacl["Id"],
+            DefaultAction={"Block": {"CustomResponse": {"ResponseCode": 412}}},
+            LockToken="123",
+            VisibilityConfig={
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": "updated",
+            },
+        )
+    assert e.value.response["Error"]["Code"] == "WAFOptimisticLockException"
+
+    acl = conn.get_web_acl(Name="Daphne", Scope="REGIONAL", Id=wacl["Id"])["WebACL"]
     assert acl["Description"] == "updated_desc"
     assert acl["DefaultAction"] == {"Block": {"CustomResponse": {"ResponseCode": 412}}}
     assert acl["Rules"] == [
@@ -347,4 +416,4 @@ def test_logging_configuration_crud():
         wafv2_client.get_logging_configuration(
             ResourceArn=logging_configuration["ResourceArn"]
         )
-    e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
+    assert e.value.response["Error"]["Code"] == "WAFNonexistentItemException"

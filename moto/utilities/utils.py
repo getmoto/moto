@@ -3,6 +3,7 @@ import hashlib
 import json
 import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
+from uuid import UUID
 
 DEFAULT_PARTITION = "aws"
 REGION_PREFIX_TO_PARTITION = {
@@ -65,6 +66,14 @@ def merge_multiple_dicts(*args: Any) -> Dict[str, Any]:
     for d in args:
         result.update(d)
     return result
+
+
+def is_valid_uuid(uuid: str, version: int = 4) -> bool:
+    try:
+        UUID(uuid, version=version)
+        return True
+    except ValueError:
+        return False
 
 
 RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
