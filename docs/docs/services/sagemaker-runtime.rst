@@ -46,7 +46,7 @@ sagemaker-runtime
                 json=expected_results,
             )
 
-            client = boto3.client("sagemaker", region_name="us-east-1")
+            client = boto3.client("sagemaker-runtime", region_name="us-east-1")
             details = client.invoke_endpoint(EndpointName="asdf", Body="qwer")
 
         
