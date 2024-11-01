@@ -1,8 +1,10 @@
 import hashlib
+import json
 import re
 import time
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from json import JSONDecodeError
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Pattern, Tuple
 
 from cryptography import x509
@@ -12,7 +14,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.common_models import BaseModel
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.settings import iot_use_valid_cert
@@ -36,7 +38,7 @@ if TYPE_CHECKING:
     from moto.iotdata.models import FakeShadow
 
 
-class FakeThing(BaseModel):
+class FakeThing(CloudFormationModel):
     def __init__(
         self,
         thing_name: str,
@@ -98,8 +100,101 @@ class FakeThing(BaseModel):
             obj["thingId"] = self.thing_id
         return obj
 
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "Thing"
 
-class FakeThingType(BaseModel):
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::Thing"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+            "Id",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.thing_id
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeThing":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        thing_name = properties.get("ThingName", resource_name)
+        attribute_payload = properties.get("AttributePayload", "")
+        try:
+            attributes = json.loads(attribute_payload)
+        except JSONDecodeError:
+            attributes = None
+
+        return iot_backend.create_thing(
+            thing_name=thing_name, thing_type_name="", attribute_payload=attributes
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeThing",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeThing":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        thing_name = properties.get("ThingName", new_resource_name)
+        attribute_payload = properties.get("AttributePayload", "")
+        try:
+            attributes = json.loads(attribute_payload)
+        except JSONDecodeError:
+            attributes = None
+
+        if thing_name != original_resource.thing_name:
+            iot_backend.delete_thing(original_resource.thing_name)
+            return cls.create_from_cloudformation_json(
+                new_resource_name, cloudformation_json, account_id, region_name
+            )
+        else:
+            iot_backend.update_thing(
+                thing_name=thing_name,
+                thing_type_name="",
+                attribute_payload=attributes,
+                remove_thing_type=False,
+            )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        thing_name = properties.get("ThingName", resource_name)
+
+        iot_backend.delete_thing(thing_name=thing_name)
+
+
+class FakeThingType(CloudFormationModel):
     def __init__(
         self,
         thing_type_name: str,
@@ -124,6 +219,80 @@ class FakeThingType(BaseModel):
             "thingTypeMetadata": self.metadata,
             "thingTypeArn": self.arn,
         }
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "ThingType"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::ThingType"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+            "Id",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.thing_type_id
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeThingType":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        thing_type_name = properties.get("ThingTypeName", resource_name)
+        thing_type_properties = properties.get("ThingTypeProperties", {})
+
+        type_name, type_arn = iot_backend.create_thing_type(
+            thing_type_name=thing_type_name, thing_type_properties=thing_type_properties
+        )
+        return iot_backend.thing_types[type_arn]
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeThingType",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeThingType":
+        iot_backend = iot_backends[account_id][region_name]
+
+        iot_backend.delete_thing_type(thing_type_name=original_resource.thing_type_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        thing_type_name = properties.get("ThingTypeName", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_thing_type(thing_type_name=thing_type_name)
 
 
 class FakeThingGroup(BaseModel):
@@ -283,7 +452,7 @@ class FakeCaCertificate(FakeCertificate):
         self.registration_config = registration_config
 
 
-class FakePolicy(BaseModel):
+class FakePolicy(CloudFormationModel):
     def __init__(
         self,
         name: str,
@@ -319,6 +488,90 @@ class FakePolicy(BaseModel):
 
     def to_dict(self) -> Dict[str, str]:
         return {"policyName": self.name, "policyArn": self.arn}
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "Policy"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::Policy"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+            "Id",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.name + "_" + str(self._max_version_id)
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakePolicy":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        policy_name = properties.get("PolicyName", resource_name)
+        policy_document = properties.get("PolicyDocument", {})
+
+        return iot_backend.create_policy(
+            policy_name=policy_name, policy_document=policy_document
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakePolicy",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakePolicy":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        new_policy_name = properties.get("PolicyName", new_resource_name)
+        policy_document = properties.get("PolicyDocument", {})
+
+        if original_resource.name != new_policy_name:
+            iot_backend.delete_policy(policy_name=original_resource.name)
+            return iot_backend.create_policy(
+                policy_name=new_policy_name, policy_document=policy_document
+            )
+        else:
+            iot_backend.create_policy_version(
+                policy_name=original_resource.name,
+                policy_document=policy_document,
+                set_as_default=True,
+            )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        policy_name = properties.get("PolicyName", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_policy(policy_name=policy_name)
 
 
 class FakePolicyVersion:
