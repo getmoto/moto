@@ -55,6 +55,18 @@
       "Resource Types": "AWS::ACMPCA::CertificateAuthority",
       "Trigger type": "Periodic"
     },
+    "ACTIVE_MQ_SUPPORTED_VERSION": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "supportedEngineVersion",
+          "Optional": false,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::AmazonMQ::Broker",
+      "Trigger type": "Configuration changes"
+    },
     "ALB_DESYNC_MODE_CHECK": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -217,6 +229,18 @@
         }
       ],
       "Resource Types": "AWS::AppSync::GraphQLApi",
+      "Trigger type": "Configuration changes"
+    },
+    "APPSYNC_CACHE_CT_ENCRYPTION_AT_REST": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::AppSync::ApiCache",
+      "Trigger type": "Configuration changes"
+    },
+    "APPSYNC_CACHE_CT_ENCRYPTION_IN_TRANSIT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::AppSync::ApiCache",
       "Trigger type": "Configuration changes"
     },
     "APPSYNC_CACHE_ENCRYPTION_AT_REST": {
@@ -1619,6 +1643,12 @@
       "Resource Types": "AWS::EC2::Instance",
       "Trigger type": "Periodic"
     },
+    "EC2_LAUNCH_TEMPLATE_IMDSV2_CHECK": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::EC2::LaunchTemplate",
+      "Trigger type": "Configuration changes"
+    },
     "EC2_LAUNCH_TEMPLATE_PUBLIC_IP_DISABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -1881,6 +1911,12 @@
       "Resource Types": "AWS::EC2::Volume",
       "Trigger type": "Configuration changes"
     },
+    "EC2_VPN_CONNECTION_LOGGING_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::EC2::VPNConnection",
+      "Trigger type": "Configuration changes"
+    },
     "ECR_PRIVATE_IMAGE_SCANNING_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -2034,6 +2070,18 @@
       ],
       "Resource Types": "AWS::EFS::FileSystem",
       "Trigger type": "Periodic"
+    },
+    "EFS_FILESYSTEM_CT_ENCRYPTED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "kmsKeyArns",
+          "Optional": true,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::EFS::FileSystem",
+      "Trigger type": "Configuration changes"
     },
     "EFS_IN_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
@@ -3136,6 +3184,12 @@
       "Resource Types": "AWS::KMS::Key",
       "Trigger type": "Periodic"
     },
+    "KMS_KEY_POLICY_NO_PUBLIC_ACCESS": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::KMS::Key",
+      "Trigger type": "Configuration changes"
+    },
     "LAMBDA_CONCURRENCY_CHECK": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -3561,6 +3615,18 @@
       "Resource Types": "AWS::OpenSearch::Domain",
       "Trigger type": "Configuration changes"
     },
+    "RABBIT_MQ_SUPPORTED_VERSION": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "supportedEngineVersion",
+          "Optional": false,
+          "Type": "String"
+        }
+      ],
+      "Resource Types": "AWS::AmazonMQ::Broker",
+      "Trigger type": "Configuration changes"
+    },
     "RDS_AURORA_MYSQL_AUDIT_LOGGING_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -3750,6 +3816,12 @@
       "Resource Types": "AWS::RDS::DBInstance",
       "Trigger type": "Configuration changes"
     },
+    "RDS_MYSQL_INSTANCE_ENCRYPTED_IN_TRANSIT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::RDS::DBInstance",
+      "Trigger type": "Periodic"
+    },
     "RDS_POSTGRESQL_LOGS_TO_CLOUDWATCH": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -3761,6 +3833,12 @@
       ],
       "Resource Types": "AWS::RDS::DBInstance",
       "Trigger type": "Configuration changes"
+    },
+    "RDS_POSTGRES_INSTANCE_ENCRYPTED_IN_TRANSIT": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::RDS::DBInstance",
+      "Trigger type": "Periodic"
     },
     "RDS_RESOURCES_PROTECTED_BY_BACKUP_PLAN": {
       "AWS Region": "All supported AWS regions",
@@ -3814,6 +3892,18 @@
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::RDS::DBSnapshot, AWS::RDS::DBClusterSnapshot",
+      "Trigger type": "Configuration changes"
+    },
+    "RDS_SQL_SERVER_LOGS_TO_CLOUDWATCH": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "logTypes",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::RDS::DBInstance",
       "Trigger type": "Configuration changes"
     },
     "RDS_STORAGE_ENCRYPTED": {
@@ -3922,6 +4012,12 @@
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
       "Resource Types": "AWS::Redshift::Cluster",
+      "Trigger type": "Configuration changes"
+    },
+    "REDSHIFT_CLUSTER_SUBNET_GROUP_MULTI_AZ": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::Redshift::ClusterSubnetGroup",
       "Trigger type": "Configuration changes"
     },
     "REDSHIFT_DEFAULT_ADMIN_CHECK": {
@@ -4702,6 +4798,12 @@
       "Resource Types": "AWS::SNS::Topic",
       "Trigger type": "Configuration changes"
     },
+    "SNS_TOPIC_NO_PUBLIC_ACCESS": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [],
+      "Resource Types": "AWS::SNS::Topic",
+      "Trigger type": "Configuration changes"
+    },
     "SSM_DOCUMENT_NOT_PUBLIC": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [],
@@ -4942,6 +5044,23 @@
       "Parameters": [],
       "Resource Types": "AWS::EC2::SecurityGroup",
       "Trigger type": "Configuration changes"
+    },
+    "VPC_ENDPOINT_ENABLED": {
+      "AWS Region": "All supported AWS regions",
+      "Parameters": [
+        {
+          "Name": "serviceNames",
+          "Optional": false,
+          "Type": "CSV"
+        },
+        {
+          "Name": "vpcIds",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::EC2::VPC",
+      "Trigger type": "Periodic"
     },
     "VPC_FLOW_LOGS_ENABLED": {
       "AWS Region": "All supported AWS regions",
