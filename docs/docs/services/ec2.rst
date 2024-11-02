@@ -43,6 +43,7 @@ ec2
 - [ ] associate_ipam_resource_discovery
 - [ ] associate_nat_gateway_address
 - [X] associate_route_table
+- [ ] associate_security_group_vpc
 - [X] associate_subnet_cidr_block
 - [ ] associate_transit_gateway_multicast_domain
 - [ ] associate_transit_gateway_policy_table
@@ -308,6 +309,7 @@ ec2
 - [X] describe_instance_credit_specifications
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
+- [ ] describe_instance_image_metadata
 - [X] describe_instance_status
 - [ ] describe_instance_topology
 - [X] describe_instance_type_offerings
@@ -359,6 +361,7 @@ ec2
 - [ ] describe_scheduled_instances
 - [ ] describe_security_group_references
 - [X] describe_security_group_rules
+- [ ] describe_security_group_vpc_associations
 - [X] describe_security_groups
 - [ ] describe_snapshot_attribute
 - [ ] describe_snapshot_tier_status
@@ -461,6 +464,7 @@ ec2
 - [ ] disassociate_ipam_resource_discovery
 - [ ] disassociate_nat_gateway_address
 - [X] disassociate_route_table
+- [ ] disassociate_security_group_vpc
 - [X] disassociate_subnet_cidr_block
 - [ ] disassociate_transit_gateway_multicast_domain
 - [ ] disassociate_transit_gateway_policy_table
@@ -504,6 +508,7 @@ ec2
 - [ ] get_host_reservation_purchase_preview
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
+- [ ] get_instance_tpm_ek_pub
 - [ ] get_instance_types_from_instance_requirements
 - [ ] get_instance_uefi_data
 - [ ] get_ipam_address_history

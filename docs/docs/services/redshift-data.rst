@@ -31,6 +31,7 @@ redshift-data
         As such, it cannot be mocked
         
 
+- [ ] get_statement_result_v2
 - [ ] list_databases
 - [ ] list_schemas
 - [ ] list_statements

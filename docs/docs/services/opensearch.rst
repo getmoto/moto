@@ -23,10 +23,12 @@ opensearch
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
+- [ ] create_application
 - [X] create_domain
 - [ ] create_outbound_connection
 - [ ] create_package
 - [ ] create_vpc_endpoint
+- [ ] delete_application
 - [ ] delete_data_source
 - [X] delete_domain
 - [ ] delete_inbound_connection
@@ -49,12 +51,14 @@ opensearch
 - [ ] describe_reserved_instances
 - [ ] describe_vpc_endpoints
 - [ ] dissociate_package
+- [ ] get_application
 - [X] get_compatible_versions
 - [ ] get_data_source
 - [ ] get_domain_maintenance_status
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
+- [ ] list_applications
 - [ ] list_data_sources
 - [ ] list_domain_maintenances
 - [X] list_domain_names
@@ -73,6 +77,7 @@ opensearch
 - [ ] revoke_vpc_endpoint_access
 - [ ] start_domain_maintenance
 - [ ] start_service_software_update
+- [ ] update_application
 - [ ] update_data_source
 - [X] update_domain_config
 - [ ] update_package

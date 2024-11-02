@@ -1,6 +1,39 @@
 Moto Changelog
 ==============
 
+5.0.19
+-----
+Docker Digest for 5.0.19: <autopopulateddigest>
+
+    New Methods:
+        * ELBv2:
+            * describe_listener_attributes()
+            * modify_listener_attributes()
+
+        * Panorama:
+            * create_application_instance()
+            * describe_application_instance()
+            * describe_application_instance_details()
+            * list_application_instances()
+
+        * WAFv2:
+            * create_rule_group()
+            * delete_rule_group()
+            * get_rule_group()
+            * update_rule_group()
+
+    Miscellaneous:
+        * CloudFormation now supports the types AWS::IoT::Thing, AWS::IoT::ThingType, AWS::IoT::Policy
+        * EC2: Key Pairs now use the correct algorithm to calculate the fingerprint
+        * ELBv2: modify_lb_attr() now supports zonal-shift config
+        * ECS: create_task_set() now actually creates tasks
+        * Lambda: The MOTO_DOCKER_LAMBDA_IMAGE config option now accepts full image names, including the tag
+        * Lambda: Events send to DynamoDB now have the correct eventName
+        * Organizations: describe_organization() now describes the parent account (if applicable)
+        * WAFv2: create_web_acl() now supports additional parameters (AssociationConfig, CaptchaConfig, ChallengeConfig, CustomResponseBodies, TokenDomains)
+        * WAFv2: delete_web_acl() now supports the LockToken-parameter
+        * WAFv2: update_web_acl() now supports additional parameters (LockToken, AssociationConfig, CaptchaConfig, ChallengeConfig, CustomResponseBodies, TokenDomains)
+
 5.0.18
 -----
 Docker Digest for 5.0.18: _sha256:62423941446f8863f499ebdfd04c1d1743b5afd84c3837799df7ce08ce3bb750_
