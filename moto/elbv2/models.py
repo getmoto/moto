@@ -315,6 +315,8 @@ class FakeListener(CloudFormationModel):
             is_default=True,
         )
 
+        self.attributes = {"tcp.idle_timeout.seconds": "350"}
+
     @property
     def physical_resource_id(self) -> str:
         return self.arn
@@ -1999,6 +2001,21 @@ Member must satisfy regular expression pattern: {expression}"
             arn: self.tagging_service.get_tag_dict_for_resource(arn)
             for arn in resource_arns
         }
+
+    def describe_listener_attributes(self, listener_arn: str) -> Dict[str, str]:
+        listener = self.describe_listeners(
+            load_balancer_arn=None, listener_arns=[listener_arn]
+        )[0]
+        return listener.attributes
+
+    def modify_listener_attributes(
+        self, listener_arn: str, attrs: List[Dict[str, str]]
+    ) -> Dict[str, str]:
+        listener = self.describe_listeners(
+            load_balancer_arn=None, listener_arns=[listener_arn]
+        )[0]
+        listener.attributes.update({a["Key"]: a["Value"] for a in attrs})
+        return listener.attributes
 
     def _get_resource_by_arn(self, arn: str) -> Any:
         if ":targetgroup" in arn:

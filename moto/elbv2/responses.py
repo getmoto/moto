@@ -822,6 +822,21 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(REMOVE_LISTENER_CERTIFICATES_TEMPLATE)
         return template.render()
 
+    def describe_listener_attributes(self) -> str:
+        arn = self._get_param("ListenerArn")
+        attrs = self.elbv2_backend.describe_listener_attributes(arn)
+        template = self.response_template(DESCRIBE_LISTENER_ATTRIBUTES)
+        return template.render(attributes=attrs)
+
+    def modify_listener_attributes(self) -> str:
+        arn = self._get_param("ListenerArn")
+        attrs = self._get_params()["Attributes"]
+        updated_attrs = self.elbv2_backend.modify_listener_attributes(
+            listener_arn=arn, attrs=attrs
+        )
+        template = self.response_template(MODIFY_LISTENER_ATTRIBUTES)
+        return template.render(attributes=updated_attrs)
+
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <AddTagsResult/>
@@ -1912,3 +1927,35 @@ REMOVE_LISTENER_CERTIFICATES_TEMPLATE = """<RemoveListenerCertificatesResponse x
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </RemoveListenerCertificatesResponse>"""
+
+DESCRIBE_LISTENER_ATTRIBUTES = """<DescribeListenerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeListenerAttributesResult>
+    <Attributes>
+      {% for attr, value in attributes.items() %}
+      <ListenerAttribute>
+        <Key>{{ attr }}</Key>
+        <Value>{{ value }}</Value>
+      </ListenerAttribute>
+      {% endfor %}
+    </Attributes>
+  </DescribeListenerAttributesResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</DescribeListenerAttributesResponse>"""
+
+MODIFY_LISTENER_ATTRIBUTES = """<ModifyListenerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <ModifyListenerAttributesResult>
+    <Attributes>
+      {% for attr, value in attributes.items() %}
+      <ListenerAttribute>
+        <Key>{{ attr }}</Key>
+        <Value>{{ value }}</Value>
+      </ListenerAttribute>
+      {% endfor %}
+    </Attributes>
+  </ModifyListenerAttributesResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</ModifyListenerAttributesResponse>"""
