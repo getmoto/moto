@@ -357,7 +357,7 @@ def test_create_policy_with_simple_cloudformation():
 
 
 @mock_aws
-def test_update_policy_should_update_policy_document():
+def test_update_policy_with_the_same_name_should_update_policy_document():
     # given
     stack_name = "test_stack"
     policy_name = "Test_Policy"
@@ -428,3 +428,127 @@ def test_update_policy_should_update_policy_document():
     assert policy["policyName"] == policy_name
     policyDocument = json.loads(policy["policyDocument"])
     assert policyDocument["Statement"][0]["Resource"] == ["*"]
+
+
+@mock_aws
+def test_update_policy_with_different_name_should_recreate_whole_policy():
+    # given
+    stack_name = "test_stack"
+    initial_policy_name = "Test_Policy"
+    updated_policy_name = "New_Test_Policy"
+    initial_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT Policy CloudFormation",
+        "Resources": {
+            "testPolicy": {
+                "Type": "AWS::IoT::Policy",
+                "Properties": {
+                    "PolicyName": initial_policy_name,
+                    "PolicyDocument": json.dumps(
+                        {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": ["iot:Connect"],
+                                    "Resource": [
+                                        "arn:aws:iot:us-east-1:123456789012:client/client1"
+                                    ],
+                                }
+                            ],
+                        }
+                    ),
+                },
+            },
+        },
+    }
+    updated_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT Policy CloudFormation",
+        "Resources": {
+            "testPolicy": {
+                "Type": "AWS::IoT::Policy",
+                "Properties": {
+                    "PolicyName": updated_policy_name,
+                    "PolicyDocument": json.dumps(
+                        {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": ["iot:Connect", "iot:Subscribe"],
+                                    "Resource": ["*"],
+                                }
+                            ],
+                        }
+                    ),
+                },
+            },
+        },
+    }
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(
+        StackName=stack_name, TemplateBody=json.dumps(initial_template)
+    )
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    policies = iot_conn.list_policies()["policies"]
+    assert len(policies) == 1
+    assert policies[0]["policyName"] == initial_policy_name
+
+    # then update stack
+    cfn_conn.update_stack(
+        StackName=stack_name, TemplateBody=json.dumps(updated_template)
+    )
+
+    policies = iot_conn.list_policies()["policies"]
+    assert len(policies) == 1
+    assert policies[0]["policyName"] == updated_policy_name
+
+    policy = iot_conn.get_policy(policyName=updated_policy_name)
+
+    assert policy["policyName"] == updated_policy_name
+    policyDocument = json.loads(policy["policyDocument"])
+    assert policyDocument["Statement"][0]["Resource"] == ["*"]
+
+
+@mock_aws
+def test_delete_stack_should_delete_policy():
+    # given
+    stack_name = "test_stack"
+    policy_name = "Test_Policy"
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT Policy CloudFormation",
+        "Resources": {
+            "testPolicy": {
+                "Type": "AWS::IoT::Policy",
+                "Properties": {
+                    "PolicyName": policy_name,
+                    "PolicyDocument": json.dumps(
+                        {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": ["iot:Connect"],
+                                    "Resource": [
+                                        "arn:aws:iot:us-east-1:123456789012:client/client1"
+                                    ],
+                                }
+                            ],
+                        }
+                    ),
+                },
+            },
+        },
+    }
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_policies()["policies"]) == 1
+
+    # then delete stack
+    cfn_conn.delete_stack(StackName=stack_name)
+    assert len(iot_conn.list_policies()["policies"]) == 0
