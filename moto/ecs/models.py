@@ -255,9 +255,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        response_object["taskDefinitionArn"] = response_object["arn"]
-        del response_object["arn"]
-        del response_object["tags"]
+        response_object["taskDefinitionArn"] = response_object.pop("arn")
 
         if not response_object["requiresCompatibilities"]:
             del response_object["requiresCompatibilities"]
@@ -266,7 +264,10 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         if not response_object["memory"]:
             del response_object["memory"]
 
-        return response_object
+        return {
+            "taskDefinition": response_object,
+            "tags": response_object.get("tags", []),
+        }
 
     @property
     def physical_resource_id(self) -> str:
@@ -547,6 +548,7 @@ class Service(BaseObject, CloudFormationModel):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
+        propagate_tags: str = "NONE",
     ):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
@@ -594,6 +596,7 @@ class Service(BaseObject, CloudFormationModel):
             ]
         else:
             self.deployments = []
+        self.propagate_tags = propagate_tags
 
     @property
     def arn(self) -> str:
@@ -1609,6 +1612,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
+        propagate_tags: str = "NONE",
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
@@ -1635,6 +1639,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             backend=self,
             service_registries=service_registries,
             platform_version=platform_version,
+            propagate_tags=propagate_tags,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service
@@ -2181,12 +2186,34 @@ class EC2ContainerServiceBackend(BaseBackend):
         if not service_obj:
             raise ServiceNotFoundException
 
-        task_set.task_definition = self.describe_task_definition(task_definition).arn
+        task_def_obj = self.describe_task_definition(task_definition)
+        task_set.task_definition = task_def_obj.arn
         task_set.service_arn = service_obj.arn
         task_set.cluster_arn = cluster_obj.arn
 
         service_obj.task_sets.append(task_set)
         # TODO: validate load balancers
+
+        if scale:
+            if scale.get("unit") == "PERCENT":
+                desired_count = service_obj.desired_count
+                nr_of_tasks = int(desired_count * (scale["value"] / 100))
+                all_tags = {}
+                if service_obj.propagate_tags == "TASK_DEFINITION":
+                    all_tags.update({t["key"]: t["value"] for t in task_def_obj.tags})
+                if service_obj.propagate_tags == "SERVICE":
+                    all_tags.update({t["key"]: t["value"] for t in service_obj.tags})
+                all_tags.update({t["key"]: t["value"] for t in (tags or [])})
+                self.run_task(
+                    cluster_str=cluster_str,
+                    task_definition_str=task_definition,
+                    count=nr_of_tasks,
+                    overrides=None,
+                    started_by=self.account_id,
+                    tags=[{"key": k, "value": v} for k, v in all_tags.items()],
+                    launch_type=launch_type,
+                    networking_configuration=network_configuration,
+                )
 
         return task_set
 
