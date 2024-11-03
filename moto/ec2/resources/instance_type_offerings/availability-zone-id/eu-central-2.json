@@ -1792,6 +1792,22 @@
   "Location": "euc2-az3"
  },
  {
+  "InstanceType": "d3.2xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "d3.4xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "d3.8xlarge",
+  "Location": "euc2-az3"
+ },
+ {
+  "InstanceType": "d3.xlarge",
+  "Location": "euc2-az3"
+ },
+ {
   "InstanceType": "g6.12xlarge",
   "Location": "euc2-az3"
  },

@@ -212,6 +212,10 @@
   "Location": "ap-southeast-5"
  },
  {
+  "InstanceType": "c7gd.metal",
+  "Location": "ap-southeast-5"
+ },
+ {
   "InstanceType": "c7gd.xlarge",
   "Location": "ap-southeast-5"
  },
@@ -817,6 +821,10 @@
  },
  {
   "InstanceType": "r7gd.medium",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "r7gd.metal",
   "Location": "ap-southeast-5"
  },
  {
