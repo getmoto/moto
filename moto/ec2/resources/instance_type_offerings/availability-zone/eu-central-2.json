@@ -1792,6 +1792,22 @@
   "Location": "eu-central-2c"
  },
  {
+  "InstanceType": "d3.2xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "d3.4xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "d3.8xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
+  "InstanceType": "d3.xlarge",
+  "Location": "eu-central-2c"
+ },
+ {
   "InstanceType": "g6.12xlarge",
   "Location": "eu-central-2c"
  },
