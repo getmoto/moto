@@ -20,6 +20,7 @@ bedrock
 - [ ] create_evaluation_job
 - [ ] create_guardrail
 - [ ] create_guardrail_version
+- [ ] create_inference_profile
 - [ ] create_model_copy_job
 - [X] create_model_customization_job
 - [ ] create_model_import_job
@@ -28,6 +29,7 @@ bedrock
 - [X] delete_custom_model
 - [ ] delete_guardrail
 - [ ] delete_imported_model
+- [ ] delete_inference_profile
 - [X] delete_model_invocation_logging_configuration
 - [ ] delete_provisioned_model_throughput
 - [X] get_custom_model

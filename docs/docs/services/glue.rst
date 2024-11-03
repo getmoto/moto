@@ -39,6 +39,7 @@ glue
 - [ ] check_schema_version_validity
 - [ ] create_blueprint
 - [ ] create_classifier
+- [ ] create_column_statistics_task_settings
 - [ ] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
@@ -68,6 +69,7 @@ glue
 - [ ] delete_classifier
 - [ ] delete_column_statistics_for_partition
 - [ ] delete_column_statistics_for_table
+- [ ] delete_column_statistics_task_settings
 - [ ] delete_connection
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
@@ -101,6 +103,7 @@ glue
 - [ ] get_column_statistics_for_table
 - [ ] get_column_statistics_task_run
 - [ ] get_column_statistics_task_runs
+- [ ] get_column_statistics_task_settings
 - [ ] get_connection
 - [ ] get_connections
 - [X] get_crawler
@@ -212,6 +215,7 @@ glue
 - [ ] search_tables
 - [ ] start_blueprint_run
 - [ ] start_column_statistics_task_run
+- [ ] start_column_statistics_task_run_schedule
 - [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_data_quality_rule_recommendation_run
@@ -224,6 +228,7 @@ glue
 - [X] start_trigger
 - [ ] start_workflow_run
 - [ ] stop_column_statistics_task_run
+- [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
@@ -236,6 +241,7 @@ glue
 - [ ] update_classifier
 - [ ] update_column_statistics_for_partition
 - [ ] update_column_statistics_for_table
+- [ ] update_column_statistics_task_settings
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule

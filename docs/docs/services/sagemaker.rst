@@ -17,6 +17,7 @@ sagemaker
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
 - [ ] create_action
 - [ ] create_algorithm

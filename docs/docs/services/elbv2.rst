@@ -30,7 +30,7 @@ elbv2
 - [ ] delete_trust_store
 - [X] deregister_targets
 - [ ] describe_account_limits
-- [ ] describe_listener_attributes
+- [X] describe_listener_attributes
 - [X] describe_listener_certificates
 - [X] describe_listeners
 - [X] describe_load_balancer_attributes
@@ -48,7 +48,7 @@ elbv2
 - [ ] get_trust_store_ca_certificates_bundle
 - [ ] get_trust_store_revocation_content
 - [X] modify_listener
-- [ ] modify_listener_attributes
+- [X] modify_listener_attributes
 - [X] modify_load_balancer_attributes
 - [X] modify_rule
 - [X] modify_target_group
