@@ -1,6 +1,13 @@
 Moto Changelog
 ==============
 
+5.0.20
+-----
+Docker Digest for 5.0.20: <autopopulateddigest>
+
+    Miscellaneous:
+        * Removed runtime-dependency on `typing_extensions`
+
 5.0.19
 -----
 Docker Digest for 5.0.19: _sha256:5d857d7ce17a9b1dadea166d8e0d310771983f026334a555a9d2690a370cf904_
