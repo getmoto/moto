@@ -4539,7 +4539,7 @@
 - [ ] create_provisioning_claim
 - [ ] create_provisioning_template
 - [ ] create_provisioning_template_version
-- [ ] create_role_alias
+- [X] create_role_alias
 - [ ] create_scheduled_audit
 - [ ] create_security_profile
 - [ ] create_stream
@@ -4572,7 +4572,7 @@
 - [ ] delete_provisioning_template
 - [ ] delete_provisioning_template_version
 - [ ] delete_registration_code
-- [ ] delete_role_alias
+- [X] delete_role_alias
 - [ ] delete_scheduled_audit
 - [ ] delete_security_profile
 - [ ] delete_stream
@@ -4609,7 +4609,7 @@
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
-- [ ] describe_role_alias
+- [X] describe_role_alias
 - [ ] describe_scheduled_audit
 - [ ] describe_security_profile
 - [ ] describe_stream
@@ -4682,7 +4682,7 @@
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
 - [ ] list_related_resources_for_audit_finding
-- [ ] list_role_aliases
+- [X] list_role_aliases
 - [ ] list_sbom_validation_results
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles
@@ -4749,7 +4749,7 @@
 - [ ] update_package_configuration
 - [ ] update_package_version
 - [ ] update_provisioning_template
-- [ ] update_role_alias
+- [X] update_role_alias
 - [ ] update_scheduled_audit
 - [ ] update_security_profile
 - [ ] update_stream

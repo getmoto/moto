@@ -277,6 +277,11 @@ Please let us know if you'd like support for a resource not yet listed here.
    - [x] update implemented
    - [x] delete implemented
    - [x] Fn::GetAtt implemented
+- AWS::IoT::RoleAlias:
+   - [x] create implemented
+   - [x] update implemented
+   - [x] delete implemented
+   - [x] Fn::GetAtt implemented
 - AWS::KMS::Key:
    - [x] create implemented
    - [ ] update implemented
