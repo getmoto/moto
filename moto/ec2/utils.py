@@ -24,7 +24,6 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from typing_extensions import TypeAlias
 
 from moto.core.utils import utcnow
 from moto.iam import iam_backends
@@ -32,6 +31,8 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 if TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+
     HashType: TypeAlias = hashlib._Hash
 
 EC2_RESOURCE_TO_PREFIX = {
