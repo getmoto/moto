@@ -678,6 +678,35 @@ def test_list_images():
 
 
 @mock_aws
+def test_list_same_image_with_multiple_tags():
+    ecr_client = boto3.client("ecr", "us-east-1")
+
+    ecr_client.create_repository(repositoryName="reponame")
+
+    manifest = json.dumps(_create_image_manifest())
+
+    ecr_client.put_image(
+        repositoryName="reponame", imageTag="tag1", imageManifest=manifest
+    )
+    ecr_client.put_image(
+        repositoryName="reponame", imageTag="tag2", imageManifest=manifest
+    )
+
+    images = ecr_client.list_images(repositoryName="reponame")["imageIds"]
+    assert len(images) == 2
+    assert images[0]["imageDigest"] == images[1]["imageDigest"]
+    assert images[0]["imageTag"] == "tag1"
+    assert images[1]["imageTag"] == "tag2"
+
+    # Ensure tag is not required
+    manifest2 = _create_image_manifest()
+    ecr_client.put_image(repositoryName="reponame", imageManifest=json.dumps(manifest2))
+
+    images = ecr_client.list_images(repositoryName="reponame")["imageIds"]
+    assert {"imageDigest": manifest2["config"]["digest"]} in images
+
+
+@mock_aws
 def test_list_images_from_repository_that_doesnt_exist():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository_1")
