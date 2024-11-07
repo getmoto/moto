@@ -48,6 +48,7 @@ class FakeThing(CloudFormationModel):
         region_name: str,
     ):
         self.region_name = region_name
+        self.account_id = account_id
         self.thing_id = str(random.uuid4())
         self.thing_name = thing_name
         self.thing_type = thing_type
@@ -80,6 +81,8 @@ class FakeThing(CloudFormationModel):
         include_default_client_id: bool = False,
         include_connectivity: bool = False,
         include_thing_id: bool = False,
+        include_thing_group_names: bool = False,
+        include_shadows_as_json: bool = False,
     ) -> Dict[str, Any]:
         obj = {
             "thingName": self.thing_name,
@@ -98,6 +101,29 @@ class FakeThing(CloudFormationModel):
             }
         if include_thing_id:
             obj["thingId"] = self.thing_id
+        if include_thing_group_names:
+            iot_backend = iot_backends[self.account_id][self.region_name]
+            obj["thingGroupNames"] = [
+                thing_group.thing_group_name
+                for thing_group in iot_backend.list_thing_groups(None, None, None)
+                if self.arn in thing_group.things
+            ]
+        if include_shadows_as_json:
+            named_shadows = {
+                shadow_name: shadow.to_dict()
+                for shadow_name, shadow in self.thing_shadows.items()
+                if shadow_name is not None
+            }
+            converted_response_format = {
+                shadow_name: {
+                    **shadow_data["state"],
+                    "metadata": shadow_data["metadata"],
+                    "version": shadow_data["version"],
+                    "hasDelta": "delta" in shadow_data["state"],
+                }
+                for shadow_name, shadow_data in named_shadows.items()
+            }
+            obj["shadow"] = json.dumps({"name": converted_response_format})
         return obj
 
     @staticmethod
@@ -899,6 +925,108 @@ class FakeDomainConfiguration(BaseModel):
         }
 
 
+class FakeRoleAlias(CloudFormationModel):
+    def __init__(
+        self,
+        role_alias: str,
+        role_arn: str,
+        account_id: str,
+        region_name: str,
+        credential_duration_seconds: int = 3600,
+    ):
+        self.role_alias = role_alias
+        self.role_arn = role_arn
+        self.credential_duration_seconds = credential_duration_seconds
+        self.account_id = account_id
+        self.region_name = region_name
+        self.creation_date = time.time()
+        self.last_modified_date = self.creation_date
+        self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:rolealias/{role_alias}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "roleAlias": self.role_alias,
+            "roleAliasArn": self.arn,
+            "roleArn": self.role_arn,
+            "owner": self.account_id,
+            "credentialDurationSeconds": self.credential_duration_seconds,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "RoleAlias"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::RoleAlias"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "RoleAliasArn",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "RoleAliasArn":
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeRoleAlias":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        role_alias_name = properties.get("RoleAlias", resource_name)
+        role_arn = properties.get("RoleArn")
+        credential_duration_seconds = properties.get("CredentialDurationSeconds", 3600)
+
+        return iot_backend.create_role_alias(
+            role_alias_name=role_alias_name,
+            role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeRoleAlias",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeRoleAlias":
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_role_alias(role_alias_name=original_resource.role_alias)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        role_alias_name = properties.get("RoleAlias", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_role_alias(role_alias_name=role_alias_name)
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -917,6 +1045,7 @@ class IoTBackend(BaseBackend):
             OrderedDict()
         )
         self.rules: Dict[str, FakeRule] = OrderedDict()
+        self.role_aliases: Dict[str, FakeRoleAlias] = OrderedDict()
         self.endpoint: Optional[FakeEndpoint] = None
         self.domain_configurations: Dict[str, FakeDomainConfiguration] = OrderedDict()
 
@@ -2195,7 +2324,65 @@ class IoTBackend(BaseBackend):
         things = [
             thing for thing in self.things.values() if thing.matches(query_string)
         ]
-        return [t.to_dict(include_connectivity=True) for t in things]
+        return [
+            t.to_dict(
+                include_connectivity=True,
+                include_thing_id=True,
+                include_thing_group_names=True,
+                include_shadows_as_json=True,
+            )
+            for t in things
+        ]
+
+    def create_role_alias(
+        self,
+        role_alias_name: str,
+        role_arn: str,
+        credential_duration_seconds: int = 3600,
+    ) -> FakeRoleAlias:
+        if role_alias_name in self.role_aliases:
+            current_role_alias = self.role_aliases[role_alias_name]
+            raise ResourceAlreadyExistsException(
+                f"RoleAlias cannot be created - already exists (name={role_alias_name})",
+                current_role_alias.role_alias,
+                current_role_alias.arn,
+            )
+        new_role_alias = FakeRoleAlias(
+            role_alias=role_alias_name,
+            role_arn=role_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+        self.role_aliases[role_alias_name] = new_role_alias
+        return new_role_alias
+
+    def list_role_aliases(self) -> Iterable[FakeRoleAlias]:
+        return self.role_aliases.values()
+
+    def describe_role_alias(self, role_alias_name: str) -> FakeRoleAlias:
+        if role_alias_name not in self.role_aliases:
+            raise ResourceNotFoundException(
+                f"RoleAlias not found (name= {role_alias_name})",
+            )
+        return self.role_aliases[role_alias_name]
+
+    def update_role_alias(
+        self,
+        role_alias_name: str,
+        role_arn: Optional[str] = None,
+        credential_duration_seconds: Optional[int] = None,
+    ) -> FakeRoleAlias:
+        role_alias = self.describe_role_alias(role_alias_name=role_alias_name)
+        if role_arn:
+            role_alias.role_arn = role_arn
+        if credential_duration_seconds:
+            role_alias.credential_duration_seconds = credential_duration_seconds
+        return role_alias
+
+    def delete_role_alias(self, role_alias_name: str) -> None:
+        self.describe_role_alias(role_alias_name=role_alias_name)
+        del self.role_aliases[role_alias_name]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

@@ -769,3 +769,60 @@ class IoTResponse(BaseResponse):
         query = self._get_param("queryString")
         things = self.iot_backend.search_index(query)
         return json.dumps({"things": things, "thingGroups": []})
+
+    def create_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        role_arn = self._get_param("roleArn")
+        credential_duration_seconds = self._get_int_param(
+            "credentialDurationSeconds", 3600
+        )
+        created_role_alias = self.iot_backend.create_role_alias(
+            role_alias_name=role_alias_name,
+            role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+        return json.dumps(
+            dict(
+                roleAlias=created_role_alias.role_alias,
+                roleAliasArn=created_role_alias.arn,
+            )
+        )
+
+    def list_role_aliases(self) -> str:
+        # page_size = self._get_int_param("pageSize")
+        # marker = self._get_param("marker")
+        # ascending_order = self._get_param("ascendingOrder")
+        return json.dumps(
+            dict(
+                roleAliases=[_.role_alias for _ in self.iot_backend.list_role_aliases()]
+            )
+        )
+
+    def describe_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        role_alias = self.iot_backend.describe_role_alias(
+            role_alias_name=role_alias_name
+        )
+        return json.dumps({"roleAliasDescription": role_alias.to_dict()})
+
+    def update_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        role_arn = self._get_param("roleArn", None)
+        credential_duration_seconds = self._get_int_param(
+            "credentialDurationSeconds", 0
+        )
+
+        role_alias = self.iot_backend.update_role_alias(
+            role_alias_name=role_alias_name,
+            role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+
+        return json.dumps(
+            dict(roleAlias=role_alias.role_alias, roleAliasArn=role_alias.arn)
+        )
+
+    def delete_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        self.iot_backend.delete_role_alias(role_alias_name=role_alias_name)
+        return json.dumps({})
