@@ -10,6 +10,7 @@ from ..exceptions import (
     MockValidationException,
     TooManyClauses,
 )
+from ..utils import extract_duplicates
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -38,8 +39,11 @@ class Node(metaclass=abc.ABCMeta):
             set_attributes = [s.children[0].to_str() for s in set_actions]
             # We currently only check for duplicates
             # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
-            if len(set_attributes) != len(set(set_attributes)):
-                raise DuplicateUpdateExpression(set_attributes)
+            duplicates = extract_duplicates(set_attributes)
+            if duplicates:
+                # There might be more than one attribute duplicated:
+                # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
+                raise DuplicateUpdateExpression(duplicates)
 
             set_clauses = self.find_clauses([UpdateExpressionSetClause])
             if limit_set_actions and len(set_clauses) > 1:

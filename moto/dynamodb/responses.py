@@ -14,12 +14,14 @@ from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
+    InvalidProjectionExpression,
     KeyIsEmptyStringException,
     MockValidationException,
     ProvidedKeyDoesNotExist,
     ResourceNotFoundException,
     UnknownKeyType,
 )
+from .utils import extract_duplicates
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -794,6 +796,9 @@ class DynamoHandler(BaseResponse):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
+            duplicates = extract_duplicates(expressions)
+            if duplicates:
+                raise InvalidProjectionExpression(duplicates)
             for expression in expressions:
                 check_projection_expression(expression)
             return [

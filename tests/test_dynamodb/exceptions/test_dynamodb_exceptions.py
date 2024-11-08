@@ -665,6 +665,148 @@ def test_update_item_with_duplicate_expressions(expression):
 
 
 @mock_aws
+def test_query_item_with_duplicate_path_in_projection_expressions():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+    table.put_item(
+        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
+    )
+
+    with pytest.raises(ClientError) as exc:
+        _result = table.query(
+            KeyConditionExpression=Key("forum_name").eq("the-key"),
+            ProjectionExpression="body, subject, body",  # duplicate body
+        )["Items"][0]
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "Invalid ProjectionExpression: "
+        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
+        "path one: [body], path two: [body]"
+    )
+
+
+@mock_aws
+def test_get_item_with_duplicate_path_in_projection_expressions():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+
+    table.put_item(
+        Item={
+            "forum_name": "the-key",
+            "subject": "123",
+            "body": "some test message",
+            "attachment": "something",
+        }
+    )
+
+    table.put_item(
+        Item={
+            "forum_name": "not-the-key",
+            "subject": "123",
+            "body": "some other test message",
+            "attachment": "something",
+        }
+    )
+    with pytest.raises(ClientError) as exc:
+        _result = table.get_item(
+            Key={"forum_name": "the-key", "subject": "123"},
+            ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+            ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "Invalid ProjectionExpression: "
+        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
+        "path one: [subject], path two: [subject]"
+    )
+
+
+@mock_aws
+def test_scan_with_duplicate_path_in_projection_expressions():
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    # Create the DynamoDB table.
+    table = dynamodb.create_table(
+        TableName="users",
+        KeySchema=[
+            {"AttributeName": "forum_name", "KeyType": "HASH"},
+            {"AttributeName": "subject", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "forum_name", "AttributeType": "S"},
+            {"AttributeName": "subject", "AttributeType": "S"},
+        ],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+    )
+    table = dynamodb.Table("users")
+
+    table.put_item(
+        Item={
+            "forum_name": "the-key",
+            "subject": "123",
+            "body": "some test message",
+            "attachment": "something",
+        }
+    )
+
+    table.put_item(
+        Item={
+            "forum_name": "not-the-key",
+            "subject": "123",
+            "body": "some other test message",
+            "attachment": "something",
+        }
+    )
+
+    with pytest.raises(ClientError) as exc:
+        _results = table.scan(
+            FilterExpression=Key("forum_name").eq("the-key"),
+            ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+            ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == (
+        "Invalid ProjectionExpression: "
+        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
+        "path one: [subject], path two: [subject]"
+    )
+
+
+@mock_aws
 def test_put_item_wrong_datatype():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to mock a session with Config in ServerMode")
