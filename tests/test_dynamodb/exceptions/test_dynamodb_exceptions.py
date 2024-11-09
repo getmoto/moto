@@ -204,27 +204,57 @@ def test_empty_expressionattributenames_with_projection():
     assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
-@mock_aws
-def test_update_item_range_key_set():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"partitionKey": "the-key"},
-            UpdateExpression="ADD x :one SET a = :a ADD y :one",
-            ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+@pytest.mark.aws_verified
+class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
+    def test_multiple_add_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="ADD x :one SET a = :a ADD y :one",
+                ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
         )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        err["Message"]
-        == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
-    )
+
+    def test_multiple_remove_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="REMOVE #ulist[0] SET current_user = :current_user REMOVE some_param",
+                ExpressionAttributeNames={"#ulist": "user_list"},
+                ExpressionAttributeValues={":current_user": {"name": "Jane"}},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "REMOVE" section can only be used once in an update expression;'
+        )
+
+    def test_delete_and_add_on_same_set(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="ADD #stringSet :addSet DELETE #stringSet :deleteSet",
+                ExpressionAttributeNames={"#stringSet": "string_set"},
+                ExpressionAttributeValues={":addSet": {"c"}, ":deleteSet": {"a"}},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_delete_and_add_on_different_set(self):
+        self.table.update_item(
+            Key={"pk": "the-key"},
+            UpdateExpression="ADD #stringSet1 :addSet DELETE #stringSet2 :deleteSet",
+            ExpressionAttributeNames={"#stringSet1": "ss1", "#stringSet2": "ss2"},
+            ExpressionAttributeValues={":addSet": {"c"}, ":deleteSet": {"a"}},
+        )
 
 
 @pytest.mark.aws_verified
