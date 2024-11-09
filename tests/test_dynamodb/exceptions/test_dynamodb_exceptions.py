@@ -1,4 +1,5 @@
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import botocore
@@ -7,8 +8,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
-
-from .. import dynamodb_aws_verified
+from tests import allow_aws_request
+from tests.test_dynamodb import dynamodb_aws_verified
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -28,6 +29,38 @@ table_schema = {
         {"AttributeName": "gsiK1SortKey", "AttributeType": "S"},
     ],
 }
+
+
+class BaseTest:
+    @classmethod
+    def setup_class(cls):
+        if not allow_aws_request():
+            cls.mock = mock_aws()
+            cls.mock.start()
+        cls.client = boto3.client("dynamodb", region_name="us-east-1")
+        cls.table_name = "T" + str(uuid4())[0:6]
+
+        dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+        # Create the DynamoDB table.
+        dynamodb.create_table(
+            TableName=cls.table_name,
+            KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+        waiter = cls.client.get_waiter("table_exists")
+        waiter.wait(TableName=cls.table_name)
+        cls.table = dynamodb.Table(cls.table_name)
+        cls.table.put_item(
+            Item={"pk": "the-key", "subject": "123", "body": "some test msg"}
+        )
+
+    @classmethod
+    def teardown_class(cls):
+        cls.client.delete_table(TableName=cls.table_name)
+        if not allow_aws_request():
+            cls.mock.stop()
 
 
 @mock_aws
@@ -664,146 +697,42 @@ def test_update_item_with_duplicate_expressions(expression):
     assert item == {"pk": "example_id", "example_column": "example"}
 
 
-@mock_aws
-def test_query_item_with_duplicate_path_in_projection_expressions():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+@pytest.mark.aws_verified
+class TestDuplicateProjectionExpressions(BaseTest):
+    def test_query_item_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.query(
+                KeyConditionExpression=Key("pk").eq("the-key"),
+                ProjectionExpression="body, subject, body",  # duplicate body
+            )
+        self._validate(exc)
 
-    # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-    table.put_item(
-        Item={"forum_name": "the-key", "subject": "123", "body": "some test message"}
-    )
+    def test_get_item_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.get_item(
+                Key={"pk": "the-key"},
+                ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+                ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+            )
+        self._validate(exc)
 
-    with pytest.raises(ClientError) as exc:
-        _result = table.query(
-            KeyConditionExpression=Key("forum_name").eq("the-key"),
-            ProjectionExpression="body, subject, body",  # duplicate body
-        )["Items"][0]
+    def test_scan_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.scan(
+                FilterExpression=Key("forum_name").eq("the-key"),
+                ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+                ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+            )
+        self._validate(exc)
 
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert err["Message"] == (
-        "Invalid ProjectionExpression: "
-        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
-        "path one: [body], path two: [body]"
-    )
-
-
-@mock_aws
-def test_get_item_with_duplicate_path_in_projection_expressions():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={
-            "forum_name": "the-key",
-            "subject": "123",
-            "body": "some test message",
-            "attachment": "something",
-        }
-    )
-
-    table.put_item(
-        Item={
-            "forum_name": "not-the-key",
-            "subject": "123",
-            "body": "some other test message",
-            "attachment": "something",
-        }
-    )
-    with pytest.raises(ClientError) as exc:
-        _result = table.get_item(
-            Key={"forum_name": "the-key", "subject": "123"},
-            ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
-            ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+    def _validate(self, exc):
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert "Invalid ProjectionExpression: " in err["Message"]
+        assert (
+            "Two document paths overlap with each other; must remove or rewrite one of these paths"
+            in err["Message"]
         )
-
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert err["Message"] == (
-        "Invalid ProjectionExpression: "
-        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
-        "path one: [subject], path two: [subject]"
-    )
-
-
-@mock_aws
-def test_scan_with_duplicate_path_in_projection_expressions():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = dynamodb.create_table(
-        TableName="users",
-        KeySchema=[
-            {"AttributeName": "forum_name", "KeyType": "HASH"},
-            {"AttributeName": "subject", "KeyType": "RANGE"},
-        ],
-        AttributeDefinitions=[
-            {"AttributeName": "forum_name", "AttributeType": "S"},
-            {"AttributeName": "subject", "AttributeType": "S"},
-        ],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    table = dynamodb.Table("users")
-
-    table.put_item(
-        Item={
-            "forum_name": "the-key",
-            "subject": "123",
-            "body": "some test message",
-            "attachment": "something",
-        }
-    )
-
-    table.put_item(
-        Item={
-            "forum_name": "not-the-key",
-            "subject": "123",
-            "body": "some other test message",
-            "attachment": "something",
-        }
-    )
-
-    with pytest.raises(ClientError) as exc:
-        _results = table.scan(
-            FilterExpression=Key("forum_name").eq("the-key"),
-            ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
-            ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
-        )
-
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert err["Message"] == (
-        "Invalid ProjectionExpression: "
-        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
-        "path one: [subject], path two: [subject]"
-    )
 
 
 @mock_aws
@@ -862,48 +791,6 @@ def test_put_item_empty_set(table_name=None):
         err["Message"]
         == "One or more parameter values were invalid: An string set  may not be empty"
     )
-
-
-@mock_aws
-def test_put_item_returns_old_item():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-
-    table.put_item(Item={"pk": "foo", "bar": "baz"})
-
-    with pytest.raises(ClientError) as exc:
-        table.put_item(
-            Item={"pk": "foo", "bar": "quuz"},
-            ConditionExpression="attribute_not_exists(pk)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
-
-    table.put_item(Item={"pk": "foo", "bar": "baz"})
-
-    with pytest.raises(ClientError) as exc:
-        table.put_item(
-            Item={"pk": "foo", "bar": "quuz"},
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(pk)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {"pk": {"S": "foo"}, "bar": {"S": "baz"}}
 
 
 @mock_aws
@@ -1378,53 +1265,87 @@ def test_query_with_missing_expression_attribute():
 
 
 @pytest.mark.aws_verified
-@dynamodb_aws_verified()
-def test_update_item_returns_old_item(table_name=None):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.Table(table_name)
-    table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
+class TestReturnValuesOnConditionCheckFailure(BaseTest):
+    def test_put_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.put_item(
+                Item={"pk": "the-key", "bar": "quuz"},
+                ConditionExpression="attribute_not_exists(body)",
+            )
+        self._assert_without_return_values(exc)
 
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "mark"},
-            UpdateExpression="set #lock = :lock",
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ExpressionAttributeValues={":lock": {"acquired_at": 124}},
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
+    def test_put_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.put_item(
+                Item={"pk": "the-key", "bar": "quuz"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_not_exists(body)",
+            )
+        self._assert_with_return_values(exc)
 
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "mark"},
-            UpdateExpression="set #lock = :lock",
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ExpressionAttributeValues={":lock": {"acquired_at": 123}},
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {
-        "lock": {"M": {"acquired_at": {"N": "123"}}},
-        "pk": {"S": "mark"},
-    }
+    def test_update_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="set #lock = :lock",
+                ExpressionAttributeNames={"#lock": "lock"},
+                ExpressionAttributeValues={":lock": "sth"},
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_update_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="set #lock = :lock",
+                ExpressionAttributeNames={"#lock": "lock"},
+                ExpressionAttributeValues={":lock": "sth"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_with_return_values(exc)
+
+    def test_delete_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.delete_item(
+                Key={"pk": "the-key"},
+                ExpressionAttributeNames={"#lock": "lock"},
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_delete_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.delete_item(
+                Key={"pk": "the-key"},
+                ExpressionAttributeNames={"#lock": "lock"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_with_return_values(exc)
+
+    def _assert_without_return_values(self, exc):
+        resp = exc.value.response
+        assert resp["Error"] == {
+            "Message": "The conditional request failed",
+            "Code": "ConditionalCheckFailedException",
+        }
+        assert resp["message"] == "The conditional request failed"
+        assert "Item" not in resp
+
+    def _assert_with_return_values(self, exc):
+        resp = exc.value.response
+        assert resp["Error"] == {
+            "Message": "The conditional request failed",
+            "Code": "ConditionalCheckFailedException",
+        }
+        assert "message" not in resp
+        assert resp["Item"] == {
+            "pk": {"S": "the-key"},
+            "body": {"S": "some test msg"},
+            "subject": {"S": "123"},
+        }
 
 
 @pytest.mark.aws_verified
@@ -1433,44 +1354,6 @@ def test_delete_item_returns_old_item(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
     table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
-
-    with pytest.raises(ClientError) as exc:
-        table.delete_item(
-            Key={"pk": "mark"},
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
-
-    with pytest.raises(ClientError) as exc:
-        table.delete_item(
-            Key={"pk": "mark"},
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {
-        "lock": {"M": {"acquired_at": {"N": "123"}}},
-        "pk": {"S": "mark"},
-    }
 
 
 @pytest.mark.aws_verified
