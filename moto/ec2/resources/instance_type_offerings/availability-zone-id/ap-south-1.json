@@ -2056,6 +2056,10 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "u-9tb1.112xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "aps1-az1"
  },
@@ -6093,6 +6097,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "aps1-az3"
  },
  {

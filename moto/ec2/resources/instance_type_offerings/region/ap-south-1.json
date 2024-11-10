@@ -2084,6 +2084,10 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "u-9tb1.112xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "ap-south-1"
  },

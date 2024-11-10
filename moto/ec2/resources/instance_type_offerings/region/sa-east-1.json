@@ -1940,6 +1940,10 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1"
  },
@@ -1949,6 +1953,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "sa-east-1"
  },
  {
