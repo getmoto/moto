@@ -5342,15 +5342,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "opsworkscm": {
-                "Value": "opsworkscm",
-                "endpoint": {
-                  "Value": "opsworks-cm.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "opsworkspuppetenterprise": {
                 "Value": "opsworkspuppetenterprise",
                 "endpoint": {
@@ -5694,15 +5685,6 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "sagemaker-edge": {
-                "Value": "sagemaker-edge",
-                "endpoint": {
-                  "Value": "edge.sagemaker.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22518,6 +22500,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ds": {
+                "Value": "ds",
+                "endpoint": {
+                  "Value": "ds.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -22660,6 +22651,15 @@
                 "Value": "firehose",
                 "endpoint": {
                   "Value": "firehose.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fms": {
+                "Value": "fms",
+                "endpoint": {
+                  "Value": "fms.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27680,9 +27680,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics"
-              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -29067,9 +29064,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics"
-              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -29232,7 +29226,7 @@
               "support": {
                 "Value": "support",
                 "endpoint": {
-                  "Value": "support.cn-north-1.amazonaws.com.cn"
+                  "Value": "support.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31635,15 +31629,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-edge": {
-                "Value": "sagemaker-edge",
-                "endpoint": {
-                  "Value": "edge.sagemaker.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "sagemaker-featurestore-runtime": {
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
@@ -32359,6 +32344,24 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -33223,6 +33226,15 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-featurestore-runtime": {
+                "Value": "sagemaker-featurestore-runtime",
+                "endpoint": {
+                  "Value": "featurestore-runtime.sagemaker.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36039,6 +36051,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.eu-south-1.amazonaws.com"
                 }
               },
               "controltower": {
@@ -40970,15 +40988,6 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "sagemaker-edge": {
-                "Value": "sagemaker-edge",
-                "endpoint": {
-                  "Value": "edge.sagemaker.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48715,15 +48724,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics",
-                "endpoint": {
-                  "Value": "metrics.sagemaker.me-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -55470,15 +55470,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-edge": {
-                "Value": "sagemaker-edge",
-                "endpoint": {
-                  "Value": "edge.sagemaker.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "sagemaker-featurestore-runtime": {
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
@@ -58203,15 +58194,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-edge": {
-                "Value": "sagemaker-edge",
-                "endpoint": {
-                  "Value": "edge.sagemaker.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "sagemaker-featurestore-runtime": {
                 "Value": "sagemaker-featurestore-runtime",
                 "endpoint": {
@@ -58868,6 +58850,24 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-runtime": {
+                "Value": "bedrock-runtime",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66523,15 +66523,6 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "sagemaker-edge": {
-                "Value": "sagemaker-edge",
-                "endpoint": {
-                  "Value": "edge.sagemaker.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
