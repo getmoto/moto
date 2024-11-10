@@ -2130,6 +2130,7 @@ def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_i
         for rule in created_rules:
             rule.pop("GroupOwnerId", None)
             rule.pop("Tags", None)
+            rule.pop("SecurityGroupRuleArn", None)
             rule.pop("SecurityGroupRuleId", None)
             del rule["GroupId"]
 
