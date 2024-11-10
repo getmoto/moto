@@ -7929,6 +7929,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "bedrock.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-west-1": {
                 "Value": "eu-west-1",
                 "endpoint": {
@@ -7978,6 +7987,15 @@
                 "Value": "us-east-2",
                 "endpoint": {
                   "Value": "bedrock.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1",
+                "endpoint": {
+                  "Value": "bedrock.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8072,6 +8090,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "bedrock-runtime.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-west-1": {
                 "Value": "eu-west-1",
                 "endpoint": {
@@ -8121,6 +8148,15 @@
                 "Value": "us-east-2",
                 "endpoint": {
                   "Value": "bedrock-runtime.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1",
+                "endpoint": {
+                  "Value": "bedrock-runtime.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15893,6 +15929,12 @@
                 "endpoint": {
                   "Value": "controlcatalog.ap-southeast-5.amazonaws.com"
                 }
+              },
+              "eu-south-1": {
+                "Value": "eu-south-1",
+                "endpoint": {
+                  "Value": "controlcatalog.eu-south-1.amazonaws.com"
+                }
               }
             }
           },
@@ -19444,6 +19486,15 @@
                 "Value": "ap-southeast-4",
                 "endpoint": {
                   "Value": "ds.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "ds.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26530,6 +26581,15 @@
                 "Value": "ap-southeast-4",
                 "endpoint": {
                   "Value": "fms.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "fms.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46001,15 +46061,6 @@
               "Value": "AWS OpsWorks for Chef Automate"
             },
             "regions": {
-              "ap-northeast-1": {
-                "Value": "ap-northeast-1",
-                "endpoint": {
-                  "Value": "opsworks-cm.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
@@ -55643,64 +55694,6 @@
               }
             }
           },
-          "sagemaker-edge": {
-            "regions": {
-              "ap-northeast-1": {
-                "Value": "ap-northeast-1",
-                "endpoint": {
-                  "Value": "edge.sagemaker.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-central-1": {
-                "Value": "eu-central-1",
-                "endpoint": {
-                  "Value": "edge.sagemaker.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-west-1": {
-                "Value": "eu-west-1",
-                "endpoint": {
-                  "Value": "edge.sagemaker.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-1": {
-                "Value": "us-east-1",
-                "endpoint": {
-                  "Value": "edge.sagemaker.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-2": {
-                "Value": "us-east-2",
-                "endpoint": {
-                  "Value": "edge.sagemaker.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-west-2": {
-                "Value": "us-west-2",
-                "endpoint": {
-                  "Value": "edge.sagemaker.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              }
-            }
-          },
           "sagemaker-featurestore-runtime": {
             "Value": "sagemaker-featurestore-runtime",
             "longName": {
@@ -55819,6 +55812,15 @@
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "featurestore-runtime.sagemaker.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "featurestore-runtime.sagemaker.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56083,12 +56085,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "cn-north-1": {
-                "Value": "cn-north-1"
-              },
-              "cn-northwest-1": {
-                "Value": "cn-northwest-1"
-              },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
@@ -56165,15 +56161,6 @@
                 "Value": "il-central-1",
                 "endpoint": {
                   "Value": "metrics.sagemaker.il-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "me-central-1": {
-                "Value": "me-central-1",
-                "endpoint": {
-                  "Value": "metrics.sagemaker.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64156,7 +64143,7 @@
               "cn-northwest-1": {
                 "Value": "cn-northwest-1",
                 "endpoint": {
-                  "Value": "support.cn-north-1.amazonaws.com.cn"
+                  "Value": "support.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
