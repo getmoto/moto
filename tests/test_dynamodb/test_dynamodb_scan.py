@@ -7,6 +7,7 @@ from boto3.dynamodb.conditions import Attr
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from tests.test_dynamodb.exceptions.test_dynamodb_exceptions import BaseTest
 
 from . import dynamodb_aws_verified
 
@@ -729,3 +730,127 @@ class TestFilterExpression:
             "Items"
         ]
         assert items == [{"partitionKey": "pk-1"}]
+
+
+@pytest.mark.aws_verified
+class TestParallelScan(BaseTest):
+    @staticmethod
+    def setup_class(cls):  # pylint: disable=arguments-renamed
+        super().setup_class(add_range=True)
+
+    def test_segment_only(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.scan(Segment=1)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == "The TotalSegments parameter is required but was not present in the request when Segment parameter is present"
+        )
+
+    def test_total_segments_only(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.scan(TotalSegments=1)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == "The Segment parameter is required but was not present in the request when parameter TotalSegments is present"
+        )
+
+    def test_parallelize_all_different_hash_keys(self):
+        for i in range(10):
+            self.table.put_item(Item={"pk": f"item{i}", "rk": "sth"})
+
+        resp1 = self.table.scan(Segment=0, TotalSegments=3)["Items"]
+        resp2 = self.table.scan(Segment=1, TotalSegments=3)["Items"]
+        resp3 = self.table.scan(Segment=2, TotalSegments=3)["Items"]
+
+        assert len(resp1) + len(resp2) + len(resp3) == 10
+
+    def test_parallelize_different_hash_key_per_segment(self):
+        for i in range(3):
+            for j in range(4):
+                self.table.put_item(Item={"pk": f"item{i}", "rk": f"rk{j}"})
+
+        resp1 = self.table.scan(Segment=0, TotalSegments=3)["Items"]
+        resp2 = self.table.scan(Segment=1, TotalSegments=3)["Items"]
+        resp3 = self.table.scan(Segment=2, TotalSegments=3)["Items"]
+
+        assert len(resp1) + len(resp2) + len(resp3) == 12
+
+    def test_scan_using_filter_expression(self):
+        # AWS seems to return all data in Segment 1
+        for i in range(10):
+            self.table.put_item(Item={"pk": "item", "rk": f"range{i}"})
+        for i in range(10):
+            self.table.put_item(Item={"pk": "n/a", "rk": f"range{i}"})
+        for i in range(20, 10, -1):
+            self.table.put_item(Item={"pk": "item", "rk": f"range{i}"})
+
+        resp1 = self.table.scan(
+            FilterExpression=Attr("pk").eq("item"), Segment=0, TotalSegments=3
+        )["Items"]
+        resp2 = self.table.scan(
+            FilterExpression=Attr("pk").eq("item"), Segment=1, TotalSegments=3
+        )["Items"]
+        resp3 = self.table.scan(
+            FilterExpression=Attr("pk").eq("item"), Segment=2, TotalSegments=3
+        )["Items"]
+
+        assert len(resp1) + len(resp2) + len(resp3) == 20
+
+    def test_scan_single_hash_key(self):
+        # AWS seems to return all data in Segment 1
+        for i in range(10):
+            self.table.put_item(Item={"pk": "item", "rk": f"range{i}"})
+        for i in range(20, 10, -1):
+            self.table.put_item(Item={"pk": "item", "rk": f"range{i}"})
+
+        resp1 = self.table.scan(Segment=0, TotalSegments=3)["Items"]
+        resp2 = self.table.scan(Segment=1, TotalSegments=3)["Items"]
+        resp3 = self.table.scan(Segment=2, TotalSegments=3)["Items"]
+
+        assert len(resp1) + len(resp2) + len(resp3) == 20
+
+    def test_pagination(self):
+        for i in range(50):
+            self.table.put_item(Item={"pk": "item", "rk": f"range{i}"})
+
+        resp1 = self.table.scan(Segment=0, TotalSegments=3, Limit=10)
+        resp2 = self.table.scan(Segment=1, TotalSegments=3, Limit=10)
+        resp3 = self.table.scan(Segment=2, TotalSegments=3, Limit=10)
+
+        first_pass = len(resp1["Items"]) + len(resp2["Items"]) + len(resp3["Items"])
+        assert first_pass <= 30
+
+        second_pass = 0
+        if "LastEvaluatedKey" in resp1:
+            resp = self.table.scan(
+                Segment=0, TotalSegments=3, ExclusiveStartKey=resp1["LastEvaluatedKey"]
+            )
+            second_pass += len(resp["Items"])
+
+        if "LastEvaluatedKey" in resp2:
+            resp = self.table.scan(
+                Segment=1, TotalSegments=3, ExclusiveStartKey=resp2["LastEvaluatedKey"]
+            )
+            second_pass += len(resp["Items"])
+
+        if "LastEvaluatedKey" in resp3:
+            resp = self.table.scan(
+                Segment=2, TotalSegments=3, ExclusiveStartKey=resp3["LastEvaluatedKey"]
+            )
+            second_pass += len(resp["Items"])
+
+        assert first_pass + second_pass == 50
+
+    def test_segment_larger_than_total_segments(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.scan(Segment=3, TotalSegments=3)
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == "The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: 3 is not less than TotalSegments: 3"
+        )
