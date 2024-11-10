@@ -268,10 +268,10 @@ class InvalidOutput(ServiceException):
 
 class InvalidToken(ServiceException):
     code: str = "InvalidToken"
-    exception_type: str = "UnrecognizedClientException"
+    exception_type: str = "InvalidToken"
     sender_fault: bool = False
     status_code: int = 400
-    message: str = "The security token included in the request is invalid."
+    message: str = "Invalid Token: 'Invalid token'"
 
     def __init__(self):
         super().__init__(self.message, self.exception_type, self.status_code)
