@@ -33,28 +33,40 @@ table_schema = {
 
 class BaseTest:
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls, add_range=False):
         if not allow_aws_request():
             cls.mock = mock_aws()
             cls.mock.start()
         cls.client = boto3.client("dynamodb", region_name="us-east-1")
         cls.table_name = "T" + str(uuid4())[0:6]
+        cls.has_range_key = add_range
 
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
         # Create the DynamoDB table.
+        schema = [{"AttributeName": "pk", "KeyType": "HASH"}]
+        defs = [{"AttributeName": "pk", "AttributeType": "S"}]
+        if add_range:
+            schema.append({"AttributeName": "rk", "KeyType": "RANGE"})
+            defs.append({"AttributeName": "rk", "AttributeType": "S"})
         dynamodb.create_table(
             TableName=cls.table_name,
-            KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+            KeySchema=schema,
+            AttributeDefinitions=defs,
             ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
         )
         waiter = cls.client.get_waiter("table_exists")
         waiter.wait(TableName=cls.table_name)
         cls.table = dynamodb.Table(cls.table_name)
-        cls.table.put_item(
-            Item={"pk": "the-key", "subject": "123", "body": "some test msg"}
-        )
+
+    def setup_method(self):
+        # Empty table between runs
+        items = self.table.scan()["Items"]
+        for item in items:
+            if self.has_range_key:
+                self.table.delete_item(Key={"pk": item["pk"], "rk": item["rk"]})
+            else:
+                self.table.delete_item(Key={"pk": item["pk"]})
 
     @classmethod
     def teardown_class(cls):
@@ -1296,6 +1308,12 @@ def test_query_with_missing_expression_attribute():
 
 @pytest.mark.aws_verified
 class TestReturnValuesOnConditionCheckFailure(BaseTest):
+    def setup_method(self):
+        super().setup_method()
+        self.table.put_item(
+            Item={"pk": "the-key", "subject": "123", "body": "some test msg"}
+        )
+
     def test_put_item_does_not_return_old_item(self):
         with pytest.raises(ClientError) as exc:
             self.table.put_item(

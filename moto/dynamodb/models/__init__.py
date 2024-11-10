@@ -401,6 +401,7 @@ class DynamoDBBackend(BaseBackend):
         index_name: str,
         consistent_read: bool,
         projection_expression: Optional[List[List[str]]],
+        segments: Union[Tuple[None, None], Tuple[int, int]],
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         table = self.get_table(table_name)
 
@@ -421,6 +422,7 @@ class DynamoDBBackend(BaseBackend):
             index_name,
             consistent_read,
             projection_expression,
+            segments=segments,
         )
 
     def update_item(
