@@ -4628,7 +4628,7 @@
 - [ ] get_buckets_aggregation
 - [ ] get_cardinality
 - [ ] get_effective_policies
-- [ ] get_indexing_configuration
+- [X] get_indexing_configuration
 - [X] get_job_document
 - [ ] get_logging_options
 - [ ] get_ota_update
@@ -4742,7 +4742,7 @@
 - [ ] update_dynamic_thing_group
 - [ ] update_event_configurations
 - [ ] update_fleet_metric
-- [ ] update_indexing_configuration
+- [X] update_indexing_configuration
 - [ ] update_job
 - [ ] update_mitigation_action
 - [ ] update_package

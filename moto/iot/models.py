@@ -3,6 +3,7 @@ import json
 import re
 import time
 from collections import OrderedDict
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta
 from json import JSONDecodeError
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Pattern, Tuple
@@ -1027,6 +1028,83 @@ class FakeRoleAlias(CloudFormationModel):
         iot_backend.delete_role_alias(role_alias_name=role_alias_name)
 
 
+@dataclass(frozen=True)
+class FakeConfigField:
+    name: str
+    type: str
+
+
+@dataclass(frozen=True)
+class FakeThingGroupIndexingConfiguration:
+    customFields: List[FakeConfigField] = field(default_factory=list)
+    managedFields: List[FakeConfigField] = field(default_factory=list)
+    thingGroupIndexingMode: str = "OFF"
+
+
+@dataclass(frozen=True)
+class FakeThingIndexingConfigurationFilterGeoLocations:
+    name: str
+    order: str
+
+
+@dataclass(frozen=True)
+class FakeThingIndexingConfigurationFilter:
+    geoLocations: List[FakeThingIndexingConfigurationFilterGeoLocations] = field(
+        default_factory=list
+    )
+    namedShadowNames: List[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class FakeThingIndexingConfiguration:
+    customFields: List[FakeConfigField] = field(default_factory=list)
+    managedFields: List[FakeConfigField] = field(default_factory=list)
+    filter: FakeThingIndexingConfigurationFilter = field(
+        default_factory=FakeThingIndexingConfigurationFilter
+    )
+    deviceDefenderIndexingMode: str = "OFF"
+    namedShadowIndexingMode: str = "OFF"
+    thingConnectivityIndexingMode: str = "OFF"
+    thingIndexingMode: str = "OFF"
+
+
+@dataclass(frozen=True)
+class FakeIndexingConfigurationData:
+    thingGroupIndexingConfiguration: FakeThingGroupIndexingConfiguration = field(
+        default_factory=FakeThingGroupIndexingConfiguration
+    )
+    thingIndexingConfiguration: FakeThingIndexingConfiguration = field(
+        default_factory=FakeThingIndexingConfiguration
+    )
+
+
+class FakeIndexingConfiguration(BaseModel):
+    def __init__(self, region_name: str, account_id: str) -> None:
+        self.region_name = region_name
+        self.account_id = account_id
+        self.configuration = FakeIndexingConfigurationData()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self.configuration)
+
+    def update_configuration(
+        self,
+        thingIndexingConfiguration: Dict[str, Any],
+        thingGroupIndexingConfiguration: Dict[str, Any],
+    ) -> None:
+        self.configuration = replace(
+            self.configuration,
+            thingIndexingConfiguration=replace(
+                self.configuration.thingIndexingConfiguration,
+                **thingIndexingConfiguration,
+            ),
+            thingGroupIndexingConfiguration=replace(
+                self.configuration.thingGroupIndexingConfiguration,
+                **thingGroupIndexingConfiguration,
+            ),
+        )
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1048,6 +1126,7 @@ class IoTBackend(BaseBackend):
         self.role_aliases: Dict[str, FakeRoleAlias] = OrderedDict()
         self.endpoint: Optional[FakeEndpoint] = None
         self.domain_configurations: Dict[str, FakeDomainConfiguration] = OrderedDict()
+        self.indexing_configuration = FakeIndexingConfiguration(region_name, account_id)
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2383,6 +2462,18 @@ class IoTBackend(BaseBackend):
     def delete_role_alias(self, role_alias_name: str) -> None:
         self.describe_role_alias(role_alias_name=role_alias_name)
         del self.role_aliases[role_alias_name]
+
+    def get_index_configuration(self) -> Dict[str, Any]:
+        return self.indexing_configuration.to_dict()
+
+    def update_indexing_configuration(
+        self,
+        thingIndexingConfiguration: Dict[str, Any],
+        thingGroupIndexingConfiguration: Dict[str, Any],
+    ) -> None:
+        self.indexing_configuration.update_configuration(
+            thingIndexingConfiguration, thingGroupIndexingConfiguration
+        )
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

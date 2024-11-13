@@ -826,3 +826,13 @@ class IoTResponse(BaseResponse):
         role_alias_name = self._get_param("roleAlias")
         self.iot_backend.delete_role_alias(role_alias_name=role_alias_name)
         return json.dumps({})
+
+    def get_indexing_configuration(self) -> str:
+        return json.dumps(self.iot_backend.get_index_configuration())
+
+    def update_indexing_configuration(self) -> str:
+        self.iot_backend.update_indexing_configuration(
+            self._get_param("thingIndexingConfiguration", {}),
+            self._get_param("thingGroupIndexingConfiguration", {}),
+        )
+        return json.dumps({})
