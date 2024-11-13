@@ -357,7 +357,7 @@ def test_storage_class_change_notifications():
         "Key": "keyname"
     }
 
-    s3_client.copy_obejct(copy_source, bucket_name, "keyname_copy", ExtraArgs={'StorageClass': new_class})
+    s3_client.copy_object(copy_source, bucket_name, "keyname_copy", ExtraArgs={'StorageClass': new_class})
 
     events = _get_send_events()
     assert len(events) == 3
