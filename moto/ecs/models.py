@@ -548,7 +548,9 @@ class Service(BaseObject, CloudFormationModel):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
+        network_configuration: Optional[Dict[str, str]] = None,
         propagate_tags: str = "NONE",
+
     ):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
@@ -598,6 +600,28 @@ class Service(BaseObject, CloudFormationModel):
             self.deployments = []
         self.propagate_tags = propagate_tags
 
+        self.network_configuration = self._validate_network(network_configuration)
+
+    def _validate_network(self, nc):
+        if nc is None:
+            return {}
+
+        return nc
+        # if missing sg:
+        # botocore.errorfactory.InvalidParameterException: An error occurred (InvalidParameterException) when calling the CreateService operation: Error retrieving security group information for [sg-d53df29c]: The security group 'sg-d53df29c' does not exist (ErrorCode: InvalidGroup.NotFound)
+
+        # if missing subnet:
+        # botocore.errorfactory.InvalidParameterException: An error occurred (InvalidParameterException) when calling the CreateService operation: Error retrieving subnet information for [subnet-d53df291]: The subnet ID 'subnet-d53df291' does not exist (ErrorCode: InvalidSubnetID.NotFound)
+
+        # botocore.exceptions.ParamValidationError: Parameter validation failed:
+        # Missing required parameter in networkConfiguration.awsvpcConfiguration: "subnets"
+
+        # happy {'service': {'serviceArn': 'arn:aws:ecs:eu-west-1:058310797412:service/mock-cluster/test-svc', 'serviceName': 'test-svc', 'clusterArn': 'arn:aws:ecs:eu-west-1:058310797412:cluster/mock-cluster', 'loadBalancers': [], 'serviceRegistries': [], 'status': 'ACTIVE', 'desiredCount': 1, 'runningCount': 0, 'pendingCount': 0, 'launchType': 'FARGATE', 'platformVersion': 'LATEST', 'platformFamily': 'Linux', 'taskDefinition': 'arn:aws:ecs:eu-west-1:058310797412:task-definition/raf-test:1', 'deploymentConfiguration': {'deploymentCircuitBreaker': {'enable': False, 'rollback': False}, 'maximumPercent': 100, 'minimumHealthyPercent': 0}, 'deployments': [{'id': 'ecs-svc/8424861889121591646', 'status': 'PRIMARY', 'taskDefinition': 'arn:aws:ecs:eu-west-1:058310797412:task-definition/raf-test:1', 'desiredCount': 0, 'pendingCount': 0, 'runningCount': 0, 'failedTasks': 0, 'createdAt': datetime.datetime(2024, 11, 13, 16, 2, 21, 60000, tzinfo=tzlocal()), 'updatedAt': datetime.datetime(2024, 11, 13, 16, 2, 21, 60000, tzinfo=tzlocal()), 'launchType': 'FARGATE', 'platformVersion': '1.4.0', 'platformFamily': 'Linux', 'networkConfiguration': {'awsvpcConfiguration': {'subnets': ['subnet-d53df29c'], 'securityGroups': ['sg-009d05d9c09dca9d9'], 'assignPublicIp': 'DISABLED'}}, 'rolloutState': 'IN_PROGRESS', 'rolloutStateReason': 'ECS deployment ecs-svc/8424861889121591646 in progress.'}], 'roleArn': 'arn:aws:iam::058310797412:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS', 'events': [], 'createdAt': datetime.datetime(2024, 11, 13, 16, 2, 21, 60000, tzinfo=tzlocal()), 'placementConstraints': [], 'placementStrategy': [], 'networkConfiguration': {'awsvpcConfiguration': {'subnets': ['subnet-d53df29c'], 'securityGroups': ['sg-009d05d9c09dca9d9'], 'assignPublicIp': 'DISABLED'}}, 'healthCheckGracePeriodSeconds': 120, 'schedulingStrategy': 'REPLICA', 'deploymentController': {'type': 'ECS'}, 'createdBy': 'arn:aws:iam::058310797412:user/raf', 'enableECSManagedTags': False, 'propagateTags': 'NONE', 'enableExecuteCommand': False}, 'ResponseMetadata': {'RequestId': '61fe13e1-129a-4a18-8ad7-d9492127db72', 'HTTPStatusCode': 200, 'HTTPHeaders': {'x-amzn-requestid': '61fe13e1-129a-4a18-8ad7-d9492127db72', 'content-type': 'application/x-amz-json-1.1', 'content-length': '1933', 'date': 'Wed, 13 Nov 2024 15:02:20 GMT'}, 'RetryAttempts': 0}}
+
+
+        # botocore.exceptions.ParamValidationError: Parameter validation failed:
+        # Unknown parameter in networkConfiguration: "asdsad", must be one of: awsvpcConfiguration
+
     @property
     def arn(self) -> str:
         if self._backend.enable_long_arn_for_name(name="serviceLongArnFormat"):
@@ -633,6 +657,7 @@ class Service(BaseObject, CloudFormationModel):
                 deployment["updatedAt"] = unix_time(
                     deployment["updatedAt"].replace(tzinfo=None)
                 )
+        response_object["networkConfiguration"] = self.network_configuration
 
         return response_object
 
@@ -1613,6 +1638,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
         propagate_tags: str = "NONE",
+        network_configuration: Dict[str, str] = None
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
@@ -1640,6 +1666,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             service_registries=service_registries,
             platform_version=platform_version,
             propagate_tags=propagate_tags,
+            network_configuration=network_configuration,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service

@@ -1366,6 +1366,12 @@ def test_delete_service__using_arns():
         serviceName="test_ecs_service",
         taskDefinition="test_ecs_task",
         desiredCount=2,
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": ["asdasd"],
+                "securityGroups": ["asdasdas"],
+            }
+        },
     )["service"]["serviceArn"]
     client.update_service(
         cluster="test_ecs_cluster", service="test_ecs_service", desiredCount=0
