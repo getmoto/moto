@@ -1516,7 +1516,8 @@ class S3Response(BaseResponse):
         return 200, response_headers, key.value
 
     def get_object_attributes(self) -> TYPE_RESPONSE:
-        key, not_modified = self._get_key()
+        # Get the Key, but do not validate StorageClass - we can retrieve the attributes of Glacier-objects
+        key, not_modified = self._get_key(validate_storage_class=False)
         response_headers = self._get_cors_headers_other()
         if not_modified:
             return 304, response_headers, "Not Modified"
@@ -1608,7 +1609,7 @@ class S3Response(BaseResponse):
             ),
         )
 
-    def _get_key(self) -> Tuple[FakeKey, bool]:
+    def _get_key(self, validate_storage_class: bool = True) -> Tuple[FakeKey, bool]:
         key_name = self.parse_key_name()
         version_id = self.querystring.get("versionId", [None])[0]
         if_modified_since = self.headers.get("If-Modified-Since")
@@ -1621,7 +1622,7 @@ class S3Response(BaseResponse):
             raise MissingKey(key=key_name)
         elif key is None:
             raise MissingVersion()
-        if key.storage_class in ARCHIVE_STORAGE_CLASSES:
+        if validate_storage_class and key.storage_class in ARCHIVE_STORAGE_CLASSES:
             if 'ongoing-request="false"' not in key.response_dict.get(
                 "x-amz-restore", ""
             ):
