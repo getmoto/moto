@@ -627,17 +627,12 @@ class Service(BaseObject, CloudFormationModel):
         try:
             ec2_backend.describe_security_groups(group_ids=c["securityGroups"])
         except InvalidSecurityGroupNotFoundError as exc:
-            sg = exc.message.split("'")[1]
+            sg = exc.message.split("'{'")[1].split("'}'")[0]
             raise InvalidParameterException(
                 f"Error retrieving security group information for [{sg}]: "
                 f"The security group '{sg}' does not exist (ErrorCode: InvalidGroup.NotFound)"
             )
         return nc
-
-        # happy {'service': {'serviceArn': 'arn:aws:ecs:eu-west-1:058310797412:service/mock-cluster/test-svc', 'serviceName': 'test-svc', 'clusterArn': 'arn:aws:ecs:eu-west-1:058310797412:cluster/mock-cluster', 'loadBalancers': [], 'serviceRegistries': [], 'status': 'ACTIVE', 'desiredCount': 1, 'runningCount': 0, 'pendingCount': 0, 'launchType': 'FARGATE', 'platformVersion': 'LATEST', 'platformFamily': 'Linux', 'taskDefinition': 'arn:aws:ecs:eu-west-1:058310797412:task-definition/raf-test:1', 'deploymentConfiguration': {'deploymentCircuitBreaker': {'enable': False, 'rollback': False}, 'maximumPercent': 100, 'minimumHealthyPercent': 0}, 'deployments': [{'id': 'ecs-svc/8424861889121591646', 'status': 'PRIMARY', 'taskDefinition': 'arn:aws:ecs:eu-west-1:058310797412:task-definition/raf-test:1', 'desiredCount': 0, 'pendingCount': 0, 'runningCount': 0, 'failedTasks': 0, 'createdAt': datetime.datetime(2024, 11, 13, 16, 2, 21, 60000, tzinfo=tzlocal()), 'updatedAt': datetime.datetime(2024, 11, 13, 16, 2, 21, 60000, tzinfo=tzlocal()), 'launchType': 'FARGATE', 'platformVersion': '1.4.0', 'platformFamily': 'Linux', 'networkConfiguration': {'awsvpcConfiguration': {'subnets': ['subnet-d53df29c'], 'securityGroups': ['sg-009d05d9c09dca9d9'], 'assignPublicIp': 'DISABLED'}}, 'rolloutState': 'IN_PROGRESS', 'rolloutStateReason': 'ECS deployment ecs-svc/8424861889121591646 in progress.'}], 'roleArn': 'arn:aws:iam::058310797412:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS', 'events': [], 'createdAt': datetime.datetime(2024, 11, 13, 16, 2, 21, 60000, tzinfo=tzlocal()), 'placementConstraints': [], 'placementStrategy': [], 'networkConfiguration': {'awsvpcConfiguration': {'subnets': ['subnet-d53df29c'], 'securityGroups': ['sg-009d05d9c09dca9d9'], 'assignPublicIp': 'DISABLED'}}, 'healthCheckGracePeriodSeconds': 120, 'schedulingStrategy': 'REPLICA', 'deploymentController': {'type': 'ECS'}, 'createdBy': 'arn:aws:iam::058310797412:user/raf', 'enableECSManagedTags': False, 'propagateTags': 'NONE', 'enableExecuteCommand': False}, 'ResponseMetadata': {'RequestId': '61fe13e1-129a-4a18-8ad7-d9492127db72', 'HTTPStatusCode': 200, 'HTTPHeaders': {'x-amzn-requestid': '61fe13e1-129a-4a18-8ad7-d9492127db72', 'content-type': 'application/x-amz-json-1.1', 'content-length': '1933', 'date': 'Wed, 13 Nov 2024 15:02:20 GMT'}, 'RetryAttempts': 0}}
-
-        # botocore.exceptions.ParamValidationError: Parameter validation failed:
-        # Unknown parameter in networkConfiguration: "asdsad", must be one of: awsvpcConfiguration
 
     @property
     def arn(self) -> str:

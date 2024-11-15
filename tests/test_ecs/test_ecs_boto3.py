@@ -3845,3 +3845,54 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
             }
         ],
     )
+
+
+@mock_aws
+def test_service_exceptions():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    subnet, sg = setup_ecs(client, ec2)
+    with pytest.raises(ClientError) as exc:
+        client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": ["fake-subnet"],
+                }
+            },
+        )
+    ex = exc.value
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Error retrieving subnet information for [fake-subnet]: The subnet ID 'fake-subnet' does not exist (ErrorCode: InvalidSubnetID.NotFound)"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+            networkConfiguration={
+                "awsvpcConfiguration": {
+                    "subnets": [subnet.id],
+                    "securityGroups": ["fake-sg"],
+                }
+            },
+        )
+    ex = exc.value
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert (
+        ex.response["Error"]["Message"]
+        == "Error retrieving security group information for [fake-sg]: The security group 'fake-sg' does not exist (ErrorCode: InvalidGroup.NotFound)"
+    )
