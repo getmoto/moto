@@ -607,7 +607,9 @@ class Service(BaseObject, CloudFormationModel):
         else:
             self.network_configuration = {}
 
-    def _validate_network(self, nc: Dict[str, Dict[str, List[str]]]) -> Dict[str, Dict[str, List[str]]]:
+    def _validate_network(
+        self, nc: Dict[str, Dict[str, List[str]]]
+    ) -> Dict[str, Dict[str, List[str]]]:
         if "awsvpcConfiguration" not in nc:
             raise ParamValidationErrorSimple("AwsVpcConfig cannot be null.")
 
