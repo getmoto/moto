@@ -21,6 +21,7 @@ from .exceptions import (
     EcsClientException,
     InvalidParameterException,
     ParamValidationError,
+    ParamValidationErrorSimple,
     RevisionNotFoundException,
     ServiceNotFoundException,
     TaskDefinitionMemoryError,
@@ -550,7 +551,7 @@ class Service(BaseObject, CloudFormationModel):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
-        network_configuration: Optional[Dict[str, str]] = None,
+        network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
         propagate_tags: str = "NONE",
     ):
         self.cluster_name = cluster.name
@@ -601,11 +602,14 @@ class Service(BaseObject, CloudFormationModel):
             self.deployments = []
         self.propagate_tags = propagate_tags
 
-        self.network_configuration = self._validate_network(network_configuration)
+        if network_configuration is not None:
+            self.network_configuration = self._validate_network(network_configuration)
+        else:
+            self.network_configuration = {}
 
-    def _validate_network(self, nc):
+    def _validate_network(self, nc: Dict[str, Dict[str, List[str]]]) -> Dict[str, Dict[str, List[str]]]:
         if "awsvpcConfiguration" not in nc:
-            raise ParamValidationError("AwsVpcConfig cannot be null.")
+            raise ParamValidationErrorSimple("AwsVpcConfig cannot be null.")
 
         c = nc["awsvpcConfiguration"]
         if "subnets" not in c:
@@ -1650,7 +1654,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
         propagate_tags: str = "NONE",
-        network_configuration: Dict[str, str] = None,
+        network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
