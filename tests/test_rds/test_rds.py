@@ -1077,6 +1077,48 @@ def test_copy_db_snapshots(delete_db_instance: bool):
 
 
 @mock_aws
+def test_copy_db_snapshots_copytags_and_tags():
+    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        Engine="postgres",
+        DBInstanceClass="db.m1.small",
+    )
+
+    original_tags = [{"Key": "original", "Value": "snapshot tags"}]
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1",
+        DBSnapshotIdentifier="snapshot",
+        Tags=original_tags,
+    )
+
+    new_tags = [{"Key": "new", "Value": "tag"}]
+    kwargs_and_expected_results = [
+        # No Tags parameter, CopyTags defaults to False -> no tags
+        ({}, []),
+        # No Tags parameter, CopyTags set to True -> use tags of original snapshot
+        ({"CopyTags": True}, original_tags),
+        # When "Tags" are given, they become the only tags of the snapshot.
+        ({"Tags": new_tags}, new_tags),
+        # When "Tags" are given, they become the only tags of the snapshot. Even if CopyTags is True!
+        ({"Tags": new_tags, "CopyTags": True}, new_tags),
+        # When "Tags" are given but empty, CopyTags=True takes effect again!
+        ({"Tags": [], "CopyTags": True}, original_tags),
+    ]
+    for kwargs, expected_result in kwargs_and_expected_results:
+        target_snapshot = conn.copy_db_snapshot(
+            SourceDBSnapshotIdentifier="snapshot",
+            TargetDBSnapshotIdentifier="snapshot-copy",
+            **kwargs,
+        ).get("DBSnapshot")
+        result = conn.list_tags_for_resource(
+            ResourceName=target_snapshot["DBSnapshotArn"]
+        )
+        assert result["TagList"] == expected_result
+        conn.delete_db_snapshot(DBSnapshotIdentifier="snapshot-copy")
+
+
+@mock_aws
 def test_describe_db_snapshots():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
