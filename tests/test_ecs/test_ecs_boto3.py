@@ -3846,30 +3846,34 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
         ],
     )
 
+
 c1 = {
-                "awsvpcConfiguration": {
-                    "subnets": ["fake-subnet"],
-                }}
+    "awsvpcConfiguration": {
+        "subnets": ["fake-subnet"],
+    }
+}
 e1 = "Error retrieving subnet information for [fake-subnet]: The subnet ID 'fake-subnet' does not exist (ErrorCode: InvalidSubnetID.NotFound)"
 c2 = {
-                "awsvpcConfiguration": {
-                    "subnets": "[subnet.id]",
-                    "securityGroups": ["sg-123456"],
-                }
-            }
+    "awsvpcConfiguration": {
+        "subnets": "[subnet.id]",
+        "securityGroups": ["sg-123456"],
+    }
+}
 e2 = "Error retrieving security group information for [sg-123456]: The security group 'sg-123456' does not exist (ErrorCode: InvalidGroup.NotFound)"
 c3 = {
-                "awsvpcConfiguration": {
-                    "subnets": [],
-                }
-            }
+    "awsvpcConfiguration": {
+        "subnets": [],
+    }
+}
 e3 = "subnets can not be empty."
+
+
 @pytest.mark.parametrize(
     "net_config,error_message",
-    [(c1,e1), (c2,e2), (c3,e3)],
+    [(c1, e1), (c2, e2), (c3, e3)],
 )
 @mock_aws
-def test_service_exceptions(net_config,error_message):
+def test_service_exceptions(net_config, error_message):
     client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
@@ -3886,15 +3890,12 @@ def test_service_exceptions(net_config,error_message):
             taskDefinition="test_ecs_task",
             desiredCount=2,
             platformVersion="2",
-            networkConfiguration=net_config
+            networkConfiguration=net_config,
         )
     ex = exc.value
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
-    assert (
-        ex.response["Error"]["Message"]
-        == error_message
-    )
+    assert ex.response["Error"]["Message"] == error_message
     #
     # with pytest.raises(ClientError) as exc:
     #     client.create_service(

@@ -20,7 +20,6 @@ from .exceptions import (
     ClusterNotFoundException,
     EcsClientException,
     InvalidParameterException,
-    ParamValidationError,
     RevisionNotFoundException,
     ServiceNotFoundException,
     TaskDefinitionMemoryError,
