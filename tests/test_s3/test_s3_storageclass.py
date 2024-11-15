@@ -269,3 +269,9 @@ def test_s3_get_object_from_glacier():
         "The operation is not valid for the object's storage class"
     )
     assert err["StorageClass"] == "GLACIER"
+
+    # Note that get_object_attributes should work
+    resp = s3_client.get_object_attributes(
+        Bucket=bucket_name, Key="test.txt", ObjectAttributes=["StorageClass"]
+    )
+    assert resp["StorageClass"] == "GLACIER"
