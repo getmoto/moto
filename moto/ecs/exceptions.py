@@ -89,11 +89,3 @@ class ParamValidationError(JsonRESTError):
             error_type="ParamValidationError",
             message=f'Missing required parameter in {path}: "{missing_key}"',
         )
-
-
-class ParamValidationErrorSimple(JsonRESTError):
-    def __init__(self, message: str) -> None:
-        super().__init__(
-            error_type="ParamValidationError",
-            message=message,
-        )

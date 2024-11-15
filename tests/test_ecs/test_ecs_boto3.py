@@ -3846,34 +3846,38 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
         ],
     )
 
-
+c1 = {
+                "awsvpcConfiguration": {
+                    "subnets": ["fake-subnet"],
+                }}
+e1 = "Error retrieving subnet information for [fake-subnet]: The subnet ID 'fake-subnet' does not exist (ErrorCode: InvalidSubnetID.NotFound)"
+c2 = {
+                "awsvpcConfiguration": {
+                    "subnets": "[subnet.id]",
+                    "securityGroups": ["sg-123456"],
+                }
+            }
+e2 = "Error retrieving security group information for [sg-123456]: The security group 'sg-123456' does not exist (ErrorCode: InvalidGroup.NotFound)"
+c3 = {
+                "awsvpcConfiguration": {
+                    "subnets": [],
+                }
+            }
+e3 = "subnets can not be empty."
+@pytest.mark.parametrize(
+    "net_config,error_message",
+    [(c1,e1), (c2,e2), (c3,e3)],
+)
 @mock_aws
-def test_service_exceptions():
+def test_service_exceptions(net_config,error_message):
     client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
 
     # ECS setup
     subnet, sg = setup_ecs(client, ec2)
-    with pytest.raises(ClientError) as exc:
-        client.create_service(
-            cluster="test_ecs_cluster",
-            serviceName="test_ecs_service",
-            taskDefinition="test_ecs_task",
-            desiredCount=2,
-            platformVersion="2",
-            networkConfiguration={
-                "awsvpcConfiguration": {
-                    "subnets": ["fake-subnet"],
-                }
-            },
-        )
-    ex = exc.value
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert ex.response["Error"]["Code"] == "InvalidParameterException"
-    assert (
-        ex.response["Error"]["Message"]
-        == "Error retrieving subnet information for [fake-subnet]: The subnet ID 'fake-subnet' does not exist (ErrorCode: InvalidSubnetID.NotFound)"
-    )
+    if net_config["awsvpcConfiguration"]["subnets"] == "[subnet.id]":
+        # sub real subnet for evaluation
+        net_config["awsvpcConfiguration"]["subnets"] = [subnet.id]
 
     with pytest.raises(ClientError) as exc:
         client.create_service(
@@ -3882,17 +3886,56 @@ def test_service_exceptions():
             taskDefinition="test_ecs_task",
             desiredCount=2,
             platformVersion="2",
-            networkConfiguration={
-                "awsvpcConfiguration": {
-                    "subnets": [subnet.id],
-                    "securityGroups": ["fake-sg"],
-                }
-            },
+            networkConfiguration=net_config
         )
     ex = exc.value
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
     assert (
         ex.response["Error"]["Message"]
-        == "Error retrieving security group information for [fake-sg]: The security group 'fake-sg' does not exist (ErrorCode: InvalidGroup.NotFound)"
+        == error_message
     )
+    #
+    # with pytest.raises(ClientError) as exc:
+    #     client.create_service(
+    #         cluster="test_ecs_cluster",
+    #         serviceName="test_ecs_service",
+    #         taskDefinition="test_ecs_task",
+    #         desiredCount=2,
+    #         platformVersion="2",
+    #         networkConfiguration={
+    #             "awsvpcConfiguration": {
+    #                 "subnets": [subnet.id],
+    #                 "securityGroups": ["fake-sg"],
+    #             }
+    #         },
+    #     )
+    # ex = exc.value
+    # assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    # assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    # assert (
+    #     ex.response["Error"]["Message"]
+    #     == "Error retrieving security group information for [fake-sg]: The security group 'fake-sg' does not exist (ErrorCode: InvalidGroup.NotFound)"
+    # )
+    #
+    # with pytest.raises(ClientError) as exc:
+    #     client.create_service(
+    #         cluster="test_ecs_cluster",
+    #         serviceName="test_ecs_service",
+    #         taskDefinition="test_ecs_task",
+    #         desiredCount=2,
+    #         platformVersion="2",
+    #         networkConfiguration={
+    #             "awsvpcConfiguration": {
+    #                 "subnets": [],
+    #                 "securityGroups": ["fake-sg"],
+    #             }
+    #         },
+    #     )
+    # ex = exc.value
+    # assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    # assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    # assert (
+    #     ex.response["Error"]["Message"]
+    #     == "subnets can not be empty."
+    # )

@@ -21,7 +21,6 @@ from .exceptions import (
     EcsClientException,
     InvalidParameterException,
     ParamValidationError,
-    ParamValidationErrorSimple,
     RevisionNotFoundException,
     ServiceNotFoundException,
     TaskDefinitionMemoryError,
@@ -610,14 +609,7 @@ class Service(BaseObject, CloudFormationModel):
     def _validate_network(
         self, nc: Dict[str, Dict[str, List[str]]]
     ) -> Dict[str, Dict[str, List[str]]]:
-        if "awsvpcConfiguration" not in nc:
-            raise ParamValidationErrorSimple("AwsVpcConfig cannot be null.")
-
         c = nc["awsvpcConfiguration"]
-        if "subnets" not in c:
-            raise ParamValidationError(
-                "networkConfiguration.awsvpcConfiguration", "subnets"
-            )
         if len(c["subnets"]) == 0:
             raise InvalidParameterException("subnets can not be empty.")
 
