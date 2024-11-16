@@ -4528,7 +4528,7 @@
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
-- [ ] create_job_template
+- [X] create_job_template
 - [X] create_keys_and_certificate
 - [ ] create_mitigation_action
 - [ ] create_ota_update
@@ -4562,7 +4562,7 @@
 - [ ] delete_fleet_metric
 - [X] delete_job
 - [X] delete_job_execution
-- [ ] delete_job_template
+- [X] delete_job_template
 - [ ] delete_mitigation_action
 - [ ] delete_ota_update
 - [ ] delete_package
@@ -4604,7 +4604,7 @@
 - [ ] describe_index
 - [X] describe_job
 - [X] describe_job_execution
-- [ ] describe_job_template
+- [X] describe_job_template
 - [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
@@ -4665,7 +4665,7 @@
 - [ ] list_indices
 - [X] list_job_executions_for_job
 - [X] list_job_executions_for_thing
-- [ ] list_job_templates
+- [X] list_job_templates
 - [X] list_jobs
 - [ ] list_managed_job_templates
 - [ ] list_metric_values

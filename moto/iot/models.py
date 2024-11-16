@@ -24,6 +24,7 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     CertificateStateException,
+    ConflictException,
     DeleteConflictException,
     InvalidRequestException,
     InvalidStateTransitionException,
@@ -33,7 +34,7 @@ from .exceptions import (
     VersionConflictException,
     VersionsLimitExceededException,
 )
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, decapitalize_dict
 
 if TYPE_CHECKING:
     from moto.iotdata.models import FakeShadow
@@ -667,6 +668,10 @@ class FakeJob(BaseModel):
         target_selection: str,
         job_executions_rollout_config: Dict[str, Any],
         document_parameters: Dict[str, str],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        scheduling_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
         account_id: str,
         region_name: str,
     ):
@@ -685,6 +690,10 @@ class FakeJob(BaseModel):
         self.presigned_url_config = presigned_url_config
         self.target_selection = target_selection
         self.job_executions_rollout_config = job_executions_rollout_config
+        self.abort_config = abort_config
+        self.job_execution_retry_config = job_execution_retry_config
+        self.scheduling_config = scheduling_config
+        self.timeout_config = timeout_config
         self.status = "QUEUED"  # IN_PROGRESS | CANCELED | COMPLETED
         self.comment: Optional[str] = None
         self.reason_code: Optional[str] = None
@@ -711,7 +720,7 @@ class FakeJob(BaseModel):
             "description": self.description,
             "presignedUrlConfig": self.presigned_url_config,
             "targetSelection": self.target_selection,
-            "jobExecutionsRolloutConfig": self.job_executions_rollout_config,
+            "timeoutConfig": self.timeout_config,
             "status": self.status,
             "comment": self.comment,
             "forceCanceled": self.force,
@@ -781,6 +790,139 @@ class FakeJobExecution(BaseModel):
                 "executionNumber": self.execution_number,
             },
         }
+
+
+class FakeJobTemplate(CloudFormationModel):
+    JOB_TEMPLATE_ID_REGEX_PATTERN = "[a-zA-Z0-9_-]+"
+    JOB_TEMPLATE_ID_REGEX = re.compile(JOB_TEMPLATE_ID_REGEX_PATTERN)
+
+    def __init__(
+        self,
+        job_template_id: str,
+        document_source: str,
+        document: str,
+        description: str,
+        presigned_url_config: Dict[str, Any],
+        job_executions_rollout_config: Dict[str, Any],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ):
+        if not self._job_template_id_matcher(job_template_id):
+            raise InvalidRequestException()
+
+        self.account_id = account_id
+        self.region_name = region_name
+        self.job_template_id = job_template_id
+        self.job_template_arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:jobtemplate/{job_template_id}"
+        self.document_source = document_source
+        self.document = document
+        self.description = description
+        self.presigned_url_config = presigned_url_config
+        self.job_executions_rollout_config = job_executions_rollout_config
+        self.abort_config = abort_config
+        self.job_execution_retry_config = job_execution_retry_config
+        self.timeout_config = timeout_config
+        self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "jobTemplateArn": self.job_template_arn,
+            "jobTemplateId": self.job_template_id,
+            "description": self.description,
+            "createdAt": self.created_at,
+        }
+
+    def _job_template_id_matcher(self, argument: str) -> bool:
+        return (
+            self.JOB_TEMPLATE_ID_REGEX.fullmatch(argument) is not None
+            and len(argument) <= 64
+        )
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "JobTemplate"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::JobTemplate"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.job_template_arn
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeJobTemplate":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return iot_backend.create_job_template(
+            job_template_id=properties.get("JobTemplateId", resource_name),
+            document_source=properties.get("DocumentSource", ""),
+            document=properties.get("Document"),
+            description=properties.get("Description"),
+            presigned_url_config=decapitalize_dict(
+                properties.get("PresignedUrlConfig", {})
+            ),
+            job_executions_rollout_config=decapitalize_dict(
+                properties.get("JobExecutionsRolloutConfig", {})
+            ),
+            abort_config=decapitalize_dict(properties.get("AbortConfig", {})),
+            job_execution_retry_config=decapitalize_dict(
+                properties.get("JobExecutionsRetryConfig", {})
+            ),
+            timeout_config=decapitalize_dict(properties.get("TimeoutConfig", {})),
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeJobTemplate",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeJobTemplate":
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_job_template(
+            job_template_id=original_resource.job_template_id
+        )
+
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        job_template_id = properties.get("JobTemplateId", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_job_template(job_template_id=job_template_id)
 
 
 class FakeEndpoint(BaseModel):
@@ -1110,6 +1252,7 @@ class IoTBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.things: Dict[str, FakeThing] = OrderedDict()
         self.jobs: Dict[str, FakeJob] = OrderedDict()
+        self.jobs_templates: Dict[str, FakeJobTemplate] = OrderedDict()
         self.job_executions: Dict[Tuple[str, str], FakeJobExecution] = OrderedDict()
         self.thing_types: Dict[str, FakeThingType] = OrderedDict()
         self.thing_groups: Dict[str, FakeThingGroup] = OrderedDict()
@@ -2092,19 +2235,27 @@ class IoTBackend(BaseBackend):
         target_selection: str,
         job_executions_rollout_config: Dict[str, Any],
         document_parameters: Dict[str, str],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        scheduling_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
     ) -> Tuple[str, str, str]:
         job = FakeJob(
-            job_id,
-            targets,
-            document_source,
-            document,
-            description,
-            presigned_url_config,
-            target_selection,
-            job_executions_rollout_config,
-            document_parameters,
-            self.account_id,
-            self.region_name,
+            job_id=job_id,
+            targets=targets,
+            document_source=document_source,
+            document=document,
+            description=description,
+            presigned_url_config=presigned_url_config,
+            target_selection=target_selection,
+            job_executions_rollout_config=job_executions_rollout_config,
+            abort_config=abort_config,
+            job_execution_retry_config=job_execution_retry_config,
+            scheduling_config=scheduling_config,
+            timeout_config=timeout_config,
+            document_parameters=document_parameters,
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
         self.jobs[job_id] = job
 
@@ -2474,6 +2625,64 @@ class IoTBackend(BaseBackend):
         self.indexing_configuration.update_configuration(
             thingIndexingConfiguration, thingGroupIndexingConfiguration
         )
+
+    def create_job_template(
+        self,
+        job_template_id: str,
+        document_source: str,
+        document: str,
+        description: str,
+        presigned_url_config: Dict[str, Any],
+        job_executions_rollout_config: Dict[str, Any],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
+    ) -> "FakeJobTemplate":
+        if job_template_id in self.jobs_templates:
+            raise ConflictException(job_template_id)
+
+        job_template = FakeJobTemplate(
+            job_template_id=job_template_id,
+            document_source=document_source,
+            document=document,
+            description=description,
+            presigned_url_config=presigned_url_config,
+            job_executions_rollout_config=job_executions_rollout_config,
+            abort_config=abort_config,
+            job_execution_retry_config=job_execution_retry_config,
+            timeout_config=timeout_config,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+
+        self.jobs_templates[job_template_id] = job_template
+        return job_template
+
+    def list_job_templates(
+        self, max_results: int, current_token: Optional[str]
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        all_job_templates = [_.to_dict() for _ in self.jobs_templates.values()]
+
+        if current_token is None:
+            start_index = 0
+        else:
+            start_index = int(current_token)
+
+        end_index = start_index + max_results
+        job_templates = all_job_templates[start_index:end_index]
+        next_token = str(end_index) if len(all_job_templates) > end_index else None
+
+        return job_templates, next_token
+
+    def delete_job_template(self, job_template_id: str) -> None:
+        if job_template_id not in self.jobs_templates:
+            raise ResourceNotFoundException(f"Job template {job_template_id} not found")
+        del self.jobs_templates[job_template_id]
+
+    def describe_job_template(self, job_template_id: str) -> FakeJobTemplate:
+        if job_template_id not in self.jobs_templates:
+            raise ResourceNotFoundException(f"Job template {job_template_id} not found")
+        return self.jobs_templates[job_template_id]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

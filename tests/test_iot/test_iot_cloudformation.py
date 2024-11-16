@@ -1,6 +1,8 @@
 import json
+from datetime import datetime
 
 import boto3
+from dateutil.tz import tzlocal
 
 from moto import mock_aws
 
@@ -685,3 +687,169 @@ def test_delete_role_alias_with_cloudformation():
     # then check stack
     cfn_conn.delete_stack(StackName=stack_name)
     assert iot_conn.list_role_aliases()["roleAliases"] == []
+
+
+@mock_aws
+def test_create_job_template_with_simple_cloudformation():
+    # given
+    stack_name = "test_stack"
+    job_document = {"field": "value"}
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT JobTemplate CloudFormation",
+        "Resources": {
+            "testJobTemplate": {
+                "Type": "AWS::IoT::JobTemplate",
+                "Properties": {
+                    "JobTemplateId": "JobTemplate",
+                    "Description": "Job template Description",
+                    "Document": json.dumps(job_document),
+                    "DocumentSource": "a document source link",
+                    "PresignedUrlConfig": {
+                        "ExpiresInSec": 123,
+                        "RoleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+                    },
+                    "TimeoutConfig": {"InProgressTimeoutInMinutes": 30},
+                },
+            },
+        },
+        "Outputs": {
+            "JobTemplateArn": {"Value": {"Fn::GetAtt": ["testJobTemplate", "Arn"]}},
+        },
+    }
+
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    # then check list of things
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_job_templates()["jobTemplates"]) == 1
+    assert (
+        iot_conn.list_job_templates()["jobTemplates"][0]["jobTemplateId"]
+        == "JobTemplate"
+    )
+
+    # then check stack
+    stack = cfn_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        Output["OutputKey"]: Output["OutputValue"] for Output in stack["Outputs"]
+    }
+    assert (
+        outputs["JobTemplateArn"]
+        == "arn:aws:iot:us-west-1:123456789012:jobtemplate/JobTemplate"
+    )
+
+    # and describe it
+    job_template = iot_conn.describe_job_template(jobTemplateId="JobTemplate")
+    assert job_template["jobTemplateId"] == "JobTemplate"
+    assert (
+        job_template["jobTemplateArn"]
+        == "arn:aws:iot:us-west-1:123456789012:jobtemplate/JobTemplate"
+    )
+    assert job_template["description"] == "Job template Description"
+    assert job_template["document"] == '{"field": "value"}'
+    assert job_template["documentSource"] == "a document source link"
+    assert job_template["createdAt"] == datetime(2015, 1, 1, 0, 0, tzinfo=tzlocal())
+    assert job_template["presignedUrlConfig"] == {
+        "roleArn": "arn:aws:iam::1:role/service-role/iot_job_role",
+        "expiresInSec": 123,
+    }
+    assert job_template["timeoutConfig"] == {
+        "inProgressTimeoutInMinutes": 30,
+    }
+
+
+@mock_aws
+def test_update_job_template_with_simple_cloudformation():
+    # given
+    stack_name = "test_stack"
+
+    initial_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT JobTemplate CloudFormation",
+        "Resources": {
+            "testJobTemplate": {
+                "Type": "AWS::IoT::JobTemplate",
+                "Properties": {
+                    "JobTemplateId": "JobTemplate",
+                    "Description": "Job template Description",
+                    "Document": json.dumps({"field1": "value1"}),
+                },
+            },
+        },
+    }
+    updated_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT JobTemplate CloudFormation",
+        "Resources": {
+            "testJobTemplate": {
+                "Type": "AWS::IoT::JobTemplate",
+                "Properties": {
+                    "JobTemplateId": "JobTemplate2",
+                    "Description": "Job template Description",
+                    "Document": json.dumps({"field2": "value2"}),
+                },
+            },
+        },
+    }
+
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(
+        StackName=stack_name, TemplateBody=json.dumps(initial_template)
+    )
+
+    # then check list of things
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_job_templates()["jobTemplates"]) == 1
+    assert (
+        iot_conn.list_job_templates()["jobTemplates"][0]["jobTemplateId"]
+        == "JobTemplate"
+    )
+
+    # then update stack
+    cfn_conn.update_stack(
+        StackName=stack_name, TemplateBody=json.dumps(updated_template)
+    )
+    assert len(iot_conn.list_job_templates()["jobTemplates"]) == 1
+    assert (
+        iot_conn.list_job_templates()["jobTemplates"][0]["jobTemplateId"]
+        == "JobTemplate2"
+    )
+
+
+@mock_aws
+def test_delete_job_template_with_simple_cloudformation():
+    # given
+    stack_name = "test_stack"
+
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT JobTemplate CloudFormation",
+        "Resources": {
+            "testJobTemplate": {
+                "Type": "AWS::IoT::JobTemplate",
+                "Properties": {
+                    "JobTemplateId": "JobTemplate",
+                    "Description": "Job template Description",
+                    "Document": json.dumps({"field": "value"}),
+                },
+            },
+        },
+    }
+
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=json.dumps(template))
+
+    # then check list of things
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_job_templates()["jobTemplates"]) == 1
+
+    # then check stack
+    cfn_conn.delete_stack(StackName=stack_name)
+
+    # and
+    assert len(iot_conn.list_job_templates()["jobTemplates"]) == 0
