@@ -848,22 +848,6 @@
   "Location": "us-west-2"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "us-west-2"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "us-west-2"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "us-west-2"
  },

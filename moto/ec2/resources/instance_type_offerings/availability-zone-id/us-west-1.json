@@ -560,18 +560,6 @@
   "Location": "usw1-az1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "usw1-az1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "usw1-az1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "usw1-az1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "usw1-az1"
  },
@@ -2573,18 +2561,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "usw1-az3"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "usw1-az3"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "usw1-az3"
- },
- {
-  "InstanceType": "g3.8xlarge",
   "Location": "usw1-az3"
  },
  {

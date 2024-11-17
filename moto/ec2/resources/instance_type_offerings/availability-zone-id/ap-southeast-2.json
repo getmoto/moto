@@ -708,22 +708,6 @@
   "Location": "apse2-az1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "apse2-az1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "apse2-az1"
  },
@@ -5809,22 +5793,6 @@
  },
  {
   "InstanceType": "d3en.xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "apse2-az3"
  },
  {
