@@ -680,22 +680,6 @@
   "Location": "eu-central-1a"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "eu-central-1a"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "eu-central-1a"
  },
@@ -3473,22 +3457,6 @@
  },
  {
   "InstanceType": "f1.4xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "eu-central-1b"
  },
  {

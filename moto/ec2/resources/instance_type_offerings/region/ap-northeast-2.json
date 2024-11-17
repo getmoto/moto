@@ -492,22 +492,6 @@
   "Location": "ap-northeast-2"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "ap-northeast-2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "ap-northeast-2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "ap-northeast-2"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "ap-northeast-2"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "ap-northeast-2"
  },

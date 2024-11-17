@@ -472,22 +472,6 @@
   "Location": "apne2-az1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "apne2-az1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "apne2-az1"
  },
@@ -3773,22 +3757,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "apne2-az3"
  },
  {

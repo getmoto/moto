@@ -2424,22 +2424,6 @@
   "Location": "euw2-az2"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "euw2-az2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "euw2-az2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "euw2-az2"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "euw2-az2"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "euw2-az2"
  },
@@ -4365,22 +4349,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "euw2-az3"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "euw2-az3"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "euw2-az3"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "euw2-az3"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "euw2-az3"
  },
  {

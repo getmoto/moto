@@ -3952,22 +3952,6 @@
   "Location": "use1-az2"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "use1-az2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "use1-az2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "use1-az2"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "use1-az2"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "use1-az2"
  },
@@ -6384,22 +6368,6 @@
   "Location": "use1-az3"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "use1-az3"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "use1-az3"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "use1-az3"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "use1-az3"
- },
- {
   "InstanceType": "i2.2xlarge",
   "Location": "use1-az3"
  },
@@ -7409,22 +7377,6 @@
  },
  {
   "InstanceType": "f1.4xlarge",
-  "Location": "use1-az4"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "use1-az4"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "use1-az4"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "use1-az4"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "use1-az4"
  },
  {
@@ -13313,22 +13265,6 @@
  },
  {
   "InstanceType": "f1.4xlarge",
-  "Location": "use1-az6"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "use1-az6"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "use1-az6"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "use1-az6"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "use1-az6"
  },
  {

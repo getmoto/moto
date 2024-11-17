@@ -796,22 +796,6 @@
   "Location": "eu-central-1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "eu-central-1"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "eu-central-1"
  },
