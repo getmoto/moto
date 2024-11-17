@@ -81,11 +81,3 @@ class TaskDefinitionMissingPropertyError(JsonRESTError):
             error_type="ClientException",
             message=f"Container.{missing_prop} should not be null or empty.",
         )
-
-
-class ParamValidationError(JsonRESTError):
-    def __init__(self, path: str, missing_key: str) -> None:
-        super().__init__(
-            error_type="ParamValidationError",
-            message=f'Missing required parameter in {path}: "{missing_key}"',
-        )
