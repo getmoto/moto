@@ -1,6 +1,36 @@
 Moto Changelog
 ==============
 
+5.0.21
+-----
+Docker Digest for 5.0.21: <autopopulateddigest>
+
+    New Methods:
+        * IOT:
+            * create_job_template()
+            * create_role_alias()
+            * delete_job_template()
+            * delete_role_alias()
+            * describe_job_template()
+            * describe_role_alias()
+            * get_indexing_configuration()
+            * list_job_templates()
+            * list_role_aliases()
+            * update_indexing_configuration()
+            * update_role_alias()
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports the arrayJobId-parameter
+        * CloudFormation now supports the types AWS::IoT::JobTemplate, AWS::IoT::RoleAlias
+        * DynamoDB: ProjectionExpressions are now validated for duplicate values
+        * DynamoDB: scan() now supports parallelization using the Segment/TotalSegments parameters
+        * DynamoDB: update_item() now validates when an ADD/DELETE occurs on the same set
+        * EC2: create_fleet() now correctly handles Overrides with a single value
+        * ECR: list_images() now lists images with multiple tags separately
+        * IOT: create_job() now supports the parameters abortConfig, jobExecutionsRetryConfig, schedulingConfig, timeoutConfig
+        * S3: get_object_attributes() no longer throws an error for Glacier objects
+
+
 5.0.20
 -----
 Docker Digest for 5.0.20: _sha256:a1041f318c56ed341c70541647b256d40dae776ce654ca4db9d27d94600542a1_

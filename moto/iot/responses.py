@@ -836,7 +836,7 @@ class IoTResponse(BaseResponse):
         return json.dumps({})
 
     def get_indexing_configuration(self) -> str:
-        return json.dumps(self.iot_backend.get_index_configuration())
+        return json.dumps(self.iot_backend.get_indexing_configuration())
 
     def update_indexing_configuration(self) -> str:
         self.iot_backend.update_indexing_configuration(
