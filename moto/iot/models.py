@@ -2598,7 +2598,7 @@ class IoTBackend(BaseBackend):
         self.describe_role_alias(role_alias_name=role_alias_name)
         del self.role_aliases[role_alias_name]
 
-    def get_index_configuration(self) -> Dict[str, Any]:
+    def get_indexing_configuration(self) -> Dict[str, Any]:
         return self.indexing_configuration.to_dict()
 
     def update_indexing_configuration(

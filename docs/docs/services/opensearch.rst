@@ -20,6 +20,7 @@ opensearch
 - [ ] add_data_source
 - [X] add_tags
 - [ ] associate_package
+- [ ] associate_packages
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
@@ -51,6 +52,7 @@ opensearch
 - [ ] describe_reserved_instances
 - [ ] describe_vpc_endpoints
 - [ ] dissociate_package
+- [ ] dissociate_packages
 - [ ] get_application
 - [X] get_compatible_versions
 - [ ] get_data_source
@@ -81,6 +83,7 @@ opensearch
 - [ ] update_data_source
 - [X] update_domain_config
 - [ ] update_package
+- [ ] update_package_scope
 - [ ] update_scheduled_action
 - [ ] update_vpc_endpoint
 - [ ] upgrade_domain
