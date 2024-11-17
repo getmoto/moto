@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.21
 -----
-Docker Digest for 5.0.21: <autopopulateddigest>
+Docker Digest for 5.0.21: _sha256:9ba3753fddbe2445667a1261a04dc92e75d9c329a1f2d0610f1dd8bb1c4f4eca_
 
     New Methods:
         * IOT:
