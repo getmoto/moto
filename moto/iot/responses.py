@@ -228,7 +228,7 @@ class IoTResponse(BaseResponse):
         max_results = self._get_int_param("maxResults", 50)
         previous_next_token = self._get_param("nextToken")
         jobs, next_token = self.iot_backend.list_jobs(
-            max_results=max_results, token=previous_next_token
+            max_results=max_results, next_token=previous_next_token
         )
 
         return json.dumps(dict(jobs=jobs, nextToken=next_token))
@@ -867,12 +867,12 @@ class IoTResponse(BaseResponse):
 
     def list_job_templates(self) -> str:
         max_results = self._get_int_param("maxResults", 50)
-        previous_next_token = self._get_param("nextToken")
-        job_templates, next_token = self.iot_backend.list_job_templates(
-            max_results=max_results, current_token=previous_next_token
+        current_next_token = self._get_param("nextToken")
+        job_templates, future_next_token = self.iot_backend.list_job_templates(
+            max_results=max_results, next_token=current_next_token
         )
 
-        return json.dumps(dict(jobTemplates=job_templates, nextToken=next_token))
+        return json.dumps(dict(jobTemplates=job_templates, nextToken=future_next_token))
 
     def delete_job_template(self) -> str:
         job_template_id = self._get_param("jobTemplateId")

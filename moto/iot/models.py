@@ -2303,28 +2303,12 @@ class IoTBackend(BaseBackend):
     def get_job_document(self, job_id: str) -> FakeJob:
         return self.jobs[job_id]
 
-    def list_jobs(
-        self, max_results: int, token: Optional[str]
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_jobs(self) -> List[Dict[str, Any]]:
         """
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
         """
-        all_jobs = [_.to_dict() for _ in self.jobs.values()]
-        filtered_jobs = all_jobs
-
-        if token is None:
-            jobs = filtered_jobs[0:max_results]
-            next_token = str(max_results) if len(filtered_jobs) > max_results else None
-        else:
-            int_token = int(token)
-            jobs = filtered_jobs[int_token : int_token + max_results]
-            next_token = (
-                str(int_token + max_results)
-                if len(filtered_jobs) > int_token + max_results
-                else None
-            )
-
-        return jobs, next_token
+        return [_.to_dict() for _ in self.jobs.values()]
 
     def describe_job_execution(
         self, job_id: str, thing_name: str, execution_number: int
@@ -2658,21 +2642,9 @@ class IoTBackend(BaseBackend):
         self.jobs_templates[job_template_id] = job_template
         return job_template
 
-    def list_job_templates(
-        self, max_results: int, current_token: Optional[str]
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        all_job_templates = [_.to_dict() for _ in self.jobs_templates.values()]
-
-        if current_token is None:
-            start_index = 0
-        else:
-            start_index = int(current_token)
-
-        end_index = start_index + max_results
-        job_templates = all_job_templates[start_index:end_index]
-        next_token = str(end_index) if len(all_job_templates) > end_index else None
-
-        return job_templates, next_token
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_job_templates(self) -> List[Dict[str, Any]]:
+        return [_.to_dict() for _ in self.jobs_templates.values()]
 
     def delete_job_template(self, job_template_id: str) -> None:
         if job_template_id not in self.jobs_templates:

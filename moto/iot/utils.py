@@ -6,7 +6,19 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "jobId",
-    }
+    },
+    "list_job_templates": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "jobTemplateId",
+    },
+    "list_jobs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "jobId",
+    },
 }
 
 
