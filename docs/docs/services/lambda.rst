@@ -71,7 +71,7 @@ lambda
   
         Invoking a Function with PackageType=Image is not yet supported.
 
-        Invoking a Funcation against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
+        Invoking a Function against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
         You can use a dedicated API to override this, by configuring a queue of expected results.
 
         A request to `invoke` will take the first result from that queue.
