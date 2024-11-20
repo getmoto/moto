@@ -89,7 +89,7 @@ def random_resource_id(size: int = 8) -> str:
     return "".join(random.choice(HEX_CHARS) for _ in range(size))
 
 
-def random_id(prefix: str = "", size: int = 8) -> str:
+def random_id(prefix: str = "", size: int = 17) -> str:
     return f"{prefix}-{random_resource_id(size)}"
 
 
@@ -98,7 +98,7 @@ def random_ami_id() -> str:
 
 
 def random_instance_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"])
 
 
 def random_reservation_id() -> str:
@@ -106,11 +106,11 @@ def random_reservation_id() -> str:
 
 
 def random_security_group_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"])
 
 
 def random_security_group_rule_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"])
 
 
 def random_fleet_id() -> str:
@@ -180,7 +180,7 @@ def random_vpc_id() -> str:
 
 
 def random_vpc_ep_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"], size=8)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"])
 
 
 def random_vpc_cidr_association_id() -> str:
@@ -201,7 +201,7 @@ def random_internet_gateway_id() -> str:
 
 def random_egress_only_internet_gateway_id() -> str:
     return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"], size=17
+        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"]
     )
 
 
@@ -226,27 +226,31 @@ def random_eni_attach_id() -> str:
 
 
 def random_nat_gateway_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"])
 
 
 def random_transit_gateway_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"])
 
 
 def random_transit_gateway_route_table_id() -> str:
     return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"]
     )
 
 
 def random_transit_gateway_attachment_id() -> str:
     return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17
+        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"]
     )
 
 
+def random_managed_prefix_list_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"])
+
+
 def random_launch_template_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"])
 
 
 def random_launch_template_name() -> str:
@@ -258,7 +262,7 @@ def random_iam_instance_profile_association_id() -> str:
 
 
 def random_carrier_gateway_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"])
 
 
 def random_public_ip() -> str:
@@ -266,7 +270,7 @@ def random_public_ip() -> str:
 
 
 def random_dedicated_host_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"])
 
 
 def random_private_ip(cidr: Optional[str] = None, ipv6: bool = False) -> str:
@@ -317,9 +321,6 @@ def generate_route_id(
         cidr_block = prefix_list
     return f"{route_table_id}~{cidr_block}"
 
-
-def random_managed_prefix_list_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
 
 def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> Dict[str, str]:
