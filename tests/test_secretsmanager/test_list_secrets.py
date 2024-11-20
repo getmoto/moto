@@ -285,3 +285,36 @@ def test_filter_with_owning_service():
 
     resp = conn.list_secrets(Filters=[{"Key": "owning-service", "Values": ["n/a"]}])
     assert resp["SecretList"] == []
+
+
+@mock_aws
+def test_with_include_planned_deleted_secrets():
+    conn = boto_client()
+
+    conn.create_secret(Name="foo", SecretString="secret")
+    conn.create_secret(Name="bar", SecretString="secret")
+
+    secrets = conn.list_secrets()
+    assert len(secrets["SecretList"]) == 2
+
+    conn.delete_secret(SecretId="foo")
+
+    # By default list secrets doesn't include deleted secrets
+    secrets = conn.list_secrets()
+    assert len(secrets["SecretList"]) == 1
+    assert secrets["SecretList"][0]["ARN"] is not None
+    assert secrets["SecretList"][0]["Name"] == "bar"
+    assert secrets["SecretList"][0]["SecretVersionsToStages"] is not None
+
+    # list secrets when IncludePlannedDeletion param included
+    secrets = conn.list_secrets(IncludePlannedDeletion=True)
+    assert len(secrets["SecretList"]) == 2
+
+    # list secret with filter and IncludePlannedDeletion params
+    secrets = conn.list_secrets(
+        IncludePlannedDeletion=True, Filters=[{"Key": "name", "Values": ["foo"]}]
+    )
+    assert len(secrets["SecretList"]) == 1
+    assert secrets["SecretList"][0]["ARN"] is not None
+    assert secrets["SecretList"][0]["Name"] == "foo"
+    assert secrets["SecretList"][0]["SecretVersionsToStages"] is not None
