@@ -200,9 +200,7 @@ def random_internet_gateway_id() -> str:
 
 
 def random_egress_only_internet_gateway_id() -> str:
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"]
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"])
 
 
 def random_route_table_id() -> str:
@@ -234,15 +232,11 @@ def random_transit_gateway_id() -> str:
 
 
 def random_transit_gateway_route_table_id() -> str:
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"]
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"])
 
 
 def random_transit_gateway_attachment_id() -> str:
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"]
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"])
 
 
 def random_managed_prefix_list_id() -> str:
@@ -320,7 +314,6 @@ def generate_route_id(
     if prefix_list and not cidr_block:
         cidr_block = prefix_list
     return f"{route_table_id}~{cidr_block}"
-
 
 
 def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> Dict[str, str]:
