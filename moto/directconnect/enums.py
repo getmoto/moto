@@ -13,6 +13,16 @@ class ConnectionStateType(str, Enum):
     UNKNOWN = "unknown"
 
 
+class LagStateType(str, Enum):
+    AVAILABLE = "available"
+    DELETED = "deleted"
+    DELETING = "deleting"
+    DOWN = "down"
+    PENDING = "pending"
+    REQUESTED = "requested"
+    UNKNOWN = "unknown"
+
+
 class PortEncryptionStatusType(str, Enum):
     UP = "Encryption Up"
     DOWN = "Encryption Down"

@@ -13,8 +13,24 @@ class ConnectionIdMissing(DXConnectionError):
 
 
 class ConnectionNotFound(DXConnectionError):
-    def __init__(self, connnection_id: str, region: str) -> None:
+    def __init__(self, connection_id: str, region: str) -> None:
         super().__init__(
             "ConnectionNotFound",
-            f"{connnection_id} does not match any connections in region {region}.",
+            f"{connection_id} does not match any connections in region {region}.",
+        )
+
+
+class LAGNotFound(DXConnectionError):
+    def __init__(self, lag_id: str, region: str) -> None:
+        super().__init__(
+            "LagNotFound",
+            f"{lag_id} does not match any LAGs in region {region}.",
+        )
+
+
+class MacSecKeyNotFound(DXConnectionError):
+    def __init__(self, secret_arn: str, connection_id: str) -> None:
+        super().__init__(
+            "MacSecKeyNotFound",
+            f"Secret ARN '{secret_arn}' not found for connection {connection_id}.",
         )
