@@ -21,6 +21,9 @@ def create_subnet_group(client, region_name):
         SubnetGroupName="my_subnet_group",
         Description="This is my subnet group",
         SubnetIds=[subnet1.id, subnet2.id],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+        ],
     )
     return subnet_group
 
@@ -393,6 +396,32 @@ def test_list_tags():
     assert len(resp["TagList"]) == 1
     assert "foo" in resp["TagList"][0]["Key"]
     assert "bar" in resp["TagList"][0]["Value"]
+
+
+@mock_aws
+def test_list_tags_snapshot():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    client.create_cluster(
+        ClusterName="test-memory-db", NodeType="db.t4g.small", ACLName="open-access"
+    )
+    snapshot = client.create_snapshot(
+        ClusterName="test-memory-db",
+        SnapshotName="my-snapshot",
+        Tags=[
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+    resp = client.list_tags(ResourceArn=snapshot["Snapshot"]["ARN"])
+    assert len(resp["TagList"]) == 1
+
+
+@mock_aws
+def test_list_tags_subnet():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    subnet_group = create_subnet_group(client, "us-east-2")
+    sg = subnet_group["SubnetGroup"]
+    resp = client.list_tags(ResourceArn=sg["ARN"])
+    assert len(resp["TagList"]) == 1
 
 
 @mock_aws
