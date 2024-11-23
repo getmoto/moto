@@ -6,7 +6,7 @@ import moto.server as server
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
+from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 CREATE_WEB_ACL_HEADERS = {
     "X-Amz-Target": "AWSWAF_20190729.CreateWebACL",
@@ -89,7 +89,7 @@ def test_list_web_ac_ls():
         json=CREATE_WEB_ACL_BODY("Sarah", "CLOUDFRONT"),
     )
     res = test_client.post(
-        "/", headers=LIST_WEB_ACL_HEADERS, json=LIST_WEB_ACL_BODY("REGIONAL")
+        "/", headers=LIST_WEB_ACL_HEADERS, json={"Scope": "REGIONAL"}
     )
     assert res.status_code == 200
 
@@ -99,7 +99,7 @@ def test_list_web_ac_ls():
     assert web_acls[1]["Name"] == "JohnSon"
 
     res = test_client.post(
-        "/", headers=LIST_WEB_ACL_HEADERS, json=LIST_WEB_ACL_BODY("CLOUDFRONT")
+        "/", headers=LIST_WEB_ACL_HEADERS, json={"Scope": "CLOUDFRONT"}
     )
     assert res.status_code == 200
     web_acls = res.json["WebACLs"]
