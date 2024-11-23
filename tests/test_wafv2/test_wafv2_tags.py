@@ -23,7 +23,7 @@ def test_list_tags_for_resource():
         Name="test",
         Scope="CLOUDFRONT",
         DefaultAction={"Allow": {}},
-        Tags=[{"Key": "k1", "Value": "v1"}],
+        Tags=[{"Key": f"k{idx}", "Value": "v1"} for idx in range(10)],
         VisibilityConfig={
             "SampledRequestsEnabled": False,
             "CloudWatchMetricsEnabled": False,
@@ -32,7 +32,18 @@ def test_list_tags_for_resource():
     )["Summary"]["ARN"]
 
     tag_info = conn.list_tags_for_resource(ResourceARN=arn)["TagInfoForResource"]
-    assert tag_info["TagList"] == [{"Key": "k1", "Value": "v1"}]
+    assert len(tag_info["TagList"]) == 10
+
+    page1 = conn.list_tags_for_resource(ResourceARN=arn, Limit=2)
+    assert len(page1["TagInfoForResource"]["TagList"]) == 2
+
+    page2 = conn.list_tags_for_resource(
+        ResourceARN=arn, Limit=3, NextMarker=page1["NextMarker"]
+    )
+    assert len(page2["TagInfoForResource"]["TagList"]) == 3
+
+    page3 = conn.list_tags_for_resource(ResourceARN=arn, NextMarker=page2["NextMarker"])
+    assert len(page3["TagInfoForResource"]["TagList"]) == 5
 
 
 @mock_aws
