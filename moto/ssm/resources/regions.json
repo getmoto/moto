@@ -418,6 +418,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "connectparticipant": {
                 "Value": "connectparticipant",
                 "endpoint": {
@@ -12530,10 +12539,22 @@
                   "Value": "api.thinclient.ap-south-1.amazonaws.com"
                 }
               },
+              "timestream": {
+                "Value": "timestream"
+              },
               "timestream-influxdb": {
                 "Value": "timestream-influxdb",
                 "endpoint": {
                   "Value": "timestream-influxdb.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "timestream-write": {
+                "Value": "timestream-write",
+                "endpoint": {
+                  "Value": "ingest.timestream.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13967,6 +13988,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -22755,6 +22785,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager-linux-subscriptions": {
+                "Value": "license-manager-linux-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-linux-subscriptions.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -23080,6 +23119,15 @@
                 "Value": "waf",
                 "endpoint": {
                   "Value": "wafv2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "wickr": {
+                "Value": "wickr",
+                "endpoint": {
+                  "Value": "api.messaging.wickr.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26163,6 +26211,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa": {
                 "Value": "mwaa",
@@ -33563,6 +33620,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -49060,6 +49126,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -53283,6 +53358,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "billing": {
+                "Value": "billing",
+                "endpoint": {
+                  "Value": "billing.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "billingconductor": {
                 "Value": "billingconductor",
                 "endpoint": {
@@ -55174,6 +55258,15 @@
                 "Value": "panorama",
                 "endpoint": {
                   "Value": "panorama.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "partnercentral-selling": {
+                "Value": "partnercentral-selling",
+                "endpoint": {
+                  "Value": "partnercentral-selling.us-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
