@@ -16059,7 +16059,7 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -16217,7 +16217,7 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -16388,7 +16388,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -16503,7 +16503,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -16626,7 +16626,7 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -16765,7 +16765,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -17075,7 +17075,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -54294,7 +54294,7 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -54440,7 +54440,7 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -54599,7 +54599,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -54702,7 +54702,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -54813,7 +54813,7 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -54940,7 +54940,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -55214,7 +55214,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -55325,7 +55325,7 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -55483,7 +55483,7 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -55654,7 +55654,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -55769,7 +55769,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -55892,7 +55892,7 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -56031,7 +56031,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -56341,7 +56341,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -78781,7 +78781,7 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -78927,7 +78927,7 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79086,7 +79086,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79189,7 +79189,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79300,7 +79300,7 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79427,7 +79427,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79701,7 +79701,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79812,7 +79812,7 @@
    ],
    "NetworkPerformance": "22.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -79970,7 +79970,7 @@
    ],
    "NetworkPerformance": "30 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -80141,7 +80141,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -80256,7 +80256,7 @@
    ],
    "NetworkPerformance": "Up to 15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -80379,7 +80379,7 @@
    ],
    "NetworkPerformance": "15 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -80518,7 +80518,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -80828,7 +80828,7 @@
    ],
    "NetworkPerformance": "Up to 12.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
