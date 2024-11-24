@@ -3692,6 +3692,26 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "use2-az2"
  },
