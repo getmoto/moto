@@ -49,13 +49,6 @@ class EngineVersion(BaseModel):
         self.options = options or "OpenSearch_2.5"
         self.create_time = unix_time(create_time)
         self.update_time = self.create_time
-        self.status = {
-            "CreationDate": self.create_time,
-            "PendingDeletion": False,
-            "State": "Active",
-            "UpdateDate": self.update_time,
-            "UpdateVersion": 28,
-        }
 
     def to_dict(self) -> Dict[str, Any]:
         return {
