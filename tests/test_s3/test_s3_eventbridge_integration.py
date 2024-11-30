@@ -201,7 +201,9 @@ def test_complete_multipart_upload_notification():
     )
 
     events = _get_send_events()
-    assert len(events) == 3  # [PutObject, ObjectTagging, CompleteMultipartUpload]
+    assert (
+        len(events) == 4
+    )  # [PutObject, ObjectTagging, CompleteMultipartUpload, ObjectAcl]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Created"
     assert event_message["source"] == "aws.s3"
@@ -340,3 +342,32 @@ def test_delete_object_tagging_notification():
     assert event_message["region"] == REGION_NAME
     assert event_message["detail"]["bucket"]["name"] == bucket_name
     assert event_message["detail"]["reason"] == "ObjectTagging"
+
+
+@mock_aws
+def test_delete_object_acl_update_notification():
+    resource_names = _seteup_bucket_notification_eventbridge()
+    bucket_name = resource_names["bucket_name"]
+    s3_client = boto3.client("s3", region_name=REGION_NAME)
+
+    # Put Object
+    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+
+    # Put Object ACL
+    s3_client.put_object_acl(Bucket=bucket_name, Key="keyname", ACL="public-read")
+
+    # Delete Object ACL
+    s3_client.put_object_acl(Bucket=bucket_name, Key="keyname", ACL="private")
+
+    events = _get_send_events()
+    assert (
+        len(events) == 4
+    )  # [PutObject, ObjectTagging, CompleteMultipartUpload, ObjectAcl]
+    event_message = json.loads(events[2]["message"])
+    assert event_message["detail-type"] == "Object ACL Updated"
+    assert event_message["source"] == "aws.s3"
+    assert event_message["account"] == ACCOUNT_ID
+    assert event_message["region"] == REGION_NAME
+    assert event_message["detail"]["bucket"]["name"] == bucket_name
+    assert event_message["detail"]["object"]["key"] == "keyname"
+    assert event_message["detail"]["reason"] == "ObjectAcl"
