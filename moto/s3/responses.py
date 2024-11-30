@@ -124,7 +124,7 @@ ACTION_MAP = {
         },
     },
     "KEY": {
-        "HEAD": {"DEFAULT": "HeadObject"},
+        "HEAD": {"DEFAULT": "GetObject"},
         "GET": {
             "uploadId": "ListMultipartUploadParts",
             "acl": "GetObjectAcl",
