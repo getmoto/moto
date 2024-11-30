@@ -94,6 +94,14 @@ class InvalidTargetError(ELBClientError):
         )
 
 
+class TargetNotRunning(ELBClientError):
+    def __init__(self, instance_id: str) -> None:
+        super().__init__(
+            "InvalidTarget",
+            f"The following targets are not in a running state and cannot be registered: '{instance_id}'",
+        )
+
+
 class EmptyListenersError(ELBClientError):
     def __init__(self) -> None:
         super().__init__("ValidationError", "Listeners cannot be empty")
