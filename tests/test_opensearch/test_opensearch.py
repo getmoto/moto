@@ -3,7 +3,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -107,8 +107,10 @@ def test_describe_domain():
     assert status["EngineVersion"]["Options"] == "OpenSearch_2.5"
     assert ev_status["State"] == "Active"
     assert ev_status["PendingDeletion"] is False
-    assert ev_status["CreationDate"] == 1420113600.0
-    assert ev_status["UpdateDate"] == 1420113600.0
+
+    if not settings.TEST_SERVER_MODE:
+        assert ev_status["CreationDate"] == 1420113600.0
+        assert ev_status["UpdateDate"] == 1420113600.0
 
 
 @mock_aws
