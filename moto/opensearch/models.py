@@ -1,7 +1,9 @@
+import datetime
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -42,6 +44,25 @@ default_advanced_options = {
 }
 
 
+class EngineVersion(BaseModel):
+    def __init__(self, options: str, create_time: datetime.datetime) -> None:
+        self.options = options or "OpenSearch_2.5"
+        self.create_time = unix_time(create_time)
+        self.update_time = self.create_time
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Options": self.options,
+            "Status": {
+                "CreationDate": self.create_time,
+                "PendingDeletion": False,
+                "State": "Active",
+                "UpdateDate": self.update_time,
+                "UpdateVersion": 28,
+            },
+        }
+
+
 class OpenSearchDomain(BaseModel):
     def __init__(
         self,
@@ -70,7 +91,7 @@ class OpenSearchDomain(BaseModel):
         self.arn = (
             f"arn:{get_partition(region)}:es:{region}:{account_id}:domain/{domain_name}"
         )
-        self.engine_version = engine_version or "OpenSearch 2.5"
+        self.engine_version = EngineVersion(engine_version, datetime.datetime.now())
         self.cluster_config = cluster_config or {}
         self.ebs_options = ebs_options or {"EBSEnabled": False}
         self.access_policies = access_policies or ""
@@ -120,7 +141,7 @@ class OpenSearchDomain(BaseModel):
         return {
             "Endpoint": self.endpoint,
             "Endpoints": self.endpoints,
-            "EngineVersion": self.engine_version,
+            "EngineVersion": self.engine_version.to_dict(),
             "ClusterConfig": self.cluster_config,
             "EBSOptions": self.ebs_options,
             "AccessPolicies": self.access_policies,
@@ -207,6 +228,7 @@ class OpenSearchDomain(BaseModel):
         self.software_update_options = (
             software_update_options or self.software_update_options
         )
+        self.engine_version.update_time = unix_time(datetime.datetime.now())
 
 
 class OpenSearchServiceBackend(BaseBackend):
@@ -335,7 +357,7 @@ class OpenSearchServiceBackend(BaseBackend):
         domains = []
         for domain in self.domains.values():
             if engine_type:
-                if engine_type in domain.engine_version:
+                if engine_type in domain.engine_version.options:
                     domains.append(
                         {
                             "DomainName": domain.domain_name,
@@ -348,7 +370,7 @@ class OpenSearchServiceBackend(BaseBackend):
                 domains.append(
                     {
                         "DomainName": domain.domain_name,
-                        "EngineType": domain.engine_version.split("_")[0],
+                        "EngineType": domain.engine_version.options.split("_")[0],
                     }
                 )
         return domains
