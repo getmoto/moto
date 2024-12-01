@@ -8572,6 +8572,10 @@
   "Location": "usw2-az3"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "usw2-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "usw2-az3"
  },
