@@ -225,7 +225,7 @@ def test_delete_object_notification():
     s3_client.delete_object(Bucket=bucket_name, Key="keyname")
 
     events = _get_send_events()
-    assert len(events) == 3  # [PutObject, ObjectTagging, DeleteObect]
+    assert len(events) == 3  # [PutObject, ObjectTagging, DeleteObject]
     event_message = json.loads(events[-1]["message"])
     assert event_message["detail-type"] == "Object Deleted"
     assert event_message["source"] == "aws.s3"
