@@ -2223,6 +2223,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         key_name: str,
         acl: Optional[FakeAcl],
+        disable_notification: Optional[bool] = False,
     ) -> None:
         key = self.get_object(bucket_name, key_name)
         # TODO: Support the XML-based ACL format
@@ -2234,7 +2235,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 notifications.S3NotificationEvent.OBJECT_ACL_UPDATE_EVENT
             )
 
-            notifications.send_event(self.account_id, notify_event_name, bucket, key)
+            if not disable_notification:
+                notifications.send_event(
+                    self.account_id, notify_event_name, bucket, key
+                )
         else:
             raise MissingKey(key=key_name)
 
