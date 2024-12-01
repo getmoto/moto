@@ -5303,15 +5303,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -15783,15 +15774,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -18565,15 +18547,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24695,15 +24668,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31335,15 +31299,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -31963,6 +31918,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -35042,15 +35006,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40699,15 +40654,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -43413,15 +43359,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55158,15 +55095,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -57963,15 +57891,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -60040,9 +59959,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics"
-              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -61795,9 +61711,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics"
               },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
@@ -66220,15 +66133,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

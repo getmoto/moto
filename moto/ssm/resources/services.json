@@ -45208,116 +45208,6 @@
               }
             }
           },
-          "nimble": {
-            "Value": "nimble",
-            "longName": {
-              "Value": "Amazon Nimble Studio"
-            },
-            "marketingHomeURL": {
-              "Value": "https://aws.amazon.com/nimble-studio/"
-            },
-            "regions": {
-              "ap-northeast-1": {
-                "Value": "ap-northeast-1",
-                "endpoint": {
-                  "Value": "nimble.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "ap-southeast-1": {
-                "Value": "ap-southeast-1",
-                "endpoint": {
-                  "Value": "nimble.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "ap-southeast-2": {
-                "Value": "ap-southeast-2",
-                "endpoint": {
-                  "Value": "nimble.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "ca-central-1": {
-                "Value": "ca-central-1",
-                "endpoint": {
-                  "Value": "nimble.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-central-1": {
-                "Value": "eu-central-1",
-                "endpoint": {
-                  "Value": "nimble.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-north-1": {
-                "Value": "eu-north-1",
-                "endpoint": {
-                  "Value": "nimble.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-west-1": {
-                "Value": "eu-west-1",
-                "endpoint": {
-                  "Value": "nimble.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-west-2": {
-                "Value": "eu-west-2",
-                "endpoint": {
-                  "Value": "nimble.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-1": {
-                "Value": "us-east-1",
-                "endpoint": {
-                  "Value": "nimble.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-2": {
-                "Value": "us-east-2",
-                "endpoint": {
-                  "Value": "nimble.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-west-2": {
-                "Value": "us-west-2",
-                "endpoint": {
-                  "Value": "nimble.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              }
-            }
-          },
           "notifications": {
             "Value": "notifications",
             "longName": {
@@ -56280,12 +56170,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "us-gov-east-1": {
-                "Value": "us-gov-east-1"
-              },
-              "us-gov-west-1": {
-                "Value": "us-gov-west-1"
-              },
               "us-west-1": {
                 "Value": "us-west-1",
                 "endpoint": {
@@ -61414,6 +61298,10 @@
             }
           },
           "socialmessaging": {
+            "Value": "socialmessaging",
+            "longName": {
+              "Value": "social-messaging"
+            },
             "regions": {
               "ap-south-1": {
                 "Value": "ap-south-1",
@@ -61428,6 +61316,15 @@
                 "Value": "ap-southeast-1",
                 "endpoint": {
                   "Value": "social-messaging.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-central-1": {
+                "Value": "eu-central-1",
+                "endpoint": {
+                  "Value": "social-messaging.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
