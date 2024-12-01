@@ -2585,6 +2585,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket_name=bucket_name,
             key_name=key.name,
             acl=multipart.acl,
+            disable_notification=True,  # avoid sending ObjectAcl:Put events here
         )
 
         notifications.send_event(
