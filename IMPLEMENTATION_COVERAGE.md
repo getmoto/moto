@@ -4505,7 +4505,7 @@
 
 ## iot
 <details>
-<summary>33% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
