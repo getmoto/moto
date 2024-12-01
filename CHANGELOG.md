@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.22
 -----
-Docker Digest for 5.0.22: <autopopulateddigest>
+Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_
 
     Miscellaneous:
         * DS: enable_ldaps() is now supported for 'ADConnector' directory types
