@@ -550,6 +550,30 @@ def test_untag_resource_invalid_cluster_fails():
 
 
 @mock_aws
+def test_untag_resource_invalid_snapshot_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.untag_resource(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:snapshot/foobar",
+            TagKeys=["key1"],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+
+
+@mock_aws
+def test_untag_resource_invalid_subnetgroup_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.untag_resource(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:subnetgroup/foobar",
+            TagKeys=["key1"],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SubnetGroupNotFoundFault"
+
+
+@mock_aws
 def test_untag_resource_invalid_keys_fails():
     client = boto3.client("memorydb", region_name="us-east-2")
     cluster = client.create_cluster(
