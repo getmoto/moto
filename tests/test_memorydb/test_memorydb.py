@@ -416,7 +416,7 @@ def test_list_tags_snapshot():
 
 
 @mock_aws
-def test_list_tags_subnet():
+def test_list_tags_subnetgroups():
     client = boto3.client("memorydb", region_name="us-east-2")
     subnet_group = create_subnet_group(client, "us-east-2")
     sg = subnet_group["SubnetGroup"]
@@ -433,6 +433,28 @@ def test_list_tags_invalid_cluster_fails():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ClusterNotFoundFault"
+
+
+@mock_aws
+def test_list_tags_invalid_snapshot_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.list_tags(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:snapshot/foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+
+
+@mock_aws
+def test_list_tags_invalid_subnetgroup_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.list_tags(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:subnetgroup/foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SubnetGroupNotFoundFault"
 
 
 @mock_aws
