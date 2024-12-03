@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -249,7 +249,7 @@ class DirectConnectBackend(BaseBackend):
         secret_arn: Optional[str],
         ckn: Optional[str],
         cak: Optional[str],
-    ) -> tuple[str, List[MacSecKey]]:
+    ) -> Tuple[str, List[MacSecKey]]:
         mac_sec_key = MacSecKey(
             secret_arn=secret_arn or "mock_secret_arn",
             ckn=ckn,
@@ -269,7 +269,7 @@ class DirectConnectBackend(BaseBackend):
 
     def _associate_mac_sec_key_with_lag(
         self, lag_id: str, mac_sec_key: MacSecKey
-    ) -> tuple[str, List[MacSecKey]]:
+    ) -> Tuple[str, List[MacSecKey]]:
         lag = self.lags.get(lag_id) or None
         if not lag:
             raise LAGNotFound(lag_id, self.region_name)
@@ -282,7 +282,7 @@ class DirectConnectBackend(BaseBackend):
 
     def _associate_mac_sec_key_with_connection(
         self, connection_id: str, mac_sec_key: MacSecKey
-    ) -> tuple[str, List[MacSecKey]]:
+    ) -> Tuple[str, List[MacSecKey]]:
         connection = self.connections.get(connection_id) or None
         if not connection:
             raise ConnectionNotFound(connection_id, self.region_name)
@@ -368,7 +368,7 @@ class DirectConnectBackend(BaseBackend):
 
     def disassociate_mac_sec_key(
         self, connection_id: str, secret_arn: str
-    ) -> tuple[str, MacSecKey]:
+    ) -> Tuple[str, MacSecKey]:
         mac_sec_keys: List[MacSecKey] = []
         if connection_id.startswith("dxlag-"):
             if connection_id in self.lags:
