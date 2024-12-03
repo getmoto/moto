@@ -78,4 +78,5 @@ bedrock-agent
 - [ ] update_flow_alias
 - [ ] update_knowledge_base
 - [ ] update_prompt
+- [ ] validate_flow_definition
 

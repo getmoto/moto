@@ -83,3 +83,12 @@ class ThingStillAttached(IoTClientError):
             "InvalidRequestException",
             f"Cannot delete. Thing {name} is still attached to one or more principals",
         )
+
+
+class ConflictException(IoTClientError):
+    def __init__(self, name: str):
+        self.code = 409
+        super().__init__(
+            "ConflictException",
+            f"A resource {name} already exists.",
+        )

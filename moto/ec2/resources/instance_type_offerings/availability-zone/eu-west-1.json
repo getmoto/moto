@@ -768,22 +768,6 @@
   "Location": "eu-west-1a"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "eu-west-1a"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-west-1a"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-west-1a"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "eu-west-1a"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "eu-west-1a"
  },
@@ -2636,6 +2620,54 @@
   "Location": "eu-west-1a"
  },
  {
+  "InstanceType": "r8g.12xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.16xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.24xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.2xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.48xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.4xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.8xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.large",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.medium",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.metal-24xl",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.metal-48xl",
+  "Location": "eu-west-1a"
+ },
+ {
+  "InstanceType": "r8g.xlarge",
+  "Location": "eu-west-1a"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "eu-west-1a"
  },
@@ -3705,22 +3737,6 @@
  },
  {
   "InstanceType": "f1.4xlarge",
-  "Location": "eu-west-1b"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "eu-west-1b"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-west-1b"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-west-1b"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "eu-west-1b"
  },
  {
@@ -5604,6 +5620,54 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "r8g.12xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.16xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.24xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.2xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.48xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.4xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.8xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.large",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.medium",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.metal-24xl",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.metal-48xl",
+  "Location": "eu-west-1b"
+ },
+ {
+  "InstanceType": "r8g.xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "t1.micro",
   "Location": "eu-west-1b"
  },
@@ -6713,22 +6777,6 @@
  },
  {
   "InstanceType": "f1.4xlarge",
-  "Location": "eu-west-1c"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "eu-west-1c"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-west-1c"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-west-1c"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "eu-west-1c"
  },
  {
@@ -8613,6 +8661,54 @@
  },
  {
   "InstanceType": "r7iz.xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.12xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.16xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.24xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.2xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.48xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.4xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.8xlarge",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.large",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.medium",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.metal-24xl",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.metal-48xl",
+  "Location": "eu-west-1c"
+ },
+ {
+  "InstanceType": "r8g.xlarge",
   "Location": "eu-west-1c"
  },
  {

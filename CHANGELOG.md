@@ -1,6 +1,53 @@
 Moto Changelog
 ==============
 
+5.0.22
+-----
+Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_
+
+    Miscellaneous:
+        * DS: enable_ldaps() is now supported for 'ADConnector' directory types
+        * EC2: Resource identifiers are now 17 characters long, up from 8, in-line with the values that AWS returns
+        * ECS: create_service() now supports and validates the networkConfiguration-parameter
+        * ELBv2: register_targets() now validates that instances are running
+        * IOTData: update_thing_shadow() now properly handles complex nested deltas
+        * MediaLive: list_channels() and list_inputs() now support pagination
+        * OpenSearch: create_domain() now returns the EngineVersion in the correct format
+        * ResourceGroupsTaggingAPI: get_resources() now returns secrets from SecretsManager
+        * S3: put_object_acl() now sends an EventBridge-notification
+        * SecretsManager: list_secrets() no longer shows deleted secrets unless the `include_planned_deletion`-parameter is set
+        * WAFv2: list_ip_sets(), list_logging_configurations(), list_rule_groups(), list_tags_for_resource(), list_web_acls() now all support pagination
+
+5.0.21
+-----
+Docker Digest for 5.0.21: _sha256:9ba3753fddbe2445667a1261a04dc92e75d9c329a1f2d0610f1dd8bb1c4f4eca_
+
+    New Methods:
+        * IOT:
+            * create_job_template()
+            * create_role_alias()
+            * delete_job_template()
+            * delete_role_alias()
+            * describe_job_template()
+            * describe_role_alias()
+            * get_indexing_configuration()
+            * list_job_templates()
+            * list_role_aliases()
+            * update_indexing_configuration()
+            * update_role_alias()
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports the arrayJobId-parameter
+        * CloudFormation now supports the types AWS::IoT::JobTemplate, AWS::IoT::RoleAlias
+        * DynamoDB: ProjectionExpressions are now validated for duplicate values
+        * DynamoDB: scan() now supports parallelization using the Segment/TotalSegments parameters
+        * DynamoDB: update_item() now validates when an ADD/DELETE occurs on the same set
+        * EC2: create_fleet() now correctly handles Overrides with a single value
+        * ECR: list_images() now lists images with multiple tags separately
+        * IOT: create_job() now supports the parameters abortConfig, jobExecutionsRetryConfig, schedulingConfig, timeoutConfig
+        * S3: get_object_attributes() no longer throws an error for Glacier objects
+
+
 5.0.20
 -----
 Docker Digest for 5.0.20: _sha256:a1041f318c56ed341c70541647b256d40dae776ce654ca4db9d27d94600542a1_

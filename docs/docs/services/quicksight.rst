@@ -22,6 +22,8 @@ quicksight
 - [ ] create_account_customization
 - [ ] create_account_subscription
 - [ ] create_analysis
+- [ ] create_brand
+- [ ] create_custom_permissions
 - [ ] create_dashboard
 - [X] create_data_set
 - [ ] create_data_source
@@ -44,6 +46,9 @@ quicksight
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_analysis
+- [ ] delete_brand
+- [ ] delete_brand_assignment
+- [ ] delete_custom_permissions
 - [ ] delete_dashboard
 - [ ] delete_data_set
 - [ ] delete_data_set_refresh_properties
@@ -66,6 +71,7 @@ quicksight
 - [ ] delete_topic_refresh_schedule
 - [X] delete_user
 - [ ] delete_user_by_principal_id
+- [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
 - [ ] describe_account_customization
 - [ ] describe_account_settings
@@ -75,6 +81,10 @@ quicksight
 - [ ] describe_analysis_permissions
 - [ ] describe_asset_bundle_export_job
 - [ ] describe_asset_bundle_import_job
+- [ ] describe_brand
+- [ ] describe_brand_assignment
+- [ ] describe_brand_published_version
+- [ ] describe_custom_permissions
 - [ ] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
@@ -118,6 +128,8 @@ quicksight
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
+- [ ] list_brands
+- [ ] list_custom_permissions
 - [ ] list_dashboard_versions
 - [ ] list_dashboards
 - [ ] list_data_sets
@@ -171,6 +183,10 @@ quicksight
 - [ ] update_account_settings
 - [ ] update_analysis
 - [ ] update_analysis_permissions
+- [ ] update_brand
+- [ ] update_brand_assignment
+- [ ] update_brand_published_version
+- [ ] update_custom_permissions
 - [ ] update_dashboard
 - [ ] update_dashboard_links
 - [ ] update_dashboard_permissions
@@ -201,5 +217,6 @@ quicksight
 - [ ] update_topic_permissions
 - [ ] update_topic_refresh_schedule
 - [X] update_user
+- [ ] update_user_custom_permission
 - [ ] update_vpc_connection
 

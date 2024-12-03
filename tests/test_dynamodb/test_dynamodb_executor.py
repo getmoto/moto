@@ -493,10 +493,10 @@ def test_normalize_with_multiple_actions__order_is_preserved(table):
     assert isinstance(validated_ast.children[0], UpdateExpressionAddAction)
     # Removal actions in reverse order
     assert isinstance(validated_ast.children[1], UpdateExpressionRemoveAction)
-    assert validated_ast.children[1]._get_value() == 3
+    assert validated_ast.children[1].get_value() == 3
     assert isinstance(validated_ast.children[2], UpdateExpressionRemoveAction)
-    assert validated_ast.children[2]._get_value() == 2
+    assert validated_ast.children[2].get_value() == 2
     assert isinstance(validated_ast.children[3], UpdateExpressionRemoveAction)
-    assert validated_ast.children[3]._get_value() == 1
+    assert validated_ast.children[3].get_value() == 1
     # Set action last, as per insertion order
     assert isinstance(validated_ast.children[4], UpdateExpressionSetAction)

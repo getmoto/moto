@@ -64,9 +64,13 @@ iam
 - [X] detach_group_policy
 - [X] detach_role_policy
 - [X] detach_user_policy
+- [ ] disable_organizations_root_credentials_management
+- [ ] disable_organizations_root_sessions
 - [X] enable_mfa_device
   Enable MFA Device for user.
 
+- [ ] enable_organizations_root_credentials_management
+- [ ] enable_organizations_root_sessions
 - [ ] generate_credential_report
 - [ ] generate_organizations_access_report
 - [ ] generate_service_last_accessed_details
@@ -128,6 +132,7 @@ iam
 - [X] list_mfa_devices
 - [X] list_open_id_connect_provider_tags
 - [X] list_open_id_connect_providers
+- [ ] list_organizations_features
 - [X] list_policies
 - [ ] list_policies_granting_service_access
 - [X] list_policy_tags

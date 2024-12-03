@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-from .test_helper_functions import CREATE_WEB_ACL_BODY, LIST_WEB_ACL_BODY
+from .test_helper_functions import CREATE_WEB_ACL_BODY
 
 
 @mock_aws
@@ -163,17 +163,29 @@ def test_list_web_acl():
     conn = boto3.client("wafv2", region_name="us-east-1")
     conn.create_web_acl(**CREATE_WEB_ACL_BODY("Daphne", "REGIONAL"))
     conn.create_web_acl(**CREATE_WEB_ACL_BODY("Penelope", "CLOUDFRONT"))
-    conn.create_web_acl(**CREATE_WEB_ACL_BODY("Sarah", "REGIONAL"))
-    res = conn.list_web_acls(**LIST_WEB_ACL_BODY("REGIONAL"))
+    for idx in range(5):
+        conn.create_web_acl(**CREATE_WEB_ACL_BODY(f"Sarah {idx}", "REGIONAL"))
+    res = conn.list_web_acls(Scope="REGIONAL")
     web_acls = res["WebACLs"]
-    assert len(web_acls) == 2
+    assert len(web_acls) == 6
     assert web_acls[0]["Name"] == "Daphne"
-    assert web_acls[1]["Name"] == "Sarah"
+    assert web_acls[1]["Name"] == "Sarah 0"
 
-    res = conn.list_web_acls(**LIST_WEB_ACL_BODY("CLOUDFRONT"))
+    res = conn.list_web_acls(Scope="CLOUDFRONT")
     web_acls = res["WebACLs"]
     assert len(web_acls) == 1
     assert web_acls[0]["Name"] == "Penelope"
+
+    page1 = conn.list_web_acls(Scope="REGIONAL", Limit=2)
+    assert len(page1["WebACLs"]) == 2
+
+    page2 = conn.list_web_acls(
+        Scope="REGIONAL", Limit=1, NextMarker=page1["NextMarker"]
+    )
+    assert len(page2["WebACLs"]) == 1
+
+    page3 = conn.list_web_acls(Scope="REGIONAL", NextMarker=page2["NextMarker"])
+    assert len(page3["WebACLs"]) == 3
 
 
 @mock_aws
@@ -191,7 +203,7 @@ def test_delete_web_acl():
         Name="Daphne", Id=wacl["Id"], Scope="REGIONAL", LockToken=wacl["LockToken"]
     )
 
-    res = conn.list_web_acls(**LIST_WEB_ACL_BODY("REGIONAL"))
+    res = conn.list_web_acls(Scope="REGIONAL")
     assert len(res["WebACLs"]) == 0
 
     with pytest.raises(ClientError) as exc:
@@ -347,7 +359,6 @@ def test_ip_set_crud():
             for key in ["ARN", "Description", "Id", "LockToken", "Name"]
         ]
     )
-    assert "NextMarker" in list_response
 
     client.delete_ip_set(
         Name=summary["Name"],
@@ -365,55 +376,29 @@ def test_ip_set_crud():
 
 
 @mock_aws
-def test_logging_configuration_crud():
-    wafv2_client = boto3.client("wafv2", region_name="us-east-1")
-    create_web_acl_response = wafv2_client.create_web_acl(
-        Name="TestWebACL",
-        Scope="REGIONAL",
-        DefaultAction={"Allow": {}},
-        VisibilityConfig={
-            "SampledRequestsEnabled": True,
-            "CloudWatchMetricsEnabled": True,
-            "MetricName": "TestWebACLMetric",
-        },
-        Rules=[],
-    )
-    web_acl_arn = create_web_acl_response["Summary"]["ARN"]
+def test_list_ip_sets_pagination():
+    client = boto3.client("wafv2", region_name="us-east-1")
 
-    # Create log groups
-    logs_client = boto3.client("logs", region_name="us-east-1")
-    logs_client.create_log_group(logGroupName="aws-waf-logs-test")
-    log_group = logs_client.describe_log_groups(logGroupNamePrefix="aws-waf-logs-test")[
-        "logGroups"
-    ][0]
-
-    create_response = wafv2_client.put_logging_configuration(
-        LoggingConfiguration={
-            "ResourceArn": web_acl_arn,
-            "LogDestinationConfigs": [log_group["arn"]],
-        }
-    )
-
-    assert "LoggingConfiguration" in create_response
-    logging_configuration = create_response["LoggingConfiguration"]
-    assert logging_configuration["ResourceArn"]
-
-    get_response = wafv2_client.get_logging_configuration(
-        ResourceArn=logging_configuration["ResourceArn"]
-    )
-    assert "LoggingConfiguration" in get_response
-
-    list_response = wafv2_client.list_logging_configurations(
-        Scope="REGIONAL",
-    )
-    assert len(list_response["LoggingConfigurations"]) > 0
-
-    wafv2_client.delete_logging_configuration(
-        ResourceArn=logging_configuration["ResourceArn"],
-    )
-
-    with pytest.raises(ClientError) as e:
-        wafv2_client.get_logging_configuration(
-            ResourceArn=logging_configuration["ResourceArn"]
+    for idx in range(10):
+        client.create_ip_set(
+            Name=f"test-ip-set-{idx}",
+            Scope="CLOUDFRONT",
+            Description="Test IP set",
+            IPAddressVersion="IPV4",
+            Addresses=["192.168.0.1/32", "10.0.0.0/8"],
+            Tags=[{"Key": "Environment", "Value": "Test"}],
         )
-    assert e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
+
+    list_all = client.list_ip_sets(Scope="CLOUDFRONT")["IPSets"]
+    assert len(list_all) == 10
+
+    page1 = client.list_ip_sets(Scope="CLOUDFRONT", Limit=2)
+    assert len(page1["IPSets"]) == 2
+
+    page2 = client.list_ip_sets(
+        Scope="CLOUDFRONT", Limit=5, NextMarker=page1["NextMarker"]
+    )
+    assert len(page2["IPSets"]) == 5
+
+    page3 = client.list_ip_sets(Scope="CLOUDFRONT", NextMarker=page2["NextMarker"])
+    assert len(page3["IPSets"]) == 3

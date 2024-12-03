@@ -7,7 +7,8 @@ on:
         description: 'Version'
         required: true
       current_release:
-        description: 'True to release Docker and update version info in moto/__init__.py'
+        description: 'Release Docker and update version info in moto/__init__.py'
+        default: true
         required: true
         type: boolean
 
@@ -106,7 +107,9 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: true
         tags: |
+          motoserver/moto:latest
           motoserver/moto:${{ env.VERSION }}
+          ghcr.io/getmoto/motoserver:latest
           ghcr.io/getmoto/motoserver:${{ env.VERSION }}
     - name: Increase patch version number
       if: ${{ inputs.current_release }}

@@ -222,7 +222,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         """Enable/disable ldaps based on whether new_state is True or False.
         This method is only for MicrosoftAD.
         """
-        if self.directory_type != "MicrosoftAD":
+        if self.directory_type not in ("MicrosoftAD", "ADConnector"):
             raise UnsupportedOperationException(
                 "LDAPS operations are not supported for this Directory Type."
             )
@@ -673,7 +673,7 @@ class DirectoryServiceBackend(BaseBackend):
         """Describe LDAPS settings for a Directory"""
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
-        if directory.directory_type != "MicrosoftAD":
+        if directory.directory_type not in ("MicrosoftAD", "ADConnector"):
             raise UnsupportedOperationException(
                 "LDAPS operations are not supported for this Directory Type."
             )

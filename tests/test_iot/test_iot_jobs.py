@@ -32,6 +32,19 @@ def test_create_job():
         },
         targetSelection="CONTINUOUS",
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+        jobExecutionsRetryConfig={
+            "criteriaList": [{"failureType": "ALL", "numberOfRetries": 10}]
+        },
+        abortConfig={
+            "criteriaList": [
+                {
+                    "action": "CANCEL",
+                    "failureType": "ALL",
+                    "minNumberOfExecutedThings": 1,
+                    "thresholdPercentage": 90,
+                }
+            ]
+        },
     )
 
     assert job["jobId"] == job_id
@@ -116,6 +129,21 @@ def test_describe_job():
         },
         targetSelection="CONTINUOUS",
         jobExecutionsRolloutConfig={"maximumPerMinute": 10},
+        jobExecutionsRetryConfig={
+            "criteriaList": [{"failureType": "ALL", "numberOfRetries": 10}]
+        },
+        abortConfig={
+            "criteriaList": [
+                {
+                    "action": "CANCEL",
+                    "failureType": "ALL",
+                    "minNumberOfExecutedThings": 1,
+                    "thresholdPercentage": 90,
+                }
+            ]
+        },
+        schedulingConfig={"endBehavior": "FORCE_CANCEL"},
+        timeoutConfig={"inProgressTimeoutInMinutes": 100},
     )
 
     assert job["jobId"] == job_id
@@ -140,6 +168,19 @@ def test_describe_job():
     )
     assert job["presignedUrlConfig"]["expiresInSec"] == 123
     assert job["jobExecutionsRolloutConfig"]["maximumPerMinute"] == 10
+    assert job["jobExecutionsRetryConfig"] == {
+        "criteriaList": [{"failureType": "ALL", "numberOfRetries": 10}]
+    }
+    assert job["schedulingConfig"] == {"endBehavior": "FORCE_CANCEL"}
+    assert job["timeoutConfig"] == {"inProgressTimeoutInMinutes": 100}
+    assert job["abortConfig"]["criteriaList"] == [
+        {
+            "action": "CANCEL",
+            "failureType": "ALL",
+            "minNumberOfExecutedThings": 1,
+            "thresholdPercentage": 90,
+        }
+    ]
 
 
 @mock_aws

@@ -157,7 +157,6 @@ def test_version_is_only_available_when_published():
             publish=True,
             tracingConfiguration={"enabled": True},
             loggingConfiguration={"level": "OFF"},
-            encryptionConfiguration=encryption_config,
         )
         assert resp["stateMachineVersionArn"] == f"{arn2}:2"
     finally:

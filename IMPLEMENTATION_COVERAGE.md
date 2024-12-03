@@ -882,6 +882,7 @@
 - [ ] update_flow_alias
 - [ ] update_knowledge_base
 - [ ] update_prompt
+- [ ] validate_flow_definition
 </details>
 
 ## budgets
@@ -1186,6 +1187,7 @@
 - [X] describe_trails
 - [ ] disable_federation
 - [ ] enable_federation
+- [ ] generate_query
 - [ ] get_channel
 - [ ] get_event_data_store
 - [X] get_event_selectors
@@ -4243,7 +4245,7 @@
 
 ## iam
 <details>
-<summary>74% implemented</summary>
+<summary>72% implemented</summary>
 
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
@@ -4293,7 +4295,11 @@
 - [X] detach_group_policy
 - [X] detach_role_policy
 - [X] detach_user_policy
+- [ ] disable_organizations_root_credentials_management
+- [ ] disable_organizations_root_sessions
 - [X] enable_mfa_device
+- [ ] enable_organizations_root_credentials_management
+- [ ] enable_organizations_root_sessions
 - [ ] generate_credential_report
 - [ ] generate_organizations_access_report
 - [ ] generate_service_last_accessed_details
@@ -4339,6 +4345,7 @@
 - [X] list_mfa_devices
 - [X] list_open_id_connect_provider_tags
 - [X] list_open_id_connect_providers
+- [ ] list_organizations_features
 - [X] list_policies
 - [ ] list_policies_granting_service_access
 - [X] list_policy_tags
@@ -4498,7 +4505,7 @@
 
 ## iot
 <details>
-<summary>31% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group
@@ -4528,7 +4535,7 @@
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
-- [ ] create_job_template
+- [X] create_job_template
 - [X] create_keys_and_certificate
 - [ ] create_mitigation_action
 - [ ] create_ota_update
@@ -4539,7 +4546,7 @@
 - [ ] create_provisioning_claim
 - [ ] create_provisioning_template
 - [ ] create_provisioning_template_version
-- [ ] create_role_alias
+- [X] create_role_alias
 - [ ] create_scheduled_audit
 - [ ] create_security_profile
 - [ ] create_stream
@@ -4562,7 +4569,7 @@
 - [ ] delete_fleet_metric
 - [X] delete_job
 - [X] delete_job_execution
-- [ ] delete_job_template
+- [X] delete_job_template
 - [ ] delete_mitigation_action
 - [ ] delete_ota_update
 - [ ] delete_package
@@ -4572,7 +4579,7 @@
 - [ ] delete_provisioning_template
 - [ ] delete_provisioning_template_version
 - [ ] delete_registration_code
-- [ ] delete_role_alias
+- [X] delete_role_alias
 - [ ] delete_scheduled_audit
 - [ ] delete_security_profile
 - [ ] delete_stream
@@ -4604,12 +4611,12 @@
 - [ ] describe_index
 - [X] describe_job
 - [X] describe_job_execution
-- [ ] describe_job_template
+- [X] describe_job_template
 - [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
-- [ ] describe_role_alias
+- [X] describe_role_alias
 - [ ] describe_scheduled_audit
 - [ ] describe_security_profile
 - [ ] describe_stream
@@ -4628,7 +4635,7 @@
 - [ ] get_buckets_aggregation
 - [ ] get_cardinality
 - [ ] get_effective_policies
-- [ ] get_indexing_configuration
+- [X] get_indexing_configuration
 - [X] get_job_document
 - [ ] get_logging_options
 - [ ] get_ota_update
@@ -4665,7 +4672,7 @@
 - [ ] list_indices
 - [X] list_job_executions_for_job
 - [X] list_job_executions_for_thing
-- [ ] list_job_templates
+- [X] list_job_templates
 - [X] list_jobs
 - [ ] list_managed_job_templates
 - [ ] list_metric_values
@@ -4679,10 +4686,11 @@
 - [X] list_policy_versions
 - [X] list_principal_policies
 - [X] list_principal_things
+- [ ] list_principal_things_v2
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
 - [ ] list_related_resources_for_audit_finding
-- [ ] list_role_aliases
+- [X] list_role_aliases
 - [ ] list_sbom_validation_results
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles
@@ -4694,6 +4702,7 @@
 - [X] list_thing_groups
 - [X] list_thing_groups_for_thing
 - [X] list_thing_principals
+- [ ] list_thing_principals_v2
 - [ ] list_thing_registration_task_reports
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
@@ -4742,20 +4751,21 @@
 - [ ] update_dynamic_thing_group
 - [ ] update_event_configurations
 - [ ] update_fleet_metric
-- [ ] update_indexing_configuration
+- [X] update_indexing_configuration
 - [ ] update_job
 - [ ] update_mitigation_action
 - [ ] update_package
 - [ ] update_package_configuration
 - [ ] update_package_version
 - [ ] update_provisioning_template
-- [ ] update_role_alias
+- [X] update_role_alias
 - [ ] update_scheduled_audit
 - [ ] update_security_profile
 - [ ] update_stream
 - [X] update_thing
 - [X] update_thing_group
 - [X] update_thing_groups_for_thing
+- [ ] update_thing_type
 - [ ] update_topic_rule_destination
 - [ ] validate_security_profile_behaviors
 </details>
@@ -4961,7 +4971,7 @@
 
 ## lakeformation
 <details>
-<summary>36% implemented</summary>
+<summary>33% implemented</summary>
 
 - [X] add_lf_tags_to_resource
 - [ ] assume_decorated_role_with_saml
@@ -4973,10 +4983,12 @@
 - [ ] create_lake_formation_identity_center_configuration
 - [ ] create_lake_formation_opt_in
 - [X] create_lf_tag
+- [ ] create_lf_tag_expression
 - [ ] delete_data_cells_filter
 - [ ] delete_lake_formation_identity_center_configuration
 - [ ] delete_lake_formation_opt_in
 - [X] delete_lf_tag
+- [ ] delete_lf_tag_expression
 - [ ] delete_objects_on_cancel
 - [X] deregister_resource
 - [ ] describe_lake_formation_identity_center_configuration
@@ -4988,6 +5000,7 @@
 - [X] get_data_lake_settings
 - [ ] get_effective_permissions_for_path
 - [X] get_lf_tag
+- [ ] get_lf_tag_expression
 - [ ] get_query_state
 - [ ] get_query_statistics
 - [X] get_resource_lf_tags
@@ -4999,6 +5012,7 @@
 - [X] grant_permissions
 - [X] list_data_cells_filter
 - [ ] list_lake_formation_opt_ins
+- [ ] list_lf_tag_expressions
 - [X] list_lf_tags
 - [X] list_permissions
 - [X] list_resources
@@ -5015,6 +5029,7 @@
 - [ ] update_data_cells_filter
 - [ ] update_lake_formation_identity_center_configuration
 - [X] update_lf_tag
+- [ ] update_lf_tag_expression
 - [ ] update_resource
 - [ ] update_table_objects
 - [ ] update_table_storage_optimizer
@@ -5707,6 +5722,7 @@
 - [ ] add_data_source
 - [X] add_tags
 - [ ] associate_package
+- [ ] associate_packages
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
 - [ ] cancel_service_software_update
@@ -5738,6 +5754,7 @@
 - [ ] describe_reserved_instances
 - [ ] describe_vpc_endpoints
 - [ ] dissociate_package
+- [ ] dissociate_packages
 - [ ] get_application
 - [X] get_compatible_versions
 - [ ] get_data_source
@@ -5768,6 +5785,7 @@
 - [ ] update_data_source
 - [X] update_domain_config
 - [ ] update_package
+- [ ] update_package_scope
 - [ ] update_scheduled_action
 - [ ] update_vpc_endpoint
 - [ ] upgrade_domain
@@ -6265,7 +6283,7 @@
 
 ## quicksight
 <details>
-<summary>9% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_topic_reviewed_answer
@@ -6273,6 +6291,8 @@
 - [ ] create_account_customization
 - [ ] create_account_subscription
 - [ ] create_analysis
+- [ ] create_brand
+- [ ] create_custom_permissions
 - [ ] create_dashboard
 - [X] create_data_set
 - [ ] create_data_source
@@ -6295,6 +6315,9 @@
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_analysis
+- [ ] delete_brand
+- [ ] delete_brand_assignment
+- [ ] delete_custom_permissions
 - [ ] delete_dashboard
 - [ ] delete_data_set
 - [ ] delete_data_set_refresh_properties
@@ -6317,6 +6340,7 @@
 - [ ] delete_topic_refresh_schedule
 - [X] delete_user
 - [ ] delete_user_by_principal_id
+- [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
 - [ ] describe_account_customization
 - [ ] describe_account_settings
@@ -6326,6 +6350,10 @@
 - [ ] describe_analysis_permissions
 - [ ] describe_asset_bundle_export_job
 - [ ] describe_asset_bundle_import_job
+- [ ] describe_brand
+- [ ] describe_brand_assignment
+- [ ] describe_brand_published_version
+- [ ] describe_custom_permissions
 - [ ] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
@@ -6369,6 +6397,8 @@
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
+- [ ] list_brands
+- [ ] list_custom_permissions
 - [ ] list_dashboard_versions
 - [ ] list_dashboards
 - [ ] list_data_sets
@@ -6417,6 +6447,10 @@
 - [ ] update_account_settings
 - [ ] update_analysis
 - [ ] update_analysis_permissions
+- [ ] update_brand
+- [ ] update_brand_assignment
+- [ ] update_brand_published_version
+- [ ] update_custom_permissions
 - [ ] update_dashboard
 - [ ] update_dashboard_links
 - [ ] update_dashboard_permissions
@@ -6447,6 +6481,7 @@
 - [ ] update_topic_permissions
 - [ ] update_topic_refresh_schedule
 - [X] update_user
+- [ ] update_user_custom_permission
 - [ ] update_vpc_connection
 </details>
 
@@ -8548,11 +8583,12 @@
 
 ## sts
 <details>
-<summary>75% implemented</summary>
+<summary>66% implemented</summary>
 
 - [X] assume_role
 - [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
+- [ ] assume_root
 - [ ] decode_authorization_message
 - [ ] get_access_key_info
 - [X] get_caller_identity
@@ -9068,6 +9104,7 @@
 - bcm-data-exports
 - bedrock-agent-runtime
 - bedrock-runtime
+- billing
 - billingconductor
 - braket
 - chatbot
@@ -9103,6 +9140,7 @@
 - connect
 - connect-contact-lens
 - connectcampaigns
+- connectcampaignsv2
 - connectcases
 - connectparticipant
 - controlcatalog
@@ -9220,6 +9258,7 @@
 - omics
 - opsworkscm
 - outposts
+- partnercentral-selling
 - payment-cryptography
 - payment-cryptography-data
 - pca-connector-ad

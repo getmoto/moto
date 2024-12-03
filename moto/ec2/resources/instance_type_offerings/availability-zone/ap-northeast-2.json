@@ -472,22 +472,6 @@
   "Location": "ap-northeast-2a"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "ap-northeast-2a"
  },
@@ -3773,22 +3757,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "g3s.xlarge",
   "Location": "ap-northeast-2c"
  },
  {

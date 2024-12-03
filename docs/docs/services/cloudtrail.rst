@@ -30,6 +30,7 @@ cloudtrail
 - [X] describe_trails
 - [ ] disable_federation
 - [ ] enable_federation
+- [ ] generate_query
 - [ ] get_channel
 - [ ] get_event_data_store
 - [X] get_event_selectors
