@@ -271,7 +271,17 @@ class AthenaBackend(BaseBackend):
     def get_query_execution(self, exec_id: str) -> Execution:
         return self.executions[exec_id]
 
-    def list_query_executions(self) -> Dict[str, Execution]:
+    def list_query_executions(self, workgroup: str | None) -> Dict[str, Execution]:
+        if workgroup is not None:
+            return {
+                exec_id: execution
+                for exec_id, execution in self.executions.items()
+                if (
+                    execution.workgroup.name == workgroup
+                    if isinstance(execution.workgroup, WorkGroup)
+                    else execution.workgroup == workgroup
+                )
+            }
         return self.executions
 
     def get_query_results(self, exec_id: str) -> QueryResults:

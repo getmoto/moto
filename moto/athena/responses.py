@@ -104,7 +104,8 @@ class AthenaResponse(BaseResponse):
         return json.dumps(result.to_dict())
 
     def list_query_executions(self) -> str:
-        executions = self.athena_backend.list_query_executions()
+        workgroup = self._get_param("WorkGroup")
+        executions = self.athena_backend.list_query_executions(workgroup)
         return json.dumps({"QueryExecutionIds": [i for i in executions.keys()]})
 
     def stop_query_execution(self) -> str:
