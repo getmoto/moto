@@ -127,7 +127,7 @@ def test_create_lag(client):
         numberOfConnections=1,
         location="eqDC2",
         connectionsBandwidth="10Gbps",
-        lagName="TestLag1",
+        lagName="TestLag0",
     )
     assert lag["lagId"].startswith("dxlag-moto")
     assert lag["lagState"] == "available"
