@@ -39,6 +39,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
@@ -1798,15 +1799,20 @@ class RDSBackend(BaseBackend):
         self,
         db_instance_identifier: str,
         db_snapshot_identifier: str,
+        operation_name: str,
     ) -> DBSnapshot:
         return self.create_db_snapshot(
-            db_instance_identifier, db_snapshot_identifier, snapshot_type="automated"
+            db_instance_identifier,
+            db_snapshot_identifier,
+            snapshot_type="automated",
+            operation_name=operation_name,
         )
 
     def create_db_snapshot(
         self,
         db_instance: Union[str, DBInstance],
         db_snapshot_identifier: str,
+        operation_name: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> DBSnapshot:
@@ -1817,6 +1823,7 @@ class RDSBackend(BaseBackend):
         else:
             database = db_instance
 
+        self._validate_db_snapshot_identifier(db_snapshot_identifier, operation_name)
         if db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
         if len(self.database_snapshots) >= int(
@@ -1851,6 +1858,7 @@ class RDSBackend(BaseBackend):
             db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,
             tags=tags,
+            operation_name="CopyDBSnapshot",
         )
 
     def delete_db_snapshot(self, db_snapshot_identifier: str) -> DBSnapshot:
@@ -2008,7 +2016,9 @@ class RDSBackend(BaseBackend):
         if database.status != "available":
             raise InvalidDBInstanceStateError(db_instance_identifier, "stop")
         if db_snapshot_identifier:
-            self.create_auto_snapshot(db_instance_identifier, db_snapshot_identifier)
+            self.create_auto_snapshot(
+                db_instance_identifier, db_snapshot_identifier, "StopDBInstance"
+            )
         database.status = "stopped"
         return database
 
@@ -2043,7 +2053,9 @@ class RDSBackend(BaseBackend):
                     "Can't delete Instance with protection enabled"
                 )
             if db_snapshot_name:
-                self.create_auto_snapshot(db_instance_identifier, db_snapshot_name)
+                self.create_auto_snapshot(
+                    db_instance_identifier, db_snapshot_name, "DeleteDBInstance"
+                )
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_identifier)  # type: ignore
@@ -2722,6 +2734,26 @@ class RDSBackend(BaseBackend):
                 raise InvalidDBInstanceIdentifier
             return
         raise InvalidDBInstanceIdentifier
+
+    @staticmethod
+    def _validate_db_snapshot_identifier(
+        db_snapshot_identifier: str, operation_name: str
+    ) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBSnapshot.html
+        # Constraints:
+        # # Must contain from 1 to 255 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if re.match(
+            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])$",
+            db_snapshot_identifier,
+        ):
+            if not db_snapshot_identifier[0].isalpha():
+                raise InvalidDBSnapshotIdentifier(
+                    db_snapshot_identifier, operation_name
+                )
+            return
+        raise InvalidDBSnapshotIdentifier(db_snapshot_identifier, operation_name)
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str

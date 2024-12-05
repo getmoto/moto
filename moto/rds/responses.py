@@ -294,7 +294,10 @@ class RDSResponse(BaseResponse):
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
         snapshot = self.backend.create_db_snapshot(
-            db_instance_identifier, db_snapshot_identifier, tags=tags
+            db_instance_identifier,
+            db_snapshot_identifier,
+            operation_name="CreateDBSnapshot",
+            tags=tags,
         )
         template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)

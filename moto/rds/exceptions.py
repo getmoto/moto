@@ -212,6 +212,30 @@ class InvalidDBInstanceIdentifier(InvalidParameterValue):
         )
 
 
+class InvalidDBSnapshotIdentifier(InvalidParameterValue):
+    def __init__(self, snapshot_identifier: str, operation_name: str) -> None:
+        operation_to_parameter_name = {
+            "CreateDBSnapshot": "DBSnapshotIdentifier",
+            "CopyDBSnapshot": "TargetDBSnapshotIdentifier",
+            "DeleteDBInstance": "FinalDBSnapshotIdentifier",
+            "StopDBInstance": "DBSnapshotIdentifier",
+        }
+        parameter_name = operation_to_parameter_name[operation_name]
+        if snapshot_identifier == "":
+            exception_text = f"The parameter {parameter_name} must be provided and must not be blank."
+        elif not snapshot_identifier[0].isalpha():
+            # On AWS, this error message seems to be triggered when the first character is invalid.
+            # The two spaces before the snapshot_identifier are what AWS produces!
+            exception_text = f"Invalid snapshot identifier:  {snapshot_identifier}"
+        else:
+            exception_text = (
+                f"The parameter {parameter_name} is not a valid identifier. "
+                "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
+                "and must not end with a hyphen or contain two consecutive hyphens."
+            )
+        super().__init__(exception_text)
+
+
 class InvalidDBInstanceEngine(InvalidParameterCombination):
     def __init__(self, instance_engine: str, cluster_engine: str) -> None:
         super().__init__(
