@@ -150,10 +150,15 @@ def test_modify_db_cluster_new_cluster_identifier():
     assert old_id not in clusters
 
 
+@pytest.mark.parametrize("with_custom_kms_key", [True, False])
 @mock_aws
-def test_modify_db_cluster_manage_master_user_password():
+def test_modify_db_cluster_manage_master_user_password(with_custom_kms_key):
     client = boto3.client("rds", region_name=RDS_REGION)
     cluster_id = "cluster-id"
+    custom_kms_key = f"arn:aws:kms:{RDS_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    custom_kms_key_args = (
+        {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
+    )
 
     create_response = client.create_db_cluster(
         DBClusterIdentifier=cluster_id,
@@ -164,7 +169,9 @@ def test_modify_db_cluster_manage_master_user_password():
     )
 
     modify_response = client.modify_db_cluster(
-        DBClusterIdentifier=cluster_id, ManageMasterUserPassword=True
+        DBClusterIdentifier=cluster_id,
+        ManageMasterUserPassword=True,
+        **custom_kms_key_args,
     )
 
     describe_response = client.describe_db_clusters(
@@ -183,10 +190,13 @@ def test_modify_db_cluster_manage_master_user_password():
         == "arn:aws:secretsmanager:eu-north-1:123456789012:secret:rds!cluster-id"
     )
     assert master_user_secret["SecretStatus"] == "active"
-    assert (
-        master_user_secret["KmsKeyId"]
-        == "arn:aws:kms:eu-north-1:123456789012:key/cluster-id"
-    )
+    if with_custom_kms_key:
+        assert master_user_secret["KmsKeyId"] == custom_kms_key
+    else:
+        assert (
+            master_user_secret["KmsKeyId"]
+            == "arn:aws:kms:eu-north-1:123456789012:key/cluster-id"
+        )
     assert len(describe_response["DBClusters"][0]["MasterUserSecret"].keys()) == 3
     assert (
         modify_response["DBCluster"]["MasterUserSecret"]

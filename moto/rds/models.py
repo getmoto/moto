@@ -330,7 +330,7 @@ class DBCluster(RDSBaseModel):
         else:
             self.master_user_password = kwargs.get("master_user_password")  # type: ignore
 
-        self.master_user_secret = None
+        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
         self.manage_master_user_password = kwargs.get(
             "manage_master_user_password", False
         )
@@ -462,22 +462,6 @@ class DBCluster(RDSBaseModel):
         self._master_user_password = val
 
     @property
-    def manage_master_user_password(self) -> Dict:
-        return self._manage_master_user_password
-
-    @manage_master_user_password.setter
-    def manage_master_user_password(self, enabled: bool) -> None:
-        if enabled:
-            self.master_user_secret = {
-                "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
-                "secret_status": "active",
-                "kms_key_id": f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
-            }
-        elif self.master_user_secret:
-            del self.master_user_secret
-        self._manage_master_user_password = enabled
-
-    @property
     def enable_http_endpoint(self) -> bool:
         return self._enable_http_endpoint
 
@@ -511,6 +495,15 @@ class DBCluster(RDSBaseModel):
                     "5.6.mysql_aurora.1.22.5"
                 ]:
                     self._enable_http_endpoint = val
+
+    def master_user_secret(self):
+        return {
+            "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "secret_status": "active",
+            "kms_key_id": self.master_user_secret_kms_key_id
+            if self.master_user_secret_kms_key_id is not None
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+        }
 
     def get_cfg(self) -> Dict[str, Any]:
         cfg = self.__dict__
@@ -624,11 +617,12 @@ class DBCluster(RDSBaseModel):
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
               {%- endif -%}
               {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
-              {%- if cluster.master_user_secret -%}
+              {%- if cluster.manage_master_user_password -%}
               <MasterUserSecret>
-                {% if "secret_arn" in cluster.master_user_secret %}<SecretArn>{{ cluster.master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
-                {% if "secret_status" in cluster.master_user_secret %}<SecretStatus>{{ cluster.master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
-                {% if "kms_key_id" in cluster.master_user_secret %}<KmsKeyId>{{ cluster.master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+                {% set master_user_secret = cluster.master_user_secret() %}
+                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
               </MasterUserSecret>
               {%- endif -%}
             </DBCluster>"""
@@ -804,7 +798,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             self.storage_type = DBInstance.default_storage_type(iops=self.iops)
         self.master_username = kwargs.get("master_username")
         self.master_user_password = kwargs.get("master_user_password")
-        self.master_user_secret = None
+        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
         self.manage_master_user_password = kwargs.get(
             "manage_master_user_password", False
         )
@@ -914,22 +908,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
     def physical_resource_id(self) -> Optional[str]:
         return self.db_instance_identifier
 
-    @property
-    def manage_master_user_password(self) -> Dict:
-        return self._manage_master_user_password
-
-    @manage_master_user_password.setter
-    def manage_master_user_password(self, enabled: bool) -> None:
-        if enabled:
-            self.master_user_secret = {
-                "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
-                "secret_status": "active",
-                "kms_key_id": f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
-            }
-        elif self.master_user_secret:
-            del self.master_user_secret
-        self._manage_master_user_password = enabled
-
     def db_parameter_groups(self) -> List["DBParameterGroup"]:
         if not self.db_parameter_group_name or self.is_default_parameter_group(
             self.db_parameter_group_name
@@ -966,6 +944,15 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         db_family = f"{self.engine.lower()}{minor_engine_version}"  # type: ignore
 
         return db_family, f"default.{db_family}"
+
+    def master_user_secret(self):
+        return {
+            "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "secret_status": "active",
+            "kms_key_id": self.master_user_secret_kms_key_id
+            if self.master_user_secret_kms_key_id is not None
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+        }
 
     def to_xml(self) -> str:
         template = Template(
@@ -1089,11 +1076,12 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
               {%- endfor -%}
               </TagList>
               <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
-              {%- if database.master_user_secret -%}
+              {%- if database.manage_master_user_password -%}
               <MasterUserSecret>
-                {% if "secret_arn" in database.master_user_secret %}<SecretArn>{{ database.master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
-                {% if "secret_status" in database.master_user_secret %}<SecretStatus>{{ database.master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
-                {% if "kms_key_id" in database.master_user_secret %}<KmsKeyId>{{ database.master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+                {% set master_user_secret = database.master_user_secret() %}
+                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
               </MasterUserSecret>
               {%- endif -%}
             </DBInstance>"""

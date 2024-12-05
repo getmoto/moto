@@ -51,6 +51,9 @@ class RDSResponse(BaseResponse):
             "manage_master_user_password": self._get_bool_param(
                 "ManageMasterUserPassword"
             ),
+            "master_user_secret_kms_key_id": self._get_param(
+                "MasterUserSecretKmsKeyId"
+            ),
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
@@ -110,6 +113,9 @@ class RDSResponse(BaseResponse):
             "master_username": self._get_param("MasterUsername"),
             "manage_master_user_password": self._get_bool_param(
                 "ManageMasterUserPassword"
+            ),
+            "master_user_secret_kms_key_id": self._get_param(
+                "MasterUserSecretKmsKeyId"
             ),
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
@@ -194,6 +200,9 @@ class RDSResponse(BaseResponse):
             "master_username": self._get_param("MasterUsername"),
             "manage_master_user_password": self._get_bool_param(
                 "ManageMasterUserPassword"
+            ),
+            "master_user_secret_kms_key_id": self._get_param(
+                "MasterUserSecretKmsKeyId"
             ),
             "master_user_password": self._get_param("MasterUserPassword"),
             "network_type": self._get_param("NetworkType"),
