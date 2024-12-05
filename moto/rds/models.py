@@ -2718,6 +2718,8 @@ class RDSBackend(BaseBackend):
         if re.match(
             "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
         ):
+            if not db_identifier[0].isalpha():
+                raise InvalidDBInstanceIdentifier
             return
         raise InvalidDBInstanceIdentifier
 

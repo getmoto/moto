@@ -7,6 +7,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.rds.exceptions import InvalidDBInstanceIdentifier
+from moto.rds.models import RDSBackend
 from tests import aws_verified
 
 DEFAULT_REGION = "us-west-2"
@@ -2727,6 +2729,25 @@ def test_create_db_instance_with_availability_zone():
 
     resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
     assert resp["DBInstances"][0]["AvailabilityZone"] == availability_zone
+
+
+invalid_identifiers = ("-foo", "foo-", "2foo", "foo--bar", "", "foo_bar")
+invalid_db_identifiers = invalid_identifiers + ("x" * 64,)
+
+
+@pytest.mark.parametrize("invalid_db_identifier", invalid_db_identifiers)
+def test_validate_db_identifier_backend_invalid(invalid_db_identifier):
+    with pytest.raises(InvalidDBInstanceIdentifier):
+        RDSBackend._validate_db_identifier(invalid_db_identifier)
+
+
+valid_identifiers = ("f", "foo", "FOO", "FOO-bar-123")
+valid_db_identifiers = valid_identifiers + ("x" * 63,)
+
+
+@pytest.mark.parametrize("valid_db_identifier", valid_db_identifiers)
+def test_validate_db_identifier_backend_valid(valid_db_identifier):
+    RDSBackend._validate_db_identifier(valid_db_identifier)
 
 
 @mock_aws
