@@ -18,7 +18,6 @@ Resources:
   RootRole:
     Type: 'AWS::IAM::Role'
     Properties:
-      RoleName: MyRole
       Description: {0}
       AssumeRolePolicyDocument:
         Version: 2012-10-17

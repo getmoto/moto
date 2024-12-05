@@ -787,7 +787,7 @@ class Role(CloudFormationModel):
     ) -> "Role":
         iam_backend = iam_backends[account_id][get_partition(region_name)]
         properties = cloudformation_json["Properties"]
-        role_name = properties.get("RoleName", new_resource_name)
+        role_name = properties.get("RoleName", original_resource.name)
         role_description = properties.get("Description", "")
         max_session_duration = properties.get("RoleDescription", 3600)
         return iam_backend.update_role(
