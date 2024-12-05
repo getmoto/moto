@@ -455,3 +455,19 @@ def test_ldaps_exceptions_non_microsoftad():
         client.disable_ldaps(DirectoryId=directory_id, Type="Client")
     err = exc.value.response["Error"]
     assert err["Code"] == "UnsupportedOperationException"
+
+
+@mock_aws
+def test_describe_settings():
+    client = boto3.client("ds", region_name="ap-southeast-1")
+    resp = client.describe_settings()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_update_settings():
+    client = boto3.client("ds", region_name="eu-west-1")
+    resp = client.update_settings()
+
+    raise Exception("NotYetImplemented")

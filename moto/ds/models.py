@@ -692,5 +692,13 @@ class DirectoryServiceBackend(BaseBackend):
         directory = self.directories[directory_id]
         directory.enable_ldaps(False)
 
+    def describe_settings(self, directory_id, status, next_token):
+        # implement here
+        return directory_id, setting_entries, next_token
+    
+    def update_settings(self, directory_id, settings):
+        # implement here
+        return directory_id
+    
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")
