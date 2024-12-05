@@ -804,6 +804,10 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             self.storage_type = DBInstance.default_storage_type(iops=self.iops)
         self.master_username = kwargs.get("master_username")
         self.master_user_password = kwargs.get("master_user_password")
+        self.master_user_secret = None
+        self.manage_master_user_password = kwargs.get(
+            "manage_master_user_password", False
+        )
         self.auto_minor_version_upgrade = kwargs.get("auto_minor_version_upgrade")
         if self.auto_minor_version_upgrade is None:
             self.auto_minor_version_upgrade = True
@@ -909,6 +913,22 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
     @property
     def physical_resource_id(self) -> Optional[str]:
         return self.db_instance_identifier
+
+    @property
+    def manage_master_user_password(self) -> Dict:
+        return self._manage_master_user_password
+
+    @manage_master_user_password.setter
+    def manage_master_user_password(self, enabled: bool) -> None:
+        if enabled:
+            self.master_user_secret = {
+                "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+                "secret_status": "active",
+                "kms_key_id": f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+            }
+        elif self.master_user_secret:
+            del self.master_user_secret
+        self._manage_master_user_password = enabled
 
     def db_parameter_groups(self) -> List["DBParameterGroup"]:
         if not self.db_parameter_group_name or self.is_default_parameter_group(
@@ -1069,6 +1089,13 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
               {%- endfor -%}
               </TagList>
               <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
+              {%- if database.master_user_secret -%}
+              <MasterUserSecret>
+                {% if "secret_arn" in database.master_user_secret %}<SecretArn>{{ database.master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in database.master_user_secret %}<SecretStatus>{{ database.master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in database.master_user_secret %}<KmsKeyId>{{ database.master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+              </MasterUserSecret>
+              {%- endif -%}
             </DBInstance>"""
         )
         return template.render(database=self)

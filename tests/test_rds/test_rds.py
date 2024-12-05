@@ -581,6 +581,51 @@ def test_modify_db_instance():
 
 
 @mock_aws
+def test_modify_db_instance_manage_master_user_password():
+    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    db_id = "db-id"
+
+    create_response = conn.create_db_instance(
+        DBInstanceIdentifier=db_id,
+        DBInstanceClass="postgres",
+        Engine="postgres",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+        ManageMasterUserPassword=False,
+    )
+
+    modify_response = conn.modify_db_instance(
+        DBInstanceIdentifier=db_id, ManageMasterUserPassword=True
+    )
+
+    describe_response = conn.describe_db_instances(
+        DBInstanceIdentifier=db_id,
+    )
+
+    revert_modification_response = conn.modify_db_instance(
+        DBInstanceIdentifier=db_id, ManageMasterUserPassword=False
+    )
+
+    assert create_response["DBInstance"].get("MasterUserSecret") is None
+    master_user_secret = modify_response["DBInstance"]["MasterUserSecret"]
+    assert len(master_user_secret.keys()) == 3
+    assert (
+        master_user_secret["SecretArn"]
+        == "arn:aws:secretsmanager:us-west-2:123456789012:secret:rds!db-id"
+    )
+    assert master_user_secret["SecretStatus"] == "active"
+    assert (
+        master_user_secret["KmsKeyId"] == "arn:aws:kms:us-west-2:123456789012:key/db-id"
+    )
+    assert len(describe_response["DBInstances"][0]["MasterUserSecret"].keys()) == 3
+    assert (
+        modify_response["DBInstance"]["MasterUserSecret"]
+        == describe_response["DBInstances"][0]["MasterUserSecret"]
+    )
+    assert revert_modification_response["DBInstance"].get("MasterUserSecret") is None
+
+
+@mock_aws
 def test_modify_db_instance_not_existent_db_parameter_group_name():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
