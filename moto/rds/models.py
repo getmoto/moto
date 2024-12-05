@@ -330,6 +330,11 @@ class DBCluster(RDSBaseModel):
         else:
             self.master_user_password = kwargs.get("master_user_password")  # type: ignore
 
+        self.master_user_secret = None
+        self.manage_master_user_password = kwargs.get(
+            "manage_master_user_password", False
+        )
+
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
             self.availability_zones = [
@@ -455,6 +460,22 @@ class DBCluster(RDSBaseModel):
                 "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
             )
         self._master_user_password = val
+
+    @property
+    def manage_master_user_password(self) -> Dict:
+        return self._manage_master_user_password
+
+    @manage_master_user_password.setter
+    def manage_master_user_password(self, enabled: bool) -> None:
+        if enabled:
+            self.master_user_secret = {
+                "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+                "secret_status": "active",
+                "kms_key_id": f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+            }
+        elif self.master_user_secret:
+            del self.master_user_secret
+        self._manage_master_user_password = enabled
 
     @property
     def enable_http_endpoint(self) -> bool:
@@ -603,6 +624,13 @@ class DBCluster(RDSBaseModel):
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
               {%- endif -%}
               {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
+              {%- if cluster.master_user_secret -%}
+              <MasterUserSecret>
+                {% if "secret_arn" in cluster.master_user_secret %}<SecretArn>{{ cluster.master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in cluster.master_user_secret %}<SecretStatus>{{ cluster.master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in cluster.master_user_secret %}<KmsKeyId>{{ cluster.master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+              </MasterUserSecret>
+              {%- endif -%}
             </DBCluster>"""
         )
         return template.render(cluster=self, status=status)
