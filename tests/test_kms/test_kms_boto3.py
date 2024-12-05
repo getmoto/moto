@@ -1713,7 +1713,7 @@ def test_get_public_key_with_alias():
         == key["KeyMetadata"]["SigningAlgorithms"]
     )
     assert (
-        public_key_response_with_name["SigningAlgorithms"]
+        public_key_response_with_arn["SigningAlgorithms"]
         == key["KeyMetadata"]["SigningAlgorithms"]
     )
     assert "EncryptionAlgorithms" not in public_key_response_with_name
