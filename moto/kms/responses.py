@@ -707,7 +707,6 @@ class KmsResponse(BaseResponse):
         key_id = self._get_param("KeyId")
 
         self._validate_key_id(key_id)
-        self._validate_cmk_id(key_id)
         key, public_key = self.kms_backend.get_public_key(key_id)
         return json.dumps(
             {
