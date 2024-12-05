@@ -1076,25 +1076,24 @@ def test_copy_db_snapshots(delete_db_instance: bool):
     assert result["TagList"] == []
 
 
-original_tags = [{"Key": "original", "Value": "snapshot tags"}]
-new_tags = [{"Key": "new", "Value": "tag"}]
-kwargs_and_expected_tags = [
-    # No Tags parameter, CopyTags defaults to False -> no tags
-    ({}, []),
-    # No Tags parameter, CopyTags set to True -> use tags of original snapshot
-    ({"CopyTags": True}, original_tags),
-    # When "Tags" are given, they become the only tags of the snapshot.
-    ({"Tags": new_tags}, new_tags),
-    # When "Tags" are given, they become the only tags of the snapshot. Even if CopyTags is True!
-    ({"Tags": new_tags, "CopyTags": True}, new_tags),
-    # When "Tags" are given but empty, CopyTags=True takes effect again!
-    ({"Tags": [], "CopyTags": True}, original_tags),
-]
+original_snapshot_tags = [{"Key": "original", "Value": "snapshot tags"}]
+new_snapshot_tags = [{"Key": "new", "Value": "tag"}]
 
 
 @pytest.mark.parametrize(
     "kwargs,expected_tags",
-    kwargs_and_expected_tags,
+    [
+        # No Tags parameter, CopyTags defaults to False -> no tags
+        ({}, []),
+        # No Tags parameter, CopyTags set to True -> use tags of original snapshot
+        ({"CopyTags": True}, original_snapshot_tags),
+        # When "Tags" are given, they become the only tags of the snapshot.
+        ({"Tags": new_snapshot_tags}, new_snapshot_tags),
+        # When "Tags" are given, they become the only tags of the snapshot. Even if CopyTags is True!
+        ({"Tags": new_snapshot_tags, "CopyTags": True}, new_snapshot_tags),
+        # When "Tags" are given but empty, CopyTags=True takes effect again!
+        ({"Tags": [], "CopyTags": True}, original_snapshot_tags),
+    ],
     ids=(
         "no_parameters",
         "copytags_true",
@@ -1114,7 +1113,7 @@ def test_copy_db_snapshots_copytags_and_tags(kwargs, expected_tags):
     conn.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot",
-        Tags=original_tags,
+        Tags=original_snapshot_tags,
     )
 
     target_snapshot = conn.copy_db_snapshot(
