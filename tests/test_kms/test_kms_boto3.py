@@ -1720,7 +1720,6 @@ def test_get_public_key_with_alias():
     assert "EncryptionAlgorithms" not in public_key_response_with_arn
 
 
-
 def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
     with mock.patch.object(rsa, "generate_private_key", return_value=""):
         params = {}
