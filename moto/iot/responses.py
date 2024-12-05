@@ -155,6 +155,10 @@ class IoTResponse(BaseResponse):
             target_selection=self._get_param("targetSelection"),
             job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
             document_parameters=self._get_param("documentParameters"),
+            abort_config=self._get_param("abortConfig"),
+            job_execution_retry_config=self._get_param("jobExecutionsRetryConfig"),
+            scheduling_config=self._get_param("schedulingConfig"),
+            timeout_config=self._get_param("timeoutConfig"),
         )
 
         return json.dumps(dict(jobArn=job_arn, jobId=job_id, description=description))
@@ -174,6 +178,10 @@ class IoTResponse(BaseResponse):
                     reasonCode=job.reason_code,
                     jobArn=job.job_arn,
                     jobExecutionsRolloutConfig=job.job_executions_rollout_config,
+                    jobExecutionsRetryConfig=job.job_execution_retry_config,
+                    schedulingConfig=job.scheduling_config,
+                    timeoutConfig=job.timeout_config,
+                    abortConfig=job.abort_config,
                     jobId=job.job_id,
                     jobProcessDetails=job.job_process_details,
                     lastUpdatedAt=job.last_updated_at,
@@ -220,7 +228,7 @@ class IoTResponse(BaseResponse):
         max_results = self._get_int_param("maxResults", 50)
         previous_next_token = self._get_param("nextToken")
         jobs, next_token = self.iot_backend.list_jobs(
-            max_results=max_results, token=previous_next_token
+            max_results=max_results, next_token=previous_next_token
         )
 
         return json.dumps(dict(jobs=jobs, nextToken=next_token))
@@ -828,7 +836,7 @@ class IoTResponse(BaseResponse):
         return json.dumps({})
 
     def get_indexing_configuration(self) -> str:
-        return json.dumps(self.iot_backend.get_index_configuration())
+        return json.dumps(self.iot_backend.get_indexing_configuration())
 
     def update_indexing_configuration(self) -> str:
         self.iot_backend.update_indexing_configuration(
@@ -836,3 +844,59 @@ class IoTResponse(BaseResponse):
             self._get_param("thingGroupIndexingConfiguration", {}),
         )
         return json.dumps({})
+
+    def create_job_template(self) -> str:
+        job_template = self.iot_backend.create_job_template(
+            job_template_id=self._get_param("jobTemplateId"),
+            description=self._get_param("description"),
+            document_source=self._get_param("documentSource"),
+            document=self._get_param("document"),
+            presigned_url_config=self._get_param("presignedUrlConfig"),
+            job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
+            abort_config=self._get_param("abortConfig"),
+            job_execution_retry_config=self._get_param("jobExecutionsRetryConfig"),
+            timeout_config=self._get_param("timeoutConfig"),
+        )
+
+        return json.dumps(
+            dict(
+                jobTemplateArn=job_template.job_template_arn,
+                jobTemplateId=job_template.job_template_id,
+            )
+        )
+
+    def list_job_templates(self) -> str:
+        max_results = self._get_int_param("maxResults", 50)
+        current_next_token = self._get_param("nextToken")
+        job_templates, future_next_token = self.iot_backend.list_job_templates(
+            max_results=max_results, next_token=current_next_token
+        )
+
+        return json.dumps(dict(jobTemplates=job_templates, nextToken=future_next_token))
+
+    def delete_job_template(self) -> str:
+        job_template_id = self._get_param("jobTemplateId")
+
+        self.iot_backend.delete_job_template(job_template_id=job_template_id)
+
+        return json.dumps(dict())
+
+    def describe_job_template(self) -> str:
+        job_template_id = self._get_param("jobTemplateId")
+        job_template = self.iot_backend.describe_job_template(job_template_id)
+
+        return json.dumps(
+            {
+                "jobTemplateArn": job_template.job_template_arn,
+                "jobTemplateId": job_template.job_template_id,
+                "description": job_template.description,
+                "documentSource": job_template.document_source,
+                "document": job_template.document,
+                "createdAt": job_template.created_at,
+                "presignedUrlConfig": job_template.presigned_url_config,
+                "jobExecutionsRolloutConfig": job_template.job_executions_rollout_config,
+                "abortConfig": job_template.abort_config,
+                "timeoutConfig": job_template.timeout_config,
+                "jobExecutionsRetryConfig": job_template.job_execution_retry_config,
+            }
+        )

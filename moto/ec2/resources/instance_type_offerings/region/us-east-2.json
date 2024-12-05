@@ -776,22 +776,6 @@
   "Location": "us-east-2"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "us-east-2"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "us-east-2"
  },

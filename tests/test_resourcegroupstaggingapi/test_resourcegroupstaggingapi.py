@@ -1,4 +1,5 @@
 import json
+import typing
 
 import boto3
 import pytest
@@ -1240,3 +1241,58 @@ def test_get_resources_workspacesweb():
         TagFilters=[{"Key": "TestKey3", "Values": ["TestValue3"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
+
+
+@pytest.mark.parametrize("resource_type", ["secretsmanager", "secretsmanager:secret"])
+@mock_aws
+def test_get_resources_secretsmanager(resource_type):
+    def assert_tagging_works(region_name: str, regional_response_keys: typing.Set[str]):
+        rtapi = boto3.client("resourcegroupstaggingapi", region_name=region_name)
+        resp = rtapi.get_resources(
+            ResourcesPerPage=2, ResourceTypeFilters=[resource_type]
+        )
+        for resource in resp["ResourceTagMappingList"]:
+            regional_response_keys.remove(resource["Tags"][0]["Key"])
+
+        assert len(regional_response_keys) == 2
+
+        resp = rtapi.get_resources(
+            ResourcesPerPage=2,
+            PaginationToken=resp["PaginationToken"],
+            ResourceTypeFilters=[resource_type],
+        )
+        for resource in resp["ResourceTagMappingList"]:
+            regional_response_keys.remove(resource["Tags"][0]["Key"])
+
+        assert len(regional_response_keys) == 0
+
+    # Tests pagination
+    secretsmanager_client = boto3.client("secretsmanager", region_name="eu-central-1")
+
+    # Will end up having key1,key2,key3,key4
+    response_keys = set()
+
+    # Create 4 tagged secrets
+    for i in range(1, 5):
+        i_str = str(i)
+        secretsmanager_client.create_secret(
+            Name="test_secret" + i_str,
+            SecretString="very_secret",
+            AddReplicaRegions=[{"Region": "eu-west-1"}],
+        )
+        secretsmanager_client.tag_resource(
+            SecretId="test_secret" + i_str,
+            Tags=[{"Key": "key" + i_str, "Value": "value" + i_str}],
+        )
+        response_keys.add("key" + i_str)
+
+    # add an untagged secret to cover this case as well
+    secretsmanager_client: secretsmanager_client.create_secret(
+        Name="untagged_secret",
+        SecretString="very_secret",
+        AddReplicaRegions=[{"Region": "eu-west-1"}],
+    )
+
+    # Make sure it works for normal and replicated secrets
+    assert_tagging_works("eu-central-1", set(response_keys))
+    assert_tagging_works("eu-west-1", set(response_keys))

@@ -418,6 +418,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "connectparticipant": {
                 "Value": "connectparticipant",
                 "endpoint": {
@@ -5289,15 +5298,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11450,6 +11450,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "iotfleetwise": {
+                "Value": "iotfleetwise",
+                "endpoint": {
+                  "Value": "iotfleetwise.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -12521,10 +12530,22 @@
                   "Value": "api.thinclient.ap-south-1.amazonaws.com"
                 }
               },
+              "timestream": {
+                "Value": "timestream"
+              },
               "timestream-influxdb": {
                 "Value": "timestream-influxdb",
                 "endpoint": {
                   "Value": "timestream-influxdb.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "timestream-write": {
+                "Value": "timestream-write",
+                "endpoint": {
+                  "Value": "ingest.timestream.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13147,6 +13168,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-containers": {
+                "Value": "emr-containers",
+                "endpoint": {
+                  "Value": "emr-containers.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -13949,6 +13979,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -15735,15 +15774,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -15779,15 +15809,6 @@
               },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
-                "endpoint": {
-                  "Value": "opsworks-cm.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "opsworkscm": {
-                "Value": "opsworkscm",
                 "endpoint": {
                   "Value": "opsworks-cm.ap-southeast-1.amazonaws.com"
                 },
@@ -18531,15 +18552,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -20923,6 +20935,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -22665,6 +22686,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -22692,6 +22722,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kinesisanalytics": {
+                "Value": "kinesisanalytics",
+                "endpoint": {
+                  "Value": "kinesisanalytics.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kms": {
                 "Value": "kms",
                 "endpoint": {
@@ -22701,10 +22740,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "lambda": {
                 "Value": "lambda",
                 "endpoint": {
                   "Value": "lambda.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-linux-subscriptions": {
+                "Value": "license-manager-linux-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-linux-subscriptions.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -22721,6 +22778,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -22899,6 +22965,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "shield": {
+                "Value": "shield",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sns": {
                 "Value": "sns",
                 "endpoint": {
@@ -22980,6 +23055,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transitgateway": {
                 "Value": "transitgateway",
                 "endpoint": {
@@ -23008,6 +23092,15 @@
                 "Value": "waf",
                 "endpoint": {
                   "Value": "wafv2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "wickr": {
+                "Value": "wickr",
+                "endpoint": {
+                  "Value": "api.messaging.wickr.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24580,15 +24673,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -26091,6 +26175,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mwaa": {
                 "Value": "mwaa",
@@ -27875,6 +27968,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transcribe": {
                 "Value": "transcribe",
                 "endpoint": {
@@ -29245,6 +29347,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "timestream-influxdb": {
+                "Value": "timestream-influxdb",
+                "endpoint": {
+                  "Value": "timestream-influxdb.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31188,15 +31299,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -31232,15 +31334,6 @@
               },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
-                "endpoint": {
-                  "Value": "opsworks-cm.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "opsworkscm": {
-                "Value": "opsworkscm",
                 "endpoint": {
                   "Value": "opsworks-cm.eu-central-1.amazonaws.com"
                 },
@@ -31825,6 +31918,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -33483,6 +33585,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -34895,15 +35006,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40552,15 +40654,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -43266,15 +43359,6 @@
                 "Value": "networkmonitor",
                 "endpoint": {
                   "Value": "networkmonitor.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46701,6 +46785,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-containers": {
+                "Value": "emr-containers",
+                "endpoint": {
+                  "Value": "emr-containers.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -48969,6 +49062,15 @@
               },
               "vpc": {
                 "Value": "vpc"
+              },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpn": {
                 "Value": "vpn",
@@ -53193,6 +53295,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "billing": {
+                "Value": "billing",
+                "endpoint": {
+                  "Value": "billing.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "billingconductor": {
                 "Value": "billingconductor",
                 "endpoint": {
@@ -54984,15 +55095,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -55084,6 +55186,15 @@
                 "Value": "panorama",
                 "endpoint": {
                   "Value": "panorama.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "partnercentral-selling": {
+                "Value": "partnercentral-selling",
+                "endpoint": {
+                  "Value": "partnercentral-selling.us-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -57780,15 +57891,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -57821,15 +57923,6 @@
               },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
-                "endpoint": {
-                  "Value": "opsworks-cm.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "opsworkscm": {
-                "Value": "opsworkscm",
                 "endpoint": {
                   "Value": "opsworks-cm.us-east-2.amazonaws.com"
                 },
@@ -59866,9 +59959,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics"
-              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -61622,9 +61712,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "sagemaker-metrics": {
-                "Value": "sagemaker-metrics"
-              },
               "sagemaker-runtime": {
                 "Value": "sagemaker-runtime",
                 "endpoint": {
@@ -63317,15 +63404,6 @@
               },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
-                "endpoint": {
-                  "Value": "opsworks-cm.us-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "opsworkscm": {
-                "Value": "opsworkscm",
                 "endpoint": {
                   "Value": "opsworks-cm.us-west-1.amazonaws.com"
                 },
@@ -66060,15 +66138,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "nimble": {
-                "Value": "nimble",
-                "endpoint": {
-                  "Value": "nimble.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "notifications": {
                 "Value": "notifications"
               },
@@ -66104,15 +66173,6 @@
               },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
-                "endpoint": {
-                  "Value": "opsworks-cm.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "opsworkscm": {
-                "Value": "opsworkscm",
                 "endpoint": {
                   "Value": "opsworks-cm.us-west-2.amazonaws.com"
                 },

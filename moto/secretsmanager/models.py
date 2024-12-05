@@ -907,9 +907,13 @@ class SecretsManagerBackend(BaseBackend):
         filters: List[Dict[str, Any]],
         max_results: int = MAX_RESULTS_DEFAULT,
         next_token: Optional[str] = None,
+        include_planned_deletion: bool = False,
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         secret_list: List[Dict[str, Any]] = []
         for secret in self.secrets.values():
+            if hasattr(secret, "deleted_date"):
+                if secret.deleted_date and not include_planned_deletion:
+                    continue
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
 

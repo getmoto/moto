@@ -3,7 +3,6 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from ..moto_api._internal import mock_random
 from .models import GLOBAL_REGION, WAFV2Backend, wafv2_backends
 
 
@@ -98,8 +97,12 @@ class WAFV2Response(BaseResponse):
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        all_web_acls = self.wafv2_backend.list_web_acls()
-        response = {"NextMarker": "Not Implemented", "WebACLs": all_web_acls}
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        web_acls, next_marker = self.wafv2_backend.list_web_acls(
+            limit=limit, next_marker=next_marker
+        )
+        response = {"NextMarker": next_marker, "WebACLs": web_acls}
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -107,16 +110,30 @@ class WAFV2Response(BaseResponse):
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        rule_groups = self.wafv2_backend.list_rule_groups(scope)
-        response = {"RuleGroups": [rg.to_short_dict() for rg in rule_groups]}
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        rule_groups, next_marker = self.wafv2_backend.list_rule_groups(
+            scope, limit=limit, next_marker=next_marker
+        )
+        response = {
+            "RuleGroups": [rg.to_short_dict() for rg in rule_groups],
+            "NextMarker": next_marker,
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceARN")
         self.region = arn.split(":")[3]
-        tags = self.wafv2_backend.list_tags_for_resource(arn)
-        response = {"TagInfoForResource": {"ResourceARN": arn, "TagList": tags}}
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        tags, next_marker = self.wafv2_backend.list_tags_for_resource(
+            arn, limit=limit, next_marker=next_marker
+        )
+        response = {
+            "TagInfoForResource": {"ResourceARN": arn, "TagList": tags},
+            "NextMarker": next_marker,
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -217,11 +234,15 @@ class WAFV2Response(BaseResponse):
 
         return 200, {}, "{}"
 
-    def list_ip_sets(self) -> TYPE_RESPONSE:
+    def list_ip_sets(self) -> str:
         scope = self._get_param("Scope")
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        ip_sets = self.wafv2_backend.list_ip_sets(scope)
+        next_marker = self._get_param("NextMarker")
+        limit = self._get_int_param("Limit")
+        ip_sets, next_token = self.wafv2_backend.list_ip_sets(
+            scope, next_marker=next_marker, limit=limit
+        )
 
         formatted_ip_sets = [
             {
@@ -234,13 +255,7 @@ class WAFV2Response(BaseResponse):
             for ip_set in ip_sets
         ]
 
-        return (
-            200,
-            {},
-            json.dumps(
-                {"NextMarker": str(mock_random.uuid4()), "IPSets": formatted_ip_sets}
-            ),
-        )
+        return json.dumps({"NextMarker": next_token, "IPSets": formatted_ip_sets})
 
     def get_ip_set(self) -> TYPE_RESPONSE:
         scope = self._get_param("Scope")
@@ -327,16 +342,22 @@ class WAFV2Response(BaseResponse):
             ),
         )
 
-    def list_logging_configurations(self) -> TYPE_RESPONSE:
+    def list_logging_configurations(self) -> str:
         body = json.loads(self.body)
         scope = body.get("Scope")
-        log_configs = self.wafv2_backend.list_logging_configurations(scope)
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+        log_configs, next_marker = self.wafv2_backend.list_logging_configurations(
+            scope, limit=limit, next_marker=next_marker
+        )
 
         formatted = [
             {k: v for k, v in config.to_dict().items() if v is not None}
             for config in log_configs
         ]
-        return 200, {}, json.dumps({"LoggingConfigurations": formatted})
+        return json.dumps(
+            {"LoggingConfigurations": formatted, "NextMarker": next_marker}
+        )
 
     def delete_logging_configuration(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)

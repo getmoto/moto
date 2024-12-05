@@ -4,7 +4,23 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
+
+PAGINATION_MODEL = {
+    "list_channels": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_inputs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+}
 
 
 class Input(BaseModel):
@@ -157,13 +173,9 @@ class MediaLiveBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
-    def list_channels(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
-        """
-        Pagination is not yet implemented
-        """
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_channels(self) -> List[Dict[str, Any]]:
         channels = list(self._channels.values())
-        if max_results is not None:
-            channels = channels[:max_results]
         return [
             c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
         ]
@@ -255,13 +267,9 @@ class MediaLiveBackend(BaseBackend):
         a_input._resolve_transient_states()
         return a_input
 
-    def list_inputs(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
-        """
-        Pagination is not yet implemented
-        """
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_inputs(self) -> List[Dict[str, Any]]:
         inputs = list(self._inputs.values())
-        if max_results is not None:
-            inputs = inputs[:max_results]
         return [i.to_dict() for i in inputs]
 
     def delete_input(self, input_id: str) -> None:

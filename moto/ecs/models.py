@@ -14,6 +14,7 @@ from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
+from ..ec2.exceptions import InvalidSecurityGroupNotFoundError, InvalidSubnetIdError
 from ..ec2.utils import random_private_ip
 from .exceptions import (
     ClusterNotFoundException,
@@ -548,6 +549,7 @@ class Service(BaseObject, CloudFormationModel):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
+        network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
         propagate_tags: str = "NONE",
     ):
         self.cluster_name = cluster.name
@@ -598,6 +600,37 @@ class Service(BaseObject, CloudFormationModel):
             self.deployments = []
         self.propagate_tags = propagate_tags
 
+        if network_configuration is not None:
+            self.network_configuration = self._validate_network(network_configuration)
+        else:
+            self.network_configuration = {}
+
+    def _validate_network(
+        self, nc: Dict[str, Dict[str, List[str]]]
+    ) -> Dict[str, Dict[str, List[str]]]:
+        c = nc["awsvpcConfiguration"]
+        if len(c["subnets"]) == 0:
+            raise InvalidParameterException("subnets can not be empty.")
+
+        ec2_backend = ec2_backends[self._account_id][self.region_name]
+        try:
+            ec2_backend.describe_subnets(subnet_ids=c["subnets"])
+        except InvalidSubnetIdError as exc:
+            subnet_id = exc.message.split("'")[1]
+            raise InvalidParameterException(
+                f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.error_type})"
+            )
+
+        try:
+            ec2_backend.describe_security_groups(group_ids=c["securityGroups"])
+        except InvalidSecurityGroupNotFoundError as exc:
+            sg = exc.message.split("'{'")[1].split("'}'")[0]
+            raise InvalidParameterException(
+                f"Error retrieving security group information for [{sg}]: "
+                f"The security group '{sg}' does not exist (ErrorCode: InvalidGroup.NotFound)"
+            )
+        return nc
+
     @property
     def arn(self) -> str:
         if self._backend.enable_long_arn_for_name(name="serviceLongArnFormat"):
@@ -633,6 +666,7 @@ class Service(BaseObject, CloudFormationModel):
                 deployment["updatedAt"] = unix_time(
                     deployment["updatedAt"].replace(tzinfo=None)
                 )
+        response_object["networkConfiguration"] = self.network_configuration
 
         return response_object
 
@@ -1613,6 +1647,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
         propagate_tags: str = "NONE",
+        network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
@@ -1640,6 +1675,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             service_registries=service_registries,
             platform_version=platform_version,
             propagate_tags=propagate_tags,
+            network_configuration=network_configuration,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service

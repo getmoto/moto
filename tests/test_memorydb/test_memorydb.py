@@ -21,6 +21,9 @@ def create_subnet_group(client, region_name):
         SubnetGroupName="my_subnet_group",
         Description="This is my subnet group",
         SubnetIds=[subnet1.id, subnet2.id],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+        ],
     )
     return subnet_group
 
@@ -396,6 +399,32 @@ def test_list_tags():
 
 
 @mock_aws
+def test_list_tags_snapshot():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    client.create_cluster(
+        ClusterName="test-memory-db", NodeType="db.t4g.small", ACLName="open-access"
+    )
+    snapshot = client.create_snapshot(
+        ClusterName="test-memory-db",
+        SnapshotName="my-snapshot",
+        Tags=[
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+    resp = client.list_tags(ResourceArn=snapshot["Snapshot"]["ARN"])
+    assert len(resp["TagList"]) == 1
+
+
+@mock_aws
+def test_list_tags_subnetgroups():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    subnet_group = create_subnet_group(client, "us-east-2")
+    sg = subnet_group["SubnetGroup"]
+    resp = client.list_tags(ResourceArn=sg["ARN"])
+    assert len(resp["TagList"]) == 1
+
+
+@mock_aws
 def test_list_tags_invalid_cluster_fails():
     client = boto3.client("memorydb", region_name="us-east-2")
     with pytest.raises(ClientError) as ex:
@@ -404,6 +433,28 @@ def test_list_tags_invalid_cluster_fails():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ClusterNotFoundFault"
+
+
+@mock_aws
+def test_list_tags_invalid_snapshot_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.list_tags(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:snapshot/foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+
+
+@mock_aws
+def test_list_tags_invalid_subnetgroup_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.list_tags(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:subnetgroup/foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SubnetGroupNotFoundFault"
 
 
 @mock_aws
@@ -442,6 +493,30 @@ def test_tag_resource_invalid_cluster_fails():
 
 
 @mock_aws
+def test_tag_resource_invalid_snapshot_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.tag_resource(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:snapshot/foobar",
+            Tags=[{"Key": "key2", "Value": "value2"}],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+
+
+@mock_aws
+def test_tag_resource_invalid_subnetgroup_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.tag_resource(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:subnetgroup/foobar",
+            Tags=[{"Key": "key2", "Value": "value2"}],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SubnetGroupNotFoundFault"
+
+
+@mock_aws
 def test_untag_resource():
     client = boto3.client("memorydb", region_name="us-east-2")
     cluster = client.create_cluster(
@@ -472,6 +547,30 @@ def test_untag_resource_invalid_cluster_fails():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ClusterNotFoundFault"
+
+
+@mock_aws
+def test_untag_resource_invalid_snapshot_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.untag_resource(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:snapshot/foobar",
+            TagKeys=["key1"],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+
+
+@mock_aws
+def test_untag_resource_invalid_subnetgroup_fails():
+    client = boto3.client("memorydb", region_name="us-east-2")
+    with pytest.raises(ClientError) as ex:
+        client.untag_resource(
+            ResourceArn=f"arn:aws:memorydb:us-east-1:{ACCOUNT_ID}:subnetgroup/foobar",
+            TagKeys=["key1"],
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "SubnetGroupNotFoundFault"
 
 
 @mock_aws
