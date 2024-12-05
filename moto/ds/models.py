@@ -641,16 +641,23 @@ class DirectoryServiceBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_trusts(
-        self, directory_id: str, trust_ids: Optional[List[str]]
+        self, directory_id: Optional[str], trust_ids: Optional[List[str]]
     ) -> List[Trust]:
-        self._validate_directory_id(directory_id)
-        directory = self.directories[directory_id]
-        trusts = directory.trusts
-        if trust_ids:
-            trusts = [t for t in directory.trusts if t.trust_id in trust_ids]
-        else:
+        if directory_id:
+            self._validate_directory_id(directory_id)
+            directory = self.directories[directory_id]
             trusts = directory.trusts
-        return trusts
+        else:
+            trusts = [
+                trust
+                for directory in self.directories.values()
+                for trust in directory.trusts
+            ]
+        if trust_ids:
+            queried_trusts = [t for t in trusts if t.trust_id in trust_ids]
+        else:
+            queried_trusts = trusts
+        return queried_trusts
 
     def delete_trust(
         self, trust_id: str, delete_associated_conditional_forwarder: Optional[bool]
