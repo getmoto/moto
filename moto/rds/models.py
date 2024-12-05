@@ -1838,15 +1838,19 @@ class RDSBackend(BaseBackend):
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        copy_tags: bool = False,
     ) -> DBSnapshot:
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)
 
         source_snapshot = self.database_snapshots[source_snapshot_identifier]
-        if tags is None:
-            tags = source_snapshot.tags
-        else:
-            tags = self._merge_tags(source_snapshot.tags, tags)
+
+        # When tags are passed, AWS does NOT copy/merge tags of the
+        # source snapshot, even when copy_tags=True is given.
+        # But when tags=[], AWS does honor copy_tags=True.
+        if not tags:
+            tags = source_snapshot.tags if copy_tags else []
+
         return self.create_db_snapshot(
             db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,

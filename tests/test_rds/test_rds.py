@@ -1076,6 +1076,55 @@ def test_copy_db_snapshots(delete_db_instance: bool):
     assert result["TagList"] == []
 
 
+original_snapshot_tags = [{"Key": "original", "Value": "snapshot tags"}]
+new_snapshot_tags = [{"Key": "new", "Value": "tag"}]
+
+
+@pytest.mark.parametrize(
+    "kwargs,expected_tags",
+    [
+        # No Tags parameter, CopyTags defaults to False -> no tags
+        ({}, []),
+        # No Tags parameter, CopyTags set to True -> use tags of original snapshot
+        ({"CopyTags": True}, original_snapshot_tags),
+        # When "Tags" are given, they become the only tags of the snapshot.
+        ({"Tags": new_snapshot_tags}, new_snapshot_tags),
+        # When "Tags" are given, they become the only tags of the snapshot. Even if CopyTags is True!
+        ({"Tags": new_snapshot_tags, "CopyTags": True}, new_snapshot_tags),
+        # When "Tags" are given but empty, CopyTags=True takes effect again!
+        ({"Tags": [], "CopyTags": True}, original_snapshot_tags),
+    ],
+    ids=(
+        "no_parameters",
+        "copytags_true",
+        "only_tags",
+        "copytags_true_and_tags",
+        "copytags_true_and_empty_tags",
+    ),
+)
+@mock_aws
+def test_copy_db_snapshots_copytags_and_tags(kwargs, expected_tags):
+    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    conn.create_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        Engine="postgres",
+        DBInstanceClass="db.m1.small",
+    )
+    conn.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1",
+        DBSnapshotIdentifier="snapshot",
+        Tags=original_snapshot_tags,
+    )
+
+    target_snapshot = conn.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="snapshot",
+        TargetDBSnapshotIdentifier="snapshot-copy",
+        **kwargs,
+    ).get("DBSnapshot")
+    result = conn.list_tags_for_resource(ResourceName=target_snapshot["DBSnapshotArn"])
+    assert result["TagList"] == expected_tags
+
+
 @mock_aws
 def test_describe_db_snapshots():
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
