@@ -1706,20 +1706,19 @@ def test_get_public_key_with_alias():
     public_key_response_with_name = client.get_public_key(KeyId="alias/foo")
     public_key_response_with_arn = client.get_public_key(KeyId=alias_arn)
 
-    assert "PublicKey" in public_key_response_with_name, (
-        "PublicKey" in public_key_response_with_arn
+    assert "PublicKey" in public_key_response_with_name
+    assert "PublicKey" in public_key_response_with_arn
+    assert (
+        public_key_response_with_name["SigningAlgorithms"]
+        == key["KeyMetadata"]["SigningAlgorithms"]
     )
     assert (
         public_key_response_with_name["SigningAlgorithms"]
         == key["KeyMetadata"]["SigningAlgorithms"]
-    ), (
-        public_key_response_with_name["SigningAlgorithms"]
-        == key["KeyMetadata"]["SigningAlgorithms"]
     )
+    assert "EncryptionAlgorithms" not in public_key_response_with_name
+    assert "EncryptionAlgorithms" not in public_key_response_with_arn
 
-    assert "EncryptionAlgorithms" not in public_key_response_with_name, (
-        "EncryptionAlgorithms" not in public_key_response_with_arn
-    )
 
 
 def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
