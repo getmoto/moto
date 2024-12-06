@@ -2894,6 +2894,13 @@ def test_validate_db_snapshot_identifier_different_operations():
     snapshot_validation_helper(exc, expected_message)
 
     with pytest.raises(ClientError) as exc:
+        client.stop_db_instance(
+            DBInstanceIdentifier=db_instance_identifier,
+            DBSnapshotIdentifier=invalid_db_snapshot_identifier,
+        )
+    snapshot_validation_helper(exc, expected_message)
+
+    with pytest.raises(ClientError) as exc:
         client.delete_db_instance(
             DBInstanceIdentifier=db_instance_identifier,
             FinalDBSnapshotIdentifier=invalid_db_snapshot_identifier,
