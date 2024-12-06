@@ -1801,9 +1801,7 @@ class RDSBackend(BaseBackend):
         db_snapshot_identifier: str,
     ) -> DBSnapshot:
         return self.create_db_snapshot(
-            db_instance_identifier,
-            db_snapshot_identifier,
-            snapshot_type="automated",
+            db_instance_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
 
     def create_db_snapshot(
