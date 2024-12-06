@@ -212,7 +212,7 @@ class EFSResponse(BaseResponse):
         file_system_id = self._get_param("FileSystemId")
         policy = self._get_param("Policy")
         bypass_policy_lockout_safety_check = (
-            self._get_param("BypassPolicyLockoutSafetyCheck") | False
+            self._get_param("BypassPolicyLockoutSafetyCheck") or False
         )
         self.efs_backend.put_file_system_policy(
             file_system_id=file_system_id,
