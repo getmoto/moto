@@ -198,18 +198,18 @@ class EFSResponse(BaseResponse):
         self.efs_backend.untag_resource(resource_id, tag_keys)
         return "{}", {"Content-Type": "application/json"}
 
-    def describe_file_system_policy(self):
+    def describe_file_system_policy(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
         policy = self.efs_backend.describe_file_system_policy(
             file_system_id=file_system_id,
         )
         return json.dumps(dict(FileSystemId=file_system_id, Policy=policy))
 
-    def put_file_system_policy(self):
+    def put_file_system_policy(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
         policy = self._get_param("Policy")
-        bypass_policy_lockout_safety_check = self._get_param(
-            "BypassPolicyLockoutSafetyCheck"
+        bypass_policy_lockout_safety_check = (
+            self._get_param("BypassPolicyLockoutSafetyCheck") | False
         )
         self.efs_backend.put_file_system_policy(
             file_system_id=file_system_id,
