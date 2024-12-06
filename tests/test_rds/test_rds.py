@@ -1043,8 +1043,13 @@ def test_create_db_snapshots_with_tags():
 
 
 @pytest.mark.parametrize("delete_db_instance", [True, False])
+@pytest.mark.parametrize(
+    "db_snapshot_identifier",
+    ("snapshot-1", f"arn:aws:rds:{DEFAULT_REGION}:123456789012:snapshot:snapshot-1"),
+    ids=("by_name", "by_arn"),
+)
 @mock_aws
-def test_copy_db_snapshots(delete_db_instance: bool):
+def test_copy_db_snapshots(delete_db_instance: bool, db_snapshot_identifier: str):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
 
     conn.create_db_instance(
@@ -1068,7 +1073,8 @@ def test_copy_db_snapshots(delete_db_instance: bool):
         conn.delete_db_instance(DBInstanceIdentifier="db-primary-1")
 
     target_snapshot = conn.copy_db_snapshot(
-        SourceDBSnapshotIdentifier="snapshot-1", TargetDBSnapshotIdentifier="snapshot-2"
+        SourceDBSnapshotIdentifier=db_snapshot_identifier,
+        TargetDBSnapshotIdentifier="snapshot-2",
     ).get("DBSnapshot")
 
     assert target_snapshot.get("Engine") == "postgres"
@@ -1076,6 +1082,29 @@ def test_copy_db_snapshots(delete_db_instance: bool):
     assert target_snapshot.get("DBSnapshotIdentifier") == "snapshot-2"
     result = conn.list_tags_for_resource(ResourceName=target_snapshot["DBSnapshotArn"])
     assert result["TagList"] == []
+
+
+@mock_aws
+def test_copy_db_snapshot_invalid_arns():
+    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+
+    invalid_arn = (
+        f"arn:aws:rds:{DEFAULT_REGION}:123456789012:this-is-not-a-snapshot:snapshot-1"
+    )
+    with pytest.raises(ClientError) as ex:
+        conn.copy_db_snapshot(
+            SourceDBSnapshotIdentifier=invalid_arn,
+            TargetDBSnapshotIdentifier="snapshot-2",
+        )
+    assert "is not a valid identifier" in ex.value.response["Error"]["Message"]
+
+    cross_account_arn = f"arn:aws:rds:{DEFAULT_REGION}:112233445566:snapshot:snapshot-1"
+    with pytest.raises(ClientError) as ex:
+        conn.copy_db_snapshot(
+            SourceDBSnapshotIdentifier=cross_account_arn,
+            TargetDBSnapshotIdentifier="snapshot-2",
+        )
+    assert "not yet implemented in moto" in ex.value.response["Error"]["Message"]
 
 
 original_snapshot_tags = [{"Key": "original", "Value": "snapshot tags"}]
@@ -1223,8 +1252,13 @@ def test_delete_db_snapshot():
         conn.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
 
 
+@pytest.mark.parametrize(
+    "db_snapshot_identifier",
+    ("snapshot-1", f"arn:aws:rds:{DEFAULT_REGION}:123456789012:snapshot:snapshot-1"),
+    ids=("by_name", "by_arn"),
+)
 @mock_aws
-def test_restore_db_instance_from_db_snapshot():
+def test_restore_db_instance_from_db_snapshot(db_snapshot_identifier):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
         DBInstanceIdentifier="db-primary-1",
@@ -1244,7 +1278,7 @@ def test_restore_db_instance_from_db_snapshot():
 
     # restore
     new_instance = conn.restore_db_instance_from_db_snapshot(
-        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot-1"
+        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier=db_snapshot_identifier
     )["DBInstance"]
     assert new_instance["DBInstanceIdentifier"] == "db-restore-1"
     assert new_instance["DBInstanceClass"] == "db.m1.small"
