@@ -203,7 +203,10 @@ class EFSResponse(BaseResponse):
         policy = self.efs_backend.describe_file_system_policy(
             file_system_id=file_system_id,
         )
-        return json.dumps(dict(FileSystemId=file_system_id, Policy=policy))
+        return (
+            json.dumps(dict(FileSystemId=file_system_id, Policy=policy)),
+            {"Content-Type": "application/json"},
+        )
 
     def put_file_system_policy(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
@@ -216,4 +219,7 @@ class EFSResponse(BaseResponse):
             policy=policy,
             bypass_policy_lockout_safety_check=bypass_policy_lockout_safety_check,
         )
-        return json.dumps(dict(FileSystemId=file_system_id, Policy=policy))
+        return (
+            json.dumps(dict(FileSystemId=file_system_id, Policy=policy)),
+            {"Content-Type": "application/json"},
+        )
