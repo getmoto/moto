@@ -334,6 +334,9 @@ class DBCluster(RDSBaseModel):
         self.manage_master_user_password = kwargs.get(
             "manage_master_user_password", False
         )
+        self.master_user_secret_status = kwargs.get(
+            "master_user_secret_status", "active"
+        )
 
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
@@ -499,7 +502,7 @@ class DBCluster(RDSBaseModel):
     def master_user_secret(self):
         return {
             "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
-            "secret_status": "active",
+            "secret_status": self.master_user_secret_status,
             "kms_key_id": self.master_user_secret_kms_key_id
             if self.master_user_secret_kms_key_id is not None
             else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
@@ -799,6 +802,9 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         self.master_username = kwargs.get("master_username")
         self.master_user_password = kwargs.get("master_user_password")
         self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
+        self.master_user_secret_status = kwargs.get(
+            "master_user_secret_status", "active"
+        )
         self.manage_master_user_password = kwargs.get(
             "manage_master_user_password", False
         )
@@ -948,7 +954,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
     def master_user_secret(self):
         return {
             "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
-            "secret_status": "active",
+            "secret_status": self.master_user_secret_status,
             "kms_key_id": self.master_user_secret_kms_key_id
             if self.master_user_secret_kms_key_id is not None
             else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
@@ -1978,8 +1984,23 @@ class RDSBackend(BaseBackend):
         )
         if msg:
             raise RDSClientError("InvalidParameterValue", msg)
+        if db_kwargs.get("rotate_master_user_password") and db_kwargs.get(
+            "apply_immediately"
+        ):
+            db_kwargs["master_user_secret_status"] = "rotating"
+        if db_kwargs.get("rotate_master_user_password") and not db_kwargs.get(
+            "apply_immediately"
+        ):
+            raise RDSClientError(
+                "InvalidParameterCombination",
+                "You must specify apply immediately when rotating the master user password.",
+            )
         database.update(db_kwargs)
-        return database
+        initial_state = copy.deepcopy(database)
+        database.master_user_secret_status = (
+            "active"  # already set the final state in the background
+        )
+        return initial_state
 
     def reboot_db_instance(self, db_instance_identifier: str) -> DBInstance:
         return self.describe_db_instances(db_instance_identifier)[0]
@@ -2428,6 +2449,18 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
+        if kwargs.get("rotate_master_user_password") and kwargs.get(
+            "apply_immediately"
+        ):
+            kwargs["master_user_secret_status"] = "rotating"
+        elif kwargs.get("rotate_master_user_password") and not kwargs.get(
+            "apply_immediately"
+        ):
+            raise RDSClientError(
+                "InvalidParameterCombination",
+                "You must specify apply immediately when rotating the master user password.",
+            )
+
         kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier")
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
@@ -2446,7 +2479,11 @@ class RDSBackend(BaseBackend):
         self.clusters[cluster_id] = cluster
 
         initial_state = copy.deepcopy(cluster)  # Return status=creating
-        cluster.status = "available"  # Already set the final status in the background
+
+        # Already set the final status in the background
+        cluster.status = "available"
+        cluster.master_user_secret_status = "active"
+
         return initial_state
 
     def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:

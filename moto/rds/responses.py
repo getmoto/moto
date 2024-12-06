@@ -54,6 +54,7 @@ class RDSResponse(BaseResponse):
             "master_user_secret_kms_key_id": self._get_param(
                 "MasterUserSecretKmsKeyId"
             ),
+            "rotate_master_user_password": self._get_param("RotateMasterUserPassword"),
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
@@ -74,6 +75,7 @@ class RDSResponse(BaseResponse):
             ),
             "tags": list(),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
+            "apply_immediately": self._get_bool_param("ApplyImmediately"),
         }
         args["tags"] = self.unpack_list_params("Tags", "Tag")
         return args
@@ -117,6 +119,7 @@ class RDSResponse(BaseResponse):
             "master_user_secret_kms_key_id": self._get_param(
                 "MasterUserSecretKmsKeyId"
             ),
+            "rotate_master_user_password": self._get_param("RotateMasterUserPassword"),
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
@@ -135,6 +138,7 @@ class RDSResponse(BaseResponse):
             ),
             "tags": list(),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
+            "apply_immediately": self._get_bool_param("ApplyImmediately"),
         }
         args["tags"] = self.unpack_list_params("Tags", "Tag")
         return args

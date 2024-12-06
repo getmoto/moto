@@ -582,7 +582,6 @@ def test_modify_db_instance():
 
 @pytest.mark.parametrize("with_custom_kms_key", [True, False])
 @mock_aws
-@mock_aws
 def test_modify_db_instance_manage_master_user_password(with_custom_kms_key: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     db_id = "db-id"
@@ -634,6 +633,49 @@ def test_modify_db_instance_manage_master_user_password(with_custom_kms_key: boo
         == describe_response["DBInstances"][0]["MasterUserSecret"]
     )
     assert revert_modification_response["DBInstance"].get("MasterUserSecret") is None
+
+
+@pytest.mark.parametrize("with_apply_immediately", [True, False])
+@mock_aws
+def test_modify_db_instance_rotate_master_user_password(with_apply_immediately):
+    conn = boto3.client("rds", region_name=DEFAULT_REGION)
+    db_id = "db-id"
+
+    conn.create_db_instance(
+        DBInstanceIdentifier=db_id,
+        DBInstanceClass="postgres",
+        Engine="postgres",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+        ManageMasterUserPassword=True,
+    )
+
+    if with_apply_immediately:
+        modify_response = conn.modify_db_instance(
+            DBInstanceIdentifier=db_id,
+            RotateMasterUserPassword=True,
+            ApplyImmediately=True,
+        )
+
+        describe_response = conn.describe_db_instances(
+            DBInstanceIdentifier=db_id,
+        )
+
+        assert (
+            modify_response["DBInstance"]["MasterUserSecret"]["SecretStatus"]
+            == "rotating"
+        )
+        assert (
+            describe_response["DBInstances"][0]["MasterUserSecret"]["SecretStatus"]
+            == "active"
+        )
+
+    else:
+        with pytest.raises(ClientError):
+            conn.modify_db_instance(
+                DBInstanceIdentifier=db_id,
+                RotateMasterUserPassword=True,
+            )
 
 
 @mock_aws
