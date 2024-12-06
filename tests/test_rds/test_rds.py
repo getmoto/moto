@@ -7,6 +7,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.rds.exceptions import InvalidDBInstanceIdentifier, InvalidDBSnapshotIdentifier
+from moto.rds.models import RDSBackend
 from tests import aws_verified
 
 DEFAULT_REGION = "us-west-2"
@@ -2778,6 +2780,46 @@ def test_create_db_instance_with_availability_zone():
     assert resp["DBInstances"][0]["AvailabilityZone"] == availability_zone
 
 
+invalid_identifiers = ("-foo", "foo-", "2foo", "foo--bar", "", "foo_bar")
+invalid_db_identifiers = invalid_identifiers + ("x" * 64,)
+invalid_db_snapshot_identifiers = invalid_identifiers + ("x" * 256,)
+
+
+@pytest.mark.parametrize("invalid_db_identifier", invalid_db_identifiers)
+def test_validate_db_identifier_backend_invalid(invalid_db_identifier):
+    with pytest.raises(InvalidDBInstanceIdentifier):
+        RDSBackend._validate_db_identifier(invalid_db_identifier)
+
+
+@pytest.mark.parametrize(
+    "invalid_db_snapshot_identifier", invalid_db_snapshot_identifiers
+)
+def test_validate_db_snapshot_identifier_backend_invalid(
+    invalid_db_snapshot_identifier,
+):
+    with pytest.raises(InvalidDBSnapshotIdentifier):
+        RDSBackend.validate_db_snapshot_identifier(
+            invalid_db_snapshot_identifier, "DBSnapshotIdentifier"
+        )
+
+
+valid_identifiers = ("f", "foo", "FOO", "FOO-bar-123")
+valid_db_identifiers = valid_identifiers + ("x" * 63,)
+valid_db_snapshot_identifiers = valid_identifiers + ("x" * 255,)
+
+
+@pytest.mark.parametrize("valid_db_identifier", valid_db_identifiers)
+def test_validate_db_identifier_backend_valid(valid_db_identifier):
+    RDSBackend._validate_db_identifier(valid_db_identifier)
+
+
+@pytest.mark.parametrize("valid_db_snapshot_identifier", valid_db_snapshot_identifiers)
+def test_validate_db_snapshot_identifier_backend_valid(valid_db_snapshot_identifier):
+    RDSBackend.validate_db_snapshot_identifier(
+        valid_db_snapshot_identifier, "DBSnapshotIdentifier"
+    )
+
+
 @mock_aws
 def test_validate_db_identifier():
     client = boto3.client("rds", region_name=DEFAULT_REGION)
@@ -2815,6 +2857,97 @@ def test_validate_db_identifier():
             DBInstanceIdentifier="valid-1-id" * 10,
         )
     validation_helper(exc)
+
+
+@mock_aws
+def test_validate_db_snapshot_identifier_different_operations():
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
+    db_instance_identifier = "valid-identifier"
+    valid_db_snapshot_identifier = "valid"
+    invalid_db_snapshot_identifier = "--invalid--"
+
+    client.create_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+    )
+
+    expected_message = f"Invalid snapshot identifier:  {invalid_db_snapshot_identifier}"
+    with pytest.raises(ClientError) as exc:
+        client.create_db_snapshot(
+            DBSnapshotIdentifier=invalid_db_snapshot_identifier,
+            DBInstanceIdentifier=db_instance_identifier,
+        )
+    snapshot_validation_helper(exc, expected_message)
+
+    client.create_db_snapshot(
+        DBSnapshotIdentifier=valid_db_snapshot_identifier,
+        DBInstanceIdentifier=db_instance_identifier,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_snapshot(
+            SourceDBSnapshotIdentifier=valid_db_snapshot_identifier,
+            TargetDBSnapshotIdentifier=invalid_db_snapshot_identifier,
+        )
+    snapshot_validation_helper(exc, expected_message)
+
+    with pytest.raises(ClientError) as exc:
+        client.stop_db_instance(
+            DBInstanceIdentifier=db_instance_identifier,
+            DBSnapshotIdentifier=invalid_db_snapshot_identifier,
+        )
+    snapshot_validation_helper(exc, expected_message)
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_instance(
+            DBInstanceIdentifier=db_instance_identifier,
+            FinalDBSnapshotIdentifier=invalid_db_snapshot_identifier,
+        )
+    snapshot_validation_helper(exc, expected_message)
+
+
+# Depending on what is wrong with the snapshot_identifier, AWS produces different error messages.
+snapshot_identifier_data = (
+    ("", "The parameter DBSnapshotIdentifier must be provided and must not be blank."),
+    ("-invalid", "Invalid snapshot identifier:  -invalid"),
+    (
+        "in--valid",
+        (
+            "The parameter DBSnapshotIdentifier is not a valid identifier. "
+            "Identifiers must begin with a letter; must contain only ASCII "
+            "letters, digits, and hyphens; and must not end with a hyphen "
+            "or contain two consecutive hyphens."
+        ),
+    ),
+)
+
+
+@pytest.mark.parametrize(
+    "invalid_db_snapshot_identifier,expected_message",
+    snapshot_identifier_data,
+    ids=("empty", "invalid_first_character", "default_message"),
+)
+@mock_aws
+def test_validate_db_snapshot_identifier_different_error_messages(
+    invalid_db_snapshot_identifier, expected_message
+):
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
+    db_instance_identifier = "valid-identifier"
+    client.create_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        Engine="postgres",
+        DBName="staging-postgres",
+        DBInstanceClass="db.m1.small",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_db_snapshot(
+            DBSnapshotIdentifier=invalid_db_snapshot_identifier,
+            DBInstanceIdentifier=db_instance_identifier,
+        )
+    snapshot_validation_helper(exc, expected_message)
 
 
 @mock_aws
@@ -2951,3 +3084,9 @@ def validation_helper(exc):
         "letters, digits, and hyphens; "
         "and must not end with a hyphen or contain two consecutive hyphens."
     )
+
+
+def snapshot_validation_helper(exc, expected_message):
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == expected_message

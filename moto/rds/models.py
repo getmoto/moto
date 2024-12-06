@@ -39,6 +39,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
@@ -2719,11 +2720,33 @@ class RDSBackend(BaseBackend):
         # # Must contain from 1 to 63 letters, numbers, or hyphens.
         # # First character must be a letter.
         # # Can't end with a hyphen or contain two consecutive hyphens.
-        if re.match(
-            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+            )
+            and db_identifier[0].isalpha()
         ):
             return
         raise InvalidDBInstanceIdentifier
+
+    @staticmethod
+    def validate_db_snapshot_identifier(
+        db_snapshot_identifier: str, parameter_name: str
+    ) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBSnapshot.html
+        # Constraints:
+        # # Must contain from 1 to 255 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])$",
+                db_snapshot_identifier,
+            )
+            and db_snapshot_identifier[0].isalpha()
+        ):
+            return
+        raise InvalidDBSnapshotIdentifier(db_snapshot_identifier, parameter_name)
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str
