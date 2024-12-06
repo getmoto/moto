@@ -1952,8 +1952,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
-        new_instance_props = copy.deepcopy(original_database.__dict__)
-        new_instance_props.pop("backend")
+        new_instance_props = {}
+        for key, value in original_database.__dict__.items():
+            if key != "backend":
+                new_instance_props[key] = copy.deepcopy(value)
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value

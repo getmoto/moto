@@ -1221,8 +1221,11 @@ def test_delete_db_snapshot():
         conn.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
 
 
+@pytest.mark.parametrize(
+    "custom_db_subnet_group", [True, False], ids=("custom_subnet", "default_subnet")
+)
 @mock_aws
-def test_restore_db_instance_from_db_snapshot():
+def test_restore_db_instance_from_db_snapshot(custom_db_subnet_group: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
     conn.create_db_instance(
         DBInstanceIdentifier="db-primary-1",
@@ -1240,10 +1243,27 @@ def test_restore_db_instance_from_db_snapshot():
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
 
+    if custom_db_subnet_group:
+        ec2 = boto3.client("ec2", region_name=DEFAULT_REGION)
+        subnets = ec2.describe_subnets()["Subnets"]
+        conn.create_db_subnet_group(
+            DBSubnetGroupName="custom-subnet-group",
+            DBSubnetGroupDescription="xxx",
+            SubnetIds=[subnets[0]["SubnetId"]],
+        )
+
     # restore
-    new_instance = conn.restore_db_instance_from_db_snapshot(
-        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot-1"
-    )["DBInstance"]
+    kwargs = {
+        "DBInstanceIdentifier": "db-restore-1",
+        "DBSnapshotIdentifier": "snapshot-1",
+    }
+    if custom_db_subnet_group:
+        kwargs["DBSubnetGroupName"] = "custom-subnet-group"
+    new_instance = conn.restore_db_instance_from_db_snapshot(**kwargs)["DBInstance"]
+    if custom_db_subnet_group:
+        assert (
+            new_instance["DBSubnetGroup"]["DBSubnetGroupName"] == "custom-subnet-group"
+        )
     assert new_instance["DBInstanceIdentifier"] == "db-restore-1"
     assert new_instance["DBInstanceClass"] == "db.m1.small"
     assert new_instance["StorageType"] == "gp2"
