@@ -458,16 +458,15 @@ def test_ldaps_exceptions_non_microsoftad():
 
 
 @mock_aws
-def test_describe_settings():
-    client = boto3.client("ds", region_name="ap-southeast-1")
-    resp = client.describe_settings()
+def test_settings_exception_non_microsoftad():
+    """Test Settings operations on non-Microsoft AD directories."""
 
-    raise Exception("NotYetImplemented")
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
 
-
-@mock_aws
-def test_update_settings():
-    client = boto3.client("ds", region_name="eu-west-1")
-    resp = client.update_settings()
-
-    raise Exception("NotYetImplemented")
+    directory_id = create_test_directory(client, ec2_client)
+    # Test describing Settings on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.describe_settings(DirectoryId=directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"

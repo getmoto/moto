@@ -24,6 +24,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "trust_id",
     },
+    "describe_settings": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "Name",
+    },
 }
 
 # List of directory security settings

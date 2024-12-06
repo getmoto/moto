@@ -241,27 +241,30 @@ class DirectoryServiceResponse(BaseResponse):
             type=type,
         )
         return ""
-    
+
     def describe_settings(self):
-        params = self._get_params()
-        directory_id = params.get("DirectoryId")
-        status = params.get("Status")
-        next_token = params.get("NextToken")
-        directory_id, setting_entries, next_token = self.ds_backend.describe_settings(
+        directory_id = self._get_param("DirectoryId")
+        status = self._get_param("Status")
+        next_token = self._get_param("NextToken")
+        setting_entries, next_token = self.ds_backend.describe_settings(
             directory_id=directory_id,
             status=status,
             next_token=next_token,
         )
-        # TODO: adjust response
-        return json.dumps(dict(directoryId=directory_id, settingEntries=setting_entries, nextToken=next_token))
-    
+
+        return json.dumps(
+            dict(
+                DirectoryId=directory_id,
+                SettingEntries=setting_entries,
+                NextToken=next_token,
+            )
+        )
+
     def update_settings(self):
-        params = self._get_params()
-        directory_id = params.get("DirectoryId")
-        settings = params.get("Settings")
+        directory_id = self._get_param("DirectoryId")
+        settings = self._get_param("Settings")
         directory_id = self.ds_backend.update_settings(
             directory_id=directory_id,
             settings=settings,
         )
-        # TODO: adjust response
-        return json.dumps(dict(directoryId=directory_id))
+        return json.dumps(dict(DirectoryId=directory_id))
