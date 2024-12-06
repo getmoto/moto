@@ -277,6 +277,11 @@ class RDSResponse(BaseResponse):
     def delete_db_instance(self) -> str:
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_name = self._get_param("FinalDBSnapshotIdentifier")
+        if db_snapshot_name is not None:
+            self.backend.validate_db_snapshot_identifier(
+                db_snapshot_name, parameter_name="FinalDBSnapshotIdentifier"
+            )
+
         database = self.backend.delete_db_instance(
             db_instance_identifier, db_snapshot_name
         )
@@ -293,10 +298,12 @@ class RDSResponse(BaseResponse):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
+        self.backend.validate_db_snapshot_identifier(
+            db_snapshot_identifier, parameter_name="DBSnapshotIdentifier"
+        )
         snapshot = self.backend.create_db_snapshot(
             db_instance_identifier,
             db_snapshot_identifier,
-            operation_name="CreateDBSnapshot",
             tags=tags,
         )
         template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
@@ -306,6 +313,10 @@ class RDSResponse(BaseResponse):
         source_snapshot_identifier = self._get_param("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
+        self.backend.validate_db_snapshot_identifier(
+            target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
+        )
+
         snapshot = self.backend.copy_db_snapshot(
             source_snapshot_identifier, target_snapshot_identifier, tags
         )
@@ -380,6 +391,11 @@ class RDSResponse(BaseResponse):
     def stop_db_instance(self) -> str:
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
+        if db_snapshot_identifier is not None:
+            self.backend.validate_db_snapshot_identifier(
+                db_snapshot_identifier, parameter_name="DBSnapshotIdentifier"
+            )
+
         database = self.backend.stop_db_instance(
             db_instance_identifier, db_snapshot_identifier
         )

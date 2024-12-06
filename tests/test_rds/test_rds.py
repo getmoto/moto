@@ -2749,8 +2749,8 @@ def test_validate_db_snapshot_identifier_backend_invalid(
     invalid_db_snapshot_identifier,
 ):
     with pytest.raises(InvalidDBSnapshotIdentifier):
-        RDSBackend._validate_db_snapshot_identifier(
-            invalid_db_snapshot_identifier, "CopyDBSnapshot"
+        RDSBackend.validate_db_snapshot_identifier(
+            invalid_db_snapshot_identifier, "DBSnapshotIdentifier"
         )
 
 
@@ -2766,8 +2766,8 @@ def test_validate_db_identifier_backend_valid(valid_db_identifier):
 
 @pytest.mark.parametrize("valid_db_snapshot_identifier", valid_db_snapshot_identifiers)
 def test_validate_db_snapshot_identifier_backend_valid(valid_db_snapshot_identifier):
-    RDSBackend._validate_db_snapshot_identifier(
-        valid_db_snapshot_identifier, "CopyDBSnapshot"
+    RDSBackend.validate_db_snapshot_identifier(
+        valid_db_snapshot_identifier, "DBSnapshotIdentifier"
     )
 
 

@@ -213,14 +213,7 @@ class InvalidDBInstanceIdentifier(InvalidParameterValue):
 
 
 class InvalidDBSnapshotIdentifier(InvalidParameterValue):
-    def __init__(self, snapshot_identifier: str, operation_name: str) -> None:
-        operation_to_parameter_name = {
-            "CreateDBSnapshot": "DBSnapshotIdentifier",
-            "CopyDBSnapshot": "TargetDBSnapshotIdentifier",
-            "DeleteDBInstance": "FinalDBSnapshotIdentifier",
-            "StopDBInstance": "DBSnapshotIdentifier",
-        }
-        parameter_name = operation_to_parameter_name[operation_name]
+    def __init__(self, snapshot_identifier: str, parameter_name: str) -> None:
         if snapshot_identifier == "":
             exception_text = f"The parameter {parameter_name} must be provided and must not be blank."
         elif not snapshot_identifier[0].isalpha():
