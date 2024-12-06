@@ -313,12 +313,13 @@ class RDSResponse(BaseResponse):
         source_snapshot_identifier = self._get_param("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
+        copy_tags = self._get_param("CopyTags")
         self.backend.validate_db_snapshot_identifier(
             target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
         )
 
         snapshot = self.backend.copy_db_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags
+            source_snapshot_identifier, target_snapshot_identifier, tags, copy_tags
         )
         template = self.response_template(COPY_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
