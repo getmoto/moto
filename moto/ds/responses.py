@@ -242,7 +242,7 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return ""
 
-    def describe_settings(self):
+    def describe_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         status = self._get_param("Status")
         next_token = self._get_param("NextToken")
@@ -260,7 +260,7 @@ class DirectoryServiceResponse(BaseResponse):
             )
         )
 
-    def update_settings(self):
+    def update_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         settings = self._get_param("Settings")
         directory_id = self.ds_backend.update_settings(

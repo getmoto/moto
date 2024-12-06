@@ -699,7 +699,7 @@ class DirectoryServiceBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_settings(
         self, directory_id: str, status: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, str]]:
         """Describe settings for a Directory"""
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
