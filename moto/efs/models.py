@@ -758,5 +758,17 @@ class EFSBackend(BaseBackend):
     def untag_resource(self, resource_id: str, tag_keys: List[str]) -> None:
         self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
 
+    def describe_file_system_policy(self, file_system_id: str) -> str:
+        policy = self.file_systems_by_id[file_system_id].file_system_policy
+        if not policy:
+            raise PolicyNotFound("None")
+        return policy
+
+    def put_file_system_policy(
+        self, file_system_id: str, policy: str, bypass_policy_lockout_safety_check: bool
+    ) -> None:
+        file_system = self.file_systems_by_id[file_system_id]
+        file_system.file_system_policy = policy
+
 
 efs_backends = BackendDict(EFSBackend, "efs")

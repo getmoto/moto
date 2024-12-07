@@ -17,6 +17,7 @@ url_paths = {
     "/2015-02-01/file-systems/<file_system_id>": response.dispatch,
     "/2015-02-01/file-systems/<file_system_id>/backup-policy": response.dispatch,
     "/2015-02-01/file-systems/<file_system_id>/lifecycle-configuration": response.dispatch,
+    "/2015-02-01/file-systems/<file_system_id>/policy": response.dispatch,
     "/2015-02-01/mount-targets": response.dispatch,
     "/2015-02-01/mount-targets/<mount_target_id>": response.dispatch,
     "/2015-02-01/mount-targets/<mount_target_id>/security-groups": response.dispatch,
