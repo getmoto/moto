@@ -2524,11 +2524,23 @@ class S3Response(BaseResponse):
             return 200, response_headers, response
 
         if query.get("uploadId"):
+            existing = self.backend.get_object(self.bucket_name, key_name)
+
+            if_none_match = self.headers.get("If-None-Match")
+            if if_none_match == "*":
+                if existing is not None and existing.multipart is None:
+                    raise PreconditionFailed("If-None-Match")
+
             multipart_id = query["uploadId"][0]
 
-            key = self.backend.complete_multipart_upload(
-                bucket_name, multipart_id, self._complete_multipart_body(body)
-            )
+            if existing is not None and existing.multipart:
+                # Based on testing against AWS, operation seems idempotent
+                # Scenario where both method-calls have a different body hasn't been tested yet
+                key: Optional[FakeKey] = existing
+            else:
+                key = self.backend.complete_multipart_upload(
+                    bucket_name, multipart_id, self._complete_multipart_body(body)
+                )
             if key is None:
                 return 400, {}, ""
 
