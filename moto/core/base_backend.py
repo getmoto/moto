@@ -210,8 +210,6 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
       account_specific_backend[region: str] = backend: BaseBackend
     """
 
-    session = Session()
-
     def __init__(
         self,
         service_name: str,
@@ -232,12 +230,24 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
     @lru_cache()
     def _generate_regions(self, service_name: str) -> List[str]:
         regions = []
-        for partition in AccountSpecificBackend.session.get_available_partitions():
-            partition_regions = AccountSpecificBackend.session.get_available_regions(
-                service_name, partition_name=partition
+        for (
+            partition
+        ) in AccountSpecificBackend.get_session().get_available_partitions():
+            partition_regions = (
+                AccountSpecificBackend.get_session().get_available_regions(
+                    service_name, partition_name=partition
+                )
             )
             regions.extend(partition_regions)
         return regions
+
+    @classmethod
+    @lru_cache()
+    def get_session(cls) -> Session:  # type: ignore[misc]
+        # Only instantiate Session when we absolutely need it
+        # This gives the user time to remove any env variables that break botocore, like AWS_PROFILE
+        # See https://github.com/getmoto/moto/issues/5469#issuecomment-2474897120
+        return Session()
 
     def __hash__(self) -> int:  # type: ignore[override]
         return hash(self._id)
