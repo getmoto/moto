@@ -499,7 +499,7 @@ class DBCluster(RDSBaseModel):
                 ]:
                     self._enable_http_endpoint = val
 
-    def master_user_secret(self):
+    def master_user_secret(self) -> Dict[str, Any]:
         return {
             "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
             "secret_status": self.master_user_secret_status,
@@ -951,7 +951,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
 
         return db_family, f"default.{db_family}"
 
-    def master_user_secret(self):
+    def master_user_secret(self) -> Dict[str, Any]:
         return {
             "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
             "secret_status": self.master_user_secret_status,
