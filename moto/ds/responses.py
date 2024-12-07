@@ -241,3 +241,30 @@ class DirectoryServiceResponse(BaseResponse):
             type=type,
         )
         return ""
+
+    def describe_settings(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        status = self._get_param("Status")
+        next_token = self._get_param("NextToken")
+        setting_entries, next_token = self.ds_backend.describe_settings(
+            directory_id=directory_id,
+            status=status,
+            next_token=next_token,
+        )
+
+        return json.dumps(
+            dict(
+                DirectoryId=directory_id,
+                SettingEntries=setting_entries,
+                NextToken=next_token,
+            )
+        )
+
+    def update_settings(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        settings = self._get_param("Settings")
+        directory_id = self.ds_backend.update_settings(
+            directory_id=directory_id,
+            settings=settings,
+        )
+        return json.dumps(dict(DirectoryId=directory_id))

@@ -455,3 +455,18 @@ def test_ldaps_exceptions_non_microsoftad():
         client.disable_ldaps(DirectoryId=directory_id, Type="Client")
     err = exc.value.response["Error"]
     assert err["Code"] == "UnsupportedOperationException"
+
+
+@mock_aws
+def test_settings_exception_non_microsoftad():
+    """Test Settings operations on non-Microsoft AD directories."""
+
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_directory(client, ec2_client)
+    # Test describing Settings on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.describe_settings(DirectoryId=directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
