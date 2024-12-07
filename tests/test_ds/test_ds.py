@@ -390,6 +390,10 @@ def test_describe_trusts():
     assert trusts[0]["TrustId"] == trust_ids[1]
     assert trusts[1]["TrustId"] == trust_ids[2]
 
+    # Describe all the trusts in the account
+    trusts = client.describe_trusts()["Trusts"]
+    assert len(trusts) == 5
+
 
 @mock_aws
 def test_delete_trust():
