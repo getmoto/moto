@@ -1,7 +1,9 @@
 """Handles incoming kafka requests, invokes methods, returns responses."""
+
 import json
 
 from moto.core.responses import BaseResponse
+
 from .models import KafkaBackend, kafka_backends
 
 
@@ -17,21 +19,28 @@ class KafkaResponse(BaseResponse):
         return kafka_backends[self.current_account][self.region]
 
     def create_cluster_v2(self):
-        params = self._get_params()
         cluster_name = self._get_param("clusterName")
         tags = self._get_param("tags")
         provisioned = self._get_param("provisioned")
         serverless = self._get_param("serverless")
-        cluster_arn, cluster_name, state, cluster_type = self.kafka_backend.create_cluster_v2(
-            cluster_name=cluster_name,
-            tags=tags,
-            provisioned=provisioned,
-            serverless=serverless,
+        cluster_arn, cluster_name, state, cluster_type = (
+            self.kafka_backend.create_cluster_v2(
+                cluster_name=cluster_name,
+                tags=tags,
+                provisioned=provisioned,
+                serverless=serverless,
+            )
         )
-        return json.dumps(dict(clusterArn=cluster_arn, clusterName=cluster_name, state=state, clusterType=cluster_type))
+        return json.dumps(
+            dict(
+                clusterArn=cluster_arn,
+                clusterName=cluster_name,
+                state=state,
+                clusterType=cluster_type,
+            )
+        )
 
     def describe_cluster_v2(self):
-        params = self._get_params()
         cluster_arn = self._get_param("clusterArn")
         cluster_info = self.kafka_backend.describe_cluster_v2(
             cluster_arn=cluster_arn,
@@ -39,7 +48,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict(clusterInfo=cluster_info))
 
     def list_clusters_v2(self):
-        params = self._get_params()
         cluster_name_filter = self._get_param("clusterNameFilter")
         cluster_type_filter = self._get_param("clusterTypeFilter")
         max_results = self._get_param("maxResults")
@@ -53,7 +61,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))
 
     def list_tags_for_resource(self):
-        params = self._get_params()
         resource_arn = self._get_param("resourceArn")
         tags = self.kafka_backend.list_tags_for_resource(
             resource_arn=resource_arn,
@@ -61,7 +68,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict(tags=tags))
 
     def tag_resource(self):
-        params = self._get_params()
         resource_arn = self._get_param("resourceArn")
         tags = self._get_param("tags")
         self.kafka_backend.tag_resource(
@@ -71,7 +77,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict())
 
     def untag_resource(self):
-        params = self._get_params()
         resource_arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys")
         self.kafka_backend.untag_resource(
@@ -81,7 +86,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict())
 
     def create_cluster(self):
-        params = self._get_params()
         broker_node_group_info = self._get_param("brokerNodeGroupInfo")
         client_authentication = self._get_param("clientAuthentication")
         cluster_name = self._get_param("clusterName")
@@ -108,10 +112,11 @@ class KafkaResponse(BaseResponse):
             tags=tags,
             storage_mode=storage_mode,
         )
-        return json.dumps(dict(clusterArn=cluster_arn, clusterName=cluster_name, state=state))
+        return json.dumps(
+            dict(clusterArn=cluster_arn, clusterName=cluster_name, state=state)
+        )
 
     def describe_cluster(self):
-        params = self._get_params()
         cluster_arn = self._get_param("clusterArn")
         cluster_info = self.kafka_backend.describe_cluster(
             cluster_arn=cluster_arn,
@@ -119,7 +124,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict(clusterInfo=cluster_info))
 
     def delete_cluster(self):
-        params = self._get_params()
         cluster_arn = self._get_param("clusterArn")
         current_version = self._get_param("currentVersion")
         cluster_arn, state = self.kafka_backend.delete_cluster(
@@ -129,7 +133,6 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict(clusterArn=cluster_arn, state=state))
 
     def list_clusters(self):
-        params = self._get_params()
         cluster_name_filter = self._get_param("clusterNameFilter")
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
@@ -141,6 +144,6 @@ class KafkaResponse(BaseResponse):
         )
 
         # Correctly Printing Here
-        print(json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token)))
+        # print(json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token)))
 
         return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))

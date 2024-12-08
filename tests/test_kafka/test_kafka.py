@@ -1,4 +1,5 @@
 """Unit tests for kafka-supported APIs."""
+
 import boto3
 
 from moto import mock_aws
@@ -7,10 +8,7 @@ from moto import mock_aws
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
 
 
-FAKE_TAGS = {
-    "TestKey": "TestValue",
-    "TestKey2": "TestValue2"
-}
+FAKE_TAGS = {"TestKey": "TestValue", "TestKey2": "TestValue2"}
 
 
 @mock_aws
@@ -89,7 +87,7 @@ def test_list_tags_for_resource():
     assert tags["Tags"] == FAKE_TAGS
 
 
-@ mock_aws
+@mock_aws
 def test_create_cluster():
     client = boto3.client("kafka", region_name="eu-west-1")
     cluster_name = "TestCluster"
@@ -118,15 +116,19 @@ def test_create_cluster():
     assert resp["ClusterInfo"]["State"] == "CREATING"
     assert resp["ClusterInfo"]["KafkaVersion"] == "2.8.1"
     assert resp["ClusterInfo"]["NumberOfBrokerNodes"] == 3
-    assert resp["ClusterInfo"]["BrokerNodeGroupInfo"]["InstanceType"] == "kafka.m5.large"
+    assert (
+        resp["ClusterInfo"]["BrokerNodeGroupInfo"]["InstanceType"] == "kafka.m5.large"
+    )
     assert resp["ClusterInfo"]["BrokerNodeGroupInfo"]["ClientSubnets"] == [
-        "subnet-0123456789abcdef0"]
+        "subnet-0123456789abcdef0"
+    ]
     assert resp["ClusterInfo"]["BrokerNodeGroupInfo"]["SecurityGroups"] == [
-        "sg-0123456789abcdef0"]
+        "sg-0123456789abcdef0"
+    ]
     assert resp["ClusterInfo"]["Tags"] == FAKE_TAGS
 
 
-@ mock_aws
+@mock_aws
 def test_delete_cluster():
     client = boto3.client("kafka", region_name="us-east-2")
     create_resp = client.create_cluster(

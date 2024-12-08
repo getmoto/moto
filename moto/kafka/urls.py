@@ -1,4 +1,5 @@
 """kafka base URL and path."""
+
 from .responses import KafkaResponse
 
 url_bases = [
