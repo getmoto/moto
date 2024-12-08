@@ -1124,7 +1124,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.af-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -2084,6 +2090,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-idp": {
                 "Value": "cognito-idp",
                 "endpoint": {
@@ -2829,7 +2844,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -5304,7 +5325,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -7848,7 +7875,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -9717,7 +9750,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-northeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -11844,7 +11883,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -13543,7 +13588,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -15775,7 +15826,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -18553,7 +18610,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -20414,7 +20477,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -21810,7 +21879,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-4.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -24674,7 +24749,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ca-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -25756,6 +25837,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cognito-idp": {
                 "Value": "cognito-idp",
                 "endpoint": {
@@ -26204,7 +26294,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ca-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -31300,7 +31396,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -33103,7 +33205,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-central-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -35012,7 +35120,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -35643,9 +35757,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "trustedadvisor": {
-                "Value": "trustedadvisor"
               },
               "verified-access": {
                 "Value": "verified-access",
@@ -36768,7 +36879,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -38224,7 +38341,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -40655,7 +40778,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -43365,7 +43494,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -45543,7 +45678,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -47125,7 +47266,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.il-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -48596,7 +48743,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.me-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -50208,7 +50361,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.me-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -50725,9 +50884,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              },
-              "trustedadvisor": {
-                "Value": "trustedadvisor"
               },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
@@ -52150,7 +52306,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -55096,7 +55258,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -57892,7 +58060,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.us-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -63382,7 +63556,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.us-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -66139,7 +66319,13 @@
                 }
               },
               "notifications": {
-                "Value": "notifications"
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.us-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
