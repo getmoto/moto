@@ -464,6 +464,26 @@
   "Location": "euw3-az1"
  },
  {
+  "InstanceType": "hpc6id.32xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "hpc7a.12xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "hpc7a.24xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "hpc7a.48xlarge",
+  "Location": "euw3-az1"
+ },
+ {
+  "InstanceType": "hpc7a.96xlarge",
+  "Location": "euw3-az1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "euw3-az1"
  },

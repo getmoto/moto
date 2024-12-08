@@ -464,6 +464,26 @@
   "Location": "eu-west-3a"
  },
  {
+  "InstanceType": "hpc6id.32xlarge",
+  "Location": "eu-west-3a"
+ },
+ {
+  "InstanceType": "hpc7a.12xlarge",
+  "Location": "eu-west-3a"
+ },
+ {
+  "InstanceType": "hpc7a.24xlarge",
+  "Location": "eu-west-3a"
+ },
+ {
+  "InstanceType": "hpc7a.48xlarge",
+  "Location": "eu-west-3a"
+ },
+ {
+  "InstanceType": "hpc7a.96xlarge",
+  "Location": "eu-west-3a"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "eu-west-3a"
  },

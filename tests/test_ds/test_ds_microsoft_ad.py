@@ -258,3 +258,43 @@ def test_enable_describe_disable_ldaps():
     ]
     assert len(ldaps) == 1
     assert ldaps[0]["LDAPSStatus"] == "Disabled"
+
+
+@mock_aws
+def test_describe_settings():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_microsoft_ad(client, ec2_client)
+
+    # Describe the settings for a Microsoft AD directory
+    settings = client.describe_settings(DirectoryId=directory_id)["SettingEntries"]
+    assert len(settings) > 0
+    assert "TLS_1_0" in [s["Name"] for s in settings]
+
+
+@mock_aws
+def test_update_settings():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+    directory_id = create_test_microsoft_ad(client, ec2_client)
+
+    # Check the current setting for TLS 1.0
+    directory_settings = client.describe_settings(DirectoryId=directory_id)[
+        "SettingEntries"
+    ]
+    tls_1_0_setting = next(
+        (s for s in directory_settings if s["Name"] == "TLS_1_0"), None
+    )
+    assert tls_1_0_setting["AppliedValue"] == "Enable"
+
+    new_setting = {"Name": "TLS_1_0", "Value": "Disable"}
+    client.update_settings(DirectoryId=directory_id, Settings=[new_setting])
+
+    # Check the updated setting for TLS 1.0
+    new_directory_settings = client.describe_settings(DirectoryId=directory_id)[
+        "SettingEntries"
+    ]
+    new_tls_1_0_setting = next(
+        (s for s in new_directory_settings if s["Name"] == "TLS_1_0"), None
+    )
+    assert new_tls_1_0_setting["AppliedValue"] == "Disable"
