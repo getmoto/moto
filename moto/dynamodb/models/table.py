@@ -746,7 +746,6 @@ class Table(CloudFormationModel):
 
         # SORT
         if index_name:
-
             possible_results = self.sorted_items(
                 hash_attrs, range_attrs, possible_results
             )
