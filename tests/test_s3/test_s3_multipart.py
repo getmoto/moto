@@ -19,7 +19,7 @@ from moto.settings import (
 )
 from tests import DEFAULT_ACCOUNT_ID
 
-from .test_s3 import add_proxy_details
+from .test_s3 import add_proxy_details, s3_aws_verified
 
 if settings.TEST_DECORATOR_MODE:
     REDUCED_PART_SIZE = 256
@@ -156,6 +156,83 @@ def test_multipart_upload(key: str):
     # we should get both parts as the key contents
     response = client.get_object(Bucket="foobar", Key=key)
     assert response["Body"].read() == part1 + part2
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_duplicate_multipart_upload(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
+    part2 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="key.txt")
+    kwargs = {
+        "Bucket": bucket_name,
+        "Key": "key.txt",
+        "UploadId": multipart["UploadId"],
+    }
+
+    up1 = client.upload_part(Body=BytesIO(part1), PartNumber=1, **kwargs)
+    up2 = client.upload_part(Body=BytesIO(part2), PartNumber=2, **kwargs)
+
+    parts = {
+        "Parts": [
+            {"ETag": up1["ETag"], "PartNumber": 1},
+            {"ETag": up2["ETag"], "PartNumber": 2},
+        ]
+    }
+
+    resp1 = client.complete_multipart_upload(MultipartUpload=parts, **kwargs)
+    assert resp1["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # We can call this method again
+    resp2 = client.complete_multipart_upload(
+        MultipartUpload=parts,
+        # Even with this parameter supplied
+        IfNoneMatch="*",
+        **kwargs,
+    )
+    assert resp2["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp1["ETag"] == resp2["ETag"]
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_multipart_upload_if_none_match(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    client.put_object(Bucket=bucket_name, Key="key.txt")
+
+    part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
+    part2 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="key.txt")
+    kwargs = {
+        "Bucket": bucket_name,
+        "Key": "key.txt",
+        "UploadId": multipart["UploadId"],
+    }
+
+    up1 = client.upload_part(Body=BytesIO(part1), PartNumber=1, **kwargs)
+    up2 = client.upload_part(Body=BytesIO(part2), PartNumber=2, **kwargs)
+
+    parts = {
+        "Parts": [
+            {"ETag": up1["ETag"], "PartNumber": 1},
+            {"ETag": up2["ETag"], "PartNumber": 2},
+        ]
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.complete_multipart_upload(
+            MultipartUpload=parts, IfNoneMatch="*", **kwargs
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+    assert err["Condition"] == "If-None-Match"
 
 
 @mock_aws

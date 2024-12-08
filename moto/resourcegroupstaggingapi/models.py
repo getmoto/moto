@@ -23,6 +23,8 @@ from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
+from moto.secretsmanager import secretsmanager_backends
+from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -110,6 +112,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def acm_backend(self) -> AWSCertificateManagerBackend:
         return acm_backends[self.account_id][self.region_name]
+
+    @property
+    def secretsmanager_backend(self) -> SecretsManagerBackend:
+        return secretsmanager_backends[self.account_id][self.region_name]
 
     @property
     def sns_backend(self) -> SNSBackend:
@@ -503,6 +509,24 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Parameter group
         # RedShift Snapshot
         # RedShift Subnet group
+
+        # Secrets Manager
+        if (
+            not resource_type_filters
+            or "secretsmanager" in resource_type_filters
+            or "secretsmanager:secret" in resource_type_filters
+        ):
+            for secret in self.secretsmanager_backend.secrets.values():
+                if isinstance(secret, ReplicaSecret):
+                    secret_tags = secret.source.tags
+                else:
+                    secret_tags = secret.tags
+
+                if secret_tags:
+                    formated_tags = format_tag_keys(secret_tags, ["Key", "Value"])
+                    if not formated_tags or not tag_filter(formated_tags):
+                        continue
+                    yield {"ResourceARN": f"{secret.arn}", "Tags": formated_tags}
 
         # SQS
         if not resource_type_filters or "sqs" in resource_type_filters:

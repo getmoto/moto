@@ -439,6 +439,50 @@ def test_list_query_executions():
 
 
 @mock_aws
+def test_list_query_executions_by_workgroup():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    create_basic_workgroup(client=client, name="athena_workgroup_1")
+
+    client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    exec_result = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup_1",
+    )
+    exec_id = exec_result["QueryExecutionId"]
+
+    executions = client.list_query_executions(WorkGroup="athena_workgroup_1")
+    assert len(executions["QueryExecutionIds"]) == 1
+    assert executions["QueryExecutionIds"][0] == exec_id
+
+
+@mock_aws
+def test_list_query_executions_by_workgroup_when_none_match():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    create_basic_workgroup(client=client, name="athena_workgroup_1")
+
+    client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+
+    executions = client.list_query_executions(WorkGroup="athena_workgroup_1")
+    assert len(executions["QueryExecutionIds"]) == 0
+
+
+@mock_aws
 def test_list_named_queries():
     client = boto3.client("athena", region_name="us-east-1")
     create_basic_workgroup(client=client, name="athena_workgroup")

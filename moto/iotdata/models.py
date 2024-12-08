@@ -71,19 +71,57 @@ class FakeShadow(BaseModel):
         return FakeShadow(desired, reported, payload, version)
 
     @classmethod
-    def parse_payload(cls, desired: Optional[str], reported: Optional[str]) -> Any:  # type: ignore[misc]
+    def parse_payload(cls, desired: Any, reported: Any) -> Any:  # type: ignore[misc]
         if not desired and not reported:
             delta = None
         elif reported is None and desired:
             delta = desired
         elif desired and reported:
-            delta = jsondiff.diff(reported, desired)
-            delta.pop(jsondiff.add, None)  # type: ignore
-            delta.pop(jsondiff.delete, None)  # type: ignore
-            delta.pop(jsondiff.replace, None)  # type: ignore
+            delta = jsondiff.diff(reported, desired, syntax="symmetric")
+            delta.pop(jsondiff.add, None)
+            delta.pop(jsondiff.delete, None)
+            delta.pop(jsondiff.replace, None)
+            cls._resolve_nested_deltas(desired, reported, delta)
         else:
             delta = None
         return delta
+
+    @classmethod
+    def _resolve_nested_deltas(cls, desired: Any, reported: Any, delta: Any) -> None:  # type: ignore[misc]
+        for key, value in delta.items():
+            if isinstance(value, dict):
+                # delta = {insert: [(0, val1),, ], delete: [(0, val2),..] }
+                if isinstance(reported.get(key), list):
+                    # Delta is a dict, but were supposed to have a list
+                    # Explicitly insert/delete from the original list
+                    list_delta = reported[key].copy()
+                    if jsondiff.delete in value:
+                        for idx, _ in sorted(value[jsondiff.delete], reverse=True):
+                            del list_delta[idx]
+                    if jsondiff.insert in value:
+                        for new_val in sorted(value[jsondiff.insert], reverse=True):
+                            list_delta.insert(*new_val)
+                    delta[key] = list_delta
+                if isinstance(reported.get(key), dict):
+                    # Delta is a dict, exactly what we're expecting
+                    # Just delete any unknown symbols
+                    value.pop(jsondiff.add, None)
+                    value.pop(jsondiff.delete, None)
+                    value.pop(jsondiff.replace, None)
+            elif isinstance(value, list):
+                # delta = [v1, v2]
+                # If the actual value is a string/bool/int and our delta is a list,
+                # that means that the delta reports both values - reported and desired
+                # But we only want to show the desired value here
+                # (Note that bool is a type of int, so we don't have to explicitly mention it)
+                if isinstance(desired.get(key), (str, int, float)):
+                    delta[key] = desired[key]
+
+            # Resolve nested deltas
+            if isinstance(delta[key], dict):
+                cls._resolve_nested_deltas(
+                    desired.get(key), reported.get(key), delta[key]
+                )
 
     def _create_metadata_from_state(self, state: Any, ts: Any) -> Any:
         """

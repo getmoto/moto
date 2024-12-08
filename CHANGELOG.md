@@ -1,6 +1,23 @@
 Moto Changelog
 ==============
 
+5.0.22
+-----
+Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_
+
+    Miscellaneous:
+        * DS: enable_ldaps() is now supported for 'ADConnector' directory types
+        * EC2: Resource identifiers are now 17 characters long, up from 8, in-line with the values that AWS returns
+        * ECS: create_service() now supports and validates the networkConfiguration-parameter
+        * ELBv2: register_targets() now validates that instances are running
+        * IOTData: update_thing_shadow() now properly handles complex nested deltas
+        * MediaLive: list_channels() and list_inputs() now support pagination
+        * OpenSearch: create_domain() now returns the EngineVersion in the correct format
+        * ResourceGroupsTaggingAPI: get_resources() now returns secrets from SecretsManager
+        * S3: put_object_acl() now sends an EventBridge-notification
+        * SecretsManager: list_secrets() no longer shows deleted secrets unless the `include_planned_deletion`-parameter is set
+        * WAFv2: list_ip_sets(), list_logging_configurations(), list_rule_groups(), list_tags_for_resource(), list_web_acls() now all support pagination
+
 5.0.21
 -----
 Docker Digest for 5.0.21: _sha256:9ba3753fddbe2445667a1261a04dc92e75d9c329a1f2d0610f1dd8bb1c4f4eca_

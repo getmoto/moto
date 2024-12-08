@@ -1692,6 +1692,34 @@ def test_get_public_key():
     assert "EncryptionAlgorithms" not in public_key_response
 
 
+@mock_aws
+def test_get_public_key_with_alias():
+    client = boto3.client("kms", region_name="eu-west-1")
+    key = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")
+    key_id = key["KeyMetadata"]["KeyId"]
+    client.create_alias(
+        AliasName="alias/foo",
+        TargetKeyId=key_id,
+    )
+    alias_arn = client.list_aliases()["Aliases"][0]["AliasArn"]
+
+    public_key_response_with_name = client.get_public_key(KeyId="alias/foo")
+    public_key_response_with_arn = client.get_public_key(KeyId=alias_arn)
+
+    assert "PublicKey" in public_key_response_with_name
+    assert "PublicKey" in public_key_response_with_arn
+    assert (
+        public_key_response_with_name["SigningAlgorithms"]
+        == key["KeyMetadata"]["SigningAlgorithms"]
+    )
+    assert (
+        public_key_response_with_arn["SigningAlgorithms"]
+        == key["KeyMetadata"]["SigningAlgorithms"]
+    )
+    assert "EncryptionAlgorithms" not in public_key_response_with_name
+    assert "EncryptionAlgorithms" not in public_key_response_with_arn
+
+
 def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):
     with mock.patch.object(rsa, "generate_private_key", return_value=""):
         params = {}

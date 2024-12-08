@@ -1956,7 +1956,7 @@
 
 ## directconnect
 <details>
-<summary>6% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] accept_direct_connect_gateway_association_proposal
 - [ ] allocate_connection_on_interconnect
@@ -1966,7 +1966,7 @@
 - [ ] allocate_transit_virtual_interface
 - [ ] associate_connection_with_lag
 - [ ] associate_hosted_connection
-- [ ] associate_mac_sec_key
+- [x] associate_mac_sec_key
 - [ ] associate_virtual_interface
 - [ ] confirm_connection
 - [ ] confirm_customer_agreement
@@ -1979,7 +1979,7 @@
 - [ ] create_direct_connect_gateway_association
 - [ ] create_direct_connect_gateway_association_proposal
 - [ ] create_interconnect
-- [ ] create_lag
+- [x] create_lag
 - [ ] create_private_virtual_interface
 - [ ] create_public_virtual_interface
 - [ ] create_transit_virtual_interface
@@ -2002,7 +2002,7 @@
 - [ ] describe_hosted_connections
 - [ ] describe_interconnect_loa
 - [ ] describe_interconnects
-- [ ] describe_lags
+- [x] describe_lags
 - [ ] describe_loa
 - [ ] describe_locations
 - [ ] describe_router_configuration
@@ -2010,7 +2010,7 @@
 - [ ] describe_virtual_gateways
 - [ ] describe_virtual_interfaces
 - [ ] disassociate_connection_from_lag
-- [ ] disassociate_mac_sec_key
+- [x] disassociate_mac_sec_key
 - [ ] list_virtual_interface_test_history
 - [ ] start_bgp_failover_test
 - [ ] stop_bgp_failover_test
@@ -4505,7 +4505,7 @@
 
 ## iot
 <details>
-<summary>33% implemented</summary>
+<summary>34% implemented</summary>
 
 - [ ] accept_certificate_transfer
 - [ ] add_thing_to_billing_group

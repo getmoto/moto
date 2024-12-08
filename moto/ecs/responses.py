@@ -262,6 +262,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         launch_type = self._get_param("launchType")
         platform_version = self._get_param("platformVersion")
         propagate_tags = self._get_param("propagateTags") or "NONE"
+        network_configuration = self._get_param("networkConfiguration")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -272,6 +273,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            network_configuration=network_configuration,
             service_registries=service_registries,
             platform_version=platform_version,
             propagate_tags=propagate_tags,

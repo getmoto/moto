@@ -175,8 +175,14 @@ class SecretsManagerResponse(BaseResponse):
         _validate_filters(filters)
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
+        include_planned_deletion = self._get_param(
+            "IncludePlannedDeletion", if_none=False
+        )
         secret_list, next_token = self.backend.list_secrets(
-            filters=filters, max_results=max_results, next_token=next_token
+            filters=filters,
+            max_results=max_results,
+            next_token=next_token,
+            include_planned_deletion=include_planned_deletion,
         )
         return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
 

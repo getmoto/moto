@@ -15,7 +15,7 @@ from moto.ds.exceptions import (
     UnsupportedOperationException,
     ValidationException,
 )
-from moto.ds.utils import PAGINATION_MODEL
+from moto.ds.utils import PAGINATION_MODEL, SETTINGS_ENTRIES_MODEL
 from moto.ds.validations import validate_args
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
@@ -138,9 +138,13 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.stage = "Active"
         self.launch_time = unix_time()
         self.stage_last_updated_date_time = unix_time()
-        # add type annotation to line below
         self.ldaps_settings_info: List[LdapsSettingInfo] = []
         self.trusts: List[Trust] = []
+        self.settings = (
+            SETTINGS_ENTRIES_MODEL.copy()
+            if self.directory_type == "MicrosoftAD"
+            else []
+        )
 
         if self.directory_type == "ADConnector":
             self.security_group_id = self.create_security_group(
@@ -222,7 +226,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         """Enable/disable ldaps based on whether new_state is True or False.
         This method is only for MicrosoftAD.
         """
-        if self.directory_type != "MicrosoftAD":
+        if self.directory_type not in ("MicrosoftAD", "ADConnector"):
             raise UnsupportedOperationException(
                 "LDAPS operations are not supported for this Directory Type."
             )
@@ -641,16 +645,23 @@ class DirectoryServiceBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_trusts(
-        self, directory_id: str, trust_ids: Optional[List[str]]
+        self, directory_id: Optional[str], trust_ids: Optional[List[str]]
     ) -> List[Trust]:
-        self._validate_directory_id(directory_id)
-        directory = self.directories[directory_id]
-        trusts = directory.trusts
-        if trust_ids:
-            trusts = [t for t in directory.trusts if t.trust_id in trust_ids]
-        else:
+        if directory_id:
+            self._validate_directory_id(directory_id)
+            directory = self.directories[directory_id]
             trusts = directory.trusts
-        return trusts
+        else:
+            trusts = [
+                trust
+                for directory in self.directories.values()
+                for trust in directory.trusts
+            ]
+        if trust_ids:
+            queried_trusts = [t for t in trusts if t.trust_id in trust_ids]
+        else:
+            queried_trusts = trusts
+        return queried_trusts
 
     def delete_trust(
         self, trust_id: str, delete_associated_conditional_forwarder: Optional[bool]
@@ -673,7 +684,7 @@ class DirectoryServiceBackend(BaseBackend):
         """Describe LDAPS settings for a Directory"""
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
-        if directory.directory_type != "MicrosoftAD":
+        if directory.directory_type not in ("MicrosoftAD", "ADConnector"):
             raise UnsupportedOperationException(
                 "LDAPS operations are not supported for this Directory Type."
             )
@@ -691,6 +702,42 @@ class DirectoryServiceBackend(BaseBackend):
         self._validate_directory_id(directory_id)
         directory = self.directories[directory_id]
         directory.enable_ldaps(False)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_settings(
+        self, directory_id: str, status: Optional[str]
+    ) -> List[Dict[str, str]]:
+        """Describe settings for a Directory"""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type not in ("MicrosoftAD"):
+            raise InvalidParameterException(
+                "This operation is only supported for Microsoft AD"
+            )
+        if status:
+            queried_settings = [
+                setting
+                for setting in directory.settings
+                if setting["RequestStatus"] == status
+            ]
+        else:
+            queried_settings = directory.settings
+        return queried_settings
+
+    def update_settings(self, directory_id: str, settings: List[Dict[str, Any]]) -> str:
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type not in ("MicrosoftAD"):
+            raise InvalidParameterException(
+                "This operation is only supported for Microsoft AD"
+            )
+        for s in settings:
+            for setting in directory.settings:
+                if setting["Name"] == s["Name"]:
+                    # TODO: Add validation for the value
+                    setting["AppliedValue"] = s["Value"]
+
+        return directory_id
 
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")

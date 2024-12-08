@@ -648,52 +648,53 @@ def test_deregister_task_definition_2():
 @mock_aws
 def test_create_service():
     client = boto3.client("ecs", region_name=ECS_REGION)
-    client.create_cluster(clusterName="test_ecs_cluster")
-    client.register_task_definition(
-        family="test_ecs_task",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-    )
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    subnet, sg = setup_ecs(client, ec2)
     response = client.create_service(
         cluster="test_ecs_cluster",
         serviceName="test_ecs_service",
         taskDefinition="test_ecs_task",
         desiredCount=2,
         platformVersion="2",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [subnet.id],
+                "securityGroups": [sg.id],
+            }
+        },
     )
     assert (
         response["service"]["clusterArn"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:cluster/test_ecs_cluster"
     )
-    assert response["service"]["desiredCount"] == 2
-    assert len(response["service"]["events"]) == 0
-    assert len(response["service"]["loadBalancers"]) == 0
-    assert response["service"]["pendingCount"] == 2
-    assert response["service"]["runningCount"] == 0
+    svc = response["service"]
+    assert svc["desiredCount"] == 2
+    assert len(svc["events"]) == 0
+    assert len(svc["loadBalancers"]) == 0
+    assert svc["pendingCount"] == 2
+    assert svc["runningCount"] == 0
     assert (
-        response["service"]["serviceArn"]
+        svc["serviceArn"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"
     )
-    assert response["service"]["serviceName"] == "test_ecs_service"
-    assert response["service"]["status"] == "ACTIVE"
+    assert svc["serviceName"] == "test_ecs_service"
+    assert svc["status"] == "ACTIVE"
     assert (
-        response["service"]["taskDefinition"]
+        svc["taskDefinition"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
     )
-    assert response["service"]["schedulingStrategy"] == "REPLICA"
-    assert response["service"]["launchType"] == "EC2"
-    assert response["service"]["platformVersion"] == "2"
+    assert svc["schedulingStrategy"] == "REPLICA"
+    assert svc["launchType"] == "EC2"
+    assert svc["platformVersion"] == "2"
+
+    assert "networkConfiguration" in svc
+    nc = svc["networkConfiguration"]["awsvpcConfiguration"]
+    assert len(["subnets"]) == 1
+    assert len(["securityGroups"]) == 1
+    assert nc["subnets"][0] == subnet.id
+    assert nc["securityGroups"][0] == sg.id
 
 
 @mock_aws
@@ -3844,3 +3845,54 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
             }
         ],
     )
+
+
+c1 = {
+    "awsvpcConfiguration": {
+        "subnets": ["fake-subnet"],
+    }
+}
+e1 = "Error retrieving subnet information for [fake-subnet]: The subnet ID 'fake-subnet' does not exist (ErrorCode: InvalidSubnetID.NotFound)"
+c2 = {
+    "awsvpcConfiguration": {
+        "subnets": "[subnet.id]",
+        "securityGroups": ["sg-123456"],
+    }
+}
+e2 = "Error retrieving security group information for [sg-123456]: The security group 'sg-123456' does not exist (ErrorCode: InvalidGroup.NotFound)"
+c3 = {
+    "awsvpcConfiguration": {
+        "subnets": [],
+    }
+}
+e3 = "subnets can not be empty."
+
+
+@pytest.mark.parametrize(
+    "net_config,error_message",
+    [(c1, e1), (c2, e2), (c3, e3)],
+)
+@mock_aws
+def test_service_exceptions(net_config, error_message):
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    subnet, sg = setup_ecs(client, ec2)
+    if net_config["awsvpcConfiguration"]["subnets"] == "[subnet.id]":
+        # sub real subnet for evaluation
+        net_config["awsvpcConfiguration"]["subnets"] = [subnet.id]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+            networkConfiguration=net_config,
+        )
+    ex = exc.value
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert ex.response["Error"]["Message"] == error_message

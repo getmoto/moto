@@ -39,6 +39,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
@@ -1838,15 +1839,19 @@ class RDSBackend(BaseBackend):
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        copy_tags: bool = False,
     ) -> DBSnapshot:
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)
 
         source_snapshot = self.database_snapshots[source_snapshot_identifier]
-        if tags is None:
-            tags = source_snapshot.tags
-        else:
-            tags = self._merge_tags(source_snapshot.tags, tags)
+
+        # When tags are passed, AWS does NOT copy/merge tags of the
+        # source snapshot, even when copy_tags=True is given.
+        # But when tags=[], AWS does honor copy_tags=True.
+        if not tags:
+            tags = source_snapshot.tags if copy_tags else []
+
         return self.create_db_snapshot(
             db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,
@@ -1948,8 +1953,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
-        new_instance_props = copy.deepcopy(original_database.__dict__)
-        new_instance_props.pop("backend")
+        new_instance_props = {}
+        for key, value in original_database.__dict__.items():
+            if key != "backend":
+                new_instance_props[key] = copy.deepcopy(value)
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2715,11 +2722,33 @@ class RDSBackend(BaseBackend):
         # # Must contain from 1 to 63 letters, numbers, or hyphens.
         # # First character must be a letter.
         # # Can't end with a hyphen or contain two consecutive hyphens.
-        if re.match(
-            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+            )
+            and db_identifier[0].isalpha()
         ):
             return
         raise InvalidDBInstanceIdentifier
+
+    @staticmethod
+    def validate_db_snapshot_identifier(
+        db_snapshot_identifier: str, parameter_name: str
+    ) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBSnapshot.html
+        # Constraints:
+        # # Must contain from 1 to 255 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])$",
+                db_snapshot_identifier,
+            )
+            and db_snapshot_identifier[0].isalpha()
+        ):
+            return
+        raise InvalidDBSnapshotIdentifier(db_snapshot_identifier, parameter_name)
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str

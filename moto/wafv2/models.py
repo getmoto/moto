@@ -9,6 +9,7 @@ from moto.core.utils import (
     iso_8601_datetime_with_milliseconds,
 )
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES
 
@@ -30,6 +31,39 @@ APIGATEWAY_REGEX = (
     ARN_PARTITION_REGEX
     + r":apigateway:[a-zA-Z0-9-]+::/restapis/[a-zA-Z0-9]+/stages/[a-zA-Z0-9]+"
 )
+
+PAGINATION_MODEL = {
+    "list_ip_sets": {
+        "input_token": "next_marker",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_logging_configurations": {
+        "input_token": "next_marker",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_rule_groups": {
+        "input_token": "next_marker",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_tags_for_resource": {
+        "input_token": "next_marker",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "Key",
+    },
+    "list_web_acls": {
+        "input_token": "next_marker",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "ARN",
+    },
+}
 
 
 class FakeRule(BaseModel):
@@ -479,6 +513,7 @@ class WAFV2Backend(BaseBackend):
                 return wacl
         raise WAFNonexistentItemException
 
+    @paginate(PAGINATION_MODEL)  # type: ignore
     def list_web_acls(self) -> List[Dict[str, Any]]:
         return [wacl.to_short_dict() for wacl in self.wacls.values()]
 
@@ -486,16 +521,15 @@ class WAFV2Backend(BaseBackend):
         all_wacl_names = set(wacl.name for wacl in self.wacls.values())
         return name in all_wacl_names
 
+    @paginate(PAGINATION_MODEL)  # type: ignore
     def list_rule_groups(self, scope: str) -> List[Any]:
         rule_groups = [
             group for group in self.rule_groups.values() if group.scope == scope
         ]
         return rule_groups
 
+    @paginate(PAGINATION_MODEL)  # type: ignore
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
-        """
-        Pagination is not yet implemented
-        """
         return self.tagging_service.list_tags_for_resource(arn)["Tags"]
 
     def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
@@ -591,6 +625,7 @@ class WAFV2Backend(BaseBackend):
 
         self.ip_sets.pop(arn)
 
+    @paginate(PAGINATION_MODEL)  # type: ignore
     def list_ip_sets(self, scope: str) -> List[FakeIPSet]:
         ip_sets = [
             ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope
@@ -665,6 +700,7 @@ class WAFV2Backend(BaseBackend):
             raise WAFNonexistentItemException()
         return logging_configuration
 
+    @paginate(PAGINATION_MODEL)  # type: ignore
     def list_logging_configurations(self, scope: str) -> List[FakeLoggingConfiguration]:
         if scope == "CLOUDFRONT":
             scope = "global"

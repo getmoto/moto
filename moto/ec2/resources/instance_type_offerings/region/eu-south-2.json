@@ -424,6 +424,38 @@
   "Location": "eu-south-2"
  },
  {
+  "InstanceType": "g6e.12xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.16xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.24xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.2xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.48xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.4xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.8xlarge",
+  "Location": "eu-south-2"
+ },
+ {
+  "InstanceType": "g6e.xlarge",
+  "Location": "eu-south-2"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "eu-south-2"
  },
