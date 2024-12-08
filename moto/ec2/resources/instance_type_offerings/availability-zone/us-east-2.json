@@ -2896,6 +2896,10 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "trn2.48xlarge",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "us-east-2a"
  },
@@ -5061,6 +5065,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "us-east-2b"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "us-east-2b"
  },
  {
@@ -8061,6 +8069,10 @@
  },
  {
   "InstanceType": "p5e.48xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "us-east-2c"
  },
  {
