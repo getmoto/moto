@@ -14,6 +14,7 @@ from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
+from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.logs.models import LogsBackend, logs_backends
@@ -149,6 +150,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
+    def kafka_backend(self) -> KafkaBackend:
+        return kafka_backends[self.account_id][self.region_name]
+
+    @property
     def sagemaker_backend(self) -> SageMakerModelBackend:
         return sagemaker_backends[self.account_id][self.region_name]
 
@@ -166,17 +171,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             values = tag_filter_dict.get("Values", [])
             if len(values) == 0:
                 # Check key matches
-                filters.append(lambda t, v, key=tag_filter_dict["Key"]: t == key)
+                filters.append(
+                    lambda t, v, key=tag_filter_dict["Key"]: t == key)
             elif len(values) == 1:
                 # Check it's exactly the same as key, value
                 filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
+                    # type: ignore
+                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key
                     and v == value
                 )
             else:
                 # Check key matches and value is one of the provided values
                 filters.append(
-                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key  # type: ignore
+                    # type: ignore
+                    lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key
                     and v in vl
                 )
 
@@ -235,7 +243,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "s3:bucket" in resource_type_filters
         ):
             for bucket in self.s3_backend.buckets.values():
-                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)["Tags"]
+                tags = self.s3_backend.tagger.list_tags_for_resource(bucket.arn)[
+                    "Tags"]
                 if not tags or not tag_filter(
                     tags
                 ):  # Skip if no tags, or invalid filter
@@ -268,7 +277,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         if not resource_type_filters or "ecs:cluster" in resource_type_filters:
             for cluster in self.ecs_backend.clusters.values():
-                tags = format_tag_keys(cluster.tags, ["key", "value"])  # type: ignore[arg-type]
+                # type: ignore[arg-type]
+                tags = format_tag_keys(cluster.tags, ["key", "value"])
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{cluster.arn}", "Tags": tags}
@@ -322,7 +332,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 or resource_type in resource_type_filters
             ):
                 for resource in resources:
-                    tags = format_tags(self.ec2_backend.tags.get(resource.id, {}))
+                    tags = format_tags(
+                        self.ec2_backend.tags.get(resource.id, {}))
                     if not tags or not tag_filter(tags):
                         continue
                     yield {
@@ -337,7 +348,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "elasticfilesystem:access-point" in resource_type_filters
         ):
             for ap in self.efs_backend.access_points.values():
-                tags = self.efs_backend.list_tags_for_resource(ap.access_point_id)
+                tags = self.efs_backend.list_tags_for_resource(
+                    ap.access_point_id)
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{ap.access_point_arn}", "Tags": tags}
@@ -349,7 +361,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "elasticfilesystem:file-system" in resource_type_filters
         ):
             for fs in self.efs_backend.file_systems_by_id.values():
-                tags = self.efs_backend.list_tags_for_resource(fs.file_system_id)
+                tags = self.efs_backend.list_tags_for_resource(
+                    fs.file_system_id)
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{fs.file_system_arn}", "Tags": tags}
@@ -436,7 +449,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if not resource_type_filters or "kms" in resource_type_filters:
             for kms_key in self.kms_backend.list_keys():
                 tags = format_tag_keys(
-                    self.kms_backend.list_resource_tags(kms_key.id).get("Tags", []),
+                    self.kms_backend.list_resource_tags(
+                        kms_key.id).get("Tags", []),
                     ["TagKey", "TagValue"],
                 )
                 if not tag_filter(tags):  # Skip if no tags, or invalid filter
@@ -586,6 +600,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     "Tags": tags,
                 }
 
+        # Kafka (MSK)
+        if self.kafka_backend and (
+            not resource_type_filters or "kafka" in resource_type_filters
+        ):
+            for cluster in self.kafka_backend.clusters.values():
+                tags = self.kafka_backend.list_tags_for_resource(cluster.arn)[
+                    "Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": cluster.arn,
+                    "Tags": tags,
+                }
+
         # Workspaces Web
         if self.workspacesweb_backends and (
             not resource_type_filters or "workspaces-web" in resource_type_filters
@@ -700,7 +728,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                for key in get_ec2_keys(instance.id):  # type: ignore[assignment]
+                # type: ignore[assignment]
+                for key in get_ec2_keys(instance.id):
                     yield key
 
         # EC2 NetworkInterface, resource type ec2:network-interface
@@ -760,7 +789,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # EC2 Instance, resource type ec2:instance
         for reservation in self.ec2_backend.reservations.values():
             for instance in reservation.instances:
-                for value in get_ec2_values(instance.id):  # type: ignore[assignment]
+                # type: ignore[assignment]
+                for value in get_ec2_values(instance.id):
                     yield value
 
         # EC2 NetworkInterface, resource type ec2:network-interface
@@ -778,7 +808,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # EC2 Snapshot, resource type ec2:snapshot
         for snapshot in self.ec2_backend.snapshots.values():
-            for value in get_ec2_values(snapshot.id):  # type: ignore[assignment]
+            # type: ignore[assignment]
+            for value in get_ec2_values(snapshot.id):
                 yield value
 
         # TODO EC2 SpotInstanceRequest
@@ -982,12 +1013,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             ):
                 resource_id = arn.split("/")[-1]
                 self.workspacesweb_backends.create_tags(  # type: ignore[union-attr]
-                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
+                    resource_id, TaggingService.convert_dict_to_tags_input(
+                        tags)
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:workspaces:"):
                 resource_id = arn.split("/")[-1]
                 self.workspaces_backend.create_tags(  # type: ignore[union-attr]
-                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
+                    resource_id, TaggingService.convert_dict_to_tags_input(
+                        tags)
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:logs:"):
                 self.logs_backend.tag_resource(arn, tags)
