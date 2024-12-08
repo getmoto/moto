@@ -510,7 +510,7 @@ class DBCluster(RDSBaseModel):
         }
 
     def get_cfg(self) -> Dict[str, Any]:
-        cfg = self.__dict__
+        cfg = self.__dict__.copy()
         cfg.pop("backend")
         cfg["master_user_password"] = cfg.pop("_master_user_password")
         cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
