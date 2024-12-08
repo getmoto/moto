@@ -150,6 +150,103 @@ def test_modify_db_cluster_new_cluster_identifier():
     assert old_id not in clusters
 
 
+@pytest.mark.parametrize("with_custom_kms_key", [True, False])
+@mock_aws
+def test_modify_db_cluster_manage_master_user_password(with_custom_kms_key):
+    client = boto3.client("rds", region_name=RDS_REGION)
+    cluster_id = "cluster-id"
+    custom_kms_key = f"arn:aws:kms:{RDS_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    custom_kms_key_args = (
+        {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
+    )
+
+    create_response = client.create_db_cluster(
+        DBClusterIdentifier=cluster_id,
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+        ManageMasterUserPassword=False,
+    )
+
+    modify_response = client.modify_db_cluster(
+        DBClusterIdentifier=cluster_id,
+        ManageMasterUserPassword=True,
+        **custom_kms_key_args,
+    )
+
+    describe_response = client.describe_db_clusters(
+        DBClusterIdentifier=cluster_id,
+    )
+
+    revert_modification_response = client.modify_db_cluster(
+        DBClusterIdentifier=cluster_id, ManageMasterUserPassword=False
+    )
+
+    assert create_response["DBCluster"].get("MasterUserSecret") is None
+    master_user_secret = modify_response["DBCluster"]["MasterUserSecret"]
+    assert len(master_user_secret.keys()) == 3
+    assert (
+        master_user_secret["SecretArn"]
+        == "arn:aws:secretsmanager:eu-north-1:123456789012:secret:rds!cluster-id"
+    )
+    assert master_user_secret["SecretStatus"] == "active"
+    if with_custom_kms_key:
+        assert master_user_secret["KmsKeyId"] == custom_kms_key
+    else:
+        assert (
+            master_user_secret["KmsKeyId"]
+            == "arn:aws:kms:eu-north-1:123456789012:key/cluster-id"
+        )
+    assert len(describe_response["DBClusters"][0]["MasterUserSecret"].keys()) == 3
+    assert (
+        modify_response["DBCluster"]["MasterUserSecret"]
+        == describe_response["DBClusters"][0]["MasterUserSecret"]
+    )
+    assert revert_modification_response["DBCluster"].get("MasterUserSecret") is None
+
+
+@pytest.mark.parametrize("with_apply_immediately", [True, False])
+@mock_aws
+def test_modify_db_cluster_rotate_master_user_password(with_apply_immediately):
+    client = boto3.client("rds", region_name=RDS_REGION)
+    cluster_id = "cluster-id"
+
+    client.create_db_cluster(
+        DBClusterIdentifier=cluster_id,
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="hunter21",
+        ManageMasterUserPassword=True,
+    )
+
+    if with_apply_immediately:
+        modify_response = client.modify_db_cluster(
+            DBClusterIdentifier=cluster_id,
+            RotateMasterUserPassword=True,
+            ApplyImmediately=True,
+        )
+
+        describe_response = client.describe_db_clusters(
+            DBClusterIdentifier=cluster_id,
+        )
+
+        assert (
+            modify_response["DBCluster"]["MasterUserSecret"]["SecretStatus"]
+            == "rotating"
+        )
+        assert (
+            describe_response["DBClusters"][0]["MasterUserSecret"]["SecretStatus"]
+            == "active"
+        )
+
+    else:
+        with pytest.raises(ClientError):
+            client.modify_db_cluster(
+                DBClusterIdentifier=cluster_id,
+                RotateMasterUserPassword=True,
+            )
+
+
 @mock_aws
 def test_create_db_cluster__verify_default_properties():
     client = boto3.client("rds", region_name=RDS_REGION)
