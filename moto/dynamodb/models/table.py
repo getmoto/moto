@@ -1039,8 +1039,8 @@ class Table(CloudFormationModel):
         self,
         hash_key_attrs: List[str],
         range_key_attrs: List[Optional[str]],
-        items: list[Item],
-    ) -> list[Item]:
+        items: List[Item],
+    ) -> List[Item]:
         attrs_to_sort_by = self._generate_attr_to_sort_by(
             hash_key_attrs, range_key_attrs
         )
