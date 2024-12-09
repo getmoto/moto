@@ -102,10 +102,14 @@ class FakeKafkaCluster(BaseModel):
 
         elif self.cluster_type == "SERVERLESS":
             cluster_info["Serverless"] = {
-                "VpcConfigs": self.serverless_config.get("VpcConfigs", []) if self.serverless_config else [],
+                "VpcConfigs": self.serverless_config.get("VpcConfigs", [])
+                if self.serverless_config
+                else [],
                 "ClientAuthentication": self.serverless_config.get(
                     "ClientAuthentication", {}
-                ) if self.serverless_config else {},
+                )
+                if self.serverless_config
+                else {},
             }
 
         return cluster_info
@@ -123,15 +127,14 @@ class KafkaBackend(BaseBackend):
         self,
         cluster_name: str,
         tags: Optional[Dict[str, str]],
-        provisioned: Optional[Dict[str, Optional[str | Any]]],
-        serverless: Optional[Dict[str, Optional[str | Any]]],
+        provisioned: Optional[Dict[str, Any]],
+        serverless: Optional[Dict[str, Any]],
     ) -> Tuple[str, str, str, str]:
         if provisioned:
             cluster_type = "PROVISIONED"
             broker_node_group_info = provisioned.get("BrokerNodeGroupInfo")
-            kafka_version = provisioned.get(
-                "kafkaVersion", "default-kafka-version")
-            number_of_broker_nodes = provisioned.get("NumberOfBrokerNodes", 1)
+            kafka_version = provisioned.get("kafkaVersion", "default-kafka-version")
+            number_of_broker_nodes = int(provisioned.get("NumberOfBrokerNodes", 1))
             storage_mode = provisioned.get("StorageMode", "LOCAL")
             serverless_config = None
         elif serverless:
@@ -172,7 +175,7 @@ class KafkaBackend(BaseBackend):
     def describe_cluster_v2(self, cluster_arn: str) -> Dict[str, Any]:
         cluster = self.clusters[cluster_arn]
 
-        cluster_info = {
+        cluster_info: Dict[str, Any] = {
             "activeOperationArn": "arn:aws:kafka:region:account-id:operation/active-operation",
             "clusterArn": cluster.arn,
             "clusterName": cluster.cluster_name,
@@ -219,10 +222,14 @@ class KafkaBackend(BaseBackend):
             cluster_info.update(
                 {
                     "serverless": {
-                        "vpcConfigs": cluster.serverless_config.get("vpcConfigs", []) if cluster.serverless_config else [],
+                        "vpcConfigs": cluster.serverless_config.get("vpcConfigs", [])
+                        if cluster.serverless_config
+                        else [],
                         "clientAuthentication": cluster.serverless_config.get(
                             "clientAuthentication", {}
-                        ) if cluster.serverless_config else {},
+                        )
+                        if cluster.serverless_config
+                        else {},
                     }
                 }
             )
@@ -344,7 +351,7 @@ class KafkaBackend(BaseBackend):
             for cluster_arn, cluster in self.clusters.items()
         ]
 
-        return cluster_info_list, None
+        return cluster_info_list
 
     def delete_cluster(self, cluster_arn: str, current_version: str) -> Tuple[str, str]:
         cluster = self.clusters.pop(cluster_arn)
