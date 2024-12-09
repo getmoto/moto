@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -18,23 +18,23 @@ class FakeKafkaCluster(BaseModel):
         account_id: str,
         region_name: str,
         cluster_type: str,
-        tags: dict = None,
-        broker_node_group_info: dict = None,
-        kafka_version: str = None,
-        number_of_broker_nodes: int = None,
-        configuration_info=None,
-        serverless_config: dict = None,
-        encryption_info: dict = None,
+        tags: Optional[Dict[str, str]] = None,
+        broker_node_group_info: Optional[Dict[str, Any]] = None,
+        kafka_version: Optional[str] = None,
+        number_of_broker_nodes: Optional[int] = None,
+        configuration_info: Optional[Dict[str, Any]] = None,
+        serverless_config: Optional[Dict[str, Any]] = None,
+        encryption_info: Optional[Dict[str, Any]] = None,
         enhanced_monitoring: str = "DEFAULT",
-        open_monitoring: dict = None,
-        logging_info: dict = None,
+        open_monitoring: Optional[Dict[str, Any]] = None,
+        logging_info: Optional[Dict[str, Any]] = None,
         storage_mode: str = "LOCAL",
         current_version: str = "1.0",
-        client_authentication: dict = None,
+        client_authentication: Optional[Dict[str, Any]] = None,
         state: str = "CREATING",
-        active_operation_arn: str = None,
-        zookeeper_connect_string: str = None,
-        zookeeper_connect_string_tls: str = None,
+        active_operation_arn: Optional[str] = None,
+        zookeeper_connect_string: Optional[str] = None,
+        zookeeper_connect_string_tls: Optional[str] = None,
     ):
         # General attributes
         self.cluster_id = str(uuid.uuid4())
@@ -73,7 +73,7 @@ class FakeKafkaCluster(BaseModel):
         partition = get_partition(self.region_name)
         return f"arn:{partition}:kafka:{self.region_name}:{self.account_id}:{resource_type}/{self.cluster_id}"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         cluster_info = {
             "ClusterName": self.cluster_name,
             "ClusterArn": self.arn,
@@ -102,10 +102,10 @@ class FakeKafkaCluster(BaseModel):
 
         elif self.cluster_type == "SERVERLESS":
             cluster_info["Serverless"] = {
-                "VpcConfigs": self.serverless_config.get("VpcConfigs", []),
+                "VpcConfigs": self.serverless_config.get("VpcConfigs", []) if self.serverless_config else [],
                 "ClientAuthentication": self.serverless_config.get(
                     "ClientAuthentication", {}
-                ),
+                ) if self.serverless_config else {},
             }
 
         return cluster_info
@@ -114,12 +114,18 @@ class FakeKafkaCluster(BaseModel):
 class KafkaBackend(BaseBackend):
     """Implementation of Kafka APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.clusters: Dict[str, FakeKafkaCluster] = {}
         self.tagger = TaggingService()
 
-    def create_cluster_v2(self, cluster_name, tags, provisioned, serverless):
+    def create_cluster_v2(
+        self,
+        cluster_name: str,
+        tags: Optional[Dict[str, str]],
+        provisioned: Optional[Dict[str, Optional[str | Any]]],
+        serverless: Optional[Dict[str, Optional[str | Any]]],
+    ):
         if provisioned:
             cluster_type = "PROVISIONED"
             broker_node_group_info = provisioned.get("BrokerNodeGroupInfo")
@@ -163,7 +169,7 @@ class KafkaBackend(BaseBackend):
             new_cluster.cluster_type,
         )
 
-    def describe_cluster_v2(self, cluster_arn):
+    def describe_cluster_v2(self, cluster_arn: str):
         cluster = self.clusters[cluster_arn]
 
         cluster_info = {
@@ -224,7 +230,11 @@ class KafkaBackend(BaseBackend):
         return cluster_info
 
     def list_clusters_v2(
-        self, cluster_name_filter, cluster_type_filter, max_results, next_token
+        self,
+        cluster_name_filter: Optional[str],
+        cluster_type_filter: Optional[str],
+        max_results: Optional[int],
+        next_token: Optional[str],
     ):
         cluster_info_list = [
             {
@@ -241,18 +251,18 @@ class KafkaBackend(BaseBackend):
 
     def create_cluster(
         self,
-        broker_node_group_info,
-        client_authentication,
-        cluster_name,
-        configuration_info=None,
-        encryption_info=None,
-        enhanced_monitoring="DEFAULT",
-        open_monitoring=None,
-        kafka_version="2.8.1",
-        logging_info=None,
-        number_of_broker_nodes=1,
-        tags=None,
-        storage_mode="LOCAL",
+        broker_node_group_info: Dict[str, Any],
+        client_authentication: Optional[Dict[str, Any]],
+        cluster_name: str,
+        configuration_info: Optional[Dict[str, Any]] = None,
+        encryption_info: Optional[Dict[str, Any]] = None,
+        enhanced_monitoring: str = "DEFAULT",
+        open_monitoring: Optional[Dict[str, Any]] = None,
+        kafka_version: str = "2.8.1",
+        logging_info: Optional[Dict[str, Any]] = None,
+        number_of_broker_nodes: int = 1,
+        tags: Optional[Dict[str, str]] = None,
+        storage_mode: str = "LOCAL",
     ):
         new_cluster = FakeKafkaCluster(
             cluster_name=cluster_name,
@@ -278,7 +288,7 @@ class KafkaBackend(BaseBackend):
 
         return new_cluster.arn, new_cluster.cluster_name, new_cluster.state
 
-    def describe_cluster(self, cluster_arn):
+    def describe_cluster(self, cluster_arn: str):
         cluster = self.clusters[cluster_arn]
 
         return {
@@ -333,18 +343,18 @@ class KafkaBackend(BaseBackend):
 
         return cluster_info_list, None
 
-    def delete_cluster(self, cluster_arn, current_version):
+    def delete_cluster(self, cluster_arn: str, current_version: str):
         cluster = self.clusters.pop(cluster_arn)
         return cluster_arn, cluster.state
 
-    def list_tags_for_resource(self, resource_arn) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn, tags):
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]):
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         self.tagger.tag_resource(resource_arn, tags_list)
 
-    def untag_resource(self, resource_arn, tag_keys):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 

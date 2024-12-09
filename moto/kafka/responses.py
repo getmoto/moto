@@ -11,7 +11,7 @@ from .models import KafkaBackend, kafka_backends
 class KafkaResponse(BaseResponse):
     """Handler for Kafka requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="kafka")
 
     @property
@@ -19,7 +19,7 @@ class KafkaResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return kafka_backends[self.current_account][self.region]
 
-    def create_cluster_v2(self):
+    def create_cluster_v2(self) -> str:
         cluster_name = self._get_param("clusterName")
         tags = self._get_param("tags")
         provisioned = self._get_param("provisioned")
@@ -41,14 +41,14 @@ class KafkaResponse(BaseResponse):
             )
         )
 
-    def describe_cluster_v2(self):
+    def describe_cluster_v2(self) -> str:
         cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
         cluster_info = self.kafka_backend.describe_cluster_v2(
             cluster_arn=cluster_arn,
         )
         return json.dumps(dict(clusterInfo=cluster_info))
 
-    def list_clusters_v2(self):
+    def list_clusters_v2(self) -> str:
         cluster_name_filter = self._get_param("clusterNameFilter")
         cluster_type_filter = self._get_param("clusterTypeFilter")
         max_results = self._get_param("maxResults")
@@ -61,14 +61,14 @@ class KafkaResponse(BaseResponse):
         )
         return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.kafka_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
         return json.dumps(dict(tags=tags))
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self._get_param("tags")
         self.kafka_backend.tag_resource(
@@ -77,7 +77,7 @@ class KafkaResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
         tag_keys = self.__dict__["data"]["tagKeys"]
         self.kafka_backend.untag_resource(
@@ -86,7 +86,7 @@ class KafkaResponse(BaseResponse):
         )
         return json.dumps(dict())
 
-    def create_cluster(self):
+    def create_cluster(self) -> str:
         broker_node_group_info = self._get_param("brokerNodeGroupInfo")
         client_authentication = self._get_param("clientAuthentication")
         cluster_name = self._get_param("clusterName")
@@ -117,14 +117,14 @@ class KafkaResponse(BaseResponse):
             dict(clusterArn=cluster_arn, clusterName=cluster_name, state=state)
         )
 
-    def describe_cluster(self):
+    def describe_cluster(self) -> str:
         cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
         cluster_info = self.kafka_backend.describe_cluster(
             cluster_arn=cluster_arn,
         )
         return json.dumps(dict(clusterInfo=cluster_info))
 
-    def delete_cluster(self):
+    def delete_cluster(self) -> str:
         cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
         current_version = self._get_param("currentVersion")
         cluster_arn, state = self.kafka_backend.delete_cluster(
@@ -133,7 +133,7 @@ class KafkaResponse(BaseResponse):
         )
         return json.dumps(dict(clusterArn=cluster_arn, state=state))
 
-    def list_clusters(self):
+    def list_clusters(self) -> str:
         cluster_name_filter = self._get_param("clusterNameFilter")
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
@@ -143,8 +143,5 @@ class KafkaResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-
-        # Correctly Printing Here
-        # print(json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token)))
 
         return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))
