@@ -4,6 +4,7 @@ import json
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
+
 from .models import KafkaBackend, kafka_backends
 
 
