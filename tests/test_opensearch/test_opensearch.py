@@ -203,7 +203,7 @@ def test_list_filtered_domain_names():
 
 
 @mock_aws
-def test_list_unknown_domain_names_engine_type(): 
+def test_list_unknown_domain_names_engine_type():
     client = boto3.client("opensearch", region_name="ap-southeast-1")
 
     opensearch_domain_name = "testdn"
