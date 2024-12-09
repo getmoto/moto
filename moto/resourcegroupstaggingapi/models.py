@@ -619,12 +619,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.kafka_backend and (
             not resource_type_filters or "kafka" in resource_type_filters
         ):
-            for cluster in self.kafka_backend.clusters.values():
-                tags = self.kafka_backend.list_tags_for_resource(cluster.arn)["Tags"]
+            for msk_cluster in self.kafka_backend.clusters.values():
+                tag_dict = self.kafka_backend.list_tags_for_resource(msk_cluster.arn)
+                tags = [{"Key": key, "Value": value} for key, value in tag_dict.items()]
+
                 if not tags or not tag_filter(tags):
                     continue
+
                 yield {
-                    "ResourceARN": cluster.arn,
+                    "ResourceARN": msk_cluster.arn,
                     "Tags": tags,
                 }
 

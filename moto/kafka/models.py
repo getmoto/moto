@@ -125,7 +125,7 @@ class KafkaBackend(BaseBackend):
         tags: Optional[Dict[str, str]],
         provisioned: Optional[Dict[str, Optional[str | Any]]],
         serverless: Optional[Dict[str, Optional[str | Any]]],
-    ):
+    ) -> Tuple[str, str, str, str]:
         if provisioned:
             cluster_type = "PROVISIONED"
             broker_node_group_info = provisioned.get("BrokerNodeGroupInfo")
@@ -153,7 +153,7 @@ class KafkaBackend(BaseBackend):
             serverless_config=serverless_config,
             tags=tags,
             state="CREATING",
-            storage_mode=storage_mode,
+            storage_mode=storage_mode if storage_mode else "LOCAL",
             current_version="1.0",
         )
 
@@ -169,7 +169,7 @@ class KafkaBackend(BaseBackend):
             new_cluster.cluster_type,
         )
 
-    def describe_cluster_v2(self, cluster_arn: str):
+    def describe_cluster_v2(self, cluster_arn: str) -> Dict[str, Any]:
         cluster = self.clusters[cluster_arn]
 
         cluster_info = {
@@ -219,10 +219,10 @@ class KafkaBackend(BaseBackend):
             cluster_info.update(
                 {
                     "serverless": {
-                        "vpcConfigs": cluster.serverless_config.get("vpcConfigs", []),
+                        "vpcConfigs": cluster.serverless_config.get("vpcConfigs", []) if cluster.serverless_config else [],
                         "clientAuthentication": cluster.serverless_config.get(
                             "clientAuthentication", {}
-                        ),
+                        ) if cluster.serverless_config else {},
                     }
                 }
             )
@@ -235,7 +235,7 @@ class KafkaBackend(BaseBackend):
         cluster_type_filter: Optional[str],
         max_results: Optional[int],
         next_token: Optional[str],
-    ):
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         cluster_info_list = [
             {
                 "clusterArn": cluster.arn,
@@ -263,7 +263,7 @@ class KafkaBackend(BaseBackend):
         number_of_broker_nodes: int = 1,
         tags: Optional[Dict[str, str]] = None,
         storage_mode: str = "LOCAL",
-    ):
+    ) -> Tuple[str, str, str]:
         new_cluster = FakeKafkaCluster(
             cluster_name=cluster_name,
             account_id=self.account_id,
@@ -288,7 +288,7 @@ class KafkaBackend(BaseBackend):
 
         return new_cluster.arn, new_cluster.cluster_name, new_cluster.state
 
-    def describe_cluster(self, cluster_arn: str):
+    def describe_cluster(self, cluster_arn: str) -> Dict[str, Any]:
         cluster = self.clusters[cluster_arn]
 
         return {
@@ -328,7 +328,10 @@ class KafkaBackend(BaseBackend):
         }
 
     def list_clusters(
-        self, cluster_name_filter, max_results, next_token
+        self,
+        cluster_name_filter: Optional[str],
+        max_results: Optional[int],
+        next_token: Optional[str],
     ) -> List[Dict[str, Any]]:
         cluster_info_list = [
             {
@@ -343,18 +346,18 @@ class KafkaBackend(BaseBackend):
 
         return cluster_info_list, None
 
-    def delete_cluster(self, cluster_arn: str, current_version: str):
+    def delete_cluster(self, cluster_arn: str, current_version: str) -> Tuple[str, str]:
         cluster = self.clusters.pop(cluster_arn)
         return cluster_arn, cluster.state
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]):
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         self.tagger.tag_resource(resource_arn, tags_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]):
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 
