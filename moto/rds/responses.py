@@ -48,6 +48,13 @@ class RDSResponse(BaseResponse):
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_user_password": self._get_param("MasterUserPassword"),
             "master_username": self._get_param("MasterUsername"),
+            "manage_master_user_password": self._get_bool_param(
+                "ManageMasterUserPassword"
+            ),
+            "master_user_secret_kms_key_id": self._get_param(
+                "MasterUserSecretKmsKeyId"
+            ),
+            "rotate_master_user_password": self._get_param("RotateMasterUserPassword"),
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
@@ -68,6 +75,7 @@ class RDSResponse(BaseResponse):
             ),
             "tags": list(),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
+            "apply_immediately": self._get_bool_param("ApplyImmediately"),
         }
         args["tags"] = self.unpack_list_params("Tags", "Tag")
         return args
@@ -105,6 +113,13 @@ class RDSResponse(BaseResponse):
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_user_password": self._get_param("MasterUserPassword"),
             "master_username": self._get_param("MasterUsername"),
+            "manage_master_user_password": self._get_bool_param(
+                "ManageMasterUserPassword"
+            ),
+            "master_user_secret_kms_key_id": self._get_param(
+                "MasterUserSecretKmsKeyId"
+            ),
+            "rotate_master_user_password": self._get_param("RotateMasterUserPassword"),
             "multi_az": self._get_bool_param("MultiAZ"),
             "option_group_name": self._get_param("OptionGroupName"),
             "port": self._get_param("Port"),
@@ -123,6 +138,7 @@ class RDSResponse(BaseResponse):
             ),
             "tags": list(),
             "deletion_protection": self._get_bool_param("DeletionProtection"),
+            "apply_immediately": self._get_bool_param("ApplyImmediately"),
         }
         args["tags"] = self.unpack_list_params("Tags", "Tag")
         return args
@@ -186,6 +202,12 @@ class RDSResponse(BaseResponse):
             "storage_type": self._get_param("StorageType"),
             "kms_key_id": self._get_param("KmsKeyId"),
             "master_username": self._get_param("MasterUsername"),
+            "manage_master_user_password": self._get_bool_param(
+                "ManageMasterUserPassword"
+            ),
+            "master_user_secret_kms_key_id": self._get_param(
+                "MasterUserSecretKmsKeyId"
+            ),
             "master_user_password": self._get_param("MasterUserPassword"),
             "network_type": self._get_param("NetworkType"),
             "port": self._get_param("Port"),
@@ -277,6 +299,11 @@ class RDSResponse(BaseResponse):
     def delete_db_instance(self) -> str:
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_name = self._get_param("FinalDBSnapshotIdentifier")
+        if db_snapshot_name is not None:
+            self.backend.validate_db_snapshot_identifier(
+                db_snapshot_name, parameter_name="FinalDBSnapshotIdentifier"
+            )
+
         database = self.backend.delete_db_instance(
             db_instance_identifier, db_snapshot_name
         )
@@ -293,8 +320,13 @@ class RDSResponse(BaseResponse):
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
+        self.backend.validate_db_snapshot_identifier(
+            db_snapshot_identifier, parameter_name="DBSnapshotIdentifier"
+        )
         snapshot = self.backend.create_db_snapshot(
-            db_instance_identifier, db_snapshot_identifier, tags=tags
+            db_instance_identifier,
+            db_snapshot_identifier,
+            tags=tags,
         )
         template = self.response_template(CREATE_SNAPSHOT_TEMPLATE)
         return template.render(snapshot=snapshot)
@@ -304,6 +336,10 @@ class RDSResponse(BaseResponse):
         target_snapshot_identifier = self._get_param("TargetDBSnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
         copy_tags = self._get_param("CopyTags")
+        self.backend.validate_db_snapshot_identifier(
+            target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
+        )
+
         snapshot = self.backend.copy_db_snapshot(
             source_snapshot_identifier, target_snapshot_identifier, tags, copy_tags
         )
@@ -378,6 +414,11 @@ class RDSResponse(BaseResponse):
     def stop_db_instance(self) -> str:
         db_instance_identifier = self._get_param("DBInstanceIdentifier")
         db_snapshot_identifier = self._get_param("DBSnapshotIdentifier")
+        if db_snapshot_identifier is not None:
+            self.backend.validate_db_snapshot_identifier(
+                db_snapshot_identifier, parameter_name="DBSnapshotIdentifier"
+            )
+
         database = self.backend.stop_db_instance(
             db_instance_identifier, db_snapshot_identifier
         )

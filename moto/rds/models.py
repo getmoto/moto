@@ -39,6 +39,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
@@ -330,6 +331,14 @@ class DBCluster(RDSBaseModel):
         else:
             self.master_user_password = kwargs.get("master_user_password")  # type: ignore
 
+        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
+        self.manage_master_user_password = kwargs.get(
+            "manage_master_user_password", False
+        )
+        self.master_user_secret_status = kwargs.get(
+            "master_user_secret_status", "active"
+        )
+
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
             self.availability_zones = [
@@ -491,8 +500,17 @@ class DBCluster(RDSBaseModel):
                 ]:
                     self._enable_http_endpoint = val
 
+    def master_user_secret(self) -> Dict[str, Any]:
+        return {
+            "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "secret_status": self.master_user_secret_status,
+            "kms_key_id": self.master_user_secret_kms_key_id
+            if self.master_user_secret_kms_key_id is not None
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+        }
+
     def get_cfg(self) -> Dict[str, Any]:
-        cfg = self.__dict__
+        cfg = self.__dict__.copy()
         cfg.pop("backend")
         cfg["master_user_password"] = cfg.pop("_master_user_password")
         cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
@@ -603,6 +621,14 @@ class DBCluster(RDSBaseModel):
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
               {%- endif -%}
               {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
+              {%- if cluster.manage_master_user_password -%}
+              <MasterUserSecret>
+                {% set master_user_secret = cluster.master_user_secret() %}
+                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+              </MasterUserSecret>
+              {%- endif -%}
             </DBCluster>"""
         )
         return template.render(cluster=self, status=status)
@@ -776,6 +802,13 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             self.storage_type = DBInstance.default_storage_type(iops=self.iops)
         self.master_username = kwargs.get("master_username")
         self.master_user_password = kwargs.get("master_user_password")
+        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
+        self.master_user_secret_status = kwargs.get(
+            "master_user_secret_status", "active"
+        )
+        self.manage_master_user_password = kwargs.get(
+            "manage_master_user_password", False
+        )
         self.auto_minor_version_upgrade = kwargs.get("auto_minor_version_upgrade")
         if self.auto_minor_version_upgrade is None:
             self.auto_minor_version_upgrade = True
@@ -919,6 +952,15 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
 
         return db_family, f"default.{db_family}"
 
+    def master_user_secret(self) -> Dict[str, Any]:
+        return {
+            "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "secret_status": self.master_user_secret_status,
+            "kms_key_id": self.master_user_secret_kms_key_id
+            if self.master_user_secret_kms_key_id is not None
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+        }
+
     def to_xml(self) -> str:
         template = Template(
             """<DBInstance>
@@ -1041,6 +1083,14 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
               {%- endfor -%}
               </TagList>
               <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
+              {%- if database.manage_master_user_password -%}
+              <MasterUserSecret>
+                {% set master_user_secret = database.master_user_secret() %}
+                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+              </MasterUserSecret>
+              {%- endif -%}
             </DBInstance>"""
         )
         return template.render(database=self)
@@ -1943,8 +1993,23 @@ class RDSBackend(BaseBackend):
         )
         if msg:
             raise RDSClientError("InvalidParameterValue", msg)
+        if db_kwargs.get("rotate_master_user_password") and db_kwargs.get(
+            "apply_immediately"
+        ):
+            db_kwargs["master_user_secret_status"] = "rotating"
+        if db_kwargs.get("rotate_master_user_password") and not db_kwargs.get(
+            "apply_immediately"
+        ):
+            raise RDSClientError(
+                "InvalidParameterCombination",
+                "You must specify apply immediately when rotating the master user password.",
+            )
         database.update(db_kwargs)
-        return database
+        initial_state = copy.deepcopy(database)
+        database.master_user_secret_status = (
+            "active"  # already set the final state in the background
+        )
+        return initial_state
 
     def reboot_db_instance(self, db_instance_identifier: str) -> DBInstance:
         return self.describe_db_instances(db_instance_identifier)[0]
@@ -1975,8 +2040,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
-        new_instance_props = copy.deepcopy(original_database.__dict__)
-        new_instance_props.pop("backend")
+        new_instance_props = {}
+        for key, value in original_database.__dict__.items():
+            if key != "backend":
+                new_instance_props[key] = copy.deepcopy(value)
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2412,6 +2479,18 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
+        if kwargs.get("rotate_master_user_password") and kwargs.get(
+            "apply_immediately"
+        ):
+            kwargs["master_user_secret_status"] = "rotating"
+        elif kwargs.get("rotate_master_user_password") and not kwargs.get(
+            "apply_immediately"
+        ):
+            raise RDSClientError(
+                "InvalidParameterCombination",
+                "You must specify apply immediately when rotating the master user password.",
+            )
+
         kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier")
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
@@ -2430,7 +2509,11 @@ class RDSBackend(BaseBackend):
         self.clusters[cluster_id] = cluster
 
         initial_state = copy.deepcopy(cluster)  # Return status=creating
-        cluster.status = "available"  # Already set the final status in the background
+
+        # Already set the final status in the background
+        cluster.status = "available"
+        cluster.master_user_secret_status = "active"
+
         return initial_state
 
     def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
@@ -2742,11 +2825,33 @@ class RDSBackend(BaseBackend):
         # # Must contain from 1 to 63 letters, numbers, or hyphens.
         # # First character must be a letter.
         # # Can't end with a hyphen or contain two consecutive hyphens.
-        if re.match(
-            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+            )
+            and db_identifier[0].isalpha()
         ):
             return
         raise InvalidDBInstanceIdentifier
+
+    @staticmethod
+    def validate_db_snapshot_identifier(
+        db_snapshot_identifier: str, parameter_name: str
+    ) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBSnapshot.html
+        # Constraints:
+        # # Must contain from 1 to 255 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])$",
+                db_snapshot_identifier,
+            )
+            and db_snapshot_identifier[0].isalpha()
+        ):
+            return
+        raise InvalidDBSnapshotIdentifier(db_snapshot_identifier, parameter_name)
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str

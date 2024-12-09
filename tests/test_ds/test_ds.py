@@ -390,6 +390,10 @@ def test_describe_trusts():
     assert trusts[0]["TrustId"] == trust_ids[1]
     assert trusts[1]["TrustId"] == trust_ids[2]
 
+    # Describe all the trusts in the account
+    trusts = client.describe_trusts()["Trusts"]
+    assert len(trusts) == 5
+
 
 @mock_aws
 def test_delete_trust():
@@ -455,3 +459,18 @@ def test_ldaps_exceptions_non_microsoftad():
         client.disable_ldaps(DirectoryId=directory_id, Type="Client")
     err = exc.value.response["Error"]
     assert err["Code"] == "UnsupportedOperationException"
+
+
+@mock_aws
+def test_settings_exception_non_microsoftad():
+    """Test Settings operations on non-Microsoft AD directories."""
+
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_directory(client, ec2_client)
+    # Test describing Settings on a non-Microsoft AD directory.
+    with pytest.raises(ClientError) as exc:
+        client.describe_settings(DirectoryId=directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"

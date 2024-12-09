@@ -18,6 +18,7 @@ Resources:
   RootRole:
     Type: 'AWS::IAM::Role'
     Properties:
+      Description: {0}
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -31,9 +32,9 @@ Outputs:
   RootRole:
     Value: !Ref RootRole
   RoleARN:
-    Value: {"Fn::GetAtt": ["RootRole", "Arn"]}
+    Value: {{"Fn::GetAtt": ["RootRole", "Arn"]}}
   RoleID:
-    Value: {"Fn::GetAtt": ["RootRole", "RoleId"]}
+    Value: {{"Fn::GetAtt": ["RootRole", "RoleId"]}}
 """
 
 
@@ -1370,8 +1371,9 @@ def test_iam_cloudformation_create_role():
     cf_client = boto3.client("cloudformation", region_name="us-east-1")
 
     stack_name = "MyStack"
+    description = "initial description"
 
-    template = TEMPLATE_MINIMAL_ROLE.strip()
+    template = TEMPLATE_MINIMAL_ROLE.strip().format(description)
     cf_client.create_stack(StackName=stack_name, TemplateBody=template)
 
     resources = cf_client.list_stack_resources(StackName=stack_name)[
@@ -1390,6 +1392,19 @@ def test_iam_cloudformation_create_role():
     assert roles[0]["RoleName"] == [v for k, v in outputs.items() if k == "RootRole"][0]
     assert roles[0]["Arn"] == [v for k, v in outputs.items() if k == "RoleARN"][0]
     assert roles[0]["RoleId"] == [v for k, v in outputs.items() if k == "RoleID"][0]
+    assert roles[0]["Description"] == description
+
+    description = "new description"
+    template = TEMPLATE_MINIMAL_ROLE.strip().format(description)
+    cf_client.update_stack(StackName=stack_name, TemplateBody=template)
+
+    roles = iam_client.list_roles()["Roles"]
+    assert len(roles) == 1
+
+    assert roles[0]["RoleName"] == [v for k, v in outputs.items() if k == "RootRole"][0]
+    assert roles[0]["Arn"] == [v for k, v in outputs.items() if k == "RoleARN"][0]
+    assert roles[0]["RoleId"] == [v for k, v in outputs.items() if k == "RoleID"][0]
+    assert roles[0]["Description"] == description
 
     cf_client.delete_stack(StackName=stack_name)
 

@@ -2896,6 +2896,10 @@
   "Location": "use2-az1"
  },
  {
+  "InstanceType": "trn2.48xlarge",
+  "Location": "use2-az1"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "use2-az1"
  },
@@ -5061,6 +5065,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "use2-az2"
  },
  {
@@ -8061,6 +8069,10 @@
  },
  {
   "InstanceType": "p5e.48xlarge",
+  "Location": "use2-az3"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "use2-az3"
  },
  {
