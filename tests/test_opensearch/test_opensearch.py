@@ -233,3 +233,7 @@ def test_describe_domains():
         assert domain["DomainName"] in domain_names
         assert "AdvancedSecurityOptions" in domain.keys()
         assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0

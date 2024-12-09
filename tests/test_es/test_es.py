@@ -236,3 +236,7 @@ def test_describe_elasticsearch_domains():
         assert domain["ElasticsearchVersion"] == "7.10"
         assert "AdvancedSecurityOptions" in domain.keys()
         assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_elasticsearch_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0

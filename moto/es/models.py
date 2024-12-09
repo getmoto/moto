@@ -147,7 +147,8 @@ class ElasticsearchServiceBackend(BaseBackend):
     ) -> List[Dict[str, Any]]:
         queried_domains = []
         for domain_name in domain_names:
-            queried_domains.append(self.domains[domain_name].to_json())
+            if domain_name in self.domains:
+                queried_domains.append(self.domains[domain_name].to_json())
         return queried_domains
 
 
