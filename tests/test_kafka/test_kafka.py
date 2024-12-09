@@ -80,10 +80,11 @@ def test_list_tags_for_resource():
 
     client.untag_resource(
         ResourceArn=create_resp["ClusterArn"],
-        TagKeys=list(TempTags.keys()),
+        TagKeys=["TestKey3"],
     )
 
     tags = client.list_tags_for_resource(ResourceArn=create_resp["ClusterArn"])
+
     assert tags["Tags"] == FAKE_TAGS
 
 
@@ -114,7 +115,7 @@ def test_create_cluster():
     resp = client.describe_cluster(ClusterArn=response["ClusterArn"])
     assert resp["ClusterInfo"]["ClusterName"] == cluster_name
     assert resp["ClusterInfo"]["State"] == "CREATING"
-    assert resp["ClusterInfo"]["KafkaVersion"] == "2.8.1"
+    assert resp["ClusterInfo"]["CurrentBrokerSoftwareInfo"]["KafkaVersion"] == "2.8.1"
     assert resp["ClusterInfo"]["NumberOfBrokerNodes"] == 3
     assert (
         resp["ClusterInfo"]["BrokerNodeGroupInfo"]["InstanceType"] == "kafka.m5.large"

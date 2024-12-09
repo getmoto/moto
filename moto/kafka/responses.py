@@ -1,6 +1,7 @@
 """Handles incoming kafka requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -41,7 +42,7 @@ class KafkaResponse(BaseResponse):
         )
 
     def describe_cluster_v2(self):
-        cluster_arn = self._get_param("clusterArn")
+        cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
         cluster_info = self.kafka_backend.describe_cluster_v2(
             cluster_arn=cluster_arn,
         )
@@ -61,14 +62,14 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict(clusterInfoList=cluster_info_list, nextToken=next_token))
 
     def list_tags_for_resource(self):
-        resource_arn = self._get_param("resourceArn")
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.kafka_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
         return json.dumps(dict(tags=tags))
 
     def tag_resource(self):
-        resource_arn = self._get_param("resourceArn")
+        resource_arn = unquote(self._get_param("resourceArn"))
         tags = self._get_param("tags")
         self.kafka_backend.tag_resource(
             resource_arn=resource_arn,
@@ -77,8 +78,8 @@ class KafkaResponse(BaseResponse):
         return json.dumps(dict())
 
     def untag_resource(self):
-        resource_arn = self._get_param("resourceArn")
-        tag_keys = self._get_param("tagKeys")
+        resource_arn = unquote(self._get_param("resourceArn"))
+        tag_keys = self.__dict__["data"]["tagKeys"]
         self.kafka_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,
@@ -117,14 +118,14 @@ class KafkaResponse(BaseResponse):
         )
 
     def describe_cluster(self):
-        cluster_arn = self._get_param("clusterArn")
+        cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
         cluster_info = self.kafka_backend.describe_cluster(
             cluster_arn=cluster_arn,
         )
         return json.dumps(dict(clusterInfo=cluster_info))
 
     def delete_cluster(self):
-        cluster_arn = self._get_param("clusterArn")
+        cluster_arn = unquote(self.parsed_url.path.split("/clusters/")[-1])
         current_version = self._get_param("currentVersion")
         cluster_arn, state = self.kafka_backend.delete_cluster(
             cluster_arn=cluster_arn,

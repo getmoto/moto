@@ -123,7 +123,8 @@ class KafkaBackend(BaseBackend):
         if provisioned:
             cluster_type = "PROVISIONED"
             broker_node_group_info = provisioned.get("BrokerNodeGroupInfo")
-            kafka_version = provisioned.get("KafkaVersion", "default-kafka-version")
+            kafka_version = provisioned.get(
+                "kafkaVersion", "default-kafka-version")
             number_of_broker_nodes = provisioned.get("NumberOfBrokerNodes", 1)
             storage_mode = provisioned.get("StorageMode", "LOCAL")
             serverless_config = None
@@ -153,8 +154,7 @@ class KafkaBackend(BaseBackend):
         self.clusters[new_cluster.arn] = new_cluster
 
         if tags:
-            tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
-            self.tagger.tag_resource(new_cluster.arn, tags_list)
+            self.tag_resource(new_cluster.arn, tags)
 
         return (
             new_cluster.arn,
@@ -164,61 +164,58 @@ class KafkaBackend(BaseBackend):
         )
 
     def describe_cluster_v2(self, cluster_arn):
-        cluster = self.clusters.get(cluster_arn)
+        cluster = self.clusters[cluster_arn]
 
         cluster_info = {
-            "ClusterInfo": {
-                "ActiveOperationArn": cluster.active_operation_arn
-                or "arn:aws:kafka:region:account-id:operation/active-operation",
-                "ClusterArn": cluster.arn,
-                "ClusterName": cluster.cluster_name,
-                "ClusterType": cluster.cluster_type,
-                "CreationTime": cluster.creation_time,
-                "CurrentVersion": cluster.current_version,
-                "State": cluster.state,
-                "StateInfo": {
-                    "Code": "string",
-                    "Message": "Cluster state details.",
-                },
-                "Tags": self.list_tags_for_resource(cluster.arn),
-            }
+            "activeOperationArn": "arn:aws:kafka:region:account-id:operation/active-operation",
+            "clusterArn": cluster.arn,
+            "clusterName": cluster.cluster_name,
+            "clusterType": cluster.cluster_type,
+            "creationTime": cluster.creation_time,
+            "currentVersion": cluster.current_version,
+            "state": cluster.state,
+            "stateInfo": {
+                "code": "string",
+                "message": "Cluster state details.",
+            },
+            "tags": self.list_tags_for_resource(cluster.arn),
         }
 
         if cluster.cluster_type == "PROVISIONED":
-            cluster_info["ClusterInfo"].update(
+            cluster_info.update(
                 {
-                    "BrokerNodeGroupInfo": cluster.broker_node_group_info or {},
-                    "ClientAuthentication": cluster.client_authentication or {},
-                    "CurrentBrokerSoftwareInfo": {
-                        "ConfigurationArn": (cluster.configuration_info or {}).get(
-                            "Arn", "string"
+                    "brokerNodeGroupInfo": cluster.broker_node_group_info or {},
+                    "clientAuthentication": cluster.client_authentication or {},
+                    "currentBrokerSoftwareInfo": {
+                        "configurationArn": (cluster.configuration_info or {}).get(
+                            "arn", "string"
                         ),
-                        "ConfigurationRevision": (cluster.configuration_info or {}).get(
+                        "configurationRevision": (cluster.configuration_info or {}).get(
                             "Revision", 1
                         ),
-                        "KafkaVersion": cluster.kafka_version,
+                        "kafkaVersion": cluster.kafka_version,
                     },
-                    "EncryptionInfo": cluster.encryption_info or {},
-                    "EnhancedMonitoring": cluster.enhanced_monitoring,
-                    "OpenMonitoring": cluster.open_monitoring or {},
-                    "LoggingInfo": cluster.logging_info or {},
-                    "NumberOfBrokerNodes": cluster.number_of_broker_nodes or 0,
-                    "ZookeeperConnectString": cluster.zookeeper_connect_string
+                    "encryptionInfo": cluster.encryption_info or {},
+                    "enhancedMonitoring": cluster.enhanced_monitoring,
+                    "openMonitoring": cluster.open_monitoring or {},
+                    "loggingInfo": cluster.logging_info or {},
+                    "numberOfBrokerNodes": cluster.number_of_broker_nodes or 0,
+                    "zookeeperConnectString": cluster.zookeeper_connect_string
                     or "zookeeper.example.com:2181",
-                    "ZookeeperConnectStringTls": cluster.zookeeper_connect_string_tls
+                    "zookeeperConnectStringTls": cluster.zookeeper_connect_string_tls
                     or "zookeeper.example.com:2181",
-                    "StorageMode": cluster.storage_mode,
-                    "CustomerActionStatus": "NONE",
+                    "storageMode": cluster.storage_mode,
+                    "customerActionStatus": "NONE",
                 }
             )
 
         elif cluster.cluster_type == "SERVERLESS":
-            cluster_info["ClusterInfo"].update(
+            cluster_info.update(
                 {
-                    "Serverless": {
-                        "VpcConfigs": cluster.serverless_config.get("VpcConfigs", []),
-                        "ClientAuthentication": cluster.serverless_config.get(
-                            "ClientAuthentication", {}
+                    "serverless": {
+                        "vpcConfigs": cluster.serverless_config.get("vpcConfigs", []),
+                        "clientAuthentication": cluster.serverless_config.get(
+                            "clientAuthentication", {}
                         ),
                     }
                 }
@@ -231,11 +228,11 @@ class KafkaBackend(BaseBackend):
     ):
         cluster_info_list = [
             {
-                "ClusterArn": cluster.arn,
-                "ClusterName": cluster.cluster_name,
-                "ClusterType": cluster.cluster_type,
-                "State": cluster.state,
-                "CreationTime": cluster.creation_time,
+                "clusterArn": cluster.arn,
+                "clusterName": cluster.cluster_name,
+                "clusterType": cluster.cluster_type,
+                "state": cluster.state,
+                "creationTime": cluster.creation_time,
             }
             for cluster in self.clusters.values()
         ]
@@ -277,51 +274,47 @@ class KafkaBackend(BaseBackend):
         self.clusters[new_cluster.arn] = new_cluster
 
         if tags:
-            tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
-            self.tagger.tag_resource(new_cluster.arn, tags_list)
+            self.tag_resource(new_cluster.arn, tags)
 
         return new_cluster.arn, new_cluster.cluster_name, new_cluster.state
 
     def describe_cluster(self, cluster_arn):
-        cluster = self.clusters.get(cluster_arn)
+        cluster = self.clusters[cluster_arn]
 
         return {
-            "ClusterInfo": {
-                "ActiveOperationArn": cluster.active_operation_arn
-                or "arn:aws:kafka:region:account-id:operation/active-operation",
-                "BrokerNodeGroupInfo": cluster.broker_node_group_info or {},
-                "ClientAuthentication": cluster.client_authentication or {},
-                "ClusterArn": cluster.arn,
-                "ClusterName": cluster.cluster_name,
-                "CreationTime": cluster.creation_time,
-                "CurrentBrokerSoftwareInfo": {
-                    "ConfigurationArn": (cluster.configuration_info or {}).get(
-                        "Arn", "string"
-                    ),
-                    "ConfigurationRevision": (cluster.configuration_info or {}).get(
-                        "Revision", 1
-                    ),
-                    "KafkaVersion": cluster.kafka_version,
-                },
-                "CurrentVersion": cluster.current_version,
-                "EncryptionInfo": cluster.encryption_info or {},
-                "EnhancedMonitoring": cluster.enhanced_monitoring,
-                "OpenMonitoring": cluster.open_monitoring or {},
-                "LoggingInfo": cluster.logging_info or {},
-                "NumberOfBrokerNodes": cluster.number_of_broker_nodes or 0,
-                "State": cluster.state,
-                "StateInfo": {
-                    "Code": "string",
-                    "Message": "Cluster state details.",
-                },
-                "Tags": self.list_tags_for_resource(cluster.arn),
-                "ZookeeperConnectString": cluster.zookeeper_connect_string
-                or "zookeeper.example.com:2181",
-                "ZookeeperConnectStringTls": cluster.zookeeper_connect_string_tls
-                or "zookeeper.example.com:2181",
-                "StorageMode": cluster.storage_mode,
-                "CustomerActionStatus": "NONE",
-            }
+            "activeOperationArn": "arn:aws:kafka:region:account-id:operation/active-operation",
+            "brokerNodeGroupInfo": cluster.broker_node_group_info or {},
+            "clientAuthentication": cluster.client_authentication or {},
+            "clusterArn": cluster.arn,
+            "clusterName": cluster.cluster_name,
+            "creationTime": cluster.creation_time,
+            "currentBrokerSoftwareInfo": {
+                "configurationArn": (cluster.configuration_info or {}).get(
+                    "arn", "string"
+                ),
+                "configurationRevision": (cluster.configuration_info or {}).get(
+                    "Revision", 1
+                ),
+                "kafkaVersion": cluster.kafka_version,
+            },
+            "currentVersion": cluster.current_version,
+            "encryptionInfo": cluster.encryption_info or {},
+            "enhancedMonitoring": cluster.enhanced_monitoring,
+            "openMonitoring": cluster.open_monitoring or {},
+            "loggingInfo": cluster.logging_info or {},
+            "numberOfBrokerNodes": cluster.number_of_broker_nodes or 0,
+            "state": cluster.state,
+            "stateInfo": {
+                "code": "string",
+                "message": "Cluster state details.",
+            },
+            "tags": self.list_tags_for_resource(cluster.arn),
+            "zookeeperConnectString": cluster.zookeeper_connect_string
+            or "zookeeper.example.com:2181",
+            "zookeeperConnectStringTls": cluster.zookeeper_connect_string_tls
+            or "zookeeper.example.com:2181",
+            "storageMode": cluster.storage_mode,
+            "customerActionStatus": "NONE",
         }
 
     def list_clusters(
@@ -329,11 +322,11 @@ class KafkaBackend(BaseBackend):
     ) -> List[Dict[str, Any]]:
         cluster_info_list = [
             {
-                "ClusterArn": cluster.arn,
-                "ClusterName": cluster.cluster_name,
-                "State": cluster.state,
-                "CreationTime": cluster.creation_time,
-                "ClusterType": cluster.cluster_type,
+                "clusterArn": cluster.arn,
+                "clusterName": cluster.cluster_name,
+                "state": cluster.state,
+                "creationTime": cluster.creation_time,
+                "clusterType": cluster.cluster_type,
             }
             for cluster_arn, cluster in self.clusters.items()
         ]
@@ -345,14 +338,11 @@ class KafkaBackend(BaseBackend):
         return cluster_arn, cluster.state
 
     def list_tags_for_resource(self, resource_arn) -> List[Dict[str, str]]:
-        tags = self.tagger.get_tag_dict_for_resource(resource_arn)
-        Tags = []
-        for key, value in tags.items():
-            Tags.append({"Key": key, "Value": value})
-        return Tags
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
 
     def tag_resource(self, resource_arn, tags):
-        self.tagger.tag_resource(resource_arn, tags)
+        tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
+        self.tagger.tag_resource(resource_arn, tags_list)
 
     def untag_resource(self, resource_arn, tag_keys):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
