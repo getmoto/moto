@@ -181,14 +181,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             elif len(values) == 1:
                 # Check it's exactly the same as key, value
                 filters.append(
-                    # type: ignore
-                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key
+                    lambda t, v, key=tag_filter_dict["Key"], value=values[0]: t == key  # type: ignore
                     and v == value
                 )
             else:
                 # Check key matches and value is one of the provided values
                 filters.append(
-                    # type: ignore
                     lambda t, v, key=tag_filter_dict["Key"], vl=values: t == key
                     and v in vl
                 )
