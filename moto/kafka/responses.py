@@ -138,7 +138,7 @@ class KafkaResponse(BaseResponse):
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
 
-        cluster_info_list, next_token = self.kafka_backend.list_clusters(
+        cluster_info_list = self.kafka_backend.list_clusters(
             cluster_name_filter=cluster_name_filter,
             max_results=max_results,
             next_token=next_token,
