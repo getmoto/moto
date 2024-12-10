@@ -13,7 +13,7 @@ class ElasticsearchServiceResponse(BaseResponse):
     """Handler for ElasticsearchService requests and responses."""
 
     def __init__(self) -> None:
-        super().__init__(service_name="elasticsearch")
+        super().__init__(service_name="es")
 
     @property
     def es_backend(self) -> ElasticsearchServiceBackend:
@@ -98,3 +98,10 @@ class ElasticsearchServiceResponse(BaseResponse):
     def list_domain_names(self) -> TYPE_RESPONSE:
         domain_names = self.es_backend.list_domain_names()
         return 200, {}, json.dumps({"DomainNames": domain_names})
+
+    def describe_elasticsearch_domains(self) -> TYPE_RESPONSE:
+        domain_names = self._get_param("DomainNames")
+        domain_list = self.es_backend.describe_elasticsearch_domains(
+            domain_names=domain_names,
+        )
+        return 200, {}, json.dumps({"DomainStatusList": domain_list})
