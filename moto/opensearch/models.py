@@ -375,5 +375,12 @@ class OpenSearchServiceBackend(BaseBackend):
                 )
         return domains
 
+    def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
+        queried_domains = []
+        for domain_name in domain_names:
+            if domain_name in self.domains:
+                queried_domains.append(self.domains[domain_name])
+        return queried_domains
+
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")
