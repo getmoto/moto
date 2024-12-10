@@ -89,7 +89,7 @@ class AthenaResponse(BaseResponse):
                     "QueryPlanningTimeInMillis": 0,
                     "ServiceProcessingTimeInMillis": 0,
                 },
-                "WorkGroup": execution.workgroup,
+                "WorkGroup": execution.workgroup.name if execution.workgroup else None,
             }
         }
         if execution.execution_parameters is not None:
