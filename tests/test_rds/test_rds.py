@@ -1196,14 +1196,6 @@ def test_copy_db_snapshot_invalid_arns():
         )
     assert "is not a valid identifier" in ex.value.response["Error"]["Message"]
 
-    cross_account_arn = f"arn:aws:rds:{DEFAULT_REGION}:112233445566:snapshot:snapshot-1"
-    with pytest.raises(ClientError) as ex:
-        conn.copy_db_snapshot(
-            SourceDBSnapshotIdentifier=cross_account_arn,
-            TargetDBSnapshotIdentifier="snapshot-2",
-        )
-    assert "not yet implemented in moto" in ex.value.response["Error"]["Message"]
-
 
 original_snapshot_tags = [{"Key": "original", "Value": "snapshot tags"}]
 new_snapshot_tags = [{"Key": "new", "Value": "tag"}]

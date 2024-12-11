@@ -2025,7 +2025,7 @@ class RDSBackend(BaseBackend):
                 "contain two consecutive hyphens."
             )
         if region_name != self.region_name or account_id != self.account_id:
-            raise InvalidParameterValue(
+            raise NotImplementedError(
                 "Cross account/region snapshot handling is not yet implemented in moto."
             )
         return snapshot_name
