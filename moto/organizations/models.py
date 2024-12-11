@@ -12,16 +12,18 @@ from moto.organizations.exceptions import (
     AccountAlreadyRegisteredException,
     AccountNotFoundException,
     AccountNotRegisteredException,
+    AlreadyInOrganizationException,
     AWSOrganizationsNotInUseException,
     ConstraintViolationException,
     DuplicateOrganizationalUnitException,
     DuplicatePolicyException,
     InvalidInputException,
+    OrganizationNotEmptyException,
     PolicyNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
     RootNotFoundException,
-    TargetNotFoundException, AlreadyInOrganizationException, OrganizationNotEmptyException,
+    TargetNotFoundException,
 )
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES, get_partition
@@ -536,7 +538,10 @@ class OrganizationsBackend(BaseBackend):
         ]
 
     def create_account(self, **kwargs: Any) -> Dict[str, Any]:
-        if self.org is None or self.account_id not in organizations_backends.master_accounts:
+        if (
+            self.org is None
+            or self.account_id not in organizations_backends.master_accounts
+        ):
             raise AWSOrganizationsNotInUseException
 
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
@@ -549,7 +554,10 @@ class OrganizationsBackend(BaseBackend):
         return new_account.create_account_status
 
     def close_account(self, **kwargs: Any) -> None:
-        if self.org is None or self.account_id not in organizations_backends.master_accounts:
+        if (
+            self.org is None
+            or self.account_id not in organizations_backends.master_accounts
+        ):
             raise AWSOrganizationsNotInUseException
 
         for account in self.accounts:

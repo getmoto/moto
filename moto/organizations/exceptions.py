@@ -45,8 +45,10 @@ class AlreadyInOrganizationException(JsonRESTError):
 
     def __init__(self) -> None:
         super().__init__(
-            "AlreadyInOrganizationException", "The provided account is already a member of an organization."
+            "AlreadyInOrganizationException",
+            "The provided account is already a member of an organization.",
         )
+
 
 class AWSOrganizationsNotInUseException(JsonRESTError):
     code = 400
@@ -96,7 +98,8 @@ class OrganizationNotEmptyException(JsonRESTError):
 
     def __init__(self) -> None:
         super().__init__(
-            "OrganizationNotEmptyException", "To delete an organization you must first remove all member accounts (except the master).",
+            "OrganizationNotEmptyException",
+            "To delete an organization you must first remove all member accounts (except the master).",
         )
 
 
