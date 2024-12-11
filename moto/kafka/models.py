@@ -102,7 +102,7 @@ class FakeKafkaCluster(BaseModel):
 
         elif self.cluster_type == "SERVERLESS":
             cluster_info["Serverless"] = {
-                "VpcConfigs": self.serverless_config.get("VpcConfigs", [])
+                "VpcConfigs": self.serverless_config.get("vpcConfigs", [])
                 if self.serverless_config
                 else [],
                 "ClientAuthentication": self.serverless_config.get(
@@ -132,10 +132,10 @@ class KafkaBackend(BaseBackend):
     ) -> Tuple[str, str, str, str]:
         if provisioned:
             cluster_type = "PROVISIONED"
-            broker_node_group_info = provisioned.get("BrokerNodeGroupInfo")
+            broker_node_group_info = provisioned.get("brokerNodeGroupInfo")
             kafka_version = provisioned.get("kafkaVersion", "default-kafka-version")
-            number_of_broker_nodes = int(provisioned.get("NumberOfBrokerNodes", 1))
-            storage_mode = provisioned.get("StorageMode", "LOCAL")
+            number_of_broker_nodes = int(provisioned.get("numberOfBrokerNodes", 1))
+            storage_mode = provisioned.get("storageMode", "LOCAL")
             serverless_config = None
         elif serverless:
             cluster_type = "SERVERLESS"
@@ -193,28 +193,30 @@ class KafkaBackend(BaseBackend):
         if cluster.cluster_type == "PROVISIONED":
             cluster_info.update(
                 {
-                    "brokerNodeGroupInfo": cluster.broker_node_group_info or {},
-                    "clientAuthentication": cluster.client_authentication or {},
-                    "currentBrokerSoftwareInfo": {
-                        "configurationArn": (cluster.configuration_info or {}).get(
-                            "arn", "string"
-                        ),
-                        "configurationRevision": (cluster.configuration_info or {}).get(
-                            "Revision", 1
-                        ),
-                        "kafkaVersion": cluster.kafka_version,
-                    },
-                    "encryptionInfo": cluster.encryption_info or {},
-                    "enhancedMonitoring": cluster.enhanced_monitoring,
-                    "openMonitoring": cluster.open_monitoring or {},
-                    "loggingInfo": cluster.logging_info or {},
-                    "numberOfBrokerNodes": cluster.number_of_broker_nodes or 0,
-                    "zookeeperConnectString": cluster.zookeeper_connect_string
-                    or "zookeeper.example.com:2181",
-                    "zookeeperConnectStringTls": cluster.zookeeper_connect_string_tls
-                    or "zookeeper.example.com:2181",
-                    "storageMode": cluster.storage_mode,
-                    "customerActionStatus": "NONE",
+                    "provisioned": {
+                        "brokerNodeGroupInfo": cluster.broker_node_group_info or {},
+                        "clientAuthentication": cluster.client_authentication or {},
+                        "currentBrokerSoftwareInfo": {
+                            "configurationArn": (cluster.configuration_info or {}).get(
+                                "arn", "string"
+                            ),
+                            "configurationRevision": (
+                                cluster.configuration_info or {}
+                            ).get("revision", 1),
+                            "kafkaVersion": cluster.kafka_version,
+                        },
+                        "encryptionInfo": cluster.encryption_info or {},
+                        "enhancedMonitoring": cluster.enhanced_monitoring,
+                        "openMonitoring": cluster.open_monitoring or {},
+                        "loggingInfo": cluster.logging_info or {},
+                        "numberOfBrokerNodes": cluster.number_of_broker_nodes or 0,
+                        "zookeeperConnectString": cluster.zookeeper_connect_string
+                        or "zookeeper.example.com:2181",
+                        "zookeeperConnectStringTls": cluster.zookeeper_connect_string_tls
+                        or "zookeeper.example.com:2181",
+                        "storageMode": cluster.storage_mode,
+                        "customerActionStatus": "NONE",
+                    }
                 }
             )
 
@@ -310,7 +312,7 @@ class KafkaBackend(BaseBackend):
                     "arn", "string"
                 ),
                 "configurationRevision": (cluster.configuration_info or {}).get(
-                    "Revision", 1
+                    "revision", 1
                 ),
                 "kafkaVersion": cluster.kafka_version,
             },
