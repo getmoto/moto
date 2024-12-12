@@ -155,6 +155,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.owner_id = ec2_backend.account_id
         self.add_tags(tags or {})
         self.is_default = is_default or False
+        self.arn = f"arn:aws:ec2:{ec2_backend.account_id}:{ec2_backend.region_name}:security-group/{group_id}"
 
         # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
