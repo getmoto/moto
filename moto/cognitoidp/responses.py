@@ -1,5 +1,4 @@
 import json
-import re
 from typing import Any, Dict
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -371,52 +370,8 @@ class CognitoIdpResponse(BaseResponse):
         filt = self._get_param("Filter")
         attributes_to_get = self._get_param("AttributesToGet")
         users, token = self.backend.list_users(
-            user_pool_id, limit=limit, pagination_token=token
+            user_pool_id, filt, limit=limit, pagination_token=token
         )
-        if filt:
-            inherent_attributes: Dict[str, Any] = {
-                "cognito:user_status": lambda u: u.status,
-                "status": lambda u: "Enabled" if u.enabled else "Disabled",
-                "username": lambda u: u.username,
-            }
-            comparisons: Dict[str, Any] = {
-                "=": lambda x, y: x == y,
-                "^=": lambda x, y: x.startswith(y),
-            }
-            allowed_attributes = [
-                "username",
-                "email",
-                "phone_number",
-                "name",
-                "given_name",
-                "family_name",
-                "preferred_username",
-                "cognito:user_status",
-                "status",
-                "sub",
-            ]
-
-            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
-            if match:
-                name, op, value = match.groups()
-            else:
-                raise InvalidParameterException("Error while parsing filter")
-            if name not in allowed_attributes:
-                raise InvalidParameterException(f"Invalid search attribute: {name}")
-            compare = comparisons[op]
-            users = [
-                user
-                for user in users
-                if [
-                    attr
-                    for attr in user.attributes
-                    if attr["Name"] == name and compare(attr["Value"], value)
-                ]
-                or (
-                    name in inherent_attributes
-                    and compare(inherent_attributes[name](user), value)
-                )
-            ]
         response: Dict[str, Any] = {
             "Users": [
                 user.to_json(extended=True, attributes_to_get=attributes_to_get)
