@@ -217,3 +217,23 @@ def test_list_unknown_domain_names_engine_type():
     err = exc.value.response["Error"]
     assert err["Code"] == "EngineTypeNotFoundException"
     assert err["Message"] == "Engine Type not found: testdn"
+
+
+@mock_aws
+def test_describe_domains():
+    client = boto3.client("opensearch", region_name="us-east-1")
+    domain_names = [f"env{i}" for i in range(1, 5)]
+    opensearch_engine_version = "OpenSearch_1.0"
+    for name in domain_names:
+        client.create_domain(DomainName=name, EngineVersion=opensearch_engine_version)
+    resp = client.describe_domains(DomainNames=domain_names)
+
+    assert len(resp["DomainStatusList"]) == 4
+    for domain in resp["DomainStatusList"]:
+        assert domain["DomainName"] in domain_names
+        assert "AdvancedSecurityOptions" in domain.keys()
+        assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0

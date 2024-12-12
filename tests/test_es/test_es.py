@@ -215,3 +215,28 @@ def test_list_domain_names_with_multiple_domains():
     assert len(resp["DomainNames"]) == 4
     for name in domain_names:
         assert {"DomainName": name} in resp["DomainNames"]
+
+
+@mock_aws
+def test_describe_elasticsearch_domains():
+    client = boto3.client("es", region_name="us-east-1")
+    domain_names = [f"env{i}" for i in range(1, 5)]
+    for name in domain_names:
+        client.create_elasticsearch_domain(
+            DomainName=name,
+            ElasticsearchVersion="7.10",
+            AdvancedOptions={"option": "value"},
+            AdvancedSecurityOptions={"Enabled": False},
+        )
+    resp = client.describe_elasticsearch_domains(DomainNames=domain_names)
+
+    assert len(resp["DomainStatusList"]) == 4
+    for domain in resp["DomainStatusList"]:
+        assert domain["DomainName"] in domain_names
+        assert domain["ElasticsearchVersion"] == "7.10"
+        assert "AdvancedSecurityOptions" in domain.keys()
+        assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_elasticsearch_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0
