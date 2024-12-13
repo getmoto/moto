@@ -261,6 +261,7 @@ CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://e
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>
    <groupId>{{ group.id }}</groupId>
+   <securityGroupArn>{{ group.arn }}</securityGroupArn>
    <tagSet>
     {% for tag in group.get_tags() %}
         <item>
@@ -346,6 +347,7 @@ DESCRIBE_SECURITY_GROUPS_RESPONSE = """<DescribeSecurityGroupsResponse xmlns="ht
              <groupId>{{ group.id }}</groupId>
              <groupName>{{ group.name }}</groupName>
              <groupDescription>{{ group.description }}</groupDescription>
+             <securityGroupArn>{{ group.arn }}</securityGroupArn>
              {% if group.vpc_id %}
              <vpcId>{{ group.vpc_id }}</vpcId>
              {% endif %}
