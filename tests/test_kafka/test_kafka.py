@@ -3,7 +3,6 @@
 import boto3
 
 from moto import mock_aws
-from moto.kafka.models import FakeKafkaCluster
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -179,62 +178,3 @@ def test_delete_cluster():
     client.delete_cluster(ClusterArn=create_resp["ClusterArn"])
     clusters = client.list_clusters()
     assert len(clusters["ClusterInfoList"]) == 0
-
-
-@mock_aws
-def test_to_dict():
-    provCluster = FakeKafkaCluster(
-        cluster_name="TestCluster",
-        account_id="123456789012",
-        region_name="us-east-1",
-        cluster_type="PROVISIONED",
-        broker_node_group_info={
-            "InstanceType": "kafka.m5.large",
-            "ClientSubnets": ["subnet-0123456789abcdef0"],
-            "SecurityGroups": ["sg-0123456789abcdef0"],
-        },
-        kafka_version="2.8.1",
-        number_of_broker_nodes=3,
-        tags={"Key1": "Value1"},
-        enhanced_monitoring="DEFAULT",
-        state="ACTIVE",
-        client_authentication=None,
-        encryption_info=None,
-        logging_info=None,
-        open_monitoring=None,
-        storage_mode="LOCAL",
-        current_version="1.0",
-        configuration_info=None,
-    )
-
-    provClusterDict = provCluster.to_dict()
-
-    assert provClusterDict["ClusterName"] == "TestCluster"
-    assert provClusterDict["State"] == "ACTIVE"
-    assert provClusterDict["ClusterType"] == "PROVISIONED"
-
-    serverlessCluster = FakeKafkaCluster(
-        cluster_name="TestCluster",
-        account_id="123456789012",
-        region_name="us-east-1",
-        cluster_type="SERVERLESS",
-        broker_node_group_info=None,
-        kafka_version="2.8.1",
-        number_of_broker_nodes=None,
-        tags={"Key1": "Value1"},
-        enhanced_monitoring="DEFAULT",
-        state="ACTIVE",
-        client_authentication=None,
-        encryption_info=None,
-        logging_info=None,
-        open_monitoring=None,
-        storage_mode="LOCAL",
-        current_version="1.0",
-        configuration_info=None,
-    )
-
-    serverlessClusterDict = serverlessCluster.to_dict()
-
-    assert serverlessClusterDict["ClusterName"] == "TestCluster"
-    assert serverlessClusterDict["State"] == "ACTIVE"
-    assert serverlessClusterDict["ClusterType"] == "SERVERLESS"

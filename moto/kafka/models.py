@@ -73,47 +73,6 @@ class FakeKafkaCluster(BaseModel):
         partition = get_partition(self.region_name)
         return f"arn:{partition}:kafka:{self.region_name}:{self.account_id}:{resource_type}/{self.cluster_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
-        cluster_info = {
-            "ClusterName": self.cluster_name,
-            "ClusterArn": self.arn,
-            "ClusterType": self.cluster_type,
-            "State": self.state,
-            "CreationTime": self.creation_time,
-            "CurrentVersion": self.current_version,
-            "Tags": self.tags,
-            "ActiveOperationArn": self.active_operation_arn,
-        }
-
-        if self.cluster_type == "PROVISIONED":
-            cluster_info["Provisioned"] = {
-                "BrokerNodeGroupInfo": self.broker_node_group_info,
-                "KafkaVersion": self.kafka_version,
-                "NumberOfBrokerNodes": self.number_of_broker_nodes,
-                "EncryptionInfo": self.encryption_info,
-                "EnhancedMonitoring": self.enhanced_monitoring,
-                "OpenMonitoring": self.open_monitoring,
-                "LoggingInfo": self.logging_info,
-                "StorageMode": self.storage_mode,
-                "ClientAuthentication": self.client_authentication,
-                "ZookeeperConnectString": self.zookeeper_connect_string,
-                "ZookeeperConnectStringTls": self.zookeeper_connect_string_tls,
-            }
-
-        elif self.cluster_type == "SERVERLESS":
-            cluster_info["Serverless"] = {
-                "VpcConfigs": self.serverless_config.get("vpcConfigs", [])
-                if self.serverless_config
-                else [],
-                "ClientAuthentication": self.serverless_config.get(
-                    "ClientAuthentication", {}
-                )
-                if self.serverless_config
-                else {},
-            }
-
-        return cluster_info
-
 
 class KafkaBackend(BaseBackend):
     """Implementation of Kafka APIs."""
