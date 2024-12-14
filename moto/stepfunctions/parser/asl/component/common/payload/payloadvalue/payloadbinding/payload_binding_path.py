@@ -17,7 +17,7 @@ from moto.stepfunctions.parser.asl.component.common.payload.payloadvalue.payload
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
+from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 
 
 class PayloadBindingPath(PayloadBinding):
@@ -33,9 +33,10 @@ class PayloadBindingPath(PayloadBinding):
     def _eval_val(self, env: Environment) -> Any:
         inp = env.stack[-1]
         try:
-            value = JSONPathUtils.extract_json(self.path, inp)
+            value = extract_json(self.path, inp)
         except RuntimeError:
             failure_event = FailureEvent(
+                env=env,
                 error_name=StatesErrorName(typ=StatesErrorNameType.StatesRuntime),
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(

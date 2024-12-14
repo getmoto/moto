@@ -14,7 +14,11 @@ def test_state_machine_with_parallel_states():
 
     def _verify_result(client, execution, execution_arn):
         assert "stopDate" in execution
-        assert execution["output"] == "[[1,2,3,4],[1,2,3,4],[1,2,3,4]]"
+        assert json.loads(execution["output"]) == [
+            [1, 2, 3, 4],
+            [1, 2, 3, 4],
+            [1, 2, 3, 4],
+        ]
 
         history = client.get_execution_history(executionArn=execution_arn)
         assert len(history["events"]) == 20

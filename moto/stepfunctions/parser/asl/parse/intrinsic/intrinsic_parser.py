@@ -1,6 +1,8 @@
 import abc
+from typing import Tuple
 
 from antlr4 import CommonTokenStream, InputStream
+from antlr4.ParserRuleContext import ParserRuleContext
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLIntrinsicLexer import (
     ASLIntrinsicLexer,
@@ -14,7 +16,7 @@ from moto.stepfunctions.parser.asl.parse.intrinsic.preprocessor import Preproces
 
 class IntrinsicParser(abc.ABC):
     @staticmethod
-    def parse(src: str) -> Function:
+    def parse(src: str) -> Tuple[Function, ParserRuleContext]:
         input_stream = InputStream(src)
         lexer = ASLIntrinsicLexer(input_stream)
         stream = CommonTokenStream(lexer)
@@ -22,4 +24,4 @@ class IntrinsicParser(abc.ABC):
         tree = parser.func_decl()
         preprocessor = Preprocessor()
         function: Function = preprocessor.visit(tree)
-        return function
+        return function, tree

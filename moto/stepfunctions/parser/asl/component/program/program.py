@@ -21,13 +21,14 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
     StatesErrorNameType,
 )
 from moto.stepfunctions.parser.asl.component.common.flow.start_at import StartAt
+from moto.stepfunctions.parser.asl.component.common.query_language import QueryLanguage
 from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import (
     TimeoutSeconds,
 )
-from moto.stepfunctions.parser.asl.component.common.version import Version
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
+from moto.stepfunctions.parser.asl.component.program.states import States
+from moto.stepfunctions.parser.asl.component.program.version import Version
 from moto.stepfunctions.parser.asl.component.state.state import CommonStateField
-from moto.stepfunctions.parser.asl.component.states import States
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.eval.program_state import (
@@ -39,11 +40,13 @@ from moto.stepfunctions.parser.asl.eval.program_state import (
 )
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 from moto.stepfunctions.parser.utils import TMP_THREADS
+from moto.utilities.collections import select_from_typed_dict
 
 LOG = logging.getLogger(__name__)
 
 
 class Program(EvalComponent):
+    query_language: QueryLanguage
     start_at: Final[StartAt]
     states: Final[States]
     timeout_seconds: Final[Optional[TimeoutSeconds]]
@@ -52,12 +55,14 @@ class Program(EvalComponent):
 
     def __init__(
         self,
+        query_language: QueryLanguage,
         start_at: StartAt,
         states: States,
         timeout_seconds: Optional[TimeoutSeconds],
         comment: Optional[Comment] = None,
         version: Optional[Version] = None,
     ):
+        self.query_language = query_language
         self.start_at = start_at
         self.states = states
         self.timeout_seconds = timeout_seconds
@@ -73,7 +78,7 @@ class Program(EvalComponent):
     def eval(self, env: Environment) -> None:
         timeout = self.timeout_seconds.timeout_seconds if self.timeout_seconds else None
         env.next_state_name = self.start_at.start_at_name
-        worker_thread = threading.Thread(target=super().eval, args=(env,))
+        worker_thread = threading.Thread(target=super().eval, args=(env,), daemon=True)
         TMP_THREADS.append(worker_thread)
         worker_thread.start()
         worker_thread.join(timeout=timeout)
@@ -95,11 +100,12 @@ class Program(EvalComponent):
                 clear_heap_values = set(env.heap.keys()) - heap_values
                 for heap_value in clear_heap_values:
                     env.heap.pop(heap_value, None)
+
         except FailureEventException as ex:
             env.set_error(error=ex.get_execution_failed_event_details())
         except Exception as ex:
             cause = f"{type(ex).__name__}({str(ex)})"
-            LOG.error(f"Stepfunctions computation ended with exception '{cause}'.")
+            LOG.error("Stepfunctions computation ended with exception '%s'.", cause)
             env.set_error(
                 ExecutionFailedEventDetails(
                     error=StatesErrorName(
@@ -115,40 +121,45 @@ class Program(EvalComponent):
 
         program_state: ProgramState = env.program_state()
         if isinstance(program_state, ProgramError):
-            exec_failed_event_details = program_state.error or dict()
-            env.event_history.add_event(
+            exec_failed_event_details = select_from_typed_dict(
+                typed_dict=ExecutionFailedEventDetails,
+                obj=program_state.error or dict(),
+            )
+            env.event_manager.add_event(
                 context=env.event_history_context,
-                hist_type_event=HistoryEventType.ExecutionFailed,
-                event_detail=EventDetails(
+                event_type=HistoryEventType.ExecutionFailed,
+                event_details=EventDetails(
                     executionFailedEventDetails=exec_failed_event_details
                 ),
             )
         elif isinstance(program_state, ProgramStopped):
             env.event_history_context.source_event_id = 0
-            env.event_history.add_event(
+            env.event_manager.add_event(
                 context=env.event_history_context,
-                hist_type_event=HistoryEventType.ExecutionAborted,
-                event_detail=EventDetails(
+                event_type=HistoryEventType.ExecutionAborted,
+                event_details=EventDetails(
                     executionAbortedEventDetails=ExecutionAbortedEventDetails(
                         error=program_state.error, cause=program_state.cause
                     )
                 ),
             )
         elif isinstance(program_state, ProgramTimedOut):
-            env.event_history.add_event(
+            env.event_manager.add_event(
                 context=env.event_history_context,
-                hist_type_event=HistoryEventType.ExecutionTimedOut,
-                event_detail=EventDetails(
+                event_type=HistoryEventType.ExecutionTimedOut,
+                event_details=EventDetails(
                     executionTimedOutEventDetails=ExecutionTimedOutEventDetails()
                 ),
             )
         elif isinstance(program_state, ProgramEnded):
-            env.event_history.add_event(
+            env.event_manager.add_event(
                 context=env.event_history_context,
-                hist_type_event=HistoryEventType.ExecutionSucceeded,
-                event_detail=EventDetails(
+                event_type=HistoryEventType.ExecutionSucceeded,
+                event_details=EventDetails(
                     executionSucceededEventDetails=ExecutionSucceededEventDetails(
-                        output=to_json_str(env.inp, separators=(",", ":")),
+                        output=to_json_str(
+                            env.states.get_input(), separators=(",", ":")
+                        ),
                         outputDetails=HistoryEventExecutionDataDetails(
                             truncated=False  # Always False for api calls.
                         ),

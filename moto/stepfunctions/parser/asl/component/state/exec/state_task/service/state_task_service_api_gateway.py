@@ -19,6 +19,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.failure_event imp
     FailureEvent,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
+    ResourceCondition,
     ResourceRuntimePart,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state_task_service_callback import (
@@ -28,6 +29,10 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 
 LOG = logging.getLogger(__name__)
+
+_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+    ResourceCondition.WaitForTaskToken,
+}
 
 APPLICATION_JSON = "application/json"
 HEADER_CONTENT_TYPE = "Content-Type"
@@ -115,6 +120,9 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         "Via",
         "Www-Authenticate",
     }
+
+    def __init__(self):
+        super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
     def _get_supported_parameters(self) -> Optional[Set[str]]:
         return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
@@ -253,6 +261,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        task_credentials: Any,
     ):
         task_parameters: TaskParameters = normalised_parameters
 

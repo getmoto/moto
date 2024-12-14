@@ -13,6 +13,12 @@ from moto.stepfunctions.parser.asl.antlr.runtime.ASLIntrinsicParserVisitor impor
     ASLIntrinsicParserVisitor,
 )
 from moto.stepfunctions.parser.asl.antlt4utils.antlr4utils import Antlr4Utils
+from moto.stepfunctions.parser.asl.component.common.query_language import (
+    QueryLanguageMode,
+)
+from moto.stepfunctions.parser.asl.component.common.variable_sample import (
+    VariableSample,
+)
 from moto.stepfunctions.parser.asl.component.component import Component
 from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument import (
     FunctionArgument,
@@ -40,6 +46,9 @@ from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argumen
 )
 from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_string import (
     FunctionArgumentString,
+)
+from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_var import (
+    FunctionArgumentVar,
 )
 from moto.stepfunctions.parser.asl.component.intrinsic.function.function import Function
 from moto.stepfunctions.parser.asl.component.intrinsic.function.statesfunction.factory import (
@@ -109,6 +118,15 @@ class Preprocessor(ASLIntrinsicParserVisitor):
     ) -> FunctionArgumentJsonPath:
         json_path: str = ctx.JSON_PATH_STRING().getText()
         return FunctionArgumentJsonPath(json_path=json_path)
+
+    def visitFunc_arg_var(
+        self, ctx: ASLIntrinsicParser.Func_arg_varContext
+    ) -> FunctionArgumentVar:
+        expression: str = ctx.STRING_VARIABLE().getText()
+        variable_sample = VariableSample(
+            query_language_mode=QueryLanguageMode.JSONPath, expression=expression
+        )
+        return FunctionArgumentVar(variable_sample=variable_sample)
 
     def visitFunc_arg_func_decl(
         self, ctx: ASLIntrinsicParser.Func_arg_func_declContext

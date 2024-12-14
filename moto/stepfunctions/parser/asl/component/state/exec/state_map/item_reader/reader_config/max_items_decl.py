@@ -12,10 +12,16 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name_type import (
     StatesErrorNameType,
 )
+from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_value_terminal import (
+    JSONataTemplateValueTerminalExpression,
+)
+from moto.stepfunctions.parser.asl.component.common.variable_sample import (
+    VariableSample,
+)
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
+from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 
 
 class MaxItemsDecl(EvalComponent, abc.ABC):
@@ -55,6 +61,41 @@ class MaxItems(MaxItemsDecl):
 
     def _get_value(self, env: Environment) -> int:
         return self.max_items
+
+
+class MaxItemsJSONata(MaxItemsDecl):
+    jsonata_template_value_terminal_expression: Final[
+        JSONataTemplateValueTerminalExpression
+    ]
+
+    def __init__(
+        self,
+        jsonata_template_value_terminal_expression: JSONataTemplateValueTerminalExpression,
+    ):
+        super().__init__()
+        self.jsonata_template_value_terminal_expression = (
+            jsonata_template_value_terminal_expression
+        )
+
+    def _get_value(self, env: Environment) -> int:
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        self.jsonata_template_value_terminal_expression.eval(env=env)
+        max_items: int = int(env.stack.pop())
+        return max_items
+
+
+class MaxItemsPathVar(MaxItemsDecl):
+    variable_sample: VariableSample
+
+    def __init__(self, variable_sample: VariableSample):
+        super().__init__()
+        self.variable_sample = variable_sample
+
+    def _get_value(self, env: Environment) -> int:
+        self.variable_sample.eval(env=env)
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        max_items: int = int(env.stack.pop())
+        return max_items
 
 
 class MaxItemsPath(MaxItemsDecl):
@@ -104,6 +145,6 @@ class MaxItemsPath(MaxItemsDecl):
 
     def _get_value(self, env: Environment) -> int:
         inp = env.stack[-1]
-        max_items = JSONPathUtils.extract_json(self.path, inp)
+        max_items = extract_json(self.path, inp)
         self._validate_value(env=env, value=max_items)
         return max_items

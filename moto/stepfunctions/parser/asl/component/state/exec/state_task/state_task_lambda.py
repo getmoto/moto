@@ -1,3 +1,7 @@
+import json
+import logging
+from typing import Any
+
 from botocore.exceptions import ClientError
 
 from moto.stepfunctions.parser.api import (
@@ -7,12 +11,14 @@ from moto.stepfunctions.parser.api import (
     LambdaFunctionScheduledEventDetails,
     LambdaFunctionSucceededEventDetails,
     LambdaFunctionTimedOutEventDetails,
+    TaskCredentials,
 )
 from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name import (
     CustomErrorName,
 )
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
+    FailureEventException,
 )
 from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name import (
     StatesErrorName,
@@ -22,6 +28,9 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task import (
     lambda_eval_utils,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    Credentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     LambdaResource,
@@ -33,6 +42,9 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_task.state_task im
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
+from moto.stepfunctions.parser.quotas import is_within_size_quota
+
+LOG = logging.getLogger(__name__)
 
 
 class StateTaskLambda(StateTask):
@@ -41,6 +53,7 @@ class StateTaskLambda(StateTask):
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
         if isinstance(ex, TimeoutError):
             return FailureEvent(
+                env=env,
                 error_name=StatesErrorName(typ=StatesErrorNameType.StatesTimeout),
                 event_type=HistoryEventType.LambdaFunctionTimedOut,
                 event_details=EventDetails(
@@ -49,19 +62,30 @@ class StateTaskLambda(StateTask):
                     )
                 ),
             )
+        if isinstance(ex, FailureEventException):
+            return ex.failure_event
 
         error = "Exception"
-        if isinstance(ex, lambda_eval_utils.LambdaFunctionErrorException):
-            error_name = CustomErrorName(error)
-            cause = ex.payload
-        elif isinstance(ex, ClientError):
+        if isinstance(ex, ClientError):
             error_name = CustomErrorName(error)
             cause = ex.response["Error"]["Message"]
+        elif isinstance(ex, lambda_eval_utils.LambdaFunctionErrorException):
+            cause = ex.payload
+            try:
+                cause_object = json.loads(cause)
+                error = cause_object["errorType"]
+            except Exception as ex:
+                LOG.warning(
+                    "Could not retrieve 'errorType' field from LambdaFunctionErrorException object: %s",
+                    ex,
+                )
+            error_name = CustomErrorName(error)
         else:
             error_name = StatesErrorName(StatesErrorNameType.StatesTaskFailed)
             cause = str(ex)
 
         return FailureEvent(
+            env=env,
             error_name=error_name,
             event_type=HistoryEventType.LambdaFunctionFailed,
             event_details=EventDetails(
@@ -72,19 +96,43 @@ class StateTaskLambda(StateTask):
             ),
         )
 
+    def _verify_size_quota(self, env: Environment, value: Any) -> None:
+        is_within: bool = is_within_size_quota(value=value)
+        if is_within:
+            return
+        error_type = StatesErrorNameType.StatesStatesDataLimitExceeded
+        cause = (
+            f"The state/task '{self.resource.resource_arn}' returned a result "
+            "with a size exceeding the maximum number of bytes service limit."
+        )
+        raise FailureEventException(
+            failure_event=FailureEvent(
+                env=env,
+                error_name=StatesErrorName(typ=error_type),
+                event_type=HistoryEventType.LambdaFunctionFailed,
+                event_details=EventDetails(
+                    lambdaFunctionFailedEventDetails=LambdaFunctionFailedEventDetails(
+                        error=error_type.to_name(),
+                        cause=cause,
+                    )
+                ),
+            )
+        )
+
     def _eval_parameters(self, env: Environment) -> dict:
-        if self.parameters:
-            self.parameters.eval(env=env)
+        if self.parargs:
+            self.parargs.eval(env=env)
+
         payload = env.stack.pop()
         parameters = dict(
             FunctionName=self.resource.resource_arn,
-            InvocationType="RequestResponse",
             Payload=payload,
         )
         return parameters
 
     def _eval_execution(self, env: Environment) -> None:
         parameters = self._eval_parameters(env=env)
+        task_credentials = self._eval_credentials(env=env)
         payload = parameters["Payload"]
 
         scheduled_event_details = LambdaFunctionScheduledEventDetails(
@@ -98,17 +146,23 @@ class StateTaskLambda(StateTask):
             self.timeout.eval(env=env)
             timeout_seconds = env.stack.pop()
             scheduled_event_details["timeoutInSeconds"] = timeout_seconds
-        env.event_history.add_event(
+        if self.credentials:
+            scheduled_event_details["taskCredentials"] = TaskCredentials(
+                roleArn=Credentials.get_role_arn_from(
+                    computed_credentials=task_credentials
+                )
+            )
+        env.event_manager.add_event(
             context=env.event_history_context,
-            hist_type_event=HistoryEventType.LambdaFunctionScheduled,
-            event_detail=EventDetails(
+            event_type=HistoryEventType.LambdaFunctionScheduled,
+            event_details=EventDetails(
                 lambdaFunctionScheduledEventDetails=scheduled_event_details
             ),
         )
 
-        env.event_history.add_event(
+        env.event_manager.add_event(
             context=env.event_history_context,
-            hist_type_event=HistoryEventType.LambdaFunctionStarted,
+            event_type=HistoryEventType.LambdaFunctionStarted,
         )
 
         self.resource.eval(env=env)
@@ -120,17 +174,20 @@ class StateTaskLambda(StateTask):
             parameters=parameters,
             region=resource_runtime_part.region,
             account=resource_runtime_part.account,
+            credentials=task_credentials,
         )
 
         # In lambda invocations, only payload is passed on as output.
         output = env.stack.pop()
+        self._verify_size_quota(env=env, value=output)
+
         output_payload = output["Payload"]
         env.stack.append(output_payload)
 
-        env.event_history.add_event(
+        env.event_manager.add_event(
             context=env.event_history_context,
-            hist_type_event=HistoryEventType.LambdaFunctionSucceeded,
-            event_detail=EventDetails(
+            event_type=HistoryEventType.LambdaFunctionSucceeded,
+            event_details=EventDetails(
                 lambdaFunctionSucceededEventDetails=LambdaFunctionSucceededEventDetails(
                     output=to_json_str(output_payload),
                     outputDetails=HistoryEventExecutionDataDetails(

@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import abc
-from typing import Final
+from typing import Optional
 
 from moto.stepfunctions.parser.asl.component.component import Component
 
 
 class ErrorName(Component, abc.ABC):
-    def __init__(self, error_name: str):
-        self.error_name: Final[str] = error_name
+    error_name: Optional[str]
 
-    def matches(self, error_name: str) -> bool:
+    def __init__(self, error_name: Optional[str]):
+        self.error_name = error_name
+
+    def matches(self, error_name: Optional[str]) -> bool:
         return self.error_name == error_name
 
     def __eq__(self, other):
