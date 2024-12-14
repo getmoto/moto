@@ -8,13 +8,12 @@ from moto.stepfunctions.parser.asl.component.common.error_name.failure_event imp
     FailureEvent,
     FailureEventException,
 )
+from moto.stepfunctions.parser.asl.component.state.fail.cause_decl import CauseDecl
+from moto.stepfunctions.parser.asl.component.state.fail.error_decl import ErrorDecl
 from moto.stepfunctions.parser.asl.component.state.state import CommonStateField
 from moto.stepfunctions.parser.asl.component.state.state_props import StateProps
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
-
-from .cause_decl import CauseDecl
-from .error_decl import ErrorDecl
 
 
 class StateFail(CommonStateField):
@@ -33,6 +32,7 @@ class StateFail(CommonStateField):
 
     def _eval_state(self, env: Environment) -> None:
         task_failed_event_details = TaskFailedEventDetails()
+
         error_value = None
         if self.error:
             self.error.eval(env=env)
@@ -46,6 +46,7 @@ class StateFail(CommonStateField):
 
         error_name = CustomErrorName(error_value) if error_value else None
         failure_event = FailureEvent(
+            env=env,
             error_name=error_name,
             event_type=HistoryEventType.TaskFailed,
             event_details=EventDetails(

@@ -1,5 +1,6 @@
 import re
-from typing import Dict, List, Set, Type
+from typing import Dict, List, Set, Type, Union
+from uuid import uuid4
 
 TMP_THREADS = []
 
@@ -21,7 +22,7 @@ class SubtypesInstanceManager:
     _instances: Dict[str, "SubtypesInstanceManager"]
 
     @classmethod
-    def get(cls, subtype_name: str):
+    def get(cls, subtype_name: str, raise_if_missing: bool = False):
         instances = cls.instances()
         base_type = cls.get_base_type()
         instance = instances.get(subtype_name)
@@ -58,6 +59,12 @@ def to_str(obj, encoding: str = "utf-8", errors="strict") -> str:
     return obj.decode(encoding, errors) if isinstance(obj, bytes) else obj
 
 
+def to_bytes(obj: Union[str, bytes], encoding: str = "utf-8", errors="strict") -> bytes:
+    """If ``obj`` is an instance of ``text_type``, return
+    ``obj.encode(encoding, errors)``, otherwise return ``obj``"""
+    return obj.encode(encoding, errors) if isinstance(obj, str) else obj
+
+
 _re_camel_to_snake_case = re.compile("((?<=[a-z0-9])[A-Z]|(?!^)[A-Z](?=[a-z]))")
 
 
@@ -80,3 +87,7 @@ def get_all_subclasses(clazz: Type) -> Set[Type]:
         result.add(sub)
         result.update(get_all_subclasses(sub))
     return result
+
+
+def long_uid() -> str:
+    return str(uuid4())
