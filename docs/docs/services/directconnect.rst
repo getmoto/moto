@@ -24,7 +24,7 @@ directconnect
 - [ ] allocate_transit_virtual_interface
 - [ ] associate_connection_with_lag
 - [ ] associate_hosted_connection
-- [x] associate_mac_sec_key
+- [X] associate_mac_sec_key
 - [ ] associate_virtual_interface
 - [ ] confirm_connection
 - [ ] confirm_customer_agreement
@@ -37,7 +37,7 @@ directconnect
 - [ ] create_direct_connect_gateway_association
 - [ ] create_direct_connect_gateway_association_proposal
 - [ ] create_interconnect
-- [x] create_lag
+- [X] create_lag
 - [ ] create_private_virtual_interface
 - [ ] create_public_virtual_interface
 - [ ] create_transit_virtual_interface
@@ -60,7 +60,7 @@ directconnect
 - [ ] describe_hosted_connections
 - [ ] describe_interconnect_loa
 - [ ] describe_interconnects
-- [x] describe_lags
+- [X] describe_lags
 - [ ] describe_loa
 - [ ] describe_locations
 - [ ] describe_router_configuration
@@ -68,7 +68,7 @@ directconnect
 - [ ] describe_virtual_gateways
 - [ ] describe_virtual_interfaces
 - [ ] disassociate_connection_from_lag
-- [x] disassociate_mac_sec_key
+- [X] disassociate_mac_sec_key
 - [ ] list_virtual_interface_test_history
 - [ ] start_bgp_failover_test
 - [ ] stop_bgp_failover_test

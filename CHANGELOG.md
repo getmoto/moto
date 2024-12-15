@@ -1,6 +1,60 @@
 Moto Changelog
 ==============
 
+5.0.23
+-----
+Docker Digest for 5.0.23: <autopopulateddigest>
+
+    New Services:
+        * Kafka:
+            * create_cluster()
+            * create_cluster_v2()
+            * describe_cluster()
+            * describe_cluster_v2()
+            * delete_cluster()
+            * list_clusters()
+            * list_clusters_v2()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * DirectConnect:
+            * associate_mac_sec_key()
+            * create_lag()
+            * describe_lags()
+            * describe_settings()
+            * disassociate_mac_sec_key()
+            * update_settings()
+
+        * EFS:
+            * describe_file_system_policy()
+            * put_file_system_policy()
+
+        * ES:
+            * describe_elasticsearch_domains()
+
+        * OpenSearch:
+            * describe_domains()
+
+    Miscellaneous:
+        * Athena: list_query_executions() now supports the WorkGroup-parameter
+        * Athena: start_query_execution() now supports the WorkGroup-parameter
+        * CloudFormation: AWS::IAM::Role now supports updates
+        * CognitoIDP: list_users() now correctly filters before applying the Limit
+        * DirectConnect: describe_trusts() no longer requires a DirectoryId-parameter
+        * DynamoDB: The DeleteProtectionEnabled can now be disabled
+        * DynamoDB: update_item() can now return list of binaries
+        * EC2: SecurityGroups now contain a SecurityGroupArn
+        * EC2: update_route() now correctly handles DestinationPrefixListId
+        * KMS: get_public_key() now supports passing in aliases
+        * Lambda: publish_function() now publishes a function even if the updated code hasn't changed
+        * MemoryDB: tag_resource/list_tags_for_resource() now supports Snapshots and SubnetGroups
+        * RDS: copy_db_snapshot() now supports the CopyTags-parameter
+        * RDS: copy_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * RDS: restore_db_instance_from_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * S3: complete_multipart_upload() now supports IfNoneMatch-parameter
+
 5.0.22
 -----
 Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_

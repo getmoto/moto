@@ -45,11 +45,13 @@ cognito-idp
 - [X] admin_user_global_sign_out
 - [X] associate_software_token
 - [X] change_password
+- [ ] complete_web_authn_registration
 - [ ] confirm_device
 - [X] confirm_forgot_password
 - [X] confirm_sign_up
 - [X] create_group
 - [X] create_identity_provider
+- [ ] create_managed_login_branding
 - [X] create_resource_server
 - [ ] create_user_import_job
 - [X] create_user_pool
@@ -57,13 +59,17 @@ cognito-idp
 - [X] create_user_pool_domain
 - [X] delete_group
 - [X] delete_identity_provider
+- [ ] delete_managed_login_branding
 - [ ] delete_resource_server
 - [ ] delete_user
 - [ ] delete_user_attributes
 - [X] delete_user_pool
 - [X] delete_user_pool_client
 - [X] delete_user_pool_domain
+- [ ] delete_web_authn_credential
 - [X] describe_identity_provider
+- [ ] describe_managed_login_branding
+- [ ] describe_managed_login_branding_by_client
 - [X] describe_resource_server
 - [ ] describe_risk_configuration
 - [ ] describe_user_import_job
@@ -91,6 +97,7 @@ cognito-idp
 - [ ] get_ui_customization
 - [X] get_user
 - [ ] get_user_attribute_verification_code
+- [ ] get_user_auth_factors
 - [X] get_user_pool_mfa_config
 - [X] global_sign_out
 - [X] initiate_auth
@@ -104,6 +111,7 @@ cognito-idp
 - [X] list_user_pools
 - [X] list_users
 - [X] list_users_in_group
+- [ ] list_web_authn_credentials
 - [ ] resend_confirmation_code
 - [X] respond_to_auth_challenge
 - [ ] revoke_token
@@ -115,6 +123,7 @@ cognito-idp
 - [ ] set_user_settings
 - [X] sign_up
 - [ ] start_user_import_job
+- [ ] start_web_authn_registration
 - [ ] stop_user_import_job
 - [ ] tag_resource
 - [ ] untag_resource
@@ -122,6 +131,7 @@ cognito-idp
 - [ ] update_device_status
 - [X] update_group
 - [X] update_identity_provider
+- [ ] update_managed_login_branding
 - [ ] update_resource_server
 - [X] update_user_attributes
   

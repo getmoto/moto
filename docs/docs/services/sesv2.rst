@@ -30,6 +30,7 @@ sesv2
 - [ ] create_email_template
 - [ ] create_export_job
 - [ ] create_import_job
+- [ ] create_multi_region_endpoint
 - [ ] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
 - [X] delete_contact
@@ -39,6 +40,7 @@ sesv2
 - [ ] delete_email_identity
 - [ ] delete_email_identity_policy
 - [ ] delete_email_template
+- [ ] delete_multi_region_endpoint
 - [ ] delete_suppressed_destination
 - [ ] get_account
 - [ ] get_blacklist_reports
@@ -60,6 +62,7 @@ sesv2
 - [ ] get_export_job
 - [ ] get_import_job
 - [ ] get_message_insights
+- [ ] get_multi_region_endpoint
 - [ ] get_suppressed_destination
 - [ ] list_configuration_sets
 - [X] list_contact_lists
@@ -72,6 +75,7 @@ sesv2
 - [ ] list_email_templates
 - [ ] list_export_jobs
 - [ ] list_import_jobs
+- [ ] list_multi_region_endpoints
 - [ ] list_recommendations
 - [ ] list_suppressed_destinations
 - [ ] list_tags_for_resource
