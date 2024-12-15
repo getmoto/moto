@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.23
 -----
-Docker Digest for 5.0.23: <autopopulateddigest>
+Docker Digest for 5.0.23: _sha256:d41e007bb1f7d41b530959ae9cbed1edf42737ee839faf8da7e925bf19f63105_
 
     New Services:
         * Kafka:
