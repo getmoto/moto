@@ -16,7 +16,7 @@ If you are using the decorators, some options are configurable within the decora
         "core": {
             "mock_credentials": True,
             "passthrough": {
-                "urls": ["s3.amazonaws.com/bucket*"],
+                "urls": [r"s3.amazonaws.com/bucket*"],
                 "services": ["dynamodb"]
             },
             "reset_boto3_session": True,
@@ -40,7 +40,7 @@ Passthrough Requests
 
 Configure `mock_credentials: False` and `passthrough` if you want to only mock some services, but allow other requests to connect to AWS.
 
-You can either passthrough all requests to a specific service, or all URL's that match a specific pattern.
+You can either passthrough all requests to a specific service, or all URL's that match a specific regex.
 
 Reset Boto Session
 ------------------

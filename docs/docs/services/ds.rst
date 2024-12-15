@@ -62,7 +62,9 @@ ds
   Describe LDAPS settings for a Directory
 
 - [ ] describe_regions
-- [ ] describe_settings
+- [X] describe_settings
+  Describe settings for a Directory
+
 - [ ] describe_shared_directories
 - [ ] describe_snapshots
 - [X] describe_trusts
@@ -113,7 +115,7 @@ ds
 - [ ] update_directory_setup
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
-- [ ] update_settings
+- [X] update_settings
 - [ ] update_trust
 - [ ] verify_trust
 

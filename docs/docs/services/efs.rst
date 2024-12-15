@@ -61,7 +61,7 @@ efs
 
 - [ ] describe_account_preferences
 - [X] describe_backup_policy
-- [ ] describe_file_system_policy
+- [X] describe_file_system_policy
 - [X] describe_file_systems
   Describe all the EFS File Systems, or specific File Systems.
 
@@ -82,7 +82,7 @@ efs
 - [X] modify_mount_target_security_groups
 - [ ] put_account_preferences
 - [ ] put_backup_policy
-- [ ] put_file_system_policy
+- [X] put_file_system_policy
 - [X] put_lifecycle_configuration
 - [X] tag_resource
 - [X] untag_resource

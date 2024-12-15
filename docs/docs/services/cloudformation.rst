@@ -81,6 +81,7 @@ cloudformation
 - [X] list_change_sets
 - [X] list_exports
 - [ ] list_generated_templates
+- [ ] list_hook_results
 - [ ] list_imports
 - [ ] list_resource_scan_related_resources
 - [ ] list_resource_scan_resources
