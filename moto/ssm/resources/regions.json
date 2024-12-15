@@ -5306,6 +5306,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -5340,6 +5349,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-northeast-1.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -7856,6 +7871,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -8686,6 +8710,9 @@
               }
             },
             "wavelength-zones": {
+              "apne2-wl1-cjj-wlz1": {
+                "Value": "apne2-wl1-cjj-wlz1"
+              },
               "apne2-wl1-sel-wlz1": {
                 "Value": "apne2-wl1-sel-wlz1"
               }
@@ -9735,6 +9762,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ap-northeast-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11864,6 +11900,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -12800,6 +12845,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.ap-south-2.amazonaws.com"
                 },
@@ -15807,6 +15861,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ap-southeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -15841,6 +15904,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -18591,6 +18660,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -18625,6 +18703,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-southeast-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -19635,6 +19719,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.ap-southeast-3.amazonaws.com"
                 },
@@ -21125,6 +21218,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
+                "endpoint": {
+                  "Value": "apigateway.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appconfig": {
                 "Value": "appconfig",
                 "endpoint": {
@@ -22313,6 +22415,15 @@
               "vpc": {
                 "Value": "vpc"
               },
+              "vpc-lattice": {
+                "Value": "vpc-lattice",
+                "endpoint": {
+                  "Value": "vpc-lattice.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "vpn": {
                 "Value": "vpn",
                 "endpoint": {
@@ -22858,6 +22969,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24730,6 +24850,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.ca-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -25683,6 +25812,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.ca-west-1.amazonaws.com"
                 },
@@ -31377,6 +31515,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -31411,6 +31558,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-central-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -32435,6 +32588,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.eu-central-2.amazonaws.com"
                 },
@@ -35101,6 +35263,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.eu-north-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -35135,6 +35306,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-north-1.amazonaws.com"
                 }
               },
               "organizations": {
@@ -35757,6 +35934,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "trustedadvisor": {
+                "Value": "trustedadvisor"
               },
               "verified-access": {
                 "Value": "verified-access",
@@ -37544,6 +37724,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.eu-south-2.amazonaws.com"
                 },
@@ -40759,6 +40948,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -40793,6 +40991,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.eu-west-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -43475,6 +43679,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -45659,6 +45872,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -46469,6 +46691,15 @@
               },
               "apigateway": {
                 "Value": "apigateway",
+                "endpoint": {
+                  "Value": "apigateway.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "apigatewayv2": {
+                "Value": "apigatewayv2",
                 "endpoint": {
                   "Value": "apigateway.il-central-1.amazonaws.com"
                 },
@@ -50885,6 +51116,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "trustedadvisor": {
+                "Value": "trustedadvisor"
+              },
               "verifiedpermissions": {
                 "Value": "verifiedpermissions",
                 "endpoint": {
@@ -52287,6 +52521,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -53434,6 +53677,15 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bcm-pricing-calculator": {
+                "Value": "bcm-pricing-calculator",
+                "endpoint": {
+                  "Value": "bcm-pricing-calculator.us-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55239,6 +55491,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -55266,6 +55527,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "notificationscontacts": {
+                "Value": "notificationscontacts",
+                "endpoint": {
+                  "Value": "notifications-contacts.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "oam": {
                 "Value": "oam",
                 "endpoint": {
@@ -55273,6 +55543,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.us-east-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -58041,6 +58317,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.us-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -58075,6 +58360,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.us-east-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -63537,6 +63828,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.us-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -66300,6 +66600,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkflowmonitor": {
+                "Value": "networkflowmonitor",
+                "endpoint": {
+                  "Value": "networkflowmonitor.us-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -66334,6 +66643,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.us-west-2.amazonaws.com"
                 }
               },
               "omics": {
