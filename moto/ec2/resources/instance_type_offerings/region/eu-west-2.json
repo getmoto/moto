@@ -560,6 +560,14 @@
   "Location": "eu-west-2"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "eu-west-2"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "eu-west-2"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "eu-west-2"
  },

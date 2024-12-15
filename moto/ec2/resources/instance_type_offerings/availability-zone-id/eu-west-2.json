@@ -560,6 +560,14 @@
   "Location": "euw2-az1"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "euw2-az1"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "euw2-az1"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "euw2-az1"
  },
@@ -2421,6 +2429,14 @@
  },
  {
   "InstanceType": "f1.4xlarge",
+  "Location": "euw2-az2"
+ },
+ {
+  "InstanceType": "f2.12xlarge",
+  "Location": "euw2-az2"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
   "Location": "euw2-az2"
  },
  {

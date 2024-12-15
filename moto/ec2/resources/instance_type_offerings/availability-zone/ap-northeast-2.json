@@ -1808,6 +1808,10 @@
   "Location": "ap-northeast-2a"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ap-northeast-2a"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "ap-northeast-2a"
  },
