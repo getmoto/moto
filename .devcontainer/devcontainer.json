@@ -77,7 +77,7 @@
                 "--cov-report=xml",
                 "${workspaceFolder}/tests/"
               ]
-            },
+            }
           ],
           "compounds": [
             {
