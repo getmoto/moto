@@ -10,8 +10,8 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 RDS_REGION = "eu-north-1"
 
 
-@pytest.fixture
-def client():
+@pytest.fixture(name="client")
+def get_rds_client():
     return boto3.client("rds", region_name=RDS_REGION)
 
 
