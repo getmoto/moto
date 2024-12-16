@@ -10,18 +10,19 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 RDS_REGION = "eu-north-1"
 
 
-@mock_aws
-def test_describe_db_cluster_initial():
-    client = boto3.client("rds", region_name=RDS_REGION)
+@pytest.fixture
+def client():
+    return boto3.client("rds", region_name=RDS_REGION)
 
+
+@mock_aws
+def test_describe_db_cluster_initial(client):
     resp = client.describe_db_clusters()
     assert len(resp["DBClusters"]) == 0
 
 
 @mock_aws
-def test_describe_db_cluster_fails_for_non_existent_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_describe_db_cluster_fails_for_non_existent_cluster(client):
     resp = client.describe_db_clusters()
     assert len(resp["DBClusters"]) == 0
     with pytest.raises(ClientError) as ex:
@@ -32,9 +33,7 @@ def test_describe_db_cluster_fails_for_non_existent_cluster():
 
 
 @mock_aws
-def test_create_db_cluster_invalid_engine():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_invalid_engine(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id", Engine="aurora-postgresql"
@@ -47,9 +46,7 @@ def test_create_db_cluster_invalid_engine():
 
 
 @mock_aws
-def test_create_db_cluster_needs_master_username():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_needs_master_username(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id", Engine="aurora-postgresql"
@@ -62,9 +59,7 @@ def test_create_db_cluster_needs_master_username():
 
 
 @mock_aws
-def test_create_db_cluster_needs_master_user_password():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_needs_master_user_password(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id",
@@ -79,9 +74,7 @@ def test_create_db_cluster_needs_master_user_password():
 
 
 @mock_aws
-def test_create_db_cluster_needs_long_master_user_password():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_needs_long_master_user_password(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id",
@@ -98,9 +91,7 @@ def test_create_db_cluster_needs_long_master_user_password():
 
 
 @mock_aws
-def test_modify_db_cluster_needs_long_master_user_password():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_modify_db_cluster_needs_long_master_user_password(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -122,8 +113,7 @@ def test_modify_db_cluster_needs_long_master_user_password():
 
 
 @mock_aws
-def test_modify_db_cluster_new_cluster_identifier():
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_modify_db_cluster_new_cluster_identifier(client):
     old_id = "cluster-id"
     new_id = "new-cluster-id"
 
@@ -152,8 +142,7 @@ def test_modify_db_cluster_new_cluster_identifier():
 
 @pytest.mark.parametrize("with_custom_kms_key", [True, False])
 @mock_aws
-def test_modify_db_cluster_manage_master_user_password(with_custom_kms_key):
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_key):
     cluster_id = "cluster-id"
     custom_kms_key = f"arn:aws:kms:{RDS_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
     custom_kms_key_args = (
@@ -207,8 +196,7 @@ def test_modify_db_cluster_manage_master_user_password(with_custom_kms_key):
 
 @pytest.mark.parametrize("with_apply_immediately", [True, False])
 @mock_aws
-def test_modify_db_cluster_rotate_master_user_password(with_apply_immediately):
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_modify_db_cluster_rotate_master_user_password(client, with_apply_immediately):
     cluster_id = "cluster-id"
 
     client.create_db_cluster(
@@ -248,9 +236,7 @@ def test_modify_db_cluster_rotate_master_user_password(with_apply_immediately):
 
 
 @mock_aws
-def test_create_db_cluster__verify_default_properties():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster__verify_default_properties(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-mysql",
@@ -317,9 +303,7 @@ def test_create_db_cluster__verify_default_properties():
 
 
 @mock_aws
-def test_create_db_cluster_additional_parameters():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_additional_parameters(client):
     resp = client.create_db_cluster(
         AvailabilityZones=["eu-north-1b"],
         DatabaseName="users",
@@ -378,9 +362,7 @@ def test_create_db_cluster_additional_parameters():
 
 
 @mock_aws
-def test_describe_db_cluster_after_creation():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_describe_db_cluster_after_creation(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id1",
         Engine="aurora-postgresql",
@@ -411,9 +393,7 @@ def test_describe_db_cluster_after_creation():
 
 
 @mock_aws
-def test_delete_db_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_delete_db_cluster(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -427,9 +407,7 @@ def test_delete_db_cluster():
 
 
 @mock_aws
-def test_delete_db_cluster_do_snapshot():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_delete_db_cluster_do_snapshot(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -448,9 +426,7 @@ def test_delete_db_cluster_do_snapshot():
 
 
 @mock_aws
-def test_delete_db_cluster_that_is_protected():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_delete_db_cluster_that_is_protected(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -466,9 +442,7 @@ def test_delete_db_cluster_that_is_protected():
 
 
 @mock_aws
-def test_delete_db_cluster_unknown_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_delete_db_cluster_unknown_cluster(client):
     with pytest.raises(ClientError) as ex:
         client.delete_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
@@ -477,9 +451,7 @@ def test_delete_db_cluster_unknown_cluster():
 
 
 @mock_aws
-def test_start_db_cluster_unknown_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_start_db_cluster_unknown_cluster(client):
     with pytest.raises(ClientError) as ex:
         client.start_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
@@ -488,9 +460,7 @@ def test_start_db_cluster_unknown_cluster():
 
 
 @mock_aws
-def test_start_db_cluster_after_stopping():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_start_db_cluster_after_stopping(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -505,9 +475,7 @@ def test_start_db_cluster_after_stopping():
 
 
 @mock_aws
-def test_start_db_cluster_without_stopping():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_start_db_cluster_without_stopping(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -523,9 +491,7 @@ def test_start_db_cluster_without_stopping():
 
 
 @mock_aws
-def test_stop_db_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_stop_db_cluster(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -544,9 +510,7 @@ def test_stop_db_cluster():
 
 
 @mock_aws
-def test_stop_db_cluster_already_stopped():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_stop_db_cluster_already_stopped(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
@@ -564,9 +528,7 @@ def test_stop_db_cluster_already_stopped():
 
 
 @mock_aws
-def test_stop_db_cluster_unknown_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_stop_db_cluster_unknown_cluster(client):
     with pytest.raises(ClientError) as ex:
         client.stop_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
@@ -933,9 +895,7 @@ def test_add_tags_to_cluster_snapshot():
 
 
 @mock_aws
-def test_create_serverless_db_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_serverless_db_cluster(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         DatabaseName="users",
@@ -957,9 +917,7 @@ def test_create_serverless_db_cluster():
 
 
 @mock_aws
-def test_create_db_cluster_with_enable_http_endpoint_invalid():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_with_enable_http_endpoint_invalid(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         DatabaseName="users",
@@ -976,9 +934,7 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
 
 
 @mock_aws
-def test_describe_db_clusters_filter_by_engine():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_describe_db_clusters_filter_by_engine(client):
     client.create_db_cluster(
         DBClusterIdentifier="id1",
         Engine="aurora-mysql",
@@ -1208,8 +1164,7 @@ def test_modify_db_cluster_snapshot_attribute():
 
 
 @mock_aws
-def test_backtrack_window():
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_backtrack_window(client):
     window = 86400
     resp = client.create_db_cluster(
         AvailabilityZones=["eu-north-1b"],
@@ -1253,9 +1208,7 @@ def test_backtrack_window():
         ),
     ],
 )
-def test_backtrack_errors(params):
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_backtrack_errors(client, params):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             AvailabilityZones=["eu-north-1b"],
