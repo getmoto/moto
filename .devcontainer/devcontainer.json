@@ -2,16 +2,96 @@
   "name": "moto",
   "image": "mcr.microsoft.com/devcontainers/python:3.11",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "portsAttributes": {
+    "5000": {
+      "onAutoForward": "silent",
+      "elevateIfNeeded": true,
+      "protocol": "http",
+      "requireLocalPort": false
+    }
   },
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools", "ms-python.python", "ms-python.black-formatter"],
+      "extensions": [
+        "ms-vscode.makefile-tools",
+        "ms-python.python",
+        "ms-python.black-formatter"
+      ],
       "settings": {
+        "editor.formatOnSave": true,
         "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
         "python.formatting.provider": "none",
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
+        },
+        "tasks": {
+          "version": "2.0.0",
+          "tasks": [
+            {
+              "label": "Open Port 5000",
+              "type": "shell",
+              "command": "bash",
+              "args": [
+                "-c",
+                "until gh codespace ports visibility 5000:public --codespace ${CODESPACE_NAME} 2>/dev/null; do sleep 1; done"
+              ]
+            }
+          ]
+        },
+        "launch": {
+          "version": "0.2.0",
+          "configurations": [
+            {
+              "name": "Debug Moto Server",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${workspaceFolder}/moto/server.py",
+              "args": [
+                "--reload"
+              ],
+              "console": "integratedTerminal",
+              "presentation": {
+                "hidden": true
+              }
+            },
+            {
+              "name": "Debug Moto Server Tests",
+              "type": "debugpy",
+              "request": "launch",
+              "module": "pytest",
+              "console": "integratedTerminal",
+              "preLaunchTask": "Open Port 5000",
+              "env": {
+                "TEST_SERVER_MODE": "true",
+                "TEST_SERVER_MODE_ENDPOINT": "https://${env:CODESPACE_NAME}-5000.${env:GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+              },
+              "presentation": {
+                "hidden": true
+              },
+              "args": [
+                "-sv",
+                "--cov=moto",
+                "--cov-report=xml",
+                "${workspaceFolder}/tests/"
+              ]
+            },
+          ],
+          "compounds": [
+            {
+              "name": "Run Server Tests",
+              "configurations": [
+                "Debug Moto Server",
+                "Debug Moto Server Tests"
+              ],
+              "presentation": {
+                "group": "Moto Server"
+              },
+              "stopAll": true
+            }
+          ]
         }
       }
     }
