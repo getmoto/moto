@@ -8,6 +8,7 @@ from moto.stepfunctions.parser.asl.antlr.runtime.ASLLexer import ASLLexer
 
 class StatesErrorNameType(Enum):
     StatesALL = ASLLexer.ERRORNAMEStatesALL
+    StatesStatesDataLimitExceeded = ASLLexer.ERRORNAMEStatesDataLimitExceeded
     StatesHeartbeatTimeout = ASLLexer.ERRORNAMEStatesHeartbeatTimeout
     StatesTimeout = ASLLexer.ERRORNAMEStatesTimeout
     StatesTaskFailed = ASLLexer.ERRORNAMEStatesTaskFailed
@@ -23,6 +24,7 @@ class StatesErrorNameType(Enum):
     StatesItemReaderFailed = ASLLexer.ERRORNAMEStatesItemReaderFailed
     StatesResultWriterFailed = ASLLexer.ERRORNAMEStatesResultWriterFailed
     StatesRuntime = ASLLexer.ERRORNAMEStatesRuntime
+    StatesQueryEvaluationError = ASLLexer.ERRORNAMEStatesQueryEvaluationError
 
     def to_name(self) -> str:
         return _error_name(self)

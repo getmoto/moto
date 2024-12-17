@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-from typing import Final, Optional
+from typing import Optional
 
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
 from moto.stepfunctions.parser.asl.component.common.flow.start_at import StartAt
-from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.item_reader_decl import (
-    ItemReader,
-)
-from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_selector import (
-    ItemSelector,
-)
+from moto.stepfunctions.parser.asl.component.common.query_language import QueryLanguage
+from moto.stepfunctions.parser.asl.component.program.states import States
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.distributed_iteration_component import (
     DistributedIterationComponent,
     DistributedIterationComponentEvalInput,
@@ -20,46 +16,21 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.item
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.processor_config import (
     ProcessorConfig,
 )
-from moto.stepfunctions.parser.asl.component.states import States
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.parse.typed_props import TypedProps
 
 
 class DistributedItemProcessorEvalInput(DistributedIterationComponentEvalInput):
-    item_selector: Final[Optional[ItemSelector]]
-
-    def __init__(
-        self,
-        state_name: str,
-        max_concurrency: int,
-        item_reader: ItemReader,
-        item_selector: Optional[ItemSelector],
-    ):
-        super().__init__(
-            state_name=state_name,
-            max_concurrency=max_concurrency,
-            item_reader=item_reader,
-        )
-        self.item_selector = item_selector
+    pass
 
 
 class DistributedItemProcessor(DistributedIterationComponent):
-    _processor_config: Final[ProcessorConfig]
     _eval_input: Optional[DistributedItemProcessorEvalInput]
-
-    def __init__(
-        self,
-        start_at: StartAt,
-        states: States,
-        comment: Optional[Comment],
-        processor_config: ProcessorConfig,
-    ):
-        super().__init__(start_at=start_at, states=states, comment=comment)
-        self._processor_config = processor_config
 
     @classmethod
     def from_props(cls, props: TypedProps) -> DistributedItemProcessor:
         item_processor = cls(
+            query_language=props.get(QueryLanguage) or QueryLanguage(),
             start_at=props.get(
                 typ=StartAt,
                 raise_on_missing=ValueError(
@@ -73,7 +44,7 @@ class DistributedItemProcessor(DistributedIterationComponent):
                 ),
             ),
             comment=props.get(Comment),
-            processor_config=props.get(ProcessorConfig),
+            processor_config=props.get(ProcessorConfig) or ProcessorConfig(),
         )
         return item_processor
 
@@ -83,6 +54,7 @@ class DistributedItemProcessor(DistributedIterationComponent):
             job_pool=self._job_pool,
             env=env,
             item_reader=self._eval_input.item_reader,
+            parameters=self._eval_input.parameters,
             item_selector=self._eval_input.item_selector,
             map_run_record=self._map_run_record,
         )

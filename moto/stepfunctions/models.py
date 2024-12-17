@@ -55,6 +55,7 @@ class StateMachine(CloudFormationModel):
         }
         self.loggingConfiguration = loggingConfiguration or {"level": "OFF"}
         self.tracingConfiguration = tracingConfiguration or {"enabled": False}
+        self.sm_type = "STANDARD"  # or express
 
     def start_execution(
         self,
@@ -271,7 +272,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = iso_8601_datetime_with_milliseconds()
+        self.start_date = datetime.now()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -279,7 +280,7 @@ class Execution:
             if settings.get_sf_execution_history_type() == "SUCCESS"
             else "FAILED"
         )
-        self.stop_date: Optional[str] = None
+        self.stop_date: Optional[datetime] = None
         self.account_id = account_id
         self.region_name = region_name
         self.output: Optional[str] = None
@@ -388,7 +389,7 @@ class Execution:
 
     def stop(self, *args: Any, **kwargs: Any) -> None:
         self.status = "ABORTED"
-        self.stop_date = iso_8601_datetime_with_milliseconds()
+        self.stop_date = datetime.now()
 
 
 class StepFunctionBackend(BaseBackend):
@@ -644,7 +645,7 @@ class StepFunctionBackend(BaseBackend):
             )
         return exctn
 
-    def get_execution_history(self, execution_arn: str) -> List[Dict[str, Any]]:
+    def get_execution_history(self, execution_arn: str) -> Dict[str, Any]:
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
         execution = next(
@@ -655,7 +656,7 @@ class StepFunctionBackend(BaseBackend):
             raise ExecutionDoesNotExist(
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
-        return execution.get_execution_history(state_machine.roleArn)
+        return {"events": execution.get_execution_history(state_machine.roleArn)}
 
     def describe_state_machine_for_execution(self, execution_arn: str) -> StateMachine:
         for sm in self.state_machines:

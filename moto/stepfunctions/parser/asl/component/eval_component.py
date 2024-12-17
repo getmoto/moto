@@ -2,13 +2,13 @@ import abc
 import logging
 from typing import Optional
 
-from moto.moto_api._internal import mock_random
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEventException,
 )
 from moto.stepfunctions.parser.asl.component.component import Component
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
+from moto.stepfunctions.parser.utils import long_uid
 
 LOG = logging.getLogger(__name__)
 
@@ -19,13 +19,17 @@ class EvalComponent(Component, abc.ABC):
     @property
     def heap_key(self) -> str:
         if self.__heap_key is None:
-            self.__heap_key = str(mock_random.uuid4())
+            self.__heap_key = long_uid()
         return self.__heap_key
 
     def _log_evaluation_step(self, subject: str = "Generic") -> None:
-        LOG.debug(
-            f"[ASL] [{subject.lower()[:4]}] [{self.__class__.__name__}]: '{repr(self)}'"
-        )
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.debug(
+                "[ASL] [%s] [%s]: '%s'",
+                subject.lower()[:4],
+                self.__class__.__name__,
+                repr(self),
+            )
 
     def _log_failure_event_exception(
         self, failure_event_exception: FailureEventException
@@ -42,7 +46,7 @@ class EvalComponent(Component, abc.ABC):
 
         error_log = ", ".join(error_log_parts)
         component_repr = repr(self)
-        LOG.error(f"{error_log} at '{component_repr}'")
+        LOG.error("%s at '%s'", error_log, component_repr)
 
     def _log_exception(self, exception: Exception) -> None:
         exception_name = exception.__class__.__name__
@@ -57,7 +61,7 @@ class EvalComponent(Component, abc.ABC):
 
         error_log = ", ".join(error_log_parts)
         component_repr = repr(self)
-        LOG.error(f"{error_log} at '{component_repr}'")
+        LOG.error("%s at '%s'", error_log, component_repr)
 
     def eval(self, env: Environment) -> None:
         if env.is_running():

@@ -1,24 +1,51 @@
+import abc
 import copy
-from typing import Final, Optional
+from typing import Optional
 
+from moto.stepfunctions.parser.asl.component.common.variable_sample import (
+    VariableSample,
+)
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
+from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 
 
-class InputPath(EvalComponent):
-    DEFAULT_PATH: Final[str] = "$"
+class InputPath(EvalComponent, abc.ABC): ...
 
-    input_path_src: Final[Optional[str]]
 
-    def __init__(self, input_path_src: Optional[str]):
-        self.input_path_src = input_path_src
+class InputPathBase(InputPath):
+    DEFAULT_PATH: str = "$"
+
+    path: Optional[str]
+
+    def __init__(self, path: Optional[str]):
+        self.path = path
 
     def _eval_body(self, env: Environment) -> None:
-        if self.input_path_src is None:
+        if self.path is None:
             value = dict()
-        elif self.input_path_src == InputPath.DEFAULT_PATH:
-            value = env.inp
+        elif self.path == self.DEFAULT_PATH:
+            value = env.states.get_input()
         else:
-            value = JSONPathUtils.extract_json(self.input_path_src, env.inp)
+            value = extract_json(self.path, env.states.get_input())
         env.stack.append(copy.deepcopy(value))
+
+
+class InputPathContextObject(InputPathBase):
+    def __init__(self, path: str):
+        path_tail = path[1:]
+        super().__init__(path=path_tail)
+
+    def _eval_body(self, env: Environment) -> None:
+        value = extract_json(self.path, env.states.context_object.context_object_data)
+        env.stack.append(copy.deepcopy(value))
+
+
+class InputPathVar(InputPath):
+    variable_sample: VariableSample
+
+    def __init__(self, variable_sample: VariableSample):
+        self.variable_sample = variable_sample
+
+    def _eval_body(self, env: Environment) -> None:
+        self.variable_sample.eval(env=env)

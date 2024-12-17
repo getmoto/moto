@@ -1,15 +1,18 @@
 from datetime import datetime
-from typing import List, Optional, TypedDict
+from enum import Enum
+from typing import Dict, List, Optional, TypedDict
 
 from ..exceptions import AWSError as ServiceException
 
 AliasDescription = str
+Arn = str
 CharacterRestrictedName = str
 ClientToken = str
 ConnectorParameters = str
 Definition = str
 Enabled = bool
 ErrorMessage = str
+EvaluationFailureLocation = str
 HTTPBody = str
 HTTPHeaders = str
 HTTPMethod = str
@@ -19,7 +22,10 @@ HTTPStatusMessage = str
 Identity = str
 IncludeExecutionData = bool
 IncludeExecutionDataGetExecutionHistory = bool
+KmsDataKeyReusePeriodSeconds = int
+KmsKeyId = str
 ListExecutionsPageToken = str
+LongArn = str
 MapRunLabel = str
 MaxConcurrency = int
 Name = str
@@ -42,24 +48,36 @@ ToleratedFailurePercentage = float
 TraceHeader = str
 URL = str
 UnsignedInteger = int
+ValidateStateMachineDefinitionCode = str
+ValidateStateMachineDefinitionLocation = str
+ValidateStateMachineDefinitionMaxResult = int
+ValidateStateMachineDefinitionMessage = str
+ValidateStateMachineDefinitionTruncated = bool
+VariableName = str
+VariableValue = str
 VersionDescription = str
 VersionWeight = int
 includedDetails = bool
 truncated = bool
 
 
-class ExecutionRedriveFilter(str):
+class EncryptionType(str, Enum):
+    AWS_OWNED_KEY = "AWS_OWNED_KEY"
+    CUSTOMER_MANAGED_KMS_KEY = "CUSTOMER_MANAGED_KMS_KEY"
+
+
+class ExecutionRedriveFilter(str, Enum):
     REDRIVEN = "REDRIVEN"
     NOT_REDRIVEN = "NOT_REDRIVEN"
 
 
-class ExecutionRedriveStatus(str):
+class ExecutionRedriveStatus(str, Enum):
     REDRIVABLE = "REDRIVABLE"
     NOT_REDRIVABLE = "NOT_REDRIVABLE"
     REDRIVABLE_BY_MAP_RUN = "REDRIVABLE_BY_MAP_RUN"
 
 
-class ExecutionStatus(str):
+class ExecutionStatus(str, Enum):
     RUNNING = "RUNNING"
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
@@ -68,7 +86,7 @@ class ExecutionStatus(str):
     PENDING_REDRIVE = "PENDING_REDRIVE"
 
 
-class HistoryEventType(str):
+class HistoryEventType(str, Enum):
     ActivityFailed = "ActivityFailed"
     ActivityScheduled = "ActivityScheduled"
     ActivityScheduleFailed = "ActivityScheduleFailed"
@@ -130,56 +148,86 @@ class HistoryEventType(str):
     MapRunSucceeded = "MapRunSucceeded"
     ExecutionRedriven = "ExecutionRedriven"
     MapRunRedriven = "MapRunRedriven"
+    EvaluationFailed = "EvaluationFailed"
 
 
-class InspectionLevel(str):
+class IncludedData(str, Enum):
+    ALL_DATA = "ALL_DATA"
+    METADATA_ONLY = "METADATA_ONLY"
+
+
+class InspectionLevel(str, Enum):
     INFO = "INFO"
     DEBUG = "DEBUG"
     TRACE = "TRACE"
 
 
-class LogLevel(str):
+class KmsKeyState(str, Enum):
+    DISABLED = "DISABLED"
+    PENDING_DELETION = "PENDING_DELETION"
+    PENDING_IMPORT = "PENDING_IMPORT"
+    UNAVAILABLE = "UNAVAILABLE"
+    CREATING = "CREATING"
+
+
+class LogLevel(str, Enum):
     ALL = "ALL"
     ERROR = "ERROR"
     FATAL = "FATAL"
     OFF = "OFF"
 
 
-class MapRunStatus(str):
+class MapRunStatus(str, Enum):
     RUNNING = "RUNNING"
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
     ABORTED = "ABORTED"
 
 
-class StateMachineStatus(str):
+class StateMachineStatus(str, Enum):
     ACTIVE = "ACTIVE"
     DELETING = "DELETING"
 
 
-class StateMachineType(str):
+class StateMachineType(str, Enum):
     STANDARD = "STANDARD"
     EXPRESS = "EXPRESS"
 
 
-class SyncExecutionStatus(str):
+class SyncExecutionStatus(str, Enum):
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
     TIMED_OUT = "TIMED_OUT"
 
 
-class TestExecutionStatus(str):
+class TestExecutionStatus(str, Enum):
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
     RETRIABLE = "RETRIABLE"
     CAUGHT_ERROR = "CAUGHT_ERROR"
 
 
-class ValidationExceptionReason(str):
+class ValidateStateMachineDefinitionResultCode(str, Enum):
+    OK = "OK"
+    FAIL = "FAIL"
+
+
+class ValidateStateMachineDefinitionSeverity(str, Enum):
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+
+
+class ValidationExceptionReason(str, Enum):
     API_DOES_NOT_SUPPORT_LABELED_ARNS = "API_DOES_NOT_SUPPORT_LABELED_ARNS"
     MISSING_REQUIRED_PARAMETER = "MISSING_REQUIRED_PARAMETER"
     CANNOT_UPDATE_COMPLETED_MAP_RUN = "CANNOT_UPDATE_COMPLETED_MAP_RUN"
     INVALID_ROUTING_CONFIGURATION = "INVALID_ROUTING_CONFIGURATION"
+
+
+class ActivityAlreadyExists(ServiceException):
+    code: str = "ActivityAlreadyExists"
+    sender_fault: bool = False
+    status_code: int = 400
 
 
 class ActivityDoesNotExist(ServiceException):
@@ -242,6 +290,12 @@ class InvalidDefinition(ServiceException):
     status_code: int = 400
 
 
+class InvalidEncryptionConfiguration(ServiceException):
+    code: str = "InvalidEncryptionConfiguration"
+    sender_fault: bool = False
+    status_code: int = 400
+
+
 class InvalidExecutionInput(ServiceException):
     code: str = "InvalidExecutionInput"
     sender_fault: bool = False
@@ -283,6 +337,25 @@ class InvalidTracingConfiguration(ServiceException):
     status_code: int = 400
 
 
+class KmsAccessDeniedException(ServiceException):
+    code: str = "KmsAccessDeniedException"
+    sender_fault: bool = False
+    status_code: int = 400
+
+
+class KmsInvalidStateException(ServiceException):
+    code: str = "KmsInvalidStateException"
+    sender_fault: bool = False
+    status_code: int = 400
+    kmsKeyState: Optional[KmsKeyState]
+
+
+class KmsThrottlingException(ServiceException):
+    code: str = "KmsThrottlingException"
+    sender_fault: bool = False
+    status_code: int = 400
+
+
 class MissingRequiredParameter(ServiceException):
     code: str = "MissingRequiredParameter"
     sender_fault: bool = False
@@ -293,7 +366,7 @@ class ResourceNotFound(ServiceException):
     code: str = "ResourceNotFound"
     sender_fault: bool = False
     status_code: int = 400
-    resourceName: Optional[str]
+    resourceName: Optional[Arn]
 
 
 class ServiceQuotaExceededException(ServiceException):
@@ -344,6 +417,13 @@ class TaskTimedOut(ServiceException):
     status_code: int = 400
 
 
+class TooManyTags(ServiceException):
+    code: str = "TooManyTags"
+    sender_fault: bool = False
+    status_code: int = 400
+    resourceName: Optional[Arn]
+
+
 class ValidationException(ServiceException):
     code: str = "ValidationException"
     sender_fault: bool = False
@@ -360,7 +440,7 @@ Timestamp = datetime
 
 
 class ActivityListItem(TypedDict, total=False):
-    activityArn: str
+    activityArn: Arn
     name: Name
     creationDate: Timestamp
 
@@ -381,7 +461,7 @@ class HistoryEventExecutionDataDetails(TypedDict, total=False):
 
 
 class ActivityScheduledEventDetails(TypedDict, total=False):
-    resource: str
+    resource: Arn
     input: Optional[SensitiveData]
     inputDetails: Optional[HistoryEventExecutionDataDetails]
     timeoutInSeconds: Optional[TimeoutInSeconds]
@@ -402,6 +482,13 @@ class ActivityTimedOutEventDetails(TypedDict, total=False):
     cause: Optional[SensitiveCause]
 
 
+AssignedVariables = Dict[VariableName, VariableValue]
+
+
+class AssignedVariablesDetails(TypedDict, total=False):
+    truncated: Optional[truncated]
+
+
 BilledDuration = int
 BilledMemoryUsed = int
 
@@ -416,7 +503,18 @@ class CloudWatchEventsExecutionDataDetails(TypedDict, total=False):
 
 
 class CloudWatchLogsLogGroup(TypedDict, total=False):
-    logGroupArn: Optional[str]
+    logGroupArn: Optional[Arn]
+
+
+EncryptionConfiguration = TypedDict(
+    "EncryptionConfiguration",
+    {
+        "kmsKeyId": Optional[KmsKeyId],
+        "kmsDataKeyReusePeriodSeconds": Optional[KmsDataKeyReusePeriodSeconds],
+        "type": EncryptionType,
+    },
+    total=False,
+)
 
 
 class Tag(TypedDict, total=False):
@@ -428,12 +526,12 @@ TagList = List[Tag]
 
 
 class CreateActivityOutput(TypedDict, total=False):
-    activityArn: str
+    activityArn: Arn
     creationDate: Timestamp
 
 
 class RoutingConfigurationListItem(TypedDict, total=False):
-    stateMachineVersionArn: str
+    stateMachineVersionArn: Arn
     weight: VersionWeight
 
 
@@ -441,14 +539,8 @@ RoutingConfigurationList = List[RoutingConfigurationListItem]
 
 
 class CreateStateMachineAliasOutput(TypedDict, total=False):
-    stateMachineAliasArn: str
+    stateMachineAliasArn: Arn
     creationDate: Timestamp
-
-
-class EncryptionConfiguration(TypedDict, total=False):
-    type: str
-    kmsDataKeyReusePeriodSeconds: Optional[int]
-    kmsKeyId: Optional[str]
 
 
 class TracingConfiguration(TypedDict, total=False):
@@ -473,23 +565,23 @@ CreateStateMachineInput = TypedDict(
     {
         "name": Name,
         "definition": Definition,
-        "roleArn": str,
+        "roleArn": Arn,
         "type": Optional[StateMachineType],
         "loggingConfiguration": Optional[LoggingConfiguration],
         "tags": Optional[TagList],
         "tracingConfiguration": Optional[TracingConfiguration],
-        "encryptionConfiguration": Optional[EncryptionConfiguration],
         "publish": Optional[Publish],
         "versionDescription": Optional[VersionDescription],
+        "encryptionConfiguration": Optional[EncryptionConfiguration],
     },
     total=False,
 )
 
 
 class CreateStateMachineOutput(TypedDict, total=False):
-    stateMachineArn: str
+    stateMachineArn: Arn
     creationDate: Timestamp
-    stateMachineVersionArn: Optional[str]
+    stateMachineVersionArn: Optional[Arn]
 
 
 class DeleteActivityOutput(TypedDict, total=False):
@@ -509,14 +601,15 @@ class DeleteStateMachineVersionOutput(TypedDict, total=False):
 
 
 class DescribeActivityOutput(TypedDict, total=False):
-    activityArn: str
+    activityArn: Arn
     name: Name
     creationDate: Timestamp
+    encryptionConfiguration: Optional[EncryptionConfiguration]
 
 
 class DescribeExecutionOutput(TypedDict, total=False):
-    executionArn: str
-    stateMachineArn: str
+    executionArn: Arn
+    stateMachineArn: Arn
     name: Optional[Name]
     status: ExecutionStatus
     startDate: Timestamp
@@ -526,11 +619,11 @@ class DescribeExecutionOutput(TypedDict, total=False):
     output: Optional[SensitiveData]
     outputDetails: Optional[CloudWatchEventsExecutionDataDetails]
     traceHeader: Optional[TraceHeader]
-    mapRunArn: Optional[str]
+    mapRunArn: Optional[LongArn]
     error: Optional[SensitiveError]
     cause: Optional[SensitiveCause]
-    stateMachineVersionArn: Optional[str]
-    stateMachineAliasArn: Optional[str]
+    stateMachineVersionArn: Optional[Arn]
+    stateMachineAliasArn: Optional[Arn]
     redriveCount: Optional[RedriveCount]
     redriveDate: Optional[Timestamp]
     redriveStatus: Optional[ExecutionRedriveStatus]
@@ -571,8 +664,8 @@ ToleratedFailureCount = int
 
 
 class DescribeMapRunOutput(TypedDict, total=False):
-    mapRunArn: str
-    executionArn: str
+    mapRunArn: LongArn
+    executionArn: Arn
     status: MapRunStatus
     startDate: Timestamp
     stopDate: Optional[Timestamp]
@@ -586,7 +679,7 @@ class DescribeMapRunOutput(TypedDict, total=False):
 
 
 class DescribeStateMachineAliasOutput(TypedDict, total=False):
-    stateMachineAliasArn: Optional[str]
+    stateMachineAliasArn: Optional[Arn]
     name: Optional[Name]
     description: Optional[AliasDescription]
     routingConfiguration: Optional[RoutingConfigurationList]
@@ -594,39 +687,54 @@ class DescribeStateMachineAliasOutput(TypedDict, total=False):
     updateDate: Optional[Timestamp]
 
 
+VariableNameList = List[VariableName]
+VariableReferences = Dict[StateName, VariableNameList]
+
+
 class DescribeStateMachineForExecutionOutput(TypedDict, total=False):
-    stateMachineArn: str
+    stateMachineArn: Arn
     name: Name
     definition: Definition
-    roleArn: str
+    roleArn: Arn
     updateDate: Timestamp
     loggingConfiguration: Optional[LoggingConfiguration]
     tracingConfiguration: Optional[TracingConfiguration]
-    encryptionConfiguration: Optional[EncryptionConfiguration]
-    mapRunArn: Optional[str]
+    mapRunArn: Optional[LongArn]
     label: Optional[MapRunLabel]
     revisionId: Optional[RevisionId]
+    encryptionConfiguration: Optional[EncryptionConfiguration]
+    variableReferences: Optional[VariableReferences]
 
 
 DescribeStateMachineOutput = TypedDict(
     "DescribeStateMachineOutput",
     {
-        "stateMachineArn": str,
+        "stateMachineArn": Arn,
         "name": Name,
         "status": Optional[StateMachineStatus],
         "definition": Definition,
-        "roleArn": str,
+        "roleArn": Arn,
         "type": StateMachineType,
         "creationDate": Timestamp,
         "loggingConfiguration": Optional[LoggingConfiguration],
         "tracingConfiguration": Optional[TracingConfiguration],
-        "encryptionConfiguration": Optional[EncryptionConfiguration],
         "label": Optional[MapRunLabel],
         "revisionId": Optional[RevisionId],
         "description": Optional[VersionDescription],
+        "encryptionConfiguration": Optional[EncryptionConfiguration],
+        "variableReferences": Optional[VariableReferences],
     },
     total=False,
 )
+
+
+class EvaluationFailedEventDetails(TypedDict, total=False):
+    error: Optional[SensitiveError]
+    cause: Optional[SensitiveCause]
+    location: Optional[EvaluationFailureLocation]
+    state: StateName
+
+
 EventId = int
 
 
@@ -641,16 +749,16 @@ class ExecutionFailedEventDetails(TypedDict, total=False):
 
 
 class ExecutionListItem(TypedDict, total=False):
-    executionArn: str
-    stateMachineArn: str
+    executionArn: Arn
+    stateMachineArn: Arn
     name: Name
     status: ExecutionStatus
     startDate: Timestamp
     stopDate: Optional[Timestamp]
-    mapRunArn: Optional[str]
+    mapRunArn: Optional[LongArn]
     itemCount: Optional[UnsignedInteger]
-    stateMachineVersionArn: Optional[str]
-    stateMachineAliasArn: Optional[str]
+    stateMachineVersionArn: Optional[Arn]
+    stateMachineAliasArn: Optional[Arn]
     redriveCount: Optional[RedriveCount]
     redriveDate: Optional[Timestamp]
 
@@ -665,9 +773,9 @@ class ExecutionRedrivenEventDetails(TypedDict, total=False):
 class ExecutionStartedEventDetails(TypedDict, total=False):
     input: Optional[SensitiveData]
     inputDetails: Optional[HistoryEventExecutionDataDetails]
-    roleArn: Optional[str]
-    stateMachineAliasArn: Optional[str]
-    stateMachineVersionArn: Optional[str]
+    roleArn: Optional[Arn]
+    stateMachineAliasArn: Optional[Arn]
+    stateMachineVersionArn: Optional[Arn]
 
 
 class ExecutionSucceededEventDetails(TypedDict, total=False):
@@ -686,7 +794,7 @@ class GetActivityTaskOutput(TypedDict, total=False):
 
 
 class MapRunRedrivenEventDetails(TypedDict, total=False):
-    mapRunArn: Optional[str]
+    mapRunArn: Optional[LongArn]
     redriveCount: Optional[RedriveCount]
 
 
@@ -696,13 +804,15 @@ class MapRunFailedEventDetails(TypedDict, total=False):
 
 
 class MapRunStartedEventDetails(TypedDict, total=False):
-    mapRunArn: Optional[str]
+    mapRunArn: Optional[LongArn]
 
 
 class StateExitedEventDetails(TypedDict, total=False):
     name: Name
     output: Optional[SensitiveData]
     outputDetails: Optional[HistoryEventExecutionDataDetails]
+    assignedVariables: Optional[AssignedVariables]
+    assignedVariablesDetails: Optional[AssignedVariablesDetails]
 
 
 class StateEnteredEventDetails(TypedDict, total=False):
@@ -727,11 +837,11 @@ class LambdaFunctionStartFailedEventDetails(TypedDict, total=False):
 
 
 class TaskCredentials(TypedDict, total=False):
-    roleArn: Optional[str]
+    roleArn: Optional[LongArn]
 
 
 class LambdaFunctionScheduledEventDetails(TypedDict, total=False):
-    resource: str
+    resource: Arn
     input: Optional[SensitiveData]
     inputDetails: Optional[HistoryEventExecutionDataDetails]
     timeoutInSeconds: Optional[TimeoutInSeconds]
@@ -869,6 +979,7 @@ HistoryEvent = TypedDict(
         "mapRunStartedEventDetails": Optional[MapRunStartedEventDetails],
         "mapRunFailedEventDetails": Optional[MapRunFailedEventDetails],
         "mapRunRedrivenEventDetails": Optional[MapRunRedrivenEventDetails],
+        "evaluationFailedEventDetails": Optional[EvaluationFailedEventDetails],
     },
     total=False,
 )
@@ -898,6 +1009,7 @@ class InspectionDataRequest(TypedDict, total=False):
 
 class InspectionData(TypedDict, total=False):
     input: Optional[SensitiveData]
+    afterArguments: Optional[SensitiveData]
     afterInputPath: Optional[SensitiveData]
     afterParameters: Optional[SensitiveData]
     result: Optional[SensitiveData]
@@ -905,22 +1017,13 @@ class InspectionData(TypedDict, total=False):
     afterResultPath: Optional[SensitiveData]
     request: Optional[InspectionDataRequest]
     response: Optional[InspectionDataResponse]
-
-
-class ListActivitiesOutput(TypedDict, total=False):
-    activities: ActivityList
-    nextToken: Optional[PageToken]
-
-
-class ListExecutionsOutput(TypedDict, total=False):
-    executions: ExecutionList
-    nextToken: Optional[ListExecutionsPageToken]
+    variables: Optional[SensitiveData]
 
 
 class MapRunListItem(TypedDict, total=False):
-    executionArn: str
-    mapRunArn: str
-    stateMachineArn: str
+    executionArn: Arn
+    mapRunArn: LongArn
+    stateMachineArn: Arn
     startDate: Timestamp
     stopDate: Optional[Timestamp]
 
@@ -934,7 +1037,7 @@ class ListMapRunsOutput(TypedDict, total=False):
 
 
 class StateMachineAliasListItem(TypedDict, total=False):
-    stateMachineAliasArn: str
+    stateMachineAliasArn: LongArn
     creationDate: Timestamp
 
 
@@ -947,7 +1050,7 @@ class ListStateMachineAliasesOutput(TypedDict, total=False):
 
 
 class StateMachineVersionListItem(TypedDict, total=False):
-    stateMachineVersionArn: str
+    stateMachineVersionArn: LongArn
     creationDate: Timestamp
 
 
@@ -962,7 +1065,7 @@ class ListStateMachineVersionsOutput(TypedDict, total=False):
 StateMachineListItem = TypedDict(
     "StateMachineListItem",
     {
-        "stateMachineArn": str,
+        "stateMachineArn": Arn,
         "name": Name,
         "type": StateMachineType,
         "creationDate": Timestamp,
@@ -983,7 +1086,7 @@ class ListTagsForResourceOutput(TypedDict, total=False):
 
 class PublishStateMachineVersionOutput(TypedDict, total=False):
     creationDate: Timestamp
-    stateMachineVersionArn: str
+    stateMachineVersionArn: Arn
 
 
 class RedriveExecutionOutput(TypedDict, total=False):
@@ -1003,13 +1106,13 @@ class SendTaskSuccessOutput(TypedDict, total=False):
 
 
 class StartExecutionOutput(TypedDict, total=False):
-    executionArn: str
+    executionArn: Arn
     startDate: Timestamp
 
 
 class StartSyncExecutionOutput(TypedDict, total=False):
-    executionArn: str
-    stateMachineArn: Optional[str]
+    executionArn: Arn
+    stateMachineArn: Optional[Arn]
     name: Optional[Name]
     startDate: Timestamp
     stopDate: Timestamp
@@ -1059,4 +1162,32 @@ class UpdateStateMachineAliasOutput(TypedDict, total=False):
 class UpdateStateMachineOutput(TypedDict, total=False):
     updateDate: Timestamp
     revisionId: Optional[RevisionId]
-    stateMachineVersionArn: Optional[str]
+    stateMachineVersionArn: Optional[Arn]
+
+
+class ValidateStateMachineDefinitionDiagnostic(TypedDict, total=False):
+    severity: ValidateStateMachineDefinitionSeverity
+    code: ValidateStateMachineDefinitionCode
+    message: ValidateStateMachineDefinitionMessage
+    location: Optional[ValidateStateMachineDefinitionLocation]
+
+
+ValidateStateMachineDefinitionDiagnosticList = List[
+    ValidateStateMachineDefinitionDiagnostic
+]
+ValidateStateMachineDefinitionInput = TypedDict(
+    "ValidateStateMachineDefinitionInput",
+    {
+        "definition": Definition,
+        "type": Optional[StateMachineType],
+        "severity": Optional[ValidateStateMachineDefinitionSeverity],
+        "maxResults": Optional[ValidateStateMachineDefinitionMaxResult],
+    },
+    total=False,
+)
+
+
+class ValidateStateMachineDefinitionOutput(TypedDict, total=False):
+    result: ValidateStateMachineDefinitionResultCode
+    diagnostics: ValidateStateMachineDefinitionDiagnosticList
+    truncated: Optional[ValidateStateMachineDefinitionTruncated]

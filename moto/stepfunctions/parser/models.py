@@ -1,4 +1,5 @@
 import copy
+import datetime
 import json
 from typing import Any, Dict, List, Optional
 
@@ -178,14 +179,28 @@ class StepFunctionsParserBackend(StepFunctionBackend):
 
         exec_name = name  # TODO: validate name format
 
+        execution_arn = "arn:{}:states:{}:{}:execution:{}:{}"
+        execution_arn = execution_arn.format(
+            self.partition,
+            self.region_name,
+            self.account_id,
+            state_machine.name,
+            name,
+        )
+
         execution = Execution(
             name=exec_name,
+            sm_type=state_machine_clone.sm_type,
             role_arn=state_machine_clone.roleArn,
+            exec_arn=execution_arn,
             account_id=self.account_id,
             region_name=self.region_name,
             state_machine=state_machine_clone,
+            start_date=datetime.datetime.now(tz=datetime.timezone.utc),
+            cloud_watch_logging_session=None,
             input_data=input_data,
             trace_header=trace_header,
+            activity_store={},
         )
         state_machine.executions.append(execution)
 
@@ -247,7 +262,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             execution.exec_worker.env.map_run_record_pool_manager.get_all()
         )
         return dict(
-            mapRuns=[map_run_record.to_json() for map_run_record in map_run_records]
+            mapRuns=[map_run_record.list_item() for map_run_record in map_run_records]
         )
 
     def update_map_run(

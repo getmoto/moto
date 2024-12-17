@@ -14,7 +14,7 @@ from moto.stepfunctions.parser.asl.component.state.choice.comparison.operator.op
 class OperatorFactory:
     @staticmethod
     def get(typ: ComparisonOperatorType) -> Operator:
-        op = Operator.get((str(typ)))
+        op = Operator.get((str(typ)), raise_if_missing=False)
         if op is None:
             raise NotImplementedError(f"{typ} is not supported.")
         return op

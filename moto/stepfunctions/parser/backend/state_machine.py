@@ -6,11 +6,9 @@ import json
 from collections import OrderedDict
 from typing import Dict, Final, Optional
 
-from moto.moto_api._internal import mock_random
 from moto.stepfunctions.parser.api import (
     Definition,
     DescribeStateMachineOutput,
-    EncryptionConfiguration,
     LoggingConfiguration,
     Name,
     RevisionId,
@@ -23,7 +21,15 @@ from moto.stepfunctions.parser.api import (
     TagList,
     TracingConfiguration,
     ValidationException,
+    VariableReferences,
 )
+from moto.stepfunctions.parser.asl.eval.event.logging import (
+    CloudWatchLoggingConfiguration,
+)
+from moto.stepfunctions.parser.asl.static_analyser.variable_references_static_analyser import (
+    VariableReferencesStaticAnalyser,
+)
+from moto.stepfunctions.parser.utils import long_uid
 
 
 class StateMachineInstance:
@@ -34,10 +40,10 @@ class StateMachineInstance:
     role_arn: str
     create_date: datetime.datetime
     sm_type: StateMachineType
-    logging_config: Optional[LoggingConfiguration]
+    logging_config: LoggingConfiguration
+    cloud_watch_logging_configuration: Optional[CloudWatchLoggingConfiguration]
     tags: Optional[TagList]
     tracing_config: Optional[TracingConfiguration]
-    encryption_config: Optional[EncryptionConfiguration]
 
     def __init__(
         self,
@@ -45,12 +51,14 @@ class StateMachineInstance:
         arn: str,
         definition: Definition,
         role_arn: str,
+        logging_config: LoggingConfiguration,
+        cloud_watch_logging_configuration: Optional[
+            CloudWatchLoggingConfiguration
+        ] = None,
         create_date: Optional[datetime.datetime] = None,
         sm_type: Optional[StateMachineType] = None,
-        logging_config: Optional[LoggingConfiguration] = None,
         tags: Optional[TagList] = None,
         tracing_config: Optional[TracingConfiguration] = None,
-        encryption_config: Optional[EncryptionConfiguration] = None,
     ):
         self.name = name
         self.arn = arn
@@ -62,9 +70,9 @@ class StateMachineInstance:
         )
         self.sm_type = sm_type or StateMachineType.STANDARD
         self.logging_config = logging_config
+        self.cloud_watch_logging_configuration = cloud_watch_logging_configuration
         self.tags = tags
         self.tracing_config = tracing_config
-        self.encryption_config = encryption_config
 
     def describe(self) -> DescribeStateMachineOutput:
         describe_output = DescribeStateMachineOutput(
@@ -76,14 +84,46 @@ class StateMachineInstance:
             type=self.sm_type,
             creationDate=self.create_date,
             loggingConfiguration=self.logging_config,
-            encryptionConfiguration=self.encryption_config,
         )
+
         if self.revision_id:
             describe_output["revisionId"] = self.revision_id
+
+        variable_references: VariableReferences = (
+            VariableReferencesStaticAnalyser.process_and_get(definition=self.definition)
+        )
+        if variable_references:
+            describe_output["variableReferences"] = variable_references
+
         return describe_output
 
     @abc.abstractmethod
     def itemise(self): ...
+
+
+class TestStateMachine(StateMachineInstance):
+    def __init__(
+        self,
+        name: Name,
+        arn: str,
+        definition: Definition,
+        role_arn: str,
+        create_date: Optional[datetime.datetime] = None,
+    ):
+        super().__init__(
+            name,
+            arn,
+            definition,
+            role_arn,
+            create_date,
+            StateMachineType.STANDARD,
+            None,
+            None,
+            None,
+        )
+
+    def itemise(self):
+        raise NotImplementedError("TestStateMachine does not support itemise.")
 
 
 class TagManager:
@@ -133,9 +173,10 @@ class StateMachineRevision(StateMachineInstance):
         arn: str,
         definition: Definition,
         role_arn: str,
+        logging_config: LoggingConfiguration,
+        cloud_watch_logging_configuration: Optional[CloudWatchLoggingConfiguration],
         create_date: Optional[datetime.datetime] = None,
         sm_type: Optional[StateMachineType] = None,
-        logging_config: Optional[LoggingConfiguration] = None,
         tags: Optional[TagList] = None,
         tracing_config: Optional[TracingConfiguration] = None,
     ):
@@ -144,18 +185,24 @@ class StateMachineRevision(StateMachineInstance):
             arn,
             definition,
             role_arn,
+            logging_config,
+            cloud_watch_logging_configuration,
             create_date,
             sm_type,
-            logging_config,
             tags,
             tracing_config,
         )
         self.versions = dict()
         self._version_number = 0
         self.tag_manager = TagManager()
+        if tags:
+            self.tag_manager.add_all(tags)
 
     def create_revision(
-        self, definition: Optional[str], role_arn: Optional[str]
+        self,
+        definition: Optional[str],
+        role_arn: Optional[str],
+        logging_configuration: Optional[LoggingConfiguration],
     ) -> Optional[RevisionId]:
         update_definition = definition and json.loads(definition) != json.loads(
             self.definition
@@ -167,8 +214,20 @@ class StateMachineRevision(StateMachineInstance):
         if update_role_arn:
             self.role_arn = role_arn
 
-        if any([update_definition, update_role_arn]):
-            self.revision_id = str(mock_random.uuid4())
+        update_logging_configuration = (
+            logging_configuration and logging_configuration != self.logging_config
+        )
+        if update_logging_configuration:
+            self.logging_config = logging_configuration
+            self.cloud_watch_logging_configuration = (
+                CloudWatchLoggingConfiguration.from_logging_configuration(
+                    state_machine_arn=self.arn,
+                    logging_configuration=self.logging_config,
+                )
+            )
+
+        if any([update_definition, update_role_arn, update_logging_configuration]):
+            self.revision_id = long_uid()
 
         return self.revision_id
 
@@ -222,9 +281,9 @@ class StateMachineVersion(StateMachineInstance):
             create_date=datetime.datetime.now(tz=datetime.timezone.utc),
             sm_type=state_machine_revision.sm_type,
             logging_config=state_machine_revision.logging_config,
+            cloud_watch_logging_configuration=state_machine_revision.cloud_watch_logging_configuration,
             tags=state_machine_revision.tags,
             tracing_config=state_machine_revision.tracing_config,
-            encryption_config=state_machine_revision.encryption_config,
         )
         self.source_arn = state_machine_revision.arn
         self.revision_id = state_machine_revision.revision_id

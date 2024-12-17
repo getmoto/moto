@@ -3,6 +3,7 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.config import default_user_config
 from moto.core.responses import BaseResponse
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from .models import StepFunctionBackend, stepfunctions_backends
 from .parser.api import ExecutionStatus
@@ -151,7 +152,7 @@ class StepFunctionResponse(BaseResponse):
         )
         response = {
             "executionArn": execution.execution_arn,
-            "startDate": execution.start_date,
+            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
         }
         return 200, {}, json.dumps(response)
 
@@ -167,17 +168,24 @@ class StepFunctionResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        executions = [
-            {
+        executions = []
+        for execution in results:
+            result = {
                 "executionArn": execution.execution_arn,
                 "name": execution.name,
-                "startDate": execution.start_date,
-                "stopDate": execution.stop_date,
+                "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
                 "stateMachineArn": state_machine.arn,
                 "status": execution.status,
             }
-            for execution in results
-        ]
+            if execution.status in [
+                ExecutionStatus.SUCCEEDED,
+                ExecutionStatus.FAILED,
+                ExecutionStatus.ABORTED,
+            ]:
+                result["stopDate"] = iso_8601_datetime_with_milliseconds(
+                    execution.stop_date
+                )
+            executions.append(result)
         response = {"executions": executions}
         if next_token:
             response["nextToken"] = next_token
@@ -190,13 +198,26 @@ class StepFunctionResponse(BaseResponse):
             "executionArn": arn,
             "input": json.dumps(execution.execution_input),
             "name": execution.name,
-            "startDate": execution.start_date,
+            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
             "stateMachineArn": execution.state_machine_arn,
             "status": execution.status,
-            "stopDate": execution.stop_date,
         }
-        if execution.status == ExecutionStatus.SUCCEEDED:
-            response["output"] = execution.output
+        if execution.status in [
+            ExecutionStatus.SUCCEEDED,
+            ExecutionStatus.ABORTED,
+            ExecutionStatus.FAILED,
+        ]:
+            response["stopDate"] = iso_8601_datetime_with_milliseconds(
+                execution.stop_date
+            )
+        if execution.status in [
+            ExecutionStatus.SUCCEEDED,
+            ExecutionStatus.SUCCEEDED.value,
+        ]:
+            if isinstance(execution.output, str):
+                response["output"] = execution.output
+            elif execution.output is not None:
+                response["output"] = json.dumps(execution.output)
             response["outputDetails"] = execution.output_details
         if execution.error is not None:
             response["error"] = execution.error
@@ -212,7 +233,9 @@ class StepFunctionResponse(BaseResponse):
     def stop_execution(self) -> TYPE_RESPONSE:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.stop_execution(arn)
-        response = {"stopDate": execution.stop_date}
+        response = {
+            "stopDate": iso_8601_datetime_with_milliseconds(execution.stop_date)
+        }
         return 200, {}, json.dumps(response)
 
     def get_execution_history(self) -> TYPE_RESPONSE:
@@ -220,8 +243,7 @@ class StepFunctionResponse(BaseResponse):
         execution_history = self.stepfunction_backend.get_execution_history(
             execution_arn
         )
-        response = {"events": execution_history}
-        return 200, {}, json.dumps(response)
+        return 200, {}, json.dumps(execution_history)
 
     def send_task_failure(self) -> TYPE_RESPONSE:
         task_token = self._get_param("taskToken")

@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Set
 
 from botocore.exceptions import ClientError
 
@@ -13,6 +14,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
     StatesErrorNameType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
+    ResourceCondition,
     ResourceRuntimePart,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state_task_service_callback import (
@@ -25,10 +27,17 @@ from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 
 LOG = logging.getLogger(__name__)
 
+_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+    ResourceCondition.WaitForTaskToken,
+}
+
+# Defines bindings of lower-cased service names to the StepFunctions service name included in error messages.
+_SERVICE_ERROR_NAMES = {"dynamodb": "DynamoDb", "sfn": "Sfn"}
+
 
 class StateTaskServiceAwsSdk(StateTaskServiceCallback):
-    # Defines bindings of lower-cased service names to the StepFunctions service name included in error messages.
-    _SERVICE_ERROR_NAMES = {"dynamodb": "DynamoDb", "sfn": "Sfn"}
+    def __init__(self):
+        super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
     def from_state_props(self, state_props: StateProps) -> None:
         super().from_state_props(state_props=state_props)
@@ -101,6 +110,7 @@ class StateTaskServiceAwsSdk(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        task_credentials: Any,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()

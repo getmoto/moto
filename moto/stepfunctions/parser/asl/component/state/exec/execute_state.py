@@ -41,6 +41,7 @@ from moto.stepfunctions.parser.asl.component.state.state import CommonStateField
 from moto.stepfunctions.parser.asl.component.state.state_props import StateProps
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
+from moto.stepfunctions.parser.utils import TMP_THREADS
 
 LOG = logging.getLogger(__name__)
 
@@ -136,6 +137,7 @@ class ExecutionState(CommonStateField, abc.ABC):
             "State Task encountered an unhandled exception that lead to a State.Runtime error."
         )
         return FailureEvent(
+            env=env,
             error_name=StatesErrorName(typ=StatesErrorNameType.StatesRuntime),
             event_type=HistoryEventType.TaskFailed,
             event_details=EventDetails(
@@ -156,21 +158,17 @@ class ExecutionState(CommonStateField, abc.ABC):
         self.retry.eval(env)
         res: RetryOutcome = env.stack.pop()
         if res == RetryOutcome.CanRetry:
-            retry_count = env.context_object_manager.context_object["State"][
+            retry_count = env.states.context_object.context_object_data["State"][
                 "RetryCount"
             ]
-            env.context_object_manager.context_object["State"]["RetryCount"] = (
+            env.states.context_object.context_object_data["State"]["RetryCount"] = (
                 retry_count + 1
             )
         return res
 
-    def _handle_catch(
-        self, env: Environment, failure_event: FailureEvent
-    ) -> CatchOutcome:
+    def _handle_catch(self, env: Environment, failure_event: FailureEvent) -> None:
         env.stack.append(failure_event)
         self.catch.eval(env)
-        res: CatchOutcome = env.stack.pop()
-        return res
 
     def _handle_uncaught(self, env: Environment, failure_event: FailureEvent) -> None:
         self._terminate_with_event(env=env, failure_event=failure_event)
@@ -184,7 +182,7 @@ class ExecutionState(CommonStateField, abc.ABC):
         timeout_seconds: int = env.stack.pop()
 
         frame: Environment = env.open_frame()
-        frame.inp = copy.deepcopy(env.inp)
+        frame.states.reset(input_value=env.states.get_input())
         frame.stack = copy.deepcopy(env.stack)
         execution_outputs: List[Any] = list()
         execution_exceptions: List[Optional[Exception]] = [None]
@@ -198,8 +196,10 @@ class ExecutionState(CommonStateField, abc.ABC):
                 execution_exceptions.append(ex)
             terminated_event.set()
 
-        thread = Thread(target=_exec_and_notify)
+        thread = Thread(target=_exec_and_notify, daemon=True)
+        TMP_THREADS.append(thread)
         thread.start()
+
         finished_on_time: bool = terminated_event.wait(timeout_seconds)
         frame.set_ended()
         env.close_frame(frame)
@@ -214,6 +214,12 @@ class ExecutionState(CommonStateField, abc.ABC):
         execution_output = execution_outputs.pop()
         env.stack.append(execution_output)
 
+        if not self._is_language_query_jsonpath():
+            env.states.set_result(execution_output)
+
+        if self.assign_decl:
+            self.assign_decl.eval(env=env)
+
         if self.result_selector:
             self.result_selector.eval(env=env)
 
@@ -221,24 +227,47 @@ class ExecutionState(CommonStateField, abc.ABC):
             self.result_path.eval(env)
         else:
             res = env.stack.pop()
-            env.inp = res
+            env.states.reset(input_value=res)
+
+    @staticmethod
+    def _construct_error_output_value(failure_event: FailureEvent) -> Any:
+        specs_event_details = list(failure_event.event_details.values())
+        if (
+            len(specs_event_details) != 1
+            and "error" in specs_event_details
+            and "cause" in specs_event_details
+        ):
+            raise RuntimeError(
+                f"Internal Error: invalid event details declaration in FailureEvent: '{failure_event}'."
+            )
+        spec_event_details: dict = list(failure_event.event_details.values())[0]
+        return {
+            # If no cause or error fields are given, AWS binds an empty string; otherwise it attaches the value.
+            "Error": spec_event_details.get("error", ""),
+            "Cause": spec_event_details.get("cause", ""),
+        }
 
     def _eval_state(self, env: Environment) -> None:
         # Initialise the retry counter for execution states.
-        env.context_object_manager.context_object["State"]["RetryCount"] = 0
+        env.states.context_object.context_object_data["State"]["RetryCount"] = 0
 
         # Attempt to evaluate the state's logic through until it's successful, caught, or retries have run out.
-        while True:
+        while env.is_running():
             try:
                 self._evaluate_with_timeout(env)
                 break
             except Exception as ex:
                 failure_event: FailureEvent = self._from_error(env=env, ex=ex)
-                env.event_history.add_event(
+                env.event_manager.add_event(
                     context=env.event_history_context,
-                    hist_type_event=failure_event.event_type,
-                    event_detail=failure_event.event_details,
+                    event_type=failure_event.event_type,
+                    event_details=failure_event.event_details,
                 )
+                error_output = self._construct_error_output_value(
+                    failure_event=failure_event
+                )
+                env.states.set_error_output(error_output)
+                env.states.set_result(error_output)
 
                 if self.retry:
                     retry_outcome: RetryOutcome = self._handle_retry(
@@ -248,9 +277,8 @@ class ExecutionState(CommonStateField, abc.ABC):
                         continue
 
                 if self.catch:
-                    catch_outcome: CatchOutcome = self._handle_catch(
-                        env=env, failure_event=failure_event
-                    )
+                    self._handle_catch(env=env, failure_event=failure_event)
+                    catch_outcome: CatchOutcome = env.stack[-1]
                     if catch_outcome == CatchOutcome.Caught:
                         break
 

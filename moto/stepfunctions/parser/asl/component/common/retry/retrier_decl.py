@@ -60,9 +60,6 @@ class RetrierDecl(EvalComponent):
         self.jitter_strategy = jitter_strategy or JitterStrategyDecl()
         self.comment = comment
 
-        self._attempts_counter: int = 0
-        self._next_interval_seconds: float = self.interval_seconds.seconds
-
     @classmethod
     def from_retrier_props(cls, props: RetrierProps) -> RetrierDecl:
         return cls(
@@ -75,6 +72,8 @@ class RetrierDecl(EvalComponent):
             interval_seconds=props.get(IntervalSecondsDecl),
             max_attempts=props.get(MaxAttemptsDecl),
             backoff_rate=props.get(BackoffRateDecl),
+            max_delay_seconds=props.get(MaxDelaySecondsDecl),
+            jitter_strategy=props.get(JitterStrategyDecl),
             comment=props.get(Comment),
         )
 

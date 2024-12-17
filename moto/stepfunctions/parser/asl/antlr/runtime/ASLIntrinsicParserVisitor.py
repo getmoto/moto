@@ -1,4 +1,4 @@
-# Generated from ASLIntrinsicParser.g4 by ANTLR 4.13.1
+# Generated from ASLIntrinsicParser.g4 by ANTLR 4.13.2
 from antlr4 import ParseTreeVisitor
 
 if "." in __name__:
@@ -52,6 +52,10 @@ class ASLIntrinsicParserVisitor(ParseTreeVisitor):
     def visitFunc_arg_json_path(
         self, ctx: ASLIntrinsicParser.Func_arg_json_pathContext
     ):
+        return self.visitChildren(ctx)
+
+    # Visit a parse tree produced by ASLIntrinsicParser#func_arg_var.
+    def visitFunc_arg_var(self, ctx: ASLIntrinsicParser.Func_arg_varContext):
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by ASLIntrinsicParser#func_arg_func_decl.

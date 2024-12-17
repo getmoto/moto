@@ -4,7 +4,7 @@ from moto.stepfunctions.parser.asl.component.common.payload.payloadvalue.payload
     PayloadBinding,
 )
 from moto.stepfunctions.parser.asl.eval.environment import Environment
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
+from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 
 
 class PayloadBindingPathContextObj(PayloadBinding):
@@ -19,12 +19,7 @@ class PayloadBindingPathContextObj(PayloadBinding):
         return cls(field=field, path_context_obj=path_context_obj)
 
     def _eval_val(self, env: Environment) -> Any:
-        if self.path_context_obj.endswith("Task.Token"):
-            task_token = env.context_object_manager.update_task_token()
-            env.callback_pool_manager.add(task_token)
-            value = task_token
-        else:
-            value = JSONPathUtils.extract_json(
-                self.path_context_obj, env.context_object_manager.context_object
-            )
+        value = extract_json(
+            self.path_context_obj, env.states.context_object.context_object_data
+        )
         return value
