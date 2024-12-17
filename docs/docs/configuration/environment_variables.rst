@@ -38,4 +38,6 @@ The following is a non-exhaustive list of the environment variables that can be 
 +-------------------------------+----------+-----------+-------------------------------------------------------------------------------------------------+
 | MOTO_PRETTIFY_RESPONSES       | bool     | False     | Prettify responses from Moto, making it easier to read and debug.                               |
 +-------------------------------+----------+-----------+-------------------------------------------------------------------------------------------------+
+| MOTO_DISABLE_GLOBAL_CORS      | bool     | False     | Disable configuring global wildcard CORS.                                                       |
++-------------------------------+----------+-----------+-------------------------------------------------------------------------------------------------+
 
