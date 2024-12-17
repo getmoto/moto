@@ -13,6 +13,8 @@
       "requireLocalPort": false
     }
   },
+  "postCreateCommand": "python -m venv .venv",
+  "postStartCommand": ". .venv/bin/activate && make init",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -37,7 +39,21 @@
               "args": [
                 "-c",
                 "until gh codespace ports visibility 5000:public --codespace ${CODESPACE_NAME} 2>/dev/null; do sleep 1; done"
-              ]
+              ],
+              "presentation": {
+                "reveal": "silent",
+                "focus": false
+              }
+            },
+            {
+              "label": "Kill MotoServer",
+              "type": "shell",
+              "command": "pkill -f '${workspaceFolder}/moto/server.py'",
+              "problemMatcher": [],
+              "presentation": {
+                "reveal": "silent",
+                "focus": false
+              }
             }
           ]
         },
@@ -45,49 +61,60 @@
           "version": "0.2.0",
           "configurations": [
             {
-              "name": "Debug Moto Server",
+              "name": "Run MotoServer",
               "type": "debugpy",
               "request": "launch",
               "program": "${workspaceFolder}/moto/server.py",
               "args": [
                 "--reload"
               ],
-              "console": "integratedTerminal",
+              "console": "internalConsole",
               "presentation": {
-                "hidden": true
+                "order": 11
               }
             },
             {
-              "name": "Debug Moto Server Tests",
+              "name": "Run MotoServer Tests",
               "type": "debugpy",
               "request": "launch",
               "module": "pytest",
               "console": "integratedTerminal",
               "preLaunchTask": "Open Port 5000",
+              "postDebugTask": "Kill MotoServer",
               "env": {
                 "TEST_SERVER_MODE": "true",
                 "TEST_SERVER_MODE_ENDPOINT": "https://${env:CODESPACE_NAME}-5000.${env:GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
               },
               "presentation": {
-                "hidden": true
+                "order": 12
               },
               "args": [
                 "-sv",
                 "--cov=moto",
                 "--cov-report=xml",
-                "${workspaceFolder}/tests/"
+                "${workspaceFolder}/tests/",
+                "-k",
+                "${input:pytestFilter}"
               ]
+            }
+          ],
+          "inputs": [
+            {
+              "id": "pytestFilter",
+              "type": "promptString",
+              "description": "pytest -k filter (leave empty to run all tests)",
+              "default": ""
             }
           ],
           "compounds": [
             {
-              "name": "Run Server Tests",
+              "name": "MotoServer Tests",
               "configurations": [
-                "Debug Moto Server",
-                "Debug Moto Server Tests"
+                "Run MotoServer Tests",
+                "Run MotoServer"
               ],
               "presentation": {
-                "group": "Moto Server"
+                "order": 1
               },
               "stopAll": true
             }
@@ -95,7 +122,5 @@
         }
       }
     }
-  },
-  "postCreateCommand": "python -m venv .venv",
-  "postStartCommand": ". .venv/bin/activate && make init"
+  }
 }
