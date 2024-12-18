@@ -1142,3 +1142,55 @@ def test_generate_presigned_url_for_multipart_upload():
 
     resp = requests.put(url, data=data)
     assert resp.status_code == 200
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified()
+def test_multipart_upload_overwrites(bucket_name=None):
+    s3_client = boto3.client("s3", "us-east-1")
+    key = "mykey.txt"
+
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)[
+        "UploadId"
+    ]
+
+    part_data = b"First part data"
+    response = s3_client.upload_part(
+        Bucket=bucket_name,
+        Key=key,
+        PartNumber=1,
+        UploadId=upload_id,
+        Body=part_data,
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": [{"PartNumber": 1, "ETag": response["ETag"]}]},
+    )
+
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)[
+        "UploadId"
+    ]
+
+    new_data = b"New data that should overwrite"
+    response = s3_client.upload_part(
+        Bucket=bucket_name,
+        Key=key,
+        PartNumber=1,
+        UploadId=upload_id,
+        Body=new_data,
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": [{"PartNumber": 1, "ETag": response["ETag"]}]},
+    )
+
+    result = s3_client.get_object(Bucket=bucket_name, Key=key)
+    content = result["Body"].read()
+
+    assert content == new_data

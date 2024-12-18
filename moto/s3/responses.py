@@ -2533,9 +2533,12 @@ class S3Response(BaseResponse):
 
             multipart_id = query["uploadId"][0]
 
-            if existing is not None and existing.multipart:
-                # Based on testing against AWS, operation seems idempotent
-                # Scenario where both method-calls have a different body hasn't been tested yet
+            if (
+                existing is not None
+                and existing.multipart
+                and existing.multipart.id == multipart_id
+            ):
+                # Operation is idempotent
                 key: Optional[FakeKey] = existing
             else:
                 key = self.backend.complete_multipart_upload(
