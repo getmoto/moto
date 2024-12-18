@@ -204,6 +204,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     def delete(self) -> None:
         self.ec2_backend.delete_network_interface(eni_id=self.id)
+        for priv_ip in self.private_ip_addresses:
+            self.subnet.del_subnet_ip(priv_ip["PrivateIpAddress"])
 
     def stop(self) -> None:
         if self.public_ip_auto_assign:
