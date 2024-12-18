@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.24
 -----
-Docker Digest for 5.0.24: <autopopulateddigest>
+Docker Digest for 5.0.24: _sha256:68042b17e9a55c7a32347f802b7a02f2793201b4f1c788ca0e85084f5218c233_
 
     Miscellaneous:
         * EC2: Terminating instances will now release private ip addresses from the NIC's attached to the interface
