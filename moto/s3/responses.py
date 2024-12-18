@@ -2997,7 +2997,7 @@ S3_BUCKET_CORS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     {% endif %}
     {% if cors.exposed_headers is not none %}
       {% for header in cors.exposed_headers %}
-      <ExposedHeader>{{ header }}</ExposedHeader>
+      <ExposeHeader>{{ header }}</ExposeHeader>
       {% endfor %}
     {% endif %}
     {% if cors.max_age_seconds is not none %}
