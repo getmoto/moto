@@ -1,6 +1,16 @@
 Moto Changelog
 ==============
 
+5.0.24
+-----
+Docker Digest for 5.0.24: <autopopulateddigest>
+
+    Miscellaneous:
+        * EC2: Terminating instances will now release private ip addresses from the NIC's attached to the interface
+        * S3: Fixes a bug in complete_multipart_upload() where it was no longer possible to overwrite an earlier multipart upload (Broken in 5.0.23)
+        * S3: get_object_cors() now correctly returns the ExposeHeader-value
+
+
 5.0.23
 -----
 Docker Digest for 5.0.23: _sha256:d41e007bb1f7d41b530959ae9cbed1edf42737ee839faf8da7e925bf19f63105_
