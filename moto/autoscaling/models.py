@@ -1315,7 +1315,10 @@ class AutoScalingBackend(BaseBackend):
     def set_desired_capacity(
         self, group_name: str, desired_capacity: Optional[int]
     ) -> None:
-        group = self.autoscaling_groups[group_name]
+        try:
+            group = self.autoscaling_groups[group_name]
+        except KeyError:
+            raise ValidationError("AutoScalingGroup name not found - null")
         group.set_desired_capacity(desired_capacity)
         self.update_attached_elbs(group_name)
 

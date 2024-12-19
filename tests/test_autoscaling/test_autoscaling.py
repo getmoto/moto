@@ -1367,3 +1367,20 @@ def test_sets_created_time():
     assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
         "%Y %m %d"
     )
+
+
+@mock_aws
+def test_deleting_nonexisting_autoscaling_group():
+    # Should return a precise error, not a KeyError
+    # (which would, in server mode, create a generic HTTP 500 and
+    # the subsequent parsing error)
+    client = boto3.client("autoscaling", region_name="us-west-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_auto_scaling_group(
+            AutoScalingGroupName="ThisGroupDoesNotExist", ForceDelete=True
+        )
+    err = ex.value.response["Error"]
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err["Code"] == "ValidationError"
+    assert "AutoScalingGroup name not found" in err["Message"]
