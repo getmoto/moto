@@ -2037,7 +2037,7 @@ class ConfigBackend(BaseBackend):
                 if rule_arn and config_rule_obj.config_rule_arn == rule_arn:
                     rule_name = config_rule_obj.config_rule_name
                     break
-            else:
+            if not rule_name:
                 raise InvalidParameterValueException(
                     "One or more identifiers needs to be provided. Provide "
                     "Name or Id or Arn"
