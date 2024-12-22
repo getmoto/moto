@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
     from moto.ds.models import DirectoryServiceBackend
+    from moto.dsql.models import AuroraDSQLBackend
     from moto.dynamodb.models import DynamoDBBackend
     from moto.dynamodb_v20111205.models import (
         DynamoDBBackend as DynamoDBBackend_v20111205,
@@ -225,6 +226,7 @@ SERVICE_NAMES = Union[
     "Literal['directconnect']",
     "Literal['dms']",
     "Literal['ds']",
+    "Literal['dsql']",
     "Literal['dynamodb']",
     "Literal['dynamodb_v20111205']",
     "Literal['dynamodbstreams']",
@@ -439,6 +441,8 @@ def get_backend(
 ) -> "BackendDict[DirectConnectBackend]": ...
 @overload
 def get_backend(name: "Literal['ds']") -> "BackendDict[DirectoryServiceBackend]": ...
+@overload
+def get_backend(name: "Literal['dsql']") -> "BackendDict[AuroraDSQLBackend]": ...
 @overload
 def get_backend(name: "Literal['dynamodb']") -> "BackendDict[DynamoDBBackend]": ...
 @overload
