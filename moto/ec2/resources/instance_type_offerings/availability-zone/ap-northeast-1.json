@@ -1908,6 +1908,10 @@
   "Location": "ap-northeast-1a"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ap-northeast-1a"
+ },
+ {
   "InstanceType": "p5en.48xlarge",
   "Location": "ap-northeast-1a"
  },

@@ -4796,6 +4796,10 @@
   "Location": "sa-east-1c"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sa-east-1c"
  },

@@ -1168,6 +1168,10 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eun1-az1"
  },
@@ -2953,6 +2957,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "eun1-az2"
  },
  {

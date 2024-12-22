@@ -1412,6 +1412,10 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "r4.16xlarge",
   "Location": "ca-central-1"
  },

@@ -364,6 +364,10 @@
   "Location": "afs1-az1"
  },
  {
+  "InstanceType": "inf1.xlarge",
+  "Location": "afs1-az1"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "afs1-az1"
  },
@@ -1341,6 +1345,10 @@
  },
  {
   "InstanceType": "inf1.24xlarge",
+  "Location": "afs1-az2"
+ },
+ {
+  "InstanceType": "inf1.xlarge",
   "Location": "afs1-az2"
  },
  {
