@@ -1688,6 +1688,10 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-southeast-2"
  },
