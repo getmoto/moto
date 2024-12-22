@@ -23,7 +23,7 @@ jobs:
           echo "folders=$folders" >> $GITHUB_OUTPUT
 
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     needs: find-jobs
     strategy:
       fail-fast: false
