@@ -10,6 +10,8 @@ from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import get_partition
 
+from .exceptions import ValidationException
+
 
 class Cluster(BaseModel, ManagedState):
     """Model for an AuroraDSQL cluster."""
@@ -68,6 +70,17 @@ class AuroraDSQLBackend(BaseBackend):
             tags,
             client_token,
         )
+        self.clusters[cluster.identifier] = cluster
+        return cluster
+
+    def get_cluster(
+        self,
+        identifier: str,
+    ) -> Cluster:
+        cluster = self.clusters.get(identifier)
+        if cluster is None:
+            raise ValidationException("invalid Cluster Id")
+
         return cluster
 
 

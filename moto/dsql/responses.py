@@ -30,3 +30,9 @@ class AuroraDSQLResponse(BaseResponse):
         )
 
         return json.dumps(dict(cluster.to_dict()))
+
+    def get_cluster(self) -> str:
+        identifier = self.path.split("/")[-1]
+        cluster = self.dsql_backend.get_cluster(identifier=identifier)
+
+        return json.dumps(dict(cluster.to_dict()))
