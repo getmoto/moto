@@ -1,5 +1,6 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 
+import copy
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -141,7 +142,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.ldaps_settings_info: List[LdapsSettingInfo] = []
         self.trusts: List[Trust] = []
         self.settings = (
-            SETTINGS_ENTRIES_MODEL.copy()
+            copy.deepcopy(SETTINGS_ENTRIES_MODEL)
             if self.directory_type == "MicrosoftAD"
             else []
         )
