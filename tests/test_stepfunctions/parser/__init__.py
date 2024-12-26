@@ -70,7 +70,7 @@ def verify_execution_result(
     execution_arn, state_machine_arn = _start_execution(
         client, load_template(tmpl_name), exec_input, sfn_role
     )
-    for _ in range(20):
+    for _ in range(30):
         execution = client.describe_execution(executionArn=execution_arn)
         if expected_status is None or execution["status"] == expected_status:
             result = _verify_result(client, execution, execution_arn)
@@ -81,7 +81,7 @@ def verify_execution_result(
                 )
                 iam.delete_role(RoleName=role_name)
                 break
-        sleep(1 if allow_aws_request() else 0.1)
+        sleep(10 if allow_aws_request() else 0.1)
     else:
         client.delete_state_machine(stateMachineArn=state_machine_arn)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
