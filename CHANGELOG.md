@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.25
 -----
-Docker Digest for 5.0.25: <autopopulateddigest>
+Docker Digest for 5.0.25: _sha256:1ac2d89ce8c79a6cdfebffb37678a5bd8bb54a39dcbced069f6ac5e29e4cc752_
 
     New Services:
         * DSQL:
