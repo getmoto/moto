@@ -40,6 +40,7 @@ jobs:
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
+        role-duration-seconds: 7200
     - name: Test with pytest
       env:
         MOTO_TEST_ALLOW_AWS_REQUEST: ${{ true }}
