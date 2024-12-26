@@ -1,4 +1,3 @@
-import copy
 import datetime
 import threading
 from typing import Final, List, Optional
@@ -19,6 +18,7 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_parallel.branch_wo
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.eval.program_state import ProgramError, ProgramState
+from moto.utilities.collections import select_from_typed_dict
 
 
 class BranchWorkerPool(BranchWorker.BranchWorkerComm):
@@ -41,7 +41,10 @@ class BranchWorkerPool(BranchWorker.BranchWorkerComm):
         with self._mutex:
             end_program_state: ProgramState = env.program_state()
             if isinstance(end_program_state, ProgramError):
-                self._terminated_with_error = end_program_state.error or dict()
+                self._terminated_with_error = select_from_typed_dict(
+                    typed_dict=ExecutionFailedEventDetails,
+                    obj=end_program_state.error or dict(),
+                )
                 self._termination_event.set()
             else:
                 self._active_workers_num -= 1
@@ -68,8 +71,8 @@ class BranchesDecl(EvalComponent):
         branch_workers: List[BranchWorker] = list()
         for program in self.programs:
             # Environment frame for this sub process.
-            env_frame: Environment = env.open_frame()
-            env_frame.inp = copy.deepcopy(input_val)
+            env_frame: Environment = env.open_inner_frame()
+            env_frame.states.reset(input_value=input_val)
 
             # Launch the worker.
             worker = BranchWorker(
@@ -95,6 +98,7 @@ class BranchesDecl(EvalComponent):
             exit_error_name = exit_event_details.get("error")
             raise FailureEventException(
                 failure_event=FailureEvent(
+                    env=env,
                     error_name=CustomErrorName(error_name=exit_error_name),
                     event_type=HistoryEventType.ExecutionFailed,
                     event_details=EventDetails(
@@ -108,7 +112,7 @@ class BranchesDecl(EvalComponent):
 
         for worker in branch_workers:
             env_frame = worker.env
-            result_list.append(env_frame.inp)
+            result_list.append(env_frame.states.get_input())
             env.close_frame(env_frame)
 
         env.stack.append(result_list)
