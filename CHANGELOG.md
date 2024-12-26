@@ -1,6 +1,20 @@
 Moto Changelog
 ==============
 
+5.0.25
+-----
+Docker Digest for 5.0.25: <autopopulateddigest>
+
+    New Services:
+        * DSQL:
+            * create_cluster()
+            * get_cluster()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now better calculates the delta between the desired and reported values
+        * S3: select_object_content() now returns the proper Stats (BytesScanned, BytesReturned)
+        * StepFunctions: Various upgrades for the emulated parser
+
 5.0.24
 -----
 Docker Digest for 5.0.24: _sha256:68042b17e9a55c7a32347f802b7a02f2793201b4f1c788ca0e85084f5218c233_
