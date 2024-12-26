@@ -24,6 +24,9 @@ EXTENSIVE_JSON = [
         "country": "USA",
     }
 ]
+LONG_JSON = "".join(
+    [json.dumps(x) for x in [{"a": {f"b{i}": "s"}, "c": f"d{i}"} for i in range(5)]]
+)
 SIMPLE_LIST = [SIMPLE_JSON, SIMPLE_JSON2]
 SIMPLE_CSV = """a,b,c
 e,r,f
@@ -65,6 +68,9 @@ def create_test_files(bucket_name):
     )
     client.put_object(
         Bucket=bucket_name, Key="csv.bz2", Body=bz2.compress(SIMPLE_CSV.encode("utf-8"))
+    )
+    client.put_object(
+        Bucket=bucket_name, Key="long.json", Body=LONG_JSON.encode("utf-8")
     )
 
 
@@ -110,6 +116,11 @@ def test_count_function(bucket_name=None):
     )
     result = list(content["Payload"])
     assert {"Records": {"Payload": b'{"_1":1},'}} in result
+    assert {
+        "Stats": {
+            "Details": {"BytesScanned": 36, "BytesProcessed": 36, "BytesReturned": 9}
+        }
+    } in result
 
 
 @pytest.mark.aws_verified
@@ -247,6 +258,60 @@ def test_nested_json__select_all(bucket_name=None):
     assert records[-1] == ","
 
     assert json.loads(records[:-1]) == NESTED_JSON
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_long_json__select_subdocument(bucket_name=None):
+    client = boto3.client("s3", "us-east-1")
+    create_test_files(bucket_name)
+    content = client.select_object_content(
+        Bucket=bucket_name,
+        Key="long.json",
+        Expression="select * from s3object[*].a",
+        ExpressionType="SQL",
+        InputSerialization={"JSON": {"Type": "DOCUMENT"}},
+        OutputSerialization={"JSON": {"RecordDelimiter": ","}},
+    )
+    result = list(content["Payload"])
+    record = result[0]["Records"]
+    payload = record["Payload"].decode("utf-8")
+    assert '{"b0":"s"}' in payload
+    assert '{"b1":"s"}' in payload
+    assert '{"b2":"s"}' in payload
+    assert '{"b3":"s"}' in payload
+    assert '{"b0":"s"}' in payload
+
+    assert result[1]["Stats"]["Details"] == {
+        "BytesScanned": 145,
+        "BytesProcessed": 145,
+        "BytesReturned": 55,
+    }
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_long_json__where_filter(bucket_name=None):
+    client = boto3.client("s3", "us-east-1")
+    create_test_files(bucket_name)
+    content = client.select_object_content(
+        Bucket=bucket_name,
+        Key="long.json",
+        Expression="select * from s3object[*] s where s.c = 'd2'",
+        ExpressionType="SQL",
+        InputSerialization={"JSON": {"Type": "DOCUMENT"}},
+        OutputSerialization={"JSON": {"RecordDelimiter": ","}},
+    )
+    result = list(content["Payload"])
+    record = result[0]["Records"]
+    payload = record["Payload"].decode("utf-8")
+    assert '{"a":{"b2":"s"},"c":"d2"}' in payload
+
+    assert result[1]["Stats"]["Details"] == {
+        "BytesScanned": 145,
+        "BytesProcessed": 145,
+        "BytesReturned": 26,
+    }
 
 
 @pytest.mark.aws_verified
