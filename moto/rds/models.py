@@ -2065,14 +2065,14 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=source_db_identifier
         )[0]
 
-        # remove the db subnet group as it cannot be copied
-        # and is not used in the restored instance
-        source_dict = db_instance.__dict__
-        if "db_subnet_group" in source_dict:
-            del source_dict["db_subnet_group"]
+        new_instance_props = {}
+        for key, value in db_instance.__dict__.items():
+            # Remove backend / db subnet group as they cannot be copied
+            # and are not used in the restored instance.
+            if key in ("backend", "db_subnet_group"):
+                continue
+            new_instance_props[key] = copy.deepcopy(value)
 
-        new_instance_props = copy.deepcopy(source_dict)
-        new_instance_props.pop("backend")
         if not db_instance.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value

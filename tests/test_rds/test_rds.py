@@ -1424,9 +1424,18 @@ def test_restore_db_instance_from_db_snapshot(
     )
 
 
+@pytest.mark.parametrize(
+    "custom_db_subnet_group", [True, False], ids=("custom_subnet", "default_subnet")
+)
 @mock_aws
-def test_restore_db_instance_to_point_in_time():
+def test_restore_db_instance_to_point_in_time(custom_db_subnet_group: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
+
+    if custom_db_subnet_group:
+        extra_kwargs = {"DBSubnetGroupName": create_db_subnet_group()}
+    else:
+        extra_kwargs = {}
+
     conn.create_db_instance(
         DBInstanceIdentifier="db-primary-1",
         AllocatedStorage=10,
@@ -1436,6 +1445,7 @@ def test_restore_db_instance_to_point_in_time():
         MasterUsername="root",
         MasterUserPassword="hunter2",
         DBSecurityGroups=["my_sg"],
+        **extra_kwargs,
     )
     assert len(conn.describe_db_instances()["DBInstances"]) == 1
 
