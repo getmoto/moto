@@ -551,9 +551,18 @@ def test_describe_non_existent_database():
         conn.describe_db_instances(DBInstanceIdentifier="not-a-db")
 
 
+@pytest.mark.parametrize(
+    "custom_db_subnet_group", [True, False], ids=("custom_subnet", "default_subnet")
+)
 @mock_aws
-def test_modify_db_instance():
+def test_modify_db_instance(custom_db_subnet_group: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
+
+    if custom_db_subnet_group:
+        extra_kwargs = {"DBSubnetGroupName": create_db_subnet_group()}
+    else:
+        extra_kwargs = {}
+
     conn.create_db_instance(
         DBInstanceIdentifier="db-id",
         AllocatedStorage=10,
@@ -563,6 +572,7 @@ def test_modify_db_instance():
         MasterUserPassword="hunter2",
         Port=1234,
         DBSecurityGroups=["my_sg"],
+        **extra_kwargs,
     )
     inst = conn.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
     assert inst["AllocatedStorage"] == 10

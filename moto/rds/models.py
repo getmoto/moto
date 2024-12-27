@@ -2005,7 +2005,7 @@ class RDSBackend(BaseBackend):
                 "You must specify apply immediately when rotating the master user password.",
             )
         database.update(db_kwargs)
-        initial_state = copy.deepcopy(database)
+        initial_state = copy.copy(database)
         database.master_user_secret_status = (
             "active"  # already set the final state in the background
         )
