@@ -538,10 +538,7 @@ class OrganizationsBackend(BaseBackend):
         ]
 
     def create_account(self, **kwargs: Any) -> Dict[str, Any]:
-        if self.org is None or (
-            self.account_id != self.org.master_account_id
-            and self.account_id not in organizations_backends.master_accounts
-        ):
+        if self.org is None:
             raise AWSOrganizationsNotInUseException
 
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
@@ -554,10 +551,7 @@ class OrganizationsBackend(BaseBackend):
         return new_account.create_account_status
 
     def close_account(self, **kwargs: Any) -> None:
-        if self.org is None or (
-            self.account_id != self.org.master_account_id
-            and self.account_id not in organizations_backends.master_accounts
-        ):
+        if self.org is None:
             raise AWSOrganizationsNotInUseException
 
         for account in self.accounts:
