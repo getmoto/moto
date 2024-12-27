@@ -85,6 +85,7 @@ def test_create_and_describe_vpc_security_group():
 
     assert group_with.group_name == name
     assert group_with.description == "test"
+    assert group_with.security_group_arn
 
     # Trying to create another group with the same name in the same VPC should
     # throw an error
@@ -2130,6 +2131,7 @@ def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_i
         for rule in created_rules:
             rule.pop("GroupOwnerId", None)
             rule.pop("Tags", None)
+            rule.pop("SecurityGroupRuleArn", None)
             rule.pop("SecurityGroupRuleId", None)
             del rule["GroupId"]
 

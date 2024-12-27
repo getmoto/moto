@@ -58,4 +58,5 @@ For Moto 5.x:
  - All decorators have been replaced with `mock_aws`
  - The `batch_simple` decorator has been replaced with: `@mock_aws(config={"batch": {"use_docker": False}})`
  - The `awslambda_simple` decorator has been replaced with: `@mock_aws(config={"lambda": {"use_docker": False}})`
+ - AWS IAM managed Policies are no longer loaded by default. To load them set `@mock_aws(config={"iam": {"load_aws_managed_policies": True}})` or set environment variable `MOTO_IAM_LOAD_MANAGED_POLICIES=true`
  - When starting the MotoServer, the `service`-argument (i.e.: `motoserver s3`) is no longer supported. A single MotoServer-instance can be used for all AWS-services.

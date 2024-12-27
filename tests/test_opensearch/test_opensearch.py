@@ -1,8 +1,9 @@
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -47,7 +48,7 @@ def test_create_domain_with_some_options():
         EngineVersion="OpenSearch_1.1",
     )["DomainStatus"]
     assert status["Created"]
-    assert status["EngineVersion"] == "OpenSearch_1.1"
+    assert status["EngineVersion"]["Options"] == "OpenSearch_1.1"
     assert status["DomainEndpointOptions"] == {
         "EnforceHTTPS": True,
         "TLSSecurityPolicy": "Policy-Min-TLS-1-0-2019-07",
@@ -89,14 +90,27 @@ def test_describe_unknown_domain():
 
 
 @mock_aws
+@freeze_time("2015-01-01 12:00:00")
 def test_describe_domain():
+    # Setup
     client = boto3.client("opensearch", region_name="eu-west-1")
     client.create_domain(DomainName="testdn")
 
+    # Execute
     status = client.describe_domain(DomainName="testdn")["DomainStatus"]
+    ev_status = status["EngineVersion"]["Status"]
+
+    # Verify
     assert "DomainId" in status
     assert "DomainName" in status
     assert status["DomainName"] == "testdn"
+    assert status["EngineVersion"]["Options"] == "OpenSearch_2.5"
+    assert ev_status["State"] == "Active"
+    assert ev_status["PendingDeletion"] is False
+
+    if not settings.TEST_SERVER_MODE:
+        assert ev_status["CreationDate"] == 1420113600.0
+        assert ev_status["UpdateDate"] == 1420113600.0
 
 
 @mock_aws
@@ -203,3 +217,23 @@ def test_list_unknown_domain_names_engine_type():
     err = exc.value.response["Error"]
     assert err["Code"] == "EngineTypeNotFoundException"
     assert err["Message"] == "Engine Type not found: testdn"
+
+
+@mock_aws
+def test_describe_domains():
+    client = boto3.client("opensearch", region_name="us-east-1")
+    domain_names = [f"env{i}" for i in range(1, 5)]
+    opensearch_engine_version = "OpenSearch_1.0"
+    for name in domain_names:
+        client.create_domain(DomainName=name, EngineVersion=opensearch_engine_version)
+    resp = client.describe_domains(DomainNames=domain_names)
+
+    assert len(resp["DomainStatusList"]) == 4
+    for domain in resp["DomainStatusList"]:
+        assert domain["DomainName"] in domain_names
+        assert "AdvancedSecurityOptions" in domain.keys()
+        assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0

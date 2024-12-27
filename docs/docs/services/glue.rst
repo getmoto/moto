@@ -38,13 +38,18 @@ glue
 - [ ] cancel_statement
 - [ ] check_schema_version_validity
 - [ ] create_blueprint
+- [ ] create_catalog
 - [ ] create_classifier
+- [ ] create_column_statistics_task_settings
 - [ ] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
 - [ ] create_data_quality_ruleset
 - [X] create_database
 - [ ] create_dev_endpoint
+- [ ] create_integration
+- [ ] create_integration_resource_property
+- [ ] create_integration_table_properties
 - [X] create_job
 - [ ] create_ml_transform
 - [X] create_partition
@@ -65,15 +70,19 @@ glue
 - [ ] create_user_defined_function
 - [ ] create_workflow
 - [ ] delete_blueprint
+- [ ] delete_catalog
 - [ ] delete_classifier
 - [ ] delete_column_statistics_for_partition
 - [ ] delete_column_statistics_for_table
+- [ ] delete_column_statistics_task_settings
 - [ ] delete_connection
 - [X] delete_crawler
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
+- [ ] delete_integration
+- [ ] delete_integration_table_properties
 - [X] delete_job
 - [ ] delete_ml_transform
 - [X] delete_partition
@@ -91,16 +100,23 @@ glue
 - [ ] delete_usage_profile
 - [ ] delete_user_defined_function
 - [ ] delete_workflow
+- [ ] describe_connection_type
+- [ ] describe_entity
+- [ ] describe_inbound_integrations
+- [ ] describe_integrations
 - [ ] get_blueprint
 - [ ] get_blueprint_run
 - [ ] get_blueprint_runs
+- [ ] get_catalog
 - [ ] get_catalog_import_status
+- [ ] get_catalogs
 - [ ] get_classifier
 - [ ] get_classifiers
 - [ ] get_column_statistics_for_partition
 - [ ] get_column_statistics_for_table
 - [ ] get_column_statistics_task_run
 - [ ] get_column_statistics_task_runs
+- [ ] get_column_statistics_task_settings
 - [ ] get_connection
 - [ ] get_connections
 - [X] get_crawler
@@ -119,6 +135,9 @@ glue
 - [ ] get_dataflow_graph
 - [ ] get_dev_endpoint
 - [ ] get_dev_endpoints
+- [ ] get_entity_records
+- [ ] get_integration_resource_property
+- [ ] get_integration_table_properties
 - [X] get_job
 - [ ] get_job_bookmark
 - [X] get_job_run
@@ -177,6 +196,7 @@ glue
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [ ] list_column_statistics_task_runs
+- [ ] list_connection_types
 - [X] list_crawlers
 - [ ] list_crawls
 - [ ] list_custom_entity_types
@@ -187,6 +207,7 @@ glue
 - [ ] list_data_quality_statistic_annotations
 - [ ] list_data_quality_statistics
 - [ ] list_dev_endpoints
+- [ ] list_entities
 - [X] list_jobs
 - [ ] list_ml_transforms
 - [X] list_registries
@@ -198,6 +219,7 @@ glue
 - [X] list_triggers
 - [ ] list_usage_profiles
 - [ ] list_workflows
+- [ ] modify_integration
 - [ ] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
 - [ ] put_resource_policy
@@ -212,6 +234,7 @@ glue
 - [ ] search_tables
 - [ ] start_blueprint_run
 - [ ] start_column_statistics_task_run
+- [ ] start_column_statistics_task_run_schedule
 - [X] start_crawler
 - [ ] start_crawler_schedule
 - [ ] start_data_quality_rule_recommendation_run
@@ -224,6 +247,7 @@ glue
 - [X] start_trigger
 - [ ] start_workflow_run
 - [ ] stop_column_statistics_task_run
+- [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
@@ -233,15 +257,19 @@ glue
 - [ ] test_connection
 - [X] untag_resource
 - [ ] update_blueprint
+- [ ] update_catalog
 - [ ] update_classifier
 - [ ] update_column_statistics_for_partition
 - [ ] update_column_statistics_for_table
+- [ ] update_column_statistics_task_settings
 - [ ] update_connection
 - [ ] update_crawler
 - [ ] update_crawler_schedule
 - [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
+- [ ] update_integration_resource_property
+- [ ] update_integration_table_properties
 - [ ] update_job
 - [ ] update_job_from_source_control
 - [ ] update_ml_transform

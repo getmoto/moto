@@ -130,6 +130,11 @@ def test_submit_job_array_size():
     # Child job was executed
     assert len(child_job_1["attempts"]) == 1
 
+    # List all child jobs
+    child_job_list = batch_client.list_jobs(arrayJobId=job_id)["jobSummaryList"]
+    assert len(child_job_list) == 2
+    assert child_job_1_id in [c["jobId"] for c in child_job_list]
+
 
 @mock_aws
 @pytest.mark.network

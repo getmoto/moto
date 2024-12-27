@@ -664,18 +664,6 @@
   "Location": "apse1-az1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apse1-az1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apse1-az1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apse1-az1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "apse1-az1"
  },
@@ -3301,18 +3289,6 @@
  },
  {
   "InstanceType": "d3en.xlarge",
-  "Location": "apse1-az2"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apse1-az2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apse1-az2"
- },
- {
-  "InstanceType": "g3.8xlarge",
   "Location": "apse1-az2"
  },
  {

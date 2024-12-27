@@ -364,6 +364,10 @@
   "Location": "af-south-1a"
  },
  {
+  "InstanceType": "inf1.xlarge",
+  "Location": "af-south-1a"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "af-south-1a"
  },
@@ -1341,6 +1345,10 @@
  },
  {
   "InstanceType": "inf1.24xlarge",
+  "Location": "af-south-1b"
+ },
+ {
+  "InstanceType": "inf1.xlarge",
   "Location": "af-south-1b"
  },
  {

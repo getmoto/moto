@@ -64,6 +64,7 @@ redshift
 - [ ] delete_snapshot_schedule
 - [X] delete_tags
 - [ ] delete_usage_limit
+- [ ] deregister_namespace
 - [ ] describe_account_attributes
 - [ ] describe_authentication_profiles
 - [ ] describe_cluster_db_revisions
@@ -140,6 +141,7 @@ redshift
 - [ ] purchase_reserved_node_offering
 - [ ] put_resource_policy
 - [ ] reboot_cluster
+- [ ] register_namespace
 - [ ] reject_data_share
 - [ ] reset_cluster_parameter_group
 - [ ] resize_cluster

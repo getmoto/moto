@@ -40,6 +40,7 @@ iot
 - [ ] create_billing_group
 - [X] create_certificate_from_csr
 - [ ] create_certificate_provider
+- [ ] create_command
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
@@ -50,7 +51,7 @@ iot
 - [ ] create_dynamic_thing_group
 - [ ] create_fleet_metric
 - [X] create_job
-- [ ] create_job_template
+- [X] create_job_template
 - [X] create_keys_and_certificate
 - [ ] create_mitigation_action
 - [ ] create_ota_update
@@ -61,7 +62,7 @@ iot
 - [ ] create_provisioning_claim
 - [ ] create_provisioning_template
 - [ ] create_provisioning_template_version
-- [ ] create_role_alias
+- [X] create_role_alias
 - [ ] create_scheduled_audit
 - [ ] create_security_profile
 - [ ] create_stream
@@ -77,6 +78,8 @@ iot
 - [X] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_certificate_provider
+- [ ] delete_command
+- [ ] delete_command_execution
 - [ ] delete_custom_metric
 - [ ] delete_dimension
 - [X] delete_domain_configuration
@@ -84,7 +87,7 @@ iot
 - [ ] delete_fleet_metric
 - [X] delete_job
 - [X] delete_job_execution
-- [ ] delete_job_template
+- [X] delete_job_template
 - [ ] delete_mitigation_action
 - [ ] delete_ota_update
 - [ ] delete_package
@@ -94,7 +97,7 @@ iot
 - [ ] delete_provisioning_template
 - [ ] delete_provisioning_template_version
 - [ ] delete_registration_code
-- [ ] delete_role_alias
+- [X] delete_role_alias
 - [ ] delete_scheduled_audit
 - [ ] delete_security_profile
 - [ ] delete_stream
@@ -134,12 +137,12 @@ iot
 - [ ] describe_index
 - [X] describe_job
 - [X] describe_job_execution
-- [ ] describe_job_template
+- [X] describe_job_template
 - [ ] describe_managed_job_template
 - [ ] describe_mitigation_action
 - [ ] describe_provisioning_template
 - [ ] describe_provisioning_template_version
-- [ ] describe_role_alias
+- [X] describe_role_alias
 - [ ] describe_scheduled_audit
 - [ ] describe_security_profile
 - [ ] describe_stream
@@ -157,8 +160,10 @@ iot
 - [ ] get_behavior_model_training_summaries
 - [ ] get_buckets_aggregation
 - [ ] get_cardinality
+- [ ] get_command
+- [ ] get_command_execution
 - [ ] get_effective_policies
-- [ ] get_indexing_configuration
+- [X] get_indexing_configuration
 - [X] get_job_document
 - [ ] get_logging_options
 - [ ] get_ota_update
@@ -198,6 +203,8 @@ iot
         Pagination is not yet implemented
         
 
+- [ ] list_command_executions
+- [ ] list_commands
 - [ ] list_custom_metrics
 - [ ] list_detect_mitigation_actions_executions
 - [ ] list_detect_mitigation_actions_tasks
@@ -207,7 +214,7 @@ iot
 - [ ] list_indices
 - [X] list_job_executions_for_job
 - [X] list_job_executions_for_thing
-- [ ] list_job_templates
+- [X] list_job_templates
 - [X] list_jobs
   
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
@@ -237,10 +244,11 @@ iot
         
 
 - [X] list_principal_things
+- [ ] list_principal_things_v2
 - [ ] list_provisioning_template_versions
 - [ ] list_provisioning_templates
 - [ ] list_related_resources_for_audit_finding
-- [ ] list_role_aliases
+- [X] list_role_aliases
 - [ ] list_sbom_validation_results
 - [ ] list_scheduled_audits
 - [ ] list_security_profiles
@@ -260,6 +268,7 @@ iot
         
 
 - [X] list_thing_principals
+- [ ] list_thing_principals_v2
 - [ ] list_thing_registration_task_reports
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
@@ -318,20 +327,21 @@ iot
 
 - [X] update_certificate
 - [ ] update_certificate_provider
+- [ ] update_command
 - [ ] update_custom_metric
 - [ ] update_dimension
 - [X] update_domain_configuration
 - [ ] update_dynamic_thing_group
 - [ ] update_event_configurations
 - [ ] update_fleet_metric
-- [ ] update_indexing_configuration
+- [X] update_indexing_configuration
 - [ ] update_job
 - [ ] update_mitigation_action
 - [ ] update_package
 - [ ] update_package_configuration
 - [ ] update_package_version
 - [ ] update_provisioning_template
-- [ ] update_role_alias
+- [X] update_role_alias
 - [ ] update_scheduled_audit
 - [ ] update_security_profile
 - [ ] update_stream
@@ -342,6 +352,7 @@ iot
 
 - [X] update_thing_group
 - [X] update_thing_groups_for_thing
+- [ ] update_thing_type
 - [ ] update_topic_rule_destination
 - [ ] validate_security_profile_behaviors
 

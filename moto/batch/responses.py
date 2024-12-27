@@ -215,8 +215,14 @@ class BatchResponse(BaseResponse):
         job_queue = self._get_param("jobQueue")
         job_status = self._get_param("jobStatus")
         filters = self._get_param("filters")
+        array_job_id = self._get_param("arrayJobId")
 
-        jobs = self.batch_backend.list_jobs(job_queue, job_status, filters)
+        jobs = self.batch_backend.list_jobs(
+            job_queue_name=job_queue,
+            array_job_id=array_job_id,
+            job_status=job_status,
+            filters=filters,
+        )
 
         result = {"jobSummaryList": [job.describe_short() for job in jobs]}
         return json.dumps(result)

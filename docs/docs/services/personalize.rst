@@ -19,6 +19,7 @@ personalize
 - [ ] create_batch_inference_job
 - [ ] create_batch_segment_job
 - [ ] create_campaign
+- [ ] create_data_deletion_job
 - [ ] create_dataset
 - [ ] create_dataset_export_job
 - [ ] create_dataset_group
@@ -43,6 +44,7 @@ personalize
 - [ ] describe_batch_inference_job
 - [ ] describe_batch_segment_job
 - [ ] describe_campaign
+- [ ] describe_data_deletion_job
 - [ ] describe_dataset
 - [ ] describe_dataset_export_job
 - [ ] describe_dataset_group
@@ -60,6 +62,7 @@ personalize
 - [ ] list_batch_inference_jobs
 - [ ] list_batch_segment_jobs
 - [ ] list_campaigns
+- [ ] list_data_deletion_jobs
 - [ ] list_dataset_export_jobs
 - [ ] list_dataset_groups
 - [ ] list_dataset_import_jobs

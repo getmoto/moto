@@ -6,7 +6,7 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import settings
+from moto import mock_aws, settings
 
 from . import (
     allow_aws_request,
@@ -157,7 +157,6 @@ def test_version_is_only_available_when_published():
             publish=True,
             tracingConfiguration={"enabled": True},
             loggingConfiguration={"level": "OFF"},
-            encryptionConfiguration=encryption_config,
         )
         assert resp["stateMachineVersionArn"] == f"{arn2}:2"
     finally:
@@ -166,3 +165,15 @@ def test_version_is_only_available_when_published():
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
         iam.delete_role(RoleName=role_name)
         kms.schedule_key_deletion(KeyId=kms_key_id, PendingWindowInDays=7)
+
+
+@mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
+def test_verify_template_with_credentials():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Don't need to test this in ServerMode")
+
+    def _verify_result(client, execution, execution_arn):
+        output = json.loads(execution["output"])
+        assert output["TableNames"] == []
+
+    verify_execution_result(_verify_result, "SUCCEEDED", "credentials")

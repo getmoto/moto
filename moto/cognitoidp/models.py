@@ -1354,10 +1354,54 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError("Invalid token")
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_users(self, user_pool_id: str) -> List[CognitoIdpUser]:
+    def list_users(self, user_pool_id: str, filt: str) -> List[CognitoIdpUser]:
         user_pool = self.describe_user_pool(user_pool_id)
+        users = list(user_pool.users.values())
+        if filt:
+            inherent_attributes: Dict[str, Any] = {
+                "cognito:user_status": lambda u: u.status,
+                "status": lambda u: "Enabled" if u.enabled else "Disabled",
+                "username": lambda u: u.username,
+            }
+            comparisons: Dict[str, Any] = {
+                "=": lambda x, y: x == y,
+                "^=": lambda x, y: x.startswith(y),
+            }
+            allowed_attributes = [
+                "username",
+                "email",
+                "phone_number",
+                "name",
+                "given_name",
+                "family_name",
+                "preferred_username",
+                "cognito:user_status",
+                "status",
+                "sub",
+            ]
 
-        return list(user_pool.users.values())
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
+            if match:
+                name, op, value = match.groups()
+            else:
+                raise InvalidParameterException("Error while parsing filter")
+            if name not in allowed_attributes:
+                raise InvalidParameterException(f"Invalid search attribute: {name}")
+            compare = comparisons[op]
+            users = [
+                user
+                for user in users
+                if [
+                    attr
+                    for attr in user.attributes
+                    if attr["Name"] == name and compare(attr["Value"], value)
+                ]
+                or (
+                    name in inherent_attributes
+                    and compare(inherent_attributes[name](user), value)
+                )
+            ]
+        return users
 
     def admin_disable_user(self, user_pool_id: str, username: str) -> None:
         user = self.admin_get_user(user_pool_id, username)

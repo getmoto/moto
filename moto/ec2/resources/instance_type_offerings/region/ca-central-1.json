@@ -552,18 +552,6 @@
   "Location": "ca-central-1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "ca-central-1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "ca-central-1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "ca-central-1"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "ca-central-1"
  },
@@ -1408,6 +1396,10 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "mac2-m2.metal",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "p3.16xlarge",
   "Location": "ca-central-1"
  },
@@ -1417,6 +1409,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "ca-central-1"
  },
  {

@@ -334,25 +334,41 @@ def test_list_rule_groups():
             "MetricName": "test-group-1",
         },
     )["Summary"]
-    cf_group = client.create_rule_group(
-        Capacity=100,
-        Name="test-group-2",
-        Scope="CLOUDFRONT",
-        VisibilityConfig={
-            "SampledRequestsEnabled": True,
-            "CloudWatchMetricsEnabled": True,
-            "MetricName": "test-group-2",
-        },
-    )["Summary"]
+    for idx in range(2, 10):
+        client.create_rule_group(
+            Capacity=100,
+            Name=f"test-group-{idx}",
+            Scope="CLOUDFRONT",
+            VisibilityConfig={
+                "SampledRequestsEnabled": True,
+                "CloudWatchMetricsEnabled": True,
+                "MetricName": "test-group-2",
+            },
+        )["Summary"]
 
     reg_groups = client.list_rule_groups(Scope="REGIONAL")["RuleGroups"]
-    cf_groups = client.list_rule_groups(Scope="CLOUDFRONT")["RuleGroups"]
-    assert len(reg_groups) == len(cf_groups) == 1
+    assert len(reg_groups) == 1
     regional = reg_groups[0]
     assert regional["ARN"] == regional_group["ARN"]
-    assert cf_groups[0]["ARN"] == cf_group["ARN"]
     assert regional["Name"] == "test-group-1"
     assert "Scope" not in regional
     assert is_valid_uuid(regional["LockToken"])
     assert is_valid_uuid(regional["Id"]) and regional["Id"] == regional_group["Id"]
     assert "VisibilityConfig" not in regional
+
+    cf_groups = client.list_rule_groups(Scope="CLOUDFRONT")["RuleGroups"]
+    assert len(cf_groups) == 8
+    assert cf_groups[0]["ARN"].startswith(
+        f"arn:aws:wafv2:global:{ACCOUNT_ID}:global/rulegroup/test-group-2/"
+    )
+
+    page1 = client.list_rule_groups(Scope="CLOUDFRONT", Limit=2)
+    assert len(page1["RuleGroups"]) == 2
+
+    page2 = client.list_rule_groups(
+        Scope="CLOUDFRONT", Limit=1, NextMarker=page1["NextMarker"]
+    )
+    assert len(page2["RuleGroups"]) == 1
+
+    page3 = client.list_rule_groups(Scope="CLOUDFRONT", NextMarker=page2["NextMarker"])
+    assert len(page3["RuleGroups"]) == 5

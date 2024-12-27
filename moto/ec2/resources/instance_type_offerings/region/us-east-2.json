@@ -776,22 +776,6 @@
   "Location": "us-east-2"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "us-east-2"
- },
- {
   "InstanceType": "g4ad.16xlarge",
   "Location": "us-east-2"
  },
@@ -2024,6 +2008,10 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-east-2"
  },
@@ -2961,6 +2949,10 @@
  },
  {
   "InstanceType": "trn1n.32xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "trn2.48xlarge",
   "Location": "us-east-2"
  },
  {

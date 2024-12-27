@@ -2519,6 +2519,28 @@ def test_list_users():
     result = conn.list_users(UserPoolId=user_pool_id, Filter='family_name=""')
     assert len(result["Users"]) == 0
 
+    # checking Limit and Filter work correctly together
+    user1_username = "user1@example.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user1_username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+48555555555"}],
+    )
+
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='phone_number ^= "+48"', Limit=1
+    )
+    assert len(result["Users"]) == 1
+    assert result["PaginationToken"] is not None
+
+    result = conn.list_users(
+        UserPoolId=user_pool_id,
+        Filter='phone_number ^= "+48"',
+        Limit=1,
+        PaginationToken=result["PaginationToken"],
+    )
+    assert len(result["Users"]) == 1
+
 
 @mock_aws
 def test_list_users_incorrect_filter():

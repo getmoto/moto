@@ -560,19 +560,11 @@
   "Location": "eu-west-2"
  },
  {
-  "InstanceType": "g3.16xlarge",
+  "InstanceType": "f2.12xlarge",
   "Location": "eu-west-2"
  },
  {
-  "InstanceType": "g3.4xlarge",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "g3s.xlarge",
+  "InstanceType": "f2.48xlarge",
   "Location": "eu-west-2"
  },
  {
@@ -1345,6 +1337,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "eu-west-2"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "eu-west-2"
  },
  {

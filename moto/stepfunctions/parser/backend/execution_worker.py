@@ -1,71 +1,99 @@
-import copy
 import datetime
 from threading import Thread
-from typing import Final, Optional
+from typing import Dict, Optional
 
 from moto.stepfunctions.parser.api import (
-    Definition,
+    Arn,
     ExecutionStartedEventDetails,
     HistoryEventExecutionDataDetails,
     HistoryEventType,
 )
-from moto.stepfunctions.parser.asl.component.program.program import Program
-from moto.stepfunctions.parser.asl.eval.aws_execution_details import AWSExecutionDetails
-from moto.stepfunctions.parser.asl.eval.contextobject.contex_object import (
-    ContextObjectInitData,
-)
+from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
+from moto.stepfunctions.parser.asl.eval.evaluation_details import EvaluationDetails
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
-from moto.stepfunctions.parser.asl.eval.event.event_history import EventHistoryContext
+from moto.stepfunctions.parser.asl.eval.event.event_manager import (
+    EventHistoryContext,
+)
+from moto.stepfunctions.parser.asl.eval.event.logging import (
+    CloudWatchLoggingSession,
+)
+from moto.stepfunctions.parser.asl.eval.states import (
+    ContextObjectData,
+    ExecutionData,
+    StateMachineData,
+)
 from moto.stepfunctions.parser.asl.parse.asl_parser import AmazonStateLanguageParser
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
-from moto.stepfunctions.parser.backend.execution_worker_comm import ExecutionWorkerComm
+from moto.stepfunctions.parser.backend.activity import Activity
+from moto.stepfunctions.parser.backend.execution_worker_comm import (
+    ExecutionWorkerCommunication,
+)
+from moto.stepfunctions.parser.utils import TMP_THREADS
 
 
 class ExecutionWorker:
+    _evaluation_details: EvaluationDetails
+    _execution_communication: ExecutionWorkerCommunication
+    _cloud_watch_logging_session: Optional[CloudWatchLoggingSession]
+    _activity_store: Dict[Arn, Activity]
+
     env: Optional[Environment]
-    _definition: Definition
-    _input_data: Optional[dict]
-    _exec_comm: Final[ExecutionWorkerComm]
-    _context_object_init: Final[ContextObjectInitData]
-    _aws_execution_details: Final[AWSExecutionDetails]
 
     def __init__(
         self,
-        definition: Definition,
-        input_data: Optional[dict],
-        context_object_init: ContextObjectInitData,
-        aws_execution_details: AWSExecutionDetails,
-        exec_comm: ExecutionWorkerComm,
+        evaluation_details: EvaluationDetails,
+        exec_comm: ExecutionWorkerCommunication,
+        cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
+        activity_store: Dict[Arn, Activity],
     ):
-        self._definition = definition
-        self._input_data = input_data
-        self._exec_comm = exec_comm
-        self._context_object_init = context_object_init
-        self._aws_execution_details = aws_execution_details
+        self._evaluation_details = evaluation_details
+        self._execution_communication = exec_comm
+        self._cloud_watch_logging_session = cloud_watch_logging_session
+        self._activity_store = activity_store
         self.env = None
 
-    def _execution_logic(self) -> None:
-        program: Program = AmazonStateLanguageParser.parse(self._definition)
-        self.env = Environment(
-            aws_execution_details=self._aws_execution_details,
-            context_object_init=self._context_object_init,
-            event_history_context=EventHistoryContext.of_program_start(),
-        )
-        self.env.inp = copy.deepcopy(
-            self._input_data
-        )  # The program will mutate the input_data, which is otherwise constant in regard to the execution value.
+    def _get_evaluation_entrypoint(self) -> EvalComponent:
+        return AmazonStateLanguageParser.parse(
+            self._evaluation_details.state_machine_details.definition
+        )[0]
 
-        self.env.event_history.add_event(
+    def _get_evaluation_environment(self) -> Environment:
+        return Environment(
+            aws_execution_details=self._evaluation_details.aws_execution_details,
+            execution_type=self._evaluation_details.state_machine_details.typ,
+            context=ContextObjectData(
+                Execution=ExecutionData(
+                    Id=self._evaluation_details.execution_details.arn,
+                    Input=self._evaluation_details.execution_details.inpt,
+                    Name=self._evaluation_details.execution_details.name,
+                    RoleArn=self._evaluation_details.execution_details.role_arn,
+                    StartTime=self._evaluation_details.execution_details.start_time,
+                ),
+                StateMachine=StateMachineData(
+                    Id=self._evaluation_details.state_machine_details.arn,
+                    Name=self._evaluation_details.state_machine_details.name,
+                ),
+            ),
+            event_history_context=EventHistoryContext.of_program_start(),
+            cloud_watch_logging_session=self._cloud_watch_logging_session,
+            activity_store=self._activity_store,
+        )
+
+    def _execution_logic(self):
+        program = self._get_evaluation_entrypoint()
+        self.env = self._get_evaluation_environment()
+
+        self.env.event_manager.add_event(
             context=self.env.event_history_context,
-            hist_type_event=HistoryEventType.ExecutionStarted,
-            event_detail=EventDetails(
+            event_type=HistoryEventType.ExecutionStarted,
+            event_details=EventDetails(
                 executionStartedEventDetails=ExecutionStartedEventDetails(
-                    input=to_json_str(self.env.inp),
+                    input=to_json_str(self._evaluation_details.execution_details.inpt),
                     inputDetails=HistoryEventExecutionDataDetails(
                         truncated=False
                     ),  # Always False for api calls.
-                    roleArn=self._aws_execution_details.role_arn,
+                    roleArn=self._evaluation_details.aws_execution_details.role_arn,
                 )
             ),
             update_source_event_id=False,
@@ -73,12 +101,20 @@ class ExecutionWorker:
 
         program.eval(self.env)
 
-        self._exec_comm.terminated()
+        self._execution_communication.terminated()
 
-    def start(self) -> None:
-        Thread(target=self._execution_logic).start()
+    def start(self):
+        execution_logic_thread = Thread(target=self._execution_logic, daemon=True)
+        TMP_THREADS.append(execution_logic_thread)
+        execution_logic_thread.start()
 
     def stop(
         self, stop_date: datetime.datetime, error: Optional[str], cause: Optional[str]
-    ) -> None:
+    ):
         self.env.set_stop(stop_date=stop_date, cause=cause, error=error)
+
+
+class SyncExecutionWorker(ExecutionWorker):
+    def start(self):
+        # bypass the native async execution of ASL programs.
+        self._execution_logic()

@@ -1,4 +1,4 @@
-from typing import Dict, Final, Optional, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 from botocore.exceptions import ClientError
 
@@ -8,6 +8,9 @@ from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name
 )
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    ComputedCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceRuntimePart,
@@ -19,62 +22,62 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 
+_ERROR_NAME_AWS: str = "DynamoDB.AmazonDynamoDBException"
+
+_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+    "getitem": {
+        "Key",
+        "TableName",
+        "AttributesToGet",
+        "ConsistentRead",
+        "ExpressionAttributeNames",
+        "ProjectionExpression",
+        "ReturnConsumedCapacity",
+    },
+    "putitem": {
+        "Item",
+        "TableName",
+        "ConditionalOperator",
+        "ConditionExpression",
+        "Expected",
+        "ExpressionAttributeNames",
+        "ExpressionAttributeValues",
+        "ReturnConsumedCapacity",
+        "ReturnItemCollectionMetrics",
+        "ReturnValues",
+    },
+    "deleteitem": {
+        "Key",
+        "TableName",
+        "ConditionalOperator",
+        "ConditionExpression",
+        "Expected",
+        "ExpressionAttributeNames",
+        "ExpressionAttributeValues",
+        "ReturnConsumedCapacity",
+        "ReturnItemCollectionMetrics",
+        "ReturnValues",
+    },
+    "updateitem": {
+        "Key",
+        "TableName",
+        "AttributeUpdates",
+        "ConditionalOperator",
+        "ConditionExpression",
+        "Expected",
+        "ExpressionAttributeNames",
+        "ExpressionAttributeValues",
+        "ReturnConsumedCapacity",
+        "ReturnItemCollectionMetrics",
+        "ReturnValues",
+        "UpdateExpression",
+    },
+}
+
 
 class StateTaskServiceDynamoDB(StateTaskService):
-    _ERROR_NAME_AWS: Final[str] = "DynamoDB.AmazonDynamoDBException"
-
-    _SUPPORTED_API_PARAM_BINDINGS: Final[Dict[str, Set[str]]] = {
-        "getitem": {
-            "Key",
-            "TableName",
-            "AttributesToGet",
-            "ConsistentRead",
-            "ExpressionAttributeNames",
-            "ProjectionExpression",
-            "ReturnConsumedCapacity",
-        },
-        "putitem": {
-            "Item",
-            "TableName",
-            "ConditionalOperator",
-            "ConditionExpression",
-            "Expected",
-            "ExpressionAttributeNames",
-            "ExpressionAttributeValues",
-            "ReturnConsumedCapacity",
-            "ReturnItemCollectionMetrics",
-            "ReturnValues",
-        },
-        "deleteitem": {
-            "Key",
-            "TableName",
-            "ConditionalOperator",
-            "ConditionExpression",
-            "Expected",
-            "ExpressionAttributeNames",
-            "ExpressionAttributeValues",
-            "ReturnConsumedCapacity",
-            "ReturnItemCollectionMetrics",
-            "ReturnValues",
-        },
-        "updateitem": {
-            "Key",
-            "TableName",
-            "AttributeUpdates",
-            "ConditionalOperator",
-            "ConditionExpression",
-            "Expected",
-            "ExpressionAttributeNames",
-            "ExpressionAttributeValues",
-            "ReturnConsumedCapacity",
-            "ReturnItemCollectionMetrics",
-            "ReturnValues",
-            "UpdateExpression",
-        },
-    }
-
     def _get_supported_parameters(self) -> Optional[Set[str]]:
-        return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
+        return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     @staticmethod
     def _error_cause_from_client_error(client_error: ClientError) -> Tuple[str, str]:
@@ -98,6 +101,7 @@ class StateTaskServiceDynamoDB(StateTaskService):
             error, cause = self._error_cause_from_client_error(ex)
             error_name = CustomErrorName(error)
             return FailureEvent(
+                env=env,
                 error_name=error_name,
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
@@ -111,11 +115,12 @@ class StateTaskServiceDynamoDB(StateTaskService):
             )
         else:
             return FailureEvent(
-                error_name=CustomErrorName(self._ERROR_NAME_AWS),
+                env=env,
+                error_name=CustomErrorName(_ERROR_NAME_AWS),
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
                     taskFailedEventDetails=TaskFailedEventDetails(
-                        error=self._ERROR_NAME_AWS,
+                        error=_ERROR_NAME_AWS,
                         cause=str(ex),  # TODO: update to report expected cause.
                         resource=self._get_sfn_resource(),
                         resourceType=self._get_sfn_resource_type(),
@@ -128,6 +133,7 @@ class StateTaskServiceDynamoDB(StateTaskService):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        task_credentials: ComputedCredentials,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
@@ -135,6 +141,7 @@ class StateTaskServiceDynamoDB(StateTaskService):
             region=resource_runtime_part.region,
             account=resource_runtime_part.account,
             service=service_name,
+            credentials=task_credentials,
         )
         response = getattr(dynamodb_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

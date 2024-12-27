@@ -51,7 +51,7 @@ REGION_NAME = "us-east-1"
             "Object Storage Class Changed",
         ),
         ([S3NotificationEvent.INTELLIGENT_TIERING_EVENT], "Object Access Tier Changed"),
-        ([S3NotificationEvent.OBJECT_ACL_EVENT], "Object ACL Updated"),
+        ([S3NotificationEvent.OBJECT_ACL_UPDATE_EVENT], "Object ACL Updated"),
         ([S3NotificationEvent.OBJECT_TAGGING_PUT_EVENT], "Object Tags Added"),
         ([S3NotificationEvent.OBJECT_TAGGING_DELETE_EVENT], "Object Tags Deleted"),
     ],

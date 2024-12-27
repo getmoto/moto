@@ -428,6 +428,10 @@
   "Location": "af-south-1"
  },
  {
+  "InstanceType": "inf1.xlarge",
+  "Location": "af-south-1"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "af-south-1"
  },

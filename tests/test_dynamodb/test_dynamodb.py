@@ -4952,3 +4952,25 @@ def test_query_with_gsi_reverse_paginated():
         {"pri": {"S": "pri_10"}, "alt": {"S": "alt_2"}},
     ]
     assert "LastEvaluatedKey" not in p2
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_update_item_with_list_of_bytes(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    b1 = b"\n\x014\x18\xc3\xb0\xf8\xba\x06"
+    b2 = b"\n\x012\x18\xc3\xb0\xf8\xba\x06"
+
+    update = table.update_item(
+        Key={"pk": "clientA"},
+        UpdateExpression="SET #items = :new_items",
+        ExpressionAttributeValues={":new_items": [b1, b2]},
+        ExpressionAttributeNames={"#items": "items"},
+        ReturnValues="UPDATED_NEW",
+    )
+    assert update["Attributes"]["items"] == [Binary(b1), Binary(b2)]
+
+    get = table.get_item(Key={"pk": "clientA"})
+    assert get["Item"] == {"pk": "clientA", "items": [Binary(b1), Binary(b2)]}

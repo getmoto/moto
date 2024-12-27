@@ -12,17 +12,23 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name_type import (
     StatesErrorNameType,
 )
+from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_value_terminal import (
+    JSONataTemplateValueTerminalExpression,
+)
+from moto.stepfunctions.parser.asl.component.common.variable_sample import (
+    VariableSample,
+)
 from moto.stepfunctions.parser.asl.component.eval_component import EvalComponent
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
-from moto.stepfunctions.parser.asl.utils.json_path import JSONPathUtils
+from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 
-TOLERATED_FAILURE_COUNT_MIN: Final[int] = 0
-TOLERATED_FAILURE_COUNT_DEFAULT: Final[int] = 0
-TOLERATED_FAILURE_PERCENTAGE_MIN: Final[float] = 0.0
-TOLERATED_FAILURE_PERCENTAGE_DEFAULT: Final[float] = 0.0
-TOLERATED_FAILURE_PERCENTAGE_MAX: Final[float] = 100.0
+TOLERATED_FAILURE_COUNT_MIN: int = 0
+TOLERATED_FAILURE_COUNT_DEFAULT: int = 0
+TOLERATED_FAILURE_PERCENTAGE_MIN: float = 0.0
+TOLERATED_FAILURE_PERCENTAGE_DEFAULT: float = 0.0
+TOLERATED_FAILURE_PERCENTAGE_MAX: float = 100.0
 
 
 class ToleratedFailureCountDecl(EvalComponent, abc.ABC):
@@ -35,7 +41,7 @@ class ToleratedFailureCountDecl(EvalComponent, abc.ABC):
 
 
 class ToleratedFailureCount(ToleratedFailureCountDecl):
-    tolerated_failure_count: Final[int]
+    tolerated_failure_count: int
 
     def __init__(self, tolerated_failure_count: int = TOLERATED_FAILURE_COUNT_DEFAULT):
         self.tolerated_failure_count = tolerated_failure_count
@@ -44,17 +50,50 @@ class ToleratedFailureCount(ToleratedFailureCountDecl):
         return self.tolerated_failure_count
 
 
+class ToleratedFailureCountJSONata(ToleratedFailureCountDecl):
+    jsonata_template_value_terminal_expression: Final[
+        JSONataTemplateValueTerminalExpression
+    ]
+
+    def __init__(
+        self,
+        jsonata_template_value_terminal_expression: JSONataTemplateValueTerminalExpression,
+    ):
+        super().__init__()
+        self.jsonata_template_value_terminal_expression = (
+            jsonata_template_value_terminal_expression
+        )
+
+    def _eval_tolerated_failure_count(self, env: Environment) -> int:
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        self.jsonata_template_value_terminal_expression.eval(env=env)
+        failure_count: int = int(env.stack.pop())
+        return failure_count
+
+
+class ToleratedFailureCountPathVar(ToleratedFailureCountDecl):
+    variable_sample: VariableSample
+
+    def __init__(self, variable_sample: VariableSample):
+        super().__init__()
+        self.variable_sample = variable_sample
+
+    def _eval_tolerated_failure_count(self, env: Environment) -> int:
+        self.variable_sample.eval(env=env)
+        # TODO: add snapshot tests to verify AWS's behaviour about non integer values.
+        tolerated_failure_count: int = int(env.stack.pop())
+        return tolerated_failure_count
+
+
 class ToleratedFailureCountPath(ToleratedFailureCountDecl):
-    tolerated_failure_count_path: Final[str]
+    tolerated_failure_count_path: str
 
     def __init__(self, tolerated_failure_count_path: str):
         self.tolerated_failure_count_path = tolerated_failure_count_path
 
     def _eval_tolerated_failure_count(self, env: Environment) -> int:
         inp = env.stack[-1]
-        tolerated_failure_count = JSONPathUtils.extract_json(
-            self.tolerated_failure_count_path, inp
-        )
+        tolerated_failure_count = extract_json(self.tolerated_failure_count_path, inp)
 
         error_cause = None
         if not isinstance(tolerated_failure_count, int):
@@ -99,7 +138,7 @@ class ToleratedFailurePercentageDecl(EvalComponent, abc.ABC):
 
 
 class ToleratedFailurePercentage(ToleratedFailurePercentageDecl):
-    tolerated_failure_percentage: Final[float]
+    tolerated_failure_percentage: float
 
     def __init__(
         self, tolerated_failure_percentage: float = TOLERATED_FAILURE_PERCENTAGE_DEFAULT
@@ -110,15 +149,50 @@ class ToleratedFailurePercentage(ToleratedFailurePercentageDecl):
         return self.tolerated_failure_percentage
 
 
+class ToleratedFailurePercentageJSONata(ToleratedFailurePercentageDecl):
+    jsonata_template_value_terminal_expression: Final[
+        JSONataTemplateValueTerminalExpression
+    ]
+
+    def __init__(
+        self,
+        jsonata_template_value_terminal_expression: JSONataTemplateValueTerminalExpression,
+    ):
+        super().__init__()
+        self.jsonata_template_value_terminal_expression = (
+            jsonata_template_value_terminal_expression
+        )
+
+    def _eval_tolerated_failure_percentage(self, env: Environment) -> float:
+        # TODO: add snapshot tests to verify AWS's behaviour about non floating values.
+        self.jsonata_template_value_terminal_expression.eval(env=env)
+        failure_percentage: int = int(env.stack.pop())
+        return failure_percentage
+
+
+class ToleratedFailurePercentagePathVar(ToleratedFailurePercentageDecl):
+    variable_sample: VariableSample
+
+    def __init__(self, variable_sample: VariableSample):
+        super().__init__()
+        self.variable_sample = variable_sample
+
+    def _eval_tolerated_failure_percentage(self, env: Environment) -> float:
+        self.variable_sample.eval(env=env)
+        # TODO: add snapshot tests to verify AWS's behaviour about non floating values.
+        tolerated_failure_percentage: float = float(env.stack.pop())
+        return tolerated_failure_percentage
+
+
 class ToleratedFailurePercentagePath(ToleratedFailurePercentageDecl):
-    tolerate_failure_percentage_path: Final[str]
+    tolerate_failure_percentage_path: str
 
     def __init__(self, tolerate_failure_percentage_path: str):
         self.tolerate_failure_percentage_path = tolerate_failure_percentage_path
 
     def _eval_tolerated_failure_percentage(self, env: Environment) -> float:
         inp = env.stack[-1]
-        tolerated_failure_percentage = JSONPathUtils.extract_json(
+        tolerated_failure_percentage = extract_json(
             self.tolerate_failure_percentage_path, inp
         )
 
@@ -149,7 +223,12 @@ class ToleratedFailurePercentagePath(ToleratedFailurePercentageDecl):
                     env=env,
                     error_name=StatesErrorName(typ=StatesErrorNameType.StatesRuntime),
                     event_type=HistoryEventType.ExecutionFailed,
-                    event_details=error_cause,
+                    event_details=EventDetails(
+                        executionFailedEventDetails=ExecutionFailedEventDetails(
+                            error=StatesErrorNameType.StatesRuntime.to_name(),
+                            cause=error_cause,
+                        )
+                    ),
                 )
             )
 

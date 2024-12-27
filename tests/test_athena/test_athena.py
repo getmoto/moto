@@ -238,6 +238,29 @@ def test_stop_query_execution():
 
 
 @mock_aws
+def test_start_execution_with_workgroup():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    client.create_work_group(
+        Name="myworkgroup",
+        Description="Test work group",
+        Configuration={
+            "ResultConfiguration": {"OutputLocation": "s3://bucket-name/prefix/"}
+        },
+    )
+
+    exec_id = client.start_query_execution(
+        QueryString="SELECT stuff",
+        QueryExecutionContext={"Database": "database"},
+        ResultConfiguration={"OutputLocation": "s3://bucket-name/prefix/"},
+        WorkGroup="myworkgroup",
+    )["QueryExecutionId"]
+
+    execution = client.get_query_execution(QueryExecutionId=exec_id)["QueryExecution"]
+    assert execution["WorkGroup"] == "myworkgroup"
+
+
+@mock_aws
 def test_create_named_query():
     client = boto3.client("athena", region_name="us-east-1")
 
@@ -436,6 +459,50 @@ def test_list_query_executions():
     executions = client.list_query_executions()
     assert len(executions["QueryExecutionIds"]) == 1
     assert executions["QueryExecutionIds"][0] == exec_id
+
+
+@mock_aws
+def test_list_query_executions_by_workgroup():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    create_basic_workgroup(client=client, name="athena_workgroup_1")
+
+    client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    exec_result = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup_1",
+    )
+    exec_id = exec_result["QueryExecutionId"]
+
+    executions = client.list_query_executions(WorkGroup="athena_workgroup_1")
+    assert len(executions["QueryExecutionIds"]) == 1
+    assert executions["QueryExecutionIds"][0] == exec_id
+
+
+@mock_aws
+def test_list_query_executions_by_workgroup_when_none_match():
+    client = boto3.client("athena", region_name="us-east-1")
+
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    create_basic_workgroup(client=client, name="athena_workgroup_1")
+
+    client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+
+    executions = client.list_query_executions(WorkGroup="athena_workgroup_1")
+    assert len(executions["QueryExecutionIds"]) == 0
 
 
 @mock_aws

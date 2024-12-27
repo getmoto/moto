@@ -708,22 +708,6 @@
   "Location": "apse2-az1"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "apse2-az1"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "apse2-az1"
  },
@@ -1701,6 +1685,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "apse2-az1"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "apse2-az1"
  },
  {
@@ -4224,6 +4212,10 @@
   "Location": "apse2-az2"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "apse2-az2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "apse2-az2"
  },
@@ -5812,22 +5804,6 @@
   "Location": "apse2-az3"
  },
  {
-  "InstanceType": "g3.16xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3.8xlarge",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "g3s.xlarge",
-  "Location": "apse2-az3"
- },
- {
   "InstanceType": "g4dn.12xlarge",
   "Location": "apse2-az3"
  },
@@ -6677,6 +6653,10 @@
  },
  {
   "InstanceType": "mac2-m2pro.metal",
+  "Location": "apse2-az3"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "apse2-az3"
  },
  {

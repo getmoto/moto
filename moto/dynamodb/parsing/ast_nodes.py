@@ -10,6 +10,7 @@ from ..exceptions import (
     MockValidationException,
     TooManyClauses,
 )
+from ..utils import extract_duplicates
 
 
 class Node(metaclass=abc.ABCMeta):
@@ -29,17 +30,34 @@ class Node(metaclass=abc.ABCMeta):
 
     def validate(self, limit_set_actions: bool = False) -> None:
         if self.type == "UpdateExpression":
-            if len(self.find_clauses([UpdateExpressionAddClause])) > 1:
+            add_clauses = self.find_clauses([UpdateExpressionAddClause])
+            remove_clauses = self.find_clauses([UpdateExpressionRemoveClause])
+
+            # Only allow single ADD/REMOVE clauses
+            if len(add_clauses) > 1:
                 raise TooManyClauses("ADD")
-            if len(self.find_clauses([UpdateExpressionRemoveClause])) > 1:
+            if len(remove_clauses) > 1:
                 raise TooManyClauses("REMOVE")
+
+            add_actions = self.find_clauses([UpdateExpressionAddAction])
+            delete_actions = self.find_clauses([UpdateExpressionDeleteAction])
             set_actions = self.find_clauses([UpdateExpressionSetAction])
-            # set_attributes = ["attr", "map.attr", attr.list[2], ..]
-            set_attributes = [s.children[0].to_str() for s in set_actions]
+
+            # Cannot ADD/DELETE to the same path
+            add_paths = [a.get_value() for a in add_actions]
+            delete_paths = [a.get_value() for a in delete_actions]
+            if set(add_paths).intersection(delete_paths):
+                raise DuplicateUpdateExpression(names=[*add_paths, *delete_paths])
+
+            # Ensure SET has no duplicates
             # We currently only check for duplicates
             # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
-            if len(set_attributes) != len(set(set_attributes)):
-                raise DuplicateUpdateExpression(set_attributes)
+            set_attributes = [s.children[0].to_str() for s in set_actions]
+            duplicates = extract_duplicates(set_attributes)
+            if duplicates:
+                # There might be more than one attribute duplicated:
+                # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
+                raise DuplicateUpdateExpression(duplicates)
 
             set_clauses = self.find_clauses([UpdateExpressionSetClause])
             if limit_set_actions and len(set_clauses) > 1:
@@ -156,6 +174,13 @@ class UpdateExpressionSetAction(UpdateExpressionClause):
     """
 
 
+class UpdateExpressionAction(UpdateExpressionClause):
+    def get_value(self):
+        expression_path = self.children[0]
+        expression_selector = expression_path.children[-1]
+        return expression_selector.children[0]
+
+
 class UpdateExpressionRemoveActions(UpdateExpressionClause):
     """
     UpdateExpressionSetClause => REMOVE RemoveActions
@@ -165,19 +190,14 @@ class UpdateExpressionRemoveActions(UpdateExpressionClause):
     """
 
 
-class UpdateExpressionRemoveAction(UpdateExpressionClause):
+class UpdateExpressionRemoveAction(UpdateExpressionAction):
     """
     RemoveAction => Path
     """
 
-    def _get_value(self):
-        expression_path = self.children[0]
-        expression_selector = expression_path.children[-1]
-        return expression_selector.children[0]
-
     def __lt__(self, other):
-        self_value = self._get_value()
-        other_value = other._get_value()
+        self_value = self.get_value()
+        other_value = other.get_value()
         if isinstance(self_value, int) and isinstance(other_value, int):
             return self_value < other_value
         else:
@@ -193,7 +213,7 @@ class UpdateExpressionAddActions(UpdateExpressionClause):
     """
 
 
-class UpdateExpressionAddAction(UpdateExpressionClause):
+class UpdateExpressionAddAction(UpdateExpressionAction):
     """
     AddAction => Path Value
     """
@@ -208,7 +228,7 @@ class UpdateExpressionDeleteActions(UpdateExpressionClause):
     """
 
 
-class UpdateExpressionDeleteAction(UpdateExpressionClause):
+class UpdateExpressionDeleteAction(UpdateExpressionAction):
     """
     DeleteAction => Path Value
     """

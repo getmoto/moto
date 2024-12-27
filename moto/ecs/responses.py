@@ -148,22 +148,18 @@ class EC2ContainerServiceResponse(BaseResponse):
             pid_mode=pid_mode,
             ephemeral_storage=ephemeral_storage,
         )
-        return json.dumps({"taskDefinition": task_definition.response_object})
+        return json.dumps(task_definition.response_object)
 
     def list_task_definitions(self) -> str:
         family_prefix = self._get_param("familyPrefix")
         task_definition_arns = self.ecs_backend.list_task_definitions(family_prefix)
-        return json.dumps(
-            {
-                "taskDefinitionArns": task_definition_arns
-                #  'nextToken': str(uuid.uuid4())
-            }
-        )
+        return json.dumps({"taskDefinitionArns": task_definition_arns})
 
     def describe_task_definition(self) -> str:
         task_definition_str = self._get_param("taskDefinition")
         data = self.ecs_backend.describe_task_definition(task_definition_str)
-        resp: Dict[str, Any] = {"taskDefinition": data.response_object, "failures": []}
+        resp: Dict[str, Any] = data.response_object
+        resp["failures"] = []
         if "TAGS" in self._get_param("include", []):
             resp["tags"] = self.ecs_backend.list_tags_for_resource(data.arn)
         return json.dumps(resp)
@@ -173,7 +169,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition = self.ecs_backend.deregister_task_definition(
             task_definition_str
         )
-        return json.dumps({"taskDefinition": task_definition.response_object})
+        return json.dumps(task_definition.response_object)
 
     def run_task(self) -> str:
         cluster_str = self._get_param("cluster", "default")
@@ -265,6 +261,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
         platform_version = self._get_param("platformVersion")
+        propagate_tags = self._get_param("propagateTags") or "NONE"
+        network_configuration = self._get_param("networkConfiguration")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -275,8 +273,10 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            network_configuration=network_configuration,
             service_registries=service_registries,
             platform_version=platform_version,
+            propagate_tags=propagate_tags,
         )
         return json.dumps({"service": service.response_object})
 

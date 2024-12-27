@@ -124,7 +124,7 @@ ACTION_MAP = {
         },
     },
     "KEY": {
-        "HEAD": {"DEFAULT": "HeadObject"},
+        "HEAD": {"DEFAULT": "GetObject"},
         "GET": {
             "uploadId": "ListMultipartUploadParts",
             "acl": "GetObjectAcl",
@@ -1516,7 +1516,8 @@ class S3Response(BaseResponse):
         return 200, response_headers, key.value
 
     def get_object_attributes(self) -> TYPE_RESPONSE:
-        key, not_modified = self._get_key()
+        # Get the Key, but do not validate StorageClass - we can retrieve the attributes of Glacier-objects
+        key, not_modified = self._get_key(validate_storage_class=False)
         response_headers = self._get_cors_headers_other()
         if not_modified:
             return 304, response_headers, "Not Modified"
@@ -1608,7 +1609,7 @@ class S3Response(BaseResponse):
             ),
         )
 
-    def _get_key(self) -> Tuple[FakeKey, bool]:
+    def _get_key(self, validate_storage_class: bool = True) -> Tuple[FakeKey, bool]:
         key_name = self.parse_key_name()
         version_id = self.querystring.get("versionId", [None])[0]
         if_modified_since = self.headers.get("If-Modified-Since")
@@ -1621,7 +1622,7 @@ class S3Response(BaseResponse):
             raise MissingKey(key=key_name)
         elif key is None:
             raise MissingVersion()
-        if key.storage_class in ARCHIVE_STORAGE_CLASSES:
+        if validate_storage_class and key.storage_class in ARCHIVE_STORAGE_CLASSES:
             if 'ongoing-request="false"' not in key.response_dict.get(
                 "x-amz-restore", ""
             ):
@@ -2523,11 +2524,26 @@ class S3Response(BaseResponse):
             return 200, response_headers, response
 
         if query.get("uploadId"):
+            existing = self.backend.get_object(self.bucket_name, key_name)
+
+            if_none_match = self.headers.get("If-None-Match")
+            if if_none_match == "*":
+                if existing is not None and existing.multipart is None:
+                    raise PreconditionFailed("If-None-Match")
+
             multipart_id = query["uploadId"][0]
 
-            key = self.backend.complete_multipart_upload(
-                bucket_name, multipart_id, self._complete_multipart_body(body)
-            )
+            if (
+                existing is not None
+                and existing.multipart
+                and existing.multipart.id == multipart_id
+            ):
+                # Operation is idempotent
+                key: Optional[FakeKey] = existing
+            else:
+                key = self.backend.complete_multipart_upload(
+                    bucket_name, multipart_id, self._complete_multipart_body(body)
+                )
             if key is None:
                 return 400, {}, ""
 
@@ -2566,10 +2582,10 @@ class S3Response(BaseResponse):
             select_query = request["Expression"]
             input_details = request["InputSerialization"]
             output_details = request["OutputSerialization"]
-            results = self.backend.select_object_content(
+            results, bytes_scanned = self.backend.select_object_content(
                 bucket_name, key_name, select_query, input_details, output_details
             )
-            return 200, {}, serialize_select(results)
+            return 200, {}, serialize_select(results, bytes_scanned)
 
         else:
             raise NotImplementedError(
@@ -2981,7 +2997,7 @@ S3_BUCKET_CORS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     {% endif %}
     {% if cors.exposed_headers is not none %}
       {% for header in cors.exposed_headers %}
-      <ExposedHeader>{{ header }}</ExposedHeader>
+      <ExposeHeader>{{ header }}</ExposeHeader>
       {% endfor %}
     {% endif %}
     {% if cors.max_age_seconds is not none %}

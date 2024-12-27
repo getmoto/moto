@@ -16,20 +16,21 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 class StateChoice(CommonStateField):
     choices_decl: ChoicesDecl
+    default_state: Optional[DefaultDecl]
+    _next_state_name: Optional[str]
 
     def __init__(self):
         super(StateChoice, self).__init__(
             state_entered_event_type=HistoryEventType.ChoiceStateEntered,
             state_exited_event_type=HistoryEventType.ChoiceStateExited,
         )
-        self.default_state: Optional[DefaultDecl] = None
-        self._next_state_name: Optional[str] = None
+        self.default_state = None
+        self._next_state_name = None
 
     def from_state_props(self, state_props: StateProps) -> None:
         super(StateChoice, self).from_state_props(state_props)
         self.choices_decl = state_props.get(ChoicesDecl)
         self.default_state = state_props.get(DefaultDecl)
-
         if state_props.get(Next) or state_props.get(End):
             raise ValueError(
                 "Choice states don't support the End field. "
@@ -46,7 +47,6 @@ class StateChoice(CommonStateField):
         if self.default_state:
             self._next_state_name = self.default_state.state_name
 
-        # TODO: Lazy evaluation?
         for rule in self.choices_decl.rules:
             rule.eval(env)
             res = env.stack.pop()
@@ -57,3 +57,6 @@ class StateChoice(CommonStateField):
                     )
                 self._next_state_name = rule.next_stmt.name
                 break
+
+        if self.assign_decl:
+            self.assign_decl.eval(env=env)

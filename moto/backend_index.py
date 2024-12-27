@@ -45,6 +45,7 @@ backend_url_patterns = [
     ("directconnect", re.compile("https?://directconnect\\.(.+)\\.amazonaws\\.com")),
     ("dms", re.compile("https?://dms\\.(.+)\\.amazonaws\\.com")),
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
+    ("dsql", re.compile("https?://dsql\\.(.+)\\.api\\.aws")),
     ("dynamodb", re.compile("https?://dynamodb\\.(.+)\\.amazonaws\\.com")),
     (
         "dynamodbstreams",
@@ -96,6 +97,7 @@ backend_url_patterns = [
     ("iotdata", re.compile("https?://data\\.iot\\.(.+)\\.amazonaws.com")),
     ("iotdata", re.compile("https?://data-ats\\.iot\\.(.+)\\.amazonaws.com")),
     ("ivs", re.compile("https?://ivs\\.(.+)\\.amazonaws\\.com")),
+    ("kafka", re.compile("https?://kafka\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.control-kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.data-kinesis\\.(.+)\\.amazonaws\\.com")),

@@ -19,9 +19,11 @@ cloudtrail
 - [X] add_tags
 - [ ] cancel_query
 - [ ] create_channel
+- [ ] create_dashboard
 - [ ] create_event_data_store
 - [X] create_trail
 - [ ] delete_channel
+- [ ] delete_dashboard
 - [ ] delete_event_data_store
 - [ ] delete_resource_policy
 - [X] delete_trail
@@ -30,7 +32,9 @@ cloudtrail
 - [X] describe_trails
 - [ ] disable_federation
 - [ ] enable_federation
+- [ ] generate_query
 - [ ] get_channel
+- [ ] get_dashboard
 - [ ] get_event_data_store
 - [X] get_event_selectors
 - [ ] get_import
@@ -40,6 +44,7 @@ cloudtrail
 - [X] get_trail
 - [X] get_trail_status
 - [ ] list_channels
+- [ ] list_dashboards
 - [ ] list_event_data_stores
 - [ ] list_import_failures
 - [ ] list_imports
@@ -59,6 +64,7 @@ cloudtrail
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] start_dashboard_refresh
 - [ ] start_event_data_store_ingestion
 - [ ] start_import
 - [X] start_logging
@@ -67,6 +73,7 @@ cloudtrail
 - [ ] stop_import
 - [X] stop_logging
 - [ ] update_channel
+- [ ] update_dashboard
 - [ ] update_event_data_store
 - [X] update_trail
 

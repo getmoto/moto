@@ -1,3 +1,4 @@
+import base64
 import json
 import re
 from typing import Any, Dict, List, Optional
@@ -7,6 +8,8 @@ class DynamoJsonEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Any:
         if hasattr(o, "to_json"):
             return o.to_json()
+        elif isinstance(o, bytes):
+            return base64.b64encode(o).decode("utf-8")
 
 
 def dynamo_json_dump(dynamo_object: Any) -> str:

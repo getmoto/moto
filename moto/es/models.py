@@ -142,5 +142,14 @@ class ElasticsearchServiceBackend(BaseBackend):
         """
         return [{"DomainName": domain.domain_name} for domain in self.domains.values()]
 
+    def describe_elasticsearch_domains(
+        self, domain_names: List[str]
+    ) -> List[Dict[str, Any]]:
+        queried_domains = []
+        for domain_name in domain_names:
+            if domain_name in self.domains:
+                queried_domains.append(self.domains[domain_name].to_json())
+        return queried_domains
+
 
 es_backends = BackendDict(ElasticsearchServiceBackend, "es")

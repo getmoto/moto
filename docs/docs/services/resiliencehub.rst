@@ -45,11 +45,13 @@ resiliencehub
 - [ ] describe_app_version_resources_resolution_status
 - [ ] describe_app_version_template
 - [ ] describe_draft_app_version_resources_import_status
+- [ ] describe_metrics_export
 - [X] describe_resiliency_policy
 - [ ] describe_resource_grouping_recommendation_task
 - [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
+- [ ] list_app_assessment_resource_drifts
 - [X] list_app_assessments
   
         Moto will not actually execute any assessments, so this operation will return an empty list by default.
@@ -99,6 +101,7 @@ resiliencehub
         The FromAssessmentTime/ToAssessmentTime-parameters are not yet implemented
         
 
+- [ ] list_metrics
 - [ ] list_recommendation_templates
 - [X] list_resiliency_policies
 - [ ] list_resource_grouping_recommendations
@@ -113,6 +116,7 @@ resiliencehub
 - [ ] remove_draft_app_version_resource_mappings
 - [ ] resolve_app_version_resources
 - [ ] start_app_assessment
+- [ ] start_metrics_export
 - [ ] start_resource_grouping_recommendation_task
 - [X] tag_resource
 - [X] untag_resource

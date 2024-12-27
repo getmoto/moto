@@ -52,7 +52,7 @@ jobs:
         make test-only
     - name: "Upload coverage to Codecov"
       if: ${{ github.repository == 'getmoto/moto'}}
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         fail_ci_if_error: false
         flags: servertests

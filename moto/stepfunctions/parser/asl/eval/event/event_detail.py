@@ -7,6 +7,7 @@ from moto.stepfunctions.parser.api import (
     ActivityStartedEventDetails,
     ActivitySucceededEventDetails,
     ActivityTimedOutEventDetails,
+    EvaluationFailedEventDetails,
     ExecutionAbortedEventDetails,
     ExecutionFailedEventDetails,
     ExecutionStartedEventDetails,
@@ -50,6 +51,7 @@ class EventDetails(TypedDict):
     taskSubmittedEventDetails: Optional[TaskSubmittedEventDetails]
     taskSucceededEventDetails: Optional[TaskSucceededEventDetails]
     taskTimedOutEventDetails: Optional[TaskTimedOutEventDetails]
+    evaluationFailedEventDetails: Optional[EvaluationFailedEventDetails]
     executionFailedEventDetails: Optional[ExecutionFailedEventDetails]
     executionStartedEventDetails: Optional[ExecutionStartedEventDetails]
     executionSucceededEventDetails: Optional[ExecutionSucceededEventDetails]

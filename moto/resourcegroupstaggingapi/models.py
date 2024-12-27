@@ -14,6 +14,7 @@ from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
+from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.logs.models import LogsBackend, logs_backends
@@ -22,6 +23,8 @@ from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
+from moto.secretsmanager import secretsmanager_backends
+from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -111,6 +114,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return acm_backends[self.account_id][self.region_name]
 
     @property
+    def secretsmanager_backend(self) -> SecretsManagerBackend:
+        return secretsmanager_backends[self.account_id][self.region_name]
+
+    @property
     def sns_backend(self) -> SNSBackend:
         return sns_backends[self.account_id][self.region_name]
 
@@ -147,6 +154,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
+
+    @property
+    def kafka_backend(self) -> KafkaBackend:
+        return kafka_backends[self.account_id][self.region_name]
 
     @property
     def sagemaker_backend(self) -> SageMakerModelBackend:
@@ -496,6 +507,24 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # RedShift Snapshot
         # RedShift Subnet group
 
+        # Secrets Manager
+        if (
+            not resource_type_filters
+            or "secretsmanager" in resource_type_filters
+            or "secretsmanager:secret" in resource_type_filters
+        ):
+            for secret in self.secretsmanager_backend.secrets.values():
+                if isinstance(secret, ReplicaSecret):
+                    secret_tags = secret.source.tags
+                else:
+                    secret_tags = secret.tags
+
+                if secret_tags:
+                    formated_tags = format_tag_keys(secret_tags, ["Key", "Value"])
+                    if not formated_tags or not tag_filter(formated_tags):
+                        continue
+                    yield {"ResourceARN": f"{secret.arn}", "Tags": formated_tags}
+
         # SQS
         if not resource_type_filters or "sqs" in resource_type_filters:
             for queue in self.sqs_backend.queues.values():
@@ -583,6 +612,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {
                     "ResourceARN": f"arn:{get_partition(self.region_name)}:workspaces:{self.region_name}:{self.account_id}:workspaceimage/{wi.image_id}",
+                    "Tags": tags,
+                }
+
+        # Kafka (MSK)
+        if self.kafka_backend and (
+            not resource_type_filters or "kafka" in resource_type_filters
+        ):
+            for msk_cluster in self.kafka_backend.clusters.values():
+                tag_dict = self.kafka_backend.list_tags_for_resource(msk_cluster.arn)
+                tags = [{"Key": key, "Value": value} for key, value in tag_dict.items()]
+
+                if not tags or not tag_filter(tags):
+                    continue
+
+                yield {
+                    "ResourceARN": msk_cluster.arn,
                     "Tags": tags,
                 }
 
