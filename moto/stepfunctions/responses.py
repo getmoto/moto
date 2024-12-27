@@ -47,10 +47,8 @@ class StepFunctionResponse(BaseResponse):
             "creationDate": state_machine.creation_date,
             "stateMachineArn": state_machine.arn,
         }
-        if publish:
-            response["stateMachineVersionArn"] = (
-                f"{state_machine.arn}:{state_machine.version}"
-            )
+        if state_machine.latest_version:
+            response["stateMachineVersionArn"] = state_machine.latest_version.arn
         return 200, {}, json.dumps(response)
 
     def list_state_machines(self) -> TYPE_RESPONSE:
@@ -116,13 +114,9 @@ class StepFunctionResponse(BaseResponse):
             logging_configuration=logging_config,
             publish=publish,
         )
-        response = {
-            "updateDate": state_machine.update_date,
-        }
+        response = {"updateDate": state_machine.update_date}
         if publish:
-            response["stateMachineVersionArn"] = (
-                f"{state_machine.arn}:{state_machine.version}"
-            )
+            response["stateMachineVersionArn"] = state_machine.latest_version.arn # type: ignore
         return 200, {}, json.dumps(response)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
