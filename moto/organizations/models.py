@@ -12,11 +12,13 @@ from moto.organizations.exceptions import (
     AccountAlreadyRegisteredException,
     AccountNotFoundException,
     AccountNotRegisteredException,
+    AlreadyInOrganizationException,
     AWSOrganizationsNotInUseException,
     ConstraintViolationException,
     DuplicateOrganizationalUnitException,
     DuplicatePolicyException,
     InvalidInputException,
+    OrganizationNotEmptyException,
     PolicyNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
@@ -422,6 +424,9 @@ class OrganizationsBackend(BaseBackend):
         return root  # type: ignore[return-value]
 
     def create_organization(self, region: str, **kwargs: Any) -> Dict[str, Any]:
+        if self.org or self.account_id in organizations_backends.master_accounts:
+            raise AlreadyInOrganizationException
+
         self.org = FakeOrganization(
             self.account_id,
             region_name=region,
@@ -468,11 +473,12 @@ class OrganizationsBackend(BaseBackend):
         raise AWSOrganizationsNotInUseException
 
     def delete_organization(self) -> None:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
         if [account for account in self.accounts if account.name != "master"]:
-            raise RESTError(
-                "OrganizationNotEmptyException",
-                "To delete an organization you must first remove all member accounts (except the master).",
-            )
+            raise OrganizationNotEmptyException
+
         self._reset()
 
     def list_roots(self) -> Dict[str, Any]:
@@ -532,6 +538,9 @@ class OrganizationsBackend(BaseBackend):
         ]
 
     def create_account(self, **kwargs: Any) -> Dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
@@ -542,6 +551,9 @@ class OrganizationsBackend(BaseBackend):
         return new_account.create_account_status
 
     def close_account(self, **kwargs: Any) -> None:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
         for account in self.accounts:
             if account.id == kwargs["AccountId"]:
                 account.close()

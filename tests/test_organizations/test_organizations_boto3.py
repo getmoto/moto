@@ -43,11 +43,24 @@ mockemail = "@".join([mockname, mockdomain])
     [("us-east-1", "aws"), ("cn-north-1", "aws-cn"), ("us-isob-east-1", "aws-iso-b")],
 )
 def test_create_organization(region, partition):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+
     client = boto3.client("organizations", region_name=region)
     response = client.create_organization(FeatureSet="ALL")
     validate_organization(response, partition=partition)
     organization = response["Organization"]
     assert organization["FeatureSet"] == "ALL"
+
+    # Raise if the caller already has an associated org
+    with pytest.raises(ClientError) as exc:
+        client.create_organization(FeatureSet="ALL")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AlreadyInOrganizationException" in exc.value.response["Error"]["Code"]
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "The provided account is already a member of an organization."
+    )
 
     response = client.list_accounts()
     assert len(response["Accounts"]) == 1
@@ -71,6 +84,19 @@ def test_create_organization(region, partition):
     assert root_ou["Name"] == "Root"
     master_account = [t for t in response["Targets"] if t["Type"] == "ACCOUNT"][0]
     assert master_account["Name"] == "master"
+
+    # Raise if a member account attempts to create an org
+    account = client.create_account(AccountName=mockname, Email=mockemail)
+    account_id = account["CreateAccountStatus"]["AccountId"]
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": account_id}):
+        with pytest.raises(ClientError) as exc:
+            boto3.client("organizations", region_name=region).create_organization()
+        assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "AlreadyInOrganizationException" in exc.value.response["Error"]["Code"]
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "The provided account is already a member of an organization."
+        )
 
 
 @mock_aws
@@ -273,6 +299,17 @@ def test_list_organizational_units_for_parent_exception():
 @mock_aws
 def test_create_account():
     client = boto3.client("organizations", region_name="us-east-1")
+
+    # Raise when creating an account when no org is associated
+    with pytest.raises(ClientError) as exc:
+        client.create_account(AccountName=mockname, Email=mockemail)
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "OrganizationsNotInUse" in exc.value.response["Error"]["Code"]
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Your account is not a member of an organization."
+    )
+
     client.create_organization(FeatureSet="ALL")
     create_status = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
@@ -282,8 +319,19 @@ def test_create_account():
 
 
 @mock_aws
-def test_close_account_returns_nothing():
+def test_close_account():
     client = boto3.client("organizations", region_name="us-east-1")
+
+    # Raise when closing an account when no org is associated
+    with pytest.raises(ClientError) as exc:
+        client.close_account(AccountId="111111111112")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "OrganizationsNotInUse" in exc.value.response["Error"]["Code"]
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Your account is not a member of an organization."
+    )
+
     client.create_organization(FeatureSet="ALL")
     create_status = client.create_account(AccountName=mockname, Email=mockemail)[
         "CreateAccountStatus"
@@ -292,8 +340,8 @@ def test_close_account_returns_nothing():
 
     resp = client.close_account(AccountId=created_account_id)
 
+    # Ensure CloseAccount returns nothing
     del resp["ResponseMetadata"]
-
     assert resp == {}
 
 
@@ -672,6 +720,17 @@ def test_remove_account_from_organization():
 @mock_aws
 def test_delete_organization_with_existing_account():
     client = boto3.client("organizations", region_name="us-east-1")
+
+    # Raise when attempting to delete an org when none is associated
+    with pytest.raises(ClientError) as exc:
+        client.delete_organization()
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWSOrganizationsNotInUseException" in exc.value.response["Error"]["Code"]
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Your account is not a member of an organization."
+    )
+
     client.create_organization(FeatureSet="ALL")
     create_account_status = client.create_account(
         Email=mockemail, AccountName=mockname
