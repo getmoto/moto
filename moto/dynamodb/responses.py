@@ -14,6 +14,7 @@ from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
+    ExpressionAttributeValuesEmpty,
     InvalidProjectionExpression,
     KeyIsEmptyStringException,
     MockValidationException,
@@ -1012,7 +1013,7 @@ class DynamoHandler(BaseResponse):
         if values is None:
             return {}
         if len(values) == 0:
-            raise MockValidationException("ExpressionAttributeValues must not be empty")
+            raise ExpressionAttributeValuesEmpty
         for key in values.keys():
             if not key.startswith(":"):
                 raise MockValidationException(
@@ -1134,10 +1135,16 @@ class DynamoHandler(BaseResponse):
         # Validate first - we should error before we start the transaction
         for item in transact_items:
             if "Put" in item:
+                if item["Put"].get("ExpressionAttributeValues") == {}:
+                    raise ExpressionAttributeValuesEmpty
+
                 item_attrs = item["Put"]["Item"]
                 table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
                 validate_put_has_empty_keys(item_attrs, table)
             if "Update" in item:
+                if item["Update"].get("ExpressionAttributeValues") == {}:
+                    raise ExpressionAttributeValuesEmpty
+
                 item_attrs = item["Update"]["Key"]
                 table = self.dynamodb_backend.get_table(item["Update"]["TableName"])
                 validate_put_has_empty_keys(
