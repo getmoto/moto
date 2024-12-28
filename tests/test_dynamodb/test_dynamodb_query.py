@@ -867,3 +867,28 @@ def test_query_gsi_pagination_with_string_gsi_range_no_sk(table_name=None):
     results = page1["Items"] + page2["Items"]
     subjects = set([int(r["pk"]) for r in results])
     assert subjects == set(range(10))
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_key_condition_expression_with_brackets(table_name=None):
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.Table(table_name)
+
+    table.put_item(Item={"pk": "TEST", "sk": "aa"})
+    table.put_item(Item={"pk": "TEST", "sk": "ab"})
+    table.put_item(Item={"pk": "TEST", "sk": "ac"})
+
+    results = table.query(
+        KeyConditionExpression="(#0 = :0) AND (begins_with(#1, :1))",
+        ExpressionAttributeNames={"#0": "pk", "#1": "sk"},
+        ExpressionAttributeValues={":0": "TEST", ":1": "a"},
+    )
+    assert results["Count"] == 3
+
+    results = table.query(
+        KeyConditionExpression="(#0 = :0) AND (#1 BETWEEN :1 AND :2)",
+        ExpressionAttributeNames={"#0": "pk", "#1": "sk"},
+        ExpressionAttributeValues={":0": "TEST", ":1": "ab", ":2": "ab"},
+    )
+    assert results["Items"] == [{"pk": "TEST", "sk": "ab"}]
