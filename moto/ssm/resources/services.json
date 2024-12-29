@@ -1380,6 +1380,9 @@
               "ap-southeast-2": {
                 "Value": "ap-southeast-2"
               },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5"
+              },
               "ca-central-1": {
                 "Value": "ca-central-1"
               },
