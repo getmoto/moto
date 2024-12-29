@@ -22689,6 +22689,9 @@
                   "Value": "https"
                 }
               },
+              "amazonlocationservice": {
+                "Value": "amazonlocationservice"
+              },
               "apigateway": {
                 "Value": "apigateway",
                 "endpoint": {
