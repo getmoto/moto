@@ -116,7 +116,7 @@ class StepFunctionResponse(BaseResponse):
         )
         response = {"updateDate": state_machine.update_date}
         if publish:
-            response["stateMachineVersionArn"] = state_machine.latest_version.arn # type: ignore
+            response["stateMachineVersionArn"] = state_machine.latest_version.arn  # type: ignore
         return 200, {}, json.dumps(response)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
