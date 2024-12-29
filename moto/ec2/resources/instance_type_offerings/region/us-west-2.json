@@ -1180,6 +1180,42 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "i8g.12xlarge",
   "Location": "us-west-2"
  },

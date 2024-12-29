@@ -1152,6 +1152,42 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "i8g.12xlarge",
   "Location": "usw2-az1"
  },
@@ -4468,6 +4504,42 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "i8g.12xlarge",
   "Location": "usw2-az2"
  },
@@ -7753,6 +7825,42 @@
  },
  {
   "InstanceType": "i4i.xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
   "Location": "usw2-az3"
  },
  {
