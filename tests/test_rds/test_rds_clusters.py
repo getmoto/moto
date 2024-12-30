@@ -11,6 +11,7 @@ RDS_REGION = "eu-north-1"
 
 
 @pytest.fixture(name="client")
+@mock_aws
 def get_rds_client():
     return boto3.client("rds", region_name=RDS_REGION)
 
