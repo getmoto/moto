@@ -1,5 +1,5 @@
 import json
-from typing import Dict, Final, Optional, Set
+from typing import Any, Callable, Dict, Optional, Set
 
 from botocore.exceptions import ClientError
 
@@ -22,7 +22,11 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name_type import (
     StatesErrorNameType,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    ComputedCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
+    ResourceCondition,
     ResourceRuntimePart,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state_task_service_callback import (
@@ -32,15 +36,24 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
+from moto.utilities.collections import select_from_typed_dict
+
+_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+    ResourceCondition.WaitForTaskToken,
+    ResourceCondition.Sync,
+    ResourceCondition.Sync2,
+}
+_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+    "startexecution": {"Input", "Name", "StateMachineArn"}
+}
 
 
 class StateTaskServiceSfn(StateTaskServiceCallback):
-    _SUPPORTED_API_PARAM_BINDINGS: Final[Dict[str, Set[str]]] = {
-        "startexecution": {"Input", "Name", "StateMachineArn"}
-    }
+    def __init__(self):
+        super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
     def _get_supported_parameters(self) -> Optional[Set[str]]:
-        return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
+        return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
         if isinstance(ex, ClientError):
@@ -61,6 +74,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
                 f"{ex.response['Error']['Message']} ({'; '.join(error_cause_details)})"
             )
             return FailureEvent(
+                env=env,
                 error_name=CustomErrorName(error_name),
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
@@ -97,6 +111,61 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
             service_action_name=service_action_name,
         )
 
+    def _build_sync_resolver(
+        self,
+        env: Environment,
+        resource_runtime_part: ResourceRuntimePart,
+        normalised_parameters: dict,
+        task_credentials: ComputedCredentials,
+    ) -> Callable[[], Optional[Any]]:
+        sfn_client = boto_client_for(
+            region=resource_runtime_part.region,
+            account=resource_runtime_part.account,
+            service="stepfunctions",
+            credentials=task_credentials,
+        )
+        submission_output: dict = env.stack.pop()
+        execution_arn: str = submission_output["ExecutionArn"]
+
+        def _sync_resolver() -> Optional[Any]:
+            describe_execution_output = sfn_client.describe_execution(
+                executionArn=execution_arn
+            )
+            describe_execution_output: DescribeExecutionOutput = select_from_typed_dict(
+                DescribeExecutionOutput, describe_execution_output
+            )
+            execution_status: ExecutionStatus = describe_execution_output["status"]
+
+            if execution_status == ExecutionStatus.RUNNING:
+                return None
+
+            self._normalise_response(
+                response=describe_execution_output,
+                service_action_name="describe_execution",
+            )
+            if execution_status == ExecutionStatus.SUCCEEDED:
+                return describe_execution_output
+            else:
+                raise FailureEventException(
+                    FailureEvent(
+                        env=env,
+                        error_name=StatesErrorName(
+                            typ=StatesErrorNameType.StatesTaskFailed
+                        ),
+                        event_type=HistoryEventType.TaskFailed,
+                        event_details=EventDetails(
+                            taskFailedEventDetails=TaskFailedEventDetails(
+                                resource=self._get_sfn_resource(),
+                                resourceType=self._get_sfn_resource_type(),
+                                error=StatesErrorNameType.StatesTaskFailed.to_name(),
+                                cause=to_json_str(describe_execution_output),
+                            )
+                        ),
+                    )
+                )
+
+        return _sync_resolver
+
     @staticmethod
     def _sync2_api_output_of(typ: type, value: json) -> None:
         def _replace_with_json_if_str(key: str) -> None:
@@ -108,11 +177,70 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
             _replace_with_json_if_str("input")
             _replace_with_json_if_str("output")
 
+    def _build_sync2_resolver(
+        self,
+        env: Environment,
+        resource_runtime_part: ResourceRuntimePart,
+        normalised_parameters: dict,
+        task_credentials: ComputedCredentials,
+    ) -> Callable[[], Optional[Any]]:
+        sfn_client = boto_client_for(
+            region=resource_runtime_part.region,
+            account=resource_runtime_part.account,
+            service="stepfunctions",
+            credentials=task_credentials,
+        )
+        submission_output: dict = env.stack.pop()
+        execution_arn: str = submission_output["ExecutionArn"]
+
+        def _sync2_resolver() -> Optional[Any]:
+            describe_execution_output = sfn_client.describe_execution(
+                executionArn=execution_arn
+            )
+            describe_execution_output: DescribeExecutionOutput = select_from_typed_dict(
+                DescribeExecutionOutput, describe_execution_output
+            )
+            execution_status: ExecutionStatus = describe_execution_output["status"]
+
+            if execution_status == ExecutionStatus.RUNNING:
+                return None
+
+            self._sync2_api_output_of(
+                typ=DescribeExecutionOutput, value=describe_execution_output
+            )
+            self._normalise_response(
+                response=describe_execution_output,
+                service_action_name="describe_execution",
+            )
+            if execution_status == ExecutionStatus.SUCCEEDED:
+                return describe_execution_output
+            else:
+                raise FailureEventException(
+                    FailureEvent(
+                        env=env,
+                        error_name=StatesErrorName(
+                            typ=StatesErrorNameType.StatesTaskFailed
+                        ),
+                        event_type=HistoryEventType.TaskFailed,
+                        event_details=EventDetails(
+                            taskFailedEventDetails=TaskFailedEventDetails(
+                                resource=self._get_sfn_resource(),
+                                resourceType=self._get_sfn_resource_type(),
+                                error=StatesErrorNameType.StatesTaskFailed.to_name(),
+                                cause=to_json_str(describe_execution_output),
+                            )
+                        ),
+                    )
+                )
+
+        return _sync2_resolver
+
     def _eval_service_task(
         self,
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        task_credentials: ComputedCredentials,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
@@ -120,101 +248,8 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
             region=resource_runtime_part.region,
             account=resource_runtime_part.account,
             service=service_name,
+            credentials=task_credentials,
         )
         response = getattr(sfn_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)
         env.stack.append(response)
-
-    def _sync_to_start_machine(
-        self,
-        env: Environment,
-        resource_runtime_part: ResourceRuntimePart,
-        sync2_response: bool,
-    ) -> None:
-        sfn_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
-            service="stepfunctions",
-        )
-        submission_output: dict = env.stack.pop()
-        execution_arn: str = submission_output["ExecutionArn"]
-
-        def _has_terminated() -> Optional[dict]:
-            describe_execution_output = sfn_client.describe_execution(
-                executionArn=execution_arn
-            )
-            execution_status: ExecutionStatus = describe_execution_output["status"]
-
-            if execution_status != ExecutionStatus.RUNNING:
-                if sync2_response:
-                    self._sync2_api_output_of(
-                        typ=DescribeExecutionOutput, value=describe_execution_output
-                    )
-                self._normalise_response(
-                    response=describe_execution_output,
-                    service_action_name="describe_execution",
-                )
-                if execution_status == ExecutionStatus.SUCCEEDED:
-                    return describe_execution_output
-                else:
-                    raise FailureEventException(
-                        FailureEvent(
-                            error_name=StatesErrorName(
-                                typ=StatesErrorNameType.StatesTaskFailed
-                            ),
-                            event_type=HistoryEventType.TaskFailed,
-                            event_details=EventDetails(
-                                taskFailedEventDetails=TaskFailedEventDetails(
-                                    resource=self._get_sfn_resource(),
-                                    resourceType=self._get_sfn_resource_type(),
-                                    error=StatesErrorNameType.StatesTaskFailed.to_name(),
-                                    cause=to_json_str(describe_execution_output),
-                                )
-                            ),
-                        )
-                    )
-            return None
-
-        termination_output: Optional[dict] = None
-        while env.is_running() and not termination_output:
-            termination_output: Optional[dict] = _has_terminated()
-
-        env.stack.append(termination_output)
-
-    def _sync(
-        self,
-        env: Environment,
-        resource_runtime_part: ResourceRuntimePart,
-        normalised_parameters: dict,
-    ) -> None:
-        if self._get_boto_service_action() == "start_execution":
-            return self._sync_to_start_machine(
-                env=env,
-                resource_runtime_part=resource_runtime_part,
-                sync2_response=False,
-            )
-        else:
-            super()._sync(
-                env=env,
-                resource_runtime_part=resource_runtime_part,
-                normalised_parameters=normalised_parameters,
-            )
-
-    def _sync2(
-        self,
-        env: Environment,
-        resource_runtime_part: ResourceRuntimePart,
-        normalised_parameters: dict,
-    ) -> None:
-        if self._get_boto_service_action() == "start_execution":
-            return self._sync_to_start_machine(
-                env=env,
-                resource_runtime_part=resource_runtime_part,
-                sync2_response=True,
-            )
-        else:
-            super()._sync2(
-                env=env,
-                resource_runtime_part=resource_runtime_part,
-                normalised_parameters=normalised_parameters,
-            )

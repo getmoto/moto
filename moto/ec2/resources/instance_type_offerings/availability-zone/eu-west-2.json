@@ -1340,6 +1340,10 @@
   "Location": "eu-west-2a"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
   "InstanceType": "r4.16xlarge",
   "Location": "eu-west-2a"
  },
@@ -3220,6 +3224,10 @@
   "Location": "eu-west-2b"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "eu-west-2b"
+ },
+ {
   "InstanceType": "r4.16xlarge",
   "Location": "eu-west-2b"
  },
@@ -5053,6 +5061,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "eu-west-2c"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "eu-west-2c"
  },
  {

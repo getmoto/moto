@@ -1,3 +1,5 @@
+from typing import Any
+
 import boto3
 from botocore.client import BaseClient
 from botocore.config import Config
@@ -9,7 +11,9 @@ from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import (
 )
 
 
-def boto_client_for(region: str, account: str, service: str) -> BaseClient:
+def boto_client_for(
+    region: str, account: str, service: str, credentials: Any = None
+) -> BaseClient:
     intercepting_boto_calls = botocore_stubber.enabled
     kwargs = {}
     if not intercepting_boto_calls:

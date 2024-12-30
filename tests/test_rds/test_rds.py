@@ -551,9 +551,18 @@ def test_describe_non_existent_database():
         conn.describe_db_instances(DBInstanceIdentifier="not-a-db")
 
 
+@pytest.mark.parametrize(
+    "custom_db_subnet_group", [True, False], ids=("custom_subnet", "default_subnet")
+)
 @mock_aws
-def test_modify_db_instance():
+def test_modify_db_instance(custom_db_subnet_group: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
+
+    if custom_db_subnet_group:
+        extra_kwargs = {"DBSubnetGroupName": create_db_subnet_group()}
+    else:
+        extra_kwargs = {}
+
     conn.create_db_instance(
         DBInstanceIdentifier="db-id",
         AllocatedStorage=10,
@@ -563,6 +572,7 @@ def test_modify_db_instance():
         MasterUserPassword="hunter2",
         Port=1234,
         DBSecurityGroups=["my_sg"],
+        **extra_kwargs,
     )
     inst = conn.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
     assert inst["AllocatedStorage"] == 10
@@ -1372,13 +1382,7 @@ def test_restore_db_instance_from_db_snapshot(
     )
 
     if custom_db_subnet_group:
-        ec2 = boto3.client("ec2", region_name=DEFAULT_REGION)
-        subnets = ec2.describe_subnets()["Subnets"]
-        conn.create_db_subnet_group(
-            DBSubnetGroupName="custom-subnet-group",
-            DBSubnetGroupDescription="xxx",
-            SubnetIds=[subnets[0]["SubnetId"]],
-        )
+        db_subnet_group_name = create_db_subnet_group()
 
     # restore
     new_instance = conn.restore_db_instance_from_db_snapshot(
@@ -1389,11 +1393,11 @@ def test_restore_db_instance_from_db_snapshot(
         "DBSnapshotIdentifier": db_snapshot_identifier,
     }
     if custom_db_subnet_group:
-        kwargs["DBSubnetGroupName"] = "custom-subnet-group"
+        kwargs["DBSubnetGroupName"] = db_subnet_group_name
     new_instance = conn.restore_db_instance_from_db_snapshot(**kwargs)["DBInstance"]
     if custom_db_subnet_group:
         assert (
-            new_instance["DBSubnetGroup"]["DBSubnetGroupName"] == "custom-subnet-group"
+            new_instance["DBSubnetGroup"]["DBSubnetGroupName"] == db_subnet_group_name
         )
     assert new_instance["DBInstanceIdentifier"] == "db-restore-1"
     assert new_instance["DBInstanceClass"] == "db.m1.small"
@@ -1420,9 +1424,18 @@ def test_restore_db_instance_from_db_snapshot(
     )
 
 
+@pytest.mark.parametrize(
+    "custom_db_subnet_group", [True, False], ids=("custom_subnet", "default_subnet")
+)
 @mock_aws
-def test_restore_db_instance_to_point_in_time():
+def test_restore_db_instance_to_point_in_time(custom_db_subnet_group: bool):
     conn = boto3.client("rds", region_name=DEFAULT_REGION)
+
+    if custom_db_subnet_group:
+        extra_kwargs = {"DBSubnetGroupName": create_db_subnet_group()}
+    else:
+        extra_kwargs = {}
+
     conn.create_db_instance(
         DBInstanceIdentifier="db-primary-1",
         AllocatedStorage=10,
@@ -1432,6 +1445,7 @@ def test_restore_db_instance_to_point_in_time():
         MasterUsername="root",
         MasterUserPassword="hunter2",
         DBSecurityGroups=["my_sg"],
+        **extra_kwargs,
     )
     assert len(conn.describe_db_instances()["DBInstances"]) == 1
 
@@ -2319,6 +2333,19 @@ def test_create_database_in_subnet_group():
     assert result["DBInstances"][0]["DBSubnetGroup"]["DBSubnetGroupName"] == (
         "db_subnet1"
     )
+
+
+def create_db_subnet_group(db_subnet_group_name: str = "custom_db_subnet") -> str:
+    ec2 = boto3.client("ec2", region_name=DEFAULT_REGION)
+    first_subnet_id = ec2.describe_subnets()["Subnets"][0]["SubnetId"]
+
+    rds = boto3.client("rds", region_name=DEFAULT_REGION)
+    rds.create_db_subnet_group(
+        DBSubnetGroupName=db_subnet_group_name,
+        DBSubnetGroupDescription="xxx",
+        SubnetIds=[first_subnet_id],
+    )
+    return db_subnet_group_name
 
 
 @mock_aws

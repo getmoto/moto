@@ -1408,6 +1408,10 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "aps1-az1"
  },
@@ -3488,6 +3492,10 @@
   "Location": "aps1-az2"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "aps1-az2"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "aps1-az2"
  },
@@ -5541,6 +5549,10 @@
  },
  {
   "InstanceType": "p2.xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "aps1-az3"
  },
  {

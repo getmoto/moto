@@ -488,6 +488,30 @@
   "Location": "eus2-az1"
  },
  {
+  "InstanceType": "im4gn.16xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "im4gn.2xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "im4gn.4xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "im4gn.8xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "im4gn.large",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "im4gn.xlarge",
+  "Location": "eus2-az1"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "eus2-az1"
  },
@@ -1860,6 +1884,30 @@
   "Location": "eus2-az2"
  },
  {
+  "InstanceType": "im4gn.16xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "im4gn.2xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "im4gn.4xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "im4gn.8xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "im4gn.large",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "im4gn.xlarge",
+  "Location": "eus2-az2"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "eus2-az2"
  },
@@ -3193,6 +3241,30 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "im4gn.16xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "im4gn.2xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "im4gn.4xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "im4gn.8xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "im4gn.large",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "im4gn.xlarge",
   "Location": "eus2-az3"
  },
  {

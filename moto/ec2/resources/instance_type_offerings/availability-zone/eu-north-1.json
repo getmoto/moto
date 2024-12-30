@@ -1168,6 +1168,10 @@
   "Location": "eu-north-1a"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eu-north-1a"
  },
@@ -2953,6 +2957,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "eu-north-1b"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "eu-north-1b"
  },
  {

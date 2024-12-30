@@ -11,7 +11,11 @@ from moto.stepfunctions.parser.asl.component.common.error_name.error_name import
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEvent,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    ComputedCredentials,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
+    ResourceCondition,
     ResourceRuntimePart,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state_task_service_callback import (
@@ -21,6 +25,15 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
+
+_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+    ResourceCondition.WaitForTaskToken,
+}
+_FAILED_ENTRY_ERROR_NAME: ErrorName = CustomErrorName(
+    error_name="EventBridge.FailedEntry"
+)
+
+_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {"putevents": {"Entries"}}
 
 
 class SfnFailedEntryCountException(RuntimeError):
@@ -32,25 +45,21 @@ class SfnFailedEntryCountException(RuntimeError):
 
 
 class StateTaskServiceEvents(StateTaskServiceCallback):
-    _FAILED_ENTRY_ERROR_NAME: Final[ErrorName] = CustomErrorName(
-        error_name="EventBridge.FailedEntry"
-    )
-
-    _SUPPORTED_API_PARAM_BINDINGS: Final[Dict[str, Set[str]]] = {
-        "putevents": {"Entries"}
-    }
+    def __init__(self):
+        super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
     def _get_supported_parameters(self) -> Optional[Set[str]]:
-        return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
+        return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
         if isinstance(ex, SfnFailedEntryCountException):
             return FailureEvent(
-                error_name=self._FAILED_ENTRY_ERROR_NAME,
+                env=env,
+                error_name=_FAILED_ENTRY_ERROR_NAME,
                 event_type=HistoryEventType.TaskFailed,
                 event_details=EventDetails(
                     taskFailedEventDetails=TaskFailedEventDetails(
-                        error=self._FAILED_ENTRY_ERROR_NAME.error_name,
+                        error=_FAILED_ENTRY_ERROR_NAME.error_name,
                         cause=ex.cause,
                         resource=self._get_sfn_resource(),
                         resourceType=self._get_sfn_resource_type(),
@@ -76,10 +85,10 @@ class StateTaskServiceEvents(StateTaskServiceCallback):
             #  field of each PutEventsRequestEntry.
             resources = entry.get("Resources", [])
             resources.append(
-                env.context_object_manager.context_object["StateMachine"]["Id"]
+                env.states.context_object.context_object_data["StateMachine"]["Id"]
             )
             resources.append(
-                env.context_object_manager.context_object["Execution"]["Id"]
+                env.states.context_object.context_object_data["Execution"]["Id"]
             )
             entry["Resources"] = resources
 
@@ -88,6 +97,7 @@ class StateTaskServiceEvents(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
+        task_credentials: ComputedCredentials,
     ):
         self._normalised_request_parameters(env=env, parameters=normalised_parameters)
         service_name = self._get_boto_service_name()
@@ -96,17 +106,18 @@ class StateTaskServiceEvents(StateTaskServiceCallback):
             region=resource_runtime_part.region,
             account=resource_runtime_part.account,
             service=service_name,
+            credentials=task_credentials,
         )
         response = getattr(events_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)
 
         # If the response from PutEvents contains a non-zero FailedEntryCount then the
         #  Task state fails with the error EventBridge.FailedEntry.
-        if self.resource.api_action == "putevents":
+        if self.resource.api_action == "putEvents":
             failed_entry_count = response.get("FailedEntryCount", 0)
             if failed_entry_count > 0:
                 # TODO: pipe events' cause in the exception object. At them moment
                 #  LS events does not update this field.
-                raise SfnFailedEntryCountException(cause={"Cause": "Unsupported"})
+                raise SfnFailedEntryCountException(cause=response)
 
         env.stack.append(response)

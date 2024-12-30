@@ -2309,6 +2309,11 @@ def test_get_bucket_cors():
     resp = s3_client.get_bucket_cors(Bucket=bucket_name)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert len(resp["CORSRules"]) == 2
+    for rules in resp["CORSRules"]:
+        assert rules["AllowedOrigins"] == ["*"]
+        assert rules["AllowedHeaders"] == ["Authorization"]
+        assert rules["ExposeHeaders"] == ["x-amz-request-id"]
+        assert rules["MaxAgeSeconds"] == 123
 
 
 @pytest.mark.aws_verified

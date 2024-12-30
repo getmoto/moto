@@ -297,7 +297,7 @@ def test_s3_server_post_cors_exposed_header():
     assert res.status_code == 200
 
     cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
-    assert b"<ExposedHeader>ETag</ExposedHeader>" in cors_res.data
+    assert b"<ExposeHeader>ETag</ExposeHeader>" in cors_res.data
 
     # Test OPTIONS bucket response and key response
     for key_name in ("/", "/test"):

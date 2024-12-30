@@ -20,6 +20,7 @@ def from_item_processor_decl(
 ) -> IterationComponent:
     if item_processor_decl.processor_config.mode == Mode.Inline:
         return InlineItemProcessor(
+            query_language=item_processor_decl.query_language,
             start_at=item_processor_decl.start_at,
             states=item_processor_decl.states,
             comment=item_processor_decl.comment,
@@ -27,6 +28,7 @@ def from_item_processor_decl(
         )
     elif item_processor_decl.processor_config.mode == Mode.Distributed:
         return DistributedItemProcessor(
+            query_language=item_processor_decl.query_language,
             start_at=item_processor_decl.start_at,
             states=item_processor_decl.states,
             comment=item_processor_decl.comment,
@@ -34,5 +36,5 @@ def from_item_processor_decl(
         )
     else:
         raise ValueError(
-            f"Unknown Mode value '{item_processor_decl.processor_config.mode}'."
+            f"Unknown Map state processing mode: '{item_processor_decl.processor_config.mode}'."
         )

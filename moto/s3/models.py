@@ -2994,7 +2994,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         select_query: str,
         input_details: Dict[str, Any],
         output_details: Dict[str, Any],
-    ) -> List[bytes]:
+    ) -> Tuple[List[bytes], int]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
 
@@ -3023,7 +3023,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 "FileHeaderInfo", ""
             ) == "USE"
             query_input = csv_to_json(query_input, use_headers)
-        query_result = parse_query(query_input, select_query)  # type: ignore
+        query_result, bytes_scanned = parse_query(query_input, select_query)  # type: ignore
 
         record_delimiter = "\n"
         if "JSON" in output_details:
@@ -3041,7 +3041,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             from py_partiql_parser import json_to_csv
 
             query_result = json_to_csv(query_result, field_delim, record_delimiter)
-            return [query_result.encode("utf-8")]  # type: ignore
+            return [query_result.encode("utf-8")], bytes_scanned  # type: ignore
 
         else:
             from py_partiql_parser import SelectEncoder
@@ -3052,7 +3052,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     + record_delimiter
                 ).encode("utf-8")
                 for x in query_result
-            ]
+            ], bytes_scanned
 
     def restore_object(
         self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]

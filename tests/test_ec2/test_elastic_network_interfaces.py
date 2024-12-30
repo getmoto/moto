@@ -1020,6 +1020,37 @@ def test_create_instance__termination_deletes_eni(delete_eni):
         ec2_client.delete_network_interface(NetworkInterfaceId=eni_id)
 
 
+@mock_aws
+def test_recreate_instance_with_same_ip_address():
+    ssm = boto3.client("ssm", "us-east-1")
+    kernel_61 = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+    ami_id = ssm.get_parameter(Name=kernel_61)["Parameter"]["Value"]
+
+    ec2_client = boto3.client("ec2", "us-east-1")
+    existing_subnet_id = ec2_client.describe_subnets()["Subnets"][0]["SubnetId"]
+
+    for _ in range(2):
+        # Second attempt must not throw an exception about a used IP
+        instance_id = ec2_client.run_instances(
+            MaxCount=1,
+            MinCount=1,
+            ImageId=ami_id,
+            InstanceType="t3a.small",
+            NetworkInterfaces=[
+                {
+                    "PrivateIpAddress": "172.31.0.5",
+                    "DeleteOnTermination": True,
+                    "DeviceIndex": 0,
+                    "SubnetId": existing_subnet_id,
+                }
+            ],
+        )["Instances"][0]["InstanceId"]
+        ec2_client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
+
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+        ec2_client.get_waiter("instance_terminated").wait(InstanceIds=[instance_id])
+
+
 def setup_vpc(boto3):  # pylint: disable=W0621
     ec2resource = boto3.resource("ec2", region_name="us-east-1")
     ec2client = boto3.client("ec2", "us-east-1")

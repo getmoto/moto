@@ -6270,7 +6270,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6a.16xlarge",
@@ -6484,7 +6484,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6a.2xlarge",
@@ -6802,7 +6802,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6a.4xlarge",
@@ -6910,7 +6910,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6a.8xlarge",
@@ -7017,7 +7017,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6a.large",
@@ -7205,7 +7205,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6a.xlarge",
@@ -21365,7 +21365,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 1.876,
+     "BaselineBandwidthInGbps": 1.875,
      "MaximumNetworkInterfaces": 4,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 12.5 Gigabit",
@@ -38606,7 +38606,7 @@
      "MemoryInfo": {
       "SizeInMiB": 32768
      },
-     "Name": "Inferentia"
+     "Name": "Inferentia2"
     }
    ],
    "TotalInferenceMemoryInMiB": 196608
@@ -38741,7 +38741,7 @@
      "MemoryInfo": {
       "SizeInMiB": 32768
      },
-     "Name": "Inferentia"
+     "Name": "Inferentia2"
     }
    ],
    "TotalInferenceMemoryInMiB": 393216
@@ -38877,7 +38877,7 @@
      "MemoryInfo": {
       "SizeInMiB": 32768
      },
-     "Name": "Inferentia"
+     "Name": "Inferentia2"
     }
    ],
    "TotalInferenceMemoryInMiB": 32768
@@ -39010,7 +39010,7 @@
      "MemoryInfo": {
       "SizeInMiB": 32768
      },
-     "Name": "Inferentia"
+     "Name": "Inferentia2"
     }
    ],
    "TotalInferenceMemoryInMiB": 32768
@@ -48155,7 +48155,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6a.2xlarge",
@@ -48473,7 +48473,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6a.4xlarge",
@@ -48581,7 +48581,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6a.8xlarge",
@@ -48688,7 +48688,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6a.large",
@@ -48876,7 +48876,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6a.xlarge",
@@ -56051,7 +56051,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m7a.2xlarge",
@@ -56382,7 +56382,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m7a.4xlarge",
@@ -56487,7 +56487,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m7a.8xlarge",
@@ -56594,7 +56594,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m7a.large",
@@ -56870,7 +56870,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m7a.xlarge",
@@ -62317,7 +62317,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 1.876,
+     "BaselineBandwidthInGbps": 1.875,
      "MaximumNetworkInterfaces": 4,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 12.5 Gigabit",
@@ -72968,7 +72968,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6a.2xlarge",
@@ -73286,7 +73286,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6a.4xlarge",
@@ -73498,7 +73498,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6a.large",
@@ -73686,7 +73686,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6a.xlarge",
@@ -87684,7 +87684,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 1.876,
+     "BaselineBandwidthInGbps": 1.875,
      "MaximumNetworkInterfaces": 4,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 12.5 Gigabit",
@@ -91325,7 +91325,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 448,
    "ValidCores": [
-    8,
     16,
     24,
     32,
@@ -91443,7 +91442,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 448,
    "ValidCores": [
-    8,
     16,
     24,
     32,
@@ -91561,7 +91559,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 448,
    "ValidCores": [
-    8,
     16,
     24,
     32,
@@ -91679,7 +91676,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 224,
    "ValidCores": [
-    4,
     8,
     12,
     16,
@@ -91797,7 +91793,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 448,
    "ValidCores": [
-    8,
     16,
     24,
     32,
@@ -91915,7 +91910,6 @@
    "DefaultThreadsPerCore": 1,
    "DefaultVCpus": 224,
    "ValidCores": [
-    8,
     16,
     24,
     32,
@@ -92032,7 +92026,6 @@
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 448,
    "ValidCores": [
-    8,
     16,
     24,
     32,
@@ -92413,7 +92406,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "supported",
+  "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -98837,7 +98830,7 @@
    "MaximumNetworkInterfaces": 4,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 1.876,
+     "BaselineBandwidthInGbps": 1.875,
      "MaximumNetworkInterfaces": 4,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "Up to 12.5 Gigabit",

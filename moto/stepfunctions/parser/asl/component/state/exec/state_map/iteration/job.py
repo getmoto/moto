@@ -50,11 +50,7 @@ class JobPool:
 
         self._jobs_number = len(job_inputs)
         self._open_jobs = [
-            Job(
-                job_index=job_index,
-                job_program=copy.deepcopy(job_program),
-                job_input=job_input,
-            )
+            Job(job_index=job_index, job_program=job_program, job_input=job_input)
             for job_index, job_input in enumerate(job_inputs)
         ]
         self._open_jobs.reverse()
@@ -89,7 +85,9 @@ class JobPool:
 
             if job in self._closed_jobs:
                 LOG.warning(
-                    f"Duplicate execution of Job with index '{job.job_index}' and input '{to_json_str(job.job_input)}'"
+                    "Duplicate execution of Job with index '%s' and input '%s'",
+                    job.job_index,
+                    to_json_str(job.job_input),
                 )
 
             if isinstance(job.job_output, Exception):

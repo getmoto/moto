@@ -1324,6 +1324,10 @@
   "Location": "usw1-az1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "usw1-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "usw1-az1"
  },
@@ -3325,6 +3329,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "usw1-az3"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "usw1-az3"
  },
  {

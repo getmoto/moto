@@ -1408,6 +1408,10 @@
   "Location": "ap-south-1a"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-south-1a"
  },
@@ -3620,6 +3624,10 @@
   "Location": "ap-south-1b"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ap-south-1b"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-south-1b"
  },
@@ -5701,6 +5709,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "ap-south-1c"
  },
  {
