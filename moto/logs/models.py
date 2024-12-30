@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -598,7 +599,8 @@ class LogGroup(CloudFormationModel):
 
     def to_describe_dict(self) -> Dict[str, Any]:
         log_group = {
-            "arn": self.arn,
+            "arn": f"{self.arn}:*",
+            "logGroupArn": self.arn,
             "creationTime": self.creation_time,
             "logGroupName": self.name,
             "metricFilterCount": 0,
@@ -898,12 +900,12 @@ class LogsBackend(BaseBackend):
         descending: bool,
         limit: int,
         log_group_name: str,
+        log_group_id: str,
         log_stream_name_prefix: str,
         next_token: Optional[str],
         order_by: str,
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        if log_group_name not in self.groups:
-            raise ResourceNotFoundException()
+        log_group = self._find_log_group(log_group_id, log_group_name)
         if limit > 50:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 50",
@@ -920,7 +922,6 @@ class LogsBackend(BaseBackend):
             raise InvalidParameterException(
                 msg="Cannot order by LastEventTime with a logStreamNamePrefix."
             )
-        log_group = self.groups[log_group_name]
         return log_group.describe_log_streams(
             descending=descending,
             limit=limit,
@@ -968,6 +969,7 @@ class LogsBackend(BaseBackend):
     def get_log_events(
         self,
         log_group_name: str,
+        log_group_id: str,
         log_stream_name: str,
         start_time: str,
         end_time: str,
@@ -975,15 +977,15 @@ class LogsBackend(BaseBackend):
         next_token: Optional[str],
         start_from_head: str,
     ) -> Tuple[List[Dict[str, Any]], Optional[str], Optional[str]]:
-        if log_group_name not in self.groups:
-            raise ResourceNotFoundException()
+        log_group = self._find_log_group(
+            log_group_id=log_group_id, log_group_name=log_group_name
+        )
         if limit and limit > 10000:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 10000",
                 parameter="limit",
                 value=limit,
             )
-        log_group = self.groups[log_group_name]
         return log_group.get_log_events(
             log_stream_name, start_time, end_time, limit, next_token, start_from_head
         )
@@ -1326,6 +1328,26 @@ class LogsBackend(BaseBackend):
 
     def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
+    def _find_log_group(self, log_group_id: str, log_group_name: str) -> LogGroup:
+        log_group: Optional[LogGroup] = None
+        if log_group_name:
+            log_group = self.groups.get(log_group_name)
+        elif log_group_id:
+            if not re.fullmatch(r"[\w#+=/:,.@-]*", log_group_id):
+                raise InvalidParameterException(
+                    msg=f"1 validation error detected: Value '{log_group_id}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
+                )
+            for log_group in self.groups.values():
+                if log_group.arn == log_group_id:
+                    log_group = log_group
+        else:
+            raise InvalidParameterException(
+                "Should provider either name or id, but not both"
+            )
+        if not log_group:
+            raise ResourceNotFoundException()
+        return log_group
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

@@ -1,6 +1,5 @@
 import copy
 import json
-import os
 from datetime import datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -8,14 +7,9 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core.utils import unix_time_millis
-
-TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
-allow_aws_request = (
-    os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
-)
-
+from tests import allow_aws_request
 
 S3_POLICY = {
     "Version": "2012-10-17",
@@ -49,7 +43,7 @@ S3_POLICY = {
 
 @pytest.fixture()
 def logs():
-    if allow_aws_request:
+    if allow_aws_request():
         yield boto3.client("logs", region_name="us-east-1")
     else:
         with mock_aws():
