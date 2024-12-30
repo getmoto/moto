@@ -153,6 +153,7 @@ if TYPE_CHECKING:
     from moto.workspaces.models import WorkSpacesBackend
     from moto.workspacesweb.models import WorkSpacesWebBackend
     from moto.xray.models import XRayBackend
+    from moto.s3tables.models import S3TablesBackend
 
 
 ALT_SERVICE_NAMES = {
@@ -753,6 +754,8 @@ def get_backend(
 ) -> "BackendDict[WorkSpacesWebBackend]": ...
 @overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
+@overload
+def get_backend(name: "Literal['s3tables']") -> "BackendDict[S3TablesBackend]": ...
 
 
 def get_backend(name: SERVICE_NAMES) -> "BackendDict[SERVICE_BACKEND]":
