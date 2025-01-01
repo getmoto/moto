@@ -1,6 +1,7 @@
 """S3TablesBackend class with methods for supported APIs."""
 
-from moto.core.base_backend import BaseBackend, BackendDict
+from moto.core.base_backend import BackendDict
+from moto.core.base_backend import BaseBackend
 from moto.core.common_models import BaseModel
 
 
@@ -16,6 +17,10 @@ class S3TablesBackend(BaseBackend):
         raise Exception("wow")
         # implement here
         return arn
-    
 
-s3tables_backends = BackendDict(S3TablesBackend, "s3tables")
+
+s3tables_backends = BackendDict(
+    S3TablesBackend,
+    "s3tables",
+    additional_regions=["us-east-1", "us-east-2", "us-west-2"],
+)
