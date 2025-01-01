@@ -11,3 +11,30 @@ def test_create_table_bucket():
     client = boto3.client("s3tables", region_name="us-east-1")
     resp = client.create_table_bucket(name="mytablebucket")
     assert "arn" in resp
+
+
+
+
+
+@mock_aws
+def test_list_table_buckets():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    resp = client.list_table_buckets()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_get_table_bucket():
+    client = boto3.client("s3tables", region_name="eu-west-1")
+    resp = client.get_table_bucket()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_table_bucket():
+    client = boto3.client("s3tables", region_name="eu-west-1")
+    resp = client.delete_table_bucket()
+
+    raise Exception("NotYetImplemented")
