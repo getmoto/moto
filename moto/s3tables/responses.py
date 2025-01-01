@@ -25,10 +25,10 @@ class S3TablesResponse(BaseResponse):
     def create_table_bucket(self):
         params = self._get_params()
         name = params.get("name")
-        arn = self.s3tables_backend.create_table_bucket(
+        table_bucketle_bucket = self.s3tables_backend.create_table_bucket(
             name=name,
         )
         # TODO: adjust response
-        return json.dumps(dict(arn=arn))
+        return json.dumps(dict(arn=table_bucketle_bucket.arn))
 
 # add templates from here

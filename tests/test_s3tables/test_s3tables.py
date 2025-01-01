@@ -9,5 +9,5 @@ from moto import mock_aws
 @mock_aws
 def test_create_table_bucket():
     client = boto3.client("s3tables", region_name="us-east-1")
-    resp = client.create_table_bucket(name="abc")
-    raise Exception("NotYetImplemented")
+    resp = client.create_table_bucket(name="mytablebucket")
+    assert "arn" in resp
