@@ -308,6 +308,7 @@ SERVICE_NAMES = Union[
     "Literal['s3']",
     "Literal['s3bucket_path']",
     "Literal['s3control']",
+    "Literal['s3tables']",
     "Literal['sagemaker']",
     "Literal['sagemaker-metrics']",
     "Literal['sagemaker-runtime']",
