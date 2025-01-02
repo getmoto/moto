@@ -2190,16 +2190,16 @@ def test_create_database_subnet_group(client):
     ]
 
     subnet_ids = [subnet1["SubnetId"], subnet2["SubnetId"]]
-    result = client.create_db_subnet_group(
+    subnet_group = client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet",
         DBSubnetGroupDescription="my db subnet",
         SubnetIds=subnet_ids,
-    )
-    assert result["DBSubnetGroup"]["DBSubnetGroupName"] == "db_subnet"
-    assert result["DBSubnetGroup"]["DBSubnetGroupDescription"] == "my db subnet"
-    subnets = result["DBSubnetGroup"]["Subnets"]
+    )["DBSubnetGroup"]
+    assert subnet_group["DBSubnetGroupName"] == "db_subnet"
+    assert subnet_group["DBSubnetGroupDescription"] == "my db subnet"
+    subnets = subnet_group["Subnets"]
     subnet_group_ids = [subnets[0]["SubnetIdentifier"], subnets[1]["SubnetIdentifier"]]
-    assert list(subnet_group_ids) == subnet_ids
+    assert subnet_group_ids == subnet_ids
 
 
 @mock_aws
