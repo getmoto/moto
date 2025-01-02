@@ -130,7 +130,6 @@ def test_modify_db_cluster_new_cluster_identifier(client):
     resp = client.modify_db_cluster(
         DBClusterIdentifier=old_id,
         NewDBClusterIdentifier=new_id,
-        MasterUserPassword="hunter21",
     )
 
     assert resp["DBCluster"]["DBClusterIdentifier"] == new_id
