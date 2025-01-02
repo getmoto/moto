@@ -24,7 +24,6 @@ def create_db_instance(**extra_kwargs):
     client = boto3.client("rds", region_name=DEFAULT_REGION)
     kwargs = {
         "DBInstanceIdentifier": "db-master-1",
-        # "AllocatedStorage": 10,
         "Engine": "postgres",
         "DBName": "staging-postgres",
         "DBInstanceClass": "db.m1.small",
@@ -192,9 +191,7 @@ def test_create_database_valid_preferred_maintenance_window_format():
 
 @mock_aws
 def test_create_database_valid_preferred_maintenance_window_uppercase_format():
-    db_instance = create_db_instance(
-        PreferredMaintenanceWindow="MON:16:00-TUE:01:30",
-    )
+    db_instance = create_db_instance(PreferredMaintenanceWindow="MON:16:00-TUE:01:30")
     assert db_instance["DBInstanceClass"] == "db.m1.small"
     assert db_instance["PreferredMaintenanceWindow"] == "mon:16:00-tue:01:30"
 
@@ -213,10 +210,7 @@ def test_create_database_with_option_group(client):
         MajorEngineVersion="5.6",
         OptionGroupDescription="test option group",
     )
-    db_instance = create_db_instance(
-        AllocatedStorage=10,
-        OptionGroupName="my-og",
-    )
+    db_instance = create_db_instance(AllocatedStorage=10, OptionGroupName="my-og")
     assert db_instance["AllocatedStorage"] == 10
     assert db_instance["DBInstanceClass"] == "db.m1.small"
     assert db_instance["DBName"] == "staging-postgres"
@@ -1150,15 +1144,13 @@ def test_create_option_group(client):
         EngineName="mysql",
         MajorEngineVersion="5.6",
         OptionGroupDescription="test option group",
-    )
-    assert option_group["OptionGroup"]["OptionGroupName"] == "test"
-    assert option_group["OptionGroup"]["EngineName"] == "mysql"
-    assert option_group["OptionGroup"]["OptionGroupDescription"] == (
-        "test option group"
-    )
-    assert option_group["OptionGroup"]["MajorEngineVersion"] == "5.6"
-    assert option_group["OptionGroup"]["OptionGroupArn"] == (
-        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:og:test"
+    )["OptionGroup"]
+    assert option_group["OptionGroupName"] == "test"
+    assert option_group["EngineName"] == "mysql"
+    assert option_group["OptionGroupDescription"] == "test option group"
+    assert option_group["MajorEngineVersion"] == "5.6"
+    assert (
+        option_group["OptionGroupArn"] == f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:og:test"
     )
 
 
@@ -2544,14 +2536,10 @@ def test_describe_db_snapshot_attributes(client):
     )
 
     resp = client.describe_db_snapshot_attributes(DBSnapshotIdentifier="snapshot-1")
+    snapshot_attributes = resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"]
 
-    assert (
-        resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0]["AttributeName"]
-        == "restore"
-    )
-    assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["Test", "Test2"]
+    assert snapshot_attributes[0]["AttributeName"] == "restore"
+    assert snapshot_attributes[0]["AttributeValues"] == ["Test", "Test2"]
 
 
 @mock_aws
@@ -2562,29 +2550,24 @@ def test_modify_db_snapshot_attribute(client):
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
 
-    resp = client.modify_db_snapshot_attribute(
+    client.modify_db_snapshot_attribute(
         DBSnapshotIdentifier="snapshot-1",
         AttributeName="restore",
         ValuesToAdd=["Test", "Test2"],
     )
-    resp = client.modify_db_snapshot_attribute(
+    client.modify_db_snapshot_attribute(
         DBSnapshotIdentifier="snapshot-1",
         AttributeName="restore",
         ValuesToRemove=["Test"],
     )
-    resp = client.modify_db_snapshot_attribute(
+    snapshot_attributes = client.modify_db_snapshot_attribute(
         DBSnapshotIdentifier="snapshot-1",
         AttributeName="restore",
         ValuesToAdd=["Test3"],
-    )
+    )["DBSnapshotAttributesResult"]["DBSnapshotAttributes"]
 
-    assert (
-        resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0]["AttributeName"]
-        == "restore"
-    )
-    assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["Test2", "Test3"]
+    assert snapshot_attributes[0]["AttributeName"] == "restore"
+    assert snapshot_attributes[0]["AttributeValues"] == ["Test2", "Test3"]
 
 
 def validation_helper(exc):
