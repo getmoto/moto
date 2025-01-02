@@ -51,7 +51,12 @@ def test_get_table_bucket():
 
 @mock_aws
 def test_delete_table_bucket():
-    client = boto3.client("s3tables", region_name="eu-west-1")
-    resp = client.delete_table_bucket()
+    client = boto3.client("s3tables", region_name="us-east-1")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    response = client.list_table_buckets()
+    assert response["tableBuckets"]
 
-    raise Exception("NotYetImplemented")
+    client.delete_table_bucket(tableBucketARN=arn)
+    response = client.list_table_buckets()
+    assert not response["tableBuckets"]
+

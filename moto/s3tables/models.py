@@ -80,6 +80,8 @@ class S3TablesBackend(BaseBackend):
         return bucket.arn, bucket.name, bucket.account_id, bucket.creation_date.isoformat()
 
     def delete_table_bucket(self, table_bucket_arn):
+
+        bucket = self.table_buckets.pop(table_bucket_arn)
         # implement here
         return
 

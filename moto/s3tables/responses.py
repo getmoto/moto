@@ -54,8 +54,7 @@ class S3TablesResponse(BaseResponse):
         return json.dumps(dict(arn=arn, name=name, ownerAccountId=owner_account_id, createdAt=created_at))
     
     def delete_table_bucket(self):
-        params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
+        table_bucket_arn = unquote(self.path.split("/")[-1])
         self.s3tables_backend.delete_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
