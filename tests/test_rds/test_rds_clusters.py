@@ -447,18 +447,16 @@ def test_start_db_cluster_after_stopping(client):
 
 @mock_aws
 def test_start_db_cluster_without_stopping(client):
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
+    db_cluster_identifier = create_db_cluster()
 
     with pytest.raises(ClientError) as ex:
-        client.start_db_cluster(DBClusterIdentifier="cluster-id")
+        client.start_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidDBClusterStateFault"
-    assert err["Message"] == "DbCluster cluster-id is not in stopped state."
+    assert (
+        err["Message"]
+        == f"DbCluster {db_cluster_identifier} is in available state but expected it to be one of stopped,inaccessible-encryption-credentials-recoverable."
+    )
 
 
 @mock_aws
@@ -476,20 +474,18 @@ def test_stop_db_cluster(client):
 
 @mock_aws
 def test_stop_db_cluster_already_stopped(client):
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-    client.stop_db_cluster(DBClusterIdentifier="cluster-id")
+    db_cluster_identifier = create_db_cluster()
+    client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
 
     # can't call stop on a stopped cluster
     with pytest.raises(ClientError) as ex:
-        client.stop_db_cluster(DBClusterIdentifier="cluster-id")
+        client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidDBClusterStateFault"
-    assert err["Message"] == "DbCluster cluster-id is not in available state."
+    assert (
+        err["Message"]
+        == f"DbCluster {db_cluster_identifier} is in stopped state but expected it to be one of available."
+    )
 
 
 @mock_aws

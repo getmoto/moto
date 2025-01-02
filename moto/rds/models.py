@@ -2641,7 +2641,9 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_identifier]
         if cluster.status != "stopped":
             raise InvalidDBClusterStateFault(
-                "DbCluster cluster-id is not in stopped state."
+                f"DbCluster {cluster_identifier} is in {cluster.status} state "
+                "but expected it to be one of "
+                "stopped,inaccessible-encryption-credentials-recoverable."
             )
         temp_state = copy.deepcopy(cluster)
         temp_state.status = "started"
@@ -2668,7 +2670,8 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_identifier]
         if cluster.status not in ["available"]:
             raise InvalidDBClusterStateFault(
-                "DbCluster cluster-id is not in available state."
+                f"DbCluster {cluster_identifier} is in {cluster.status} state "
+                "but expected it to be one of available."
             )
         previous_state = copy.deepcopy(cluster)
         cluster.status = "stopped"
