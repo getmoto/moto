@@ -77,7 +77,7 @@ class S3TablesBackend(BaseBackend):
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket:
             raise KeyError
-        return bucket.arn, bucket.name, bucket.account_id, bucket.creation_date
+        return bucket.arn, bucket.name, bucket.account_id, bucket.creation_date.isoformat()
 
     def delete_table_bucket(self, table_bucket_arn):
         # implement here

@@ -1,5 +1,6 @@
 """Handles incoming s3tables requests, invokes methods, returns responses."""
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 from .models import S3TablesBackend, s3tables_backends
@@ -45,8 +46,7 @@ class S3TablesResponse(BaseResponse):
 # add templates from here
     
     def get_table_bucket(self):
-        params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
+        table_bucket_arn = unquote(self.path.split("/")[-1])
         arn, name, owner_account_id, created_at = self.s3tables_backend.get_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
