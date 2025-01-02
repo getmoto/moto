@@ -2,7 +2,7 @@
 import json
 
 from moto.core.responses import BaseResponse
-from .models import s3tables_backends
+from .models import S3TablesBackend, s3tables_backends
 
 
 class S3TablesResponse(BaseResponse):
@@ -12,7 +12,7 @@ class S3TablesResponse(BaseResponse):
         super().__init__(service_name="s3tables")
 
     @property
-    def s3tables_backend(self):
+    def s3tables_backend(self) -> S3TablesBackend:
         """Return backend instance specific for this region."""
         # TODO
         # s3tables_backends is not yet typed
@@ -23,8 +23,7 @@ class S3TablesResponse(BaseResponse):
 
     
     def create_table_bucket(self):
-        params = self._get_params()
-        name = params.get("name")
+        name = json.loads(self.body)["name"]
         arn = self.s3tables_backend.create_table_bucket(
             name=name,
         )
@@ -39,7 +38,7 @@ class S3TablesResponse(BaseResponse):
         table_buckets, continuation_token = self.s3tables_backend.list_table_buckets(
             prefix=prefix,
             continuation_token=continuation_token,
-            max_buckets=max_buckets,
+            max_buckets=int(max_buckets) if max_buckets else None,
         )
         # TODO: adjust response
         return json.dumps(dict(tableBuckets=table_buckets, continuationToken=continuation_token))
