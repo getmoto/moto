@@ -2232,16 +2232,11 @@ def test_modify_database_subnet_group(client):
 
 @mock_aws
 def test_create_database_in_subnet_group(client):
-    vpc_conn = boto3.client("ec2", DEFAULT_REGION)
-    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
-        "Subnet"
-    ]
-
+    subnet_id = create_subnet()
     client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet1",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
     )
     client.create_db_instance(
         DBInstanceIdentifier="db-master-1",
@@ -2274,21 +2269,16 @@ def create_db_subnet_group(db_subnet_group_name: str = "custom_db_subnet") -> st
 
 @mock_aws
 def test_describe_database_subnet_group(client):
-    vpc_conn = boto3.client("ec2", DEFAULT_REGION)
-    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
-        "Subnet"
-    ]
-
+    subnet_id = create_subnet()
     client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet1",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
     )
     client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet2",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
     )
 
     resp = client.describe_db_subnet_groups()
@@ -2312,19 +2302,14 @@ def test_describe_database_subnet_group(client):
 
 @mock_aws
 def test_delete_database_subnet_group(client):
-    vpc_conn = boto3.client("ec2", DEFAULT_REGION)
-    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
-        "Subnet"
-    ]
-
     result = client.describe_db_subnet_groups()
     assert len(result["DBSubnetGroups"]) == 0
 
+    subnet_id = create_subnet()
     client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet1",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
     )
     result = client.describe_db_subnet_groups()
     assert len(result["DBSubnetGroups"]) == 1
@@ -2337,21 +2322,23 @@ def test_delete_database_subnet_group(client):
         client.delete_db_subnet_group(DBSubnetGroupName="db_subnet1")
 
 
+def create_subnet() -> str:
+    ec2_client = boto3.client("ec2", DEFAULT_REGION)
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    response = ec2_client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")
+    return response["Subnet"]["SubnetId"]
+
+
 @mock_aws
 def test_list_tags_database_subnet_group(client):
-    vpc_conn = boto3.client("ec2", DEFAULT_REGION)
-    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
-        "Subnet"
-    ]
-
     result = client.describe_db_subnet_groups()
     assert len(result["DBSubnetGroups"]) == 0
 
+    subnet_id = create_subnet()
     subnet = client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet1",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
     )["DBSubnetGroup"]["DBSubnetGroupName"]
     result = client.list_tags_for_resource(
@@ -2414,19 +2401,14 @@ def test_modify_tags_event_subscription(client):
 
 @mock_aws
 def test_add_tags_database_subnet_group(client):
-    vpc_conn = boto3.client("ec2", DEFAULT_REGION)
-    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
-        "Subnet"
-    ]
-
     result = client.describe_db_subnet_groups()
     assert len(result["DBSubnetGroups"]) == 0
 
+    subnet_id = create_subnet()
     subnet = client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet1",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
         Tags=[],
     )["DBSubnetGroup"]["DBSubnetGroupName"]
     resource = f"arn:aws:rds:us-west-2:1234567890:subgrp:{subnet}"
@@ -2445,19 +2427,14 @@ def test_add_tags_database_subnet_group(client):
 
 @mock_aws
 def test_remove_tags_database_subnet_group(client):
-    vpc_conn = boto3.client("ec2", DEFAULT_REGION)
-    vpc = vpc_conn.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    subnet = vpc_conn.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")[
-        "Subnet"
-    ]
-
     result = client.describe_db_subnet_groups()
     assert len(result["DBSubnetGroups"]) == 0
 
+    subnet_id = create_subnet()
     subnet = client.create_db_subnet_group(
         DBSubnetGroupName="db_subnet1",
         DBSubnetGroupDescription="my db subnet",
-        SubnetIds=[subnet["SubnetId"]],
+        SubnetIds=[subnet_id],
         Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
     )["DBSubnetGroup"]["DBSubnetGroupName"]
     resource = f"arn:aws:rds:us-west-2:1234567890:subgrp:{subnet}"
