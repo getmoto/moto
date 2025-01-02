@@ -474,7 +474,7 @@ def test_fail_to_stop_readreplica(client):
 @mock_aws
 def test_get_databases(client):
     instances = client.describe_db_instances()
-    assert len(list(instances["DBInstances"])) == 0
+    assert len(instances["DBInstances"]) == 0
 
     client.create_db_instance(
         DBInstanceIdentifier="db-master-1",
@@ -498,10 +498,10 @@ def test_get_databases(client):
         DeletionProtection=True,
     )
     instances = client.describe_db_instances()
-    assert len(list(instances["DBInstances"])) == 2
+    assert len(instances["DBInstances"]) == 2
 
     instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert len(list(instances["DBInstances"])) == 1
+    assert len(instances["DBInstances"]) == 1
     assert instances["DBInstances"][0]["DBInstanceIdentifier"] == "db-master-1"
     assert instances["DBInstances"][0]["DeletionProtection"] is False
     assert instances["DBInstances"][0]["DBInstanceArn"] == (
@@ -952,7 +952,7 @@ def test_rename_db_instance(client):
         DBSecurityGroups=["my_sg"],
     )
     instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert len(list(instances["DBInstances"])) == 1
+    assert len(instances["DBInstances"]) == 1
     with pytest.raises(ClientError):
         client.describe_db_instances(DBInstanceIdentifier="db-master-2")
     client.modify_db_instance(
@@ -963,7 +963,7 @@ def test_rename_db_instance(client):
     with pytest.raises(ClientError):
         client.describe_db_instances(DBInstanceIdentifier="db-master-1")
     instances = client.describe_db_instances(DBInstanceIdentifier="db-master-2")
-    assert len(list(instances["DBInstances"])) == 1
+    assert len(instances["DBInstances"]) == 1
 
 
 @mock_aws
@@ -999,7 +999,7 @@ def test_reboot_non_existent_database(client):
 @mock_aws
 def test_delete_database(client):
     instances = client.describe_db_instances()
-    assert len(list(instances["DBInstances"])) == 0
+    assert len(instances["DBInstances"]) == 0
     client.create_db_instance(
         DBInstanceIdentifier="db-1",
         AllocatedStorage=10,
@@ -1011,7 +1011,7 @@ def test_delete_database(client):
         DBSecurityGroups=["my_sg"],
     )
     instances = client.describe_db_instances()
-    assert len(list(instances["DBInstances"])) == 1
+    assert len(instances["DBInstances"]) == 1
 
     client.delete_db_instance(
         DBInstanceIdentifier="db-1",
@@ -1019,7 +1019,7 @@ def test_delete_database(client):
     )
 
     instances = client.describe_db_instances()
-    assert len(list(instances["DBInstances"])) == 0
+    assert len(instances["DBInstances"]) == 0
 
     # Saved the snapshot
     snapshot = client.describe_db_snapshots(DBInstanceIdentifier="db-1")["DBSnapshots"][
@@ -1825,7 +1825,7 @@ def test_add_tags_db(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:db:db-without-tags"
     )
-    assert len(list(result["TagList"])) == 2
+    assert len(result["TagList"]) == 2
     client.add_tags_to_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:db:db-without-tags",
         Tags=[{"Key": "foo", "Value": "fish"}, {"Key": "foo2", "Value": "bar2"}],
@@ -1833,7 +1833,7 @@ def test_add_tags_db(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:db:db-without-tags"
     )
-    assert len(list(result["TagList"])) == 3
+    assert len(result["TagList"]) == 3
 
 
 @mock_aws
@@ -1852,7 +1852,7 @@ def test_remove_tags_db(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:db:db-with-tags"
     )
-    assert len(list(result["TagList"])) == 2
+    assert len(result["TagList"]) == 2
     client.remove_tags_from_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:db:db-with-tags", TagKeys=["foo"]
     )
@@ -1914,7 +1914,7 @@ def test_add_tags_snapshot(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-without-tags"
     )
-    assert len(list(result["TagList"])) == 2
+    assert len(result["TagList"]) == 2
     client.add_tags_to_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-without-tags",
         Tags=[{"Key": "foo", "Value": "fish"}, {"Key": "foo2", "Value": "bar2"}],
@@ -1922,7 +1922,7 @@ def test_add_tags_snapshot(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-without-tags"
     )
-    assert len(list(result["TagList"])) == 3
+    assert len(result["TagList"]) == 3
 
 
 @mock_aws
@@ -1946,7 +1946,7 @@ def test_remove_tags_snapshot(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-with-tags"
     )
-    assert len(list(result["TagList"])) == 2
+    assert len(result["TagList"]) == 2
     client.remove_tags_from_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:snapshot:snapshot-with-tags",
         TagKeys=["foo"],
@@ -1968,7 +1968,7 @@ def test_add_tags_option_group(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:og:test"
     )
-    assert len(list(result["TagList"])) == 0
+    assert len(result["TagList"]) == 0
     client.add_tags_to_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:og:test",
         Tags=[{"Key": "foo", "Value": "fish"}, {"Key": "foo2", "Value": "bar2"}],
@@ -1976,7 +1976,7 @@ def test_add_tags_option_group(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:og:test"
     )
-    assert len(list(result["TagList"])) == 2
+    assert len(result["TagList"]) == 2
 
 
 @mock_aws
@@ -1997,14 +1997,14 @@ def test_remove_tags_option_group(client):
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:og:test"
     )
-    assert len(list(result["TagList"])) == 2
+    assert len(result["TagList"]) == 2
     client.remove_tags_from_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:og:test", TagKeys=["foo"]
     )
     result = client.list_tags_for_resource(
         ResourceName="arn:aws:rds:us-west-2:1234567890:og:test"
     )
-    assert len(list(result["TagList"])) == 1
+    assert len(result["TagList"]) == 1
 
 
 @mock_aws
@@ -2299,11 +2299,9 @@ def test_describe_database_subnet_group(client):
 
     assert (
         len(
-            list(
-                client.describe_db_subnet_groups(DBSubnetGroupName="db_subnet1")[
-                    "DBSubnetGroups"
-                ]
-            )
+            client.describe_db_subnet_groups(DBSubnetGroupName="db_subnet1")[
+                "DBSubnetGroups"
+            ]
         )
         == 1
     )
