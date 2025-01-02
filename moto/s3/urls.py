@@ -4,8 +4,8 @@ from .responses import S3Response
 
 # Catch s3.amazonaws.com, but not s3-control.amazonaws.com
 url_bases = [
-    r"https?://s3(?!-control)(.*)\.amazonaws.com",
-    r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(?!-control)(.*)\.amazonaws.com",
+    r"https?://s3(?!(-control|tables))(.*)\.amazonaws.com",
+    r"https?://(?P<bucket_name>[a-zA-Z0-9\-_.]*)\.?s3(?!(-control|tables))(.*)\.amazonaws.com",
 ]
 
 url_bases.extend(settings.get_s3_custom_endpoints())
