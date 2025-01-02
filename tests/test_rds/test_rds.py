@@ -1252,15 +1252,11 @@ def test_describe_db_snapshots(client):
     assert created["Engine"] == "postgres"
     assert created["SnapshotType"] == "manual"
 
-    by_database_id = client.describe_db_snapshots(
-        DBInstanceIdentifier="db-primary-1"
-    )["DBSnapshots"]
-    by_snapshot_id = client.describe_db_snapshots(
-        DBSnapshotIdentifier="snapshot-1"
-    )["DBSnapshots"]
-    assert by_snapshot_id == by_database_id
+    by_database_id = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")
+    by_snapshot_id = client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
+    assert by_snapshot_id["DBSnapshots"] == by_database_id["DBSnapshots"]
 
-    snapshot = by_snapshot_id[0]
+    snapshot = by_snapshot_id["DBSnapshots"][0]
     assert snapshot == created
 
     client.create_db_snapshot(
