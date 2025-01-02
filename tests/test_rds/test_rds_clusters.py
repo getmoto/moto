@@ -28,9 +28,9 @@ def create_db_cluster(**extra_kwargs) -> str:
         "MasterUserPassword": "hunter2000",
         "Port": 1234,
     }
-    kwargs = default_kwargs | extra_kwargs
-    client.create_db_cluster(**kwargs)
-    return kwargs["DBClusterIdentifier"]
+    default_kwargs.update(extra_kwargs)
+    client.create_db_cluster(**default_kwargs)
+    return default_kwargs["DBClusterIdentifier"]
 
 
 @mock_aws
