@@ -124,6 +124,7 @@ if TYPE_CHECKING:
     from moto.route53resolver.models import Route53ResolverBackend
     from moto.s3.models import S3Backend
     from moto.s3control.models import S3ControlBackend
+    from moto.s3tables.models import S3TablesBackend
     from moto.sagemaker.models import SageMakerModelBackend
     from moto.sagemakermetrics.models import SageMakerMetricsBackend
     from moto.sagemakerruntime.models import SageMakerRuntimeBackend
@@ -153,7 +154,6 @@ if TYPE_CHECKING:
     from moto.workspaces.models import WorkSpacesBackend
     from moto.workspacesweb.models import WorkSpacesWebBackend
     from moto.xray.models import XRayBackend
-    from moto.s3tables.models import S3TablesBackend
 
 
 ALT_SERVICE_NAMES = {

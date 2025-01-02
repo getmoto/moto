@@ -1,4 +1,5 @@
 """s3tables base URL and path."""
+
 from .responses import S3TablesResponse
 
 url_bases = [

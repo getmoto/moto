@@ -1,8 +1,10 @@
 """Handles incoming s3tables requests, invokes methods, returns responses."""
+
 import json
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
+
 from .models import S3TablesBackend, s3tables_backends
 
 
@@ -22,7 +24,6 @@ class S3TablesResponse(BaseResponse):
 
     # add methods from here
 
-    
     def create_table_bucket(self):
         name = json.loads(self.body)["name"]
         arn = self.s3tables_backend.create_table_bucket(
@@ -30,7 +31,6 @@ class S3TablesResponse(BaseResponse):
         )
         return json.dumps(dict(arn=arn))
 
-    
     def list_table_buckets(self):
         params = self._get_params()
         prefix = params.get("prefix")
@@ -42,17 +42,29 @@ class S3TablesResponse(BaseResponse):
             max_buckets=int(max_buckets) if max_buckets else None,
         )
         # TODO: adjust response
-        return json.dumps(dict(tableBuckets=table_buckets, continuationToken=continuation_token))
-# add templates from here
-    
+        return json.dumps(
+            dict(tableBuckets=table_buckets, continuationToken=continuation_token)
+        )
+
+    # add templates from here
+
     def get_table_bucket(self):
         table_bucket_arn = unquote(self.path.split("/")[-1])
-        arn, name, owner_account_id, created_at = self.s3tables_backend.get_table_bucket(
-            table_bucket_arn=table_bucket_arn,
+        arn, name, owner_account_id, created_at = (
+            self.s3tables_backend.get_table_bucket(
+                table_bucket_arn=table_bucket_arn,
+            )
         )
         # TODO: adjust response
-        return json.dumps(dict(arn=arn, name=name, ownerAccountId=owner_account_id, createdAt=created_at))
-    
+        return json.dumps(
+            dict(
+                arn=arn,
+                name=name,
+                ownerAccountId=owner_account_id,
+                createdAt=created_at,
+            )
+        )
+
     def delete_table_bucket(self):
         table_bucket_arn = unquote(self.path.split("/")[-1])
         self.s3tables_backend.delete_table_bucket(

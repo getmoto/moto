@@ -1,12 +1,10 @@
 """S3TablesBackend class with methods for supported APIs."""
 
-from base64 import b64decode, b64encode
 import datetime
+from base64 import b64decode, b64encode
 from typing import Dict
 
-from moto.core.base_backend import BackendDict
-from moto.core.base_backend import BaseBackend
-from moto.core.common_models import BaseModel
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3tables.exceptions import BadRequestException
 from moto.utilities.utils import get_partition
 
@@ -65,11 +63,20 @@ class S3TablesBackend(BaseBackend):
 
         buckets = all_buckets[start : start + max_buckets]
 
-        table_buckets = [{"arn": b.arn, "name": b.name, "ownerAccountId": b.account_id, "createdAt": b.creation_date.isoformat() }for b in buckets]
+        table_buckets = [
+            {
+                "arn": b.arn,
+                "name": b.name,
+                "ownerAccountId": b.account_id,
+                "createdAt": b.creation_date.isoformat(),
+            }
+            for b in buckets
+        ]
         next_continuation_token = None
         if start + max_buckets < len(all_buckets):
-            next_continuation_token = b64encode(f"{buckets[-1].arn} {prefix if prefix else ''}".encode()).decode()
-
+            next_continuation_token = b64encode(
+                f"{buckets[-1].arn} {prefix if prefix else ''}".encode()
+            ).decode()
 
         return table_buckets, next_continuation_token
 
@@ -77,11 +84,15 @@ class S3TablesBackend(BaseBackend):
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket:
             raise KeyError
-        return bucket.arn, bucket.name, bucket.account_id, bucket.creation_date.isoformat()
+        return (
+            bucket.arn,
+            bucket.name,
+            bucket.account_id,
+            bucket.creation_date.isoformat(),
+        )
 
     def delete_table_bucket(self, table_bucket_arn):
-
-        bucket = self.table_buckets.pop(table_bucket_arn)
+        self.table_buckets.pop(table_bucket_arn)
         # implement here
         return
 
