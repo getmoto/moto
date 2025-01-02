@@ -20,6 +20,19 @@ def get_rds_client():
     return boto3.client("rds", region_name=DEFAULT_REGION)
 
 
+def create_db_instance(**extra_kwargs):
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
+    kwargs = {
+        "DBInstanceIdentifier": "db-master-1",
+        # "AllocatedStorage": 10,
+        "Engine": "postgres",
+        "DBName": "staging-postgres",
+        "DBInstanceClass": "db.m1.small",
+    }
+    kwargs.update(extra_kwargs)
+    return client.create_db_instance(**kwargs)["DBInstance"]
+
+
 @mock_aws
 def test_create_database(client):
     database = client.create_db_instance(
@@ -60,29 +73,15 @@ def test_create_database(client):
 
 
 @mock_aws
-def test_database_with_deletion_protection_cannot_be_deleted(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        DeletionProtection=True,
-    )
-    db_instance = database["DBInstance"]
+def test_database_with_deletion_protection_cannot_be_deleted():
+    db_instance = create_db_instance(DeletionProtection=True)
     assert db_instance["DBInstanceClass"] == "db.m1.small"
     assert db_instance["DeletionProtection"] is True
 
 
 @mock_aws
-def test_create_database_no_allocated_storage(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-    )
-    db_instance = database["DBInstance"]
+def test_create_database_no_allocated_storage():
+    db_instance = create_db_instance()
     assert db_instance["Engine"] == "postgres"
     assert db_instance["StorageType"] == "gp2"
     assert db_instance["AllocatedStorage"] == 20
@@ -90,60 +89,36 @@ def test_create_database_no_allocated_storage(client):
 
 
 @mock_aws
-def test_create_database_invalid_preferred_maintenance_window_more_24_hours(client):
+def test_create_database_invalid_preferred_maintenance_window_more_24_hours():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-            PreferredMaintenanceWindow="mon:16:00-tue:17:00",
-        )
+        create_db_instance(PreferredMaintenanceWindow="mon:16:00-tue:17:00")
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == "Maintenance window must be less than 24 hours."
 
 
 @mock_aws
-def test_create_database_invalid_preferred_maintenance_window_less_30_mins(client):
+def test_create_database_invalid_preferred_maintenance_window_less_30_mins():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-            PreferredMaintenanceWindow="mon:16:00-mon:16:05",
-        )
+        create_db_instance(PreferredMaintenanceWindow="mon:16:00-mon:16:05")
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == "The maintenance window must be at least 30 minutes."
 
 
 @mock_aws
-def test_create_database_invalid_preferred_maintenance_window_value(client):
+def test_create_database_invalid_preferred_maintenance_window_value():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-            PreferredMaintenanceWindow="sim:16:00-mon:16:30",
-        )
+        create_db_instance(PreferredMaintenanceWindow="sim:16:00-mon:16:30")
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert "Invalid day:hour:minute" in err["Message"]
 
 
 @mock_aws
-def test_create_database_invalid_preferred_maintenance_window_format(client):
+def test_create_database_invalid_preferred_maintenance_window_format():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-            PreferredMaintenanceWindow="mon:16tue:17:00",
-        )
+        create_db_instance(PreferredMaintenanceWindow="mon:16tue:17:00")
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert (
@@ -153,13 +128,9 @@ def test_create_database_invalid_preferred_maintenance_window_format(client):
 
 
 @mock_aws
-def test_create_database_preferred_backup_window_overlap_no_spill(client):
+def test_create_database_preferred_backup_window_overlap_no_spill():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
+        create_db_instance(
             PreferredMaintenanceWindow="wed:18:00-wed:22:00",
             PreferredBackupWindow="20:00-20:30",
         )
@@ -171,15 +142,9 @@ def test_create_database_preferred_backup_window_overlap_no_spill(client):
 
 
 @mock_aws
-def test_create_database_preferred_backup_window_overlap_maintenance_window_spill(
-    client,
-):
+def test_create_database_preferred_backup_window_overlap_maintenance_window_spill():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
+        create_db_instance(
             PreferredMaintenanceWindow="wed:18:00-thu:01:00",
             PreferredBackupWindow="00:00-00:30",
         )
@@ -191,13 +156,9 @@ def test_create_database_preferred_backup_window_overlap_maintenance_window_spil
 
 
 @mock_aws
-def test_create_database_preferred_backup_window_overlap_backup_window_spill(client):
+def test_create_database_preferred_backup_window_overlap_backup_window_spill():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
+        create_db_instance(
             PreferredMaintenanceWindow="thu:00:00-thu:14:00",
             PreferredBackupWindow="23:50-00:20",
         )
@@ -209,13 +170,9 @@ def test_create_database_preferred_backup_window_overlap_backup_window_spill(cli
 
 
 @mock_aws
-def test_create_database_preferred_backup_window_overlap_both_spill(client):
+def test_create_database_preferred_backup_window_overlap_both_spill():
     with pytest.raises(ClientError) as ex:
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
+        create_db_instance(
             PreferredMaintenanceWindow="wed:18:00-thu:01:00",
             PreferredBackupWindow="23:50-00:20",
         )
@@ -227,44 +184,25 @@ def test_create_database_preferred_backup_window_overlap_both_spill(client):
 
 
 @mock_aws
-def test_create_database_valid_preferred_maintenance_window_format(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        PreferredMaintenanceWindow="sun:16:00-sun:16:30",
-    )
-    db_instance = database["DBInstance"]
+def test_create_database_valid_preferred_maintenance_window_format():
+    db_instance = create_db_instance(PreferredMaintenanceWindow="sun:16:00-sun:16:30")
     assert db_instance["DBInstanceClass"] == "db.m1.small"
     assert db_instance["PreferredMaintenanceWindow"] == "sun:16:00-sun:16:30"
 
 
 @mock_aws
-def test_create_database_valid_preferred_maintenance_window_uppercase_format(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
+def test_create_database_valid_preferred_maintenance_window_uppercase_format():
+    db_instance = create_db_instance(
         PreferredMaintenanceWindow="MON:16:00-TUE:01:30",
     )
-    db_instance = database["DBInstance"]
     assert db_instance["DBInstanceClass"] == "db.m1.small"
     assert db_instance["PreferredMaintenanceWindow"] == "mon:16:00-tue:01:30"
 
 
 @mock_aws
-def test_create_database_non_existing_option_group(client):
+def test_create_database_non_existing_option_group():
     with pytest.raises(ClientError):
-        client.create_db_instance(
-            DBInstanceIdentifier="db-master-1",
-            AllocatedStorage=10,
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-            OptionGroupName="non-existing",
-        )
+        create_db_instance(OptionGroupName="non-existing")
 
 
 @mock_aws
@@ -275,15 +213,10 @@ def test_create_database_with_option_group(client):
         MajorEngineVersion="5.6",
         OptionGroupDescription="test option group",
     )
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
+    db_instance = create_db_instance(
         AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
         OptionGroupName="my-og",
     )
-    db_instance = database["DBInstance"]
     assert db_instance["AllocatedStorage"] == 10
     assert db_instance["DBInstanceClass"] == "db.m1.small"
     assert db_instance["DBName"] == "staging-postgres"
@@ -292,20 +225,9 @@ def test_create_database_with_option_group(client):
 
 @mock_aws
 def test_stop_database(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        LicenseModel="license-included",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    db_instance = create_db_instance()
     mydb = client.describe_db_instances(
-        DBInstanceIdentifier=database["DBInstance"]["DBInstanceIdentifier"]
+        DBInstanceIdentifier=db_instance["DBInstanceIdentifier"]
     )["DBInstances"][0]
     assert mydb["DBInstanceStatus"] == "available"
     # test stopping database should shutdown
@@ -330,20 +252,9 @@ def test_stop_database(client):
 
 @mock_aws
 def test_start_database(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        LicenseModel="license-included",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    db_instance = create_db_instance()
     mydb = client.describe_db_instances(
-        DBInstanceIdentifier=database["DBInstance"]["DBInstanceIdentifier"]
+        DBInstanceIdentifier=db_instance["DBInstanceIdentifier"]
     )["DBInstances"][0]
     assert mydb["DBInstanceStatus"] == "available"
     # test starting an already started database should error
@@ -384,22 +295,14 @@ def test_start_database(client):
 
 @mock_aws
 def test_fail_to_stop_multi_az_and_sqlserver(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
+    db_instance = create_db_instance(
         Engine="sqlserver-ee",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
         LicenseModel="license-included",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
         MultiAZ=True,
     )
 
     mydb = client.describe_db_instances(
-        DBInstanceIdentifier=database["DBInstance"]["DBInstanceIdentifier"]
+        DBInstanceIdentifier=db_instance["DBInstanceIdentifier"]
     )["DBInstances"][0]
     assert mydb["DBInstanceStatus"] == "available"
     # multi-az databases arent allowed to be shutdown at this time.
@@ -412,22 +315,10 @@ def test_fail_to_stop_multi_az_and_sqlserver(client):
 
 @mock_aws
 def test_stop_multi_az_postgres(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        LicenseModel="license-included",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-        MultiAZ=True,
-    )
+    db_instance = create_db_instance(MultiAZ=True)
 
     mydb = client.describe_db_instances(
-        DBInstanceIdentifier=database["DBInstance"]["DBInstanceIdentifier"]
+        DBInstanceIdentifier=db_instance["DBInstanceIdentifier"]
     )["DBInstances"][0]
     assert mydb["DBInstanceStatus"] == "available"
 
@@ -440,22 +331,11 @@ def test_stop_multi_az_postgres(client):
 
 @mock_aws
 def test_fail_to_stop_readreplica(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        LicenseModel="license-included",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    db_instance = create_db_instance()
 
     replica = client.create_db_instance_read_replica(
         DBInstanceIdentifier="db-replica-1",
-        SourceDBInstanceIdentifier="db-master-1",
+        SourceDBInstanceIdentifier=db_instance["DBInstanceIdentifier"],
         DBInstanceClass="db.m1.small",
     )
 
@@ -476,25 +356,12 @@ def test_get_databases(client):
     instances = client.describe_db_instances()
     assert len(instances["DBInstances"]) == 0
 
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
     )
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-master-2",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
         Port=1234,
-        DBSecurityGroups=["my_sg"],
         DeletionProtection=True,
     )
     instances = client.describe_db_instances()
@@ -505,7 +372,7 @@ def test_get_databases(client):
     assert instances["DBInstances"][0]["DBInstanceIdentifier"] == "db-master-1"
     assert instances["DBInstances"][0]["DeletionProtection"] is False
     assert instances["DBInstances"][0]["DBInstanceArn"] == (
-        f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db:db-master-1"
+        f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:db:db-master-1"
     )
 
     instances = client.describe_db_instances(DBInstanceIdentifier="db-master-2")
@@ -517,13 +384,7 @@ def test_get_databases(client):
 @mock_aws
 def test_get_databases_paginated(client):
     for i in range(51):
-        client.create_db_instance(
-            AllocatedStorage=5,
-            Port=5432,
-            DBInstanceIdentifier=f"rds{i}",
-            DBInstanceClass="db.t1.micro",
-            Engine="postgres",
-        )
+        create_db_instance(DBInstanceIdentifier=f"rds{i}")
 
     resp = client.describe_db_instances()
     assert len(resp["DBInstances"]) == 50
@@ -552,15 +413,9 @@ def test_modify_db_instance(custom_db_subnet_group: bool, client):
     else:
         extra_kwargs = {}
 
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-id",
         AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
         **extra_kwargs,
     )
     inst = client.describe_db_instances(DBInstanceIdentifier="db-id")["DBInstances"][0]
@@ -593,12 +448,8 @@ def test_modify_db_instance_manage_master_user_password(
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
 
-    create_response = client.create_db_instance(
+    db_instance = create_db_instance(
         DBInstanceIdentifier=db_id,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter21",
         ManageMasterUserPassword=False,
     )
 
@@ -612,7 +463,7 @@ def test_modify_db_instance_manage_master_user_password(
         DBInstanceIdentifier=db_id, ManageMasterUserPassword=False
     )
 
-    assert create_response["DBInstance"].get("MasterUserSecret") is None
+    assert db_instance.get("MasterUserSecret") is None
     master_user_secret = modify_response["DBInstance"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
     assert (
@@ -639,13 +490,8 @@ def test_modify_db_instance_manage_master_user_password(
 @mock_aws
 def test_modify_db_instance_rotate_master_user_password(with_apply_immediately, client):
     db_id = "db-id"
-
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier=db_id,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter21",
         ManageMasterUserPassword=True,
     )
 
@@ -679,18 +525,7 @@ def test_modify_db_instance_rotate_master_user_password(with_apply_immediately, 
 
 @mock_aws
 def test_modify_db_instance_not_existent_db_parameter_group_name(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
-    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
-    assert instances["DBInstances"][0]["AllocatedStorage"] == 10
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError):
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -700,17 +535,7 @@ def test_modify_db_instance_not_existent_db_parameter_group_name(client):
 
 @mock_aws
 def test_modify_db_instance_valid_preferred_maintenance_window(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
-    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     client.modify_db_instance(
         DBInstanceIdentifier="db-master-1",
         PreferredMaintenanceWindow="sun:16:00-sun:16:30",
@@ -723,17 +548,7 @@ def test_modify_db_instance_valid_preferred_maintenance_window(client):
 
 @mock_aws
 def test_modify_db_instance_valid_preferred_maintenance_window_uppercase(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
-    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     client.modify_db_instance(
         DBInstanceIdentifier="db-master-1",
         PreferredMaintenanceWindow="SUN:16:00-SUN:16:30",
@@ -748,16 +563,7 @@ def test_modify_db_instance_valid_preferred_maintenance_window_uppercase(client)
 def test_modify_db_instance_invalid_preferred_maintenance_window_more_than_24_hours(
     client,
 ):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -772,16 +578,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_more_than_24_ho
 def test_modify_db_instance_invalid_preferred_maintenance_window_less_than_30_mins(
     client,
 ):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -794,16 +591,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_less_than_30_mi
 
 @mock_aws
 def test_modify_db_instance_invalid_preferred_maintenance_window_value(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -816,16 +604,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_value(client):
 
 @mock_aws
 def test_modify_db_instance_invalid_preferred_maintenance_window_format(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -841,16 +620,7 @@ def test_modify_db_instance_invalid_preferred_maintenance_window_format(client):
 
 @mock_aws
 def test_modify_db_instance_maintenance_backup_window_no_spill(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -866,16 +636,7 @@ def test_modify_db_instance_maintenance_backup_window_no_spill(client):
 
 @mock_aws
 def test_modify_db_instance_maintenance_backup_window_maintenance_spill(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -891,16 +652,7 @@ def test_modify_db_instance_maintenance_backup_window_maintenance_spill(client):
 
 @mock_aws
 def test_modify_db_instance_maintenance_backup_window_backup_spill(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -916,16 +668,7 @@ def test_modify_db_instance_maintenance_backup_window_backup_spill(client):
 
 @mock_aws
 def test_modify_db_instance_maintenance_backup_window_both_spill(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     with pytest.raises(ClientError) as ex:
         client.modify_db_instance(
             DBInstanceIdentifier="db-master-1",
@@ -941,16 +684,7 @@ def test_modify_db_instance_maintenance_backup_window_both_spill(client):
 
 @mock_aws
 def test_rename_db_instance(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
     assert len(instances["DBInstances"]) == 1
     with pytest.raises(ClientError):
@@ -976,16 +710,7 @@ def test_modify_non_existent_database(client):
 
 @mock_aws
 def test_reboot_db_instance(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
     database = client.reboot_db_instance(DBInstanceIdentifier="db-master-1")
     assert database["DBInstance"]["DBInstanceIdentifier"] == "db-master-1"
 
@@ -1000,16 +725,7 @@ def test_reboot_non_existent_database(client):
 def test_delete_database(client):
     instances = client.describe_db_instances()
     assert len(instances["DBInstances"]) == 0
-    client.create_db_instance(
-        DBInstanceIdentifier="db-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-1")
     instances = client.describe_db_instances()
     assert len(instances["DBInstances"]) == 1
 
@@ -1036,17 +752,7 @@ def test_create_db_snapshots(client):
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
         )
 
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
 
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
@@ -1066,16 +772,8 @@ def test_create_db_snapshots_copy_tags(client):
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
         )
 
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
         CopyTagsToSnapshot=True,
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
@@ -1096,17 +794,7 @@ def test_create_db_snapshots_copy_tags(client):
 
 @mock_aws
 def test_create_db_snapshots_with_tags(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
@@ -1134,17 +822,7 @@ def test_create_db_snapshots_with_tags(client):
 def test_copy_db_snapshots(
     delete_db_instance: bool, db_snapshot_identifier: str, client
 ):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
@@ -1209,11 +887,7 @@ new_snapshot_tags = [{"Key": "new", "Value": "tag"}]
 )
 @mock_aws
 def test_copy_db_snapshots_copytags_and_tags(kwargs, expected_tags, client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot",
@@ -1233,17 +907,7 @@ def test_copy_db_snapshots_copytags_and_tags(kwargs, expected_tags, client):
 
 @mock_aws
 def test_describe_db_snapshots(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
 
     created = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
@@ -1270,17 +934,7 @@ def test_describe_db_snapshots(client):
 
 @mock_aws
 def test_promote_read_replica(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
 
     client.create_db_instance_read_replica(
         DBInstanceIdentifier="db-replica-1",
@@ -1297,17 +951,7 @@ def test_promote_read_replica(client):
 
 @mock_aws
 def test_delete_db_snapshot(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
@@ -1330,14 +974,11 @@ def test_delete_db_snapshot(client):
 def test_restore_db_instance_from_db_snapshot(
     db_snapshot_identifier: str, custom_db_subnet_group: bool, client
 ):
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DBName="staging-postgres",
         DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
         DBSecurityGroups=["my_sg"],
     )
     assert len(client.describe_db_instances()["DBInstances"]) == 1
@@ -1399,14 +1040,11 @@ def test_restore_db_instance_to_point_in_time(custom_db_subnet_group: bool, clie
     else:
         extra_kwargs = {}
 
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DBName="staging-postgres",
         DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
         DBSecurityGroups=["my_sg"],
         **extra_kwargs,
     )
@@ -1472,14 +1110,11 @@ def test_restore_db_instance_to_point_in_time(custom_db_subnet_group: bool, clie
 
 @mock_aws
 def test_restore_db_instance_from_db_snapshot_and_override_params(client):
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
         Engine="postgres",
         DBName="staging-postgres",
         DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
         Port=1234,
         DBSecurityGroups=["my_sg"],
     )
@@ -1755,13 +1390,7 @@ def test_modify_non_existent_option_group(client):
 
 @mock_aws
 def test_delete_database_with_protection(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-        DeletionProtection=True,
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1", DeletionProtection=True)
 
     with pytest.raises(ClientError) as exc:
         client.delete_db_instance(DBInstanceIdentifier="db-primary-1")
@@ -1789,20 +1418,10 @@ def test_list_tags_db(client):
         ResourceName="arn:aws:rds:us-west-2:1234567890:db:foo"
     )
     assert result["TagList"] == []
-    test_instance = client.create_db_instance(
-        DBInstanceIdentifier="db-with-tags",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
+    test_instance = create_db_instance(
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
-    result = client.list_tags_for_resource(
-        ResourceName=test_instance["DBInstance"]["DBInstanceArn"]
-    )
+    result = client.list_tags_for_resource(ResourceName=test_instance["DBInstanceArn"])
     assert result["TagList"] == [
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
@@ -1811,15 +1430,8 @@ def test_list_tags_db(client):
 
 @mock_aws
 def test_add_tags_db(client):
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-without-tags",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
     result = client.list_tags_for_resource(
@@ -1838,15 +1450,8 @@ def test_add_tags_db(client):
 
 @mock_aws
 def test_remove_tags_db(client):
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-with-tags",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
     result = client.list_tags_for_resource(
@@ -1868,17 +1473,7 @@ def test_list_tags_snapshot(client):
         ResourceName="arn:aws:rds:us-west-2:1234567890:snapshot:foo"
     )
     assert result["TagList"] == []
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot-with-tags",
@@ -1895,17 +1490,7 @@ def test_list_tags_snapshot(client):
 
 @mock_aws
 def test_add_tags_snapshot(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot-without-tags",
@@ -1927,17 +1512,7 @@ def test_add_tags_snapshot(client):
 
 @mock_aws
 def test_remove_tags_snapshot(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1",
         DBSnapshotIdentifier="snapshot-with-tags",
@@ -2095,15 +1670,7 @@ def test_security_group_authorize(client):
 
 @mock_aws
 def test_add_security_group_to_database(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        DBInstanceClass="postgres",
-        Engine="postgres",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
 
     result = client.describe_db_instances()
     assert result["DBInstances"][0]["DBSecurityGroups"] == []
@@ -2238,14 +1805,8 @@ def test_create_database_in_subnet_group(client):
         DBSubnetGroupDescription="my db subnet",
         SubnetIds=[subnet_id],
     )
-    client.create_db_instance(
+    create_db_instance(
         DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
         DBSubnetGroupName="db_subnet1",
     )
     result = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
@@ -2447,16 +2008,7 @@ def test_remove_tags_database_subnet_group(client):
 
 @mock_aws
 def test_create_database_replica(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-master-1")
 
     replica = client.create_db_instance_read_replica(
         DBInstanceIdentifier="db-replica-1",
@@ -2494,7 +2046,6 @@ def test_create_database_replica_cross_region():
     source_id = "db-master-1"
     source_arn = us1.create_db_instance(
         DBInstanceIdentifier=source_id,
-        AllocatedStorage=10,
         Engine="postgres",
         DBInstanceClass="db.m1.small",
     )["DBInstance"]["DBInstanceArn"]
@@ -2526,21 +2077,13 @@ def test_create_database_with_encrypted_storage(client):
         KeyUsage="ENCRYPT_DECRYPT",
     )
 
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
+    db_instance = create_db_instance(
         StorageEncrypted=True,
         KmsKeyId=key["KeyMetadata"]["KeyId"],
     )
 
-    assert database["DBInstance"]["StorageEncrypted"] is True
-    assert database["DBInstance"]["KmsKeyId"] == key["KeyMetadata"]["KeyId"]
+    assert db_instance["StorageEncrypted"] is True
+    assert db_instance["KmsKeyId"] == key["KeyMetadata"]["KeyId"]
 
 
 @mock_aws
@@ -2572,43 +2115,22 @@ def test_create_db_instance_with_parameter_group(client):
         Description="test parameter group",
     )
 
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="mysql",
-        DBInstanceClass="db.m1.small",
-        DBParameterGroupName="test",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-    )
+    db_instance = create_db_instance(DBParameterGroupName="test")
 
-    assert len(database["DBInstance"]["DBParameterGroups"]) == 1
-    assert database["DBInstance"]["DBParameterGroups"][0]["DBParameterGroupName"] == (
-        "test"
-    )
-    assert database["DBInstance"]["DBParameterGroups"][0]["ParameterApplyStatus"] == (
-        "in-sync"
-    )
+    assert len(db_instance["DBParameterGroups"]) == 1
+    assert db_instance["DBParameterGroups"][0]["DBParameterGroupName"] == "test"
+    assert db_instance["DBParameterGroups"][0]["ParameterApplyStatus"] == "in-sync"
 
 
 @mock_aws
 def test_create_database_with_default_port(client):
-    database = client.create_db_instance(
-        DBInstanceIdentifier="db-master-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        DBSecurityGroups=["my_sg"],
-    )
-    assert database["DBInstance"]["Endpoint"]["Port"] == 5432
+    db_instance = create_db_instance()
+    assert db_instance["Endpoint"]["Port"] == 5432
 
 
 @mock_aws
 def test_modify_db_instance_with_parameter_group(client):
-    database = client.create_db_instance(
+    db_instance = create_db_instance(
         DBInstanceIdentifier="db-master-1",
         AllocatedStorage=10,
         Engine="mysql",
@@ -2618,13 +2140,10 @@ def test_modify_db_instance_with_parameter_group(client):
         Port=1234,
     )
 
-    assert len(database["DBInstance"]["DBParameterGroups"]) == 1
-    assert database["DBInstance"]["DBParameterGroups"][0]["DBParameterGroupName"] == (
-        "default.mysql5.6"
-    )
-    assert database["DBInstance"]["DBParameterGroups"][0]["ParameterApplyStatus"] == (
-        "in-sync"
-    )
+    assert len(db_instance["DBParameterGroups"]) == 1
+    parameter_group = db_instance["DBParameterGroups"][0]
+    assert parameter_group["DBParameterGroupName"] == "default.mysql5.6"
+    assert parameter_group["ParameterApplyStatus"] == "in-sync"
 
     client.create_db_parameter_group(
         DBParameterGroupName="test",
@@ -2768,14 +2287,11 @@ def test_create_parameter_group_with_tags(client):
 
 @mock_aws
 def test_create_db_with_iam_authentication(client):
-    database = client.create_db_instance(
+    db_instance = create_db_instance(
         DBInstanceIdentifier="rds",
-        DBInstanceClass="db.t1.micro",
-        Engine="postgres",
         EnableIAMDatabaseAuthentication=True,
     )
 
-    db_instance = database["DBInstance"]
     assert db_instance["IAMDatabaseAuthenticationEnabled"] is True
 
     snapshot = client.create_db_snapshot(
@@ -2786,18 +2302,14 @@ def test_create_db_with_iam_authentication(client):
 
 
 @mock_aws
-def test_create_db_instance_with_tags():
-    client = boto3.client("rds", region_name=DEFAULT_REGION)
+def test_create_db_instance_with_tags(client):
     tags = [{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}]
     db_instance_identifier = "test-db-instance"
-    resp = client.create_db_instance(
+    db_instance = create_db_instance(
         DBInstanceIdentifier=db_instance_identifier,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
         Tags=tags,
     )
-    assert resp["DBInstance"]["TagList"] == tags
+    assert db_instance["TagList"] == tags
 
     resp = client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
     assert resp["DBInstances"][0]["TagList"] == tags
@@ -2880,17 +2392,11 @@ def test_validate_db_snapshot_identifier_backend_valid(valid_db_snapshot_identif
 
 
 @mock_aws
-def test_validate_db_identifier():
-    client = boto3.client("rds", region_name=DEFAULT_REGION)
+def test_validate_db_identifier(client):
     invalid_db_instance_identifier = "arn:aws:rds:eu-west-1:123456789012:db:mydb"
 
     with pytest.raises(ClientError) as exc:
-        client.create_db_instance(
-            DBInstanceIdentifier=invalid_db_instance_identifier,
-            Engine="postgres",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-        )
+        create_db_instance(DBInstanceIdentifier=invalid_db_instance_identifier)
     validation_helper(exc)
 
     with pytest.raises(ClientError) as exc:
@@ -2919,18 +2425,12 @@ def test_validate_db_identifier():
 
 
 @mock_aws
-def test_validate_db_snapshot_identifier_different_operations():
-    client = boto3.client("rds", region_name=DEFAULT_REGION)
+def test_validate_db_snapshot_identifier_different_operations(client):
     db_instance_identifier = "valid-identifier"
     valid_db_snapshot_identifier = "valid"
     invalid_db_snapshot_identifier = "--invalid--"
 
-    client.create_db_instance(
-        DBInstanceIdentifier=db_instance_identifier,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-    )
+    create_db_instance(DBInstanceIdentifier=db_instance_identifier)
 
     expected_message = f"Invalid snapshot identifier:  {invalid_db_snapshot_identifier}"
     with pytest.raises(ClientError) as exc:
@@ -2993,12 +2493,7 @@ def test_validate_db_snapshot_identifier_different_error_messages(
     invalid_db_snapshot_identifier, expected_message, client
 ):
     db_instance_identifier = "valid-identifier"
-    client.create_db_instance(
-        DBInstanceIdentifier=db_instance_identifier,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-    )
+    create_db_instance(DBInstanceIdentifier=db_instance_identifier)
 
     with pytest.raises(ClientError) as exc:
         client.create_db_snapshot(
@@ -3011,12 +2506,7 @@ def test_validate_db_snapshot_identifier_different_error_messages(
 @mock_aws
 def test_createdb_instance_engine_with_invalid_value(client):
     with pytest.raises(ClientError) as exc:
-        client.create_db_instance(
-            DBInstanceIdentifier="test-db-instance",
-            Engine="invalid-engine",
-            DBName="staging-postgres",
-            DBInstanceClass="db.m1.small",
-        )
+        create_db_instance(Engine="invalid-engine")
 
     err = exc.value.response["Error"]
 
@@ -3029,18 +2519,7 @@ def test_createdb_instance_engine_with_invalid_value(client):
 
 @mock_aws
 def test_describe_db_snapshot_attributes_default(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
-
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
@@ -3053,18 +2532,7 @@ def test_describe_db_snapshot_attributes_default(client):
 
 @mock_aws
 def test_describe_db_snapshot_attributes(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
-
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
@@ -3088,17 +2556,7 @@ def test_describe_db_snapshot_attributes(client):
 
 @mock_aws
 def test_modify_db_snapshot_attribute(client):
-    client.create_db_instance(
-        DBInstanceIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DBName="staging-postgres",
-        DBInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2",
-        Port=1234,
-        DBSecurityGroups=["my_sg"],
-    )
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
