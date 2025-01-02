@@ -1050,11 +1050,11 @@ def test_create_db_snapshots(client):
 
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
-    ).get("DBSnapshot")
+    )["DBSnapshot"]
 
-    assert snapshot.get("Engine") == "postgres"
-    assert snapshot.get("DBInstanceIdentifier") == "db-primary-1"
-    assert snapshot.get("DBSnapshotIdentifier") == "g-1"
+    assert snapshot["Engine"] == "postgres"
+    assert snapshot["DBInstanceIdentifier"] == "db-primary-1"
+    assert snapshot["DBSnapshotIdentifier"] == "g-1"
     result = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])
     assert result["TagList"] == []
 
@@ -1082,11 +1082,11 @@ def test_create_db_snapshots_copy_tags(client):
 
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
-    ).get("DBSnapshot")
+    )["DBSnapshot"]
 
-    assert snapshot.get("Engine") == "postgres"
-    assert snapshot.get("DBInstanceIdentifier") == "db-primary-1"
-    assert snapshot.get("DBSnapshotIdentifier") == "g-1"
+    assert snapshot["Engine"] == "postgres"
+    assert snapshot["DBInstanceIdentifier"] == "db-primary-1"
+    assert snapshot["DBSnapshotIdentifier"] == "g-1"
     result = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])
     assert result["TagList"] == [
         {"Value": "bar", "Key": "foo"},
@@ -1114,11 +1114,11 @@ def test_create_db_snapshots_with_tags(client):
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
 
-    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1").get(
+    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")[
         "DBSnapshots"
-    )
-    assert snapshots[0].get("DBSnapshotIdentifier") == "g-1"
-    assert snapshots[0].get("TagList") == [
+    ]
+    assert snapshots[0]["DBSnapshotIdentifier"] == "g-1"
+    assert snapshots[0]["TagList"] == [
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
     ]
@@ -1148,7 +1148,7 @@ def test_copy_db_snapshots(
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
-    ).get("DBSnapshot")
+    )
 
     if delete_db_instance:
         # Delete the original instance, but the copy snapshot operation should still succeed.
@@ -1157,11 +1157,11 @@ def test_copy_db_snapshots(
     target_snapshot = client.copy_db_snapshot(
         SourceDBSnapshotIdentifier=db_snapshot_identifier,
         TargetDBSnapshotIdentifier="snapshot-2",
-    ).get("DBSnapshot")
+    )["DBSnapshot"]
 
-    assert target_snapshot.get("Engine") == "postgres"
-    assert target_snapshot.get("DBInstanceIdentifier") == "db-primary-1"
-    assert target_snapshot.get("DBSnapshotIdentifier") == "snapshot-2"
+    assert target_snapshot["Engine"] == "postgres"
+    assert target_snapshot["DBInstanceIdentifier"] == "db-primary-1"
+    assert target_snapshot["DBSnapshotIdentifier"] == "snapshot-2"
     result = client.list_tags_for_resource(
         ResourceName=target_snapshot["DBSnapshotArn"]
     )
@@ -1224,7 +1224,7 @@ def test_copy_db_snapshots_copytags_and_tags(kwargs, expected_tags, client):
         SourceDBSnapshotIdentifier="snapshot",
         TargetDBSnapshotIdentifier="snapshot-copy",
         **kwargs,
-    ).get("DBSnapshot")
+    )["DBSnapshot"]
     result = client.list_tags_for_resource(
         ResourceName=target_snapshot["DBSnapshotArn"]
     )
@@ -1247,17 +1247,17 @@ def test_describe_db_snapshots(client):
 
     created = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
-    ).get("DBSnapshot")
+    )["DBSnapshot"]
 
     assert created["Engine"] == "postgres"
     assert created["SnapshotType"] == "manual"
 
     by_database_id = client.describe_db_snapshots(
         DBInstanceIdentifier="db-primary-1"
-    ).get("DBSnapshots")
+    )["DBSnapshots"]
     by_snapshot_id = client.describe_db_snapshots(
         DBSnapshotIdentifier="snapshot-1"
-    ).get("DBSnapshots")
+    )["DBSnapshots"]
     assert by_snapshot_id == by_database_id
 
     snapshot = by_snapshot_id[0]
@@ -1266,9 +1266,9 @@ def test_describe_db_snapshots(client):
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-2"
     )
-    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1").get(
+    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")[
         "DBSnapshots"
-    )
+    ]
     assert len(snapshots) == 2
 
 
@@ -1316,9 +1316,7 @@ def test_delete_db_snapshot(client):
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
 
-    _ = client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1").get(
-        "DBSnapshots"
-    )[0]
+    client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")["DBSnapshots"][0]
     client.delete_db_snapshot(DBSnapshotIdentifier="snapshot-1")
     with pytest.raises(ClientError):
         client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
@@ -2811,9 +2809,9 @@ def test_create_db_with_iam_authentication(client):
 
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="rds", DBSnapshotIdentifier="snapshot"
-    ).get("DBSnapshot")
+    )["DBSnapshot"]
 
-    assert snapshot.get("IAMDatabaseAuthenticationEnabled") is True
+    assert snapshot["IAMDatabaseAuthenticationEnabled"] is True
 
 
 @mock_aws
@@ -3074,7 +3072,7 @@ def test_describe_db_snapshot_attributes_default(client):
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
-    ).get("DBSnapshot")
+    )
 
     resp = client.describe_db_snapshot_attributes(DBSnapshotIdentifier="snapshot-1")
 
@@ -3098,7 +3096,7 @@ def test_describe_db_snapshot_attributes(client):
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
-    ).get("DBSnapshot")
+    )
 
     resp = client.modify_db_snapshot_attribute(
         DBSnapshotIdentifier="snapshot-1",
@@ -3133,7 +3131,7 @@ def test_modify_db_snapshot_attribute(client):
 
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
-    ).get("DBSnapshot")
+    )
 
     resp = client.modify_db_snapshot_attribute(
         DBSnapshotIdentifier="snapshot-1",
