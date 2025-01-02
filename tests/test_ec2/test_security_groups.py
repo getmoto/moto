@@ -85,7 +85,9 @@ def test_create_and_describe_vpc_security_group():
 
     assert group_with.group_name == name
     assert group_with.description == "test"
-    assert group_with.security_group_arn
+    assert group_with.security_group_arn.startswith(
+        f"arn:aws:ec2:{REGION}:{DEFAULT_ACCOUNT_ID}:security-group/sg-"
+    )
 
     # Trying to create another group with the same name in the same VPC should
     # throw an error
