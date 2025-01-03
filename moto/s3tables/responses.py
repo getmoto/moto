@@ -4,6 +4,7 @@ import json
 from typing import Any, Dict
 from urllib.parse import unquote
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import S3TablesBackend, s3tables_backends
@@ -14,6 +15,7 @@ class S3TablesResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="s3tables")
+        self.default_response_headers = {"Content-Type": "application/json"}
 
     @property
     def s3tables_backend(self) -> S3TablesBackend:
@@ -25,14 +27,14 @@ class S3TablesResponse(BaseResponse):
 
     # add methods from here
 
-    def create_table_bucket(self) -> str:
+    def create_table_bucket(self) -> TYPE_RESPONSE:
         name = json.loads(self.body)["name"]
         bucket = self.s3tables_backend.create_table_bucket(
             name=name,
         )
-        return json.dumps(dict(arn=bucket.arn))
+        return 200, self.default_response_headers, json.dumps(dict(arn=bucket.arn))
 
-    def list_table_buckets(self) -> str:
+    def list_table_buckets(self) -> TYPE_RESPONSE:
         params = self._get_params()
         prefix = params.get("prefix")
         continuation_token = params.get("continuationToken")
@@ -43,7 +45,7 @@ class S3TablesResponse(BaseResponse):
             max_buckets=int(max_buckets) if max_buckets else None,
         )
 
-        response: Dict[str, Any] = {
+        body: Dict[str, Any] = {
             "tableBuckets": [
                 {
                     "arn": b.arn,
@@ -55,17 +57,17 @@ class S3TablesResponse(BaseResponse):
             ]
         }
         if continuation_token:
-            response.update(continuationToken=continuation_token)
+            body.update(continuationToken=continuation_token)
 
-        return json.dumps(response)
+        return 200, self.default_response_headers, json.dumps(body)
 
-    def get_table_bucket(self) -> str:
+    def get_table_bucket(self) -> TYPE_RESPONSE:
         table_bucket_arn = unquote(self.path.split("/")[-1])
         bucket = self.s3tables_backend.get_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
 
-        return json.dumps(
+        return 200, self.default_response_headers, json.dumps(
             dict(
                 arn=bucket.arn,
                 name=bucket.name,
@@ -74,10 +76,10 @@ class S3TablesResponse(BaseResponse):
             )
         )
 
-    def delete_table_bucket(self) -> str:
+    def delete_table_bucket(self) -> TYPE_RESPONSE:
         table_bucket_arn = unquote(self.path.split("/")[-1])
         self.s3tables_backend.delete_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
 
-        return json.dumps(dict())
+        return 204, {}, ""
