@@ -2,11 +2,34 @@
 
 import datetime
 from base64 import b64decode, b64encode
+import re
 from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.s3tables.exceptions import BadRequestException
+from moto.s3tables.exceptions import BadRequestException, InvalidContinuationToken, InvalidNamespaceName, InvalidTableBucketName, InvalidTableName
 from moto.utilities.utils import get_partition
+
+
+# https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-tables-buckets-naming.html
+TABLE_BUCKET_NAME_PATTERN = re.compile(r"[a-z0-9_-]{3,63}")
+TABLE_BUCKET_NAME_RESERVED_PREFIXES = ("xn--", "sthree-", "amzn-s3-demo")
+TABLE_BUCKET_NAME_RESERVED_SUFFIXES = ("-s3alias", "--ol-s3", "--x-s3")
+NAMESPACE_NAME_PATTERN = re.compile(r"[0-9a-z_]*")
+TABLE_NAME_PATTERN = re.compile(r"[0-9a-z_]*")
+
+def _validate_table_bucket_name(name: str):
+    if not TABLE_BUCKET_NAME_PATTERN.match(name) or any(name.startswith(prefix) for prefix in TABLE_BUCKET_NAME_RESERVED_PREFIXES) or any(name.endswith(suffix) for suffix in  TABLE_BUCKET_NAME_RESERVED_SUFFIXES):
+        raise InvalidTableBucketName()
+
+def _validate_namespace_name(name: str):
+    if not NAMESPACE_NAME_PATTERN.match(name):
+        raise InvalidNamespaceName()
+
+def _validate_table_name(name: str):
+    if not TABLE_NAME_PATTERN.match(name):
+        raise InvalidTableName(name)
+
+
 
 S3TABLES_DEFAULT_MAX_BUCKETS = 1000
 
@@ -32,6 +55,7 @@ class S3TablesBackend(BaseBackend):
         self.table_buckets: Dict[str, FakeTableBucket] = {}
 
     def create_table_bucket(self, name: str) -> FakeTableBucket:
+        _validate_table_bucket_name(name)
         new_table_bucket = FakeTableBucket(
             name=name, account_id=self.account_id, region_name=self.region_name
         )
@@ -60,9 +84,8 @@ class S3TablesBackend(BaseBackend):
             token_arn, token_prefix = (
                 b64decode(continuation_token.encode()).decode("utf-8").split(" ", 1)
             )
-            # TODO: validate prefix
             if token_prefix and token_prefix != prefix:
-                raise BadRequestException("The continuation token is not valid")
+                raise InvalidContinuationToken()
             last_bucket_index = list(b.arn for b in all_buckets).index(token_arn)
             start = last_bucket_index + 1
         else:
