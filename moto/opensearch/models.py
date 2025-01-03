@@ -1,16 +1,15 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .data import compatible_versions
-from .exceptions import EngineTypeNotFoundException, ResourceNotFoundException
-
 from ..es.models import DomainManagerBackend
+from .data import compatible_versions
+from .exceptions import ResourceNotFoundException
 
 default_cluster_config = {
     "InstanceType": "t3.small.search",
@@ -238,7 +237,7 @@ class OpenSearchServiceBackend(DomainManagerBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id, "OpenSearch")
-        #self.domains: Dict[str, OpenSearchDomain] = dict()
+        # self.domains: Dict[str, OpenSearchDomain] = dict()
         self.tagger = TaggingService()
 
     def create_domain(
@@ -297,7 +296,7 @@ class OpenSearchServiceBackend(DomainManagerBackend):
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         self.domains[domain_name].delete()
-        
+
         return self.domains.pop(domain_name)
 
     def describe_domain(self, domain_name: str) -> OpenSearchDomain:

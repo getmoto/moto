@@ -79,7 +79,6 @@ class Domain(BaseModel):
 
 
 class DomainManagerBackend(BaseBackend):
-
     domains: Dict[str, Dict[str, Domain]] = dict(
         Elasticsearch=dict(), OpenSearch=dict()
     )
@@ -92,14 +91,10 @@ class DomainManagerBackend(BaseBackend):
 
         self.engine_type = engine_type
 
-
     @classmethod
     def reset(cls):
         """Reset shared class-level state."""
-        cls.domains = dict(
-            Elasticsearch=dict(),
-            OpenSearch=dict()
-        )
+        cls.domains = dict(Elasticsearch=dict(), OpenSearch=dict())
         print("Resetting DomainManagerBackend state")
         print(cls.domains)
 
