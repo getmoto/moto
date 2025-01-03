@@ -1,9 +1,8 @@
 import json
 
-from moto import mock_aws
 import boto3
-import pytest
-from botocore.exceptions import ClientError
+
+from moto import mock_aws
 
 
 def get_policy_doc(action, stream_arn):
