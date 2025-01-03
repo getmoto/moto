@@ -1,6 +1,7 @@
 """Handles incoming s3tables requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -42,9 +43,11 @@ class S3TablesResponse(BaseResponse):
             max_buckets=int(max_buckets) if max_buckets else None,
         )
 
-        return json.dumps(
-            dict(tableBuckets=table_buckets, continuationToken=continuation_token)
-        )
+        response:dict[str, Any] = dict(tableBuckets=table_buckets)
+        if continuation_token:
+            response.update(continuationToken=continuation_token)
+
+        return json.dumps(response)
 
     def get_table_bucket(self) -> str:
         table_bucket_arn = unquote(self.path.split("/")[-1])

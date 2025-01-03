@@ -7,7 +7,7 @@ def test_s3tables_list():
     backend = server.create_backend_app("s3tables")
     test_client = backend.test_client()
 
-    resp = test_client.get("/")
+    resp = test_client.get("/buckets")
 
     assert resp.status_code == 200
-    assert "?" in str(resp.data)
+    assert "tableBuckets" in str(resp.data)
