@@ -30,7 +30,7 @@ def test_put_resource_policy():
     resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
     stream_arn = desc["StreamARN"]
-    
+
     action = "kinesis:*"
     json_policy_doc = get_policy_doc(action, stream_arn)
     client.put_resource_policy(ResourceARN=stream_arn, Policy=json_policy_doc)

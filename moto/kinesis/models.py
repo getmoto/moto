@@ -1032,9 +1032,7 @@ class KinesisBackend(BaseBackend):
             explicit_hash_key="",
         )
 
-    def put_resource_policy(
-        self, resource_arn: str, policy_doc: str
-    ) -> ResourcePolicy:
+    def put_resource_policy(self, resource_arn: str, policy_doc: str) -> ResourcePolicy:
         """
         Creates/updates resource policy and return policy object
         """
@@ -1055,15 +1053,14 @@ class KinesisBackend(BaseBackend):
                 message=f"No resource policy found for resource ARN {resource_arn}."
             )
         del self.resource_policies[resource_arn]
-    
+
     def get_resource_policy(self, resource_arn: str) -> ResourcePolicy:
         stream_name = resource_arn.split("/")[-1]
         if stream_name not in self.streams:
-            raise StreamNotFoundError(stream_name==stream_name, self.account_id)
+            raise StreamNotFoundError(stream_name == stream_name, self.account_id)
         if resource_arn not in self.resource_policies:
             return ResourcePolicy(resource_arn=resource_arn, policy_doc="{}")
         return self.resource_policies[resource_arn]
-
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

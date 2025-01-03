@@ -337,12 +337,8 @@ class KinesisResponse(BaseResponse):
 
     def get_resource_policy(self) -> str:
         resource_arn = self._get_param("ResourceARN")
-        policy = self.kinesis_backend.get_resource_policy(
-            resource_arn=resource_arn
-        )
-        return json.dumps(
-            {"Policy": policy.policy_doc}
-        )
+        policy = self.kinesis_backend.get_resource_policy(resource_arn=resource_arn)
+        return json.dumps({"Policy": policy.policy_doc})
 
     def delete_resource_policy(self) -> str:
         resource_arn = self._get_param("ResourceARN")
