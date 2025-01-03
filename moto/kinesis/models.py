@@ -581,10 +581,17 @@ class Stream(CloudFormationModel):
         return self.stream_name
 
 
+class ResourcePolicy:
+    def __init__(self, resource_arn: str, policy_doc: str):
+        self.resource_arn = resource_arn
+        self.policy_doc = policy_doc
+
+
 class KinesisBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.streams: Dict[str, Stream] = OrderedDict()
+        self.resource_policies: Dict[str, ResourcePolicy] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1024,6 +1031,39 @@ class KinesisBackend(BaseBackend):
             data=gzipped_payload,
             explicit_hash_key="",
         )
+
+    def put_resource_policy(
+        self, resource_arn: str, policy_doc: str
+    ) -> ResourcePolicy:
+        """
+        Creates/updates resource policy and return policy object
+        """
+        if resource_arn in self.resource_policies:
+            policy = self.resource_policies[resource_arn]
+            policy.update(policy_doc)
+            return policy
+        policy = ResourcePolicy(resource_arn, policy_doc)
+        self.resource_policies[resource_arn] = policy
+        return policy
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        """
+        Remove resource policy with a matching given resource arn.
+        """
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundError(
+                message=f"No resource policy found for resource ARN {resource_arn}."
+            )
+        del self.resource_policies[resource_arn]
+    
+    def get_resource_policy(self, resource_arn: str) -> ResourcePolicy:
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(stream_name==stream_name, self.account_id)
+        if resource_arn not in self.resource_policies:
+            return "{}"
+        return self.resource_policies[resource_arn]
+
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")
