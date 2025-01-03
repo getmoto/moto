@@ -1,7 +1,7 @@
 """Handles incoming s3tables requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
+from typing import Any, Dict
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -27,10 +27,10 @@ class S3TablesResponse(BaseResponse):
 
     def create_table_bucket(self) -> str:
         name = json.loads(self.body)["name"]
-        arn = self.s3tables_backend.create_table_bucket(
+        bucket = self.s3tables_backend.create_table_bucket(
             name=name,
         )
-        return json.dumps(dict(arn=arn))
+        return json.dumps(dict(arn=bucket.arn))
 
     def list_table_buckets(self) -> str:
         params = self._get_params()
@@ -43,7 +43,17 @@ class S3TablesResponse(BaseResponse):
             max_buckets=int(max_buckets) if max_buckets else None,
         )
 
-        response:dict[str, Any] = dict(tableBuckets=table_buckets)
+        response: Dict[str, Any] = {
+            "tableBuckets": [
+                {
+                    "arn": b.arn,
+                    "name": b.name,
+                    "ownerAccountId": b.account_id,
+                    "createdAt": b.creation_date.isoformat(),
+                }
+                for b in table_buckets
+            ]
+        }
         if continuation_token:
             response.update(continuationToken=continuation_token)
 
@@ -51,18 +61,16 @@ class S3TablesResponse(BaseResponse):
 
     def get_table_bucket(self) -> str:
         table_bucket_arn = unquote(self.path.split("/")[-1])
-        arn, name, owner_account_id, created_at = (
-            self.s3tables_backend.get_table_bucket(
-                table_bucket_arn=table_bucket_arn,
-            )
+        bucket = self.s3tables_backend.get_table_bucket(
+            table_bucket_arn=table_bucket_arn,
         )
 
         return json.dumps(
             dict(
-                arn=arn,
-                name=name,
-                ownerAccountId=owner_account_id,
-                createdAt=created_at,
+                arn=bucket.arn,
+                name=bucket.name,
+                ownerAccountId=bucket.account_id,
+                createdAt=bucket.creation_date.isoformat(),
             )
         )
 

@@ -2,7 +2,7 @@
 
 import datetime
 from base64 import b64decode, b64encode
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3tables.exceptions import BadRequestException
@@ -31,19 +31,19 @@ class S3TablesBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.table_buckets: Dict[str, FakeTableBucket] = {}
 
-    def create_table_bucket(self, name: str) -> str:
+    def create_table_bucket(self, name: str) -> FakeTableBucket:
         new_table_bucket = FakeTableBucket(
             name=name, account_id=self.account_id, region_name=self.region_name
         )
         self.table_buckets[new_table_bucket.arn] = new_table_bucket
-        return new_table_bucket.arn
+        return new_table_bucket
 
     def list_table_buckets(
         self,
         prefix: Optional[str] = None,
         continuation_token: Optional[str] = None,
         max_buckets: Optional[int] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> Tuple[List[FakeTableBucket], Optional[str]]:
         if not max_buckets:
             max_buckets = S3TABLES_DEFAULT_MAX_BUCKETS
 
@@ -70,33 +70,19 @@ class S3TablesBackend(BaseBackend):
 
         buckets = all_buckets[start : start + max_buckets]
 
-        table_buckets = [
-            {
-                "arn": b.arn,
-                "name": b.name,
-                "ownerAccountId": b.account_id,
-                "createdAt": b.creation_date.isoformat(),
-            }
-            for b in buckets
-        ]
         next_continuation_token = None
         if start + max_buckets < len(all_buckets):
             next_continuation_token = b64encode(
                 f"{buckets[-1].arn} {prefix if prefix else ''}".encode()
             ).decode()
 
-        return table_buckets, next_continuation_token
+        return buckets, next_continuation_token
 
-    def get_table_bucket(self, table_bucket_arn: str) -> Tuple[str, str, str, str]:
+    def get_table_bucket(self, table_bucket_arn: str) -> FakeTableBucket:
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket:
             raise KeyError
-        return (
-            bucket.arn,
-            bucket.name,
-            bucket.account_id,
-            bucket.creation_date.isoformat(),
-        )
+        return bucket
 
     def delete_table_bucket(self, table_bucket_arn: str) -> None:
         self.table_buckets.pop(table_bucket_arn)
