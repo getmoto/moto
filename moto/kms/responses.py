@@ -719,6 +719,34 @@ class KmsResponse(BaseResponse):
             }
         )
 
+    def rotate_key_on_demand(self) -> str:
+        key_id = self._get_param("KeyId")
+
+        self._validate_key_id(key_id)
+
+        key_id = self.kms_backend.rotate_key_on_demand(
+            key_id=key_id,
+        )
+        return json.dumps(dict(KeyId=key_id))
+
+    def list_key_rotations(self) -> str:
+        key_id = self._get_param("KeyId")
+        limit = self._get_param("Limit", 1000)
+        marker = self._get_param("Marker")
+
+        self._validate_key_id(key_id)
+
+        rotations, truncated, next_marker = self.kms_backend.list_key_rotations(
+            key_id=key_id, limit=limit, marker=marker
+        )
+
+        response = {"Rotations": rotations, "Truncated": truncated}
+
+        if truncated:
+            response["NextMarker"] = next_marker
+
+        return json.dumps(response)
+
 
 def _assert_default_policy(policy_name: str) -> None:
     if policy_name != "default":

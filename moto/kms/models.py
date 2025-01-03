@@ -4,7 +4,7 @@ import typing
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -99,6 +99,8 @@ class Key(CloudFormationModel):
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
         )
         self.grants: Dict[str, Grant] = dict()
+
+        self.rotations: List[Dict[str, Any]] = []
 
     def add_grant(
         self,
@@ -460,6 +462,11 @@ class KmsBackend(BaseBackend):
     def get_key_policy(self, key_id: str) -> str:
         return self.keys[self.get_key_id(key_id)].policy
 
+    def list_key_policies(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'describe_key'
+        pass
+
     def disable_key(self, key_id: str) -> None:
         self.keys[key_id].enabled = False
         self.keys[key_id].key_state = "Disabled"
@@ -525,6 +532,11 @@ class KmsBackend(BaseBackend):
             encryption_context=destination_encryption_context,
         )
         return new_ciphertext_blob, decrypting_arn, encrypting_arn
+
+    def generate_random(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'os.urandom'
+        pass
 
     def generate_data_key(
         self,
@@ -713,6 +725,44 @@ class KmsBackend(BaseBackend):
     def get_public_key(self, key_id: str) -> Tuple[Key, bytes]:
         key = self.describe_key(key_id)
         return key, key.private_key.public_key()
+
+    def rotate_key_on_demand(self, key_id: str) -> str:
+        key: Key = self.keys[self.get_key_id(key_id)]
+
+        rotation = {
+            "KeyId": key_id,
+            "RotationDate": datetime.now().timestamp(),
+            "RotationType": "ON_DEMAND",
+        }
+
+        # Add to key rotations
+        key.rotations.append(rotation)
+
+        return key_id
+
+    def list_key_rotations(
+        self, key_id: str, limit: int, marker: Union[str, None]
+    ) -> Tuple[List[Dict[str, Union[str, float]]], bool, Union[str, None]]:
+        # implement here
+
+        key: Key = self.keys[self.get_key_id(key_id)]
+
+        # we treat the marker as an index-offset
+        marker = marker or "0"
+        index_offset = int(marker)
+
+        rotations_after_offset = key.rotations[index_offset:]
+
+        if len(rotations_after_offset) > limit:
+            next_marker = str(index_offset + limit)
+            rotations = rotations_after_offset[:limit]
+            truncated = True
+        else:
+            next_marker = None
+            rotations = rotations_after_offset
+            truncated = False
+
+        return rotations, truncated, next_marker
 
 
 kms_backends = BackendDict(KmsBackend, "kms")
