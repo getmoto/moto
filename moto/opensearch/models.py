@@ -1,14 +1,15 @@
 import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
+from ..es.models import DomainManagerBackend
 from .data import compatible_versions
-from .exceptions import EngineTypeNotFoundException, ResourceNotFoundException
+from .exceptions import ResourceNotFoundException
 
 default_cluster_config = {
     "InstanceType": "t3.small.search",
@@ -231,12 +232,12 @@ class OpenSearchDomain(BaseModel):
         self.engine_version.update_time = unix_time(datetime.datetime.now())
 
 
-class OpenSearchServiceBackend(BaseBackend):
+class OpenSearchServiceBackend(DomainManagerBackend):
     """Implementation of OpenSearchService APIs."""
 
     def __init__(self, region_name: str, account_id: str):
-        super().__init__(region_name, account_id)
-        self.domains: Dict[str, OpenSearchDomain] = dict()
+        super().__init__(region_name, account_id, "OpenSearch")
+        # self.domains: Dict[str, OpenSearchDomain] = dict()
         self.tagger = TaggingService()
 
     def create_domain(
@@ -281,7 +282,7 @@ class OpenSearchServiceBackend(BaseBackend):
             off_peak_window_options=off_peak_window_options,
             software_update_options=software_update_options,
         )
-        self.domains[domain_name] = domain
+        self.add_domain(domain_name, domain)
         if tag_list:
             self.add_tags(domain.arn, tag_list)
         return domain
@@ -295,6 +296,7 @@ class OpenSearchServiceBackend(BaseBackend):
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         self.domains[domain_name].delete()
+
         return self.domains.pop(domain_name)
 
     def describe_domain(self, domain_name: str) -> OpenSearchDomain:
@@ -353,33 +355,34 @@ class OpenSearchServiceBackend(BaseBackend):
     def remove_tags(self, arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
-    def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
-        domains = []
-        for domain in self.domains.values():
-            if engine_type:
-                if engine_type in domain.engine_version.options:
-                    domains.append(
-                        {
-                            "DomainName": domain.domain_name,
-                            "EngineType": engine_type.split("_")[0],
-                        }
-                    )
-                else:
-                    raise EngineTypeNotFoundException(domain.domain_name)
-            else:
-                domains.append(
-                    {
-                        "DomainName": domain.domain_name,
-                        "EngineType": domain.engine_version.options.split("_")[0],
-                    }
-                )
-        return domains
+    # def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
+    #     domains = []
+    #     for domain in self.domains.values():
+    #         if engine_type:
+    #             if engine_type in domain.engine_version.options:
+    #                 domains.append(
+    #                     {
+    #                         "DomainName": domain.domain_name,
+    #                         "EngineType": engine_type.split("_")[0],
+    #                     }
+    #                 )
+    #             else:
+    #                 raise EngineTypeNotFoundException(domain.domain_name)
+    #         else:
+    #             domains.append(
+    #                 {
+    #                     "DomainName": domain.domain_name,
+    #                     "EngineType": domain.engine_version.options.split("_")[0],
+    #                 }
+    #             )
+    #     return domains
 
     def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
         queried_domains = []
         for domain_name in domain_names:
-            if domain_name in self.domains:
-                queried_domains.append(self.domains[domain_name])
+            domain = self.get_domain(domain_name)
+            if domain:
+                queried_domains.append(domain)
         return queried_domains
 
 
