@@ -1,11 +1,11 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
-from .exceptions import DomainNotFound
+from .exceptions import DomainNotFound, EngineTypeNotFoundException
 
 
 class Domain(BaseModel):
@@ -78,12 +78,80 @@ class Domain(BaseModel):
         }
 
 
-class ElasticsearchServiceBackend(BaseBackend):
+class DomainManagerBackend(BaseBackend):
+
+    domains: Dict[str, Dict[str, Domain]] = dict(
+        Elasticsearch=dict(), OpenSearch=dict()
+    )
+
+    def __init__(self, region_name: str, account_id: str, engine_type: str):
+        super().__init__(region_name, account_id)
+
+        if not self._is_valid_engine_type(engine_type):
+            raise ValueError(f"Unsupported engine type: {engine_type}")
+
+        self.engine_type = engine_type
+
+
+    @classmethod
+    def reset(cls):
+        """Reset shared class-level state."""
+        cls.domains = dict(
+            Elasticsearch=dict(),
+            OpenSearch=dict()
+        )
+        print("Resetting DomainManagerBackend state")
+        print(cls.domains)
+
+    def _is_valid_engine_type(self, engine_type) -> bool:
+        return engine_type in ["Elasticsearch", "OpenSearch"]
+
+    def add_domain(self, domain_name: str, domain: Domain) -> None:
+        print(self.engine_type)
+        DomainManagerBackend.domains[self.engine_type][domain_name] = domain
+
+    def delete_domain(self, domain_name: str) -> None:
+        if domain_name not in DomainManagerBackend.domains[self.engine_type]:
+            raise DomainNotFound(domain_name)
+        del DomainManagerBackend.domains[self.engine_type][domain_name]
+
+    def get_domain(self, domain_name: str) -> Domain:
+        if domain_name in DomainManagerBackend.domains[self.engine_type]:
+            return DomainManagerBackend.domains[self.engine_type][domain_name]
+        return None
+
+    def list_domain_names(
+        self, engine_type: Optional[str] = None
+    ) -> List[Dict[str, str]]:
+        """
+        Pagination is not yet implemented.
+        """
+        domain_list = []
+
+        print(DomainManagerBackend.domains)
+        if engine_type:
+            if not self._is_valid_engine_type(engine_type):
+                raise EngineTypeNotFoundException(engine_type)
+
+            domains = DomainManagerBackend.domains[engine_type]
+            for name in domains:
+                domain_list.append({"DomainName": name, "EngineType": engine_type})
+
+        else:
+            for domain_engine_type, domains in DomainManagerBackend.domains.items():
+                for name in domains:
+                    domain_list.append(
+                        {"DomainName": name, "EngineType": domain_engine_type}
+                    )
+
+        return domain_list
+
+
+class ElasticsearchServiceBackend(DomainManagerBackend):
     """Implementation of ElasticsearchService APIs."""
 
     def __init__(self, region_name: str, account_id: str):
-        super().__init__(region_name, account_id)
-        self.domains: Dict[str, Domain] = dict()
+        super().__init__(region_name, account_id, "Elasticsearch")
 
     def create_elasticsearch_domain(
         self,
@@ -122,33 +190,27 @@ class ElasticsearchServiceBackend(BaseBackend):
             advanced_security_options=advanced_security_options,
             auto_tune_options=auto_tune_options,
         )
-        self.domains[domain_name] = new_domain
+        self.add_domain(domain_name, new_domain)
         return new_domain.to_json()
 
     def delete_elasticsearch_domain(self, domain_name: str) -> None:
-        if domain_name not in self.domains:
-            raise DomainNotFound(domain_name)
-        del self.domains[domain_name]
+        self.delete_domain(domain_name)
 
     def describe_elasticsearch_domain(self, domain_name: str) -> Dict[str, Any]:
-        if domain_name not in self.domains:
+        domain = self.get_domain(domain_name)
+        if domain:
+            return domain.to_json()
+        else:
             raise DomainNotFound(domain_name)
-        return self.domains[domain_name].to_json()
-
-    def list_domain_names(self) -> List[Dict[str, str]]:
-        """
-        The engine-type parameter is not yet supported.
-        Pagination is not yet implemented.
-        """
-        return [{"DomainName": domain.domain_name} for domain in self.domains.values()]
 
     def describe_elasticsearch_domains(
         self, domain_names: List[str]
     ) -> List[Dict[str, Any]]:
         queried_domains = []
         for domain_name in domain_names:
-            if domain_name in self.domains:
-                queried_domains.append(self.domains[domain_name].to_json())
+            domain = self.get_domain(domain_name)
+            if domain:
+                queried_domains.append(domain.to_json())
         return queried_domains
 
 

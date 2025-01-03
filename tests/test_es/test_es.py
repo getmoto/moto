@@ -214,7 +214,8 @@ def test_list_domain_names_with_multiple_domains():
 
     assert len(resp["DomainNames"]) == 4
     for name in domain_names:
-        assert {"DomainName": name} in resp["DomainNames"]
+        expected_domain = {"DomainName": name, "EngineType": "Elasticsearch"}
+        assert expected_domain in resp["DomainNames"]
 
 
 @mock_aws
@@ -240,3 +241,19 @@ def test_describe_elasticsearch_domains():
     # Test for invalid domain name
     resp = client.describe_elasticsearch_domains(DomainNames=["invalid"])
     assert len(resp["DomainStatusList"]) == 0
+
+
+@mock_aws
+def test_list_domain_names_opensearch():
+    opensearch_client = boto3.client("opensearch", region_name="us-east-2")
+    status = opensearch_client.create_domain(DomainName="moto-opensearch")[
+        "DomainStatus"
+    ]
+    assert status["Created"]
+    assert "DomainId" in status
+    assert "DomainName" in status
+    assert status["DomainName"] == "moto-opensearch"
+
+    # ensure that elasticsearch client can describe opensearch domains as well
+    es_client = boto3.client("es", region_name="us-east-2")
+    assert es_client.list_domain_names()["DomainNames"] != []

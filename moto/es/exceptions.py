@@ -24,3 +24,10 @@ class InvalidDomainName(ElasticSearchError):
 class DomainNotFound(ResourceNotFound):
     def __init__(self, domain_name: str):
         super().__init__("Domain", domain_name)
+
+
+class EngineTypeNotFoundException(JsonRESTError):
+    def __init__(self, engine_type: str):
+        super().__init__(
+            "EngineTypeNotFoundException", f"Engine Type not found: {engine_type}"
+        )
