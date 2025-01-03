@@ -11,7 +11,7 @@ from .models import S3TablesBackend, s3tables_backends
 class S3TablesResponse(BaseResponse):
     """Handler for S3Tables requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="s3tables")
 
     @property
@@ -24,14 +24,14 @@ class S3TablesResponse(BaseResponse):
 
     # add methods from here
 
-    def create_table_bucket(self):
+    def create_table_bucket(self) -> str:
         name = json.loads(self.body)["name"]
         arn = self.s3tables_backend.create_table_bucket(
             name=name,
         )
         return json.dumps(dict(arn=arn))
 
-    def list_table_buckets(self):
+    def list_table_buckets(self) -> str:
         params = self._get_params()
         prefix = params.get("prefix")
         continuation_token = params.get("continuationToken")
@@ -41,21 +41,19 @@ class S3TablesResponse(BaseResponse):
             continuation_token=continuation_token,
             max_buckets=int(max_buckets) if max_buckets else None,
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(tableBuckets=table_buckets, continuationToken=continuation_token)
         )
 
-    # add templates from here
-
-    def get_table_bucket(self):
+    def get_table_bucket(self) -> str:
         table_bucket_arn = unquote(self.path.split("/")[-1])
         arn, name, owner_account_id, created_at = (
             self.s3tables_backend.get_table_bucket(
                 table_bucket_arn=table_bucket_arn,
             )
         )
-        # TODO: adjust response
+
         return json.dumps(
             dict(
                 arn=arn,
@@ -65,10 +63,10 @@ class S3TablesResponse(BaseResponse):
             )
         )
 
-    def delete_table_bucket(self):
+    def delete_table_bucket(self) -> str:
         table_bucket_arn = unquote(self.path.split("/")[-1])
         self.s3tables_backend.delete_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
-        # TODO: adjust response
+
         return json.dumps(dict())

@@ -2,11 +2,13 @@
 
 import datetime
 from base64 import b64decode, b64encode
-from typing import Dict
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3tables.exceptions import BadRequestException
 from moto.utilities.utils import get_partition
+
+S3TABLES_DEFAULT_MAX_BUCKETS = 1000
 
 
 class FakeTableBucket:
@@ -25,20 +27,25 @@ class FakeTableBucket:
 class S3TablesBackend(BaseBackend):
     """Implementation of S3Tables APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.table_buckets: Dict[str, FakeTableBucket] = {}
 
-    def create_table_bucket(self, name) -> str:
+    def create_table_bucket(self, name: str) -> str:
         new_table_bucket = FakeTableBucket(
             name=name, account_id=self.account_id, region_name=self.region_name
         )
         self.table_buckets[new_table_bucket.arn] = new_table_bucket
         return new_table_bucket.arn
 
-    def list_table_buckets(self, prefix, continuation_token, max_buckets):
+    def list_table_buckets(
+        self,
+        prefix: Optional[str] = None,
+        continuation_token: Optional[str] = None,
+        max_buckets: Optional[int] = None,
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         if not max_buckets:
-            max_buckets = 1000
+            max_buckets = S3TABLES_DEFAULT_MAX_BUCKETS
 
         all_buckets = list(
             bucket
@@ -80,7 +87,7 @@ class S3TablesBackend(BaseBackend):
 
         return table_buckets, next_continuation_token
 
-    def get_table_bucket(self, table_bucket_arn):
+    def get_table_bucket(self, table_bucket_arn: str) -> Tuple[str, str, str, str]:
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket:
             raise KeyError
@@ -91,10 +98,8 @@ class S3TablesBackend(BaseBackend):
             bucket.creation_date.isoformat(),
         )
 
-    def delete_table_bucket(self, table_bucket_arn):
+    def delete_table_bucket(self, table_bucket_arn: str) -> None:
         self.table_buckets.pop(table_bucket_arn)
-        # implement here
-        return
 
 
 s3tables_backends = BackendDict(
