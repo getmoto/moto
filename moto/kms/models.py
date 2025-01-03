@@ -14,13 +14,14 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import ValidationException
+from .exceptions import InvalidKeyUsageException, ValidationException
 from .utils import (
     RESERVED_ALIASES,
     KeySpec,
     SigningAlgorithm,
     decrypt,
     encrypt,
+    generate_hmac,
     generate_key_id,
     generate_master_key,
     generate_private_key,
@@ -763,6 +764,27 @@ class KmsBackend(BaseBackend):
             truncated = False
 
         return rotations, truncated, next_marker
+
+    def generate_mac(
+        self,
+        message: bytes,
+        key_id: str,
+        mac_algorithm: str,
+        grant_tokens: List[str],
+        dry_run: bool,
+    ) -> Tuple[str, str, str]:
+        key = self.keys[key_id]
+
+        if (
+            key.key_usage != "GENERATE_VERIFY_MAC"
+            or key.key_spec not in KeySpec.hmac_key_specs()
+        ):
+            raise InvalidKeyUsageException()
+
+        mac = generate_hmac(
+            key=key.key_material, message=message, mac_algorithm=mac_algorithm
+        )
+        return mac, mac_algorithm, key_id
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

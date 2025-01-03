@@ -604,6 +604,36 @@ class KmsResponse(BaseResponse):
 
         return json.dumps(result)
 
+    def generate_mac(self) -> str:
+        message = self._get_param("Message")
+        key_id = self._get_param("KeyId")
+        mac_algorithm = self._get_param("MacAlgorithm")
+        grant_tokens = self._get_param("GrantTokens")
+        dry_run = self._get_param("DryRun")
+
+        self._validate_key_id(key_id)
+
+        mac_algorithms = {
+            "HMAC_SHA_224",
+            "HMAC_SHA_256",
+            "HMAC_SHA_384",
+            "HMAC_SHA_512",
+        }
+        if mac_algorithm and mac_algorithm not in mac_algorithms:
+            raise ValidationException(
+                f"Key Spec must be one of {', '.join(mac_algorithms)}"
+            )
+
+        mac, mac_algorithm, key_id = self.kms_backend.generate_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        return json.dumps(dict(Mac=mac, MacAlgorithm=mac_algorithm, KeyId=key_id))
+
     def generate_random(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateRandom.html"""
         number_of_bytes = self._get_param("NumberOfBytes")
