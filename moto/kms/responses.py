@@ -621,7 +621,7 @@ class KmsResponse(BaseResponse):
         }
         if mac_algorithm and mac_algorithm not in mac_algorithms:
             raise ValidationException(
-                f"Key Spec must be one of {', '.join(mac_algorithms)}"
+                f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
             )
 
         mac, mac_algorithm, key_id = self.kms_backend.generate_mac(
@@ -731,6 +731,40 @@ class KmsResponse(BaseResponse):
                 "SignatureValid": signature_valid,
                 "SigningAlgorithm": signing_algorithm,
             }
+        )
+
+    def verify_mac(self) -> str:
+        message = self._get_param("Message")
+        mac = self._get_param("Mac")
+        key_id = self._get_param("KeyId")
+        mac_algorithm = self._get_param("MacAlgorithm")
+        grant_tokens = self._get_param("GrantTokens")
+        dry_run = self._get_param("DryRun")
+
+        self._validate_key_id(key_id)
+
+        mac_algorithms = {
+            "HMAC_SHA_224",
+            "HMAC_SHA_256",
+            "HMAC_SHA_384",
+            "HMAC_SHA_512",
+        }
+        if mac_algorithm and mac_algorithm not in mac_algorithms:
+            raise ValidationException(
+                f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
+            )
+
+        key_id, mac_valid, mac_algorithm = self.kms_backend.verify_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            mac=mac,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        return json.dumps(
+            dict(KeyId=key_id, MacValid=mac_valid, MacAlgorithm=mac_algorithm)
         )
 
     def get_public_key(self) -> str:

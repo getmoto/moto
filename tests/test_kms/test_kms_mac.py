@@ -86,3 +86,50 @@ def test_generate_fails_for_invalid_key_spec():
             MacAlgorithm="HMAC_SHA_512",
             Message=base64.b64encode("Hello World".encode("utf-8")),
         )
+
+
+@mock_aws
+def test_verify_mac():
+    # Arrange
+    key_id = create_hmac_key()
+    client = boto3.client("kms", region_name="eu-central-1")
+    mac = client.generate_mac(
+        KeyId=key_id,
+        MacAlgorithm="HMAC_SHA_512",
+        Message=base64.b64encode("Hello World".encode("utf-8")),
+    )["Mac"]
+
+    # Act
+    resp = client.verify_mac(
+        KeyId=key_id,
+        MacAlgorithm="HMAC_SHA_512",
+        Message=base64.b64encode("Hello World".encode("utf-8")),
+        Mac=mac,
+    )
+
+    # Assert
+    assert resp["KeyId"] == key_id
+    assert resp["MacAlgorithm"] == "HMAC_SHA_512"
+    assert resp["MacValid"] is True
+
+
+@mock_aws
+def test_verify_mac_fails_for_another_key_id():
+    # Arrange
+    key_id = create_hmac_key()
+    other_key_id = create_hmac_key()
+    client = boto3.client("kms", region_name="eu-central-1")
+    mac = client.generate_mac(
+        KeyId=key_id,
+        MacAlgorithm="HMAC_SHA_512",
+        Message=base64.b64encode("Hello World".encode("utf-8")),
+    )["Mac"]
+
+    # Act + Assert
+    with pytest.raises(client.exceptions.KMSInvalidMacException):
+        client.verify_mac(
+            KeyId=other_key_id,
+            MacAlgorithm="HMAC_SHA_512",
+            Message=base64.b64encode("Hello World".encode("utf-8")),
+            Mac=mac,
+        )

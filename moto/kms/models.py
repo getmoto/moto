@@ -14,7 +14,11 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import InvalidKeyUsageException, ValidationException
+from .exceptions import (
+    InvalidKeyUsageException,
+    KMSInvalidMacException,
+    ValidationException,
+)
 from .utils import (
     RESERVED_ALIASES,
     KeySpec,
@@ -744,8 +748,6 @@ class KmsBackend(BaseBackend):
     def list_key_rotations(
         self, key_id: str, limit: int, marker: Union[str, None]
     ) -> Tuple[List[Dict[str, Union[str, float]]], bool, Union[str, None]]:
-        # implement here
-
         key: Key = self.keys[self.get_key_id(key_id)]
 
         # we treat the marker as an index-offset
@@ -785,6 +787,28 @@ class KmsBackend(BaseBackend):
             key=key.key_material, message=message, mac_algorithm=mac_algorithm
         )
         return mac, mac_algorithm, key_id
+
+    def verify_mac(
+        self,
+        message: bytes,
+        key_id: str,
+        mac_algorithm: str,
+        mac: str,
+        grant_tokens: List[str],
+        dry_run: bool,
+    ) -> Tuple[str, bool, str]:
+        regenerated_mac, _, _ = self.generate_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        if mac != regenerated_mac:
+            raise KMSInvalidMacException()
+
+        return key_id, True, mac_algorithm
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

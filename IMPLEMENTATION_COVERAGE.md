@@ -4817,7 +4817,7 @@
 
 ## kms
 <details>
-<summary>73% implemented</summary>
+<summary>76% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -4841,7 +4841,7 @@
 - [ ] generate_data_key_pair
 - [ ] generate_data_key_pair_without_plaintext
 - [X] generate_data_key_without_plaintext
-- [ ] generate_mac
+- [X] generate_mac
 - [X] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
@@ -4870,7 +4870,7 @@
 - [X] update_key_description
 - [ ] update_primary_region
 - [X] verify
-- [ ] verify_mac
+- [X] verify_mac
 </details>
 
 ## lakeformation
