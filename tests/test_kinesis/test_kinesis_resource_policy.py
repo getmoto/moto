@@ -28,31 +28,31 @@ def get_policy_doc(action, stream_arn):
 def test_put_resource_policy():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
-    resp = client.describe_stream("my-stream")
+    resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
     stream_arn = desc["StreamARN"]
     
     action = "kinesis:*"
     json_policy_doc = get_policy_doc(action, stream_arn)
     client.put_resource_policy(ResourceARN=stream_arn, Policy=json_policy_doc)
-    response = client.get_resource_policy(ResourceArn=stream_arn)
+    response = client.get_resource_policy(ResourceARN=stream_arn)
 
-    assert json.loads(response["Policy"]) == json_policy_doc
+    assert response["Policy"] == json_policy_doc
 
 
 @mock_aws
 def test_delete_resource_policy():
     client = boto3.client("kinesis", region_name="us-west-2")
     client.create_stream(StreamName="my-stream", ShardCount=2)
-    resp = client.describe_stream("my-stream")
+    resp = client.describe_stream(StreamName="my-stream")
     desc = resp["StreamDescription"]
     stream_arn = desc["StreamARN"]
     action = "kinesis:*"
     json_policy_doc = get_policy_doc(action, stream_arn)
-    response = client.put_resource_policy(ResourceARN=stream_arn, Policy=json_policy_doc)
+    client.put_resource_policy(ResourceARN=stream_arn, Policy=json_policy_doc)
+    response = client.get_resource_policy(ResourceARN=stream_arn)
+    assert response["Policy"] == json_policy_doc
 
-    assert json.loads(response["Policy"]) == json_policy_doc
-
-    response = client.delete_resource_policy(ResourceARN=stream_arn)
-    response = client.put_resource_policy(ResourceARN=stream_arn, Policy=json_policy_doc)
+    client.delete_resource_policy(ResourceARN=stream_arn)
+    response = client.get_resource_policy(ResourceARN=stream_arn)
     assert response["Policy"] == "{}"

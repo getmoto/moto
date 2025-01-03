@@ -1061,7 +1061,7 @@ class KinesisBackend(BaseBackend):
         if stream_name not in self.streams:
             raise StreamNotFoundError(stream_name==stream_name, self.account_id)
         if resource_arn not in self.resource_policies:
-            return "{}"
+            return ResourcePolicy(resource_arn=resource_arn, policy_doc="{}")
         return self.resource_policies[resource_arn]
 
 
