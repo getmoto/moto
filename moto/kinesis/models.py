@@ -585,6 +585,7 @@ class KinesisBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.streams: Dict[str, Stream] = OrderedDict()
+        self.resource_policies: Dict[str, str] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1024,6 +1025,36 @@ class KinesisBackend(BaseBackend):
             data=gzipped_payload,
             explicit_hash_key="",
         )
+
+    def put_resource_policy(self, resource_arn: str, policy_doc: str) -> None:
+        """
+        Creates/updates resource policy and return policy object
+        """
+        self.resource_policies[resource_arn] = policy_doc
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        """
+        Remove resource policy with a matching given resource arn.
+        """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundError(
+                message=f"No resource policy found for resource ARN {resource_arn}."
+            )
+        del self.resource_policies[resource_arn]
+
+    def get_resource_policy(self, resource_arn: str) -> str:
+        """
+        Get resource policy with a matching given resource arn.
+        """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
+        if resource_arn not in self.resource_policies:
+            return "{}"
+        return self.resource_policies[resource_arn]
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

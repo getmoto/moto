@@ -325,3 +325,24 @@ class KinesisResponse(BaseResponse):
         stream_mode = self._get_param("StreamModeDetails")
         self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
         return "{}"
+
+    def put_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        policy = self._get_param("Policy")
+        self.kinesis_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy_doc=policy,
+        )
+        return json.dumps(dict())
+
+    def get_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        policy = self.kinesis_backend.get_resource_policy(resource_arn=resource_arn)
+        return json.dumps({"Policy": policy})
+
+    def delete_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        self.kinesis_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict())
