@@ -28,7 +28,6 @@ from moto.stepfunctions.parser.api import (
     TaskToken,
     TraceHeader,
     TracingConfiguration,
-    VersionDescription,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.map_run_record import (
     MapRunRecord,
@@ -86,6 +85,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         loggingConfiguration: Optional[LoggingConfiguration] = None,
         tracingConfiguration: Optional[TracingConfiguration] = None,
         encryptionConfiguration: Optional[EncryptionConfiguration] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
@@ -98,6 +98,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             loggingConfiguration=loggingConfiguration,
             tracingConfiguration=tracingConfiguration,
             encryptionConfiguration=encryptionConfiguration,
+            version_description=version_description,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:
@@ -216,7 +217,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         tracing_configuration: TracingConfiguration = None,
         encryption_configuration: EncryptionConfiguration = None,
         publish: Optional[bool] = None,
-        version_description: VersionDescription = None,
+        version_description: str = None,
     ) -> StateMachine:
         if not any(
             [
@@ -242,6 +243,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             tracing_configuration=tracing_configuration,
             encryption_configuration=encryption_configuration,
             publish=publish,
+            version_description=version_description,
         )
 
     def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
