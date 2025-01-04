@@ -1042,6 +1042,9 @@ class KinesisBackend(BaseBackend):
         """
         Remove resource policy with a matching given resource arn.
         """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
         if resource_arn not in self.resource_policies:
             raise ResourceNotFoundError(
                 message=f"No resource policy found for resource ARN {resource_arn}."
@@ -1049,9 +1052,12 @@ class KinesisBackend(BaseBackend):
         del self.resource_policies[resource_arn]
 
     def get_resource_policy(self, resource_arn: str) -> str:
+        """
+        Get resource policy with a matching given resource arn.
+        """
         stream_name = resource_arn.split("/")[-1]
         if stream_name not in self.streams:
-            raise StreamNotFoundError(stream_name, self.account_id)
+            raise StreamNotFoundError(resource_arn, self.account_id)
         if resource_arn not in self.resource_policies:
             return "{}"
         return self.resource_policies[resource_arn]
