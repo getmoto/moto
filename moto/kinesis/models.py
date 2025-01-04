@@ -591,7 +591,7 @@ class KinesisBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.streams: Dict[str, Stream] = OrderedDict()
-        self.resource_policies: Dict[str, ResourcePolicy] = {}
+        self.resource_policies: Dict[str, str] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1032,17 +1032,11 @@ class KinesisBackend(BaseBackend):
             explicit_hash_key="",
         )
 
-    def put_resource_policy(self, resource_arn: str, policy_doc: str) -> ResourcePolicy:
+    def put_resource_policy(self, resource_arn: str, policy_doc: str) -> None:
         """
         Creates/updates resource policy and return policy object
         """
-        if resource_arn in self.resource_policies:
-            policy = self.resource_policies[resource_arn]
-            policy.update(policy_doc)
-            return policy
-        policy = ResourcePolicy(resource_arn, policy_doc)
-        self.resource_policies[resource_arn] = policy
-        return policy
+        self.resource_policies[resource_arn] = policy_doc
 
     def delete_resource_policy(self, resource_arn: str) -> None:
         """
@@ -1054,12 +1048,12 @@ class KinesisBackend(BaseBackend):
             )
         del self.resource_policies[resource_arn]
 
-    def get_resource_policy(self, resource_arn: str) -> ResourcePolicy:
+    def get_resource_policy(self, resource_arn: str) -> str:
         stream_name = resource_arn.split("/")[-1]
         if stream_name not in self.streams:
-            raise StreamNotFoundError(stream_name == stream_name, self.account_id)
+            raise StreamNotFoundError(stream_name, self.account_id)
         if resource_arn not in self.resource_policies:
-            return ResourcePolicy(resource_arn=resource_arn, policy_doc="{}")
+            return "{}"
         return self.resource_policies[resource_arn]
 
 
