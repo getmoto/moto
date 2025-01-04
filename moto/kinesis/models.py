@@ -581,12 +581,6 @@ class Stream(CloudFormationModel):
         return self.stream_name
 
 
-class ResourcePolicy:
-    def __init__(self, resource_arn: str, policy_doc: str):
-        self.resource_arn = resource_arn
-        self.policy_doc = policy_doc
-
-
 class KinesisBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
