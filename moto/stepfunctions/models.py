@@ -51,10 +51,13 @@ class StateMachineInstance:
         self.loggingConfiguration = loggingConfiguration or {"level": "OFF"}
         self.tracingConfiguration = tracingConfiguration or {"enabled": False}
         self.sm_type = "STANDARD"  # or express
+        self.description: Optional[str] = None
 
 
 class StateMachineVersion(StateMachineInstance, CloudFormationModel):
-    def __init__(self, source: StateMachineInstance, version: int):
+    def __init__(
+        self, source: StateMachineInstance, version: int, description: Optional[str]
+    ):
         version_arn = f"{source.arn}:{version}"
         StateMachineInstance.__init__(
             self,
@@ -68,6 +71,7 @@ class StateMachineVersion(StateMachineInstance, CloudFormationModel):
         )
         self.source_arn = source.arn
         self.version = version
+        self.description = description
 
 
 class StateMachine(StateMachineInstance, CloudFormationModel):
@@ -100,9 +104,11 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         self.versions: Dict[int, StateMachineVersion] = {}
         self.latest_version: Optional[StateMachineVersion] = None
 
-    def publish(self) -> None:
+    def publish(self, description: Optional[str]) -> None:
         new_version_number = self.latest_version_number + 1
-        new_version = StateMachineVersion(source=self, version=new_version_number)
+        new_version = StateMachineVersion(
+            source=self, version=new_version_number, description=description
+        )
         self.versions[new_version_number] = new_version
         self.latest_version = new_version
         self.latest_version_number = new_version_number
@@ -586,6 +592,7 @@ class StepFunctionBackend(BaseBackend):
         loggingConfiguration: Optional[Dict[str, Any]] = None,
         tracingConfiguration: Optional[Dict[str, Any]] = None,
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -604,7 +611,7 @@ class StepFunctionBackend(BaseBackend):
                 tracingConfiguration,
             )
             if publish:
-                state_machine.publish()
+                state_machine.publish(description=version_description)
             self.state_machines.append(state_machine)
             return state_machine
 
@@ -647,6 +654,7 @@ class StepFunctionBackend(BaseBackend):
         tracing_configuration: Optional[Dict[str, bool]] = None,
         encryption_configuration: Optional[Dict[str, Any]] = None,
         publish: Optional[bool] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
         updates: Dict[str, Any] = {
@@ -661,7 +669,7 @@ class StepFunctionBackend(BaseBackend):
             updates["tracingConfiguration"] = tracing_configuration
         sm.update(**updates)
         if publish:
-            sm.publish()
+            sm.publish(version_description)
         return sm
 
     def start_execution(
