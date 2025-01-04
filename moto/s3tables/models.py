@@ -22,7 +22,7 @@ NAMESPACE_NAME_PATTERN = re.compile(r"[0-9a-z_]*")
 TABLE_NAME_PATTERN = re.compile(r"[0-9a-z_]*")
 
 
-def _validate_table_bucket_name(name: str):
+def _validate_table_bucket_name(name: str) -> None:
     if (
         not TABLE_BUCKET_NAME_PATTERN.match(name)
         or any(
@@ -33,12 +33,12 @@ def _validate_table_bucket_name(name: str):
         raise InvalidTableBucketName()
 
 
-def _validate_namespace_name(name: str):
+def _validate_namespace_name(name: str) -> None:
     if not NAMESPACE_NAME_PATTERN.match(name):
         raise InvalidNamespaceName()
 
 
-def _validate_table_name(name: str):
+def _validate_table_name(name: str) -> None:
     if not TABLE_NAME_PATTERN.match(name):
         raise InvalidTableName(name)
 
