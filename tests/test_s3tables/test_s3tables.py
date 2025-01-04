@@ -13,12 +13,14 @@ def test_create_table_bucket():
     assert "arn" in response
     assert response["arn"].endswith("foo")
 
+
 @mock_aws
 def test_create_table_bucket_validates_name():
     client = boto3.client("s3tables", region_name="us-east-1")
     with pytest.raises(client.exceptions.BadRequestException) as exc:
         client.create_table_bucket(name="sthree-invalid-name")
     assert exc.match("bucket name is not valid")
+
 
 @mock_aws
 def test_list_table_buckets():

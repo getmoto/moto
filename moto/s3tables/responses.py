@@ -67,13 +67,17 @@ class S3TablesResponse(BaseResponse):
             table_bucket_arn=table_bucket_arn,
         )
 
-        return 200, self.default_response_headers, json.dumps(
-            dict(
-                arn=bucket.arn,
-                name=bucket.name,
-                ownerAccountId=bucket.account_id,
-                createdAt=bucket.creation_date.isoformat(),
-            )
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(
+                dict(
+                    arn=bucket.arn,
+                    name=bucket.name,
+                    ownerAccountId=bucket.account_id,
+                    createdAt=bucket.creation_date.isoformat(),
+                )
+            ),
         )
 
     def delete_table_bucket(self) -> TYPE_RESPONSE:
