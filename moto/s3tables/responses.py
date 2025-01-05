@@ -20,12 +20,7 @@ class S3TablesResponse(BaseResponse):
     @property
     def s3tables_backend(self) -> S3TablesBackend:
         """Return backend instance specific for this region."""
-        # TODO
-        # s3tables_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return s3tables_backends[self.current_account][self.region]
-
-    # add methods from here
 
     def create_table_bucket(self) -> TYPE_RESPONSE:
         name = json.loads(self.body)["name"]
