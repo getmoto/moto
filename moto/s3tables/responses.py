@@ -62,7 +62,7 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def get_table_bucket(self) -> TYPE_RESPONSE:
-        table_bucket_arn = unquote(self.path.rsplit("/")[-1]).lstrip("/")
+        table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
         bucket = self.s3tables_backend.get_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
@@ -81,7 +81,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def delete_table_bucket(self) -> TYPE_RESPONSE:
-        table_bucket_arn = unquote(self.path.rsplit("/")[-1]).lstrip("/")
+        table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
         self.s3tables_backend.delete_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
