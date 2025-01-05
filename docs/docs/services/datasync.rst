@@ -67,9 +67,15 @@ datasync
 - [ ] update_agent
 - [ ] update_discovery_job
 - [ ] update_location_azure_blob
+- [ ] update_location_efs
+- [ ] update_location_fsx_lustre
+- [ ] update_location_fsx_ontap
+- [ ] update_location_fsx_open_zfs
+- [ ] update_location_fsx_windows
 - [ ] update_location_hdfs
 - [ ] update_location_nfs
 - [ ] update_location_object_storage
+- [ ] update_location_s3
 - [ ] update_location_smb
 - [ ] update_storage_system
 - [X] update_task

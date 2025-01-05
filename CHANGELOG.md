@@ -1,6 +1,24 @@
 Moto Changelog
 ==============
 
+5.0.26
+-----
+Docker Digest for 5.0.26: <autopopulateddigest>
+
+    New Services:
+        * Kinesis:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * DynamoDB: transact_write_items() now validates empty ExpressionAttributeValues
+        * Logs: describe_log_groups() now returns the logStreamArn-property
+        * Organizations now has additional validation around creation and deletion of organizations and accounts
+        * SecretsManager: list_secrets() now properly splits words when filtering
+        * StepFunctions: describe_state_machine() now takes Version ARN's
+        * StepFunctions: describe_state_machine() now returns the versionDescription
+
 5.0.25
 -----
 Docker Digest for 5.0.25: _sha256:1ac2d89ce8c79a6cdfebffb37678a5bd8bb54a39dcbced069f6ac5e29e4cc752_
