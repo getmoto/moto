@@ -103,6 +103,7 @@ medialive
 - [ ] list_reservations
 - [ ] list_signal_maps
 - [ ] list_tags_for_resource
+- [ ] list_versions
 - [ ] purchase_offering
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer

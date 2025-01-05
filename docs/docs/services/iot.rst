@@ -175,6 +175,7 @@ iot
 - [X] get_policy_version
 - [X] get_registration_code
 - [ ] get_statistics
+- [ ] get_thing_connectivity_data
 - [X] get_topic_rule
 - [ ] get_topic_rule_destination
 - [ ] get_v2_logging_options
