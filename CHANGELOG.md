@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.26
 -----
-Docker Digest for 5.0.26: <autopopulateddigest>
+Docker Digest for 5.0.26: _sha256:1cae28be97cc87151ecabb531d1507b8dd3d52d3636b86143a16cccf4b5fcf43_
 
     New Services:
         * Kinesis:
