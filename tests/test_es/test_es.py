@@ -256,4 +256,18 @@ def test_list_domain_names_opensearch():
 
     # ensure that elasticsearch client can describe opensearch domains as well
     es_client = boto3.client("es", region_name="us-east-2")
-    assert es_client.list_domain_names()["DomainNames"] != []
+    domain_names = es_client.list_domain_names()["DomainNames"]
+    assert len(domain_names) == 1
+    assert domain_names[0]["DomainName"] == "moto-opensearch"
+    assert domain_names[0]["EngineType"] == "OpenSearch"
+
+
+@mock_aws
+def test_list_domain_names_opensearch_deleted():
+    opensearch_client = boto3.client("opensearch", region_name="us-east-2")
+    opensearch_client.create_domain(DomainName="moto-opensearch")
+    opensearch_client.delete_domain(DomainName="moto-opensearch")
+
+    # ensure that elasticsearch client can describe opensearch domains as well
+    es_client = boto3.client("es", region_name="us-east-2")
+    assert es_client.list_domain_names()["DomainNames"] == []

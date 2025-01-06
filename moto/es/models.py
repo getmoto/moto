@@ -93,16 +93,13 @@ class DomainManagerBackend(BaseBackend):
 
     @classmethod
     def reset(cls):
-        """Reset shared class-level state."""
-        cls.domains = dict(Elasticsearch=dict(), OpenSearch=dict())
-        print("Resetting DomainManagerBackend state")
-        print(cls.domains)
+        cls.domains.clear()
+        cls.domains.update(Elasticsearch={}, OpenSearch={})
 
     def _is_valid_engine_type(self, engine_type) -> bool:
         return engine_type in ["Elasticsearch", "OpenSearch"]
 
     def add_domain(self, domain_name: str, domain: Domain) -> None:
-        print(self.engine_type)
         DomainManagerBackend.domains[self.engine_type][domain_name] = domain
 
     def delete_domain(self, domain_name: str) -> None:
@@ -117,13 +114,12 @@ class DomainManagerBackend(BaseBackend):
 
     def list_domain_names(
         self, engine_type: Optional[str] = None
-    ) -> List[Dict[str, str]]:
+    ) -> Dict[str, List[Dict[str, str]]]:
         """
         Pagination is not yet implemented.
         """
         domain_list = []
 
-        print(DomainManagerBackend.domains)
         if engine_type:
             if not self._is_valid_engine_type(engine_type):
                 raise EngineTypeNotFoundException(engine_type)

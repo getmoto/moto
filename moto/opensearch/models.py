@@ -288,21 +288,26 @@ class OpenSearchServiceBackend(DomainManagerBackend):
         return domain
 
     def get_compatible_versions(self, domain_name: str) -> List[Dict[str, Any]]:
-        if domain_name not in self.domains:
+        if not self.get_domain(domain_name):
             raise ResourceNotFoundException(domain_name)
         return compatible_versions
 
     def delete_domain(self, domain_name: str) -> OpenSearchDomain:
-        if domain_name not in self.domains:
+        domain = self.get_domain(domain_name)
+        if not domain:
             raise ResourceNotFoundException(domain_name)
-        self.domains[domain_name].delete()
 
-        return self.domains.pop(domain_name)
+        # mark the domain to be deleted before returning.
+        domain.delete()
+        super().delete_domain(domain_name)
+
+        return domain
 
     def describe_domain(self, domain_name: str) -> OpenSearchDomain:
-        if domain_name not in self.domains:
+        domain = self.get_domain(domain_name)
+        if not domain:
             raise ResourceNotFoundException(domain_name)
-        return self.domains[domain_name]
+        return domain
 
     def describe_domain_config(self, domain_name: str) -> OpenSearchDomain:
         return self.describe_domain(domain_name)
@@ -354,28 +359,6 @@ class OpenSearchServiceBackend(DomainManagerBackend):
 
     def remove_tags(self, arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
-
-    # def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
-    #     domains = []
-    #     for domain in self.domains.values():
-    #         if engine_type:
-    #             if engine_type in domain.engine_version.options:
-    #                 domains.append(
-    #                     {
-    #                         "DomainName": domain.domain_name,
-    #                         "EngineType": engine_type.split("_")[0],
-    #                     }
-    #                 )
-    #             else:
-    #                 raise EngineTypeNotFoundException(domain.domain_name)
-    #         else:
-    #             domains.append(
-    #                 {
-    #                     "DomainName": domain.domain_name,
-    #                     "EngineType": domain.engine_version.options.split("_")[0],
-    #                 }
-    #             )
-    #     return domains
 
     def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
         queried_domains = []
