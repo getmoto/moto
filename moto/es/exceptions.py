@@ -7,7 +7,7 @@ class ElasticSearchError(JsonRESTError):
     code = 400
 
 
-class ResourceNotFound(ElasticSearchError):
+class ResourceNotFoundException(ElasticSearchError):
     code = 409
 
     def __init__(self, resource_type: str, resource_name: str):
@@ -21,7 +21,7 @@ class InvalidDomainName(ElasticSearchError):
         super().__init__("ValidationException", msg)
 
 
-class DomainNotFound(ResourceNotFound):
+class DomainNotFound(ResourceNotFoundException):
     def __init__(self, domain_name: str):
         super().__init__("Domain", domain_name)
 

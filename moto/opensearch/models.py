@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from moto.core.base_backend import BackendDict
 from moto.core.common_models import BaseModel
@@ -7,7 +7,7 @@ from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from ..es.models import DomainManagerBackend
+from ..es.models import DomainManagerBackend, EngineType
 from .data import compatible_versions
 from .exceptions import ResourceNotFoundException
 
@@ -236,7 +236,7 @@ class OpenSearchServiceBackend(DomainManagerBackend):
     """Implementation of OpenSearchService APIs."""
 
     def __init__(self, region_name: str, account_id: str):
-        super().__init__(region_name, account_id, "OpenSearch")
+        super().__init__(region_name, account_id, EngineType.OPENSEARCH)
         # self.domains: Dict[str, OpenSearchDomain] = dict()
         self.tagger = TaggingService()
 
@@ -282,29 +282,38 @@ class OpenSearchServiceBackend(DomainManagerBackend):
             off_peak_window_options=off_peak_window_options,
             software_update_options=software_update_options,
         )
-        self.add_domain(domain_name, domain)
+        DomainManagerBackend.domains[EngineType.OPENSEARCH][domain_name] = domain
         if tag_list:
             self.add_tags(domain.arn, tag_list)
         return domain
 
+    def _get_domain(self, domain_name: str) -> OpenSearchDomain | None:
+        if domain_name in DomainManagerBackend.domains[EngineType.OPENSEARCH]:
+            return cast(
+                OpenSearchDomain,
+                DomainManagerBackend.domains[EngineType.OPENSEARCH][domain_name],
+            )
+        else:
+            return None
+
     def get_compatible_versions(self, domain_name: str) -> List[Dict[str, Any]]:
-        if not self.get_domain(domain_name):
+        if not self._get_domain(domain_name):
             raise ResourceNotFoundException(domain_name)
         return compatible_versions
 
     def delete_domain(self, domain_name: str) -> OpenSearchDomain:
-        domain = self.get_domain(domain_name)
-        if not domain:
-            raise ResourceNotFoundException(domain_name)
+        domain = cast(
+            OpenSearchDomain,
+            DomainManagerBackend.domains[EngineType.OPENSEARCH].pop(domain_name),
+        )
 
         # mark the domain to be deleted before returning.
         domain.delete()
-        super().delete_domain(domain_name)
 
         return domain
 
     def describe_domain(self, domain_name: str) -> OpenSearchDomain:
-        domain = self.get_domain(domain_name)
+        domain = self._get_domain(domain_name)
         if not domain:
             raise ResourceNotFoundException(domain_name)
         return domain
@@ -363,7 +372,7 @@ class OpenSearchServiceBackend(DomainManagerBackend):
     def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
         queried_domains = []
         for domain_name in domain_names:
-            domain = self.get_domain(domain_name)
+            domain = self._get_domain(domain_name)
             if domain:
                 queried_domains.append(domain)
         return queried_domains
