@@ -11,6 +11,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -279,6 +280,15 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
+    PAGINATION_MODEL = {
+        "list_key_rotations": {
+            "input_token": "next_marker",
+            "limit_key": "limit",
+            "limit_default": 1000,
+            "unique_attribute": "RotationDate",
+        }
+    }
+
     def __init__(self, region_name: str, account_id: Optional[str] = None):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
         self.keys: Dict[str, Key] = {}
@@ -745,27 +755,13 @@ class KmsBackend(BaseBackend):
 
         return key_id
 
+    @paginate(PAGINATION_MODEL)
     def list_key_rotations(
-        self, key_id: str, limit: int, marker: Union[str, None]
-    ) -> Tuple[List[Dict[str, Union[str, float]]], bool, Union[str, None]]:
+        self, key_id: str, limit: int, next_marker: str
+    ) -> List[Dict[str, Union[str, float]]]:
         key: Key = self.keys[self.get_key_id(key_id)]
 
-        # we treat the marker as an index-offset
-        marker = marker or "0"
-        index_offset = int(marker)
-
-        rotations_after_offset = key.rotations[index_offset:]
-
-        if len(rotations_after_offset) > limit:
-            next_marker = str(index_offset + limit)
-            rotations = rotations_after_offset[:limit]
-            truncated = True
-        else:
-            next_marker = None
-            rotations = rotations_after_offset
-            truncated = False
-
-        return rotations, truncated, next_marker
+        return key.rotations
 
     def generate_mac(
         self,
@@ -796,7 +792,7 @@ class KmsBackend(BaseBackend):
         mac: str,
         grant_tokens: List[str],
         dry_run: bool,
-    ) -> Tuple[str, bool, str]:
+    ) -> None:
         regenerated_mac, _, _ = self.generate_mac(
             message=message,
             key_id=key_id,
@@ -807,8 +803,6 @@ class KmsBackend(BaseBackend):
 
         if mac != regenerated_mac:
             raise KMSInvalidMacException()
-
-        return key_id, True, mac_algorithm
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

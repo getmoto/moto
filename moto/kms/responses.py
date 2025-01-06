@@ -754,7 +754,7 @@ class KmsResponse(BaseResponse):
                 f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
             )
 
-        key_id, mac_valid, mac_algorithm = self.kms_backend.verify_mac(
+        self.kms_backend.verify_mac(
             message=message,
             key_id=key_id,
             mac_algorithm=mac_algorithm,
@@ -763,9 +763,7 @@ class KmsResponse(BaseResponse):
             dry_run=dry_run,
         )
 
-        return json.dumps(
-            dict(KeyId=key_id, MacValid=mac_valid, MacAlgorithm=mac_algorithm)
-        )
+        return json.dumps(dict(KeyId=key_id, MacValid=True, MacAlgorithm=mac_algorithm))
 
     def get_public_key(self) -> str:
         key_id = self._get_param("KeyId")
@@ -800,13 +798,14 @@ class KmsResponse(BaseResponse):
 
         self._validate_key_id(key_id)
 
-        rotations, truncated, next_marker = self.kms_backend.list_key_rotations(
-            key_id=key_id, limit=limit, marker=marker
+        rotations, next_marker = self.kms_backend.list_key_rotations(
+            key_id=key_id, limit=limit, next_marker=marker
         )
+        is_truncated = next_marker is not None
 
-        response = {"Rotations": rotations, "Truncated": truncated}
+        response = {"Rotations": rotations, "Truncated": is_truncated}
 
-        if truncated:
+        if is_truncated:
             response["NextMarker"] = next_marker
 
         return json.dumps(response)
