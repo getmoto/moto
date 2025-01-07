@@ -385,7 +385,7 @@ Notification
 
     @lru_cache()
     def private_key(self) -> rsa.RSAPrivateKey:
-        return rsa.generate_private_key(public_exponent=65537, key_size=2028)
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     def _parse_message_structure(self, message: str, protocol: str) -> str:
         try:
@@ -1137,7 +1137,7 @@ class SNSBackend(BaseBackend):
         self, topic_arn: str, publish_batch_request_entries: List[Dict[str, Any]]
     ) -> Tuple[List[Dict[str, str]], List[Dict[str, Any]]]:
         """
-        The MessageDeduplicationId-parameters have not yet been implemented.
+        The MessageDeduplicationId-parameter has not yet been implemented.
         """
         topic = self.get_topic(topic_arn)
 

@@ -14,12 +14,15 @@ from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
+    ExpressionAttributeValuesEmpty,
+    InvalidProjectionExpression,
     KeyIsEmptyStringException,
     MockValidationException,
     ProvidedKeyDoesNotExist,
     ResourceNotFoundException,
     UnknownKeyType,
 )
+from .utils import extract_duplicates
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -794,6 +797,9 @@ class DynamoHandler(BaseResponse):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
+            duplicates = extract_duplicates(expressions)
+            if duplicates:
+                raise InvalidProjectionExpression(duplicates)
             for expression in expressions:
                 check_projection_expression(expression)
             return [
@@ -824,6 +830,24 @@ class DynamoHandler(BaseResponse):
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
         consistent_read = self.body.get("ConsistentRead", False)
+        segment = self.body.get("Segment")
+        total_segments = self.body.get("TotalSegments")
+        if segment is not None and total_segments is None:
+            raise MockValidationException(
+                "The TotalSegments parameter is required but was not present in the request when Segment parameter is present"
+            )
+        if total_segments is not None and segment is None:
+            raise MockValidationException(
+                "The Segment parameter is required but was not present in the request when parameter TotalSegments is present"
+            )
+        if (
+            segment is not None
+            and total_segments is not None
+            and segment >= total_segments
+        ):
+            raise MockValidationException(
+                f"The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: {segment} is not less than TotalSegments: {total_segments}"
+            )
 
         projection_expressions = self._adjust_projection_expression(
             projection_expression, expression_attribute_names
@@ -835,12 +859,13 @@ class DynamoHandler(BaseResponse):
                 filters,
                 limit,
                 exclusive_start_key,
-                filter_expression,
-                expression_attribute_names,
-                expression_attribute_values,
-                index_name,
-                consistent_read,
-                projection_expressions,
+                filter_expression=filter_expression,
+                expr_names=expression_attribute_names,
+                expr_values=expression_attribute_values,
+                index_name=index_name,
+                consistent_read=consistent_read,
+                projection_expression=projection_expressions,
+                segments=(segment, total_segments),
             )
         except ValueError as err:
             raise MockValidationException(f"Bad Filter Expression: {err}")
@@ -870,6 +895,9 @@ class DynamoHandler(BaseResponse):
         condition_expression = self.body.get("ConditionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
+        return_values_on_condition_check_failure = self.body.get(
+            "ReturnValuesOnConditionCheckFailure"
+        )
 
         item = self.dynamodb_backend.delete_item(
             name,
@@ -877,6 +905,7 @@ class DynamoHandler(BaseResponse):
             expression_attribute_names,
             expression_attribute_values,
             condition_expression,
+            return_values_on_condition_check_failure,
         )
 
         if item and return_values == "ALL_OLD":
@@ -984,7 +1013,7 @@ class DynamoHandler(BaseResponse):
         if values is None:
             return {}
         if len(values) == 0:
-            raise MockValidationException("ExpressionAttributeValues must not be empty")
+            raise ExpressionAttributeValuesEmpty
         for key in values.keys():
             if not key.startswith(":"):
                 raise MockValidationException(
@@ -1106,10 +1135,16 @@ class DynamoHandler(BaseResponse):
         # Validate first - we should error before we start the transaction
         for item in transact_items:
             if "Put" in item:
+                if item["Put"].get("ExpressionAttributeValues") == {}:
+                    raise ExpressionAttributeValuesEmpty
+
                 item_attrs = item["Put"]["Item"]
                 table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
                 validate_put_has_empty_keys(item_attrs, table)
             if "Update" in item:
+                if item["Update"].get("ExpressionAttributeValues") == {}:
+                    raise ExpressionAttributeValuesEmpty
+
                 item_attrs = item["Update"]["Key"]
                 table = self.dynamodb_backend.get_table(item["Update"]["TableName"])
                 validate_put_has_empty_keys(

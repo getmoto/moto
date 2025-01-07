@@ -1,4 +1,5 @@
 import copy
+import math
 import os
 import re
 import string
@@ -38,6 +39,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
     InvalidParameterCombination,
@@ -119,6 +121,71 @@ class RDSBaseModel(TaggingMixin, BaseModel):
     @property
     def arn(self) -> str:
         return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.name}"
+
+
+class ProxyTarget(RDSBaseModel):
+    resource_type = "proxy-target"
+
+    def __init__(
+        self,
+        backend: "RDSBackend",
+        resource_id: str,
+        endpoint: Optional[str],
+        type: str,
+    ):
+        super().__init__(backend)
+        self.endpoint = endpoint
+        self.rds_resource_id = resource_id
+        self.type = type
+        self.role = ""
+
+
+class ProxyTargetGroup(RDSBaseModel):
+    resource_type = "target-group"
+
+    def __init__(
+        self,
+        backend: "RDSBackend",
+        name: str,
+        proxy_name: str,
+    ):
+        super().__init__(backend)
+        self._name = f"prx-tg-{random.get_random_string(length=17, lower_case=True)}"
+        self.group_name = name
+        self.proxy_name = proxy_name
+        self.targets: List[ProxyTarget] = []
+
+        self.max_connections = 100
+        self.max_idle_connections = 50
+        self.borrow_timeout = 120
+        self.session_pinning_filters: List[str] = []
+
+        self.created_date = iso_8601_datetime_with_milliseconds()
+        self.updated_date = iso_8601_datetime_with_milliseconds()
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def to_xml(self) -> str:
+        template = Template("""<DBProxyName>{{ group.proxy_name }}</DBProxyName>
+      <TargetGroupName>{{ group.group_name }}</TargetGroupName>
+      <TargetGroupArn>{{ group.arn }}</TargetGroupArn>
+      <IsDefault>true</IsDefault>
+      <Status>available</Status>
+      <ConnectionPoolConfig>
+        <MaxConnectionsPercent>{{ group.max_connections }}</MaxConnectionsPercent>
+        <MaxIdleConnectionsPercent>{{ group.max_idle_connections }}</MaxIdleConnectionsPercent>
+        <ConnectionBorrowTimeout>{{ group.borrow_timeout }}</ConnectionBorrowTimeout>
+        <SessionPinningFilters>
+        {% for filter in group.session_pinning_filters %}
+        <member>{{ filter }}</member>
+        {% endfor %}
+        </SessionPinningFilters>
+      </ConnectionPoolConfig>
+      <CreatedDate>{{ group.created_date }}</CreatedDate>
+      <UpdatedDate>{{ group.updated_date }}</UpdatedDate>""")
+        return template.render(group=self)
 
 
 class GlobalCluster(RDSBaseModel):
@@ -263,6 +330,14 @@ class DBCluster(RDSBaseModel):
             )
         else:
             self.master_user_password = kwargs.get("master_user_password")  # type: ignore
+
+        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
+        self.manage_master_user_password = kwargs.get(
+            "manage_master_user_password", False
+        )
+        self.master_user_secret_status = kwargs.get(
+            "master_user_secret_status", "active"
+        )
 
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
@@ -425,8 +500,17 @@ class DBCluster(RDSBaseModel):
                 ]:
                     self._enable_http_endpoint = val
 
+    def master_user_secret(self) -> Dict[str, Any]:
+        return {
+            "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "secret_status": self.master_user_secret_status,
+            "kms_key_id": self.master_user_secret_kms_key_id
+            if self.master_user_secret_kms_key_id is not None
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+        }
+
     def get_cfg(self) -> Dict[str, Any]:
-        cfg = self.__dict__
+        cfg = self.__dict__.copy()
         cfg.pop("backend")
         cfg["master_user_password"] = cfg.pop("_master_user_password")
         cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
@@ -537,6 +621,14 @@ class DBCluster(RDSBaseModel):
               <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
               {%- endif -%}
               {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
+              {%- if cluster.manage_master_user_password -%}
+              <MasterUserSecret>
+                {% set master_user_secret = cluster.master_user_secret() %}
+                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+              </MasterUserSecret>
+              {%- endif -%}
             </DBCluster>"""
         )
         return template.render(cluster=self, status=status)
@@ -710,6 +802,13 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             self.storage_type = DBInstance.default_storage_type(iops=self.iops)
         self.master_username = kwargs.get("master_username")
         self.master_user_password = kwargs.get("master_user_password")
+        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
+        self.master_user_secret_status = kwargs.get(
+            "master_user_secret_status", "active"
+        )
+        self.manage_master_user_password = kwargs.get(
+            "manage_master_user_password", False
+        )
         self.auto_minor_version_upgrade = kwargs.get("auto_minor_version_upgrade")
         if self.auto_minor_version_upgrade is None:
             self.auto_minor_version_upgrade = True
@@ -729,7 +828,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         self.instance_create_time = iso_8601_datetime_with_milliseconds()
         self.publicly_accessible = kwargs.get("publicly_accessible")
         if self.publicly_accessible is None:
-            self.publicly_accessible = True
+            self.publicly_accessible = False
         self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
         if self.copy_tags_to_snapshot is None:
             self.copy_tags_to_snapshot = False
@@ -750,6 +849,11 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             ].describe_db_subnet_groups(self.db_subnet_group_name)[0]
         self.security_groups = kwargs.get("security_groups", [])
         self.vpc_security_group_ids = kwargs.get("vpc_security_group_ids", [])
+        if not self.vpc_security_group_ids:
+            ec2_backend = ec2_backends[self.account_id][self.region]
+            default_vpc = ec2_backend.default_vpc
+            default_sg = ec2_backend.get_default_security_group(default_vpc.id)
+            self.vpc_security_group_ids.append(default_sg.id)  # type: ignore
         self.preferred_maintenance_window = kwargs.get("preferred_maintenance_window")
         self.preferred_backup_window = kwargs.get("preferred_backup_window")
         msg = valid_preferred_maintenance_window(
@@ -848,6 +952,15 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
 
         return db_family, f"default.{db_family}"
 
+    def master_user_secret(self) -> Dict[str, Any]:
+        return {
+            "secret_arn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "secret_status": self.master_user_secret_status,
+            "kms_key_id": self.master_user_secret_kms_key_id
+            if self.master_user_secret_kms_key_id is not None
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+        }
+
     def to_xml(self) -> str:
         template = Template(
             """<DBInstance>
@@ -939,9 +1052,9 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
                 <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
               </DBSubnetGroup>
               {% endif %}
-              <PubliclyAccessible>{{ database.publicly_accessible }}</PubliclyAccessible>
-              <CopyTagsToSnapshot>{{ database.copy_tags_to_snapshot }}</CopyTagsToSnapshot>
-              <AutoMinorVersionUpgrade>{{ database.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+              <PubliclyAccessible>{{ 'true' if database.publicly_accessible else 'false' }}</PubliclyAccessible>
+              <CopyTagsToSnapshot>{{ 'true' if database.copy_tags_to_snapshot else 'false' }}</CopyTagsToSnapshot>
+              <AutoMinorVersionUpgrade>{{ 'true' if database.auto_minor_version_upgrade else 'false' }}</AutoMinorVersionUpgrade>
               <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
               <StorageEncrypted>{{ 'true' if database.storage_encrypted else 'false' }}</StorageEncrypted>
               {% if database.kms_key_id %}
@@ -970,6 +1083,14 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
               {%- endfor -%}
               </TagList>
               <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
+              {%- if database.manage_master_user_password -%}
+              <MasterUserSecret>
+                {% set master_user_secret = database.master_user_secret() %}
+                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
+                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
+                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
+              </MasterUserSecret>
+              {%- endif -%}
             </DBInstance>"""
         )
         return template.render(database=self)
@@ -1550,7 +1671,7 @@ class DBProxy(RDSBaseModel):
         self.auth = auth
         self.role_arn = role_arn
         self.vpc_subnet_ids = vpc_subnet_ids
-        self.vpc_security_group_ids = vpc_security_group_ids
+        self.vpc_security_group_ids = vpc_security_group_ids or []
         self.require_tls = require_tls
         if idle_client_timeout is None:
             self.idle_client_timeout = 1800
@@ -1577,6 +1698,9 @@ class DBProxy(RDSBaseModel):
             vpcs.append(subnet.vpc_id)
             if subnet.vpc_id != vpcs[0]:
                 raise InvalidSubnet(subnet_identifier=subnet.id)
+        if not self.vpc_security_group_ids:
+            default_sg = ec2_backend.get_default_security_group(vpcs[0])
+            self.vpc_security_group_ids.append(default_sg.id)  # type: ignore
 
         self.vpc_id = ec2_backend.describe_subnets(subnet_ids=[self.vpc_subnet_ids[0]])[
             0
@@ -1587,18 +1711,30 @@ class DBProxy(RDSBaseModel):
         )
         self.endpoint = f"{self.db_proxy_name}.db-proxy-{self.url_identifier}.{self.region}.rds.amazonaws.com"
 
+        self.proxy_target_groups = {
+            "default": ProxyTargetGroup(
+                backend=self.backend, name="default", proxy_name=db_proxy_name
+            )
+        }
+
+        self.unique_id = f"prx-{random.get_random_string(17, lower_case=True)}"
+
     @property
     def name(self) -> str:
         return self.db_proxy_name
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.unique_id}"
 
     def to_xml(self) -> str:
         template = Template(
             """
                 <RequireTLS>{{ dbproxy.require_tls }}</RequireTLS>
                 <VpcSecurityGroupIds>
-                {% if dbproxy.VpcSecurityGroupIds %}
-                  {% for vpcsecuritygroupid in dbproxy.VpcSecurityGroupIds %}
-                    <member>{{ vpcsecuritygroupid }}</member>
+                {% if dbproxy.vpc_security_group_ids %}
+                  {% for sg in dbproxy.vpc_security_group_ids %}
+                    <member>{{ sg }}</member>
                   {% endfor %}
                 {% endif %}
                 </VpcSecurityGroupIds>
@@ -1752,15 +1888,23 @@ class RDSBackend(BaseBackend):
         source_snapshot_identifier: str,
         target_snapshot_identifier: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        copy_tags: bool = False,
     ) -> DBSnapshot:
+        if source_snapshot_identifier.startswith("arn:aws:rds:"):
+            source_snapshot_identifier = self.extract_snapshot_name_from_arn(
+                source_snapshot_identifier
+            )
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)
 
         source_snapshot = self.database_snapshots[source_snapshot_identifier]
-        if tags is None:
-            tags = source_snapshot.tags
-        else:
-            tags = self._merge_tags(source_snapshot.tags, tags)
+
+        # When tags are passed, AWS does NOT copy/merge tags of the
+        # source snapshot, even when copy_tags=True is given.
+        # But when tags=[], AWS does honor copy_tags=True.
+        if not tags:
+            tags = source_snapshot.tags if copy_tags else []
+
         return self.create_db_snapshot(
             db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,
@@ -1849,21 +1993,57 @@ class RDSBackend(BaseBackend):
         )
         if msg:
             raise RDSClientError("InvalidParameterValue", msg)
+        if db_kwargs.get("rotate_master_user_password") and db_kwargs.get(
+            "apply_immediately"
+        ):
+            db_kwargs["master_user_secret_status"] = "rotating"
+        if db_kwargs.get("rotate_master_user_password") and not db_kwargs.get(
+            "apply_immediately"
+        ):
+            raise RDSClientError(
+                "InvalidParameterCombination",
+                "You must specify apply immediately when rotating the master user password.",
+            )
         database.update(db_kwargs)
-        return database
+        initial_state = copy.copy(database)
+        database.master_user_secret_status = (
+            "active"  # already set the final state in the background
+        )
+        return initial_state
 
     def reboot_db_instance(self, db_instance_identifier: str) -> DBInstance:
         return self.describe_db_instances(db_instance_identifier)[0]
 
+    def extract_snapshot_name_from_arn(self, snapshot_arn: str) -> str:
+        arn_breakdown = snapshot_arn.split(":")
+        region_name, account_id, resource_type, snapshot_name = arn_breakdown[3:7]
+        if resource_type != "snapshot":
+            raise InvalidParameterValue(
+                "The parameter SourceDBSnapshotIdentifier is not a valid identifier. "
+                "Identifiers must begin with a letter; must contain only ASCII "
+                "letters, digits, and hyphens; and must not end with a hyphen or "
+                "contain two consecutive hyphens."
+            )
+        if region_name != self.region_name or account_id != self.account_id:
+            raise NotImplementedError(
+                "Cross account/region snapshot handling is not yet implemented in moto."
+            )
+        return snapshot_name
+
     def restore_db_instance_from_db_snapshot(
         self, from_snapshot_id: str, overrides: Dict[str, Any]
     ) -> DBInstance:
+        if from_snapshot_id.startswith("arn:aws:rds:"):
+            from_snapshot_id = self.extract_snapshot_name_from_arn(from_snapshot_id)
+
         snapshot = self.describe_db_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
-        new_instance_props = copy.deepcopy(original_database.__dict__)
-        new_instance_props.pop("backend")
+        new_instance_props = {}
+        for key, value in original_database.__dict__.items():
+            if key != "backend":
+                new_instance_props[key] = copy.deepcopy(value)
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -1885,14 +2065,14 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=source_db_identifier
         )[0]
 
-        # remove the db subnet group as it cannot be copied
-        # and is not used in the restored instance
-        source_dict = db_instance.__dict__
-        if "db_subnet_group" in source_dict:
-            del source_dict["db_subnet_group"]
+        new_instance_props = {}
+        for key, value in db_instance.__dict__.items():
+            # Remove backend / db subnet group as they cannot be copied
+            # and are not used in the restored instance.
+            if key in ("backend", "db_subnet_group"):
+                continue
+            new_instance_props[key] = copy.deepcopy(value)
 
-        new_instance_props = copy.deepcopy(source_dict)
-        new_instance_props.pop("backend")
         if not db_instance.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2299,6 +2479,18 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
+        if kwargs.get("rotate_master_user_password") and kwargs.get(
+            "apply_immediately"
+        ):
+            kwargs["master_user_secret_status"] = "rotating"
+        elif kwargs.get("rotate_master_user_password") and not kwargs.get(
+            "apply_immediately"
+        ):
+            raise RDSClientError(
+                "InvalidParameterCombination",
+                "You must specify apply immediately when rotating the master user password.",
+            )
+
         kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier")
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
@@ -2317,7 +2509,11 @@ class RDSBackend(BaseBackend):
         self.clusters[cluster_id] = cluster
 
         initial_state = copy.deepcopy(cluster)  # Return status=creating
-        cluster.status = "available"  # Already set the final status in the background
+
+        # Already set the final status in the background
+        cluster.status = "available"
+        cluster.master_user_secret_status = "active"
+
         return initial_state
 
     def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
@@ -2445,7 +2641,9 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_identifier]
         if cluster.status != "stopped":
             raise InvalidDBClusterStateFault(
-                "DbCluster cluster-id is not in stopped state."
+                f"DbCluster {cluster_identifier} is in {cluster.status} state "
+                "but expected it to be one of "
+                "stopped,inaccessible-encryption-credentials-recoverable."
             )
         temp_state = copy.deepcopy(cluster)
         temp_state.status = "started"
@@ -2472,7 +2670,8 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_identifier]
         if cluster.status not in ["available"]:
             raise InvalidDBClusterStateFault(
-                "DbCluster cluster-id is not in available state."
+                f"DbCluster {cluster_identifier} is in {cluster.status} state "
+                "but expected it to be one of available."
             )
         previous_state = copy.deepcopy(cluster)
         cluster.status = "stopped"
@@ -2558,6 +2757,13 @@ class RDSBackend(BaseBackend):
             if resource_type == getattr(resource_class, "resource_type", ""):
                 if resource_name in resources:  # type: ignore
                     return resources[resource_name]  # type: ignore
+        # The resource_name is the last part of the ARN
+        # Usually that's the name - but for DBProxies, the last part of the ARN is a random identifier
+        # So we can't just use the dict-keys - we have to manually check the ARN
+        if resource_type == "db-proxy":
+            for resource in self.db_proxies.values():
+                if resource.arn.endswith(resource_name):
+                    return resource
 
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
         if self.arn_regex.match(arn):
@@ -2622,11 +2828,33 @@ class RDSBackend(BaseBackend):
         # # Must contain from 1 to 63 letters, numbers, or hyphens.
         # # First character must be a letter.
         # # Can't end with a hyphen or contain two consecutive hyphens.
-        if re.match(
-            "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])$", db_identifier
+            )
+            and db_identifier[0].isalpha()
         ):
             return
         raise InvalidDBInstanceIdentifier
+
+    @staticmethod
+    def validate_db_snapshot_identifier(
+        db_snapshot_identifier: str, parameter_name: str
+    ) -> None:
+        # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBSnapshot.html
+        # Constraints:
+        # # Must contain from 1 to 255 letters, numbers, or hyphens.
+        # # First character must be a letter.
+        # # Can't end with a hyphen or contain two consecutive hyphens.
+        if (
+            re.match(
+                "^(?!.*--)([a-zA-Z]?[a-zA-Z0-9-]{0,253}[a-zA-Z0-9])$",
+                db_snapshot_identifier,
+            )
+            and db_snapshot_identifier[0].isalpha()
+        ):
+            return
+        raise InvalidDBSnapshotIdentifier(db_snapshot_identifier, parameter_name)
 
     def describe_orderable_db_instance_options(
         self, engine: str, engine_version: str
@@ -2868,6 +3096,86 @@ class RDSBackend(BaseBackend):
         if db_proxy_name and db_proxy_name not in self.db_proxies.keys():
             raise DBProxyNotFoundFault(db_proxy_name)
         return db_proxies
+
+    def deregister_db_proxy_targets(
+        self,
+        db_proxy_name: str,
+        target_group_name: str,
+        db_cluster_identifiers: List[str],
+        db_instance_identifiers: List[str],
+    ) -> None:
+        db_proxy = self.db_proxies[db_proxy_name]
+        target_group = db_proxy.proxy_target_groups[target_group_name or "default"]
+        target_group.targets = [
+            t
+            for t in target_group.targets
+            if t.rds_resource_id not in db_cluster_identifiers
+            and t.rds_resource_id not in db_instance_identifiers
+        ]
+
+    def register_db_proxy_targets(
+        self,
+        db_proxy_name: str,
+        target_group_name: str,
+        db_cluster_identifiers: List[str],
+        db_instance_identifiers: List[str],
+    ) -> List[ProxyTarget]:
+        db_proxy = self.db_proxies[db_proxy_name]
+        target_group = db_proxy.proxy_target_groups[target_group_name or "default"]
+        new_targets = []
+        for cluster_id in db_cluster_identifiers:
+            cluster = self.clusters[cluster_id]
+            target = ProxyTarget(
+                backend=self,
+                resource_id=cluster_id,
+                endpoint=cluster.endpoint,
+                type="TRACKED_CLUSTER",
+            )
+            new_targets.append(target)
+        for instance_id in db_instance_identifiers:
+            target = ProxyTarget(
+                backend=self,
+                resource_id=instance_id,
+                endpoint=None,
+                type="RDS_INSTANCE",
+            )
+            new_targets.append(target)
+        target_group.targets.extend(new_targets)
+        return new_targets
+
+    def delete_db_proxy(self, proxy_name: str) -> DBProxy:
+        return self.db_proxies.pop(proxy_name)
+
+    def describe_db_proxy_targets(self, proxy_name: str) -> List[ProxyTarget]:
+        proxy = self.db_proxies[proxy_name]
+        target_group = proxy.proxy_target_groups["default"]
+        return target_group.targets
+
+    def describe_db_proxy_target_groups(
+        self, proxy_name: str
+    ) -> List[ProxyTargetGroup]:
+        proxy = self.db_proxies[proxy_name]
+        return list(proxy.proxy_target_groups.values())
+
+    def modify_db_proxy_target_group(
+        self, proxy_name: str, config: Dict[str, Any]
+    ) -> ProxyTargetGroup:
+        proxy = self.db_proxies[proxy_name]
+        target_group = proxy.proxy_target_groups["default"]
+        if max_connections := config.get("MaxConnectionsPercent"):
+            target_group.max_connections = max_connections
+        if max_idle := config.get("MaxIdleConnectionsPercent"):
+            target_group.max_idle_connections = max_idle
+        else:
+            target_group.max_idle_connections = math.floor(
+                int(target_group.max_connections) / 2
+            )
+        target_group.borrow_timeout = config.get(
+            "ConnectionBorrowTimeout", target_group.borrow_timeout
+        )
+        if "SessionPinningFilters" in config:
+            target_group.session_pinning_filters = config["SessionPinningFilters"]
+        return target_group
 
 
 class OptionGroup(RDSBaseModel):

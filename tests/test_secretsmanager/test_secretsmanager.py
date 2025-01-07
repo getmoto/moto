@@ -13,7 +13,10 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.secretsmanager.utils import SecretsManagerSecretIdentifier
+from moto.utilities.id_generator import TAG_KEY_CUSTOM_ID
 
+from .. import DEFAULT_ACCOUNT_ID
 from . import secretsmanager_aws_verified
 
 DEFAULT_SECRET_NAME = "test-secret7"
@@ -626,6 +629,17 @@ def test_delete_secret_that_is_marked_deleted():
 
     with pytest.raises(ClientError):
         conn.delete_secret(SecretId="test-secret")
+
+
+@mock_aws
+def test_force_delete_secret_that_is_marked_deleted():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+
+    conn.create_secret(Name="test-secret", SecretString="foosecret")
+
+    conn.delete_secret(SecretId="test-secret")
+
+    conn.delete_secret(SecretId="test-secret", ForceDeleteWithoutRecovery=True)
 
 
 @mock_aws
@@ -1950,3 +1964,39 @@ def test_update_secret_version_stage_dont_specify_current_stage(secret_arn=None)
         err["Message"]
         == f"The parameter RemoveFromVersionId can't be empty. Staging label AWSCURRENT is currently attached to version {current_version}, so you must explicitly reference that version in RemoveFromVersionId."
     )
+
+
+@mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
+)
+def test_create_secret_custom_id(set_custom_id):
+    secret_suffix = "randomSuffix"
+    secret_name = "secret-name"
+    region_name = "us-east-1"
+
+    client = boto3.client("secretsmanager", region_name=region_name)
+
+    set_custom_id(
+        SecretsManagerSecretIdentifier(DEFAULT_ACCOUNT_ID, region_name, secret_name),
+        secret_suffix,
+    )
+    secret = client.create_secret(Name=secret_name, SecretString="my secret")
+
+    assert secret["ARN"].split(":")[-1] == f"{secret_name}-{secret_suffix}"
+
+
+@mock_aws
+def test_create_secret_with_tag_custom_id(set_custom_id):
+    secret_suffix = "randomSuffix"
+    secret_name = "secret-name"
+
+    client = boto3.client("secretsmanager", "us-east-1")
+
+    secret = client.create_secret(
+        Name=secret_name,
+        SecretString="my secret",
+        Tags=[{"Key": TAG_KEY_CUSTOM_ID, "Value": secret_suffix}],
+    )
+
+    assert secret["ARN"].split(":")[-1] == f"{secret_name}-{secret_suffix}"

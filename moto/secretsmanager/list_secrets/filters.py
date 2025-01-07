@@ -1,3 +1,4 @@
+import re
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
@@ -9,7 +10,14 @@ def name_filter(secret: "FakeSecret", names: List[str]) -> bool:
 
 
 def description_filter(secret: "FakeSecret", descriptions: List[str]) -> bool:
-    return _matcher(descriptions, [secret.description], match_prefix=False)  # type: ignore
+    if not secret.description:
+        return False
+    # The documentation states that this search uses `Prefix match`
+    # But actual testing determines that it uses the same approach to the `all_filter`:
+    # 'Breaks the filter value string into words and then searches all attributes for matches.'
+    return _matcher(
+        descriptions, [secret.description], match_prefix=False, case_sensitive=False
+    )
 
 
 def tag_key(secret: "FakeSecret", tag_keys: List[str]) -> bool:
@@ -25,36 +33,53 @@ def tag_value(secret: "FakeSecret", tag_values: List[str]) -> bool:
 
 
 def filter_all(secret: "FakeSecret", values: List[str]) -> bool:
-    attributes = [secret.name, secret.description]
+    attributes = [secret.name]
+    if secret.description:
+        attributes.append(secret.description)
     if secret.tags:
         attributes += [tag["Key"] for tag in secret.tags] + [
             tag["Value"] for tag in secret.tags
         ]
 
-    return _matcher(values, attributes)  # type: ignore
+    return _matcher(values, attributes, match_prefix=False, case_sensitive=False)
 
 
 def _matcher(
-    patterns: List[str], strings: List[str], match_prefix: bool = True
+    patterns: List[str],
+    strings: List[str],
+    match_prefix: bool = True,
+    case_sensitive: bool = True,
 ) -> bool:
     for pattern in [p for p in patterns if p.startswith("!")]:
         for string in strings:
-            if not _match_pattern(pattern[1:], string, match_prefix):
+            if not _match_pattern(
+                pattern[1:], string, match_prefix, case_sensitive=case_sensitive
+            ):
                 return True
 
     for pattern in [p for p in patterns if not p.startswith("!")]:
         for string in strings:
-            if _match_pattern(pattern, string, match_prefix):
+            if _match_pattern(
+                pattern, string, match_prefix, case_sensitive=case_sensitive
+            ):
                 return True
     return False
 
 
-def _match_pattern(pattern: str, value: str, match_prefix: bool = True) -> bool:
+def _match_pattern(
+    pattern: str, value: str, match_prefix: bool = True, case_sensitive: bool = True
+) -> bool:
     if match_prefix:
-        return value.startswith(pattern)
+        if not case_sensitive:
+            return value.lower().startswith(pattern.lower())
+        else:
+            return value.startswith(pattern)
     else:
-        pattern_words = pattern.split(" ")
-        value_words = value.split(" ")
+        pattern_words = split_words(pattern)
+        value_words = split_words(value)
+        if not case_sensitive:
+            pattern_words = [p.lower() for p in pattern_words]
+            value_words = [v.lower() for v in value_words]
         for pattern_word in pattern_words:
             # all words in value must start with pattern_word
             if not any(
@@ -62,3 +87,12 @@ def _match_pattern(pattern: str, value: str, match_prefix: bool = True) -> bool:
             ):
                 return False
     return True
+
+
+def split_words(s: str) -> List[str]:
+    """
+    Split a string into words. Words are recognized by upper case letters, i.e.:
+    test   -> [test]
+    MyTest -> [My, Test]
+    """
+    return [x.strip() for x in re.split(r"([^a-z][a-z]+)", s) if x]

@@ -4,7 +4,7 @@ from .responses import ApiGatewayManagementApiResponse
 
 # execute-api.us-east-1.amazonaws.com
 # api_id.execute-api.us-east-1.amazonaws.com
-url_bases = [r"https?://(.+\.)*execute-api\.(.+)\.amazonaws\.com"]
+url_bases = [r"https?://([^.]+\.)*execute-api\.[^.]+\.amazonaws\.com"]
 
 
 response = ApiGatewayManagementApiResponse()

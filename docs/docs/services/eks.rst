@@ -37,6 +37,7 @@ eks
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [X] describe_cluster
+- [ ] describe_cluster_versions
 - [ ] describe_eks_anywhere_subscription
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config

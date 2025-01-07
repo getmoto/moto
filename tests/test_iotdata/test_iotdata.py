@@ -196,6 +196,7 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
 @pytest.mark.parametrize(
     "desired,initial_delta,reported,delta_after_report",
     [
+        # Boolean flip
         (
             {"desired": {"online": True}},
             {"desired": {"online": True}, "delta": {"online": True}},
@@ -215,13 +216,108 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
                 "reported": {"online": False, "enabled": True},
             },
         ),
+        # No data
         ({}, {}, {"reported": {"online": False}}, {"reported": {"online": False}}),
+        # Missing data
         ({}, {}, {"reported": {"online": None}}, {}),
         (
             {"desired": {}},
             {},
             {"reported": {"online": False}},
             {"reported": {"online": False}},
+        ),
+        # Missing key
+        (
+            {"desired": {"enabled": True}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+            {"reported": {}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+        ),
+        # Changed key
+        (
+            {"desired": {"enabled": True}},
+            {"desired": {"enabled": True}, "delta": {"enabled": True}},
+            {"reported": {"online": True}},
+            {
+                "desired": {"enabled": True},
+                "reported": {"online": True},
+                "delta": {"enabled": True},
+            },
+        ),
+        # Remove from list
+        (
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"desired": {"list": ["value_1"]}},
+            {
+                "desired": {"list": ["value_1"]},
+                "reported": {"list": ["value_1", "value_2"]},
+                "delta": {"list": ["value_1"]},
+            },
+        ),
+        # Remove And Update from list
+        (
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"reported": {"list": ["value_1", "value_2"]}},
+            {"desired": {"list": ["value_1", "value_3"]}},
+            {
+                "desired": {"list": ["value_1", "value_3"]},
+                "reported": {"list": ["value_1", "value_2"]},
+                "delta": {"list": ["value_1", "value_3"]},
+            },
+        ),
+        # Remove from nested lists
+        (
+            {"reported": {"list": [["value_1"], ["value_2"]]}},
+            {"reported": {"list": [["value_1"], ["value_2"]]}},
+            {"desired": {"list": [["value_1"]]}},
+            {
+                "desired": {"list": [["value_1"]]},
+                "reported": {"list": [["value_1"], ["value_2"]]},
+                "delta": {"list": [["value_1"]]},
+            },
+        ),
+        # Append to nested list
+        (
+            {"reported": {"a": {"b": ["d"]}}},
+            {"reported": {"a": {"b": ["d"]}}},
+            {"desired": {"a": {"b": ["c", "d"]}}},
+            {
+                "delta": {"a": {"b": ["c", "d"]}},
+                "desired": {"a": {"b": ["c", "d"]}},
+                "reported": {"a": {"b": ["d"]}},
+            },
+        ),
+        # Update nested dict
+        (
+            {"reported": {"a": {"b": {"c": "d", "e": "f"}}}},
+            {"reported": {"a": {"b": {"c": "d", "e": "f"}}}},
+            {"desired": {"a": {"b": {"c": "d2"}}}},
+            {
+                "delta": {"a": {"b": {"c": "d2"}}},
+                "desired": {"a": {"b": {"c": "d2"}}},
+                "reported": {"a": {"b": {"c": "d", "e": "f"}}},
+            },
+        ),
+        (
+            {"reported": {"a1": {"b1": {"c": "d"}}}},
+            {"reported": {"a1": {"b1": {"c": "d"}}}},
+            {"desired": {"a1": {"b1": {"c": "d"}}, "a2": {"b2": "sth"}}},
+            {
+                "delta": {"a2": {"b2": "sth"}},
+                "desired": {"a1": {"b1": {"c": "d"}}, "a2": {"b2": "sth"}},
+                "reported": {"a1": {"b1": {"c": "d"}}},
+            },
+        ),
+        (
+            {"reported": {"a": {"b1": {"c": "d"}}}},
+            {"reported": {"a": {"b1": {"c": "d"}}}},
+            {"desired": {"a": {"b1": {"c": "d"}, "b2": "sth"}}},
+            {
+                "delta": {"a": {"b2": "sth"}},
+                "desired": {"a": {"b1": {"c": "d"}, "b2": "sth"}},
+                "reported": {"a": {"b1": {"c": "d"}}},
+            },
         ),
     ],
 )

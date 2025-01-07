@@ -640,6 +640,46 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "g6.12xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "sa-east-1a"
  },
@@ -1884,6 +1924,10 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1a"
  },
@@ -1893,6 +1937,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "sa-east-1a"
  },
  {
@@ -2533,6 +2581,46 @@
  },
  {
   "InstanceType": "g5.xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.12xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
   "Location": "sa-east-1b"
  },
  {
@@ -3493,6 +3581,10 @@
  },
  {
   "InstanceType": "u-12tb1.112xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
+  "InstanceType": "u-18tb1.112xlarge",
   "Location": "sa-east-1b"
  },
  {
@@ -4704,6 +4796,10 @@
   "Location": "sa-east-1c"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sa-east-1c"
  },
@@ -5265,6 +5361,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "sa-east-1c"
  },
  {

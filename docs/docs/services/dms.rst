@@ -18,6 +18,7 @@ dms
 - [ ] apply_pending_maintenance_action
 - [ ] batch_start_recommendations
 - [ ] cancel_replication_task_assessment_run
+- [ ] create_data_migration
 - [ ] create_data_provider
 - [ ] create_endpoint
 - [ ] create_event_subscription
@@ -35,6 +36,7 @@ dms
 
 - [ ] delete_certificate
 - [ ] delete_connection
+- [ ] delete_data_migration
 - [ ] delete_data_provider
 - [ ] delete_endpoint
 - [ ] delete_event_subscription
@@ -52,6 +54,7 @@ dms
 - [ ] describe_certificates
 - [ ] describe_connections
 - [ ] describe_conversion_configuration
+- [ ] describe_data_migrations
 - [ ] describe_data_providers
 - [ ] describe_endpoint_settings
 - [ ] describe_endpoint_types
@@ -98,6 +101,7 @@ dms
 - [ ] import_certificate
 - [ ] list_tags_for_resource
 - [ ] modify_conversion_configuration
+- [ ] modify_data_migration
 - [ ] modify_data_provider
 - [ ] modify_endpoint
 - [ ] modify_event_subscription
@@ -114,6 +118,7 @@ dms
 - [ ] reload_tables
 - [ ] remove_tags_from_resource
 - [ ] run_fleet_advisor_lsa_analysis
+- [ ] start_data_migration
 - [ ] start_extension_pack_association
 - [ ] start_metadata_model_assessment
 - [ ] start_metadata_model_conversion
@@ -130,6 +135,7 @@ dms
 
 - [ ] start_replication_task_assessment
 - [ ] start_replication_task_assessment_run
+- [ ] stop_data_migration
 - [ ] stop_replication
 - [X] stop_replication_task
 - [ ] test_connection

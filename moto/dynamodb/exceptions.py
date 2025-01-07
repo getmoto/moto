@@ -121,6 +121,11 @@ class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
         )
 
 
+class ExpressionAttributeValuesEmpty(MockValidationException):
+    def __init__(self) -> None:
+        super().__init__("ExpressionAttributeValues must not be empty")
+
+
 class UpdateExprSyntaxError(InvalidUpdateExpression):
     update_expr_syntax_error_msg = "Syntax error; {error_detail}"
 
@@ -303,6 +308,17 @@ class DuplicateUpdateExpression(InvalidUpdateExpression):
         super().__init__(
             f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{names[0]}], path two: [{names[1]}]"
         )
+
+
+class InvalidProjectionExpression(MockValidationException):
+    msg = (
+        "Invalid ProjectionExpression: "
+        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
+        "path one: [{paths[0]}], path two: [{paths[1]}]"
+    )
+
+    def __init__(self, paths: List[str]):
+        super().__init__(self.msg.format(paths=paths))
 
 
 class TooManyClauses(InvalidUpdateExpression):

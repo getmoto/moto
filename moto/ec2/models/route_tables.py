@@ -467,9 +467,7 @@ class RouteBackend:
         if destination_prefix_list_id:
             cidr = destination_prefix_list_id
         route_table = self.get_route_table(route_table_id)
-        route_id = generate_route_id(
-            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
-        )
+        route_id = generate_route_id(route_table.id, cidr, destination_ipv6_cidr_block)
         try:
             route = route_table.routes[route_id]
         except KeyError:

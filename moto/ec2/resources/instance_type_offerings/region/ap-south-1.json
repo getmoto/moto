@@ -632,6 +632,46 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "g6.12xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "i2.2xlarge",
   "Location": "ap-south-1"
  },
@@ -1392,6 +1432,10 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-south-1"
  },
@@ -1920,6 +1964,54 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "r8g.12xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.16xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.24xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.2xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.48xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.4xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.8xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.large",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.medium",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.metal-24xl",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.metal-48xl",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "r8g.xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "t2.2xlarge",
   "Location": "ap-south-1"
  },
@@ -2041,6 +2133,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "ap-south-1"
  },
  {

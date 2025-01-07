@@ -349,7 +349,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         client_token: Optional[str] = None,
         security_group_ids: Optional[List[str]] = None,
         tags: Optional[Dict[str, str]] = None,
-        private_dns_enabled: Optional[str] = None,
+        private_dns_enabled: Optional[bool] = None,
         destination_prefix_list_id: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
@@ -906,7 +906,7 @@ class VPCBackend:
         client_token: Optional[str] = None,
         security_group_ids: Optional[List[str]] = None,
         tags: Optional[Dict[str, str]] = None,
-        private_dns_enabled: Optional[str] = None,
+        private_dns_enabled: Optional[bool] = None,
     ) -> VPCEndPoint:
         vpc_endpoint_id = random_vpc_ep_id()
 

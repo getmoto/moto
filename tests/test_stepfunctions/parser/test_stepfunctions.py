@@ -6,7 +6,7 @@ from uuid import uuid4
 import boto3
 import pytest
 
-from moto import settings
+from moto import mock_aws, settings
 
 from . import (
     allow_aws_request,
@@ -110,14 +110,27 @@ def test_version_is_only_available_when_published():
         PolicyName="allowLambdaInvoke",
         RoleName=role_name,
     )
+
+    kms = boto3.client("kms", region_name="us-east-1")
+    kms_key_id = kms.create_key()["KeyMetadata"]["KeyId"]
     sleep(10 if allow_aws_request() else 0)
 
     client = boto3.client("stepfunctions", region_name="us-east-1")
 
     try:
         name1 = f"sfn_name_{str(uuid4())[0:6]}"
+        encryption_config = {
+            "kmsDataKeyReusePeriodSeconds": 60,
+            "kmsKeyId": kms_key_id,
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
+        }
         response = client.create_state_machine(
-            name=name1, definition=simple_definition, roleArn=sfn_role
+            name=name1,
+            definition=simple_definition,
+            roleArn=sfn_role,
+            tracingConfiguration={"enabled": False},
+            loggingConfiguration={"level": "OFF"},
+            encryptionConfiguration=encryption_config,
         )
         assert "stateMachineVersionArn" not in response
         arn1 = response["stateMachineArn"]
@@ -140,7 +153,10 @@ def test_version_is_only_available_when_published():
         assert response["stateMachineVersionArn"] == f"{arn2}:1"
 
         resp = client.update_state_machine(
-            stateMachineArn=arn2, publish=True, tracingConfiguration={"enabled": True}
+            stateMachineArn=arn2,
+            publish=True,
+            tracingConfiguration={"enabled": True},
+            loggingConfiguration={"level": "OFF"},
         )
         assert resp["stateMachineVersionArn"] == f"{arn2}:2"
     finally:
@@ -148,3 +164,16 @@ def test_version_is_only_available_when_published():
         client.delete_state_machine(stateMachineArn=arn2)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
         iam.delete_role(RoleName=role_name)
+        kms.schedule_key_deletion(KeyId=kms_key_id, PendingWindowInDays=7)
+
+
+@mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
+def test_verify_template_with_credentials():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Don't need to test this in ServerMode")
+
+    def _verify_result(client, execution, execution_arn):
+        output = json.loads(execution["output"])
+        assert output["TableNames"] == []
+
+    verify_execution_result(_verify_result, "SUCCEEDED", "credentials")

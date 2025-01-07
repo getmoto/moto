@@ -85,3 +85,132 @@ def test_update_connection(client):
         encryptionMode="should_encrypt",
     )
     assert connection["encryptionMode"] == "should_encrypt"
+
+
+def test_associate_mac_sec_key_connection(client):
+    connection = client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection1",
+    )
+    resp = client.associate_mac_sec_key(
+        connectionId=connection["connectionId"], ckn="_fake_ckn_", cak="_fake_cak_"
+    )
+    assert resp["connectionId"] == connection["connectionId"]
+    mac_sec_keys = resp["macSecKeys"]
+    assert len(mac_sec_keys) == 1
+    assert mac_sec_keys[0]["ckn"] == "_fake_ckn_"
+    assert "cak" not in mac_sec_keys[0]
+    assert mac_sec_keys[0]["secretARN"] == "mock_secret_arn"
+
+
+def test_associate_mac_sec_key_lag(client):
+    lag = client.create_lag(
+        numberOfConnections=1,
+        location="eqDC2",
+        connectionsBandwidth="10Gbps",
+        lagName="TestLag1",
+    )
+    resp = client.associate_mac_sec_key(
+        connectionId=lag["lagId"], ckn="_fake_ckn_", cak="_fake_cak_"
+    )
+    assert resp["connectionId"] == lag["lagId"]
+    mac_sec_keys = resp["macSecKeys"]
+    assert len(mac_sec_keys) == 1
+    assert mac_sec_keys[0]["ckn"] == "_fake_ckn_"
+    assert "cak" not in mac_sec_keys[0]
+    assert mac_sec_keys[0]["secretARN"] == "mock_secret_arn"
+
+
+def test_create_lag(client):
+    lag = client.create_lag(
+        numberOfConnections=1,
+        location="eqDC2",
+        connectionsBandwidth="10Gbps",
+        lagName="TestLag0",
+    )
+    assert lag["lagId"].startswith("dxlag-moto")
+    assert lag["lagState"] == "available"
+    assert len(lag["connections"]) == 1
+    connection = lag["connections"][0]
+    assert connection["connectionName"].startswith(
+        "Requested Connection 1 for Lag dxlag-moto"
+    )
+
+
+def test_describe_lags(client):
+    client.create_lag(
+        location="EqDC2",
+        connectionsBandwidth="10Gbps",
+        lagName="TestLag1",
+        numberOfConnections=1,
+        requestMACSec=False,
+    )
+    time.sleep(0.1)
+    client.create_lag(
+        location="EqDC2",
+        connectionsBandwidth="10Gbps",
+        lagName="TestLag2",
+        numberOfConnections=1,
+        requestMACSec=True,
+    )
+    time.sleep(0.1)
+    resp = client.describe_lags()
+    lags = resp["lags"]
+    assert len(lags) == 2
+    assert len(lags[0]["connections"]) == 1
+    assert len(lags[1]["connections"]) == 1
+    assert not lags[0]["macSecCapable"]
+    assert not lags[0]["connections"][0]["macSecCapable"]
+    assert lags[1]["macSecCapable"]
+    assert lags[1]["connections"][0]["macSecCapable"]
+    assert len(lags[0]["macSecKeys"]) == 0
+    assert len(lags[0]["connections"][0]["macSecKeys"]) == 0
+    assert len(lags[1]["macSecKeys"]) == 1
+    assert len(lags[1]["connections"][0]["macSecKeys"]) == 1
+    assert lags[0]["encryptionMode"] == "no_encrypt"
+    assert lags[0]["connections"][0]["encryptionMode"] == "no_encrypt"
+    assert lags[1]["encryptionMode"] == "must_encrypt"
+    assert lags[1]["connections"][0]["encryptionMode"] == "must_encrypt"
+    resp = client.describe_lags(lagId=lags[0]["lagId"])
+    assert len(resp["lags"]) == 1
+
+
+def _test_disassociate_mac_sec_key_common(client, connection_id: str):
+    secret_arn = "_fake_secret_arn_"
+    assoc_resp = client.associate_mac_sec_key(
+        connectionId=connection_id,
+        ckn="_fake_ckn_",
+        cak="_fake_cak_",
+        secretARN=secret_arn,
+    )
+    assert assoc_resp["connectionId"] == connection_id
+    resp = client.disassociate_mac_sec_key(
+        connectionId=connection_id, secretARN=secret_arn
+    )
+    assert resp["connectionId"] == connection_id
+    mac_sec_keys = resp["macSecKeys"]
+    assert len(mac_sec_keys) == 1
+    assert mac_sec_keys[0]["secretARN"] == secret_arn
+    assert mac_sec_keys[0]["state"] == "disassociated"
+
+
+def test_disassociate_mac_sec_key_connection(client):
+    connection = client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection1",
+    )
+    connection_id = connection["connectionId"]
+    _test_disassociate_mac_sec_key_common(client=client, connection_id=connection_id)
+
+
+def test_disassociate_mac_sec_key_lag(client):
+    lag = client.create_lag(
+        numberOfConnections=1,
+        location="eqDC2",
+        connectionsBandwidth="10Gbps",
+        lagName="TestLag1",
+    )
+    lag_id = lag["lagId"]
+    _test_disassociate_mac_sec_key_common(client=client, connection_id=lag_id)

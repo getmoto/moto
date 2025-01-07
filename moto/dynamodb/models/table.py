@@ -1,6 +1,6 @@
 import copy
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
@@ -897,6 +897,7 @@ class Table(CloudFormationModel):
         index_name: Optional[str] = None,
         consistent_read: bool = False,
         projection_expression: Optional[List[List[str]]] = None,
+        segments: Union[Tuple[None, None], Tuple[int, int]] = (None, None),
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results: List[Item] = []
         result_size = 0
@@ -942,6 +943,9 @@ class Table(CloudFormationModel):
         last_evaluated_key = None
         processing_previous_page = exclusive_start_key is not None
         for item in items:
+            if not item.is_within_segment(segments):
+                continue
+
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:

@@ -640,6 +640,46 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "g6.12xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "sae1-az1"
  },
@@ -1884,6 +1924,10 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sae1-az1"
  },
@@ -1893,6 +1937,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "sae1-az1"
  },
  {
@@ -2533,6 +2581,46 @@
  },
  {
   "InstanceType": "g5.xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.12xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.16xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.24xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.2xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.48xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.4xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.8xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "g6.xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "gr6.4xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "gr6.8xlarge",
   "Location": "sae1-az2"
  },
  {
@@ -3493,6 +3581,10 @@
  },
  {
   "InstanceType": "u-12tb1.112xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "u-18tb1.112xlarge",
   "Location": "sae1-az2"
  },
  {
@@ -4704,6 +4796,10 @@
   "Location": "sae1-az3"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "sae1-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sae1-az3"
  },
@@ -5265,6 +5361,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "u-9tb1.112xlarge",
   "Location": "sae1-az3"
  },
  {

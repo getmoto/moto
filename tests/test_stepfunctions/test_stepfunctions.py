@@ -28,16 +28,38 @@ account_id = None
 def test_state_machine_creation_succeeds():
     client = boto3.client("stepfunctions", region_name=region)
     name = "example_step_function"
-    #
     response = client.create_state_machine(
         name=name, definition=str(simple_definition), roleArn=_get_default_role()
     )
-    #
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert isinstance(response["creationDate"], datetime)
     assert response["stateMachineArn"] == (
         "arn:aws:states:" + region + ":" + ACCOUNT_ID + ":stateMachine:" + name
     )
+
+
+@mock_aws
+def test_state_machine_with_cmk():
+    client = boto3.client("stepfunctions", region_name=region)
+    kms_key_id = boto3.client("kms", region_name=region).create_key()["KeyMetadata"][
+        "KeyId"
+    ]
+    name = "example_step_function_cmk"
+    encryption_config = {
+        "kmsDataKeyReusePeriodSeconds": 60,
+        "kmsKeyId": kms_key_id,
+        "type": "CUSTOMER_MANAGED_CMK",
+    }
+
+    state_machine_arn = client.create_state_machine(
+        name=name,
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        encryptionConfiguration=encryption_config,
+    )["stateMachineArn"]
+
+    desc = client.describe_state_machine(stateMachineArn=state_machine_arn)
+    assert desc["encryptionConfiguration"] == encryption_config
 
 
 @mock_aws
@@ -170,10 +192,32 @@ def test_update_state_machine():
     updated_definition = str(simple_definition).replace(
         "DefaultState", "DefaultStateUpdated"
     )
+    kms_key_id = boto3.client("kms", region_name=region).create_key()["KeyMetadata"][
+        "KeyId"
+    ]
+    encryption_config = {
+        "kmsDataKeyReusePeriodSeconds": 60,
+        "kmsKeyId": kms_key_id,
+        "type": "CUSTOMER_MANAGED_CMK",
+    }
+    updated_logging_config = {
+        "level": "ALL",
+        "destinations": [
+            {
+                "cloudWatchLogsLogGroup": {
+                    "logGroupArn": "arn:aws:logs:us-east-1:123456789012:log-group:my-log-group"
+                }
+            }
+        ],
+    }
+    updated_tracing_config = {"enabled": True}
     resp = client.update_state_machine(
         stateMachineArn=state_machine_arn,
         definition=updated_definition,
         roleArn=updated_role,
+        encryptionConfiguration=encryption_config,
+        loggingConfiguration=updated_logging_config,
+        tracingConfiguration=updated_tracing_config,
     )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert isinstance(resp["updateDate"], datetime)
@@ -181,6 +225,9 @@ def test_update_state_machine():
     desc = client.describe_state_machine(stateMachineArn=state_machine_arn)
     assert desc["definition"] == updated_definition
     assert desc["roleArn"] == updated_role
+    assert desc["encryptionConfiguration"] == encryption_config
+    assert desc["loggingConfiguration"] == updated_logging_config
+    assert desc["tracingConfiguration"] == updated_tracing_config
 
 
 @mock_aws
@@ -279,6 +326,10 @@ def test_state_machine_creation_can_be_described():
     assert desc["roleArn"] == _get_default_role()
     assert desc["stateMachineArn"] == sm["stateMachineArn"]
     assert desc["status"] == "ACTIVE"
+    assert desc["type"] == "STANDARD"
+    assert desc["encryptionConfiguration"] == {"type": "AWS_OWNED_KEY"}
+    assert desc["loggingConfiguration"] == {"level": "OFF"}
+    assert desc["tracingConfiguration"] == {"enabled": False}
 
 
 @mock_aws
@@ -362,10 +413,21 @@ def test_state_machine_untagging_non_existent_resource_fails():
 @mock_aws
 def test_state_machine_tagging():
     client = boto3.client("stepfunctions", region_name=region)
+    # Test tags are added on resource creation
     tags = [
         {"key": "tag_key1", "value": "tag_value1"},
         {"key": "tag_key2", "value": "tag_value2"},
     ]
+    machine = client.create_state_machine(
+        name="test-with-tags",
+        definition=str(simple_definition),
+        roleArn=_get_default_role(),
+        tags=tags,
+    )
+    resp = client.list_tags_for_resource(resourceArn=machine["stateMachineArn"])
+    assert resp["tags"] == tags
+
+    # Test tags are added after creation with tag_resource
     machine = client.create_state_machine(
         name="test", definition=str(simple_definition), roleArn=_get_default_role()
     )

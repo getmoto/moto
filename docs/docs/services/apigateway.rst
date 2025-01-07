@@ -23,6 +23,7 @@ apigateway
 - [ ] create_documentation_part
 - [ ] create_documentation_version
 - [X] create_domain_name
+- [ ] create_domain_name_access_association
 - [X] create_model
 - [X] create_request_validator
 - [X] create_resource
@@ -39,6 +40,7 @@ apigateway
 - [ ] delete_documentation_part
 - [ ] delete_documentation_version
 - [X] delete_domain_name
+- [ ] delete_domain_name_access_association
 - [X] delete_gateway_response
 - [X] delete_integration
 - [X] delete_integration_response
@@ -71,6 +73,7 @@ apigateway
 - [ ] get_documentation_version
 - [ ] get_documentation_versions
 - [X] get_domain_name
+- [ ] get_domain_name_access_associations
 - [X] get_domain_names
 - [ ] get_export
 - [X] get_gateway_response
@@ -126,6 +129,7 @@ apigateway
         Only a subset of the OpenAPI spec 3.x is currently implemented.
         
 
+- [ ] reject_domain_name_access_association
 - [ ] tag_resource
 - [ ] test_invoke_authorizer
 - [ ] test_invoke_method

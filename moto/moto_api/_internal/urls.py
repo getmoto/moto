@@ -1,7 +1,7 @@
 from .recorder.responses import RecorderResponse
 from .responses import MotoAPIResponse
 
-url_bases = ["https?://motoapi.amazonaws.com"]
+url_bases = [r"https?://motoapi\.amazonaws\.com"]
 
 response_instance = MotoAPIResponse()
 recorder_response = RecorderResponse()

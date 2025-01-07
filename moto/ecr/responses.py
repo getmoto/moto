@@ -69,9 +69,11 @@ class ECRResponse(BaseResponse):
         repository_str = self._get_param("repositoryName")
         registry_id = self._get_param("registryId")
         images = self.ecr_backend.list_images(repository_str, registry_id)
-        return json.dumps(
-            {"imageIds": [image.response_list_object for image in images]}
-        )
+        resp = []
+        for image in images:
+            for tag in image.image_tags or [None]:  # type: ignore
+                resp.append({"imageDigest": image.image_digest, "imageTag": tag})
+        return json.dumps({"imageIds": resp})
 
     def describe_images(self) -> str:
         repository_str = self._get_param("repositoryName")

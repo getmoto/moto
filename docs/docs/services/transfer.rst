@@ -22,6 +22,7 @@ transfer
 - [ ] create_profile
 - [X] create_server
 - [X] create_user
+- [ ] create_web_app
 - [ ] create_workflow
 - [ ] delete_access
 - [ ] delete_agreement
@@ -32,6 +33,8 @@ transfer
 - [X] delete_server
 - [X] delete_ssh_public_key
 - [X] delete_user
+- [ ] delete_web_app
+- [ ] delete_web_app_customization
 - [ ] delete_workflow
 - [ ] describe_access
 - [ ] describe_agreement
@@ -43,6 +46,8 @@ transfer
 - [ ] describe_security_policy
 - [X] describe_server
 - [X] describe_user
+- [ ] describe_web_app
+- [ ] describe_web_app_customization
 - [ ] describe_workflow
 - [ ] import_certificate
 - [ ] import_host_key
@@ -52,12 +57,14 @@ transfer
 - [ ] list_certificates
 - [ ] list_connectors
 - [ ] list_executions
+- [ ] list_file_transfer_results
 - [ ] list_host_keys
 - [ ] list_profiles
 - [ ] list_security_policies
 - [ ] list_servers
 - [ ] list_tags_for_resource
 - [ ] list_users
+- [ ] list_web_apps
 - [ ] list_workflows
 - [ ] send_workflow_step_state
 - [ ] start_directory_listing
@@ -76,4 +83,6 @@ transfer
 - [ ] update_profile
 - [ ] update_server
 - [ ] update_user
+- [ ] update_web_app
+- [ ] update_web_app_customization
 

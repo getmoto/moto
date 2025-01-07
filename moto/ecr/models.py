@@ -338,15 +338,6 @@ class Image(BaseObject):
         }
 
     @property
-    def response_list_object(self) -> Dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["imageTag"] = self.image_tag
-        response_object["imageDigest"] = self.get_image_digest()
-        return {
-            k: v for k, v in response_object.items() if v is not None and v != [None]
-        }
-
-    @property
     def response_describe_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
         response_object["imageTags"] = self.image_tags

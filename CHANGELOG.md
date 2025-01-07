@@ -1,6 +1,293 @@
 Moto Changelog
 ==============
 
+5.0.26
+-----
+Docker Digest for 5.0.26: _sha256:1cae28be97cc87151ecabb531d1507b8dd3d52d3636b86143a16cccf4b5fcf43_
+
+    New Services:
+        * Kinesis:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * DynamoDB: transact_write_items() now validates empty ExpressionAttributeValues
+        * Logs: describe_log_groups() now returns the logStreamArn-property
+        * Organizations now has additional validation around creation and deletion of organizations and accounts
+        * SecretsManager: list_secrets() now properly splits words when filtering
+        * StepFunctions: describe_state_machine() now takes Version ARN's
+        * StepFunctions: describe_state_machine() now returns the versionDescription
+
+5.0.25
+-----
+Docker Digest for 5.0.25: _sha256:1ac2d89ce8c79a6cdfebffb37678a5bd8bb54a39dcbced069f6ac5e29e4cc752_
+
+    New Services:
+        * DSQL:
+            * create_cluster()
+            * get_cluster()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now better calculates the delta between the desired and reported values
+        * S3: select_object_content() now returns the proper Stats (BytesScanned, BytesReturned)
+        * StepFunctions: Various upgrades for the emulated parser
+
+5.0.24
+-----
+Docker Digest for 5.0.24: _sha256:68042b17e9a55c7a32347f802b7a02f2793201b4f1c788ca0e85084f5218c233_
+
+    Miscellaneous:
+        * EC2: Terminating instances will now release private ip addresses from the NIC's attached to the interface
+        * S3: Fixes a bug in complete_multipart_upload() where it was no longer possible to overwrite an earlier multipart upload (Broken in 5.0.23)
+        * S3: get_object_cors() now correctly returns the ExposeHeader-value
+
+
+5.0.23
+-----
+Docker Digest for 5.0.23: _sha256:d41e007bb1f7d41b530959ae9cbed1edf42737ee839faf8da7e925bf19f63105_
+
+    New Services:
+        * Kafka:
+            * create_cluster()
+            * create_cluster_v2()
+            * describe_cluster()
+            * describe_cluster_v2()
+            * delete_cluster()
+            * list_clusters()
+            * list_clusters_v2()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * DirectConnect:
+            * associate_mac_sec_key()
+            * create_lag()
+            * describe_lags()
+            * describe_settings()
+            * disassociate_mac_sec_key()
+            * update_settings()
+
+        * EFS:
+            * describe_file_system_policy()
+            * put_file_system_policy()
+
+        * ES:
+            * describe_elasticsearch_domains()
+
+        * OpenSearch:
+            * describe_domains()
+
+    Miscellaneous:
+        * Athena: list_query_executions() now supports the WorkGroup-parameter
+        * Athena: start_query_execution() now supports the WorkGroup-parameter
+        * CloudFormation: AWS::IAM::Role now supports updates
+        * CognitoIDP: list_users() now correctly filters before applying the Limit
+        * DirectConnect: describe_trusts() no longer requires a DirectoryId-parameter
+        * DynamoDB: The DeleteProtectionEnabled can now be disabled
+        * DynamoDB: update_item() can now return list of binaries
+        * EC2: SecurityGroups now contain a SecurityGroupArn
+        * EC2: update_route() now correctly handles DestinationPrefixListId
+        * KMS: get_public_key() now supports passing in aliases
+        * Lambda: publish_function() now publishes a function even if the updated code hasn't changed
+        * MemoryDB: tag_resource/list_tags_for_resource() now supports Snapshots and SubnetGroups
+        * RDS: copy_db_snapshot() now supports the CopyTags-parameter
+        * RDS: copy_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * RDS: restore_db_instance_from_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * S3: complete_multipart_upload() now supports IfNoneMatch-parameter
+
+5.0.22
+-----
+Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_
+
+    Miscellaneous:
+        * DS: enable_ldaps() is now supported for 'ADConnector' directory types
+        * EC2: Resource identifiers are now 17 characters long, up from 8, in-line with the values that AWS returns
+        * ECS: create_service() now supports and validates the networkConfiguration-parameter
+        * ELBv2: register_targets() now validates that instances are running
+        * IOTData: update_thing_shadow() now properly handles complex nested deltas
+        * MediaLive: list_channels() and list_inputs() now support pagination
+        * OpenSearch: create_domain() now returns the EngineVersion in the correct format
+        * ResourceGroupsTaggingAPI: get_resources() now returns secrets from SecretsManager
+        * S3: put_object_acl() now sends an EventBridge-notification
+        * SecretsManager: list_secrets() no longer shows deleted secrets unless the `include_planned_deletion`-parameter is set
+        * WAFv2: list_ip_sets(), list_logging_configurations(), list_rule_groups(), list_tags_for_resource(), list_web_acls() now all support pagination
+
+5.0.21
+-----
+Docker Digest for 5.0.21: _sha256:9ba3753fddbe2445667a1261a04dc92e75d9c329a1f2d0610f1dd8bb1c4f4eca_
+
+    New Methods:
+        * IOT:
+            * create_job_template()
+            * create_role_alias()
+            * delete_job_template()
+            * delete_role_alias()
+            * describe_job_template()
+            * describe_role_alias()
+            * get_indexing_configuration()
+            * list_job_templates()
+            * list_role_aliases()
+            * update_indexing_configuration()
+            * update_role_alias()
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports the arrayJobId-parameter
+        * CloudFormation now supports the types AWS::IoT::JobTemplate, AWS::IoT::RoleAlias
+        * DynamoDB: ProjectionExpressions are now validated for duplicate values
+        * DynamoDB: scan() now supports parallelization using the Segment/TotalSegments parameters
+        * DynamoDB: update_item() now validates when an ADD/DELETE occurs on the same set
+        * EC2: create_fleet() now correctly handles Overrides with a single value
+        * ECR: list_images() now lists images with multiple tags separately
+        * IOT: create_job() now supports the parameters abortConfig, jobExecutionsRetryConfig, schedulingConfig, timeoutConfig
+        * S3: get_object_attributes() no longer throws an error for Glacier objects
+
+
+5.0.20
+-----
+Docker Digest for 5.0.20: _sha256:a1041f318c56ed341c70541647b256d40dae776ce654ca4db9d27d94600542a1_
+
+    Miscellaneous:
+        * Removed runtime-dependency on `typing_extensions`
+
+5.0.19
+-----
+Docker Digest for 5.0.19: _sha256:5d857d7ce17a9b1dadea166d8e0d310771983f026334a555a9d2690a370cf904_
+
+    New Methods:
+        * ELBv2:
+            * describe_listener_attributes()
+            * modify_listener_attributes()
+
+        * Panorama:
+            * create_application_instance()
+            * describe_application_instance()
+            * describe_application_instance_details()
+            * list_application_instances()
+
+        * WAFv2:
+            * create_rule_group()
+            * delete_rule_group()
+            * get_rule_group()
+            * update_rule_group()
+
+    Miscellaneous:
+        * CloudFormation now supports the types AWS::IoT::Thing, AWS::IoT::ThingType, AWS::IoT::Policy
+        * EC2: Key Pairs now use the correct algorithm to calculate the fingerprint
+        * ELBv2: modify_lb_attr() now supports zonal-shift config
+        * ECS: create_task_set() now actually creates tasks
+        * Lambda: The MOTO_DOCKER_LAMBDA_IMAGE config option now accepts full image names, including the tag
+        * Lambda: Events send to DynamoDB now have the correct eventName
+        * Organizations: describe_organization() now describes the parent account (if applicable)
+        * WAFv2: create_web_acl() now supports additional parameters (AssociationConfig, CaptchaConfig, ChallengeConfig, CustomResponseBodies, TokenDomains)
+        * WAFv2: delete_web_acl() now supports the LockToken-parameter
+        * WAFv2: update_web_acl() now supports additional parameters (LockToken, AssociationConfig, CaptchaConfig, ChallengeConfig, CustomResponseBodies, TokenDomains)
+
+5.0.18
+-----
+Docker Digest for 5.0.18: _sha256:62423941446f8863f499ebdfd04c1d1743b5afd84c3837799df7ce08ce3bb750_
+
+    New Methods:
+        * RDS:
+            * delete_db_proxy()
+            * deregister_db_proxy_targets()
+            * describe_db_proxy_target_groups()
+            * describe_db_proxy_targets()
+            * modify_db_proxy_target_group()
+            * register_db_proxy_targets()
+
+    Miscellaneous:
+        * CloudFormation: create_change_set() now supports the UsePreviousTemplate-parameter
+        * CognitoIDP: MFA-related features (like AssociateSoftwareToken) now also work with non-Python SDK's
+        * ECS: update_service() now correctly sets the createdAt/updatedAt values when forceNewDeployment=True
+        * ELBv2: remove_tags() now throws a ResourceNotFound Exception
+
+
+5.0.17
+-----
+Docker Digest for 5.0.17: _sha256:39372432cb24ab46211ca45648ca787e104589070b0d0a13ea0d73c6eb550079_
+
+    New Methods:
+        * CloudFront:
+            * create_key_group()
+            * create_public_key()
+            * delete_public_key()
+            * get_key_group()
+            * get_public_key()
+            * list_key_groups()
+            * list_public_keys()
+
+        * QuickSight:
+            * list_user_groups()
+            * search_groups()
+            * update_user()
+
+        * Workspaces Web:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * APIGateway: get_api_keys()/get_usage_plan_keys() now support the nameQuery param
+        * AppSync: create_graphql_api() now supports the visibility-parameter
+        * DynamoDB: delete_item() now returns the item when a ConditionalCheckFailed is thrown and ReturnValuesOnConditionCheckFailure == ALL_OLD
+        * QuickSight: Users can now have special characters in their name
+        * QuickSight: list_group_memberships() now supports pagination
+        * QuickSight: list_groups() now supports pagination
+        * QuickSight: list_users() now supports pagination
+        * SageMaker: search() now also supports ModelPackages/Pipelines/Jobs/Executions
+        * SecretsManager: delete_secret() now allows force deletion of already marked-for-delete secret
+        * StepFunctions: create_state_machine() now supports the parameters encryptionConfiguration, tracingConfiguration, loggingConfiguration
+
+
+5.0.16
+-----
+Docker Digest for 5.0.16: _sha256:9506ad3448a87082a436533855c61afaf3f1869e73f39f6575917db975569908_
+
+    New Services:
+        * OpenSearch Ingestion Service:
+            * create_pipeline()
+            * delete_pipeline()
+            * get_pipeline()
+            * list_pipelines()
+            * list_tags_for_resource()
+            * start_pipeline()
+            * stop_pipeline()
+            * tag_resource()
+            * untag_resource()
+            * update_pipeline()
+
+    New Methods:
+        * CloudFront:
+            * get_invalidation()
+
+        * Directory Service:
+            * create_trust()
+            * delete_trust()
+            * describe_ldaps_settings()
+            * describe_trusts()
+            * disable_ldaps()
+            * enable_ldaps()
+
+        * EC2: 
+            * modify_ebs_default_kms_key_id()
+
+    Miscellaneous:
+        * CloudFormation: AWS::ECS::TaskDefinition now correctly validates the provided memory parameters
+        * EC2: create_network_acl_entry() now supports the Ipv6CidrBlock-parameter 
+        * EC2: create_tags() now takes existing tags into account before throwing a TagLimitExceeded-exception
+        * Firehose: put_record_batch() no longer fails when the SnowflakeDestinationConfiguration-parameter is set
+        * FSx: The FileSystemID now uses the same pattern as AWS (fs-xxxxxxxx)
+        * GuardDuty: create_detector() now supports the Features-parameter
+        * Polly has been updated with the latest voices
+        * RDS: modify_option_groups() now correctly parses OptionsToInclude
+        * ResourceGroupsTaggingAPI: get_resources() now supports EC2 NAT Gateways, route tables, subnets
+        * Scheduler: create_chedule() now validates the start_date-parameter for recurrent schedule expressions
+        * SNS: publish() and publish_batch now support MessageStructure=json
+        * WAFv2: associate_web_acl() now allows any resource to be associated
+
+
 5.0.15
 -----
 Docker Digest for 5.0.15: _sha256:9d78f63668017ca6eb9bdb415418d8077e1e503a1e81edb4657f93cf7ff34be1_

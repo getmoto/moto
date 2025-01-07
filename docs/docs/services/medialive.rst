@@ -86,10 +86,6 @@ medialive
 - [ ] get_signal_map
 - [ ] list_channel_placement_groups
 - [X] list_channels
-  
-        Pagination is not yet implemented
-        
-
 - [ ] list_cloud_watch_alarm_template_groups
 - [ ] list_cloud_watch_alarm_templates
 - [ ] list_clusters
@@ -99,10 +95,6 @@ medialive
 - [ ] list_input_devices
 - [ ] list_input_security_groups
 - [X] list_inputs
-  
-        Pagination is not yet implemented
-        
-
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
 - [ ] list_networks
@@ -111,6 +103,7 @@ medialive
 - [ ] list_reservations
 - [ ] list_signal_maps
 - [ ] list_tags_for_resource
+- [ ] list_versions
 - [ ] purchase_offering
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer

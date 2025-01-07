@@ -107,7 +107,7 @@ class Execution(BaseModel):
         query: str,
         context: str,
         config: Dict[str, Any],
-        workgroup: WorkGroup,
+        workgroup: Optional[WorkGroup],
         execution_parameters: Optional[List[str]],
     ):
         self.id = str(mock_random.uuid4())
@@ -246,14 +246,14 @@ class AthenaBackend(BaseBackend):
         query: str,
         context: str,
         config: Dict[str, Any],
-        workgroup: WorkGroup,
+        workgroup: str,
         execution_parameters: Optional[List[str]],
     ) -> str:
         execution = Execution(
             query=query,
             context=context,
             config=config,
-            workgroup=workgroup,
+            workgroup=self.work_groups.get(workgroup),
             execution_parameters=execution_parameters,
         )
         self.executions[execution.id] = execution
@@ -271,7 +271,13 @@ class AthenaBackend(BaseBackend):
     def get_query_execution(self, exec_id: str) -> Execution:
         return self.executions[exec_id]
 
-    def list_query_executions(self) -> Dict[str, Execution]:
+    def list_query_executions(self, workgroup: Optional[str]) -> Dict[str, Execution]:
+        if workgroup is not None:
+            return {
+                exec_id: execution
+                for exec_id, execution in self.executions.items()
+                if execution.workgroup and execution.workgroup.name == workgroup
+            }
         return self.executions
 
     def get_query_results(self, exec_id: str) -> QueryResults:

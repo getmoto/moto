@@ -19,10 +19,16 @@ state_manager.register_default_transition(
     model_name="dax::cluster", transition={"progression": "manual", "times": 4}
 )
 state_manager.register_default_transition(
+    "dsql::cluster", transition={"progression": "manual", "times": 1}
+)
+state_manager.register_default_transition(
     model_name="ecs::task", transition={"progression": "manual", "times": 1}
 )
 state_manager.register_default_transition(
     model_name="glue::job_run", transition={"progression": "immediate"}
+)
+state_manager.register_default_transition(
+    model_name="osis::pipeline", transition={"progression": "immediate"}
 )
 state_manager.register_default_transition(
     "s3::keyrestore", transition={"progression": "immediate"}

@@ -3,7 +3,7 @@
 from moto.timestreamwrite.responses import TimestreamWriteResponse
 
 url_bases = [
-    r"https?://query.timestream\.(.+)\.amazonaws\.com",
+    r"https?://query\.timestream\.(.+)\.amazonaws\.com",
 ]
 
 url_paths = {

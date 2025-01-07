@@ -26,7 +26,11 @@ from .list_secrets.filters import (
     tag_key,
     tag_value,
 )
-from .utils import get_secret_name_from_partial_arn, random_password, secret_arn
+from .utils import (
+    SecretsManagerSecretIdentifier,
+    get_secret_name_from_partial_arn,
+    random_password,
+)
 
 MAX_RESULTS_DEFAULT = 100
 
@@ -94,7 +98,9 @@ class FakeSecret:
     ):
         self.secret_id = secret_id
         self.name = secret_id
-        self.arn = secret_arn(account_id, region_name, secret_id)
+        self.arn = SecretsManagerSecretIdentifier(
+            account_id, region_name, secret_id
+        ).generate(tags=tags)
         self.account_id = account_id
         self.region = region_name
         self.secret_string = secret_string
@@ -901,9 +907,13 @@ class SecretsManagerBackend(BaseBackend):
         filters: List[Dict[str, Any]],
         max_results: int = MAX_RESULTS_DEFAULT,
         next_token: Optional[str] = None,
+        include_planned_deletion: bool = False,
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         secret_list: List[Dict[str, Any]] = []
         for secret in self.secrets.values():
+            if hasattr(secret, "deleted_date"):
+                if secret.deleted_date and not include_planned_deletion:
+                    continue
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
 
@@ -935,7 +945,9 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                arn = secret_arn(self.account_id, self.region_name, secret_id=secret_id)
+                arn = SecretsManagerSecretIdentifier(
+                    self.account_id, self.region_name, secret_id=secret_id
+                ).generate()
                 name = secret_id
                 deletion_date = utcnow()
                 return arn, name, self._unix_time_secs(deletion_date)
@@ -948,7 +960,7 @@ class SecretsManagerBackend(BaseBackend):
                 msg = f"You can't delete secret {secret_id} that still has replica regions [{replica_regions}]"
                 raise InvalidParameterException(msg)
 
-            if secret.is_deleted():
+            if secret.is_deleted() and not force_delete_without_recovery:
                 raise InvalidRequestException(
                     "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
                     perform the operation on a secret that's currently marked deleted."

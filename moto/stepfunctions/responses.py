@@ -3,7 +3,9 @@ import json
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.config import default_user_config
 from moto.core.responses import BaseResponse
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
+from .exceptions import ValidationException
 from .models import StepFunctionBackend, stepfunctions_backends
 from .parser.api import ExecutionStatus
 
@@ -29,21 +31,33 @@ class StepFunctionResponse(BaseResponse):
         roleArn = self._get_param("roleArn")
         tags = self._get_param("tags")
         publish = self._get_param("publish")
+        encryptionConfiguration = self._get_param("encryptionConfiguration")
+        loggingConfiguration = self._get_param("loggingConfiguration")
+        tracingConfiguration = self._get_param("tracingConfiguration")
+        version_description = self._get_param("versionDescription")
+
+        if version_description and not publish:
+            raise ValidationException(
+                "Version description can only be set when publish is true"
+            )
+
         state_machine = self.stepfunction_backend.create_state_machine(
             name=name,
             definition=definition,
             roleArn=roleArn,
             tags=tags,
             publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
+            version_description=version_description,
         )
         response = {
             "creationDate": state_machine.creation_date,
             "stateMachineArn": state_machine.arn,
         }
-        if publish:
-            response["stateMachineVersionArn"] = (
-                f"{state_machine.arn}:{state_machine.version}"
-            )
+        if state_machine.latest_version:
+            response["stateMachineVersionArn"] = state_machine.latest_version.arn
         return 200, {}, json.dumps(response)
 
     def list_state_machines(self) -> TYPE_RESPONSE:
@@ -80,7 +94,13 @@ class StepFunctionResponse(BaseResponse):
             "name": state_machine.name,
             "roleArn": state_machine.roleArn,
             "status": "ACTIVE",
+            "type": state_machine.type,
+            "encryptionConfiguration": state_machine.encryptionConfiguration,
+            "tracingConfiguration": state_machine.tracingConfiguration,
+            "loggingConfiguration": state_machine.loggingConfiguration,
         }
+        if state_machine.description:
+            response["description"] = state_machine.description
         return 200, {}, json.dumps(response)
 
     def delete_state_machine(self) -> TYPE_RESPONSE:
@@ -93,21 +113,29 @@ class StepFunctionResponse(BaseResponse):
         definition = self._get_param("definition")
         role_arn = self._get_param("roleArn")
         tracing_config = self._get_param("tracingConfiguration")
+        encryption_config = self._get_param("encryptionConfiguration")
+        logging_config = self._get_param("loggingConfiguration")
         publish = self._get_param("publish")
+        version_description = self._get_param("versionDescription")
+
+        if version_description and not publish:
+            raise ValidationException(
+                "Version description can only be set when publish is true"
+            )
+
         state_machine = self.stepfunction_backend.update_state_machine(
             arn=arn,
             definition=definition,
             role_arn=role_arn,
             tracing_configuration=tracing_config,
+            encryption_configuration=encryption_config,
+            logging_configuration=logging_config,
             publish=publish,
+            version_description=version_description,
         )
-        response = {
-            "updateDate": state_machine.update_date,
-        }
+        response = {"updateDate": state_machine.update_date}
         if publish:
-            response["stateMachineVersionArn"] = (
-                f"{state_machine.arn}:{state_machine.version}"
-            )
+            response["stateMachineVersionArn"] = state_machine.latest_version.arn  # type: ignore
         return 200, {}, json.dumps(response)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
@@ -137,7 +165,7 @@ class StepFunctionResponse(BaseResponse):
         )
         response = {
             "executionArn": execution.execution_arn,
-            "startDate": execution.start_date,
+            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
         }
         return 200, {}, json.dumps(response)
 
@@ -153,17 +181,24 @@ class StepFunctionResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        executions = [
-            {
+        executions = []
+        for execution in results:
+            result = {
                 "executionArn": execution.execution_arn,
                 "name": execution.name,
-                "startDate": execution.start_date,
-                "stopDate": execution.stop_date,
+                "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
                 "stateMachineArn": state_machine.arn,
                 "status": execution.status,
             }
-            for execution in results
-        ]
+            if execution.status in [
+                ExecutionStatus.SUCCEEDED,
+                ExecutionStatus.FAILED,
+                ExecutionStatus.ABORTED,
+            ]:
+                result["stopDate"] = iso_8601_datetime_with_milliseconds(
+                    execution.stop_date
+                )
+            executions.append(result)
         response = {"executions": executions}
         if next_token:
             response["nextToken"] = next_token
@@ -176,13 +211,26 @@ class StepFunctionResponse(BaseResponse):
             "executionArn": arn,
             "input": json.dumps(execution.execution_input),
             "name": execution.name,
-            "startDate": execution.start_date,
+            "startDate": iso_8601_datetime_with_milliseconds(execution.start_date),
             "stateMachineArn": execution.state_machine_arn,
             "status": execution.status,
-            "stopDate": execution.stop_date,
         }
-        if execution.status == ExecutionStatus.SUCCEEDED:
-            response["output"] = execution.output
+        if execution.status in [
+            ExecutionStatus.SUCCEEDED,
+            ExecutionStatus.ABORTED,
+            ExecutionStatus.FAILED,
+        ]:
+            response["stopDate"] = iso_8601_datetime_with_milliseconds(
+                execution.stop_date
+            )
+        if execution.status in [
+            ExecutionStatus.SUCCEEDED,
+            ExecutionStatus.SUCCEEDED.value,
+        ]:
+            if isinstance(execution.output, str):
+                response["output"] = execution.output
+            elif execution.output is not None:
+                response["output"] = json.dumps(execution.output)
             response["outputDetails"] = execution.output_details
         if execution.error is not None:
             response["error"] = execution.error
@@ -198,7 +246,9 @@ class StepFunctionResponse(BaseResponse):
     def stop_execution(self) -> TYPE_RESPONSE:
         arn = self._get_param("executionArn")
         execution = self.stepfunction_backend.stop_execution(arn)
-        response = {"stopDate": execution.stop_date}
+        response = {
+            "stopDate": iso_8601_datetime_with_milliseconds(execution.stop_date)
+        }
         return 200, {}, json.dumps(response)
 
     def get_execution_history(self) -> TYPE_RESPONSE:
@@ -206,8 +256,7 @@ class StepFunctionResponse(BaseResponse):
         execution_history = self.stepfunction_backend.get_execution_history(
             execution_arn
         )
-        response = {"events": execution_history}
-        return 200, {}, json.dumps(response)
+        return 200, {}, json.dumps(execution_history)
 
     def send_task_failure(self) -> TYPE_RESPONSE:
         task_token = self._get_param("taskToken")

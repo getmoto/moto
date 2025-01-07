@@ -17,7 +17,11 @@ class LambdaFunctionErrorException(Exception):
 
 
 def exec_lambda_function(
-    env: Environment, parameters: dict, region: str, account: str
+    env: Environment,
+    parameters: dict,
+    region: str,
+    account: str,
+    credentials: Any,
 ) -> None:
     lambda_client = boto_client_for(region=region, account=account, service="lambda")
 

@@ -209,8 +209,11 @@ def test_get_instance_profile__should_throw__when_instance_profile_does_not_exis
 def test_create_role_and_instance_profile():
     conn = boto3.client("iam", region_name="us-east-1")
     conn.create_instance_profile(InstanceProfileName="my-profile", Path="my-path")
+    assume_role_policy_document = {"value": "some policy"}
     conn.create_role(
-        RoleName="my-role", AssumeRolePolicyDocument="some policy", Path="/my-path/"
+        RoleName="my-role",
+        AssumeRolePolicyDocument=json.dumps(assume_role_policy_document),
+        Path="/my-path/",
     )
 
     conn.add_role_to_instance_profile(
@@ -219,7 +222,7 @@ def test_create_role_and_instance_profile():
 
     role = conn.get_role(RoleName="my-role")["Role"]
     assert role["Path"] == "/my-path/"
-    assert role["AssumeRolePolicyDocument"] == "some policy"
+    assert role["AssumeRolePolicyDocument"] == assume_role_policy_document
 
     profile = conn.get_instance_profile(InstanceProfileName="my-profile")[
         "InstanceProfile"
@@ -3207,6 +3210,98 @@ def test_create_role_no_path():
     assert resp["Role"].get("Arn") == f"arn:aws:iam::{ACCOUNT_ID}:role/my-role"
     assert "PermissionsBoundary" not in resp["Role"]
     assert resp["Role"]["Description"] == "test"
+
+
+@mock_aws()
+def test_role_policy_encoding():
+    role_name = "my-role"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+    assume_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "sts:AssumeRole",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Effect": "Allow",
+                "Condition": {
+                    "StringEquals": {"aws:SourceArn": "arn:aws:test%3Aencoded%3Astring"}
+                },
+            }
+        ],
+    }
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    resp = conn.create_role(
+        RoleName=role_name, AssumeRolePolicyDocument=json.dumps(assume_policy_document)
+    )
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    conn.put_role_policy(
+        RoleName=role_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_role_policy(RoleName=role_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
+def test_user_policy_encoding():
+    user_name = "my-user"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    conn.create_user(UserName=user_name)
+    conn.put_user_policy(
+        UserName=user_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_user_policy(UserName=user_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
+
+
+@mock_aws()
+def test_group_policy_encoding():
+    group_name = "my-group"
+    policy_name = "my-policy"
+    conn = boto3.client("iam", region_name="us-east-1")
+    policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["apigatway:PUT"],
+                "Resource": ["arn:aws:test%3Aencoded%3Astring"],
+            }
+        ],
+    }
+    conn.create_group(GroupName=group_name)
+    conn.put_group_policy(
+        GroupName=group_name,
+        PolicyName=policy_name,
+        PolicyDocument=json.dumps(policy_document),
+    )
+    resp = conn.get_group_policy(GroupName=group_name, PolicyName=policy_name)
+    assert resp["PolicyDocument"] == policy_document
 
 
 @mock_aws()

@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.8, 3.9, "3.10", "3.11", "3.12", "3.13.0-rc.1" ]
+        python-version: [ 3.8, 3.9, "3.10", "3.11", "3.12", "3.13" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -30,11 +30,6 @@ jobs:
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
           python -m pip install --upgrade pip
-      - name: Install XML dependencies
-        if: ${{ matrix.python-version == '3.13.0-rc.1' }}
-        run: |
-          echo "The libxml dependency needs these system packages to compile in Python 3.13"
-          sudo apt install -y libxml2-dev libxslt-dev
       - name: Install project dependencies
         if: ${{ steps.pip-cache.outputs.cache-hit != 'true' }}
         run: |
@@ -47,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12", "3.13.0-rc.1"]
+        python-version: [3.8, 3.9, "3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -68,7 +63,7 @@ jobs:
     - name: Update pip
       run: |
         python -m pip install --upgrade pip
-    # Still need to properly install the dependencies - it will only skip the download part
+    # Still need to properly install the dependencies - caching will only skip the download part
     - name: Install project dependencies
       run: |
         pip install -r requirements-dev.txt
@@ -80,6 +75,10 @@ jobs:
   javatest:
     needs: lint
     uses: ./.github/workflows/tests_sdk_java.yml
+
+  jstest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_js.yml
 
   dotnettest:
     needs: lint
@@ -109,113 +108,3 @@ jobs:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_proxymode.yml
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      packages: write
-      pull-requests: write
-    needs: [dotnettest, javatest, test, testserver ]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'getmoto/moto' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Update & Build
-        run: |
-          pip install build
-          python update_version_from_git.py
-          python -m build
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          verbose: true
-          print-hash: true
-      - name: Build Docker release
-        run: |
-          docker build -t motoserver/moto . --tag moto:latest
-      # Required to get the correct Digest
-      # See https://github.com/docker/build-push-action/issues/461
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Push to DockerHub and GHCR
-        uses: docker/build-push-action@v6
-        with:
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            motoserver/moto:latest
-            ghcr.io/getmoto/motoserver:latest
-      - name: Get version number
-        run: |
-          version=$(grep -oP '(?<=__version__ = ")[0-9.a-z]+(?=")' moto/__init__.py)
-          echo "moto_version=$version" >> $GITHUB_ENV
-      - uses: octokit/graphql-action@v2.x
-        name: Get PR info
-        id: get_pr
-        with:
-          query: |
-            query get_pr($owner:String!,$repo:String!,$commit:GitObjectID) {
-              repository(owner:$owner,name:$repo) {
-                object(oid:$commit) {
-                  ... on Commit {
-                    associatedPullRequests(last: 1){
-                      edges {
-                        node {
-                          baseRepository {
-                            nameWithOwner
-                          }
-                          merged
-                          number
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          owner: ${{ github.event.repository.owner.name }}
-          repo: ${{ github.event.repository.name }}
-          commit: "${{ github.sha }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get PR number
-        run: |
-          nr="${{ fromJSON(steps.get_pr.outputs.data).repository.object.associatedPullRequests.edges[0].node.number }}"
-          repo="${{ fromJSON(steps.get_pr.outputs.data).repository.object.associatedPullRequests.edges[0].node.baseRepository.nameWithOwner }}"
-          if [ -z "$nr" ]
-          then
-            echo "PR nr not found in $msg"
-            echo "pr_found=false" >> $GITHUB_ENV
-          else
-            echo "PR NR: $nr"
-            echo "pr_nr=$nr" >> $GITHUB_ENV
-            echo "pr_repo=$repo" >> $GITHUB_ENV
-            echo "pr_found=true" >> $GITHUB_ENV
-          fi
-      - name: Leave PR comment with Moto version
-        uses: peter-evans/create-or-update-comment@v4
-        if: env.pr_found == 'true' && env.pr_repo == 'getmoto/moto'
-        with:
-          issue-number: ${{ env.pr_nr }}
-          body: |
-            This is now part of moto >= ${{ env.moto_version }}

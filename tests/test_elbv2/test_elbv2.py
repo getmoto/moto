@@ -198,6 +198,13 @@ def test_add_remove_tags():
 
     conn.remove_tags(ResourceArns=[lb["LoadBalancerArn"]], TagKeys=["a"])
 
+    with pytest.raises(ClientError) as exc:
+        # add a random string in the ARN to make the resource non-existent
+        BAD_LB_ARN = lb["LoadBalancerArn"] + "randomstring"
+        conn.remove_tags(ResourceArns=[BAD_LB_ARN], TagKeys=["a"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "LoadBalancerNotFound"
+
     tags = {
         d["Key"]: d["Value"]
         for d in conn.describe_tags(ResourceArns=[lb["LoadBalancerArn"]])[

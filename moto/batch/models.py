@@ -638,12 +638,17 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         if not self.parameters:
             return command
 
-        new_command = [
-            command_part.replace(f"Ref::{param}", value)
+        return [
+            next(
+                (
+                    command_part.replace(f"Ref::{param}", value)
+                    for param, value in self.parameters.items()
+                    if f"Ref::{param}" in command_part
+                ),
+                command_part,
+            )
             for command_part in command
-            for param, value in self.parameters.items()
         ]
-        return new_command
 
     def run(self) -> None:
         """
@@ -1830,25 +1835,32 @@ class BatchBackend(BaseBackend):
 
     def list_jobs(
         self,
-        job_queue_name: str,
+        job_queue_name: Optional[str],
+        array_job_id: Optional[str],
         job_status: Optional[str] = None,
         filters: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Job]:
         """
         Pagination is not yet implemented
         """
+        jobs_to_check = []
         jobs = []
 
-        job_queue = self.get_job_queue(job_queue_name)
-        if job_queue is None:
-            raise ClientException(f"Job queue {job_queue_name} does not exist")
+        if job_queue_name:
+            if job_queue := self.get_job_queue(job_queue_name):
+                jobs_to_check.extend(job_queue.jobs)
+            else:
+                raise ClientException(f"Job queue {job_queue_name} does not exist")
+        if array_job_id:
+            if array_job := self.get_job_by_id(array_job_id):
+                jobs_to_check.extend(array_job._child_jobs or [])
 
         if job_status is not None and job_status not in JobStatus.job_statuses():
             raise ClientException(
                 "Job status is not one of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED"
             )
 
-        for job in job_queue.jobs:
+        for job in jobs_to_check:
             if job_status is not None and job.status != job_status:
                 continue
 

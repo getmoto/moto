@@ -147,3 +147,11 @@ class OpenSearchServiceResponse(BaseResponse):
             engine_type=engine_type,
         )
         return json.dumps(dict(DomainNames=domain_names))
+
+    def describe_domains(self) -> str:
+        domain_names = self._get_param("DomainNames")
+        domains = self.opensearch_backend.describe_domains(
+            domain_names=domain_names,
+        )
+        domain_list = [domain.to_dict() for domain in domains]
+        return json.dumps({"DomainStatusList": domain_list})

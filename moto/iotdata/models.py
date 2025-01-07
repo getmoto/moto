@@ -2,8 +2,6 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-import jsondiff
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import merge_dicts
@@ -71,19 +69,41 @@ class FakeShadow(BaseModel):
         return FakeShadow(desired, reported, payload, version)
 
     @classmethod
-    def parse_payload(cls, desired: Optional[str], reported: Optional[str]) -> Any:  # type: ignore[misc]
+    def parse_payload(cls, desired: Any, reported: Any) -> Any:  # type: ignore[misc]
         if not desired and not reported:
             delta = None
         elif reported is None and desired:
             delta = desired
         elif desired and reported:
-            delta = jsondiff.diff(reported, desired)
-            delta.pop(jsondiff.add, None)  # type: ignore
-            delta.pop(jsondiff.delete, None)  # type: ignore
-            delta.pop(jsondiff.replace, None)  # type: ignore
+            delta = cls._compute_delta_dict(desired, reported)
         else:
             delta = None
         return delta
+
+    @classmethod
+    def _compute_delta_dict(cls, desired: Any, reported: Any) -> Dict[str, Any]:  # type: ignore[misc]
+        delta = {}
+        for key, value in desired.items():
+            delta_value = cls._compute_delta(reported.get(key), value)
+
+            if delta_value is not None:
+                delta[key] = delta_value
+        return delta
+
+    @classmethod
+    def _compute_delta(cls, reported_value: Any, desired_value: Any) -> Any:  # type: ignore[misc]
+        if reported_value == desired_value:
+            return None
+
+        if isinstance(desired_value, dict) and isinstance(reported_value, dict):
+            return cls._compute_delta_dict(desired_value, reported_value)
+
+        # Types are different, or
+        # Both types are intrinsic values (str, int, etc), or
+        # Both types are lists:
+        #
+        # Just return the desired value
+        return desired_value
 
     def _create_metadata_from_state(self, state: Any, ts: Any) -> Any:
         """

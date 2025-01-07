@@ -58,6 +58,7 @@ backup
 - [ ] get_backup_vault_access_policy
 - [ ] get_backup_vault_notifications
 - [ ] get_legal_hold
+- [ ] get_recovery_point_index_details
 - [ ] get_recovery_point_restore_metadata
 - [ ] get_restore_job_metadata
 - [ ] get_restore_testing_inferred_metadata
@@ -82,6 +83,7 @@ backup
 - [ ] list_copy_job_summaries
 - [ ] list_copy_jobs
 - [ ] list_frameworks
+- [ ] list_indexed_recovery_points
 - [ ] list_legal_holds
 - [ ] list_protected_resources
 - [ ] list_protected_resources_by_backup_vault
@@ -114,6 +116,7 @@ backup
 - [ ] update_backup_plan
 - [ ] update_framework
 - [ ] update_global_settings
+- [ ] update_recovery_point_index_settings
 - [ ] update_recovery_point_lifecycle
 - [ ] update_region_settings
 - [ ] update_report_plan

@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -8,14 +8,17 @@ from moto.core.exceptions import RESTError
 from moto.core.utils import unix_time, utcnow
 from moto.organizations import utils
 from moto.organizations.exceptions import (
+    AccountAlreadyClosedException,
     AccountAlreadyRegisteredException,
     AccountNotFoundException,
     AccountNotRegisteredException,
+    AlreadyInOrganizationException,
     AWSOrganizationsNotInUseException,
     ConstraintViolationException,
     DuplicateOrganizationalUnitException,
     DuplicatePolicyException,
     InvalidInputException,
+    OrganizationNotEmptyException,
     PolicyNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
@@ -149,6 +152,8 @@ class FakeAccount(BaseModel):
         }
 
     def close(self) -> None:
+        if self.status == "SUSPENDED":
+            raise AccountAlreadyClosedException
         # TODO: The CloseAccount spec allows the account to pass through a
         # "PENDING_CLOSURE" state before reaching the SUSPENDED state.
         self.status = "SUSPENDED"
@@ -419,6 +424,9 @@ class OrganizationsBackend(BaseBackend):
         return root  # type: ignore[return-value]
 
     def create_organization(self, region: str, **kwargs: Any) -> Dict[str, Any]:
+        if self.org or self.account_id in organizations_backends.master_accounts:
+            raise AlreadyInOrganizationException
+
         self.org = FakeOrganization(
             self.account_id,
             region_name=region,
@@ -451,16 +459,26 @@ class OrganizationsBackend(BaseBackend):
         return self.org.describe()
 
     def describe_organization(self) -> Dict[str, Any]:
-        if not self.org:
-            raise AWSOrganizationsNotInUseException
-        return self.org.describe()
+        if self.org:
+            # This is a master account
+            return self.org.describe()
+
+        if self.account_id in organizations_backends.master_accounts:
+            # This is a member account
+            master_account_id, partition = organizations_backends.master_accounts[
+                self.account_id
+            ]
+            return organizations_backends[master_account_id][partition].org.describe()  # type: ignore[union-attr]
+
+        raise AWSOrganizationsNotInUseException
 
     def delete_organization(self) -> None:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
         if [account for account in self.accounts if account.name != "master"]:
-            raise RESTError(
-                "OrganizationNotEmptyException",
-                "To delete an organization you must first remove all member accounts (except the master).",
-            )
+            raise OrganizationNotEmptyException
+
         self._reset()
 
     def list_roots(self) -> Dict[str, Any]:
@@ -520,16 +538,27 @@ class OrganizationsBackend(BaseBackend):
         ]
 
     def create_account(self, **kwargs: Any) -> Dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
         new_account = FakeAccount(self.org, **kwargs)  # type: ignore
         self.accounts.append(new_account)
         self.attach_policy(PolicyId=utils.DEFAULT_POLICY_ID, TargetId=new_account.id)
+        organizations_backends.master_accounts[new_account.id] = (
+            self.account_id,
+            self.partition,
+        )
         return new_account.create_account_status
 
     def close_account(self, **kwargs: Any) -> None:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
         for account in self.accounts:
             if account.id == kwargs["AccountId"]:
                 account.close()
                 return
+        organizations_backends.master_accounts.pop(kwargs["AccountId"], None)
         raise AccountNotFoundException
 
     def get_account_by_id(self, account_id: str) -> FakeAccount:
@@ -977,13 +1006,35 @@ class OrganizationsBackend(BaseBackend):
             raise InvalidInputException("You specified an invalid value.")
 
     def remove_account_from_organization(self, **kwargs: str) -> None:
-        account = self.get_account_by_id(kwargs["AccountId"])
+        account_id = kwargs["AccountId"]
+        if account_id not in organizations_backends.master_accounts:
+            raise AWSOrganizationsNotInUseException
+        organizations_backends.master_accounts.pop(account_id, None)
+        account = self.get_account_by_id(account_id)
         for policy in account.attached_policies:
             policy.attachments.remove(account)
         self.accounts.remove(account)
 
 
-organizations_backends = BackendDict(
+class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
+    """
+    Specialised to keep track of master accounts.
+    """
+
+    def __init__(
+        self,
+        backend: Any,
+        service_name: str,
+        use_boto3_regions: bool = True,
+        additional_regions: Optional[List[str]] = None,
+    ):
+        super().__init__(backend, service_name, use_boto3_regions, additional_regions)
+
+        # Maps member account IDs to the (master account ID, partition) which owns the organisation
+        self.master_accounts: Dict[str, Tuple[str, str]] = {}
+
+
+organizations_backends = OrganizationsBackendDict(
     OrganizationsBackend,
     "organizations",
     use_boto3_regions=False,

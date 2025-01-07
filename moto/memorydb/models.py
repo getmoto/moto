@@ -67,14 +67,14 @@ class MemoryDBCluster(BaseModel):
         self.maintenance_window = maintenance_window or "wed:08:00-wed:09:00"
         self.port = port or 6379  # Default is set to 6379
         self.sns_topic_arn = sns_topic_arn
-        self.tls_enabled = tls_enabled or True
+        self.tls_enabled = tls_enabled if tls_enabled is not None else True
+        # Clusters that do not have TLS enabled must use the "open-access" ACL to provide open authentication.
+        self.acl_name = "open-access" if tls_enabled is False else acl_name
         self.kms_key_id = kms_key_id
         self.snapshot_arns = snapshot_arns
         self.snapshot_name = snapshot_name
         self.snapshot_retention_limit = snapshot_retention_limit or 0
         self.snapshot_window = snapshot_window or "03:00-04:00"
-        # When tlsenable is set to false, the acl_name must be open-access.
-        self.acl_name = "open-access" if not tls_enabled else acl_name
         self.region = region
         self.engine_version = engine_version
         if engine_version == "7.0":
@@ -84,7 +84,11 @@ class MemoryDBCluster(BaseModel):
         else:
             self.engine_version = "7.1"  # Default is '7.1'.
             self.engine_patch_version = "7.1.1"
-        self.auto_minor_version_upgrade = auto_minor_version_upgrade or True
+        self.auto_minor_version_upgrade = (
+            auto_minor_version_upgrade
+            if auto_minor_version_upgrade is not None
+            else True
+        )
         self.data_tiering = "true" if data_tiering else "false"
         # The initial status of the cluster will be set to 'creating'."
         self.status = (
@@ -204,7 +208,6 @@ class MemoryDBCluster(BaseModel):
             "ParameterGroupStatus": self.parameter_group_status,
             "SecurityGroups": self.security_groups,
             "SubnetGroupName": self.subnet_group_name,
-            "TLSEnabled": self.tls_enabled,
             "KmsKeyId": self.kms_key_id,
             "ARN": self.arn,
             "SnsTopicArn": self.sns_topic_arn,
@@ -212,10 +215,11 @@ class MemoryDBCluster(BaseModel):
             "MaintenanceWindow": self.maintenance_window,
             "SnapshotWindow": self.snapshot_window,
             "ACLName": self.acl_name,
-            "AutoMinorVersionUpgrade": self.auto_minor_version_upgrade,
             "DataTiering": self.data_tiering,
         }
         dct_items = {k: v for k, v in dct.items() if v}
+        dct_items["TLSEnabled"] = self.tls_enabled
+        dct_items["AutoMinorVersionUpgrade"] = self.auto_minor_version_upgrade
         dct_items["SnapshotRetentionLimit"] = self.snapshot_retention_limit
         return dct_items
 
@@ -365,7 +369,10 @@ class MemoryDBBackend(BaseBackend):
         return default_subnet_ids
 
     def _list_arns(self) -> List[str]:
-        return [cluster.arn for cluster in self.clusters.values()]
+        cluster_arns = [cluster.arn for cluster in self.clusters.values()]
+        snapshot_arns = [snapshot.arn for snapshot in self.snapshots.values()]
+        subnet_group_arns = [subnet.arn for subnet in self.subnet_groups.values()]
+        return cluster_arns + snapshot_arns + subnet_group_arns
 
     def create_cluster(
         self,
@@ -451,6 +458,8 @@ class MemoryDBBackend(BaseBackend):
             tags,
         )
         self.subnet_groups[subnet_group_name] = subnet_group
+        if tags:
+            self.tag_resource(subnet_group.arn, tags)
         return subnet_group
 
     def create_snapshot(
@@ -479,6 +488,8 @@ class MemoryDBBackend(BaseBackend):
             source=source,
         )
         self.snapshots[snapshot_name] = snapshot
+        if tags:
+            self.tag_resource(snapshot.arn, tags)
         return snapshot
 
     def describe_clusters(
@@ -557,16 +568,27 @@ class MemoryDBBackend(BaseBackend):
 
     def list_tags(self, resource_arn: str) -> List[Dict[str, str]]:
         if resource_arn not in self._list_arns():
-            cluster_name = resource_arn.split("/")[-1]
-            raise ClusterNotFoundFault(f"{cluster_name} is not present")
+            # Get the resource name from the resource_arn
+            resource_name = resource_arn.split("/")[-1]
+            if "subnetgroup" in resource_arn:
+                raise SubnetGroupNotFoundFault(f"{resource_name} is not present")
+            elif "snapshot" in resource_arn:
+                raise SnapshotNotFoundFault(f"{resource_name} is not present")
+            else:
+                raise ClusterNotFoundFault(f"{resource_name} is not present")
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
 
     def tag_resource(
         self, resource_arn: str, tags: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:
         if resource_arn not in self._list_arns():
-            cluster_name = resource_arn.split("/")[-1]
-            raise ClusterNotFoundFault(f"{cluster_name} is not present")
+            resource_name = resource_arn.split("/")[-1]
+            if "subnetgroup" in resource_arn:
+                raise SubnetGroupNotFoundFault(f"{resource_name} is not present")
+            elif "snapshot" in resource_arn:
+                raise SnapshotNotFoundFault(f"{resource_name} is not present")
+            else:
+                raise ClusterNotFoundFault(f"{resource_name} is not present")
         self.tagger.tag_resource(resource_arn, tags)
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
 
@@ -574,8 +596,13 @@ class MemoryDBBackend(BaseBackend):
         self, resource_arn: str, tag_keys: List[str]
     ) -> List[Dict[str, str]]:
         if resource_arn not in self._list_arns():
-            cluster_name = resource_arn.split("/")[-1]
-            raise ClusterNotFoundFault(f"{cluster_name} is not present")
+            resource_name = resource_arn.split("/")[-1]
+            if "subnetgroup" in resource_arn:
+                raise SubnetGroupNotFoundFault(f"{resource_name} is not present")
+            elif "snapshot" in resource_arn:
+                raise SnapshotNotFoundFault(f"{resource_name} is not present")
+            else:
+                raise ClusterNotFoundFault(f"{resource_name} is not present")
         list_tags = self.list_tags(resource_arn=resource_arn)
         list_keys = [i["Key"] for i in list_tags]
         invalid_keys = [key for key in tag_keys if key not in list_keys]

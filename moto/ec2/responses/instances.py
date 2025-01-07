@@ -468,7 +468,7 @@ INSTANCE_TEMPLATE = """<item>
           {% if instance.key_name is not none %}
              <keyName>{{ instance.key_name }}</keyName>
           {% endif %}
-          <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
+          <ebsOptimized>{{ instance.ebs_optimized | lower }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           {% if instance.iam_instance_profile %}
@@ -537,7 +537,7 @@ INSTANCE_TEMPLATE = """<item>
                      <volumeId>{{ deviceobject.volume_id }}</volumeId>
                      <status>{{ deviceobject.status }}</status>
                      <attachTime>{{ deviceobject.attach_time }}</attachTime>
-                     <deleteOnTermination>{{ deviceobject.delete_on_termination }}</deleteOnTermination>
+                     <deleteOnTermination>{{ 'true' if deviceobject.delete_on_termination else 'false' }}</deleteOnTermination>
                      <size>{{deviceobject.size}}</size>
                 </ebs>
               </item>

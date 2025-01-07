@@ -139,9 +139,9 @@ def test_list_nodes() -> None:
     assert node["OwnerAccount"] == "123456789012"
     assert (
         node["PackageArn"]
-        == "arn:aws:panorama:us-east-1:123456789012:package/package-+Y6+ycqU+ogoBTHuibMzGg=="
+        == "arn:aws:panorama:us-east-1:123456789012:package/package--Y6-ycqU-ogoBTHuibMzGg"
     )
-    assert node["PackageId"] == "package-+Y6+ycqU+ogoBTHuibMzGg=="
+    assert node["PackageId"] == "package--Y6-ycqU-ogoBTHuibMzGg"
     assert node["PackageName"] == "not-an-output-package-name"
     assert node["PackageVersion"] == "1.0"
     assert (
@@ -154,9 +154,3 @@ def test_list_nodes() -> None:
     assert isinstance(response_page_2["Nodes"], list)
     assert len(response_page_2["Nodes"]) == 1
     assert "NextToken" not in response_page_2
-
-
-"""
-botocore.errorfactory.ValidationException: An error occurred (ValidationException) when calling the CreateNodeFromTemplateJob operation: {"reason":"FIELD_VALIDATION_FAILED","message":"The input fails to satisfy the constraints specified by an AWS service.","fields":[{"name":"TemplateParameters","message":"Unsupported template parameters: [param]"}]}
-botocore.errorfactory.ValidationException: An error occurred (ValidationException) when calling the CreateNodeFromTemplateJob operation: {"Message":[ECMA 262 regex \"^([0-9]+)\\.([0-9]+)$\" does not match input string \"not-an-output-package-version\"]}
-"""

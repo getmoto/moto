@@ -32,6 +32,7 @@ class AppSyncResponse(BaseResponse):
         )
         xray_enabled = params.get("xrayEnabled", False)
         lambda_authorizer_config = params.get("lambdaAuthorizerConfig")
+        visibility = params.get("visibility")
         graphql_api = self.appsync_backend.create_graphql_api(
             name=name,
             log_config=log_config,
@@ -42,6 +43,7 @@ class AppSyncResponse(BaseResponse):
             xray_enabled=xray_enabled,
             lambda_authorizer_config=lambda_authorizer_config,
             tags=tags,
+            visibility=visibility,
         )
         response = graphql_api.to_json()
         response["tags"] = self.appsync_backend.list_tags_for_resource(graphql_api.arn)

@@ -1354,10 +1354,54 @@ class CognitoIdpBackend(BaseBackend):
         raise NotAuthorizedError("Invalid token")
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_users(self, user_pool_id: str) -> List[CognitoIdpUser]:
+    def list_users(self, user_pool_id: str, filt: str) -> List[CognitoIdpUser]:
         user_pool = self.describe_user_pool(user_pool_id)
+        users = list(user_pool.users.values())
+        if filt:
+            inherent_attributes: Dict[str, Any] = {
+                "cognito:user_status": lambda u: u.status,
+                "status": lambda u: "Enabled" if u.enabled else "Disabled",
+                "username": lambda u: u.username,
+            }
+            comparisons: Dict[str, Any] = {
+                "=": lambda x, y: x == y,
+                "^=": lambda x, y: x.startswith(y),
+            }
+            allowed_attributes = [
+                "username",
+                "email",
+                "phone_number",
+                "name",
+                "given_name",
+                "family_name",
+                "preferred_username",
+                "cognito:user_status",
+                "status",
+                "sub",
+            ]
 
-        return list(user_pool.users.values())
+            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
+            if match:
+                name, op, value = match.groups()
+            else:
+                raise InvalidParameterException("Error while parsing filter")
+            if name not in allowed_attributes:
+                raise InvalidParameterException(f"Invalid search attribute: {name}")
+            compare = comparisons[op]
+            users = [
+                user
+                for user in users
+                if [
+                    attr
+                    for attr in user.attributes
+                    if attr["Name"] == name and compare(attr["Value"], value)
+                ]
+                or (
+                    name in inherent_attributes
+                    and compare(inherent_attributes[name](user), value)
+                )
+            ]
+        return users
 
     def admin_disable_user(self, user_pool_id: str, username: str) -> None:
         user = self.admin_get_user(user_pool_id, username)
@@ -2298,6 +2342,20 @@ class RegionAgnosticBackend:
                         return backend
         return cognitoidp_backends[self.account_id][self.region_name]
 
+    def _find_backend_by_access_token_or_session(
+        self, access_token: str, session: str
+    ) -> CognitoIdpBackend:
+        for account_specific_backends in cognitoidp_backends.values():
+            for region, backend in account_specific_backends.items():
+                if region == "global":
+                    continue
+                if session and session in backend.sessions:
+                    return backend
+                for p in backend.user_pools.values():
+                    if access_token and access_token in p.access_tokens:
+                        return backend
+        return cognitoidp_backends[self.account_id][self.region_name]
+
     def _find_backend_for_clientid(self, client_id: str) -> CognitoIdpBackend:
         for account_specific_backends in cognitoidp_backends.values():
             for region, backend in account_specific_backends.items():
@@ -2355,6 +2413,33 @@ class RegionAgnosticBackend:
         return backend.respond_to_auth_challenge(
             session, client_id, challenge_name, challenge_responses
         )
+
+    def associate_software_token(
+        self, access_token: str, session: str
+    ) -> Dict[str, str]:
+        backend = self._find_backend_by_access_token_or_session(access_token, session)
+        return backend.associate_software_token(access_token, session)
+
+    def verify_software_token(self, access_token: str, session: str) -> Dict[str, str]:
+        backend = self._find_backend_by_access_token_or_session(access_token, session)
+        return backend.verify_software_token(access_token, session)
+
+    def set_user_mfa_preference(
+        self,
+        access_token: str,
+        software_token_mfa_settings: Dict[str, bool],
+        sms_mfa_settings: Dict[str, bool],
+    ) -> None:
+        backend = self._find_backend_by_access_token(access_token)
+        return backend.set_user_mfa_preference(
+            access_token, software_token_mfa_settings, sms_mfa_settings
+        )
+
+    def update_user_attributes(
+        self, access_token: str, attributes: List[Dict[str, str]]
+    ) -> None:
+        backend = self._find_backend_by_access_token(access_token)
+        return backend.update_user_attributes(access_token, attributes)
 
 
 cognitoidp_backends = BackendDict(CognitoIdpBackend, "cognito-idp")

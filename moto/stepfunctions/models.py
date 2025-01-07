@@ -26,14 +26,16 @@ from .exceptions import (
 from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
 
 
-class StateMachine(CloudFormationModel):
+class StateMachineInstance:
     def __init__(
         self,
         arn: str,
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        encryptionConfiguration: Optional[Dict[str, Any]] = None,
+        loggingConfiguration: Optional[Dict[str, Any]] = None,
+        tracingConfiguration: Optional[Dict[str, Any]] = None,
     ):
         self.creation_date = iso_8601_datetime_with_milliseconds()
         self.update_date = self.creation_date
@@ -42,10 +44,74 @@ class StateMachine(CloudFormationModel):
         self.definition = definition
         self.roleArn = roleArn
         self.executions: List[Execution] = []
+        self.type = "STANDARD"
+        self.encryptionConfiguration = encryptionConfiguration or {
+            "type": "AWS_OWNED_KEY"
+        }
+        self.loggingConfiguration = loggingConfiguration or {"level": "OFF"}
+        self.tracingConfiguration = tracingConfiguration or {"enabled": False}
+        self.sm_type = "STANDARD"  # or express
+        self.description: Optional[str] = None
+
+
+class StateMachineVersion(StateMachineInstance, CloudFormationModel):
+    def __init__(
+        self, source: StateMachineInstance, version: int, description: Optional[str]
+    ):
+        version_arn = f"{source.arn}:{version}"
+        StateMachineInstance.__init__(
+            self,
+            arn=version_arn,
+            name=source.name,
+            definition=source.definition,
+            roleArn=source.roleArn,
+            encryptionConfiguration=source.encryptionConfiguration,
+            loggingConfiguration=source.loggingConfiguration,
+            tracingConfiguration=source.tracingConfiguration,
+        )
+        self.source_arn = source.arn
+        self.version = version
+        self.description = description
+
+
+class StateMachine(StateMachineInstance, CloudFormationModel):
+    def __init__(
+        self,
+        arn: str,
+        name: str,
+        definition: str,
+        roleArn: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+        encryptionConfiguration: Optional[Dict[str, Any]] = None,
+        loggingConfiguration: Optional[Dict[str, Any]] = None,
+        tracingConfiguration: Optional[Dict[str, Any]] = None,
+    ):
+        StateMachineInstance.__init__(
+            self,
+            arn=arn,
+            name=name,
+            definition=definition,
+            roleArn=roleArn,
+            encryptionConfiguration=encryptionConfiguration,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+        )
         self.tags: List[Dict[str, str]] = []
         if tags:
             self.add_tags(tags)
-        self.version = 0
+
+        self.latest_version_number = 0
+        self.versions: Dict[int, StateMachineVersion] = {}
+        self.latest_version: Optional[StateMachineVersion] = None
+
+    def publish(self, description: Optional[str]) -> None:
+        new_version_number = self.latest_version_number + 1
+        new_version = StateMachineVersion(
+            source=self, version=new_version_number, description=description
+        )
+        self.versions[new_version_number] = new_version
+        self.latest_version = new_version
+        self.latest_version_number = new_version_number
 
     def start_execution(
         self,
@@ -262,7 +328,7 @@ class Execution:
         )
         self.execution_arn = execution_arn
         self.name = execution_name
-        self.start_date = iso_8601_datetime_with_milliseconds()
+        self.start_date = datetime.now()
         self.state_machine_arn = state_machine_arn
         self.execution_input = execution_input
         self.status = (
@@ -270,7 +336,7 @@ class Execution:
             if settings.get_sf_execution_history_type() == "SUCCESS"
             else "FAILED"
         )
-        self.stop_date: Optional[str] = None
+        self.stop_date: Optional[datetime] = None
         self.account_id = account_id
         self.region_name = region_name
         self.output: Optional[str] = None
@@ -379,7 +445,7 @@ class Execution:
 
     def stop(self, *args: Any, **kwargs: Any) -> None:
         self.status = "ABORTED"
-        self.stop_date = iso_8601_datetime_with_milliseconds()
+        self.stop_date = datetime.now()
 
 
 class StepFunctionBackend(BaseBackend):
@@ -523,6 +589,10 @@ class StepFunctionBackend(BaseBackend):
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
         publish: Optional[bool] = None,
+        loggingConfiguration: Optional[Dict[str, Any]] = None,
+        tracingConfiguration: Optional[Dict[str, Any]] = None,
+        encryptionConfiguration: Optional[Dict[str, Any]] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -530,9 +600,18 @@ class StepFunctionBackend(BaseBackend):
         try:
             return self.describe_state_machine(arn)
         except StateMachineDoesNotExist:
-            state_machine = StateMachine(arn, name, definition, roleArn, tags)
+            state_machine = StateMachine(
+                arn,
+                name,
+                definition,
+                roleArn,
+                tags,
+                encryptionConfiguration,
+                loggingConfiguration,
+                tracingConfiguration,
+            )
             if publish:
-                state_machine.version += 1
+                state_machine.publish(description=version_description)
             self.state_machines.append(state_machine)
             return state_machine
 
@@ -544,10 +623,21 @@ class StepFunctionBackend(BaseBackend):
         self._validate_machine_arn(arn)
         sm = next((x for x in self.state_machines if x.arn == arn), None)
         if not sm:
-            raise StateMachineDoesNotExist(
-                "State Machine Does Not Exist: '" + arn + "'"
-            )
-        return sm
+            if (
+                (arn_parts := arn.split(":"))
+                and len(arn_parts) > 7
+                and arn_parts[-1].isnumeric()
+            ):
+                # we might have a versioned arn, ending in :stateMachine:name:version_nr
+                source_arn = ":".join(arn_parts[:-1])
+                source_sm = next(
+                    (x for x in self.state_machines if x.arn == source_arn), None
+                )
+                if source_sm:
+                    sm = source_sm.versions.get(int(arn_parts[-1]))  # type: ignore[assignment]
+        if not sm:
+            raise StateMachineDoesNotExist(f"State Machine Does Not Exist: '{arn}'")
+        return sm  # type: ignore[return-value]
 
     def delete_state_machine(self, arn: str) -> None:
         self._validate_machine_arn(arn)
@@ -562,16 +652,24 @@ class StepFunctionBackend(BaseBackend):
         role_arn: Optional[str] = None,
         logging_configuration: Optional[Dict[str, bool]] = None,
         tracing_configuration: Optional[Dict[str, bool]] = None,
+        encryption_configuration: Optional[Dict[str, Any]] = None,
         publish: Optional[bool] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
-        updates = {
+        updates: Dict[str, Any] = {
             "definition": definition,
             "roleArn": role_arn,
         }
+        if encryption_configuration:
+            updates["encryptionConfiguration"] = encryption_configuration
+        if logging_configuration:
+            updates["loggingConfiguration"] = logging_configuration
+        if tracing_configuration:
+            updates["tracingConfiguration"] = tracing_configuration
         sm.update(**updates)
         if publish:
-            sm.version += 1
+            sm.publish(version_description)
         return sm
 
     def start_execution(
@@ -616,7 +714,7 @@ class StepFunctionBackend(BaseBackend):
             )
         return exctn
 
-    def get_execution_history(self, execution_arn: str) -> List[Dict[str, Any]]:
+    def get_execution_history(self, execution_arn: str) -> Dict[str, Any]:
         self._validate_execution_arn(execution_arn)
         state_machine = self._get_state_machine_for_execution(execution_arn)
         execution = next(
@@ -627,7 +725,7 @@ class StepFunctionBackend(BaseBackend):
             raise ExecutionDoesNotExist(
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
-        return execution.get_execution_history(state_machine.roleArn)
+        return {"events": execution.get_execution_history(state_machine.roleArn)}
 
     def describe_state_machine_for_execution(self, execution_arn: str) -> StateMachine:
         for sm in self.state_machines:

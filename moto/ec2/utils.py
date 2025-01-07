@@ -1,8 +1,20 @@
 import base64
 import fnmatch
+import hashlib
 import ipaddress
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -17,6 +29,11 @@ from moto.core.utils import utcnow
 from moto.iam import iam_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
+
+if TYPE_CHECKING:
+    from typing_extensions import TypeAlias
+
+    HashType: TypeAlias = hashlib._Hash
 
 EC2_RESOURCE_TO_PREFIX = {
     "customer-gateway": "cgw",
@@ -73,7 +90,7 @@ def random_resource_id(size: int = 8) -> str:
     return "".join(random.choice(HEX_CHARS) for _ in range(size))
 
 
-def random_id(prefix: str = "", size: int = 8) -> str:
+def random_id(prefix: str = "", size: int = 17) -> str:
     return f"{prefix}-{random_resource_id(size)}"
 
 
@@ -82,7 +99,7 @@ def random_ami_id() -> str:
 
 
 def random_instance_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance"])
 
 
 def random_reservation_id() -> str:
@@ -90,11 +107,11 @@ def random_reservation_id() -> str:
 
 
 def random_security_group_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group"])
 
 
 def random_security_group_rule_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["security-group-rule"])
 
 
 def random_fleet_id() -> str:
@@ -164,7 +181,7 @@ def random_vpc_id() -> str:
 
 
 def random_vpc_ep_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"], size=8)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpc-endpoint"])
 
 
 def random_vpc_cidr_association_id() -> str:
@@ -184,9 +201,7 @@ def random_internet_gateway_id() -> str:
 
 
 def random_egress_only_internet_gateway_id() -> str:
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"], size=17
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["egress-only-internet-gateway"])
 
 
 def random_route_table_id() -> str:
@@ -210,27 +225,27 @@ def random_eni_attach_id() -> str:
 
 
 def random_nat_gateway_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["nat-gateway"])
 
 
 def random_transit_gateway_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"])
 
 
 def random_transit_gateway_route_table_id() -> str:
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"], size=17
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"])
 
 
 def random_transit_gateway_attachment_id() -> str:
-    return random_id(
-        prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"], size=17
-    )
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-attachment"])
+
+
+def random_managed_prefix_list_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"])
 
 
 def random_launch_template_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["launch-template"])
 
 
 def random_launch_template_name() -> str:
@@ -242,7 +257,7 @@ def random_iam_instance_profile_association_id() -> str:
 
 
 def random_carrier_gateway_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["carrier-gateway"])
 
 
 def random_public_ip() -> str:
@@ -250,7 +265,7 @@ def random_public_ip() -> str:
 
 
 def random_dedicated_host_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"], size=17)
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"])
 
 
 def random_private_ip(cidr: Optional[str] = None, ipv6: bool = False) -> str:
@@ -300,10 +315,6 @@ def generate_route_id(
     if prefix_list and not cidr_block:
         cidr_block = prefix_list
     return f"{route_table_id}~{cidr_block}"
-
-
-def random_managed_prefix_list_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["managed-prefix-list"], size=8)
 
 
 def create_dns_entries(service_name: str, vpc_endpoint_id: str) -> Dict[str, str]:
@@ -577,7 +588,8 @@ def random_ed25519_key_pair() -> Dict[str, str]:
         encoding=serialization.Encoding.OpenSSH,
         format=serialization.PublicFormat.OpenSSH,
     )
-    fingerprint = public_key_fingerprint(public_key)
+    hash_constructor = select_hash_algorithm(public_key)
+    fingerprint = public_key_fingerprint(public_key, hash_constructor)
 
     return {
         "fingerprint": fingerprint,
@@ -600,7 +612,8 @@ def random_rsa_key_pair() -> Dict[str, str]:
         encoding=serialization.Encoding.OpenSSH,
         format=serialization.PublicFormat.OpenSSH,
     )
-    fingerprint = public_key_fingerprint(public_key)
+    hash_constructor = select_hash_algorithm(public_key, is_imported=False)
+    fingerprint = public_key_fingerprint(public_key, hash_constructor)
 
     return {
         "fingerprint": fingerprint,
@@ -753,16 +766,28 @@ def public_key_parse(
     return public_key
 
 
-def public_key_fingerprint(public_key: Union[RSAPublicKey, Ed25519PublicKey]) -> str:
-    # TODO: Use different fingerprint calculation methods based on key type and source
-    # see https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html#how-ec2-key-fingerprints-are-calculated
+def public_key_fingerprint(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey],
+    hash_constructor: Callable[[bytes], "HashType"],
+) -> str:
     key_data = public_key.public_bytes(
         encoding=serialization.Encoding.DER,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
-    fingerprint_hex = md5_hash(key_data).hexdigest()
+    fingerprint_hex = hash_constructor(key_data).hexdigest()
     fingerprint = re.sub(r"([a-f0-9]{2})(?!$)", r"\1:", fingerprint_hex)
     return fingerprint
+
+
+def select_hash_algorithm(
+    public_key: Union[RSAPublicKey, Ed25519PublicKey], is_imported: bool = True
+) -> Callable[[bytes], "HashType"]:
+    if isinstance(public_key, Ed25519PublicKey):
+        return hashlib.sha256
+    elif is_imported:
+        return md5_hash
+
+    return hashlib.sha1
 
 
 def filter_iam_instance_profile_associations(

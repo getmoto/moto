@@ -36,13 +36,3 @@ class ValidationException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
-
-
-class SubscriptionNotFoundError(JsonRESTError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "SubscriptionNotFoundException",
-            "No Shield subscription has been created for this account",
-        )

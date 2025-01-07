@@ -1,22 +1,24 @@
 import abc
 from collections import OrderedDict
-from threading import Event
-from typing import Dict, Final, Optional
+from threading import Event, Lock
+from typing import Dict, Optional
 
-from moto.moto_api._internal import mock_random
+from moto.stepfunctions.parser.api import ActivityDoesNotExist, Arn
+from moto.stepfunctions.parser.backend.activity import Activity, ActivityTask
+from moto.stepfunctions.parser.utils import long_uid
 
 CallbackId = str
 
 
 class CallbackOutcome(abc.ABC):
-    callback_id: Final[CallbackId]
+    callback_id: CallbackId
 
     def __init__(self, callback_id: str):
         self.callback_id = callback_id
 
 
 class CallbackOutcomeSuccess(CallbackOutcome):
-    output: Final[str]
+    output: str
 
     def __init__(self, callback_id: CallbackId, output: str):
         super().__init__(callback_id=callback_id)
@@ -24,13 +26,19 @@ class CallbackOutcomeSuccess(CallbackOutcome):
 
 
 class CallbackOutcomeFailure(CallbackOutcome):
-    error: Final[str]
-    cause: Final[str]
+    error: Optional[str]
+    cause: Optional[str]
 
-    def __init__(self, callback_id: CallbackId, error: str, cause: str):
+    def __init__(
+        self, callback_id: CallbackId, error: Optional[str], cause: Optional[str]
+    ):
         super().__init__(callback_id=callback_id)
         self.error = error
         self.cause = cause
+
+
+class CallbackOutcomeTimedOut(CallbackOutcome):
+    pass
 
 
 class CallbackTimeoutError(TimeoutError):
@@ -49,28 +57,61 @@ class CallbackConsumerLeft(CallbackConsumerError):
 
 
 class HeartbeatEndpoint:
-    _next_heartbeat_event: Final[Event]
-    _heartbeat_seconds: Final[int]
+    _mutex: Lock
+    _next_heartbeat_event: Event
+    _heartbeat_seconds: int
 
     def __init__(self, heartbeat_seconds: int):
+        self._mutex = Lock()
         self._next_heartbeat_event = Event()
         self._heartbeat_seconds = heartbeat_seconds
 
     def clear_and_wait(self) -> bool:
-        self._next_heartbeat_event.clear()
+        with self._mutex:
+            if self._next_heartbeat_event.is_set():
+                self._next_heartbeat_event.clear()
+                return True
         return self._next_heartbeat_event.wait(timeout=self._heartbeat_seconds)
 
     def notify(self):
-        self._next_heartbeat_event.set()
+        with self._mutex:
+            self._next_heartbeat_event.set()
 
 
 class HeartbeatTimeoutError(TimeoutError):
     pass
 
 
+class HeartbeatTimedOut(CallbackConsumerError):
+    pass
+
+
+class ActivityTaskStartOutcome:
+    worker_name: Optional[str]
+
+    def __init__(self, worker_name: Optional[str] = None):
+        self.worker_name = worker_name
+
+
+class ActivityTaskStartEndpoint:
+    _next_activity_task_start_event: Event
+    _outcome: Optional[ActivityTaskStartOutcome]
+
+    def __init__(self):
+        self._next_activity_task_start_event = Event()
+
+    def wait(self, timeout_seconds: float) -> Optional[ActivityTaskStartOutcome]:
+        self._next_activity_task_start_event.wait(timeout=timeout_seconds)
+        return self._outcome
+
+    def notify(self, activity_task: ActivityTaskStartOutcome) -> None:
+        self._outcome = activity_task
+        self._next_activity_task_start_event.set()
+
+
 class CallbackEndpoint:
-    callback_id: Final[CallbackId]
-    _notify_event: Final[Event]
+    callback_id: CallbackId
+    _notify_event: Event
     _outcome: Optional[CallbackOutcome]
     consumer_error: Optional[CallbackConsumerError]
     _heartbeat_endpoint: Optional[HeartbeatEndpoint]
@@ -87,6 +128,13 @@ class CallbackEndpoint:
             heartbeat_seconds=heartbeat_seconds
         )
         return self._heartbeat_endpoint
+
+    def interrupt_all(self) -> None:
+        # Interrupts all waiting processes on this endpoint.
+        self._notify_event.set()
+        heartbeat_endpoint = self._heartbeat_endpoint
+        if heartbeat_endpoint is not None:
+            heartbeat_endpoint.notify()
 
     def notify(self, outcome: CallbackOutcome):
         self._outcome = outcome
@@ -111,6 +159,27 @@ class CallbackEndpoint:
         self.consumer_error = consumer_error
 
 
+class ActivityCallbackEndpoint(CallbackEndpoint):
+    _activity_task_start_endpoint: ActivityTaskStartEndpoint
+    _activity_input: str
+
+    def __init__(self, callback_id: str, activity_input: str):
+        super().__init__(callback_id=callback_id)
+        self._activity_input = activity_input
+        self._activity_task_start_endpoint = ActivityTaskStartEndpoint()
+
+    def get_activity_input(self) -> str:
+        return self._activity_input
+
+    def get_activity_task_start_endpoint(self) -> ActivityTaskStartEndpoint:
+        return self._activity_task_start_endpoint
+
+    def notify_activity_task_start(self, worker_name: Optional[str]) -> None:
+        self._activity_task_start_endpoint.notify(
+            ActivityTaskStartOutcome(worker_name=worker_name)
+        )
+
+
 class CallbackNotifyConsumerError(RuntimeError):
     callback_consumer_error: CallbackConsumerError
 
@@ -126,9 +195,11 @@ class CallbackOutcomeFailureError(RuntimeError):
 
 
 class CallbackPoolManager:
+    _activity_store: Dict[CallbackId, Activity]
     _pool: Dict[CallbackId, CallbackEndpoint]
 
-    def __init__(self):
+    def __init__(self, activity_store: Dict[Arn, Activity]):
+        self._activity_store = activity_store
         self._pool = OrderedDict()
 
     def get(self, callback_id: CallbackId) -> Optional[CallbackEndpoint]:
@@ -141,8 +212,28 @@ class CallbackPoolManager:
         self._pool[callback_id] = callback_endpoint
         return callback_endpoint
 
+    def add_activity_task(
+        self, callback_id: CallbackId, activity_arn: Arn, activity_input: str
+    ) -> ActivityCallbackEndpoint:
+        if callback_id in self._pool:
+            raise ValueError("Duplicate callback token id value.")
+
+        maybe_activity: Optional[Activity] = self._activity_store.get(activity_arn)
+        if maybe_activity is None:
+            raise ActivityDoesNotExist()
+
+        maybe_activity.add_task(
+            ActivityTask(task_token=callback_id, task_input=activity_input)
+        )
+
+        callback_endpoint = ActivityCallbackEndpoint(
+            callback_id=callback_id, activity_input=activity_input
+        )
+        self._pool[callback_id] = callback_endpoint
+        return callback_endpoint
+
     def generate(self) -> CallbackEndpoint:
-        return self.add(str(mock_random.uuid4()))
+        return self.add(long_uid())
 
     def notify(self, callback_id: CallbackId, outcome: CallbackOutcome) -> bool:
         callback_endpoint = self._pool.get(callback_id, None)

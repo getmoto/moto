@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import WaiterError
+from botocore.exceptions import ClientError, WaiterError
 
 from . import elbv2_aws_verified
 
@@ -94,9 +94,6 @@ sudo systemctl enable httpd"""
             UserData=init_script,
         )[0].id
 
-        waiter = ec2_client.get_waiter("instance_running")
-        waiter.wait(InstanceIds=[instance_id1, instance_id2])
-
         load_balancer_arn = conn.create_load_balancer(
             Name=lb_name,
             Subnets=[subnet1.id, subnet2.id],
@@ -124,9 +121,7 @@ sudo systemctl enable httpd"""
         )["TargetGroups"][0]["TargetGroupArn"]
 
         # No targets registered yet
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         assert len(healths) == 0
 
         listener_arn = conn.create_listener(
@@ -141,6 +136,11 @@ sudo systemctl enable httpd"""
             ],
         )["Listeners"][0]["ListenerArn"]
 
+        # Instances were started a while ago
+        # Make sure they are ready before trying to register them
+        waiter = ec2_client.get_waiter("instance_running")
+        waiter.wait(InstanceIds=[instance_id1, instance_id2])
+
         # Register target
         # Verify that they are healthy
         conn.register_targets(
@@ -150,9 +150,8 @@ sudo systemctl enable httpd"""
         waiter = conn.get_waiter("target_in_service")
         waiter.wait(TargetGroupArn=target_group_arn)
 
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
+
         assert {
             "Target": {"Id": instance_id1, "Port": 80},
             "HealthCheckPort": "80",
@@ -173,9 +172,7 @@ sudo systemctl enable httpd"""
         waiter = conn.get_waiter("target_deregistered")
         waiter.wait(TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id1}])
 
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         assert len(healths) == 1
         assert {
             "Target": {"Id": instance_id2, "Port": 80},
@@ -187,6 +184,9 @@ sudo systemctl enable httpd"""
         healths = conn.describe_target_health(
             TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id1, "Port": 80}]
         )["TargetHealthDescriptions"]
+        for h in healths:
+            # Skip attributes not implemented in Moto
+            h.pop("AdministrativeOverride", None)
         assert len(healths) == 1
         assert {
             "Target": {"Id": instance_id1, "Port": 80},
@@ -206,9 +206,7 @@ sudo systemctl enable httpd"""
         waiter = conn.get_waiter("target_in_service")
         waiter.wait(TargetGroupArn=target_group_arn)
 
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         assert {
             "Target": {"Id": instance_id1, "Port": 80},
             "HealthCheckPort": "80",
@@ -224,12 +222,24 @@ sudo systemctl enable httpd"""
         waiter = ec2_client.get_waiter("instance_stopped")
         waiter.wait(InstanceIds=[instance_id1])
 
+        # Verify we can't register an instance that has been stopped
+        with pytest.raises(ClientError) as exc:
+            conn.register_targets(
+                TargetGroupArn=target_group_arn,
+                Targets=[{"Id": instance_id1}],
+            )
+        err = exc.value.response
+        assert err["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert err["Error"]["Code"] == "InvalidTarget"
+        assert (
+            err["Error"]["Message"]
+            == f"The following targets are not in a running state and cannot be registered: '{instance_id1}'"
+        )
+
         # Instance is marked as 'unused' when stopped
         states = set()
         while states != {"healthy", "unused"}:
-            healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-                "TargetHealthDescriptions"
-            ]
+            healths = describe_healths(target_group_arn)
             states = set([h["TargetHealth"]["State"] for h in healths])
 
             if target_is_aws:
@@ -254,13 +264,9 @@ sudo systemctl enable httpd"""
         waiter.wait(InstanceIds=[instance_id1])
 
         # Instance is removed when terminated
-        healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-            "TargetHealthDescriptions"
-        ]
+        healths = describe_healths(target_group_arn)
         while len(healths) != 1:
-            healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
-                "TargetHealthDescriptions"
-            ]
+            healths = describe_healths(target_group_arn)
 
             if target_is_aws:
                 sleep(5)
@@ -275,6 +281,9 @@ sudo systemctl enable httpd"""
         healths = conn.describe_target_health(
             TargetGroupArn=target_group_arn, Targets=[{"Id": instance_id1, "Port": 80}]
         )["TargetHealthDescriptions"]
+        for h in healths:
+            # Skip attributes not implemented in Moto
+            h.pop("AdministrativeOverride", None)
         assert healths == [
             {
                 "Target": {"Id": instance_id1, "Port": 80},
@@ -334,6 +343,17 @@ sudo systemctl enable httpd"""
         ec2_client.detach_internet_gateway(InternetGatewayId=igw_id, VpcId=vpc.id)
         vpc.delete()
         ec2_client.delete_internet_gateway(InternetGatewayId=igw_id)
+
+
+def describe_healths(target_group_arn):
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    healths = conn.describe_target_health(TargetGroupArn=target_group_arn)[
+        "TargetHealthDescriptions"
+    ]
+    for h in healths:
+        # Skip attributes not implemented in Moto
+        h.pop("AdministrativeOverride", None)
+    return healths
 
 
 @elbv2_aws_verified()

@@ -52,6 +52,7 @@ class StatesFunctionFactory:
     def from_name(
         func_name: StatesFunctionName, arg_list: FunctionArgumentList
     ) -> StatesFunction:
+        # Array.
         if func_name.function_type == StatesFunctionNameType.Array:
             return array.Array(arg_list=arg_list)
         if func_name.function_type == StatesFunctionNameType.ArrayPartition:

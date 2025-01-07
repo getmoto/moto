@@ -27,6 +27,7 @@ def test_create_graphql_api():
     assert api["xrayEnabled"] is False
     assert "additionalAuthenticationProviders" not in api
     assert "logConfig" not in api
+    assert api["visibility"] == "GLOBAL"
 
 
 @mock_aws
@@ -41,6 +42,7 @@ def test_create_graphql_api_advanced():
             "cloudWatchLogsRoleArn": "arn:aws:cloudwatch:role",
         },
         xrayEnabled=True,
+        visibility="PRIVATE",
     )
 
     assert "graphqlApi" in resp
@@ -61,6 +63,7 @@ def test_create_graphql_api_advanced():
         "fieldLogLevel": "ERROR",
     }
     assert api["xrayEnabled"] is True
+    assert api["visibility"] == "PRIVATE"
 
 
 @mock_aws
@@ -77,6 +80,7 @@ def test_get_graphql_api():
     assert api["name"] == "api1"
     assert "apiId" in api
     assert api["authenticationType"] == "API_KEY"
+    assert api["visibility"] == "GLOBAL"
 
 
 @mock_aws

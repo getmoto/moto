@@ -329,6 +329,35 @@ def test_create_fleet_request_with_tags():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "overrides", [{"InstanceType": "t2.nano"}, {"AvailabilityZone": "us-west-1"}]
+)
+def test_create_fleet_using_launch_template_config__overrides_single(overrides):
+    conn = boto3.client("ec2", region_name="us-east-2")
+
+    template_id, _ = get_launch_template(conn, instance_type="t2.medium")
+
+    fleet_id = conn.create_fleet(
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {"LaunchTemplateId": template_id},
+                # Verify we parse the incoming parameters correctly,
+                # even when only supplying a dictionary with a single key
+                "Overrides": [overrides],
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "TotalTargetCapacity": 1,
+        },
+    )["FleetId"]
+
+    fleet = conn.describe_fleets(FleetIds=[fleet_id])["Fleets"][0]
+    lt_config = fleet["LaunchTemplateConfigs"][0]
+    assert lt_config["Overrides"] == [overrides]
+
+
+@mock_aws
 def test_create_fleet_using_launch_template_config__overrides():
     conn = boto3.client("ec2", region_name="us-east-2")
     subnet_id = get_subnet_id(conn)

@@ -651,16 +651,15 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         self.logs_group_name = f"/aws/lambda/{self.function_name}"
 
-        # this isn't finished yet. it needs to find out the VpcId value
-        self._vpc_config = spec.get(
-            "VpcConfig", {"SubnetIds": [], "SecurityGroupIds": []}
-        )
+        # VpcConfig has no default, if not supplied
+        self._vpc_config = spec.get("VpcConfig")
 
         # auto-generated
         self.version = version
         self.last_modified = iso_8601_datetime_with_nanoseconds()
 
         self._set_function_code(self.code)
+        self.code_or_config_updated = False
 
         self.function_arn: str = make_function_arn(
             self.region, self.account_id, self.function_name
@@ -718,7 +717,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self._ephemeral_storage = ephemeral_storage
 
     @property
-    def vpc_config(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def vpc_config(self) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+        if not self._vpc_config:
+            return None
         config = self._vpc_config.copy()
         if config["SecurityGroupIds"]:
             config.update({"VpcId": "vpc-123abc"})
@@ -794,7 +795,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         resp = {"Configuration": self.get_configuration()}
         if "S3Key" in self.code:
             resp["Code"] = {
-                "Location": f"s3://awslambda-{self.region}-tasks.s3-{self.region}.amazonaws.com/{self.code['S3Key']}",
+                "Location": f"https://awslambda-{self.region}-tasks.s3.{self.region}.amazonaws.com/{self.code['S3Key']}",
                 "RepositoryType": "S3",
             }
         elif "ImageUri" in self.code:
@@ -837,6 +838,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 self.environment_vars = value["Variables"]
             elif key == "Layers":
                 self.layers = self._get_layers_data(value)
+
+        self.code_or_config_updated = True
 
         return self.get_configuration()
 
@@ -935,6 +938,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def update_function_code(self, updated_spec: Dict[str, Any]) -> Dict[str, Any]:
         self._set_function_code(updated_spec)
+        self.code_or_config_updated = True
         return self.get_configuration()
 
     @staticmethod
@@ -1027,7 +1031,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                         ]
                     )
                     for image_repo in image_repos:
-                        image_ref = f"{image_repo}:{self.run_time}"
+                        image_ref = (
+                            image_repo
+                            if ":" in image_repo
+                            else f"{image_repo}:{self.run_time}"
+                        )
                         try:
                             self.ensure_image_exists(image_ref)
                             break
@@ -1684,9 +1692,11 @@ class LambdaStorage(object):
         all_versions = self._functions[name]["versions"]
         if all_versions:
             latest_published = all_versions[-1]
-            if latest_published.code_sha_256 == function.code_sha_256:
+            if not function.code_or_config_updated:
                 # Nothing has changed, don't publish
                 return latest_published
+            else:
+                function.code_or_config_updated = False
 
         new_version = len(all_versions) + 1
         fn = copy.copy(self._functions[name]["latest"])
@@ -2282,7 +2292,7 @@ class LambdaBackend(BaseBackend):
             "Records": [
                 {
                     "eventID": item.to_json()["eventID"],
-                    "eventName": "INSERT",
+                    "eventName": item.to_json()["eventName"],
                     "eventVersion": item.to_json()["eventVersion"],
                     "eventSource": item.to_json()["eventSource"],
                     "awsRegion": self.region_name,
@@ -2385,7 +2395,7 @@ class LambdaBackend(BaseBackend):
         """
         Invoking a Function with PackageType=Image is not yet supported.
 
-        Invoking a Funcation against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
+        Invoking a Function against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
         You can use a dedicated API to override this, by configuring a queue of expected results.
 
         A request to `invoke` will take the first result from that queue.

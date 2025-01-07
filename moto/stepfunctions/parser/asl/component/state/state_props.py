@@ -1,14 +1,31 @@
-from typing import Any
+from typing import Any, Set
 
 from moto.stepfunctions.parser.asl.component.common.flow.end import End
 from moto.stepfunctions.parser.asl.component.common.flow.next import Next
+from moto.stepfunctions.parser.asl.component.common.parargs import Parargs
+from moto.stepfunctions.parser.asl.component.common.path.input_path import InputPath
+from moto.stepfunctions.parser.asl.component.common.path.items_path import ItemsPath
+from moto.stepfunctions.parser.asl.component.common.path.output_path import OutputPath
 from moto.stepfunctions.parser.asl.component.common.timeouts.heartbeat import Heartbeat
 from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import Timeout
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_type import (
+    Comparison,
+)
+from moto.stepfunctions.parser.asl.component.state.choice.comparison.variable import (
+    Variable,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_reader.reader_config.max_items_decl import (
     MaxItemsDecl,
 )
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.items.items import (
+    Items,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.max_concurrency import (
     MaxConcurrencyDecl,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.tolerated_failure import (
+    ToleratedFailureCountDecl,
+    ToleratedFailurePercentageDecl,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     Resource,
@@ -20,15 +37,24 @@ from moto.stepfunctions.parser.asl.component.state.wait.wait_function.wait_funct
 )
 from moto.stepfunctions.parser.asl.parse.typed_props import TypedProps
 
-UNIQUE_SUBINSTANCES = {
+UNIQUE_SUBINSTANCES: Set[type] = {
+    InputPath,
+    Items,
+    ItemsPath,
+    OutputPath,
     Resource,
     WaitFunction,
     Timeout,
     Heartbeat,
     MaxItemsDecl,
     MaxConcurrencyDecl,
+    ToleratedFailureCountDecl,
+    ToleratedFailurePercentageDecl,
     ErrorDecl,
     CauseDecl,
+    Variable,
+    Parargs,
+    Comparison,
 }
 
 

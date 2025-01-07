@@ -375,6 +375,14 @@ def test_untag_resource():
 @mock_aws
 def test_create_and_describe_subscription():
     client = boto3.client("shield", region_name="eu-west-1")
+
+    # Check exception when subscription does not exist
+    with pytest.raises(ClientError) as exc:
+        connection = client.describe_subscription()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The subscription does not exist."
+
     client.create_subscription()
     connection = client.describe_subscription()
     subscription = connection["Subscription"]

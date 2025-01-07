@@ -26,6 +26,7 @@ networkmanager
 - [ ] create_connection
 - [X] create_core_network
 - [X] create_device
+- [ ] create_direct_connect_gateway_attachment
 - [X] create_global_network
 - [X] create_link
 - [X] create_site
@@ -61,6 +62,7 @@ networkmanager
 - [ ] get_core_network_policy
 - [ ] get_customer_gateway_associations
 - [X] get_devices
+- [ ] get_direct_connect_gateway_attachment
 - [ ] get_link_associations
 - [X] get_links
 - [ ] get_network_resource_counts
@@ -96,6 +98,7 @@ networkmanager
 - [ ] update_connection
 - [ ] update_core_network
 - [ ] update_device
+- [ ] update_direct_connect_gateway_attachment
 - [ ] update_global_network
 - [ ] update_link
 - [ ] update_network_resource_metadata

@@ -13,6 +13,7 @@ FAKE_SECURITY_GROUP_IDS = ["sg-0123456789abcdef0"]
 FAKE_SUBNET_IDS = ["subnet-0123456789abcdef0", "subnet-abcdef0123456789"]
 FAKE_TAGS = [
     {"Key": "TestKey", "Value": "TestValue"},
+    {"Key": "TestKey2", "Value": "TestValue2"},
 ]
 FAKE_VPC_ID = "vpc-0123456789abcdef0"
 FAKE_KMS_KEY_ID = "abcd1234-5678-90ab-cdef-FAKEKEY"
@@ -290,20 +291,20 @@ def test_create_user_settings():
 def test_get_user_settings():
     client = boto3.client("workspaces-web", region_name="eu-west-1")
     resp = client.create_user_settings(
-        copyAllowed="Disabled",
+        copyAllowed="Enabled",
         pasteAllowed="Disabled",
-        printAllowed="Disabled",
+        printAllowed="Enabled",
         uploadAllowed="Disabled",
-        downloadAllowed="Disabled",
+        downloadAllowed="Enabled",
     )
     user_settings_arn = resp["userSettingsArn"]
     resp = client.get_user_settings(userSettingsArn=user_settings_arn)["userSettings"]
     assert resp["userSettingsArn"] == user_settings_arn
-    assert resp["copyAllowed"] == "Disabled"
+    assert resp["copyAllowed"] == "Enabled"
     assert resp["pasteAllowed"] == "Disabled"
-    assert resp["printAllowed"] == "Disabled"
+    assert resp["printAllowed"] == "Enabled"
     assert resp["uploadAllowed"] == "Disabled"
-    assert resp["downloadAllowed"] == "Disabled"
+    assert resp["downloadAllowed"] == "Enabled"
 
 
 @mock_aws
@@ -436,3 +437,80 @@ def test_associate_user_access_logging_settings():
         userAccessLoggingSettingsArn=user_access_logging_settings_arn
     )["userAccessLoggingSettings"]
     assert resp["associatedPortalArns"] == [portal_arn]
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("workspaces-web", region_name="ap-southeast-1")
+
+    OTHER_FAKE_TAGS = [
+        {"Key": "FAKEKEY1", "Value": "FAKEVALUE1"},
+        {"Key": "FAKEKEY2", "Value": "FAKEVALUE2"},
+    ]
+
+    arns = []
+
+    arns.append(
+        client.create_portal(
+            additionalEncryptionContext={"Key1": "Encryption", "Key2": "Context"},
+            authenticationType="Standard",
+            clientToken="TestClient",
+            customerManagedKey=FAKE_KMS_KEY_ID,
+            displayName="TestDisplayName",
+            instanceType="TestInstanceType",
+            maxConcurrentSessions=5,
+            tags=FAKE_TAGS,
+        )["portalArn"]
+    )
+
+    arns.append(
+        client.create_network_settings(
+            securityGroupIds=FAKE_SECURITY_GROUP_IDS,
+            subnetIds=FAKE_SUBNET_IDS,
+            tags=FAKE_TAGS,
+            vpcId=FAKE_VPC_ID,
+        )["networkSettingsArn"]
+    )
+
+    arns.append(
+        client.create_user_settings(
+            copyAllowed="Disabled",
+            pasteAllowed="Disabled",
+            printAllowed="Disabled",
+            uploadAllowed="Disabled",
+            downloadAllowed="Disabled",
+            tags=FAKE_TAGS,
+        )["userSettingsArn"]
+    )
+
+    arns.append(
+        client.create_user_access_logging_settings(
+            kinesisStreamArn="arn:aws:kinesis:ap-southeast-1:123456789012:stream/TestStream",
+            tags=FAKE_TAGS,
+        )["userAccessLoggingSettingsArn"]
+    )
+
+    arns.append(
+        client.create_browser_settings(
+            additionalEncryptionContext={"Key1": "Value1", "Key2": "Value2"},
+            browserPolicy="TestBrowserPolicy",
+            clientToken="TestClient",
+            customerManagedKey=FAKE_KMS_KEY_ID,
+            tags=FAKE_TAGS,
+        )["browserSettingsArn"]
+    )
+
+    for arn in arns:
+        resp = client.list_tags_for_resource(resourceArn=arn)
+        assert resp["tags"] == FAKE_TAGS
+
+        client.tag_resource(resourceArn=arn, tags=OTHER_FAKE_TAGS)
+        resp = client.list_tags_for_resource(resourceArn=arn)
+        assert resp["tags"] == FAKE_TAGS + OTHER_FAKE_TAGS
+
+        client.untag_resource(resourceArn=arn, tagKeys=["FAKEKEY1", "TestKey"])
+        resp = client.list_tags_for_resource(resourceArn=arn)
+        assert resp["tags"] == [
+            {"Key": "TestKey2", "Value": "TestValue2"},
+            {"Key": "FAKEKEY2", "Value": "FAKEVALUE2"},
+        ]

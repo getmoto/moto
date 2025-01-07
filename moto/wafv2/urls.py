@@ -6,4 +6,5 @@ url_bases = [
 
 url_paths = {
     "{0}/": WAFV2Response.dispatch,
+    "{0}/$": WAFV2Response.dispatch,
 }
