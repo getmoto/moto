@@ -96,7 +96,10 @@ class ElasticsearchServiceResponse(BaseResponse):
         return 200, {}, json.dumps({"DomainStatus": domain_status})
 
     def list_domain_names(self) -> TYPE_RESPONSE:
-        domain_names = self.es_backend.list_domain_names()
+        engine_type = self._get_param("engineType")
+        domain_names = self.es_backend.list_domain_names(
+            engine_type=engine_type,
+        )
         return 200, {}, json.dumps({"DomainNames": domain_names})
 
     def describe_elasticsearch_domains(self) -> TYPE_RESPONSE:

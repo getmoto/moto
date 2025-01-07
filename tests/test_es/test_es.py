@@ -205,6 +205,18 @@ def test_list_domain_names_initial():
 
 
 @mock_aws
+def test_list_domain_names_enginetype():
+    client = boto3.client("es", region_name="us-east-1")
+    client.create_elasticsearch_domain(DomainName="elasticsearch-domain")
+
+    resp = client.list_domain_names(EngineType="Elasticsearch")
+    assert len(resp["DomainNames"]) == 1
+
+    resp = client.list_domain_names(EngineType="OpenSearch")
+    assert len(resp["DomainNames"]) == 0
+
+
+@mock_aws
 def test_list_domain_names_with_multiple_domains():
     client = boto3.client("es", region_name="eu-west-1")
     domain_names = [f"env{i}" for i in range(1, 5)]
