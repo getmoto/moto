@@ -72,6 +72,15 @@ def test_create_database(client):
 
 
 @mock_aws
+def test_create_database_already_exists():
+    create_db_instance()
+    with pytest.raises(ClientError) as exc:
+        create_db_instance()
+    err = exc.value.response["Error"]
+    assert err["Message"] == "DB instance already exists"
+
+
+@mock_aws
 def test_database_with_deletion_protection_cannot_be_deleted():
     db_instance = create_db_instance(DeletionProtection=True)
     assert db_instance["DBInstanceClass"] == "db.m1.small"
@@ -1022,6 +1031,23 @@ def test_restore_db_instance_from_db_snapshot(
         )
         == 1
     )
+
+
+@mock_aws
+def test_restore_db_instance_from_db_snapshot_called_twice(client):
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+    client.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot"
+    )
+    client.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot"
+    )
+    with pytest.raises(ClientError) as exc:
+        client.restore_db_instance_from_db_snapshot(
+            DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot"
+        )
+    err = exc.value.response["Error"]
+    assert err["Message"] == "DB instance already exists"
 
 
 @pytest.mark.parametrize(
