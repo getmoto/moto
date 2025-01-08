@@ -18,8 +18,8 @@ class ScheduleNotFound(JsonRESTError):
 class ScheduleGroupNotFound(JsonRESTError):
     code = 404
 
-    def __init__(self) -> None:
-        super().__init__("ResourceNotFoundException", "ScheduleGroup not found")
+    def __init__(self, name: str) -> None:
+        super().__init__("ResourceNotFoundException", f"Schedule group {name} does not exist.")
 
 
 class ValidationException(JsonRESTError):
