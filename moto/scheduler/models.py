@@ -47,7 +47,7 @@ class Schedule(BaseModel):
         self.kms_key_arn = kms_key_arn
         self.start_date = self._validate_start_date(start_date)
         self.end_date = end_date
-        self.action_after_completion = action_after_completion
+        self.action_after_completion = action_after_completion or "DELETE"
         self.creation_date = self.last_modified_date = unix_time()
 
     @staticmethod
@@ -108,11 +108,13 @@ class Schedule(BaseModel):
         start_date: str,
         state: str,
         target: Dict[str, Any],
+        action_after_completion: str,
     ) -> None:
         self.schedule_expression = schedule_expression
-        self.schedule_expression_timezone = schedule_expression_timezone
+        self.schedule_expression_timezone = schedule_expression_timezone or "UTC"
         self.flexible_time_window = flexible_time_window
         self.target = Schedule.validate_target(target)
+        self.action_after_completion = action_after_completion
         self.description = description
         self.state = state
         self.kms_key_arn = kms_key_arn
@@ -226,6 +228,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         start_date: str,
         state: str,
         target: Dict[str, Any],
+        action_after_completion: str,
     ) -> Schedule:
         """
         The ClientToken is not yet implemented
@@ -241,6 +244,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
             start_date=start_date,
             state=state,
             target=target,
+            action_after_completion=action_after_completion,
         )
         return schedule
 
