@@ -994,9 +994,6 @@ def test_restore_db_instance_from_db_snapshot(
         db_subnet_group_name = create_db_subnet_group()
 
     # restore
-    new_instance = client.restore_db_instance_from_db_snapshot(
-        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier=db_snapshot_identifier
-    )["DBInstance"]
     kwargs = {
         "DBInstanceIdentifier": "db-restore-1",
         "DBSnapshotIdentifier": db_snapshot_identifier,
