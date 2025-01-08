@@ -92,6 +92,47 @@ def test_create_user_without_password():
         == "No password was provided. If you want to create/update the user without password, please use the NoPasswordRequired flag."
     )
 
+@mock_aws
+def test_create_user_with_iam():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        AuthenticationMode={
+            "Type": "iam"
+        }
+    )
+
+    assert resp["UserId"] == user_id
+    assert resp["UserName"] == "User1"
+    assert resp["Status"] == "active"
+    assert resp["Engine"] == "Redis"
+    assert resp["MinimumEngineVersion"] == "6.0"
+    assert resp["AccessString"] == "on ~* +@all"
+    assert resp["UserGroupIds"] == []
+    assert resp["Authentication"]["Type"] == "iam"
+
+@mock_aws
+def test_create_user_with_iam_no_password():
+    # IAM authentication mode should not come with password fields
+    assert False
+
+@mock_aws
+def test_create_user_with_invalid_authmode():
+    # AuthenticationMode should be either 'password' or 'iam' or 'no-password'
+    assert False
+
+@mock_aws
+def test_create_user_with_authmode_no_password(): 
+    # AuthenticationMode should be either 'password' or 'iam' or 'no-password'
+    assert False
+
+@mock_aws
+def test_create_user_with_authmode_password():
+    assert False
 
 @mock_aws
 def test_create_user_twice():
