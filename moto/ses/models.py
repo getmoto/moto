@@ -130,6 +130,44 @@ class SESQuota(BaseModel):
         return self.sent
 
 
+class ConfigurationSet(BaseModel):
+    def __init__(
+        self,
+        configuration_set_name: str,
+        tracking_options: Dict[str, str],
+        delivery_options: Dict[str, Any],
+        reputation_options: Dict[str, Any],
+        sending_options: Dict[str, bool],
+        tags: List[Dict[str, str]],
+        suppression_options: Dict[str, List[str]],
+        vdm_options: Dict[str, Dict[str, str]],
+    ):
+        # Shared between SES and SESv2
+        self.configuration_set_name = configuration_set_name
+        self.tracking_options = tracking_options
+        self.delivery_options = delivery_options
+        self.reputation_options = reputation_options
+        self.enabled = sending_options  # Enabled in v1, SendingOptions in v2
+        # SESv2 specific fields
+        self.tags = tags
+        self.suppression_options = suppression_options
+        self.vdm_options = vdm_options
+
+    def to_dict_v2(self):
+        return {
+            {
+                "ConfigurationSetName": self.configuration_set_name,
+                "TrackingOptions": self.tracking_options,
+                "DeliveryOptions": self.delivery_options,
+                "ReputationOptions": self.reputation_options,
+                "SendingOptions": {"SendingEnabled": self.enabled},
+                "Tags": self.tags,
+                "SuppressionOptions": self.suppression_options,
+                "VdmOptions": self.vdm_options,
+            }
+        }
+
+
 class SESBackend(BaseBackend):
     """
     Responsible for mocking calls to SES.
@@ -155,7 +193,7 @@ class SESBackend(BaseBackend):
         self.sent_message_count = 0
         self.rejected_messages_count = 0
         self.sns_topics: Dict[str, Dict[str, Any]] = {}
-        self.config_set: Dict[str, int] = {}
+        self.config_sets: Dict[str, ConfigurationSet] = {}
         self.config_set_event_destination: Dict[str, Dict[str, Any]] = {}
         self.event_destinations: Dict[str, int] = {}
         self.identity_mail_from_domains: Dict[str, Dict[str, Any]] = {}
@@ -411,22 +449,58 @@ class SESBackend(BaseBackend):
         self.sns_topics[identity] = identity_sns_topics
 
     def create_configuration_set(self, configuration_set_name: str) -> None:
-        if configuration_set_name in self.config_set:
+        if configuration_set_name in self.config_sets:
             raise ConfigurationSetAlreadyExists(
                 f"Configuration set <{configuration_set_name}> already exists"
             )
-        self.config_set[configuration_set_name] = 1
+        self.config_sets[configuration_set_name] = 1
 
-    def describe_configuration_set(self, configuration_set_name: str) -> None:
-        if configuration_set_name not in self.config_set:
+    def create_configuration_set_v2(
+        self,
+        configuration_set_name: str,
+        tracking_options: Dict[str, str],
+        delivery_options: Dict[str, Any],
+        reputation_options: Dict[str, Any],
+        sending_options: Dict[str, bool],
+        tags: List[Dict[str, str]],
+        suppression_options: Dict[str, List[str]],
+        vdm_options: Dict[str, Dict[str, str]],
+    ) -> None:
+        if configuration_set_name in self.config_sets:
+            raise ConfigurationSetAlreadyExists(
+                f"Configuration set <{configuration_set_name}> already exists"
+            )
+        new_config_set = ConfigurationSet(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+        self.config_sets[configuration_set_name] = new_config_set
+
+    def describe_configuration_set(
+        self, configuration_set_name: str
+    ) -> ConfigurationSet:
+        if configuration_set_name not in self.config_sets:
             raise ConfigurationSetDoesNotExist(
                 f"Configuration set <{configuration_set_name}> does not exist"
             )
+        return self.config_sets[configuration_set_name]
+
+    def delete_configuration_set(self, configuration_set_name: str):
+        self.config_sets.pop(configuration_set_name)
+
+    def list_configuration_sets(self, next_token, max_items) -> List[str]:
+        return list(self.config_sets.keys())
 
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
     ) -> None:
-        if self.config_set.get(configuration_set_name) is None:
+        if self.config_sets.get(configuration_set_name) is None:
             raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")
 
         if self.event_destinations.get(event_destination["Name"]):

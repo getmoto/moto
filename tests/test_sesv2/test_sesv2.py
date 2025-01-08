@@ -456,3 +456,67 @@ def test_delete_contact():
 
     # Verify
     assert len(result["Contacts"]) == 0
+
+
+@mock_aws
+def test_create_configuration_set():
+    # Setup
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    name = "my-sesv2-config-set"
+    tracking_options = {
+        "CustomRedirectDomain": "abc.com",
+        "HttpsPolicy": "OPTIONAL",
+    }
+    delivery_options = {
+        "TlsPolicy": "OPTIONAL",
+        "SendingPoolName": "MySendingPool",
+        "MaxDeliverySeconds": 301,
+    }
+    reputation_options = {
+        "ReputationMetricsEnabled": False,
+    }
+    sending_options = {"SendingEnabled": True}
+    tags = [
+        {"Key": "Owner", "Value": "Zach"},
+    ]
+    suppression_options = {"SuppressedReasons": ["BOUNCE"]}
+    vdm_options = {
+        "DashboardOptions": {"EngagementMetrics": "DISABLED"},
+        "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
+    }
+
+    # Execute
+    client.create_configuration_set(
+        ConfigurationSetName=name,
+        TrackingOptions=tracking_options,
+        DeliveryOptions=delivery_options,
+        ReputationOptions=reputation_options,
+        SendingOptions=sending_options,
+        Tags=tags,
+        SuppressionOptions=suppression_options,
+        VdmOptions=vdm_options,
+    )
+
+
+@mock_aws
+def test_delete_configuration_set():
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    resp = client.delete_configuration_set()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_get_configuration_set():
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    resp = client.get_configuration_set()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_configuration_sets():
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    resp = client.list_configuration_sets()
+
+    raise Exception("NotYetImplemented")

@@ -6,7 +6,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
-from ..ses.models import Message, RawMessage, ses_backends
+from ..ses.models import ConfigurationSet, Message, RawMessage, ses_backends
 from .exceptions import NotFoundException
 
 
@@ -98,6 +98,7 @@ class SESV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
+        self.v1_backend = ses_backends[self.account_id][self.region_name]
 
     def create_contact_list(self, params: Dict[str, Any]) -> None:
         name = params["ContactListName"]
@@ -146,8 +147,7 @@ class SESV2Backend(BaseBackend):
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
     ) -> Message:
-        v1_backend = ses_backends[self.account_id][self.region_name]
-        message = v1_backend.send_email(
+        message = self.v1_backend.send_email(
             source=source,
             destinations=destinations,
             subject=subject,
@@ -158,11 +158,44 @@ class SESV2Backend(BaseBackend):
     def send_raw_email(
         self, source: str, destinations: List[str], raw_data: str
     ) -> RawMessage:
-        v1_backend = ses_backends[self.account_id][self.region_name]
-        message = v1_backend.send_raw_email(
+        message = self.v1_backend.send_raw_email(
             source=source, destinations=destinations, raw_data=raw_data
         )
         return message
+
+    def create_configuration_set(
+        self,
+        configuration_set_name,
+        tracking_options,
+        delivery_options,
+        reputation_options,
+        sending_options,
+        tags,
+        suppression_options,
+        vdm_options,
+    ) -> None:
+        self.v1_backend.create_configuration_set_v2(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+
+    def delete_configuration_set(self, configuration_set_name: str) -> None:
+        self.v1_backend.delete_configuration_set(configuration_set_name)
+
+    def get_configuration_set(self, configuration_set_name) -> ConfigurationSet:
+        config_set = self.v1_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
+        return config_set
+
+    def list_configuration_sets(self, next_token) -> List[str]:
+        return self.v1_backend.list_configuration_sets()
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

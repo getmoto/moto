@@ -99,3 +99,52 @@ class SESV2Response(BaseResponse):
         contact_list_name = self._get_param("ContactListName")
         self.sesv2_backend.delete_contact(unquote(email), contact_list_name)
         return json.dumps({})
+
+    def create_configuration_set(self) -> str:
+        params = self._get_params()
+        configuration_set_name = params.get("ConfigurationSetName")
+        tracking_options = params.get("TrackingOptions")
+        delivery_options = params.get("DeliveryOptions")
+        reputation_options = params.get("ReputationOptions")
+        sending_options = params.get("SendingOptions")
+        tags = params.get("Tags")
+        suppression_options = params.get("SuppressionOptions")
+        vdm_options = params.get("VdmOptions")
+        self.sesv2_backend.create_configuration_set(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+        return json.dumps({})
+
+    def delete_configuration_set(self) -> str:
+        params = self._get_params()
+        configuration_set_name = params.get("ConfigurationSetName")
+        self.sesv2_backend.delete_configuration_set(
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps({})
+
+    def get_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        config_set = self.sesv2_backend.get_configuration_set(
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps(config_set.to_dict_v2())
+
+    def list_configuration_sets(self) -> str:
+        params = self._get_params()
+        next_token = params.get("NextToken")
+        page_size = params.get("PageSize")
+        configuration_sets, next_token = self.sesv2_backend.list_configuration_sets(
+            next_token=next_token,
+        )
+        # TODO: adjust response
+        return json.dumps(
+            dict(configurationSets=configuration_sets, nextToken=next_token)
+        )
