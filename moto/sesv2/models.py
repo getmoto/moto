@@ -235,7 +235,7 @@ class SESV2Backend(BaseBackend):
             )
             self.dedicated_ip_pools[pool_name] = new_pool
 
-    def delete_dedicated_ip_pool(self, pool_name) -> None:
+    def delete_dedicated_ip_pool(self, pool_name: str) -> None:
         self.dedicated_ip_pools.pop(pool_name)
 
     @paginate(pagination_model=PAGINATION_MODEL)

@@ -156,14 +156,14 @@ class SESV2Response(BaseResponse):
         )
         return json.dumps({})
 
-    def delete_dedicated_ip_pool(self):
+    def delete_dedicated_ip_pool(self) -> str:
         pool_name = self._get_param("PoolName")
         self.sesv2_backend.delete_dedicated_ip_pool(
             pool_name=pool_name,
         )
         return json.dumps({})
 
-    def list_dedicated_ip_pools(self):
+    def list_dedicated_ip_pools(self) -> str:
         next_token = self._get_param("NextToken")
         page_size = self._get_param("PageSize")
         dedicated_ip_pools, next_token = self.sesv2_backend.list_dedicated_ip_pools(
@@ -173,7 +173,7 @@ class SESV2Response(BaseResponse):
             dict(DedicatedIpPools=dedicated_ip_pools, NextToken=next_token)
         )
 
-    def get_dedicated_ip_pool(self):
+    def get_dedicated_ip_pool(self) -> st:
         pool_name = self._get_param("PoolName")
         dedicated_ip_pool = self.sesv2_backend.get_dedicated_ip_pool(
             pool_name=pool_name,
