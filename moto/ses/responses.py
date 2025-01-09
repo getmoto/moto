@@ -378,20 +378,21 @@ class EmailResponse(BaseResponse):
         template = self.response_template(GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE)
         return template.render(verification_attributes=verification_attributes)
 
-    def delete_configuration_set(self):
+    def delete_configuration_set(self) -> str:
         params = self._get_params()
         configuration_set_name = params.get("ConfigurationSetName")
-        self.ses_backend.delete_configuration_set(
-            configuration_set_name=configuration_set_name,
-        )
-        template = self.response_template(DELETE_CONFIGURATION_SET_TEMPLATE)
+        if configuration_set_name:
+            self.backend.delete_configuration_set(
+                configuration_set_name=str(configuration_set_name),
+            )
+            template = self.response_template(DELETE_CONFIGURATION_SET_TEMPLATE)
         return template.render()
 
-    def list_configuration_sets(self):
+    def list_configuration_sets(self) -> str:
         params = self._get_params()
         next_token = params.get("NextToken")
         max_items = params.get("MaxItems")
-        configuration_sets, next_token = self.ses_backend.list_configuration_sets(
+        configuration_sets, next_token = self.backend.list_configuration_sets(
             next_token=next_token,
             max_items=max_items,
         )

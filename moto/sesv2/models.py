@@ -188,13 +188,13 @@ class SESV2Backend(BaseBackend):
     def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.v1_backend.delete_configuration_set(configuration_set_name)
 
-    def get_configuration_set(self, configuration_set_name) -> ConfigurationSet:
+    def get_configuration_set(self, configuration_set_name: str) -> ConfigurationSet:
         config_set = self.v1_backend.describe_configuration_set(
             configuration_set_name=configuration_set_name
         )
         return config_set
 
-    def list_configuration_sets(self, next_token, page_size) -> List[str]:
+    def list_configuration_sets(self, next_token: str, page_size: int) -> List[str]:
         return self.v1_backend.list_configuration_sets(
             next_token=next_token, max_items=page_size
         )

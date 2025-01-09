@@ -151,7 +151,7 @@ class ConfigurationSet(BaseModel):
         tags: Optional[List[Dict[str, str]]] = [],
         suppression_options: Optional[Dict[str, List[str]]] = {},
         vdm_options: Optional[Dict[str, Dict[str, str]]] = {},
-    ):
+    ) -> None:
         # Shared between SES and SESv2
         self.configuration_set_name = configuration_set_name
         self.tracking_options = tracking_options
@@ -163,7 +163,7 @@ class ConfigurationSet(BaseModel):
         self.suppression_options = suppression_options
         self.vdm_options = vdm_options
 
-    def to_dict_v2(self):
+    def to_dict_v2(self) -> Dict[str, Any]:
         return {
             "ConfigurationSetName": self.configuration_set_name,
             "TrackingOptions": self.tracking_options,
@@ -500,12 +500,15 @@ class SESBackend(BaseBackend):
             )
         return self.config_sets[configuration_set_name]
 
-    def delete_configuration_set(self, configuration_set_name: str):
+    def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.config_sets.pop(configuration_set_name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_configuration_sets(self) -> List[str]:
-        return list(self.config_sets.keys())
+        config_set_names = []
+        for k in self.config_sets.keys():
+            config_set_names.append(str(k))
+        return config_set_names
 
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
