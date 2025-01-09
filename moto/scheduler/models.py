@@ -40,7 +40,7 @@ class Schedule(BaseModel):
         self.description = description
         self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule/{group_name}/{name}"
         self.schedule_expression = schedule_expression
-        self.schedule_expression_timezone = schedule_expression_timezone
+        self.schedule_expression_timezone = schedule_expression_timezone or "UTC"
         self.flexible_time_window = flexible_time_window
         self.target = Schedule.validate_target(target)
         self.state = state or "ENABLED"
@@ -110,7 +110,7 @@ class Schedule(BaseModel):
         target: Dict[str, Any],
     ) -> None:
         self.schedule_expression = schedule_expression
-        self.schedule_expression_timezone = schedule_expression_timezone
+        self.schedule_expression_timezone = schedule_expression_timezone or "UTC"
         self.flexible_time_window = flexible_time_window
         self.target = Schedule.validate_target(target)
         self.description = description
