@@ -197,7 +197,7 @@ class SESV2Backend(BaseBackend):
     def list_configuration_sets(self, next_token: str, page_size: int) -> List[str]:
         return self.v1_backend.list_configuration_sets(
             next_token=next_token, max_items=page_size
-        )
+        ), next_token
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")
