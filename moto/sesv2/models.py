@@ -5,9 +5,19 @@ from typing import Any, Dict, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.utilities.paginator import paginate
 
 from ..ses.models import ConfigurationSet, Message, RawMessage, ses_backends
 from .exceptions import NotFoundException
+
+PAGINATION_MODEL = {
+    "list_dedicated_ip_pools": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 100,
+        "unique_attribute": ["pool_name"],
+    },
+}
 
 
 class Contact(BaseModel):
@@ -91,6 +101,22 @@ class ContactList(BaseModel):
         }
 
 
+class DedicatedIpPool(BaseModel):
+    def __init__(
+        self, pool_name: str, scaling_mode: str, tags: List[Dict[str, str]]
+    ) -> None:
+        self.pool_name = pool_name
+        self.scaling_mode = scaling_mode
+        self.tags = tags
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "PoolName": self.pool_name,
+            "Tags": self.tags,
+            "ScalingMode": self.scaling_mode,
+        }
+
+
 class SESV2Backend(BaseBackend):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
 
@@ -99,6 +125,7 @@ class SESV2Backend(BaseBackend):
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
         self.v1_backend = ses_backends[self.account_id][self.region_name]
+        self.dedicated_ip_pools: Dict[str, DedicatedIpPool] = {}
 
     def create_contact_list(self, params: Dict[str, Any]) -> None:
         name = params["ContactListName"]
@@ -198,6 +225,27 @@ class SESV2Backend(BaseBackend):
         return self.v1_backend.list_configuration_sets(
             next_token=next_token, max_items=page_size
         )
+
+    def create_dedicated_ip_pool(
+        self, pool_name: str, tags: List[Dict[str, str]], scaling_mode: str
+    ) -> None:
+        if pool_name not in self.dedicated_ip_pools:
+            new_pool = DedicatedIpPool(
+                pool_name=pool_name, tags=tags, scaling_mode=scaling_mode
+            )
+            self.dedicated_ip_pools[pool_name] = new_pool
+
+    def delete_dedicated_ip_pool(self, pool_name) -> None:
+        self.dedicated_ip_pools.pop(pool_name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_dedicated_ip_pools(self) -> List[str]:
+        return list(self.dedicated_ip_pools.keys())
+
+    def get_dedicated_ip_pool(self, pool_name: str) -> DedicatedIpPool:
+        if not self.dedicated_ip_pools.get(pool_name, None):
+            raise NotFoundException(pool_name)
+        return self.dedicated_ip_pools[pool_name]
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

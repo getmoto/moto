@@ -144,3 +144,38 @@ class SESV2Response(BaseResponse):
         return json.dumps(
             dict(ConfigurationSets=configuration_sets, NextToken=next_token)
         )
+
+    def create_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        tags = self._get_param("Tags")
+        scaling_mode = self._get_param("ScalingMode")
+        self.sesv2_backend.create_dedicated_ip_pool(
+            pool_name=pool_name,
+            tags=tags,
+            scaling_mode=scaling_mode,
+        )
+        return json.dumps({})
+
+    def delete_dedicated_ip_pool(self):
+        pool_name = self._get_param("PoolName")
+        self.sesv2_backend.delete_dedicated_ip_pool(
+            pool_name=pool_name,
+        )
+        return json.dumps({})
+
+    def list_dedicated_ip_pools(self):
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        dedicated_ip_pools, next_token = self.sesv2_backend.list_dedicated_ip_pools(
+            next_token=next_token, page_size=page_size
+        )
+        return json.dumps(
+            dict(DedicatedIpPools=dedicated_ip_pools, NextToken=next_token)
+        )
+
+    def get_dedicated_ip_pool(self):
+        pool_name = self._get_param("PoolName")
+        dedicated_ip_pool = self.sesv2_backend.get_dedicated_ip_pool(
+            pool_name=pool_name,
+        )
+        return json.dumps(dict(DedicatedIpPool=dedicated_ip_pool.to_dict()))

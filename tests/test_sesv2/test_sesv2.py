@@ -666,3 +666,56 @@ def test_delete_configuration_set():
         client.get_configuration_set(ConfigurationSetName=name)
     err = ex.value.response["Error"]
     assert err["Code"] == "ConfigurationSetDoesNotExist"
+
+
+@mock_aws
+def test_create_and_get_dedicated_ip_pool():
+    client = boto3.client("sesv2")
+    pool_name = "test-pool"
+    scaling_mode = "STANDARD"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    client.create_dedicated_ip_pool(
+        PoolName=pool_name, ScalingMode=scaling_mode, Tags=tags
+    )
+
+    pool = client.get_dedicated_ip_pool(PoolName=pool_name)["DedicatedIpPool"]
+    assert pool["PoolName"] == pool_name
+    assert pool["ScalingMode"] == scaling_mode
+
+
+@mock_aws
+def test_list_dedicated_ip_pools():
+    client = boto3.client("sesv2")
+    num_pools = 3
+    pool_name = "test-pool"
+    scaling_mode = "STANDARD"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    for i in range(0, num_pools):
+        client.create_dedicated_ip_pool(
+            PoolName=f"{pool_name}-{i}", ScalingMode=scaling_mode, Tags=tags
+        )
+    pools = client.list_dedicated_ip_pools()
+    assert len(pools["DedicatedIpPools"]) == num_pools
+
+
+@mock_aws
+def test_delete_dedicated_ip_pool():
+    client = boto3.client("sesv2")
+    num_pools = 2
+    pool_name = "test-pool"
+    scaling_mode = "STANDARD"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    for i in range(0, num_pools):
+        client.create_dedicated_ip_pool(
+            PoolName=f"{pool_name}-{i}", ScalingMode=scaling_mode, Tags=tags
+        )
+
+    target_pool_name = "test-pool-1"
+    target_pool = client.get_dedicated_ip_pool(PoolName=target_pool_name)
+    assert target_pool["DedicatedIpPool"]["PoolName"] == target_pool_name
+
+    # Delete the pool and verify it's no longer found
+    client.delete_dedicated_ip_pool(PoolName=target_pool_name)
+    with pytest.raises(ClientError) as e:
+        client.get_dedicated_ip_pool(PoolName=target_pool_name)
+    assert e.value.response["Error"]["Code"] == "NotFoundException"

@@ -19,4 +19,6 @@ url_paths = {
     "{0}/v2/.*$": response.dispatch,
     "{0}/v2/email/configuration-sets$": SESV2Response.dispatch,
     "{0}/v2/email/configuration-sets/(?P<ConfigurationSetName>[^/]+)$": SESV2Response.dispatch,
+    "{0}/v2/email/dedicated-ip-pools$": SESV2Response.dispatch,
+    "{0}/v2/email/dedicated-ip-pools/(?P<PoolName>[^/]+)$": SESV2Response.dispatch,
 }
