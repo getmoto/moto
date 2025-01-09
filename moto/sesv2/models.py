@@ -165,14 +165,14 @@ class SESV2Backend(BaseBackend):
 
     def create_configuration_set(
         self,
-        configuration_set_name,
-        tracking_options,
-        delivery_options,
-        reputation_options,
-        sending_options,
-        tags,
-        suppression_options,
-        vdm_options,
+        configuration_set_name: str,
+        tracking_options: Dict[str, str],
+        delivery_options: Dict[str, Any],
+        reputation_options: Dict[str, Any],
+        sending_options: Dict[str, bool],
+        tags: List[Dict[str, str]],
+        suppression_options: Dict[str, List[str]],
+        vdm_options: Dict[str, Dict[str, str]],
     ) -> None:
         self.v1_backend.create_configuration_set_v2(
             configuration_set_name=configuration_set_name,
@@ -194,8 +194,10 @@ class SESV2Backend(BaseBackend):
         )
         return config_set
 
-    def list_configuration_sets(self, next_token) -> List[str]:
-        return self.v1_backend.list_configuration_sets()
+    def list_configuration_sets(self, next_token, page_size) -> List[str]:
+        return self.v1_backend.list_configuration_sets(
+            next_token=next_token, max_items=page_size
+        )
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

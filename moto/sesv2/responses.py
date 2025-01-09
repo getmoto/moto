@@ -101,7 +101,6 @@ class SESV2Response(BaseResponse):
         return json.dumps({})
 
     def create_configuration_set(self) -> str:
-        params = self._get_params()
         configuration_set_name = self._get_param("ConfigurationSetName")
         tracking_options = self._get_param("TrackingOptions")
         delivery_options = self._get_param("DeliveryOptions")
@@ -123,7 +122,6 @@ class SESV2Response(BaseResponse):
         return json.dumps({})
 
     def delete_configuration_set(self) -> str:
-        params = self._get_params()
         configuration_set_name = self._get_param("ConfigurationSetName")
         self.sesv2_backend.delete_configuration_set(
             configuration_set_name=configuration_set_name,
@@ -138,13 +136,11 @@ class SESV2Response(BaseResponse):
         return json.dumps(config_set.to_dict_v2())
 
     def list_configuration_sets(self) -> str:
-        params = self._get_params()
-        next_token = params.get("NextToken")
-        page_size = params.get("PageSize")
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
         configuration_sets, next_token = self.sesv2_backend.list_configuration_sets(
-            next_token=next_token,
+            next_token=next_token, page_size=page_size
         )
-        # TODO: adjust response
         return json.dumps(
-            dict(configurationSets=configuration_sets, nextToken=next_token)
+            dict(ConfigurationSets=configuration_sets, NextToken=next_token)
         )

@@ -11,6 +11,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
+from moto.utilities.paginator import paginate
 
 from .exceptions import (
     ConfigurationSetAlreadyExists,
@@ -32,6 +33,15 @@ from .template import parse_template
 from .utils import get_random_message_id, is_valid_address
 
 RECIPIENT_LIMIT = 50
+
+PAGINATION_MODEL = {
+    "list_configuration_sets": {
+        "input_token": "next_token",
+        "limit_key": "max_items",
+        "limit_default": 100,
+        "unique_attribute": ["configuration_set_name"],
+    },
+}
 
 
 class SESFeedback(BaseModel):
@@ -493,7 +503,8 @@ class SESBackend(BaseBackend):
     def delete_configuration_set(self, configuration_set_name: str):
         self.config_sets.pop(configuration_set_name)
 
-    def list_configuration_sets(self, next_token, max_items) -> List[str]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_configuration_sets(self) -> List[str]:
         return list(self.config_sets.keys())
 
     def create_configuration_set_event_destination(
