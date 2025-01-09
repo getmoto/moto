@@ -827,9 +827,18 @@ class FakeAutoScalingGroup(CloudFormationModel):
         # VPCZoneIdentifier:
         # A comma-separated list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created.
         # We'll create all instances in a single subnet to make things easier
-        subnet_id = (
-            self.vpc_zone_identifier.split(",")[0] if self.vpc_zone_identifier else None
-        )
+        subnet_id = None
+        if self.vpc_zone_identifier:
+            subnet_id = self.vpc_zone_identifier.split(",")[0]
+        elif self.launch_template:
+            interfaces = self.launch_template.versions[-1].data.get("NetworkInterface")
+            if interfaces:
+                first_itf = interfaces[0]
+                if isinstance(first_itf, str):
+                    subnet_id = first_itf
+                elif isinstance(first_itf, dict):
+                    subnet_id = first_itf.get("SubnetId")
+
         associate_public_ip = (
             self.launch_config.associate_public_ip_address
             if self.launch_config
