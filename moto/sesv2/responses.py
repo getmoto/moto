@@ -173,7 +173,7 @@ class SESV2Response(BaseResponse):
             dict(DedicatedIpPools=dedicated_ip_pools, NextToken=next_token)
         )
 
-    def get_dedicated_ip_pool(self) -> st:
+    def get_dedicated_ip_pool(self) -> str:
         pool_name = self._get_param("PoolName")
         dedicated_ip_pool = self.sesv2_backend.get_dedicated_ip_pool(
             pool_name=pool_name,
