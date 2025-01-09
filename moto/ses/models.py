@@ -11,7 +11,6 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
-from moto.utilities.paginator import paginate
 
 from .exceptions import (
     ConfigurationSetAlreadyExists,
@@ -503,12 +502,10 @@ class SESBackend(BaseBackend):
     def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.config_sets.pop(configuration_set_name)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_configuration_sets(self) -> List[str]:
-        config_set_names = []
-        for k in self.config_sets.keys():
-            config_set_names.append(str(k))
-        return config_set_names
+    def list_configuration_sets(
+        self, next_token: Optional[str], max_items: Optional[int]
+    ) -> List[str]:
+        return list(self.config_sets.keys())
 
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
