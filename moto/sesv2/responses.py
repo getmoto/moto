@@ -102,14 +102,14 @@ class SESV2Response(BaseResponse):
 
     def create_configuration_set(self) -> str:
         params = self._get_params()
-        configuration_set_name = params.get("ConfigurationSetName")
-        tracking_options = params.get("TrackingOptions")
-        delivery_options = params.get("DeliveryOptions")
-        reputation_options = params.get("ReputationOptions")
-        sending_options = params.get("SendingOptions")
-        tags = params.get("Tags")
-        suppression_options = params.get("SuppressionOptions")
-        vdm_options = params.get("VdmOptions")
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        tracking_options = self._get_param("TrackingOptions")
+        delivery_options = self._get_param("DeliveryOptions")
+        reputation_options = self._get_param("ReputationOptions")
+        sending_options = self._get_param("SendingOptions")
+        tags = self._get_param("Tags")
+        suppression_options = self._get_param("SuppressionOptions")
+        vdm_options = self._get_param("VdmOptions")
         self.sesv2_backend.create_configuration_set(
             configuration_set_name=configuration_set_name,
             tracking_options=tracking_options,
@@ -124,7 +124,7 @@ class SESV2Response(BaseResponse):
 
     def delete_configuration_set(self) -> str:
         params = self._get_params()
-        configuration_set_name = params.get("ConfigurationSetName")
+        configuration_set_name = self._get_param("ConfigurationSetName")
         self.sesv2_backend.delete_configuration_set(
             configuration_set_name=configuration_set_name,
         )

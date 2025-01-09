@@ -134,13 +134,13 @@ class ConfigurationSet(BaseModel):
     def __init__(
         self,
         configuration_set_name: str,
-        tracking_options: Dict[str, str],
-        delivery_options: Dict[str, Any],
-        reputation_options: Dict[str, Any],
-        sending_options: Dict[str, bool],
-        tags: List[Dict[str, str]],
-        suppression_options: Dict[str, List[str]],
-        vdm_options: Dict[str, Dict[str, str]],
+        tracking_options: Optional[Dict[str, str]] = {},
+        delivery_options: Optional[Dict[str, Any]] = {},
+        reputation_options: Optional[Dict[str, Any]] = {},
+        sending_options: Optional[Dict[str, bool]] = {},
+        tags: Optional[List[Dict[str, str]]] = [],
+        suppression_options: Optional[Dict[str, List[str]]] = {},
+        vdm_options: Optional[Dict[str, Dict[str, str]]] = {},
     ):
         # Shared between SES and SESv2
         self.configuration_set_name = configuration_set_name
@@ -155,16 +155,14 @@ class ConfigurationSet(BaseModel):
 
     def to_dict_v2(self):
         return {
-            {
-                "ConfigurationSetName": self.configuration_set_name,
-                "TrackingOptions": self.tracking_options,
-                "DeliveryOptions": self.delivery_options,
-                "ReputationOptions": self.reputation_options,
-                "SendingOptions": {"SendingEnabled": self.enabled},
-                "Tags": self.tags,
-                "SuppressionOptions": self.suppression_options,
-                "VdmOptions": self.vdm_options,
-            }
+            "ConfigurationSetName": self.configuration_set_name,
+            "TrackingOptions": self.tracking_options,
+            "DeliveryOptions": self.delivery_options,
+            "ReputationOptions": self.reputation_options,
+            "SendingOptions": {"SendingEnabled": self.enabled},
+            "Tags": self.tags,
+            "SuppressionOptions": self.suppression_options,
+            "VdmOptions": self.vdm_options,
         }
 
 
@@ -453,7 +451,8 @@ class SESBackend(BaseBackend):
             raise ConfigurationSetAlreadyExists(
                 f"Configuration set <{configuration_set_name}> already exists"
             )
-        self.config_sets[configuration_set_name] = 1
+        config_set = ConfigurationSet(configuration_set_name=configuration_set_name)
+        self.config_sets[configuration_set_name] = config_set
 
     def create_configuration_set_v2(
         self,

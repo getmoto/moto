@@ -508,10 +508,59 @@ def test_delete_configuration_set():
 
 @mock_aws
 def test_get_configuration_set():
-    client = boto3.client("sesv2", region_name="eu-west-1")
-    resp = client.get_configuration_set()
+    # Test GetConfigurationSet returns resources created in both ses and sesv2
+    # Setup
+    client_v1 = boto3.client("ses", region_name="eu-west-1")
+    client_v2 = boto3.client("sesv2", region_name="eu-west-1")
 
-    raise Exception("NotYetImplemented")
+    name_v1 = "my-sesv1"
+    name_v2 = "my-sesv2-config-set"
+    tracking_options = {
+        "CustomRedirectDomain": "abc.com",
+        "HttpsPolicy": "OPTIONAL",
+    }
+    delivery_options = {
+        "TlsPolicy": "OPTIONAL",
+        "SendingPoolName": "MySendingPool",
+        "MaxDeliverySeconds": 301,
+    }
+    reputation_options = {
+        "ReputationMetricsEnabled": False,
+    }
+    sending_options = {"SendingEnabled": True}
+    tags = [
+        {"Key": "Owner", "Value": "Zach"},
+    ]
+    suppression_options = {"SuppressedReasons": ["BOUNCE"]}
+    vdm_options = {
+        "DashboardOptions": {"EngagementMetrics": "DISABLED"},
+        "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
+    }
+
+    client_v1.create_configuration_set(ConfigurationSet=dict({"Name": name_v1}))
+
+    client_v2.create_configuration_set(
+        ConfigurationSetName=name_v2,
+        TrackingOptions=tracking_options,
+        DeliveryOptions=delivery_options,
+        ReputationOptions=reputation_options,
+        SendingOptions=sending_options,
+        Tags=tags,
+        SuppressionOptions=suppression_options,
+        VdmOptions=vdm_options,
+    )
+
+    # Execute
+    config_setv1 = client_v2.get_configuration_set(ConfigurationSetName=name_v1)
+    config_setv2 = client_v2.get_configuration_set(ConfigurationSetName=name_v2)
+
+    # Validate
+    assert config_setv1["ConfigurationSetName"] == name_v1
+    assert config_setv1["Tags"] == []
+
+    assert config_setv2["ConfigurationSetName"] == name_v2
+    assert config_setv2["Tags"] == tags
+    assert config_setv2["DeliveryOptions"] == delivery_options
 
 
 @mock_aws
