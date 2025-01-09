@@ -43,6 +43,26 @@ class PasswordRequired(ElastiCacheException):
         )
 
 
+class InvalidParameterValueException(ElastiCacheException):
+    code = 404
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            "InvalidParameterValue",
+            message=message,
+        )
+
+
+class InvalidParameterCombinationException(ElastiCacheException):
+    code = 404
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            "InvalidParameterCombination",
+            message=message,
+        )
+
+
 class UserAlreadyExists(ElastiCacheException):
     code = 404
 

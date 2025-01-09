@@ -1,3 +1,5 @@
+from enum import Enum
+
 PAGINATION_MODEL = {
     "describe_cache_clusters": {
         "input_token": "marker",
@@ -6,3 +8,9 @@ PAGINATION_MODEL = {
         "unique_attribute": "cache_cluster_id",
     },
 }
+
+
+class AuthenticationTypes(str, Enum):
+    NOPASSWORD = "no-password-required"
+    PASSWORD = "password"
+    IAM = "iam"
