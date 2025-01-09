@@ -273,7 +273,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
 
     def get_schedule_group(self, group_name: Optional[str]) -> ScheduleGroup:
         if (group_name or "default") not in self.schedule_groups:
-            raise ScheduleGroupNotFound
+            raise ScheduleGroupNotFound(group_name or "default")
         return self.schedule_groups[group_name or "default"]
 
     def list_schedule_groups(self) -> Iterable[ScheduleGroup]:
