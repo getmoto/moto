@@ -36,6 +36,7 @@ def test_s3tables_get_bucket():
     resp = test_client.get(f"/buckets/{quoted_arn}")
     assert resp.status_code == 200
 
+
 def test_s3tables_delete_bucket():
     backend = server.create_backend_app("s3tables")
     test_client = backend.test_client()

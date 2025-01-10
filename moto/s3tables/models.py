@@ -134,13 +134,16 @@ class S3TablesBackend(BaseBackend):
     def create_namespace(self, table_bucket_arn, namespace) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
 
-        ns = Namespace(namespace, account_id=self.account_id, created_by=self.account_id)
+        ns = Namespace(
+            namespace, account_id=self.account_id, created_by=self.account_id
+        )
         bucket.namespaces[ns.name] = ns
         # implement here
         return ns
-    
-    def list_namespaces(self, table_bucket_arn, prefix, continuation_token, max_namespaces):
 
+    def list_namespaces(
+        self, table_bucket_arn, prefix, continuation_token, max_namespaces
+    ):
         bucket = self.table_buckets[table_bucket_arn]
 
         if not max_namespaces:
@@ -177,16 +180,16 @@ class S3TablesBackend(BaseBackend):
             ).decode()
         # implement here
         return namespaces, next_continuation_token
-    
+
     def get_namespace(self, table_bucket_arn, namespace):
         bucket = self.table_buckets.get(table_bucket_arn)
 
         return bucket.namespaces[namespace]
-    
+
     def delete_namespace(self, table_bucket_arn, namespace):
         bucket = self.table_buckets[table_bucket_arn]
         bucket.namespaces.pop(namespace)
-    
+
 
 s3tables_backends = BackendDict(
     S3TablesBackend,

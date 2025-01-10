@@ -116,7 +116,6 @@ class S3TablesResponse(BaseResponse):
         body: Dict[str, Any] = {
             "namespaces": [
                 {
-
                     "namespace": [ns.name],
                     "createdAt": ns.creation_date.isoformat(),
                     "createdBy": ns.created_by,
