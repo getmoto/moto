@@ -140,8 +140,43 @@ class S3TablesBackend(BaseBackend):
         return ns
     
     def list_namespaces(self, table_bucket_arn, prefix, continuation_token, max_namespaces):
+
+        bucket = self.table_buckets[table_bucket_arn]
+
+        if not max_namespaces:
+            max_namespaces = 10
+
+        all_namespaces = list(
+            ns
+            for ns in bucket.namespaces.values()
+            if (prefix is None or ns.name.startswith(prefix))
+        )
+
+        # encode bucket arn in the continuation_token together with prefix value
+        # raise invalidcontinuationtoken if the prefix changed
+        if continuation_token:
+            # expect continuation token to be b64encoded
+            ns_name, table_bucket, token_prefix = (
+                b64decode(continuation_token.encode()).decode("utf-8").split("|", 1)
+            )
+            if token_prefix and token_prefix != prefix:
+                raise InvalidContinuationToken()
+            if table_bucket != table_bucket_arn:
+                raise InvalidContinuationToken()
+            last_namespace_index = list(ns.name for ns in all_namespaces).index(ns_name)
+            start = last_namespace_index + 1
+        else:
+            start = 0
+
+        namespaces = all_namespaces[start : start + max_namespaces]
+
+        next_continuation_token = None
+        if start + max_namespaces < len(all_namespaces):
+            next_continuation_token = b64encode(
+                f"{namespaces[-1].name}|{table_bucket_arn}|{prefix if prefix else ''}".encode()
+            ).decode()
         # implement here
-        return namespaces, continuation_token
+        return namespaces, next_continuation_token
     
     def get_namespace(self, table_bucket_arn, namespace):
         bucket = self.table_buckets.get(table_bucket_arn)

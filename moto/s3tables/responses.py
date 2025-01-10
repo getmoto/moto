@@ -82,7 +82,7 @@ class S3TablesResponse(BaseResponse):
         )
 
         return 204, {}, ""
-    
+
     def create_namespace(self):
         table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
         name = json.loads(self.body)["namespace"][0]
@@ -90,24 +90,46 @@ class S3TablesResponse(BaseResponse):
             table_bucket_arn=table_bucket_arn,
             namespace=name,
         )
-        return 200, self.default_response_headers, json.dumps(dict(tableBucketArn=table_bucket_arn,
-                                                                   namespace=[namespace.name]))
-    
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(
+                dict(tableBucketArn=table_bucket_arn, namespace=[namespace.name])
+            ),
+        )
+
     def list_namespaces(self):
+        table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
+
         params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
-        prefix = params.get("prefix")
         continuation_token = params.get("continuationToken")
         max_namespaces = params.get("maxNamespaces")
+        prefix = params.get("prefix")
+
         namespaces, continuation_token = self.s3tables_backend.list_namespaces(
             table_bucket_arn=table_bucket_arn,
             prefix=prefix,
             continuation_token=continuation_token,
-            max_namespaces=max_namespaces,
+            max_namespaces=int(max_namespaces) if max_namespaces else None,
         )
-        # TODO: adjust response
-        return json.dumps(dict(namespaces=namespaces, continuationToken=continuation_token))
-    
+
+        body: Dict[str, Any] = {
+            "namespaces": [
+                {
+
+                    "namespace": [ns.name],
+                    "createdAt": ns.creation_date.isoformat(),
+                    "createdBy": ns.created_by,
+                    "ownerAccountId": ns.account_id,
+                }
+                for ns in namespaces
+            ]
+        }
+        if continuation_token:
+            body.update(continuationToken=continuation_token)
+
+        return 200, self.default_response_headers, json.dumps(body)
+
     def get_namespace(self):
         _, table_bucket_arn, namespace = self.path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
@@ -115,11 +137,19 @@ class S3TablesResponse(BaseResponse):
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
         )
-        return 200, self.default_response_headers, json.dumps(dict(namespace=[namespace.name],
-                                                                   createdAt=namespace.creation_date.isoformat(),
-                                                                   createdBy=namespace.created_by,
-                                                                   ownerAccountId=namespace.account_id))
-    
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(
+                dict(
+                    namespace=[namespace.name],
+                    createdAt=namespace.creation_date.isoformat(),
+                    createdBy=namespace.created_by,
+                    ownerAccountId=namespace.account_id,
+                )
+            ),
+        )
+
     def delete_namespace(self):
         params = self._get_params()
         table_bucket_arn = params.get("tableBucketARN")
