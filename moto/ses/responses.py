@@ -392,7 +392,7 @@ class EmailResponse(BaseResponse):
         params = self._get_params()
         next_token = params.get("NextToken")
         max_items = params.get("MaxItems")
-        configuration_sets, next_token = self.backend.list_configuration_sets(
+        configuration_sets = self.backend.list_configuration_sets(
             next_token=next_token,
             max_items=max_items,
         )
