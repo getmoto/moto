@@ -39,6 +39,8 @@ ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False)
 
 PRETTIFY_RESPONSES = bool(os.environ.get("MOTO_PRETTIFY_RESPONSES", False))
 
+DISABLE_GLOBAL_CORS = bool(os.environ.get("MOTO_DISABLE_GLOBAL_CORS", False))
+
 # Fully skip test that require docker
 SKIP_REQUIRES_DOCKER = bool(os.environ.get("TESTS_SKIP_REQUIRES_DOCKER", False))
 
