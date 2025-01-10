@@ -23,6 +23,7 @@ from .exceptions import (
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
     DBClusterToBeDeletedHasActiveMembers,
+    DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
@@ -1822,6 +1823,8 @@ class RDSBackend(BaseBackend):
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
+        if database_id in self.databases:
+            raise DBInstanceAlreadyExists()
         self._validate_db_identifier(database_id)
         database = DBInstance(self, **db_kwargs)
 
@@ -2040,6 +2043,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
+
+        if overrides["db_instance_identifier"] in self.databases:
+            raise DBInstanceAlreadyExists()
+
         new_instance_props = {}
         for key, value in original_database.__dict__.items():
             if key != "backend":
