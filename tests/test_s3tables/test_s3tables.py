@@ -103,7 +103,7 @@ def test_get_namespace():
 def test_delete_namespace():
     client = boto3.client("s3tables", region_name="us-east-2")
     arn = client.create_table_bucket(name="foo")["arn"]
-    resp = client.create_namespace(tableBucketARN=arn, namespace=["bar"])
-    resp = client.delete_namespace()
-
-    raise Exception("NotYetImplemented")
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    assert client.list_namespaces(tableBucketARN=arn)["namespaces"]
+    client.delete_namespace(tableBucketARN=arn, namespace="bar")
+    assert not client.list_namespaces(tableBucketARN=arn)["namespaces"]

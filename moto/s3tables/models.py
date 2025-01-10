@@ -184,8 +184,8 @@ class S3TablesBackend(BaseBackend):
         return bucket.namespaces[namespace]
     
     def delete_namespace(self, table_bucket_arn, namespace):
-        # implement here
-        return 
+        bucket = self.table_buckets[table_bucket_arn]
+        bucket.namespaces.pop(namespace)
     
 
 s3tables_backends = BackendDict(

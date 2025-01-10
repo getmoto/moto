@@ -151,12 +151,10 @@ class S3TablesResponse(BaseResponse):
         )
 
     def delete_namespace(self):
-        params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
-        namespace = params.get("namespace")
+        _, table_bucket_arn, namespace = self.path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
         self.s3tables_backend.delete_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return 204, self.default_response_headers, ""
