@@ -122,6 +122,23 @@ class S3TablesBackend(BaseBackend):
     def delete_table_bucket(self, table_bucket_arn: str) -> None:
         self.table_buckets.pop(table_bucket_arn)
 
+    def create_namespace(self, table_bucket_arn, namespace):
+        bucket = self.table_buckets.get(table_bucket_arn)
+        # implement here
+        return table_bucket_arn, namespace
+    
+    def list_namespaces(self, table_bucket_arn, prefix, continuation_token, max_namespaces):
+        # implement here
+        return namespaces, continuation_token
+    
+    def get_namespace(self, table_bucket_arn, namespace):
+        # implement here
+        return namespace, created_at, created_by, owner_account_id
+    
+    def delete_namespace(self, table_bucket_arn, namespace):
+        # implement here
+        return 
+    
 
 s3tables_backends = BackendDict(
     S3TablesBackend,

@@ -69,3 +69,38 @@ def test_delete_table_bucket():
     client.delete_table_bucket(tableBucketARN=arn)
     response = client.list_table_buckets()
     assert not response["tableBuckets"]
+
+
+@mock_aws
+def test_create_namespace():
+    client = boto3.client("s3tables", region_name="us-east-1")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    resp = client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+
+
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_list_namespaces():
+    client = boto3.client("s3tables", region_name="eu-west-1")
+    resp = client.list_namespaces()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_get_namespace():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    resp = client.get_namespace()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_namespace():
+    client = boto3.client("s3tables", region_name="eu-west-1")
+    resp = client.delete_namespace()
+
+    raise Exception("NotYetImplemented")

@@ -82,3 +82,51 @@ class S3TablesResponse(BaseResponse):
         )
 
         return 204, {}, ""
+    
+    def create_namespace(self):
+        params = self._get_params()
+        table_bucket_arn = params.get("tableBucketARN")
+        namespace = params.get("namespace")
+        table_bucket_arn, namespace = self.s3tables_backend.create_namespace(
+            table_bucket_arn=table_bucket_arn,
+            namespace=namespace,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(tableBucketArn=table_bucket_arn, namespace=namespace))
+    
+    def list_namespaces(self):
+        params = self._get_params()
+        table_bucket_arn = params.get("tableBucketARN")
+        prefix = params.get("prefix")
+        continuation_token = params.get("continuationToken")
+        max_namespaces = params.get("maxNamespaces")
+        namespaces, continuation_token = self.s3tables_backend.list_namespaces(
+            table_bucket_arn=table_bucket_arn,
+            prefix=prefix,
+            continuation_token=continuation_token,
+            max_namespaces=max_namespaces,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(namespaces=namespaces, continuationToken=continuation_token))
+    
+    def get_namespace(self):
+        params = self._get_params()
+        table_bucket_arn = params.get("tableBucketARN")
+        namespace = params.get("namespace")
+        namespace, created_at, created_by, owner_account_id = self.s3tables_backend.get_namespace(
+            table_bucket_arn=table_bucket_arn,
+            namespace=namespace,
+        )
+        # TODO: adjust response
+        return json.dumps(dict(namespace=namespace, createdAt=created_at, createdBy=created_by, ownerAccountId=owner_account_id))
+    
+    def delete_namespace(self):
+        params = self._get_params()
+        table_bucket_arn = params.get("tableBucketARN")
+        namespace = params.get("namespace")
+        self.s3tables_backend.delete_namespace(
+            table_bucket_arn=table_bucket_arn,
+            namespace=namespace,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
