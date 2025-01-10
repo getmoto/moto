@@ -603,9 +603,10 @@ def test_list_configuration_sets():
 
     config_sets = conn.list_configuration_sets()["ConfigurationSets"]
     assert len(config_sets) == 3
-    assert "test1" in config_sets
-    assert "test2" in config_sets
-    assert "test3" in config_sets
+    config_set_names = [config_set["Name"] for config_set in config_sets]
+    assert "test1" in config_set_names
+    assert "test2" in config_set_names
+    assert "test3" in config_set_names
 
 
 @mock_aws
@@ -621,7 +622,8 @@ def test_delete_configuration_set():
     conn.delete_configuration_set(ConfigurationSetName="test3")
     config_sets = conn.list_configuration_sets()["ConfigurationSets"]
     assert len(config_sets) == 2
-    assert "test3" not in config_sets
+    config_set_names = [config_set["Name"] for config_set in config_sets]
+    assert "test3" not in config_set_names
 
 
 @mock_aws

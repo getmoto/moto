@@ -851,9 +851,9 @@ LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http
   </ResponseMetadata>
   <ListConfigurationSetsResult>
     <ConfigurationSets>
-{% for configurationset in configurationsets %}
+{% for configurationset in configuration_sets %}
       <member>
-        <Name>{{ configurationset.name }}</Name>
+        <Name>{{ configurationset }}</Name>
       </member>
 {% endfor %}
     </ConfigurationSets>
