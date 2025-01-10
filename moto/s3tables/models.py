@@ -47,8 +47,11 @@ S3TABLES_DEFAULT_MAX_BUCKETS = 1000
 
 
 class Namespace:
-    def __init__(self, name: str):
+    def __init__(self, name: str, account_id: str, created_by: str):
         self.name = name
+        self.account_id = account_id
+        self.created_by = created_by
+        self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
 
 
 class FakeTableBucket:
@@ -131,7 +134,7 @@ class S3TablesBackend(BaseBackend):
     def create_namespace(self, table_bucket_arn, namespace) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
 
-        ns = Namespace(namespace)
+        ns = Namespace(namespace, account_id=self.account_id, created_by=self.account_id)
         bucket.namespaces[ns.name] = ns
         # implement here
         return ns
@@ -141,8 +144,9 @@ class S3TablesBackend(BaseBackend):
         return namespaces, continuation_token
     
     def get_namespace(self, table_bucket_arn, namespace):
-        # implement here
-        return namespace, created_at, created_by, owner_account_id
+        bucket = self.table_buckets.get(table_bucket_arn)
+
+        return bucket.namespaces[namespace]
     
     def delete_namespace(self, table_bucket_arn, namespace):
         # implement here

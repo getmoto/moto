@@ -109,15 +109,16 @@ class S3TablesResponse(BaseResponse):
         return json.dumps(dict(namespaces=namespaces, continuationToken=continuation_token))
     
     def get_namespace(self):
-        params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
-        namespace = params.get("namespace")
-        namespace, created_at, created_by, owner_account_id = self.s3tables_backend.get_namespace(
+        _, table_bucket_arn, namespace = self.path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
+        namespace = self.s3tables_backend.get_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
         )
-        # TODO: adjust response
-        return json.dumps(dict(namespace=namespace, createdAt=created_at, createdBy=created_by, ownerAccountId=owner_account_id))
+        return 200, self.default_response_headers, json.dumps(dict(namespace=[namespace.name],
+                                                                   createdAt=namespace.creation_date.isoformat(),
+                                                                   createdBy=namespace.created_by,
+                                                                   ownerAccountId=namespace.account_id))
     
     def delete_namespace(self):
         params = self._get_params()
