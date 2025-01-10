@@ -84,15 +84,14 @@ class S3TablesResponse(BaseResponse):
         return 204, {}, ""
     
     def create_namespace(self):
-        params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
-        namespace = params.get("namespace")
-        table_bucket_arn, namespace = self.s3tables_backend.create_namespace(
+        table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
+        name = json.loads(self.body)["namespace"][0]
+        namespace = self.s3tables_backend.create_namespace(
             table_bucket_arn=table_bucket_arn,
-            namespace=namespace,
+            namespace=name,
         )
-        # TODO: adjust response
-        return json.dumps(dict(tableBucketArn=table_bucket_arn, namespace=namespace))
+        return 200, self.default_response_headers, json.dumps(dict(tableBucketArn=table_bucket_arn,
+                                                                   namespace=[namespace.name]))
     
     def list_namespaces(self):
         params = self._get_params()

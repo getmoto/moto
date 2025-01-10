@@ -77,17 +77,15 @@ def test_create_namespace():
     arn = client.create_table_bucket(name="foo")["arn"]
     resp = client.create_namespace(tableBucketARN=arn, namespace=["bar"])
 
-
-
-    raise Exception("NotYetImplemented")
+    assert resp["namespace"] == ["bar"]
 
 
 @mock_aws
 def test_list_namespaces():
     client = boto3.client("s3tables", region_name="eu-west-1")
-    resp = client.list_namespaces()
-
-    raise Exception("NotYetImplemented")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    resp = client.list_namespaces(tableBucketARN=arn)
+    assert not resp["namespaces"]
 
 
 @mock_aws
