@@ -3,7 +3,7 @@
 import datetime
 import re
 from base64 import b64decode, b64encode
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3tables.exceptions import (
@@ -49,12 +49,22 @@ S3TABLES_DEFAULT_MAX_BUCKETS = 1000
 S3TABLES_DEFAULT_MAX_NAMESPACES = 100
 
 
+class Table:
+    def __init__(self, name: str, account_id: str, format: Literal["ICEBERG"]):
+        self.name = name
+        self.account_id = account_id
+        self.format = format
+        self.version_token = "abc"
+        self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.last_modified = self.creation_date
+
 class Namespace:
     def __init__(self, name: str, account_id: str, created_by: str):
         self.name = name
         self.account_id = account_id
         self.created_by = created_by
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.tables: dict[str, Table] = {}
 
 
 class FakeTableBucket:
@@ -223,6 +233,29 @@ class S3TablesBackend(BaseBackend):
             "The request was rejected because the specified resource could not be found."
         )
 
+    def create_table(self, table_bucket_arn: str, namespace: str, name: str, format: Literal["ICEBERG"]) -> Table:
+        bucket = self.table_buckets.get(table_bucket_arn)
+        if bucket and namespace in bucket.namespaces:
+            ns = bucket.namespaces[namespace]
+            if name in ns.tables:
+                raise ValueError("Table already exists")
+            table = Table(name=name, account_id = self.account_id, format=format)
+            ns.tables[table.name] = table
+            return table
+        raise ValueError("resource doesnt exist")
+    
+    def get_table(self, table_bucket_arn, namespace, name):
+        # implement here
+        return name, type, table_arn, namespace, version_token, metadata_location, warehouse_location, created_at, created_by, managed_by_service, modified_at, modified_by, owner_account_id, format
+    
+    def list_tables(self, table_bucket_arn, namespace, prefix, continuation_token, max_tables):
+        # implement here
+        return tables, continuation_token
+    
+    def delete_table(self, table_bucket_arn, namespace, name, version_token):
+        # implement here
+        return 
+    
 
 s3tables_backends = BackendDict(
     S3TablesBackend,
