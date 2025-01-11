@@ -98,7 +98,7 @@ class S3TablesResponse(BaseResponse):
             ),
         )
 
-    def list_namespaces(self):
+    def list_namespaces(self) -> TYPE_RESPONSE:
         table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
 
         params = self._get_params()
@@ -129,12 +129,12 @@ class S3TablesResponse(BaseResponse):
 
         return 200, self.default_response_headers, json.dumps(body)
 
-    def get_namespace(self):
-        _, table_bucket_arn, namespace = self.path.lstrip("/").split("/")
+    def get_namespace(self) -> TYPE_RESPONSE:
+        _, table_bucket_arn, name = self.path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
         namespace = self.s3tables_backend.get_namespace(
             table_bucket_arn=table_bucket_arn,
-            namespace=namespace,
+            namespace=name,
         )
         return (
             200,
@@ -149,7 +149,7 @@ class S3TablesResponse(BaseResponse):
             ),
         )
 
-    def delete_namespace(self):
+    def delete_namespace(self) -> TYPE_RESPONSE:
         _, table_bucket_arn, namespace = self.path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
         self.s3tables_backend.delete_namespace(

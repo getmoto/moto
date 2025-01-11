@@ -44,6 +44,7 @@ def _validate_table_name(name: str) -> None:
 
 
 S3TABLES_DEFAULT_MAX_BUCKETS = 1000
+S3TABLES_DEFAULT_MAX_NAMESPACES = 100
 
 
 class Namespace:
@@ -131,23 +132,29 @@ class S3TablesBackend(BaseBackend):
     def delete_table_bucket(self, table_bucket_arn: str) -> None:
         self.table_buckets.pop(table_bucket_arn)
 
-    def create_namespace(self, table_bucket_arn, namespace) -> Namespace:
+    def create_namespace(self, table_bucket_arn: str, namespace: str) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
 
         ns = Namespace(
             namespace, account_id=self.account_id, created_by=self.account_id
         )
+        if not bucket:
+            raise ValueError()
         bucket.namespaces[ns.name] = ns
         # implement here
         return ns
 
     def list_namespaces(
-        self, table_bucket_arn, prefix, continuation_token, max_namespaces
-    ):
+        self,
+        table_bucket_arn: str,
+        prefix: Optional[str] = None,
+        continuation_token: Optional[str] = None,
+        max_namespaces: Optional[int] = None,
+    ) -> Tuple[List[Namespace], Optional[str]]:
         bucket = self.table_buckets[table_bucket_arn]
 
         if not max_namespaces:
-            max_namespaces = 10
+            max_namespaces = S3TABLES_DEFAULT_MAX_NAMESPACES
 
         all_namespaces = list(
             ns
@@ -181,12 +188,12 @@ class S3TablesBackend(BaseBackend):
         # implement here
         return namespaces, next_continuation_token
 
-    def get_namespace(self, table_bucket_arn, namespace):
+    def get_namespace(self, table_bucket_arn: str, namespace: str) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
 
         return bucket.namespaces[namespace]
 
-    def delete_namespace(self, table_bucket_arn, namespace):
+    def delete_namespace(self, table_bucket_arn: str, namespace: str) -> None:
         bucket = self.table_buckets[table_bucket_arn]
         bucket.namespaces.pop(namespace)
 
