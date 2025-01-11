@@ -7,10 +7,12 @@ from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3tables.exceptions import (
+    ConflictException,
     InvalidContinuationToken,
     InvalidNamespaceName,
     InvalidTableBucketName,
     InvalidTableName,
+    NotFoundException,
 )
 from moto.utilities.utils import get_partition
 
@@ -81,7 +83,12 @@ class S3TablesBackend(BaseBackend):
         new_table_bucket = FakeTableBucket(
             name=name, account_id=self.account_id, region_name=self.region_name
         )
+        if new_table_bucket.arn in self.table_buckets:
+            raise ConflictException(
+                "The bucket that you tried to create already exists, and you own it."
+            )
         self.table_buckets[new_table_bucket.arn] = new_table_bucket
+
         return new_table_bucket
 
     def list_table_buckets(
@@ -126,22 +133,31 @@ class S3TablesBackend(BaseBackend):
     def get_table_bucket(self, table_bucket_arn: str) -> FakeTableBucket:
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket:
-            raise KeyError
+            raise NotFoundException("The specified bucket does not exist.")
         return bucket
 
     def delete_table_bucket(self, table_bucket_arn: str) -> None:
+        # make sure table exists first
+        self.get_table_bucket(table_bucket_arn)
         self.table_buckets.pop(table_bucket_arn)
 
     def create_namespace(self, table_bucket_arn: str, namespace: str) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
 
+        if not bucket:
+            raise NotFoundException(
+                "The request was rejected because the specified resource could not be found."
+            )
+
+        if namespace in bucket.namespaces:
+            raise ConflictException(
+                "A namespace with an identical name already exists in the bucket."
+            )
+
         ns = Namespace(
             namespace, account_id=self.account_id, created_by=self.account_id
         )
-        if not bucket:
-            raise ValueError()
         bucket.namespaces[ns.name] = ns
-        # implement here
         return ns
 
     def list_namespaces(
@@ -151,7 +167,7 @@ class S3TablesBackend(BaseBackend):
         continuation_token: Optional[str] = None,
         max_namespaces: Optional[int] = None,
     ) -> Tuple[List[Namespace], Optional[str]]:
-        bucket = self.table_buckets[table_bucket_arn]
+        bucket = self.get_table_bucket(table_bucket_arn)
 
         if not max_namespaces:
             max_namespaces = S3TABLES_DEFAULT_MAX_NAMESPACES
@@ -190,14 +206,22 @@ class S3TablesBackend(BaseBackend):
 
     def get_namespace(self, table_bucket_arn: str, namespace: str) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
-        if not bucket:
-            raise ValueError()
+        if bucket and namespace in bucket.namespaces:
+            return bucket.namespaces[namespace]
 
-        return bucket.namespaces[namespace]
+        raise NotFoundException(
+            "The request was rejected because the specified resource could not be found."
+        )
 
     def delete_namespace(self, table_bucket_arn: str, namespace: str) -> None:
-        bucket = self.table_buckets[table_bucket_arn]
-        bucket.namespaces.pop(namespace)
+        bucket = self.table_buckets.get(table_bucket_arn)
+        if bucket and namespace in bucket.namespaces:
+            bucket.namespaces.pop(namespace)
+            return
+
+        raise NotFoundException(
+            "The request was rejected because the specified resource could not be found."
+        )
 
 
 s3tables_backends = BackendDict(

@@ -4,6 +4,8 @@ from moto.core.exceptions import JsonRESTError
 
 
 class BadRequestException(JsonRESTError):
+    code = 400
+
     def __init__(self, message: str) -> None:
         super().__init__("BadRequestException", message)
 
@@ -34,3 +36,17 @@ class InvalidNamespaceName(BadRequestException):
 
     def __init__(self) -> None:
         super().__init__(self.msg)
+
+
+class NotFoundException(JsonRESTError):
+    code = 404
+
+    def __init__(self, message: str) -> None:
+        super().__init__("NotFoundException", message)
+
+
+class ConflictException(JsonRESTError):
+    code = 409
+
+    def __init__(self, message: str) -> None:
+        super().__init__("ConflictException", message)
