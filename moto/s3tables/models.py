@@ -190,6 +190,8 @@ class S3TablesBackend(BaseBackend):
 
     def get_namespace(self, table_bucket_arn: str, namespace: str) -> Namespace:
         bucket = self.table_buckets.get(table_bucket_arn)
+        if not bucket:
+            raise ValueError()
 
         return bucket.namespaces[namespace]
 

@@ -83,7 +83,7 @@ class S3TablesResponse(BaseResponse):
 
         return 204, {}, ""
 
-    def create_namespace(self):
+    def create_namespace(self) -> TYPE_RESPONSE:
         table_bucket_arn = unquote(self.path).lstrip("/").split("/", 1)[-1]
         name = json.loads(self.body)["namespace"][0]
         namespace = self.s3tables_backend.create_namespace(
