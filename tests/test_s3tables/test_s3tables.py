@@ -91,6 +91,28 @@ def test_list_namespaces():
 
 
 @mock_aws
+def test_list_namespaces_pagination():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["foo"])
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    response = client.list_namespaces(tableBucketARN=arn, maxNamespaces=1)
+
+    assert len(response["namespaces"]) == 1
+    assert "continuationToken" in response
+
+    response = client.list_namespaces(
+        tableBucketARN=arn,
+        maxNamespaces=1,
+        continuationToken=response["continuationToken"],
+    )
+
+    assert len(response["namespaces"]) == 1
+    assert "continuationToken" not in response
+    assert response["namespaces"][0]["namespace"] == ["bar"]
+
+
+@mock_aws
 def test_get_namespace():
     client = boto3.client("s3tables", region_name="us-east-2")
     arn = client.create_table_bucket(name="foo")["arn"]

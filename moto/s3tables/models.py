@@ -104,7 +104,7 @@ class S3TablesBackend(BaseBackend):
         if continuation_token:
             # expect continuation token to be b64encoded
             token_arn, token_prefix = (
-                b64decode(continuation_token.encode()).decode("utf-8").split(" ", 1)
+                b64decode(continuation_token.encode()).decode("utf-8").split("|")
             )
             if token_prefix and token_prefix != prefix:
                 raise InvalidContinuationToken()
@@ -118,7 +118,7 @@ class S3TablesBackend(BaseBackend):
         next_continuation_token = None
         if start + max_buckets < len(all_buckets):
             next_continuation_token = b64encode(
-                f"{buckets[-1].arn} {prefix if prefix else ''}".encode()
+                f"{buckets[-1].arn}|{prefix if prefix else ''}".encode()
             ).decode()
 
         return buckets, next_continuation_token
@@ -167,7 +167,7 @@ class S3TablesBackend(BaseBackend):
         if continuation_token:
             # expect continuation token to be b64encoded
             ns_name, table_bucket, token_prefix = (
-                b64decode(continuation_token.encode()).decode("utf-8").split("|", 1)
+                b64decode(continuation_token.encode()).decode("utf-8").split("|")
             )
             if token_prefix and token_prefix != prefix:
                 raise InvalidContinuationToken()
