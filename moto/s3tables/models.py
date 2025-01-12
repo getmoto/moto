@@ -3,7 +3,9 @@
 import datetime
 import re
 from base64 import b64decode, b64encode
-from typing import Dict, List, Literal, Optional, Tuple
+from hashlib import md5
+from typing import Dict, List, Literal, Optional, Tuple, Union
+from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3tables.exceptions import (
@@ -59,21 +61,38 @@ class Table:
         format: Literal["ICEBERG"],
         namespace: str,
         table_bucket_arn: str,
+        type: Union[Literal["customer"], Literal["aws"]],
+        managed_by_service: bool,
     ):
         _validate_table_name(name)
         self.name = name
         self.account_id = account_id
         self.created_by = created_by
         self.format = format
-        self.version_token = "abc"
+        self.version_token = self._generate_version_token()
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.last_modified = self.creation_date
+        self.modified_by: Optional[str] = None
         self.namespace = namespace
         self.table_bucket_arn = table_bucket_arn
+        self.managed_by_service = managed_by_service
+        self.metadata_location: Optional[str] = None
+        self._s3_bucket_name = self._generate_s3_bucket_name()
+        self.warehouse_location: str = f"s3://{self._s3_bucket_name}"
 
     @property
     def arn(self) -> str:
         return f"{self.table_bucket_arn}/table/{self.name}"
+
+    def _generate_version_token(self) -> str:
+        return md5(uuid4().bytes).hexdigest()[:20]
+
+    def _generate_s3_bucket_name(self) -> str:
+        # every s3 table is assigned a unique s3 bucket with a random name
+        hash = md5(self.table_bucket_arn.encode())
+        hash.update(self.namespace.encode())
+        hash.update(self.name.encode())
+        return f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
 
 
 class Namespace:
@@ -271,6 +290,8 @@ class S3TablesBackend(BaseBackend):
                 format=format,
                 namespace=namespace,
                 table_bucket_arn=table_bucket_arn,
+                type="customer",
+                managed_by_service=False,
             )
             ns.tables[table.name] = table
             return table

@@ -73,6 +73,7 @@ def test_s3tables_create_namespace(bucket_name: str):
 
     assert resp.status_code == 200
 
+
 def test_s3tables_create_table(bucket_name: str):
     backend = server.create_backend_app("s3tables")
     test_client = backend.test_client()
@@ -83,7 +84,9 @@ def test_s3tables_create_table(bucket_name: str):
     quoted_arn = quote(arn, safe="")
     resp = test_client.put(f"/namespaces/{quoted_arn}", json={"namespace": ["bar"]})
 
-    resp = test_client.put(f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"})
+    resp = test_client.put(
+        f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"}
+    )
     assert resp.status_code == 200
 
 
@@ -97,7 +100,9 @@ def test_s3tables_list_tables(bucket_name: str):
     quoted_arn = quote(arn, safe="")
     resp = test_client.put(f"/namespaces/{quoted_arn}", json={"namespace": ["bar"]})
 
-    resp = test_client.put(f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"})
+    resp = test_client.put(
+        f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"}
+    )
 
     resp = test_client.get(f"/tables/{quoted_arn}")
     assert resp.get_json()["tables"]
@@ -113,7 +118,9 @@ def test_s3tables_get_table(bucket_name: str):
     quoted_arn = quote(arn, safe="")
     resp = test_client.put(f"/namespaces/{quoted_arn}", json={"namespace": ["bar"]})
 
-    resp = test_client.put(f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"})
+    resp = test_client.put(
+        f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"}
+    )
 
     resp = test_client.get(f"/tables/{quoted_arn}/bar/baz")
     assert resp.status_code == 200
@@ -129,7 +136,9 @@ def test_s3tables_delete_table(bucket_name: str):
     quoted_arn = quote(arn, safe="")
     resp = test_client.put(f"/namespaces/{quoted_arn}", json={"namespace": ["bar"]})
 
-    resp = test_client.put(f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"})
+    resp = test_client.put(
+        f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"}
+    )
 
     resp = test_client.delete(f"/tables/{quoted_arn}/bar/baz")
     assert resp.status_code == 200
