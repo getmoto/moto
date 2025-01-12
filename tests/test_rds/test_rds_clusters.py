@@ -911,17 +911,12 @@ def test_describe_db_cluster_snapshot_attributes_default(client):
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
     )
 
-    resp = client.describe_db_cluster_snapshot_attributes(
+    result = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
-    )
+    )["DBClusterSnapshotAttributesResult"]
 
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"] == []
-    )
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"] == []
 
 
 @mock_aws
@@ -937,23 +932,16 @@ def test_describe_db_cluster_snapshot_attributes(client):
         ValuesToAdd=["test", "test2"],
     )
 
-    resp = client.describe_db_cluster_snapshot_attributes(
+    result = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
-    )
+    )["DBClusterSnapshotAttributesResult"]
 
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-            "AttributeName"
-        ]
-        == "restore"
-    )
-    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["test", "test2"]
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeName"] == "restore"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeValues"] == [
+        "test",
+        "test2",
+    ]
 
 
 @mock_aws
@@ -963,34 +951,27 @@ def test_modify_db_cluster_snapshot_attribute(client):
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
     )
 
-    resp = client.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test", "test2"],
     )
-    resp = client.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToRemove=["test"],
     )
-    resp = client.modify_db_cluster_snapshot_attribute(
+    result = client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test3"],
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-            "AttributeName"
-        ]
-        == "restore"
-    )
-    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["test2", "test3"]
+    )["DBClusterSnapshotAttributesResult"]
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeName"] == "restore"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeValues"] == [
+        "test2",
+        "test3",
+    ]
 
 
 @mock_aws
