@@ -343,7 +343,9 @@ class S3TablesBackend(BaseBackend):
             ).decode()
         return tables, next_continuation_token
 
-    def delete_table(self, table_bucket_arn, namespace, name, version_token):
+    def delete_table(
+        self, table_bucket_arn: str, namespace: str, name: str, version_token: str
+    ):
         bucket = self.table_buckets.get(table_bucket_arn)
         if bucket and namespace in bucket.namespaces:
             ns = bucket.namespaces[namespace]

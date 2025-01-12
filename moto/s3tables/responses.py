@@ -245,16 +245,15 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def delete_table(self):
+        _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
         params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
-        namespace = params.get("namespace")
-        name = params.get("name")
         version_token = params.get("versionToken")
+        # TODO: if versinToken not supplied, raise exception
         self.s3tables_backend.delete_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
             name=name,
             version_token=version_token,
         )
-        # TODO: adjust response
         return json.dumps(dict())
