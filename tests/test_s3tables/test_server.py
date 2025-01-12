@@ -9,8 +9,8 @@ import pytest
 import moto.server as server
 
 
-@pytest.fixture()
-def bucket_name() -> str:
+@pytest.fixture(name="bucket_name")
+def table_bucket_name() -> str:
     prefix = "table-bucket"
     random_tag = "".join(choice(string.ascii_letters) for _ in range(10))
     return (prefix + random_tag).lower()

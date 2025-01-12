@@ -212,7 +212,7 @@ class S3TablesResponse(BaseResponse):
             ),
         )
 
-    def list_tables(self):
+    def list_tables(self) -> TYPE_RESPONSE:
         _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
         params = self._get_params()
@@ -244,11 +244,11 @@ class S3TablesResponse(BaseResponse):
 
         return 200, self.default_response_headers, json.dumps(body)
 
-    def delete_table(self):
+    def delete_table(self) -> TYPE_RESPONSE:
         _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
         params = self._get_params()
-        version_token = params.get("versionToken")
+        version_token = params.get("versionToken", "")
         # TODO: if versinToken not supplied, raise exception
         self.s3tables_backend.delete_table(
             table_bucket_arn=table_bucket_arn,
@@ -256,4 +256,4 @@ class S3TablesResponse(BaseResponse):
             name=name,
             version_token=version_token,
         )
-        return json.dumps(dict())
+        return 204, {}, ""

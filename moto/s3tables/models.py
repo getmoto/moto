@@ -290,7 +290,7 @@ class S3TablesBackend(BaseBackend):
         prefix: Optional[str] = None,
         continuation_token: Optional[str] = None,
         max_tables: Optional[int] = None,
-    ):
+    ) -> Tuple[List[Table], Optional[str]]:
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket or (namespace and namespace not in bucket.namespaces):
             raise NotFoundException(
@@ -345,7 +345,7 @@ class S3TablesBackend(BaseBackend):
 
     def delete_table(
         self, table_bucket_arn: str, namespace: str, name: str, version_token: str
-    ):
+    ) -> None:
         bucket = self.table_buckets.get(table_bucket_arn)
         if bucket and namespace in bucket.namespaces:
             ns = bucket.namespaces[namespace]
