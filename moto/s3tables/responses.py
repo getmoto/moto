@@ -212,7 +212,7 @@ class S3TablesResponse(BaseResponse):
             ),
         )
 
-    def list_tables(self) -> TYPE_RESPONSE:
+    def list_tables(self)-> TYPE_RESPONSE:
         _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
         params = self._get_params()
@@ -257,3 +257,5 @@ class S3TablesResponse(BaseResponse):
             version_token=version_token,
         )
         return 204, {}, ""
+
+

@@ -14,4 +14,5 @@ url_paths = {
     "{0}/tables/(?P<tableBucketARN>[^/]+)/(?P<namespace>[^/]+)$": S3TablesResponse.dispatch,
     "{0}/tables/(?P<tableBucketARN>[^/]+)/(?P<namespace>[^/]+)/(?P<name>[^/]+)$": S3TablesResponse.dispatch,
     "{0}/tables/(?P<tableBucketARN>[^/]+)$": S3TablesResponse.dispatch,
+    "{0}/tables/(?P<tableBucketARN_pt_1>[^/]+)/(?P<tableBucketARN_pt_2>[^/]+)/(?P<namespace>[^/]+)/(?P<name>[^/]+)$": S3TablesResponse.dispatch,
 }
