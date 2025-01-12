@@ -126,5 +126,5 @@ def test_delete_db_cluster_fails_if_cluster_contains_db_instances():
     cluster = client.delete_db_cluster(
         DBClusterIdentifier=cluster_identifier,
         SkipFinalSnapshot=True,
-    ).get("DBCluster")
+    )["DBCluster"]
     assert cluster["DBClusterIdentifier"] == cluster_identifier

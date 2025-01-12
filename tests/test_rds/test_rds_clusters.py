@@ -511,7 +511,7 @@ def test_create_db_cluster_snapshot(client):
     db_cluster_identifier = create_db_cluster()
     snapshot = client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
     assert snapshot["Engine"] == "postgres"
     assert snapshot["DBClusterIdentifier"] == "db-primary-1"
@@ -532,11 +532,11 @@ def test_create_db_cluster_snapshot_copy_tags(client):
 
     snapshot = client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert snapshot.get("Engine") == "postgres"
-    assert snapshot.get("DBClusterIdentifier") == db_cluster_identifier
-    assert snapshot.get("DBClusterSnapshotIdentifier") == "g-1"
+    assert snapshot["Engine"] == "postgres"
+    assert snapshot["DBClusterIdentifier"] == db_cluster_identifier
+    assert snapshot["DBClusterSnapshotIdentifier"] == "g-1"
 
     result = client.list_tags_for_resource(
         ResourceName=snapshot["DBClusterSnapshotArn"]
@@ -578,11 +578,11 @@ def test_copy_db_cluster_snapshot(client):
     target_snapshot = client.copy_db_cluster_snapshot(
         SourceDBClusterSnapshotIdentifier="snapshot-1",
         TargetDBClusterSnapshotIdentifier="snapshot-2",
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert target_snapshot.get("Engine") == "postgres"
-    assert target_snapshot.get("DBClusterIdentifier") == "db-primary-1"
-    assert target_snapshot.get("DBClusterSnapshotIdentifier") == "snapshot-2"
+    assert target_snapshot["Engine"] == "postgres"
+    assert target_snapshot["DBClusterIdentifier"] == "db-primary-1"
+    assert target_snapshot["DBClusterSnapshotIdentifier"] == "snapshot-2"
     result = client.list_tags_for_resource(
         ResourceName=target_snapshot["DBClusterSnapshotArn"]
     )
@@ -622,28 +622,28 @@ def test_describe_db_cluster_snapshots(client):
     created = client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert created.get("Engine") == "postgres"
+    assert created["Engine"] == "postgres"
 
     by_database_id = client.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     by_snapshot_id = client.describe_db_cluster_snapshots(
         DBClusterSnapshotIdentifier="snapshot-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     assert by_snapshot_id == by_database_id
 
     snapshot = by_snapshot_id[0]
     assert snapshot == created
-    assert snapshot.get("Engine") == "postgres"
+    assert snapshot["Engine"] == "postgres"
 
     client.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
     )
     snapshots = client.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     assert len(snapshots) == 2
 
 
