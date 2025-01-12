@@ -46,21 +46,39 @@ def _validate_table_name(name: str) -> None:
 
 
 S3TABLES_DEFAULT_MAX_BUCKETS = 1000
-S3TABLES_DEFAULT_MAX_NAMESPACES = 100
+S3TABLES_DEFAULT_MAX_NAMESPACES = 1000
+S3TABLES_DEFAULT_MAX_TABLES = 1000
 
 
 class Table:
-    def __init__(self, name: str, account_id: str, format: Literal["ICEBERG"]):
+    def __init__(
+        self,
+        name: str,
+        account_id: str,
+        created_by: str,
+        format: Literal["ICEBERG"],
+        namespace: str,
+        table_bucket_arn: str,
+    ):
+        _validate_table_name(name)
         self.name = name
         self.account_id = account_id
+        self.created_by = created_by
         self.format = format
         self.version_token = "abc"
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.last_modified = self.creation_date
+        self.namespace = namespace
+        self.table_bucket_arn = table_bucket_arn
+
+    @property
+    def arn(self) -> str:
+        return f"{self.table_bucket_arn}/table/{self.name}"
 
 
 class Namespace:
     def __init__(self, name: str, account_id: str, created_by: str):
+        _validate_namespace_name(name)
         self.name = name
         self.account_id = account_id
         self.created_by = created_by
@@ -246,7 +264,14 @@ class S3TablesBackend(BaseBackend):
             ns = bucket.namespaces[namespace]
             if name in ns.tables:
                 raise ValueError("Table already exists")
-            table = Table(name=name, account_id=self.account_id, format=format)
+            table = Table(
+                name=name,
+                account_id=self.account_id,
+                created_by=self.account_id,
+                format=format,
+                namespace=namespace,
+                table_bucket_arn=table_bucket_arn,
+            )
             ns.tables[table.name] = table
             return table
         raise ValueError("resource doesnt exist")
@@ -259,14 +284,73 @@ class S3TablesBackend(BaseBackend):
         raise ValueError("table does not exist")
 
     def list_tables(
-        self, table_bucket_arn, namespace, prefix, continuation_token, max_tables
+        self,
+        table_bucket_arn: str,
+        namespace: Optional[str] = None,
+        prefix: Optional[str] = None,
+        continuation_token: Optional[str] = None,
+        max_tables: Optional[int] = None,
     ):
-        # implement here
-        return tables, continuation_token
+        bucket = self.table_buckets.get(table_bucket_arn)
+        if not bucket or (namespace and namespace not in bucket.namespaces):
+            raise NotFoundException(
+                "The request was rejected because the specified resource could not be found."
+            )
+
+        if not max_tables:
+            max_tables = S3TABLES_DEFAULT_MAX_TABLES
+
+        if namespace:
+            all_tables = list(
+                table
+                for table in bucket.namespaces[namespace].tables.values()
+                if (prefix is None or table.name.startswith(prefix))
+            )
+        else:
+            all_tables = list(
+                table
+                for ns in bucket.namespaces.values()
+                for table in ns.tables.values()
+                if (prefix is None or table.name.startswith(prefix))
+            )
+
+        # encode bucket arn in the continuation_token together with prefix value
+        # raise invalidcontinuationtoken if the prefix changed
+        if continuation_token:
+            # expect continuation token to be b64encoded
+            table_name, ns_name, table_bucket, token_prefix = (
+                b64decode(continuation_token.encode()).decode("utf-8").split("|")
+            )
+            if token_prefix and token_prefix != prefix:
+                raise InvalidContinuationToken()
+            if table_bucket != table_bucket_arn:
+                raise InvalidContinuationToken()
+            if ns_name and ns_name != namespace:
+                raise InvalidContinuationToken()
+            last_table_index = list(table.name for table in all_tables).index(
+                table_name
+            )
+            start = last_table_index + 1
+        else:
+            start = 0
+
+        tables = all_tables[start : start + max_tables]
+
+        next_continuation_token = None
+        if start + max_tables < len(all_tables):
+            next_continuation_token = b64encode(
+                f"{tables[-1].name}|{namespace if namespace else ''}|{table_bucket_arn}|{prefix if prefix else ''}".encode()
+            ).decode()
+        return tables, next_continuation_token
 
     def delete_table(self, table_bucket_arn, namespace, name, version_token):
-        # implement here
-        return
+        bucket = self.table_buckets.get(table_bucket_arn)
+        if bucket and namespace in bucket.namespaces:
+            ns = bucket.namespaces[namespace]
+            if name in ns.tables:
+                ns.tables.pop(name)
+                return
+        raise ValueError("Table doesn't exist")
 
 
 s3tables_backends = BackendDict(

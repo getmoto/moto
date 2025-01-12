@@ -174,12 +174,10 @@ class S3TablesResponse(BaseResponse):
             name=name,
             format=format,
         )
-        table_arn = f"{table_bucket_arn}/table/{table.name}"
-
         return (
             200,
             self.default_response_headers,
-            json.dumps(dict(tableARN=table_arn, versionToken=table.version_token)),
+            json.dumps(dict(tableARN=table.arn, versionToken=table.version_token)),
         )
 
     def get_table(self) -> TYPE_RESPONSE:
@@ -190,7 +188,6 @@ class S3TablesResponse(BaseResponse):
             namespace=namespace,
             name=name,
         )
-        table_arn = f"{table_bucket_arn}/table/{table.name}"
 
         return (
             200,
@@ -199,7 +196,7 @@ class S3TablesResponse(BaseResponse):
                 dict(
                     name=table.name,
                     type="",
-                    tableARN=table_arn,
+                    tableARN=table.arn,
                     namespace=namespace,
                     versionToken=table.version_token,
                     metadataLocation="",
@@ -216,8 +213,9 @@ class S3TablesResponse(BaseResponse):
         )
 
     def list_tables(self):
+        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
         params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
         namespace = params.get("namespace")
         prefix = params.get("prefix")
         continuation_token = params.get("continuationToken")
@@ -227,10 +225,24 @@ class S3TablesResponse(BaseResponse):
             namespace=namespace,
             prefix=prefix,
             continuation_token=continuation_token,
-            max_tables=max_tables,
+            max_tables=int(max_tables) if max_tables else None,
         )
-        # TODO: adjust response
-        return json.dumps(dict(tables=tables, continuationToken=continuation_token))
+        body: Dict[str, Any] = {
+            "tables": [
+                {
+                    "namespace": [table.namespace],
+                    "name": table.name,
+                    "createdAt": table.creation_date.isoformat(),
+                    "modifiedAt": table.last_modified.isoformat(),
+                }
+                for table in tables
+            ]
+        }
+
+        if continuation_token:
+            body.update(continuationToken=continuation_token)
+
+        return 200, self.default_response_headers, json.dumps(body)
 
     def delete_table(self):
         params = self._get_params()

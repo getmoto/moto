@@ -161,9 +161,40 @@ def test_get_table():
 @mock_aws
 def test_list_tables():
     client = boto3.client("s3tables", region_name="us-east-2")
-    resp = client.list_tables()
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
 
-    raise Exception("NotYetImplemented")
+    resp = client.list_tables(tableBucketARN=arn, namespace="bar")
+    assert resp["tables"]
+    assert resp["tables"][0]["name"] == "baz"
+
+
+@mock_aws
+def test_list_tables_pagination():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+    client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz2", format="ICEBERG"
+    )
+
+    resp = client.list_tables(tableBucketARN=arn, maxTables=1)
+    assert len(resp["tables"]) == 1
+    assert "continuationToken" in resp
+
+    resp = client.list_tables(
+        tableBucketARN=arn, maxTables=1, continuationToken=resp["continuationToken"]
+    )
+
+    assert len(resp["tables"]) == 1
+    assert "continuationToken" not in resp
+    assert resp["tables"][0]["name"] == "baz2"
 
 
 @mock_aws
