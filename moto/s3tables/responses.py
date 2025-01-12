@@ -257,3 +257,50 @@ class S3TablesResponse(BaseResponse):
             version_token=version_token,
         )
         return 204, {}, ""
+
+    def get_table_metadata_location(self) -> TYPE_RESPONSE:
+        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
+        table = self.s3tables_backend.get_table(
+            table_bucket_arn=table_bucket_arn,
+            namespace=namespace,
+            name=name,
+        )
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(
+                dict(
+                    versionToken=table.version_token,
+                    metadataLocation=table.metadata_location,
+                    warehouseLocation=table.warehouse_location,
+                )
+            ),
+        )
+
+    def update_table_metadata_location(self) -> TYPE_RESPONSE:
+        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
+        body = json.loads(self.body)
+        metadata_location = body["metadataLocation"]
+        version_token = body["versionToken"]
+        table = self.s3tables_backend.update_table_metadata_location(
+            table_bucket_arn=table_bucket_arn,
+            namespace=namespace,
+            name=name,
+            version_token=version_token,
+            metadata_location=metadata_location,
+        )
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(
+                dict(
+                    name=table.name,
+                    tableArn=table.arn,
+                    namespace=namespace,
+                    versionToken=table.version_token,
+                    metadataLocation=table.metadata_location,
+                )
+            ),
+        )

@@ -109,6 +109,15 @@ class Table:
         )
         return bucket
 
+    def update_metadata_location(
+        self, metadata_location: str, version_token: str
+    ) -> None:
+        if not self.version_token == version_token:
+            raise ValueError("version tokens don't match")
+
+        self.metadata_location = metadata_location
+        self.version_token = self._generate_version_token()
+
 
 class Namespace:
     def __init__(self, name: str, account_id: str, created_by: str):
@@ -390,6 +399,19 @@ class S3TablesBackend(BaseBackend):
                 ns.tables.pop(name)
                 return
         raise ValueError("Table doesn't exist")
+
+    def update_table_metadata_location(
+        self, table_bucket_arn, namespace, name, version_token, metadata_location
+    ) -> Table:
+        bucket = self.table_buckets.get(table_bucket_arn)
+        if bucket and namespace in bucket.namespaces:
+            if name in bucket.namespaces[namespace].tables:
+                table = bucket.namespaces[namespace].tables[name]
+                table.update_metadata_location(
+                    metadata_location=metadata_location, version_token=version_token
+                )
+                return table
+        raise ValueError("table does not exist")
 
 
 s3tables_backends = BackendDict(

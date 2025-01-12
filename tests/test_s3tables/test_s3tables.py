@@ -213,3 +213,39 @@ def test_delete_table():
 
     resp = client.list_tables(tableBucketARN=arn)
     assert len(resp["tables"]) == 0
+
+
+@mock_aws
+def test_get_table_metadata_location():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+    resp = client.get_table_metadata_location(
+        tableBucketARN=arn, namespace="bar", name="baz"
+    )
+    assert "metadataLocation" not in resp
+    assert "warehouseLocation" in resp
+
+
+@mock_aws
+def test_update_table_metadata_location():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+    client.update_table_metadata_location(
+        tableBucketARN=arn,
+        namespace="bar",
+        name="baz",
+        metadataLocation="s3://abc",
+        versionToken=resp["versionToken"],
+    )
+    resp = client.get_table_metadata_location(
+        tableBucketARN=arn, namespace="bar", name="baz"
+    )
+    assert "metadataLocation" in resp
