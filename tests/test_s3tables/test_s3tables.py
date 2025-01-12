@@ -136,7 +136,9 @@ def test_create_table():
     client = boto3.client("s3tables", region_name="us-east-2")
     arn = client.create_table_bucket(name="foo")["arn"]
     client.create_namespace(tableBucketARN=arn, namespace=["bar"])
-    resp = client.create_table(tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG")
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
     assert "tableARN" in resp
     assert "versionToken" in resp
 
@@ -144,9 +146,16 @@ def test_create_table():
 @mock_aws
 def test_get_table():
     client = boto3.client("s3tables", region_name="us-east-2")
-    resp = client.get_table()
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    table_arn = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )["tableARN"]
 
-    raise Exception("NotYetImplemented")
+    assert (
+        client.get_table(tableBucketARN=arn, namespace="bar", name="baz")["tableARN"]
+        == table_arn
+    )
 
 
 @mock_aws

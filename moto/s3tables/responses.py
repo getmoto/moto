@@ -161,7 +161,7 @@ class S3TablesResponse(BaseResponse):
             namespace=namespace,
         )
         return 204, self.default_response_headers, ""
-    
+
     def create_table(self) -> TYPE_RESPONSE:
         _, table_bucket_arn, namespace = self.raw_path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
@@ -176,21 +176,45 @@ class S3TablesResponse(BaseResponse):
         )
         table_arn = f"{table_bucket_arn}/table/{table.name}"
 
-        return 200, self.default_response_headers, json.dumps(dict(tableARN=table_arn, versionToken=table.version_token))
-    
-    def get_table(self):
-        params = self._get_params()
-        table_bucket_arn = params.get("tableBucketARN")
-        namespace = params.get("namespace")
-        name = params.get("name")
-        name, type, table_arn, namespace, version_token, metadata_location, warehouse_location, created_at, created_by, managed_by_service, modified_at, modified_by, owner_account_id, format = self.s3tables_backend.get_table(
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(dict(tableARN=table_arn, versionToken=table.version_token)),
+        )
+
+    def get_table(self) -> TYPE_RESPONSE:
+        _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
+        table = self.s3tables_backend.get_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
             name=name,
         )
-        # TODO: adjust response
-        return json.dumps(dict(name=name, type=type, tableArn=table_arn, namespace=namespace, versionToken=version_token, metadataLocation=metadata_location, warehouseLocation=warehouse_location, createdAt=created_at, createdBy=created_by, managedByService=managed_by_service, modifiedAt=modified_at, modifiedBy=modified_by, ownerAccountId=owner_account_id, format=format))
-    
+        table_arn = f"{table_bucket_arn}/table/{table.name}"
+
+        return (
+            200,
+            self.default_response_headers,
+            json.dumps(
+                dict(
+                    name=table.name,
+                    type="",
+                    tableARN=table_arn,
+                    namespace=namespace,
+                    versionToken=table.version_token,
+                    metadataLocation="",
+                    warehouseLocation="",
+                    createdAt=table.creation_date.isoformat(),
+                    createdBy=table.account_id,
+                    managedByService=None,
+                    modifiedAt=table.last_modified.isoformat(),
+                    modifiedBy="",
+                    ownerAccountId=table.account_id,
+                    format=table.format,
+                )
+            ),
+        )
+
     def list_tables(self):
         params = self._get_params()
         table_bucket_arn = params.get("tableBucketARN")
@@ -207,7 +231,7 @@ class S3TablesResponse(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(tables=tables, continuationToken=continuation_token))
-    
+
     def delete_table(self):
         params = self._get_params()
         table_bucket_arn = params.get("tableBucketARN")
