@@ -573,7 +573,7 @@ def test_copy_db_cluster_snapshot(client):
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
-    ).get("DBClusterSnapshot")
+    )
 
     target_snapshot = client.copy_db_cluster_snapshot(
         SourceDBClusterSnapshotIdentifier="snapshot-1",
@@ -595,12 +595,12 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot(client):
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
-    ).get("DBClusterSnapshot")
+    )
 
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-2",
-    ).get("DBClusterSnapshot")
+    )
 
     with pytest.raises(ClientError) as exc:
         client.copy_db_cluster_snapshot(
@@ -909,7 +909,7 @@ def test_describe_db_cluster_snapshot_attributes_default(client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )
 
     resp = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
@@ -929,7 +929,7 @@ def test_describe_db_cluster_snapshot_attributes(client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )
 
     client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
@@ -961,7 +961,7 @@ def test_modify_db_cluster_snapshot_attribute(client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )
 
     resp = client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
