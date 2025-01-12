@@ -8,6 +8,7 @@ from typing import Dict, List, Literal, Optional, Tuple, Union
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.s3.models import FakeBucket
 from moto.s3tables.exceptions import (
     ConflictException,
     InvalidContinuationToken,
@@ -63,10 +64,12 @@ class Table:
         table_bucket_arn: str,
         type: Union[Literal["customer"], Literal["aws"]],
         managed_by_service: bool,
+        partition: str,
     ):
         _validate_table_name(name)
         self.name = name
         self.account_id = account_id
+        self.partition = partition
         self.created_by = created_by
         self.format = format
         self.version_token = self._generate_version_token()
@@ -77,22 +80,34 @@ class Table:
         self.table_bucket_arn = table_bucket_arn
         self.managed_by_service = managed_by_service
         self.metadata_location: Optional[str] = None
-        self._s3_bucket_name = self._generate_s3_bucket_name()
-        self.warehouse_location: str = f"s3://{self._s3_bucket_name}"
+        self._bucket = self._create_underlying_bucket()
+        self.warehouse_location: str = f"s3://{self._bucket.name}"
 
     @property
     def arn(self) -> str:
         return f"{self.table_bucket_arn}/table/{self.name}"
 
+    def was_modified(self, by: str) -> None:
+        self.last_modified = datetime.datetime.now(tz=datetime.timezone.utc)
+        self.modified_by = by
+
     def _generate_version_token(self) -> str:
         return md5(uuid4().bytes).hexdigest()[:20]
 
-    def _generate_s3_bucket_name(self) -> str:
+    def _create_underlying_bucket(self) -> FakeBucket:
+        # TODO: consider to make this a backend method instead of Table
+        from moto.s3.models import s3_backends
+
         # every s3 table is assigned a unique s3 bucket with a random name
         hash = md5(self.table_bucket_arn.encode())
         hash.update(self.namespace.encode())
         hash.update(self.name.encode())
-        return f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
+        bucket_name = f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
+
+        bucket = s3_backends[self.account_id][self.partition].create_bucket(
+            bucket_name, region_name="us-east-1"
+        )
+        return bucket
 
 
 class Namespace:
@@ -292,6 +307,7 @@ class S3TablesBackend(BaseBackend):
                 table_bucket_arn=table_bucket_arn,
                 type="customer",
                 managed_by_service=False,
+                partition=self.partition,
             )
             ns.tables[table.name] = table
             return table
