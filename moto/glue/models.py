@@ -103,9 +103,7 @@ class FakeDevEndpoint(BaseModel):
         self.status = "READY"
         self.availability_zone = "us-east-1a"
         self.vpc_id = "vpc-12345678"
-        self.yarn_endpoint_address = (
-            f"yarn-{endpoint_name}.glue.amazonaws.com"
-        )
+        self.yarn_endpoint_address = f"yarn-{endpoint_name}.glue.amazonaws.com"
         self.private_address = "10.0.0.1"
         self.public_address = f"{endpoint_name}.glue.amazonaws.com"
         self.zeppelin_remote_spark_interpreter_port = 9007
