@@ -511,7 +511,7 @@ def test_create_db_cluster_snapshot(client):
     db_cluster_identifier = create_db_cluster()
     snapshot = client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
     assert snapshot["Engine"] == "postgres"
     assert snapshot["DBClusterIdentifier"] == "db-primary-1"
@@ -532,11 +532,11 @@ def test_create_db_cluster_snapshot_copy_tags(client):
 
     snapshot = client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert snapshot.get("Engine") == "postgres"
-    assert snapshot.get("DBClusterIdentifier") == db_cluster_identifier
-    assert snapshot.get("DBClusterSnapshotIdentifier") == "g-1"
+    assert snapshot["Engine"] == "postgres"
+    assert snapshot["DBClusterIdentifier"] == db_cluster_identifier
+    assert snapshot["DBClusterSnapshotIdentifier"] == "g-1"
 
     result = client.list_tags_for_resource(
         ResourceName=snapshot["DBClusterSnapshotArn"]
@@ -573,16 +573,16 @@ def test_copy_db_cluster_snapshot(client):
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
-    ).get("DBClusterSnapshot")
+    )
 
     target_snapshot = client.copy_db_cluster_snapshot(
         SourceDBClusterSnapshotIdentifier="snapshot-1",
         TargetDBClusterSnapshotIdentifier="snapshot-2",
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert target_snapshot.get("Engine") == "postgres"
-    assert target_snapshot.get("DBClusterIdentifier") == "db-primary-1"
-    assert target_snapshot.get("DBClusterSnapshotIdentifier") == "snapshot-2"
+    assert target_snapshot["Engine"] == "postgres"
+    assert target_snapshot["DBClusterIdentifier"] == "db-primary-1"
+    assert target_snapshot["DBClusterSnapshotIdentifier"] == "snapshot-2"
     result = client.list_tags_for_resource(
         ResourceName=target_snapshot["DBClusterSnapshotArn"]
     )
@@ -595,12 +595,12 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot(client):
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
-    ).get("DBClusterSnapshot")
+    )
 
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-2",
-    ).get("DBClusterSnapshot")
+    )
 
     with pytest.raises(ClientError) as exc:
         client.copy_db_cluster_snapshot(
@@ -622,28 +622,28 @@ def test_describe_db_cluster_snapshots(client):
     created = client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert created.get("Engine") == "postgres"
+    assert created["Engine"] == "postgres"
 
     by_database_id = client.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     by_snapshot_id = client.describe_db_cluster_snapshots(
         DBClusterSnapshotIdentifier="snapshot-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     assert by_snapshot_id == by_database_id
 
     snapshot = by_snapshot_id[0]
     assert snapshot == created
-    assert snapshot.get("Engine") == "postgres"
+    assert snapshot["Engine"] == "postgres"
 
     client.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
     )
     snapshots = client.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     assert len(snapshots) == 2
 
 
@@ -909,19 +909,14 @@ def test_describe_db_cluster_snapshot_attributes_default(client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )
 
-    resp = client.describe_db_cluster_snapshot_attributes(
+    result = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
-    )
+    )["DBClusterSnapshotAttributesResult"]
 
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"] == []
-    )
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"] == []
 
 
 @mock_aws
@@ -929,7 +924,7 @@ def test_describe_db_cluster_snapshot_attributes(client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )
 
     client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
@@ -937,23 +932,16 @@ def test_describe_db_cluster_snapshot_attributes(client):
         ValuesToAdd=["test", "test2"],
     )
 
-    resp = client.describe_db_cluster_snapshot_attributes(
+    result = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
-    )
+    )["DBClusterSnapshotAttributesResult"]
 
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-            "AttributeName"
-        ]
-        == "restore"
-    )
-    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["test", "test2"]
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeName"] == "restore"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeValues"] == [
+        "test",
+        "test2",
+    ]
 
 
 @mock_aws
@@ -961,36 +949,29 @@ def test_modify_db_cluster_snapshot_attribute(client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    )
 
-    resp = client.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test", "test2"],
     )
-    resp = client.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToRemove=["test"],
     )
-    resp = client.modify_db_cluster_snapshot_attribute(
+    result = client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test3"],
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-            "AttributeName"
-        ]
-        == "restore"
-    )
-    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["test2", "test3"]
+    )["DBClusterSnapshotAttributesResult"]
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeName"] == "restore"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeValues"] == [
+        "test2",
+        "test3",
+    ]
 
 
 @mock_aws
