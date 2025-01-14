@@ -78,6 +78,7 @@ class FakeDevEndpoint(BaseModel):
         extra_jars_s3_path: Optional[str] = None,
         security_configuration: Optional[str] = None,
         arguments: Optional[Dict[str, str]] = None,
+        tags: Optional[Dict[str, str]] = None,
     ):
         pubkey = """ssh-rsa
         AAAAB3NzaC1yc2EAAAADAQABAAABAQDV5+voluw2zmzqpqCAqtsyoP01TQ8Ydx1eS1yD6wUsHcPqMIqpo57YxiC8XPwrdeKQ6GG6MC3bHsgXoPypGP0LyixbiuLTU31DnnqorcHt4bWs6rQa7dK2pCCflz2fhYRt5ZjqSNsAKivIbqkH66JozN0SySIka3kEV79GdB0BicioKeEJlCwM9vvxafyzjWf/z8E0lh4ni3vkLpIVJ0t5l+Qd9QMJrT6Is0SCQPVagTYZoi8+fWDoGsBa8vyRwDjEzBl28ZplKh9tSyDkRIYszWTpmK8qHiqjLYZBfAxXjGJbEYL1iig4ZxvbYzKEiKSBi1ZMW9iWjHfZDZuxXAmB
@@ -96,6 +97,7 @@ class FakeDevEndpoint(BaseModel):
         self.extra_jars_s3_path = extra_jars_s3_path
         self.security_configuration = security_configuration
         self.arguments = arguments or {}
+        self.tags = tags or {}
 
         # AWS Generated Fields
         self.created_timestamp = utcnow()
@@ -1135,7 +1137,7 @@ class GlueBackend(BaseBackend):
         public_keys: Optional[List[str]] = None,
         number_of_nodes: Optional[int] = None,
         worker_type: str = "Standard",
-        glue_version: str = "1.0",
+        glue_version: str = "5.0",
         number_of_workers: Optional[int] = None,
         extra_python_libs_s3_path: Optional[str] = None,
         extra_jars_s3_path: Optional[str] = None,
@@ -1153,16 +1155,18 @@ class GlueBackend(BaseBackend):
             subnet_id=subnet_id or "subnet-default",
             worker_type=worker_type,
             glue_version=glue_version,
-            number_of_workers=number_of_workers or 5,
-            number_of_nodes=number_of_nodes or 5,
+            number_of_workers=number_of_workers or 1,
+            number_of_nodes=number_of_nodes or 1,
             extra_python_libs_s3_path=extra_python_libs_s3_path,
             extra_jars_s3_path=extra_jars_s3_path,
             security_configuration=security_configuration,
             arguments=arguments,
+            tags=tags,
         )
 
         if public_key:
             dev_endpoint.public_key = public_key
+
         if public_keys:
             dev_endpoint.public_keys = public_keys
 
