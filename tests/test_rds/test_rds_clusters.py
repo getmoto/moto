@@ -567,13 +567,17 @@ def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot(client):
     assert err["Message"] == "DBClusterSnapshot snapshot-1 not found."
 
 
+@pytest.mark.parametrize("delete_cluster", [True, False])
 @mock_aws
-def test_copy_db_cluster_snapshot(client):
+def test_copy_db_cluster_snapshot(delete_cluster: bool, client):
     db_cluster_identifier = create_db_cluster()
     client.create_db_cluster_snapshot(
         DBClusterIdentifier=db_cluster_identifier,
         DBClusterSnapshotIdentifier="snapshot-1",
     )
+
+    if delete_cluster:
+        client.delete_db_cluster(DBClusterIdentifier=db_cluster_identifier)
 
     target_snapshot = client.copy_db_cluster_snapshot(
         SourceDBClusterSnapshotIdentifier="snapshot-1",
@@ -587,6 +591,25 @@ def test_copy_db_cluster_snapshot(client):
         ResourceName=target_snapshot["DBClusterSnapshotArn"]
     )
     assert result["TagList"] == []
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_type_is_always_manual(client):
+    # Even when copying a snapshot with SnapshotType=="automated", the
+    # SnapshotType of the copy is "manual".
+    db_cluster_identifier = create_db_cluster()
+    client.delete_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        FinalDBSnapshotIdentifier="final-snapshot",
+    )
+    snapshot1 = client.describe_db_cluster_snapshots()["DBClusterSnapshots"][0]
+    assert snapshot1["SnapshotType"] == "automated"
+
+    snapshot2 = client.copy_db_cluster_snapshot(
+        SourceDBClusterSnapshotIdentifier="final-snapshot",
+        TargetDBClusterSnapshotIdentifier="snapshot-2",
+    )["DBClusterSnapshot"]
+    assert snapshot2["SnapshotType"] == "manual"
 
 
 @mock_aws

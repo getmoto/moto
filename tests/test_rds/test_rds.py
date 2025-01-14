@@ -850,6 +850,25 @@ def test_copy_db_snapshots(
 
 
 @mock_aws
+def test_copy_db_snapshots_snapshot_type_is_always_manual(client):
+    # Even when copying a snapshot with SnapshotType=="automated", the
+    # SnapshotType of the copy is "manual".
+    db_instance_identifier = create_db_instance()["DBInstanceIdentifier"]
+    client.delete_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        FinalDBSnapshotIdentifier="final-snapshot",
+    )
+    snapshot1 = client.describe_db_snapshots()["DBSnapshots"][0]
+    assert snapshot1["SnapshotType"] == "automated"
+
+    snapshot2 = client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="final-snapshot",
+        TargetDBSnapshotIdentifier="snapshot-2",
+    )["DBSnapshot"]
+    assert snapshot2["SnapshotType"] == "manual"
+
+
+@mock_aws
 def test_copy_db_snapshot_invalid_arns(client):
     invalid_arn = (
         f"arn:aws:rds:{DEFAULT_REGION}:123456789012:this-is-not-a-snapshot:snapshot-1"
