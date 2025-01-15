@@ -5,6 +5,7 @@ from moto.core.config import default_user_config
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
+from .exceptions import ValidationException
 from .models import StepFunctionBackend, stepfunctions_backends
 from .parser.api import ExecutionStatus
 
@@ -33,6 +34,13 @@ class StepFunctionResponse(BaseResponse):
         encryptionConfiguration = self._get_param("encryptionConfiguration")
         loggingConfiguration = self._get_param("loggingConfiguration")
         tracingConfiguration = self._get_param("tracingConfiguration")
+        version_description = self._get_param("versionDescription")
+
+        if version_description and not publish:
+            raise ValidationException(
+                "Version description can only be set when publish is true"
+            )
+
         state_machine = self.stepfunction_backend.create_state_machine(
             name=name,
             definition=definition,
@@ -42,6 +50,7 @@ class StepFunctionResponse(BaseResponse):
             loggingConfiguration=loggingConfiguration,
             tracingConfiguration=tracingConfiguration,
             encryptionConfiguration=encryptionConfiguration,
+            version_description=version_description,
         )
         response = {
             "creationDate": state_machine.creation_date,
@@ -90,6 +99,8 @@ class StepFunctionResponse(BaseResponse):
             "tracingConfiguration": state_machine.tracingConfiguration,
             "loggingConfiguration": state_machine.loggingConfiguration,
         }
+        if state_machine.description:
+            response["description"] = state_machine.description
         return 200, {}, json.dumps(response)
 
     def delete_state_machine(self) -> TYPE_RESPONSE:
@@ -105,6 +116,13 @@ class StepFunctionResponse(BaseResponse):
         encryption_config = self._get_param("encryptionConfiguration")
         logging_config = self._get_param("loggingConfiguration")
         publish = self._get_param("publish")
+        version_description = self._get_param("versionDescription")
+
+        if version_description and not publish:
+            raise ValidationException(
+                "Version description can only be set when publish is true"
+            )
+
         state_machine = self.stepfunction_backend.update_state_machine(
             arn=arn,
             definition=definition,
@@ -113,6 +131,7 @@ class StepFunctionResponse(BaseResponse):
             encryption_configuration=encryption_config,
             logging_configuration=logging_config,
             publish=publish,
+            version_description=version_description,
         )
         response = {"updateDate": state_machine.update_date}
         if publish:

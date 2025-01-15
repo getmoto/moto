@@ -36287,7 +36287,7 @@
      "PeakBandwidthInGbps": 37.5
     }
    ],
-   "NetworkPerformance": "37.5 Gigabit"
+   "NetworkPerformance": "Up to 37.5 Gigabit"
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
@@ -93339,11 +93339,11 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 12.0,
+     "BaselineBandwidthInGbps": 10.0,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "10 Gigabit",
-     "PeakBandwidthInGbps": 12.0
+     "PeakBandwidthInGbps": 10.0
     }
    ],
    "NetworkPerformance": "10 Gigabit"
@@ -93579,11 +93579,11 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 12.0,
+     "BaselineBandwidthInGbps": 10.0,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "10 Gigabit",
-     "PeakBandwidthInGbps": 12.0
+     "PeakBandwidthInGbps": 10.0
     }
    ],
    "NetworkPerformance": "10 Gigabit"
@@ -94543,7 +94543,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -94905,7 +94905,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -95009,7 +95009,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -95202,7 +95202,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [

@@ -685,6 +685,7 @@
 - [ ] get_backup_vault_access_policy
 - [ ] get_backup_vault_notifications
 - [ ] get_legal_hold
+- [ ] get_recovery_point_index_details
 - [ ] get_recovery_point_restore_metadata
 - [ ] get_restore_job_metadata
 - [ ] get_restore_testing_inferred_metadata
@@ -701,6 +702,7 @@
 - [ ] list_copy_job_summaries
 - [ ] list_copy_jobs
 - [ ] list_frameworks
+- [ ] list_indexed_recovery_points
 - [ ] list_legal_holds
 - [ ] list_protected_resources
 - [ ] list_protected_resources_by_backup_vault
@@ -729,6 +731,7 @@
 - [ ] update_backup_plan
 - [ ] update_framework
 - [ ] update_global_settings
+- [ ] update_recovery_point_index_settings
 - [ ] update_recovery_point_lifecycle
 - [ ] update_region_settings
 - [ ] update_report_plan
@@ -1922,7 +1925,7 @@
 
 ## datasync
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] add_storage_system
 - [X] cancel_task_execution
@@ -1977,9 +1980,15 @@
 - [ ] update_agent
 - [ ] update_discovery_job
 - [ ] update_location_azure_blob
+- [ ] update_location_efs
+- [ ] update_location_fsx_lustre
+- [ ] update_location_fsx_ontap
+- [ ] update_location_fsx_open_zfs
+- [ ] update_location_fsx_windows
 - [ ] update_location_hdfs
 - [ ] update_location_nfs
 - [ ] update_location_object_storage
+- [ ] update_location_s3
 - [ ] update_location_smb
 - [ ] update_storage_system
 - [X] update_task
@@ -2274,6 +2283,22 @@
 - [X] update_settings
 - [ ] update_trust
 - [ ] verify_trust
+</details>
+
+## dsql
+<details>
+<summary>20% implemented</summary>
+
+- [X] create_cluster
+- [ ] create_multi_region_clusters
+- [ ] delete_cluster
+- [ ] delete_multi_region_clusters
+- [X] get_cluster
+- [ ] list_clusters
+- [ ] list_tags_for_resource
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_cluster
 </details>
 
 ## dynamodb
@@ -3217,6 +3242,7 @@
 - [ ] describe_addon_configuration
 - [ ] describe_addon_versions
 - [X] describe_cluster
+- [ ] describe_cluster_versions
 - [ ] describe_eks_anywhere_subscription
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
@@ -4756,6 +4782,7 @@
 - [X] get_policy_version
 - [X] get_registration_code
 - [ ] get_statistics
+- [ ] get_thing_connectivity_data
 - [X] get_topic_rule
 - [ ] get_topic_rule_destination
 - [ ] get_v2_logging_options
@@ -4996,12 +5023,12 @@
 
 ## kinesis
 <details>
-<summary>84% implemented</summary>
+<summary>93% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
 - [X] decrease_stream_retention_period
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] delete_stream
 - [X] deregister_stream_consumer
 - [ ] describe_limits
@@ -5011,7 +5038,7 @@
 - [X] disable_enhanced_monitoring
 - [X] enable_enhanced_monitoring
 - [X] get_records
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [X] get_shard_iterator
 - [X] increase_stream_retention_period
 - [X] list_shards
@@ -5021,7 +5048,7 @@
 - [X] merge_shards
 - [X] put_record
 - [X] put_records
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] register_stream_consumer
 - [X] remove_tags_from_stream
 - [X] split_shard
@@ -5550,6 +5577,7 @@
 - [ ] list_reservations
 - [ ] list_signal_maps
 - [ ] list_tags_for_resource
+- [ ] list_versions
 - [ ] purchase_offering
 - [ ] reboot_input_device
 - [ ] reject_input_device_transfer
@@ -9362,6 +9390,7 @@
 - autoscaling-plans
 - b2bi
 - backup-gateway
+- backupsearch
 - bcm-data-exports
 - bcm-pricing-calculator
 - bedrock-agent-runtime
@@ -9424,7 +9453,6 @@
 - docdb-elastic
 - drs
 - ds-data
-- dsql
 - ecr-public
 - eks-auth
 - elastic-inference

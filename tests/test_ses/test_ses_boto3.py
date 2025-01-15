@@ -595,6 +595,38 @@ def test_describe_configuration_set():
 
 
 @mock_aws
+def test_list_configuration_sets():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test1"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test2"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test3"}))
+
+    config_sets = conn.list_configuration_sets()["ConfigurationSets"]
+    assert len(config_sets) == 3
+    config_set_names = [config_set["Name"] for config_set in config_sets]
+    assert "test1" in config_set_names
+    assert "test2" in config_set_names
+    assert "test3" in config_set_names
+
+
+@mock_aws
+def test_delete_configuration_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test1"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test2"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test3"}))
+
+    config_sets = conn.list_configuration_sets()["ConfigurationSets"]
+    assert len(config_sets) == 3
+
+    conn.delete_configuration_set(ConfigurationSetName="test3")
+    config_sets = conn.list_configuration_sets()["ConfigurationSets"]
+    assert len(config_sets) == 2
+    config_set_names = [config_set["Name"] for config_set in config_sets]
+    assert "test3" not in config_set_names
+
+
+@mock_aws
 def test_create_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     result = conn.create_receipt_rule_set(RuleSetName="testRuleSet")

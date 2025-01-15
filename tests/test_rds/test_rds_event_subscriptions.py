@@ -41,7 +41,7 @@ def test_create_event_subscription():
             "Restoration",
         ],
         SourceIds=[db_identifier],
-    ).get("EventSubscription")
+    )["EventSubscription"]
 
     assert es["CustSubscriptionId"] == f"{db_identifier}-events"
     assert es["SnsTopicArn"] == (
@@ -99,9 +99,9 @@ def test_delete_event_subscription():
         SnsTopicArn=f"arn:aws:sns::{ACCOUNT_ID}:{db_identifier}-events-topic",
     )
 
-    es = client.delete_event_subscription(
-        SubscriptionName=f"{db_identifier}-events"
-    ).get("EventSubscription")
+    es = client.delete_event_subscription(SubscriptionName=f"{db_identifier}-events")[
+        "EventSubscription"
+    ]
 
     assert es["CustSubscriptionId"] == f"{db_identifier}-events"
     assert es["SnsTopicArn"] == (
@@ -119,7 +119,7 @@ def test_describe_event_subscriptions():
         SnsTopicArn=f"arn:aws:sns::{ACCOUNT_ID}:{db_identifier}-events-topic",
     )
 
-    subscriptions = client.describe_event_subscriptions().get("EventSubscriptionsList")
+    subscriptions = client.describe_event_subscriptions()["EventSubscriptionsList"]
 
     assert len(subscriptions) == 1
     assert subscriptions[0]["CustSubscriptionId"] == f"{db_identifier}-events"

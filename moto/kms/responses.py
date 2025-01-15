@@ -604,6 +604,36 @@ class KmsResponse(BaseResponse):
 
         return json.dumps(result)
 
+    def generate_mac(self) -> str:
+        message = self._get_param("Message")
+        key_id = self._get_param("KeyId")
+        mac_algorithm = self._get_param("MacAlgorithm")
+        grant_tokens = self._get_param("GrantTokens")
+        dry_run = self._get_param("DryRun")
+
+        self._validate_key_id(key_id)
+
+        mac_algorithms = {
+            "HMAC_SHA_224",
+            "HMAC_SHA_256",
+            "HMAC_SHA_384",
+            "HMAC_SHA_512",
+        }
+        if mac_algorithm and mac_algorithm not in mac_algorithms:
+            raise ValidationException(
+                f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
+            )
+
+        mac, mac_algorithm, key_id = self.kms_backend.generate_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        return json.dumps(dict(Mac=mac, MacAlgorithm=mac_algorithm, KeyId=key_id))
+
     def generate_random(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateRandom.html"""
         number_of_bytes = self._get_param("NumberOfBytes")
@@ -703,6 +733,38 @@ class KmsResponse(BaseResponse):
             }
         )
 
+    def verify_mac(self) -> str:
+        message = self._get_param("Message")
+        mac = self._get_param("Mac")
+        key_id = self._get_param("KeyId")
+        mac_algorithm = self._get_param("MacAlgorithm")
+        grant_tokens = self._get_param("GrantTokens")
+        dry_run = self._get_param("DryRun")
+
+        self._validate_key_id(key_id)
+
+        mac_algorithms = {
+            "HMAC_SHA_224",
+            "HMAC_SHA_256",
+            "HMAC_SHA_384",
+            "HMAC_SHA_512",
+        }
+        if mac_algorithm and mac_algorithm not in mac_algorithms:
+            raise ValidationException(
+                f"MacAlgorithm must be one of {', '.join(mac_algorithms)}"
+            )
+
+        self.kms_backend.verify_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            mac=mac,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        return json.dumps(dict(KeyId=key_id, MacValid=True, MacAlgorithm=mac_algorithm))
+
     def get_public_key(self) -> str:
         key_id = self._get_param("KeyId")
 
@@ -718,6 +780,35 @@ class KmsResponse(BaseResponse):
                 "SigningAlgorithms": key.signing_algorithms,
             }
         )
+
+    def rotate_key_on_demand(self) -> str:
+        key_id = self._get_param("KeyId")
+
+        self._validate_key_id(key_id)
+
+        key_id = self.kms_backend.rotate_key_on_demand(
+            key_id=key_id,
+        )
+        return json.dumps(dict(KeyId=key_id))
+
+    def list_key_rotations(self) -> str:
+        key_id = self._get_param("KeyId")
+        limit = self._get_param("Limit", 1000)
+        marker = self._get_param("Marker")
+
+        self._validate_key_id(key_id)
+
+        rotations, next_marker = self.kms_backend.list_key_rotations(
+            key_id=key_id, limit=limit, next_marker=marker
+        )
+        is_truncated = next_marker is not None
+
+        response = {"Rotations": rotations, "Truncated": is_truncated}
+
+        if is_truncated:
+            response["NextMarker"] = next_marker
+
+        return json.dumps(response)
 
 
 def _assert_default_policy(policy_name: str) -> None:
