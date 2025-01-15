@@ -117,8 +117,17 @@ def test_describe_domain():
 def test_delete_domain():
     client = boto3.client("opensearch", region_name="eu-west-1")
     client.create_domain(DomainName="testdn")
-    client.delete_domain(DomainName="testdn")
+    resp = client.delete_domain(DomainName="testdn")
+    status = resp["DomainStatus"]
+    assert "DomainId" in status
+    assert "DomainName" in status
+    assert status["Deleted"]  # assume deleted completion
+    assert status["DomainName"] == "testdn"
 
+
+@mock_aws
+def test_delete_invalid_domain():
+    client = boto3.client("opensearch", region_name="eu-west-1")
     with pytest.raises(ClientError) as exc:
         client.describe_domain(DomainName="testdn")
     err = exc.value.response["Error"]
@@ -216,7 +225,7 @@ def test_list_unknown_domain_names_engine_type():
         client.list_domain_names(EngineType="unknown")
     err = exc.value.response["Error"]
     assert err["Code"] == "EngineTypeNotFoundException"
-    assert err["Message"] == "Engine Type not found: testdn"
+    assert err["Message"] == "Engine Type not found: unknown"
 
 
 @mock_aws
