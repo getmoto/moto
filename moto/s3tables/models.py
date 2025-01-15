@@ -130,7 +130,7 @@ class Namespace:
         self.account_id = account_id
         self.created_by = created_by
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
-        self.tables: dict[str, Table] = {}
+        self.tables: Dict[str, Table] = {}
 
 
 class FakeTableBucket:
@@ -140,7 +140,7 @@ class FakeTableBucket:
         self.region_name = region_name
         self.partition = get_partition(region_name)
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
-        self.namespaces: dict[str, Namespace] = {}
+        self.namespaces: Dict[str, Namespace] = {}
 
     @property
     def arn(self) -> str:
