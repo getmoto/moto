@@ -15,6 +15,7 @@ from moto.utilities.utils import get_partition
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
 from .exceptions import (
+    AlreadyExistsException,
     ConcurrentRunsExceededException,
     CrawlerAlreadyExistsException,
     CrawlerNotFoundException,
@@ -22,6 +23,7 @@ from .exceptions import (
     CrawlerRunningException,
     DatabaseAlreadyExistsException,
     DatabaseNotFoundException,
+    EntityNotFoundException,
     IllegalSessionStateException,
     JobNotFoundException,
     JobRunNotFoundException,
@@ -59,6 +61,83 @@ from .glue_schema_registry_utils import (
     validate_schema_version_params,
 )
 from .utils import PartitionFilter
+
+
+class FakeDevEndpoint(BaseModel):
+    def __init__(
+        self,
+        endpoint_name: str,
+        role_arn: str,
+        security_group_ids: List[str],
+        subnet_id: str,
+        worker_type: str = "Standard",
+        glue_version: str = "1.0",
+        number_of_workers: int = 5,
+        number_of_nodes: int = 5,
+        extra_python_libs_s3_path: Optional[str] = None,
+        extra_jars_s3_path: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+        arguments: Optional[Dict[str, str]] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ):
+        pubkey = """ssh-rsa
+        AAAAB3NzaC1yc2EAAAADAQABAAABAQDV5+voluw2zmzqpqCAqtsyoP01TQ8Ydx1eS1yD6wUsHcPqMIqpo57YxiC8XPwrdeKQ6GG6MC3bHsgXoPypGP0LyixbiuLTU31DnnqorcHt4bWs6rQa7dK2pCCflz2fhYRt5ZjqSNsAKivIbqkH66JozN0SySIka3kEV79GdB0BicioKeEJlCwM9vvxafyzjWf/z8E0lh4ni3vkLpIVJ0t5l+Qd9QMJrT6Is0SCQPVagTYZoi8+fWDoGsBa8vyRwDjEzBl28ZplKh9tSyDkRIYszWTpmK8qHiqjLYZBfAxXjGJbEYL1iig4ZxvbYzKEiKSBi1ZMW9iWjHfZDZuxXAmB
+        example
+        """
+
+        self.endpoint_name = endpoint_name
+        self.role_arn = role_arn
+        self.security_group_ids = security_group_ids
+        self.subnet_id = subnet_id
+        self.worker_type = worker_type
+        self.glue_version = glue_version
+        self.number_of_workers = number_of_workers
+        self.number_of_nodes = number_of_nodes
+        self.extra_python_libs_s3_path = extra_python_libs_s3_path
+        self.extra_jars_s3_path = extra_jars_s3_path
+        self.security_configuration = security_configuration
+        self.arguments = arguments or {}
+        self.tags = tags or {}
+
+        # AWS Generated Fields
+        self.created_timestamp = utcnow()
+        self.last_modified_timestamp = self.created_timestamp
+        self.status = "READY"
+        self.availability_zone = "us-east-1a"
+        self.vpc_id = "vpc-12345678"
+        self.yarn_endpoint_address = f"yarn-{endpoint_name}.glue.amazonaws.com"
+        self.private_address = "10.0.0.1"
+        self.public_address = f"{endpoint_name}.glue.amazonaws.com"
+        self.zeppelin_remote_spark_interpreter_port = 9007
+        self.public_key = pubkey
+        self.public_keys = [self.public_key]
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "EndpointName": self.endpoint_name,
+            "RoleArn": self.role_arn,
+            "SecurityGroupIds": self.security_group_ids,
+            "SubnetId": self.subnet_id,
+            "YarnEndpointAddress": self.yarn_endpoint_address,
+            "PrivateAddress": self.private_address,
+            "ZeppelinRemoteSparkInterpreterPort": self.zeppelin_remote_spark_interpreter_port,
+            "PublicAddress": self.public_address,
+            "Status": self.status,
+            "WorkerType": self.worker_type,
+            "GlueVersion": self.glue_version,
+            "NumberOfWorkers": self.number_of_workers,
+            "NumberOfNodes": self.number_of_nodes,
+            "AvailabilityZone": self.availability_zone,
+            "VpcId": self.vpc_id,
+            "ExtraPythonLibsS3Path": self.extra_python_libs_s3_path,
+            "ExtraJarsS3Path": self.extra_jars_s3_path,
+            "CreatedTimestamp": self.created_timestamp.isoformat(),
+            "LastModifiedTimestamp": self.last_modified_timestamp.isoformat(),
+            "PublicKey": self.public_key,
+            "PublicKeys": self.public_keys,
+            "SecurityConfiguration": self.security_configuration,
+            "Arguments": self.arguments,
+        }
 
 
 class GlueBackend(BaseBackend):
@@ -99,6 +178,12 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "get_dev_endpoints": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "endpoint_name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -113,6 +198,7 @@ class GlueBackend(BaseBackend):
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
+        self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
 
     def create_database(
         self,
@@ -1036,6 +1122,62 @@ class GlueBackend(BaseBackend):
             if trigger_name in self.triggers:
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_dev_endpoints(self) -> List["FakeDevEndpoint"]:
+        return [endpoint for endpoint in self.dev_endpoints.values()]
+
+    def create_dev_endpoint(
+        self,
+        endpoint_name: str,
+        role_arn: str,
+        security_group_ids: Optional[List[str]] = None,
+        subnet_id: Optional[str] = None,
+        public_key: Optional[str] = None,
+        public_keys: Optional[List[str]] = None,
+        number_of_nodes: Optional[int] = None,
+        worker_type: str = "Standard",
+        glue_version: str = "5.0",
+        number_of_workers: Optional[int] = None,
+        extra_python_libs_s3_path: Optional[str] = None,
+        extra_jars_s3_path: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        arguments: Optional[Dict[str, str]] = None,
+    ) -> FakeDevEndpoint:
+        if endpoint_name in self.dev_endpoints:
+            raise AlreadyExistsException(f"DevEndpoint {endpoint_name} already exists")
+
+        dev_endpoint = FakeDevEndpoint(
+            endpoint_name=endpoint_name,
+            role_arn=role_arn,
+            security_group_ids=security_group_ids or [],
+            subnet_id=subnet_id or "subnet-default",
+            worker_type=worker_type,
+            glue_version=glue_version,
+            number_of_workers=number_of_workers or 1,
+            number_of_nodes=number_of_nodes or 1,
+            extra_python_libs_s3_path=extra_python_libs_s3_path,
+            extra_jars_s3_path=extra_jars_s3_path,
+            security_configuration=security_configuration,
+            arguments=arguments,
+            tags=tags,
+        )
+
+        if public_key:
+            dev_endpoint.public_key = public_key
+
+        if public_keys:
+            dev_endpoint.public_keys = public_keys
+
+        self.dev_endpoints[endpoint_name] = dev_endpoint
+        return dev_endpoint
+
+    def get_dev_endpoint(self, endpoint_name: str) -> FakeDevEndpoint:
+        try:
+            return self.dev_endpoints[endpoint_name]
+        except KeyError:
+            raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
 
 
 class FakeDatabase(BaseModel):
