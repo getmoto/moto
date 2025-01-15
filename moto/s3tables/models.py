@@ -104,7 +104,11 @@ class Table:
         hash.update(self.name.encode())
         bucket_name = f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
 
-        bucket = s3_backends[self.account_id][self.partition].create_bucket(
+        # TODO: properly integrate s3 table buckets into s3
+        # bucket = s3_backends[self.account_id][self.partition].create_bucket(
+        #     bucket_name, region_name="us-east-1"
+        # )
+        bucket = s3_backends["__s3tables__"][self.partition].create_bucket(
             bucket_name, region_name="us-east-1"
         )
         return bucket
@@ -401,7 +405,12 @@ class S3TablesBackend(BaseBackend):
         raise ValueError("Table doesn't exist")
 
     def update_table_metadata_location(
-        self, table_bucket_arn, namespace, name, version_token, metadata_location
+        self,
+        table_bucket_arn: str,
+        namespace: str,
+        name: str,
+        version_token: str,
+        metadata_location: str,
     ) -> Table:
         bucket = self.table_buckets.get(table_bucket_arn)
         if bucket and namespace in bucket.namespaces:

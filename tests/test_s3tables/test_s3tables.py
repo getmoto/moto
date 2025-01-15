@@ -249,3 +249,35 @@ def test_update_table_metadata_location():
         tableBucketARN=arn, namespace="bar", name="baz"
     )
     assert "metadataLocation" in resp
+
+
+@mock_aws
+def test_write_metadata_to_table() -> None:
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+
+    resp = client.get_table(tableBucketARN=arn, namespace="bar", name="baz")
+    s3 = boto3.client("s3", region_name="us-east-2")
+    metadata = b'{"foo":"bar"}'
+
+    bucket_name = resp["warehouseLocation"].replace("s3://", "")
+    key = "metadata/00001-foo.metadata.json"
+    s3.put_object(Bucket=bucket_name, Key=key, Body=metadata)
+
+    client.update_table_metadata_location(
+        tableBucketARN=arn,
+        namespace="bar",
+        name="baz",
+        metadataLocation=f"s3://{bucket_name}/{key}",
+        versionToken=resp["versionToken"],
+    )
+    resp = client.get_table_metadata_location(
+        tableBucketARN=arn, namespace="bar", name="baz"
+    )
+    bucket, key = resp["metadataLocation"].replace("s3://", "").split("/", 1)
+    resp = s3.get_object(Bucket=bucket, Key=key)
+    assert resp["Body"].read() == metadata
