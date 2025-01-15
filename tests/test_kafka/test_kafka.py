@@ -186,7 +186,7 @@ def test_list_clusters_v2():
     s_cluster_name = "TestServerlessCluster"
     p_cluster_name = "TestProvisionedCluster"
 
-    s_response = client.create_cluster_v2(
+    client.create_cluster_v2(
         ClusterName=s_cluster_name,
         Serverless={
             "VpcConfigs": [
@@ -199,7 +199,7 @@ def test_list_clusters_v2():
         Tags=FAKE_TAGS,
     )
 
-    p_response = client.create_cluster_v2(
+    client.create_cluster_v2(
         ClusterName=p_cluster_name,
         Provisioned={
             "BrokerNodeGroupInfo": {

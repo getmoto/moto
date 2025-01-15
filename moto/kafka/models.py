@@ -203,8 +203,8 @@ class KafkaBackend(BaseBackend):
         cluster_type_filter: Optional[str],
         max_results: Optional[int],
         next_token: Optional[str],
+        
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-
         cluster_info_list = []
         for cluster_arn in self.clusters.keys():
             cluster_info = self.describe_cluster_v2(cluster_arn)
