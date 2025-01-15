@@ -204,16 +204,11 @@ class KafkaBackend(BaseBackend):
         max_results: Optional[int],
         next_token: Optional[str],
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        cluster_info_list = [
-            {
-                "clusterArn": cluster.arn,
-                "clusterName": cluster.cluster_name,
-                "clusterType": cluster.cluster_type,
-                "state": cluster.state,
-                "creationTime": cluster.creation_time,
-            }
-            for cluster in self.clusters.values()
-        ]
+
+        cluster_info_list = []
+        for cluster_arn in self.clusters.keys():
+            cluster_info = self.describe_cluster_v2(cluster_arn)
+            cluster_info_list.append(cluster_info)
 
         return cluster_info_list, None
 
