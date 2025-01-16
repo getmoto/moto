@@ -81,3 +81,12 @@ def empty_bucket(client, bucket_name):
         client.delete_object(
             Bucket=bucket_name, Key=key["Key"], VersionId=key.get("VersionId"), **kwargs
         )
+
+
+def generate_content_md5(content: bytes) -> str:
+    import base64
+    import hashlib
+
+    md = hashlib.md5(content).digest()
+    content_md5 = base64.b64encode(md).decode("utf-8")
+    return content_md5
