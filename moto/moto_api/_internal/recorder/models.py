@@ -33,9 +33,10 @@ class Recorder:
 
         if body is None:
             if isinstance(request, AWSPreparedRequest):
-                body = request.body  # type: ignore
                 if hasattr(request.body, "read"):
-                    body = request.body.read()
+                    body = request.body.read()  # type: ignore
+                else:
+                    body = request.body  # type: ignore
                 body_str, body_encoded = self._encode_body(body)
             else:
                 try:
