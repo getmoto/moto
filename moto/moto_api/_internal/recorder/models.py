@@ -10,7 +10,7 @@ from botocore.awsrequest import AWSPreparedRequest
 
 try:
     from botocore.httpchecksum import AwsChunkedWrapper
-except ImportError:
+except ModuleNotFoundError:
     AwsChunkedWrapper = None
 
 
