@@ -1347,6 +1347,8 @@ class S3Response(BaseResponse):
 
     def _handle_encoded_body(self, body: bytes) -> bytes:
         decoded_body = b""
+        if not body:
+            return decoded_body
         body_io = io.BytesIO(body)
         # first line should equal '{content_length}\r\n' while the content_length is a hex number
         content_length = int(body_io.readline().strip(), 16)
