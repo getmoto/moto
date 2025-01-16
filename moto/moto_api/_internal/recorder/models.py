@@ -8,11 +8,6 @@ from urllib.parse import urlparse
 import requests
 from botocore.awsrequest import AWSPreparedRequest
 
-try:
-    from botocore.httpchecksum import AwsChunkedWrapper
-except ModuleNotFoundError:
-    AwsChunkedWrapper = None
-
 
 class Recorder:
     def __init__(self) -> None:
@@ -39,7 +34,7 @@ class Recorder:
         if body is None:
             if isinstance(request, AWSPreparedRequest):
                 body = request.body  # type: ignore
-                if isinstance(request.body, AwsChunkedWrapper):
+                if hasattr(request.body, "read"):
                     body = request.body.read()
                 body_str, body_encoded = self._encode_body(body)
             else:
