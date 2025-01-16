@@ -34,7 +34,7 @@ class Recorder:
 
         if body is None:
             if isinstance(request, AWSPreparedRequest):
-                body = request.body
+                body = request.body  # type: ignore
                 if isinstance(request.body, AwsChunkedWrapper):
                     body = request.body.read()
                 body_str, body_encoded = self._encode_body(body)
