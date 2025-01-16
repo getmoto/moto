@@ -7,7 +7,11 @@ from urllib.parse import urlparse
 
 import requests
 from botocore.awsrequest import AWSPreparedRequest
-from botocore.httpchecksum import AwsChunkedWrapper
+
+try:
+    from botocore.httpchecksum import AwsChunkedWrapper
+except ImportError:
+    AwsChunkedWrapper = None
 
 
 class Recorder:
