@@ -1771,6 +1771,8 @@ class S3Response(BaseResponse):
             checksum_value = compute_checksum(
                 self.raw_body, algorithm=checksum_algorithm
             )
+            if isinstance(checksum_value, bytes):
+                checksum_value = checksum_value.decode("utf-8")
             response_headers.update({checksum_header: checksum_value})
         return checksum_algorithm, checksum_value
 
