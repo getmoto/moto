@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import requests
 from botocore.awsrequest import AWSPreparedRequest
+from botocore.httpchecksum import AwsChunkedWrapper
 
 
 class Recorder:
@@ -33,7 +34,10 @@ class Recorder:
 
         if body is None:
             if isinstance(request, AWSPreparedRequest):
-                body_str, body_encoded = self._encode_body(body=request.body)
+                body = request.body
+                if isinstance(request.body, AwsChunkedWrapper):
+                    body = request.body.read()
+                body_str, body_encoded = self._encode_body(body)
             else:
                 try:
                     request_body = None
