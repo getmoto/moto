@@ -16,6 +16,9 @@ from moto.s3tables.exceptions import (
     InvalidTableBucketName,
     InvalidTableName,
     NotFoundException,
+    TableAlreadyExists,
+    TableDoesNotExist,
+    VersionTokenMismatch,
 )
 from moto.utilities.utils import get_partition
 
@@ -117,7 +120,7 @@ class Table:
         self, metadata_location: str, version_token: str
     ) -> None:
         if not self.version_token == version_token:
-            raise ValueError("version tokens don't match")
+            raise VersionTokenMismatch()
 
         self.metadata_location = metadata_location
         self.version_token = self._generate_version_token()
@@ -307,31 +310,35 @@ class S3TablesBackend(BaseBackend):
         format: Literal["ICEBERG"],
     ) -> Table:
         bucket = self.table_buckets.get(table_bucket_arn)
-        if bucket and namespace in bucket.namespaces:
-            ns = bucket.namespaces[namespace]
-            if name in ns.tables:
-                raise ValueError("Table already exists")
-            table = Table(
-                name=name,
-                account_id=self.account_id,
-                created_by=self.account_id,
-                format=format,
-                namespace=namespace,
-                table_bucket_arn=table_bucket_arn,
-                type="customer",
-                managed_by_service=False,
-                partition=self.partition,
-            )
-            ns.tables[table.name] = table
-            return table
-        raise ValueError("resource doesnt exist")
+        if not bucket:
+            raise NotFoundException("The specified bucket does not exist.")
+
+        if namespace not in bucket.namespaces:
+            raise NotFoundException("The specified namespace does not exist.")
+
+        ns = bucket.namespaces[namespace]
+        if name in ns.tables:
+            TableAlreadyExists()
+        table = Table(
+            name=name,
+            account_id=self.account_id,
+            created_by=self.account_id,
+            format=format,
+            namespace=namespace,
+            table_bucket_arn=table_bucket_arn,
+            type="customer",
+            managed_by_service=False,
+            partition=self.partition,
+        )
+        ns.tables[table.name] = table
+        return table
 
     def get_table(self, table_bucket_arn: str, namespace: str, name: str) -> Table:
         bucket = self.table_buckets.get(table_bucket_arn)
         if bucket and namespace in bucket.namespaces:
             if name in bucket.namespaces[namespace].tables:
                 return bucket.namespaces[namespace].tables[name]
-        raise ValueError("table does not exist")
+        raise TableDoesNotExist()
 
     def list_tables(
         self,
@@ -402,7 +409,7 @@ class S3TablesBackend(BaseBackend):
             if name in ns.tables:
                 ns.tables.pop(name)
                 return
-        raise ValueError("Table doesn't exist")
+        raise TableDoesNotExist()
 
     def update_table_metadata_location(
         self,
@@ -420,7 +427,8 @@ class S3TablesBackend(BaseBackend):
                     metadata_location=metadata_location, version_token=version_token
                 )
                 return table
-        raise ValueError("table does not exist")
+
+        raise TableDoesNotExist()
 
 
 s3tables_backends = BackendDict(

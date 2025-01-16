@@ -38,6 +38,13 @@ class InvalidNamespaceName(BadRequestException):
         super().__init__(self.msg)
 
 
+class InvalidMetadataLocation(BadRequestException):
+    msg = "The specified metadata location is not valid."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
+
+
 class NotFoundException(JsonRESTError):
     code = 404
 
@@ -45,8 +52,36 @@ class NotFoundException(JsonRESTError):
         super().__init__("NotFoundException", message)
 
 
+class NamespaceDoesNotExist(NotFoundException):
+    msg = "The specified namespace does not exist."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
+
+
+class TableDoesNotExist(NotFoundException):
+    msg = "The specified table does not exist."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
+
+
 class ConflictException(JsonRESTError):
     code = 409
 
     def __init__(self, message: str) -> None:
         super().__init__("ConflictException", message)
+
+
+class VersionTokenMismatch(ConflictException):
+    msg = "Provided version token does not match the table version token."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
+
+
+class TableAlreadyExists(ConflictException):
+    msg = "A table with an identical name already exists in the namespace."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
