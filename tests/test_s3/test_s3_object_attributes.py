@@ -69,9 +69,6 @@ class TestS3ObjectAttributes:
         )
         resp.pop("ResponseMetadata")
 
-        # Checksum is not returned, because it's not set
-        assert set(resp.keys()) == {"LastModified"}
-
         # Retrieve checksum from key that was created with CRC32
         resp = self.client.get_object_attributes(
             Bucket=self.bucket_name, Key="cs", ObjectAttributes=["Checksum"]

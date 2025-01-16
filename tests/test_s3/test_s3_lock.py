@@ -10,7 +10,7 @@ from moto import mock_aws
 from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
 from tests import allow_aws_request
-from tests.test_s3 import s3_aws_verified
+from tests.test_s3 import generate_content_md5, s3_aws_verified
 from tests.test_s3.test_s3 import enable_versioning
 
 
@@ -86,6 +86,7 @@ def test_locked_object_governance_mode(bypass_governance_retention, bucket_name=
         Key=key_name,
         ObjectLockMode="GOVERNANCE",
         ObjectLockRetainUntilDate=until,
+        ContentMD5=generate_content_md5(b"test"),
     )
 
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
@@ -196,6 +197,7 @@ def test_locked_object_compliance_mode(bypass_governance_retention, bucket_name=
         Key=key_name,
         ObjectLockMode="COMPLIANCE",
         ObjectLockRetainUntilDate=until,
+        ContentMD5=generate_content_md5(b"test"),
     )
 
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
@@ -256,6 +258,7 @@ def test_fail_locked_object():
             Key=key_name,
             ObjectLockMode="COMPLIANCE",
             ObjectLockRetainUntilDate=until,
+            ContentMD5=generate_content_md5(b"test"),
         )
     except ClientError as exc:
         assert exc.response["Error"]["Code"] == "InvalidRequest"
@@ -321,7 +324,12 @@ def test_put_object_legal_hold(bucket_name=None):
         },
     )
 
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ContentMD5=generate_content_md5(b"test"),
+    )
 
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
     version_id = versions_response["Versions"][0]["VersionId"]
@@ -331,6 +339,9 @@ def test_put_object_legal_hold(bucket_name=None):
         Key=key_name,
         VersionId=version_id,
         LegalHold={"Status": "ON"},
+        ContentMD5=generate_content_md5(
+            b'<LegalHold xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>ON</Status></LegalHold>'
+        ),
     )
 
     with pytest.raises(ClientError) as exc:
@@ -349,6 +360,9 @@ def test_put_object_legal_hold(bucket_name=None):
         Key=key_name,
         VersionId=version_id,
         LegalHold={"Status": "OFF"},
+        ContentMD5=generate_content_md5(
+            b'<LegalHold xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>OFF</Status></LegalHold>'
+        ),
     )
     s3_client.delete_object(
         Bucket=bucket_name,
@@ -379,7 +393,12 @@ def test_put_default_lock():
         },
     )
 
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ContentMD5=generate_content_md5(b"test"),
+    )
 
     deleted = False
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
