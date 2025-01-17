@@ -56,6 +56,7 @@ from moto.s3.exceptions import (
     InvalidTagError,
     InvalidTargetBucketForLogging,
     MalformedXML,
+    MethodNotAllowed,
     MissingBucket,
     MissingKey,
     NoSuchPublicAccessBlockConfiguration,
@@ -1646,8 +1647,7 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-class FakeTableStorageBucket(FakeBucket):
-    ...
+class FakeTableStorageBucket(FakeBucket): ...
 
 
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
@@ -1724,7 +1724,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
         #
         # First, check all known buckets/keys
-        for bucket in itertools.chain(self.buckets.values(), self.table_buckets.values()):
+        for bucket in itertools.chain(
+            self.buckets.values(), self.table_buckets.values()
+        ):
             for key in bucket.keys.values():  # type: ignore
                 if isinstance(key, FakeKey):
                     key.dispose()
@@ -1881,7 +1883,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return new_bucket
 
-    def create_table_storage_bucket(self, bucket_name: str, region_name: str) -> FakeTableStorageBucket:
+    def create_table_storage_bucket(
+        self, bucket_name: str, region_name: str
+    ) -> FakeTableStorageBucket:
         if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         new_bucket = FakeTableStorageBucket(
@@ -1890,7 +1894,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         self.table_buckets[bucket_name] = new_bucket
         return new_bucket
-
 
     def list_buckets(self) -> List[FakeBucket]:
         return list(self.buckets.values())
@@ -2676,6 +2679,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         MOTO_S3_DEFAULT_MAX_KEYS=5
         """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2734,6 +2739,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         MOTO_S3_DEFAULT_MAX_KEYS=5
         """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         result_keys, result_folders, _, _ = self.list_objects(
             bucket, prefix, delimiter, marker=None, max_keys=None
         )
@@ -2816,6 +2823,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bypass: bool = False,
     ) -> Tuple[bool, Dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
 
         response_meta = {}
         delete_key = bucket.keys.get(key_name)

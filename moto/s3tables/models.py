@@ -108,9 +108,9 @@ class Table:
         hash.update(self.name.encode())
         bucket_name = f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
 
-        bucket = s3_backends[self.account_id][self.partition].create_table_storage_bucket(
-            bucket_name, region_name=self.region_name
-        )
+        bucket = s3_backends[self.account_id][
+            self.partition
+        ].create_table_storage_bucket(bucket_name, region_name=self.region_name)
         return bucket
 
     def update_metadata_location(
@@ -401,13 +401,20 @@ class S3TablesBackend(BaseBackend):
         self, table_bucket_arn: str, namespace: str, name: str, version_token: str
     ) -> None:
         bucket = self.table_buckets.get(table_bucket_arn)
-        if not bucket or namespace not in bucket.namespaces or (name not in bucket.namespaces[namespace].tables):
+        if (
+            not bucket
+            or namespace not in bucket.namespaces
+            or (name not in bucket.namespaces[namespace].tables)
+        ):
             raise TableDoesNotExist()
 
         ns = bucket.namespaces[namespace]
         table = ns.tables[name]
         from moto.s3.models import s3_backends
-        s3_backends[self.account_id][self.partition].delete_table_storage_bucket(table._bucket.name)
+
+        s3_backends[self.account_id][self.partition].delete_table_storage_bucket(
+            table._bucket.name
+        )
 
         ns.tables.pop(name)
 
