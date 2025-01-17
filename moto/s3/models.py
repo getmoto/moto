@@ -1646,6 +1646,10 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+class FakeTableStorageBucket(FakeBucket):
+    ...
+
+
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
     """
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
@@ -1711,6 +1715,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.buckets: Dict[str, FakeBucket] = {}
+        self.table_buckets: Dict[str, FakeTableStorageBucket] = {}
         self.tagger = TaggingService()
         self._pagination_tokens: Dict[str, str] = {}
 
@@ -1719,7 +1724,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
         #
         # First, check all known buckets/keys
-        for bucket in self.buckets.values():
+        for bucket in itertools.chain(self.buckets.values(), self.table_buckets.values()):
             for key in bucket.keys.values():  # type: ignore
                 if isinstance(key, FakeKey):
                     key.dispose()
@@ -1876,12 +1881,26 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return new_bucket
 
+    def create_table_storage_bucket(self, bucket_name: str, region_name: str) -> FakeTableStorageBucket:
+        if bucket_name in s3_backends.bucket_accounts.keys():
+            raise BucketAlreadyExists(bucket=bucket_name)
+        new_bucket = FakeTableStorageBucket(
+            name=bucket_name, account_id=self.account_id, region_name=region_name
+        )
+
+        self.table_buckets[bucket_name] = new_bucket
+        return new_bucket
+
+
     def list_buckets(self) -> List[FakeBucket]:
         return list(self.buckets.values())
 
     def get_bucket(self, bucket_name: str) -> FakeBucket:
         if bucket_name in self.buckets:
             return self.buckets[bucket_name]
+
+        if bucket_name in self.table_buckets:
+            return self.table_buckets[bucket_name]
 
         if bucket_name in s3_backends.bucket_accounts:
             if not s3_allow_crossdomain_access():
@@ -1902,6 +1921,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         else:
             s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
+
+    def delete_table_storage_bucket(self, bucket_name: str) -> Optional[FakeBucket]:
+        bucket = self.get_bucket(bucket_name)
+        assert isinstance(bucket, FakeTableStorageBucket)
+        # table storage buckets can be deleted while not empty
+        if bucket.keys:
+            for key in bucket.keys.values():  # type: ignore
+                if isinstance(key, FakeKey):
+                    key.dispose()
+            for part in bucket.multiparts.values():
+                part.dispose()
+        s3_backends.bucket_accounts.pop(bucket_name, None)
+        return self.table_buckets.pop(bucket_name)
 
     def get_bucket_accelerate_configuration(self, bucket_name: str) -> Optional[str]:
         bucket = self.get_bucket(bucket_name)

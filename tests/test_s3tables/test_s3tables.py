@@ -216,6 +216,27 @@ def test_delete_table():
 
 
 @mock_aws
+def test_delete_table_deletes_underlying_table_storage():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    s3 = boto3.client("s3", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+    warehouse = client.get_table(
+        tableBucketARN=arn, namespace="bar", name="baz"
+    )["warehouseLocation"]
+
+    bucket_name = warehouse.replace("s3://", "")
+    s3.head_bucket(Bucket=bucket_name)
+
+    client.delete_table(tableBucketARN=arn, namespace="bar", name="baz")
+    with pytest.raises(s3.exceptions.ClientError):
+        s3.head_bucket(Bucket=bucket_name)
+
+
+@mock_aws
 def test_get_table_metadata_location():
     client = boto3.client("s3tables", region_name="us-east-2")
     arn = client.create_table_bucket(name="foo")["arn"]

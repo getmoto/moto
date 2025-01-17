@@ -81,6 +81,7 @@ class Table:
         self.modified_by: Optional[str] = None
         self.namespace = namespace
         self.table_bucket_arn = table_bucket_arn
+        self.region_name = table_bucket_arn.split(":")[3]
         self.managed_by_service = managed_by_service
         self.metadata_location: Optional[str] = None
         self._bucket = self._create_underlying_bucket()
@@ -107,12 +108,8 @@ class Table:
         hash.update(self.name.encode())
         bucket_name = f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
 
-        # TODO: properly integrate s3 table buckets into s3
-        # bucket = s3_backends[self.account_id][self.partition].create_bucket(
-        #     bucket_name, region_name="us-east-1"
-        # )
-        bucket = s3_backends["__s3tables__"][self.partition].create_bucket(
-            bucket_name, region_name="us-east-1"
+        bucket = s3_backends[self.account_id][self.partition].create_table_storage_bucket(
+            bucket_name, region_name=self.region_name
         )
         return bucket
 
@@ -404,12 +401,15 @@ class S3TablesBackend(BaseBackend):
         self, table_bucket_arn: str, namespace: str, name: str, version_token: str
     ) -> None:
         bucket = self.table_buckets.get(table_bucket_arn)
-        if bucket and namespace in bucket.namespaces:
-            ns = bucket.namespaces[namespace]
-            if name in ns.tables:
-                ns.tables.pop(name)
-                return
-        raise TableDoesNotExist()
+        if not bucket or namespace not in bucket.namespaces or (name not in bucket.namespaces[namespace].tables):
+            raise TableDoesNotExist()
+
+        ns = bucket.namespaces[namespace]
+        table = ns.tables[name]
+        from moto.s3.models import s3_backends
+        s3_backends[self.account_id][self.partition].delete_table_storage_bucket(table._bucket.name)
+
+        ns.tables.pop(name)
 
     def update_table_metadata_location(
         self,
