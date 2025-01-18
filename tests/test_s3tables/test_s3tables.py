@@ -337,3 +337,72 @@ def test_underlying_table_storage_does_not_support_delete_object() -> None:
     s3.put_object(Bucket=bucket_name, Key="test", Body=b"{}")
     with pytest.raises(s3.exceptions.ClientError):
         s3.delete_object(Bucket=bucket_name, Key="test")
+
+
+@mock_aws
+def test_rename_table() -> None:
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+
+    client.create_namespace(tableBucketARN=arn, namespace=["bar-two"])
+    client.rename_table(
+        tableBucketARN=arn,
+        namespace="bar",
+        name="baz",
+        newNamespaceName="bar-two",
+        newName="baz-two",
+        versionToken=resp["versionToken"],
+    )
+    assert (
+        client.get_table(tableBucketARN=arn, namespace="bar-two", name="baz-two")[
+            "name"
+        ]
+        == "baz-two"
+    )
+    assert client.get_table(tableBucketARN=arn, namespace="bar-two", name="baz-two")[
+        "namespace"
+    ] == ["bar-two"]
+
+
+@mock_aws
+def test_rename_table_fails_when_destination_namespace_does_not_exist() -> None:
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+
+    with pytest.raises(client.exceptions.NotFoundException) as ctx:
+        client.rename_table(
+            tableBucketARN=arn,
+            namespace="bar",
+            name="baz",
+            newNamespaceName="bar-two",
+            newName="baz-two",
+            versionToken=resp["versionToken"],
+        )
+    assert ctx.match("The specified destination namespace does not exist.")
+
+
+@mock_aws
+def test_rename_table_fails_when_no_updates_are_specified() -> None:
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+
+    with pytest.raises(client.exceptions.BadRequestException) as ctx:
+        client.rename_table(
+            tableBucketARN=arn,
+            namespace="bar",
+            name="baz",
+            versionToken=resp["versionToken"],
+        )
+    assert ctx.match("Neither a new namespace name nor a new table name is specified.")

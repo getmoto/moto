@@ -45,6 +45,13 @@ class InvalidMetadataLocation(BadRequestException):
         super().__init__(self.msg)
 
 
+class NothingToRename(BadRequestException):
+    msg = "Neither a new namespace name nor a new table name is specified."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
+
+
 class NotFoundException(JsonRESTError):
     code = 404
 
@@ -54,6 +61,13 @@ class NotFoundException(JsonRESTError):
 
 class NamespaceDoesNotExist(NotFoundException):
     msg = "The specified namespace does not exist."
+
+    def __init__(self) -> None:
+        super().__init__(self.msg)
+
+
+class DestinationNamespaceDoesNotExist(NotFoundException):
+    msg = "The specified destination namespace does not exist."
 
     def __init__(self) -> None:
         super().__init__(self.msg)

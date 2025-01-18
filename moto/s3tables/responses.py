@@ -188,24 +188,23 @@ class S3TablesResponse(BaseResponse):
             namespace=namespace,
             name=name,
         )
-
         return (
             200,
             self.default_response_headers,
             json.dumps(
                 dict(
                     name=table.name,
-                    type="",
+                    type=table.type,
                     tableARN=table.arn,
-                    namespace=namespace,
+                    namespace=[namespace],
                     versionToken=table.version_token,
                     metadataLocation=table.metadata_location,
                     warehouseLocation=table.warehouse_location,
                     createdAt=table.creation_date.isoformat(),
                     createdBy=table.account_id,
-                    managedByService=None,
+                    managedByService=table.managed_by_service,
                     modifiedAt=table.last_modified.isoformat(),
-                    modifiedBy="",
+                    modifiedBy=table.modified_by,
                     ownerAccountId=table.account_id,
                     format=table.format,
                 )
@@ -304,3 +303,20 @@ class S3TablesResponse(BaseResponse):
                 )
             ),
         )
+
+    def rename_table(self) -> TYPE_RESPONSE:
+        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
+        table_bucket_arn = unquote(table_bucket_arn)
+        body = json.loads(self.body)
+        version_token = body.get("versionToken")
+        new_namespace_name = body.get("newNamespaceName")
+        new_name = body.get("newName")
+        self.s3tables_backend.rename_table(
+            table_bucket_arn=table_bucket_arn,
+            namespace=namespace,
+            name=name,
+            new_namespace_name=new_namespace_name,
+            new_name=new_name,
+            version_token=version_token,
+        )
+        return 200, {}, ""

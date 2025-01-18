@@ -11,11 +11,13 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.s3.models import FakeBucket
 from moto.s3tables.exceptions import (
     ConflictException,
+    DestinationNamespaceDoesNotExist,
     InvalidContinuationToken,
     InvalidNamespaceName,
     InvalidTableBucketName,
     InvalidTableName,
     NotFoundException,
+    NothingToRename,
     TableAlreadyExists,
     TableDoesNotExist,
     VersionTokenMismatch,
@@ -75,6 +77,7 @@ class Table:
         self.partition = partition
         self.created_by = created_by
         self.format = format
+        self.type = type
         self.version_token = self._generate_version_token()
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.last_modified = self.creation_date
@@ -121,6 +124,11 @@ class Table:
 
         self.metadata_location = metadata_location
         self.version_token = self._generate_version_token()
+
+    def rename(self, new_name: str, by: str) -> None:
+        _validate_table_name(new_name)
+        self.name = new_name
+        self.was_modified(by)
 
 
 class Namespace:
@@ -436,6 +444,39 @@ class S3TablesBackend(BaseBackend):
                 return table
 
         raise TableDoesNotExist()
+
+    def rename_table(
+        self,
+        table_bucket_arn: str,
+        namespace: str,
+        name: str,
+        new_namespace_name: Optional[str] = None,
+        new_name: Optional[str] = None,
+        version_token: Optional[str] = None,
+    ) -> None:
+        if not new_namespace_name and not new_name:
+            raise NothingToRename()
+        destination_namespace = new_namespace_name if new_namespace_name else namespace
+        destination_name = new_name if new_name else name
+        _validate_table_name(destination_name)
+
+        bucket = self.table_buckets.get(table_bucket_arn)
+        if not bucket or destination_namespace not in bucket.namespaces:
+            raise DestinationNamespaceDoesNotExist()
+        if namespace not in bucket.namespaces or (
+            name not in bucket.namespaces[namespace].tables
+        ):
+            raise TableDoesNotExist()
+        table = bucket.namespaces[namespace].tables[name]
+        if version_token and not version_token == table.version_token:
+            raise VersionTokenMismatch()
+
+        if destination_name in bucket.namespaces[destination_namespace].tables:
+            raise TableAlreadyExists()
+
+        table = bucket.namespaces[namespace].tables.pop(name)
+        table.rename(new_name=destination_name, by=self.account_id)
+        bucket.namespaces[destination_namespace].tables[destination_name] = table
 
 
 s3tables_backends = BackendDict(
