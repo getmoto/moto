@@ -2433,6 +2433,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_cors(
         self, bucket_name: str, cors_rules: List[Dict[str, Any]]
     ) -> None:
+        """
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_cors(cors_rules)
 

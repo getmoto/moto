@@ -670,7 +670,7 @@ def test_delete_configuration_set():
 
 @mock_aws
 def test_create_and_get_dedicated_ip_pool():
-    client = boto3.client("sesv2")
+    client = boto3.client("sesv2", "us-east-1")
     pool_name = "test-pool"
     scaling_mode = "STANDARD"
     tags = [{"Key": "Owner", "Value": "Zach"}]
@@ -685,7 +685,7 @@ def test_create_and_get_dedicated_ip_pool():
 
 @mock_aws
 def test_list_dedicated_ip_pools():
-    client = boto3.client("sesv2")
+    client = boto3.client("sesv2", "us-east-1")
     num_pools = 3
     pool_name = "test-pool"
     scaling_mode = "STANDARD"
@@ -700,7 +700,7 @@ def test_list_dedicated_ip_pools():
 
 @mock_aws
 def test_delete_dedicated_ip_pool():
-    client = boto3.client("sesv2")
+    client = boto3.client("sesv2", "us-east-1")
     num_pools = 2
     pool_name = "test-pool"
     scaling_mode = "STANDARD"
