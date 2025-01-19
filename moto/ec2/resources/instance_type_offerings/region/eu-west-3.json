@@ -340,6 +340,14 @@
   "Location": "eu-west-3"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "eu-west-3"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "eu-west-3"
  },
@@ -1021,6 +1029,14 @@
  },
  {
   "InstanceType": "m7gd.xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "eu-west-3"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
   "Location": "eu-west-3"
  },
  {

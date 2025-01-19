@@ -660,6 +660,14 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "us-west-2"
  },
@@ -2029,6 +2037,14 @@
  },
  {
   "InstanceType": "m7gd.xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
   "Location": "us-west-2"
  },
  {

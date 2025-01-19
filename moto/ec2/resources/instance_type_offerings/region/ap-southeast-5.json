@@ -220,6 +220,14 @@
   "Location": "ap-southeast-5"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "ap-southeast-5"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "ap-southeast-5"
  },
@@ -617,6 +625,14 @@
  },
  {
   "InstanceType": "m7gd.xlarge",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "ap-southeast-5"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
   "Location": "ap-southeast-5"
  },
  {
