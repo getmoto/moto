@@ -1,6 +1,6 @@
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -148,62 +148,6 @@ def test_create_user_with_iam_with_passwords():
     assert err["Code"] == "InvalidParameterCombination"
     assert (
         err["Message"] == "Password field is not allowed with authentication type: iam"
-    )
-
-
-# handled by botocore
-@mock_aws
-def test_create_user_with_invalid_authmode_key():
-    client = boto3.client("elasticache", region_name="us-east-1")
-    with pytest.raises(ParamValidationError) as exc:
-        client.create_user(
-            UserId="user1",
-            UserName="user1",
-            Engine="Redis",
-            AccessString="?",
-            AuthenticationMode={"invalidkey": ""},
-        )
-    assert (
-        exc.value.kwargs["report"]
-        == 'Unknown parameter in AuthenticationMode: "invalidkey", must be one of: Type, Passwords'
-    )
-
-
-# handled by botocore
-@mock_aws
-def test_create_user_with_empty_passwords_with_password():
-    client = boto3.client("elasticache", region_name="us-east-1")
-    with pytest.raises(ParamValidationError) as exc:
-        client.create_user(
-            UserId="user1",
-            UserName="user1",
-            Engine="Redis",
-            AccessString="?",
-            Passwords=[],
-            AuthenticationMode={"Type": "password"},
-        )
-    assert (
-        exc.value.kwargs["report"]
-        == "Invalid length for parameter Passwords, value: 0, valid min length: 1"
-    )
-
-
-# handled by botocore
-@mock_aws
-def test_create_user_with_empty_passwords_with_authmode_password():
-    client = boto3.client("elasticache", region_name="us-east-1")
-    with pytest.raises(ParamValidationError) as exc:
-        client.create_user(
-            UserId="user1",
-            UserName="user1",
-            Engine="Redis",
-            AccessString="?",
-            AuthenticationMode={"Type": "password", "Passwords": []},
-        )
-
-    assert (
-        exc.value.kwargs["report"]
-        == "Invalid length for parameter AuthenticationMode.Passwords, value: 0, valid min length: 1"
     )
 
 
