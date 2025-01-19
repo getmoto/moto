@@ -6090,5 +6090,33 @@
  {
   "InstanceType": "t3.xlarge",
   "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.2xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.large",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.medium",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.micro",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.nano",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.small",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "t4g.xlarge",
+  "Location": "apne2-az4"
  }
 ]
