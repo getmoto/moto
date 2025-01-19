@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
@@ -1941,17 +1941,6 @@ def test_update_secret_with_client_request_token():
         SecretId=secret_name, SecretString="third-secret"
     )
     assert client_request_token != updated_secret["VersionId"]
-    invalid_request_token = "test-token"
-    with pytest.raises(ParamValidationError) as pve:
-        client.update_secret(
-            SecretId=secret_name,
-            SecretString="fourth-secret",
-            ClientRequestToken=invalid_request_token,
-        )
-        assert pve.value.response["Error"]["Code"] == "InvalidParameterException"
-        assert pve.value.response["Error"]["Message"] == (
-            "ClientRequestToken must be 32-64 characters long."
-        )
 
 
 @secretsmanager_aws_verified

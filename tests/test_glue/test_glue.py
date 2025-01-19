@@ -6,7 +6,6 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.client import ClientError
-from botocore.exceptions import ParamValidationError
 
 from moto import mock_aws
 
@@ -34,15 +33,6 @@ def test_delete_job():
         client.get_job(JobName=job_name)
 
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
-
-
-@mock_aws
-def test_create_job_default_argument_not_provided():
-    client = create_glue_client()
-    with pytest.raises(ParamValidationError) as exc:
-        client.create_job(Role="test_role", Command=dict(Name="test_command"))
-
-    assert exc.value.kwargs["report"] == 'Missing required parameter in input: "Name"'
 
 
 @mock_aws

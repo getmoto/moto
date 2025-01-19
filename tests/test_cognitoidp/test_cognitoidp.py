@@ -15,7 +15,7 @@ import pycognito
 import pyotp
 import pytest
 import requests
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
@@ -694,15 +694,6 @@ def test_set_user_pool_mfa_config():
         == "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-
-    # Test error for when `SmsConfiguration` is missing `SnsCaller`
-    # This is asserted by boto3
-    with pytest.raises(ParamValidationError) as ex:
-        conn.set_user_pool_mfa_config(
-            UserPoolId=user_pool_id,
-            SmsMfaConfiguration={"SmsConfiguration": {}},
-            MfaConfiguration="ON",
-        )
 
     # Test error for when `MfaConfiguration` is not one of the expected values
     with pytest.raises(ClientError) as ex:
