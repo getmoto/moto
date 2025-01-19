@@ -3641,10 +3641,10 @@
 
 ## es
 <details>
-<summary>9% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] accept_inbound_cross_cluster_search_connection
-- [ ] add_tags
+- [X] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
@@ -3681,13 +3681,13 @@
 - [ ] list_elasticsearch_instance_types
 - [ ] list_elasticsearch_versions
 - [ ] list_packages_for_domain
-- [ ] list_tags
+- [X] list_tags
 - [ ] list_vpc_endpoint_access
 - [ ] list_vpc_endpoints
 - [ ] list_vpc_endpoints_for_domain
 - [ ] purchase_reserved_elasticsearch_instance_offering
 - [ ] reject_inbound_cross_cluster_search_connection
-- [ ] remove_tags
+- [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
 - [ ] start_elasticsearch_service_software_update
 - [ ] update_elasticsearch_domain_config
@@ -3938,7 +3938,7 @@
 
 ## glue
 <details>
-<summary>26% implemented</summary>
+<summary>27% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3972,7 +3972,7 @@
 - [ ] create_custom_entity_type
 - [ ] create_data_quality_ruleset
 - [X] create_database
-- [ ] create_dev_endpoint
+- [X] create_dev_endpoint
 - [ ] create_integration
 - [ ] create_integration_resource_property
 - [ ] create_integration_table_properties
@@ -4055,8 +4055,8 @@
 - [X] get_database
 - [X] get_databases
 - [ ] get_dataflow_graph
-- [ ] get_dev_endpoint
-- [ ] get_dev_endpoints
+- [X] get_dev_endpoint
+- [X] get_dev_endpoints
 - [ ] get_entity_records
 - [ ] get_integration_resource_property
 - [ ] get_integration_table_properties
@@ -5109,7 +5109,7 @@
 
 ## kms
 <details>
-<summary>64% implemented</summary>
+<summary>75% implemented</summary>
 
 - [X] cancel_key_deletion
 - [ ] connect_custom_key_store
@@ -5134,8 +5134,8 @@
 - [ ] generate_data_key_pair
 - [ ] generate_data_key_pair_without_plaintext
 - [X] generate_data_key_without_plaintext
-- [ ] generate_mac
-- [ ] generate_random
+- [X] generate_mac
+- [X] generate_random
 - [X] get_key_policy
 - [X] get_key_rotation_status
 - [ ] get_parameters_for_import
@@ -5143,8 +5143,8 @@
 - [ ] import_key_material
 - [X] list_aliases
 - [X] list_grants
-- [ ] list_key_policies
-- [ ] list_key_rotations
+- [X] list_key_policies
+- [X] list_key_rotations
 - [X] list_keys
 - [X] list_resource_tags
 - [X] list_retirable_grants
@@ -5153,7 +5153,7 @@
 - [X] replicate_key
 - [X] retire_grant
 - [X] revoke_grant
-- [ ] rotate_key_on_demand
+- [X] rotate_key_on_demand
 - [X] schedule_key_deletion
 - [X] sign
 - [X] tag_resource
@@ -5163,7 +5163,7 @@
 - [X] update_key_description
 - [ ] update_primary_region
 - [X] verify
-- [ ] verify_mac
+- [X] verify_mac
 </details>
 
 ## lakeformation
@@ -8262,7 +8262,7 @@
 
 ## ses
 <details>
-<summary>40% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -8273,7 +8273,7 @@
 - [X] create_receipt_rule
 - [X] create_receipt_rule_set
 - [ ] create_template
-- [ ] delete_configuration_set
+- [X] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
 - [ ] delete_configuration_set_tracking_options
 - [ ] delete_custom_verification_email_template
@@ -8298,7 +8298,7 @@
 - [X] get_send_quota
 - [X] get_send_statistics
 - [X] get_template
-- [ ] list_configuration_sets
+- [X] list_configuration_sets
 - [ ] list_custom_verification_email_templates
 - [X] list_identities
 - [ ] list_identity_policies
@@ -8339,16 +8339,16 @@
 
 ## sesv2
 <details>
-<summary>9% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
-- [ ] create_configuration_set
+- [X] create_configuration_set
 - [ ] create_configuration_set_event_destination
 - [X] create_contact
 - [X] create_contact_list
 - [ ] create_custom_verification_email_template
-- [ ] create_dedicated_ip_pool
+- [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
 - [ ] create_email_identity
 - [ ] create_email_identity_policy
@@ -8356,12 +8356,12 @@
 - [ ] create_export_job
 - [ ] create_import_job
 - [ ] create_multi_region_endpoint
-- [ ] delete_configuration_set
+- [X] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
 - [X] delete_contact
 - [X] delete_contact_list
 - [ ] delete_custom_verification_email_template
-- [ ] delete_dedicated_ip_pool
+- [X] delete_dedicated_ip_pool
 - [ ] delete_email_identity
 - [ ] delete_email_identity_policy
 - [ ] delete_email_template
@@ -8369,13 +8369,13 @@
 - [ ] delete_suppressed_destination
 - [ ] get_account
 - [ ] get_blacklist_reports
-- [ ] get_configuration_set
+- [X] get_configuration_set
 - [ ] get_configuration_set_event_destinations
 - [X] get_contact
 - [X] get_contact_list
 - [ ] get_custom_verification_email_template
 - [ ] get_dedicated_ip
-- [ ] get_dedicated_ip_pool
+- [X] get_dedicated_ip_pool
 - [ ] get_dedicated_ips
 - [ ] get_deliverability_dashboard_options
 - [ ] get_deliverability_test_report
@@ -8389,11 +8389,11 @@
 - [ ] get_message_insights
 - [ ] get_multi_region_endpoint
 - [ ] get_suppressed_destination
-- [ ] list_configuration_sets
+- [X] list_configuration_sets
 - [X] list_contact_lists
 - [X] list_contacts
 - [ ] list_custom_verification_email_templates
-- [ ] list_dedicated_ip_pools
+- [X] list_dedicated_ip_pools
 - [ ] list_deliverability_test_reports
 - [ ] list_domain_deliverability_campaigns
 - [ ] list_email_identities
@@ -9482,8 +9482,6 @@
 - internetmonitor
 - invoicing
 - iot-jobs-data
-- iot1click-devices
-- iot1click-projects
 - iotanalytics
 - iotdeviceadvisor
 - iotevents
