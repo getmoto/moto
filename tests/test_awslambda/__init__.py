@@ -66,6 +66,13 @@ def lambda_aws_verified(func):
             kwargs["iam_role_arn"] = iam_role_arn
             resp = func(**kwargs)
         finally:
+            for policy in iam.list_attached_role_policies(RoleName=role_name)[
+                "AttachedPolicies"
+            ]:
+                iam.detach_role_policy(
+                    RoleName=role_name,
+                    PolicyArn=policy["PolicyArn"],
+                )
             iam.delete_role(RoleName=role_name)
 
         return resp
