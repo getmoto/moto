@@ -606,6 +606,7 @@ class SecretsManagerBackend(BaseBackend):
         version_stages: Optional[List[str]] = None,
         replica_regions: Optional[List[Dict[str, str]]] = None,
         force_overwrite: bool = False,
+        create_new_version: bool = False,
     ) -> Tuple[FakeSecret, bool]:
         if version_stages is None:
             version_stages = ["AWSCURRENT"]
@@ -633,7 +634,7 @@ class SecretsManagerBackend(BaseBackend):
 
             secret.update(description, tags, kms_key_id, last_changed_date=update_time)
 
-            if new_version:
+            if new_version or create_new_version:
                 if "AWSCURRENT" in version_stages:
                     secret.reset_default_version(secret_version, version_id)
                 else:
@@ -760,29 +761,21 @@ class SecretsManagerBackend(BaseBackend):
             pass
 
         if secret.versions:
-            old_secret_version = secret.versions[secret.default_version_id]  # type: ignore
-
             if client_request_token:
                 self._client_request_token_validator(client_request_token)
                 new_version_id = client_request_token
             else:
                 new_version_id = str(mock_random.uuid4())
 
-            # We add the new secret version as "pending". The previous version remains
-            # as "current" for now. Once we've passed the new secret through the lambda
-            # rotation function (if provided) we can then update the status to "current".
-            old_secret_version_secret_string = (
-                old_secret_version["secret_string"]
-                if "secret_string" in old_secret_version
-                else None
-            )
+            # We add a "pending" stage. The previous version remains as "current" for now.
+            # Caller is responsible for creating the new secret in the Lambda
             self._add_secret(
                 secret_id,
-                old_secret_version_secret_string,
                 description=secret.description,
                 tags=secret.tags,
                 version_id=new_version_id,
                 version_stages=["AWSPENDING"],
+                create_new_version=True,
             )
 
         secret.rotation_requested = True
