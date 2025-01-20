@@ -246,9 +246,10 @@ def test_delete_table_fails_on_version_token_mismatch():
     )
     token = resp["versionToken"]
 
-
     with pytest.raises(client.exceptions.ConflictException):
-        client.delete_table(tableBucketARN=arn, namespace="bar", name="baz", versionToken=f"{token}-foo")
+        client.delete_table(
+            tableBucketARN=arn, namespace="bar", name="baz", versionToken=f"{token}-foo"
+        )
 
 
 @mock_aws

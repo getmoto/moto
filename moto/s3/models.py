@@ -1884,9 +1884,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return new_bucket
 
-    def create_table_storage_bucket(
-        self, region_name: str
-    ) -> FakeTableStorageBucket:
+    def create_table_storage_bucket(self, region_name: str) -> FakeTableStorageBucket:
         # every s3 table is assigned a unique s3 bucket with a random name
         bucket_name = f"{str(uuid4())}--table-s3"
         new_bucket = FakeTableStorageBucket(

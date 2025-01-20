@@ -103,6 +103,7 @@ class Table:
 
     def _create_underlying_bucket(self) -> FakeBucket:
         from moto.s3.models import s3_backends
+
         bucket = s3_backends[self.account_id][
             self.partition
         ].create_table_storage_bucket(region_name=self.region_name)
@@ -398,7 +399,11 @@ class S3TablesBackend(BaseBackend):
         return tables, next_continuation_token
 
     def delete_table(
-        self, table_bucket_arn: str, namespace: str, name: str, version_token: Optional[str] = None
+        self,
+        table_bucket_arn: str,
+        namespace: str,
+        name: str,
+        version_token: Optional[str] = None,
     ) -> None:
         bucket = self.table_buckets.get(table_bucket_arn)
         if (
