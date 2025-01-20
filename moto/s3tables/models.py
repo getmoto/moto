@@ -12,6 +12,7 @@ from moto.s3tables.exceptions import (
     ConflictException,
     DestinationNamespaceDoesNotExist,
     InvalidContinuationToken,
+    InvalidMetadataLocation,
     InvalidNamespaceName,
     InvalidTableBucketName,
     InvalidTableName,
@@ -132,6 +133,8 @@ class Table:
     def update_metadata_location(
         self, metadata_location: str, version_token: str
     ) -> None:
+        if not metadata_location.startswith(self.warehouse_location):
+            raise InvalidMetadataLocation()
         if not self.version_token == version_token:
             raise VersionTokenMismatch()
 

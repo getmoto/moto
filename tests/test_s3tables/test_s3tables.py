@@ -275,17 +275,39 @@ def test_update_table_metadata_location():
     resp = client.create_table(
         tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
     )
+    resp = client.get_table(tableBucketARN=arn, namespace="bar", name="baz")
+    warehouse_location = resp["warehouseLocation"]
     client.update_table_metadata_location(
         tableBucketARN=arn,
         namespace="bar",
         name="baz",
-        metadataLocation="s3://abc",
+        metadataLocation=f"{warehouse_location}/abc",
         versionToken=resp["versionToken"],
     )
     resp = client.get_table_metadata_location(
         tableBucketARN=arn, namespace="bar", name="baz"
     )
     assert "metadataLocation" in resp
+    assert resp["metadataLocation"] == f"{warehouse_location}/abc"
+
+
+@mock_aws
+def test_update_table_metadata_location_raises_exception_on_invalid_path():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+    with pytest.raises(client.exceptions.BadRequestException) as exc:
+        client.update_table_metadata_location(
+            tableBucketARN=arn,
+            namespace="bar",
+            name="baz",
+            metadataLocation="s3://abc",
+            versionToken=resp["versionToken"],
+        )
+    exc.match("The specified metadata location is not valid.")
 
 
 @mock_aws
@@ -333,8 +355,9 @@ def test_underlying_table_storage_does_not_support_list_objects() -> None:
     s3 = boto3.client("s3", region_name="us-east-2")
 
     bucket_name = resp["warehouseLocation"].replace("s3://", "")
-    with pytest.raises(s3.exceptions.ClientError):
+    with pytest.raises(s3.exceptions.ClientError) as exc:
         s3.list_objects_v2(Bucket=bucket_name)
+    assert exc.match("The specified method is not allowed against this resource.")
 
 
 @mock_aws
@@ -351,8 +374,9 @@ def test_underlying_table_storage_does_not_support_delete_object() -> None:
 
     bucket_name = resp["warehouseLocation"].replace("s3://", "")
     s3.put_object(Bucket=bucket_name, Key="test", Body=b"{}")
-    with pytest.raises(s3.exceptions.ClientError):
+    with pytest.raises(s3.exceptions.ClientError) as exc:
         s3.delete_object(Bucket=bucket_name, Key="test")
+    assert exc.match("The specified method is not allowed against this resource.")
 
 
 @mock_aws
