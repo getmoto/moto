@@ -16,6 +16,7 @@ from bisect import insort
 from importlib import reload
 from io import BytesIO
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
+from uuid import uuid4
 
 from moto.cloudwatch.models import MetricDatum
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -1884,14 +1885,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return new_bucket
 
     def create_table_storage_bucket(
-        self, bucket_name: str, region_name: str
+        self, region_name: str
     ) -> FakeTableStorageBucket:
-        if bucket_name in s3_backends.bucket_accounts.keys():
-            raise BucketAlreadyExists(bucket=bucket_name)
+        # every s3 table is assigned a unique s3 bucket with a random name
+        bucket_name = f"{str(uuid4())}--table-s3"
         new_bucket = FakeTableStorageBucket(
             name=bucket_name, account_id=self.account_id, region_name=region_name
         )
-
         self.table_buckets[bucket_name] = new_bucket
         return new_bucket
 

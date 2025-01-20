@@ -102,18 +102,10 @@ class Table:
         return md5(uuid4().bytes).hexdigest()[:20]
 
     def _create_underlying_bucket(self) -> FakeBucket:
-        # TODO: consider to make this a backend method instead of Table
         from moto.s3.models import s3_backends
-
-        # every s3 table is assigned a unique s3 bucket with a random name
-        hash = md5(self.table_bucket_arn.encode())
-        hash.update(self.namespace.encode())
-        hash.update(self.name.encode())
-        bucket_name = f"{str(uuid4())[:21]}{hash.hexdigest()[:34]}--table-s3"
-
         bucket = s3_backends[self.account_id][
             self.partition
-        ].create_table_storage_bucket(bucket_name, region_name=self.region_name)
+        ].create_table_storage_bucket(region_name=self.region_name)
         return bucket
 
     def update_metadata_location(
