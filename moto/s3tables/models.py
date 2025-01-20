@@ -4,9 +4,9 @@ import datetime
 import re
 from hashlib import md5
 from typing import Dict, List, Literal, Optional, Union
-from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.moto_api._internal import mock_random as random
 from moto.s3.models import FakeBucket
 from moto.s3tables.exceptions import (
     ConflictException,
@@ -52,10 +52,6 @@ def _validate_table_name(name: str) -> None:
     if not TABLE_NAME_PATTERN.match(name):
         raise InvalidTableName(name)
 
-
-S3TABLES_DEFAULT_MAX_BUCKETS = 1000
-S3TABLES_DEFAULT_MAX_NAMESPACES = 1000
-S3TABLES_DEFAULT_MAX_TABLES = 1000
 
 PAGINATION_MODEL = {
     "list_table_buckets": {
@@ -123,7 +119,7 @@ class Table:
         self.modified_by = by
 
     def _generate_version_token(self) -> str:
-        return md5(uuid4().bytes).hexdigest()[:20]
+        return md5(random.uuid4().bytes).hexdigest()[:20]
 
     def _create_underlying_bucket(self) -> FakeBucket:
         from moto.s3.models import s3_backends
