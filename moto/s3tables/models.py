@@ -406,7 +406,7 @@ class S3TablesBackend(BaseBackend):
         return tables, next_continuation_token
 
     def delete_table(
-        self, table_bucket_arn: str, namespace: str, name: str, version_token: str
+        self, table_bucket_arn: str, namespace: str, name: str, version_token: Optional[str] = None
     ) -> None:
         bucket = self.table_buckets.get(table_bucket_arn)
         if (
@@ -418,6 +418,8 @@ class S3TablesBackend(BaseBackend):
 
         ns = bucket.namespaces[namespace]
         table = ns.tables[name]
+        if version_token and not version_token == table.version_token:
+            raise VersionTokenMismatch()
         from moto.s3.models import s3_backends
 
         s3_backends[self.account_id][self.partition].delete_table_storage_bucket(

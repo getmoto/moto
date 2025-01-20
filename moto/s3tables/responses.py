@@ -247,8 +247,7 @@ class S3TablesResponse(BaseResponse):
         _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
         table_bucket_arn = unquote(table_bucket_arn)
         params = self._get_params()
-        version_token = params.get("versionToken", "")
-        # TODO: if versinToken not supplied, raise exception
+        version_token = params.get("versionToken")
         self.s3tables_backend.delete_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,

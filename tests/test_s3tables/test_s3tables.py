@@ -237,6 +237,21 @@ def test_delete_table_deletes_underlying_table_storage():
 
 
 @mock_aws
+def test_delete_table_fails_on_version_token_mismatch():
+    client = boto3.client("s3tables", region_name="us-east-2")
+    arn = client.create_table_bucket(name="foo")["arn"]
+    client.create_namespace(tableBucketARN=arn, namespace=["bar"])
+    resp = client.create_table(
+        tableBucketARN=arn, namespace="bar", name="baz", format="ICEBERG"
+    )
+    token = resp["versionToken"]
+
+
+    with pytest.raises(client.exceptions.ConflictException):
+        client.delete_table(tableBucketARN=arn, namespace="bar", name="baz", versionToken=f"{token}-foo")
+
+
+@mock_aws
 def test_get_table_metadata_location():
     client = boto3.client("s3tables", region_name="us-east-2")
     arn = client.create_table_bucket(name="foo")["arn"]
