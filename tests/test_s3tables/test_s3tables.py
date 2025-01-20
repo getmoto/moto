@@ -232,8 +232,9 @@ def test_delete_table_deletes_underlying_table_storage():
     s3.head_bucket(Bucket=bucket_name)
 
     client.delete_table(tableBucketARN=arn, namespace="bar", name="baz")
-    with pytest.raises(s3.exceptions.ClientError):
+    with pytest.raises(s3.exceptions.ClientError) as exc:
         s3.head_bucket(Bucket=bucket_name)
+    exc.match("Not Found")
 
 
 @mock_aws
@@ -246,10 +247,11 @@ def test_delete_table_fails_on_version_token_mismatch():
     )
     token = resp["versionToken"]
 
-    with pytest.raises(client.exceptions.ConflictException):
+    with pytest.raises(client.exceptions.ConflictException) as exc:
         client.delete_table(
             tableBucketARN=arn, namespace="bar", name="baz", versionToken=f"{token}-foo"
         )
+    exc.match("Provided version token does not match the table version token.")
 
 
 @mock_aws
