@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
@@ -1063,10 +1063,22 @@ def test_rotate_secret_that_does_not_match():
 
 @mock_aws
 def test_rotate_secret_client_request_token_too_short():
-    # Test is intentionally empty. Boto3 catches too short ClientRequestToken
-    # and raises ParamValidationError before Moto can see it.
-    # test_server actually handles this error.
-    assert True
+    from botocore.config import Config
+
+    conn = boto3.client(
+        "secretsmanager",
+        region_name="us-west-2",
+        config=Config(parameter_validation=False),
+    )
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
+    client_request_token = "TOO-SHORT"
+    with pytest.raises(ClientError) as exc_info:
+        conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME, ClientRequestToken=client_request_token
+        )
+    error = exc_info.value.response["Error"]
+    assert error["Message"] == "ClientRequestToken must be 32-64 characters long."
+    assert error["Code"] == "InvalidParameterException"
 
 
 @mock_aws
@@ -1096,11 +1108,32 @@ def test_rotate_secret_rotation_lambda_arn_too_long():
 
 
 @mock_aws
-def test_rotate_secret_rotation_period_zero():
-    # Test is intentionally empty. Boto3 catches zero day rotation period
-    # and raises ParamValidationError before Moto can see it.
-    # test_server actually handles this error.
-    assert True
+@pytest.mark.parametrize(
+    "days",
+    [
+        pytest.param(0, id="below min"),
+        pytest.param(1001, id="above max"),
+    ],
+)
+def test_rotate_secret_rotation_period_validation(days):
+    from botocore.config import Config
+
+    conn = boto3.client(
+        "secretsmanager",
+        region_name="us-west-2",
+        config=Config(parameter_validation=False),
+    )
+    conn.create_secret(Name=DEFAULT_SECRET_NAME, SecretString="foosecret")
+    with pytest.raises(ClientError) as exc_info:
+        conn.rotate_secret(
+            SecretId=DEFAULT_SECRET_NAME, RotationRules={"AutomaticallyAfterDays": days}
+        )
+    error = exc_info.value.response["Error"]
+    assert (
+        error["Message"]
+        == "RotationRules.AutomaticallyAfterDays must be within 1-1000."
+    )
+    assert error["Code"] == "InvalidParameterException"
 
 
 @mock_aws
@@ -1941,17 +1974,6 @@ def test_update_secret_with_client_request_token():
         SecretId=secret_name, SecretString="third-secret"
     )
     assert client_request_token != updated_secret["VersionId"]
-    invalid_request_token = "test-token"
-    with pytest.raises(ParamValidationError) as pve:
-        client.update_secret(
-            SecretId=secret_name,
-            SecretString="fourth-secret",
-            ClientRequestToken=invalid_request_token,
-        )
-        assert pve.value.response["Error"]["Code"] == "InvalidParameterException"
-        assert pve.value.response["Error"]["Message"] == (
-            "ClientRequestToken must be 32-64 characters long."
-        )
 
 
 @secretsmanager_aws_verified
