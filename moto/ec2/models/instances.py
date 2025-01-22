@@ -15,6 +15,7 @@ from moto.ec2.models.instance_types import (
 from moto.ec2.models.launch_templates import LaunchTemplateVersion
 from moto.ec2.models.security_groups import SecurityGroup
 from moto.ec2.models.subnets import Subnet
+from moto.ec2.utils import passes_filter_dict
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceMapping
 from moto.packages.boto.ec2.instance import Instance as BotoInstance
 from moto.packages.boto.ec2.instance import Reservation
@@ -620,7 +621,7 @@ class InstanceBackend:
                 return instance
         raise InvalidInstanceIdError(instance_id)
 
-    def run_instances(
+    def _original_run_instances(
         self,
         image_id: str,
         count: int,
@@ -748,6 +749,35 @@ class InstanceBackend:
 
         return new_reservation
 
+    # PERFORMANCE PATCH:
+    # add a mapping instance id -> instance to the backend and to each reservation
+    # and a reservation_id attribute to each instance
+    # these attributes are used to efficiently retrieve instances by id
+    # instances are never deleted (they are kept in "terminated" state)
+    # so there is no clean-up to do
+    def run_instances(self, *args, **kwargs):
+        if not hasattr(self, 'id_to_instances'):
+            self._build_instance_dict()
+        result = self._original_run_instances(*args, **kwargs)
+        result.id_to_instances = {}
+        for instance in result.instances:
+            result.id_to_instances[instance.id] = instance
+            self.id_to_instances[instance.id] = instance
+            instance.reservation_id = result.id
+            # delete_on_termination is True in later version of moto
+            # this fix a warning in bootstrapper when instance is undeployed
+            instance.block_device_mapping['/dev/sda1'].delete_on_termination = True
+
+        return result
+    
+    def _build_instance_dict(self):
+        if not hasattr(self, 'id_to_instances'):
+            self.id_to_instances = {}
+            for reservation in self.reservations.values():
+                for instance in reservation.instances:
+                    self.id_to_instances[instance.id] = instance
+                    instance.reservation_id = reservation.id
+
     def start_instances(
         self, instance_ids: List[str]
     ) -> List[Tuple[Instance, InstanceState]]:
@@ -845,20 +875,14 @@ class InstanceBackend:
                     instances.append(instance)
         return instances
 
-    def get_multi_instances_by_id(
-        self, instance_ids: List[str], filters: Any = None
-    ) -> List[Instance]:
-        """
-        :param instance_ids: A string list with instance ids
-        :return: A list with instance objects
-        """
+    # PATCHED - REPLACED FORMER VERSION
+    def get_multi_instances_by_id(self, instance_ids, filters=None):
         result = []
 
-        for reservation in self.all_reservations():
-            for instance in reservation.instances:
-                if instance.id in instance_ids:
-                    if instance.applies(filters):
-                        result.append(instance)
+        for instance_id in instance_ids:
+            instance = self.get_instance_by_id(instance_id)
+            if instance and instance.applies(filters):
+                result.append(instance)
 
         if instance_ids and len(instance_ids) > len(result):
             result_ids = [i.id for i in result]
@@ -867,12 +891,13 @@ class InstanceBackend:
 
         return result
 
-    def get_instance_by_id(self, instance_id: str) -> Optional[Instance]:
-        for reservation in self.all_reservations():
-            for instance in reservation.instances:
-                if instance.id == instance_id:
-                    return instance
-        return None
+    # PATCHED - REPLACED FORMER VERSION
+    def get_instance_by_id(self, instance_id: str):
+        try:
+            return self.id_to_instances.get(instance_id)
+        except AttributeError:  # self.id_to_instances has not been defined yet
+            self._build_instance_dict()
+            return self.get_instance_by_id(instance_id)
 
     def get_reservations_by_instance_ids(
         self, instance_ids: List[str], filters: Any = None
@@ -907,8 +932,39 @@ class InstanceBackend:
             reservations = filter_reservations(reservations, filters)
         return reservations
 
-    def describe_instances(self, filters: Any = None) -> List[Reservation]:
-        return self.all_reservations(filters)
+    # ORIGINAL FUNCTION - PATCHED BELOW
+    # def describe_instances(self, filters: Any = None) -> List[Reservation]:
+        # return self.all_reservations(filters)
+
+    # Perfomrance patch: describe_instances to avoid double iterations on reservations
+    # This a mix of all_reservations() and filter_reservations() as used by describe_instances()
+    def describe_instances(self, filters=None):    
+        filters = filters or {}
+        instance_ids = filters.get('instance-id', set())
+        if instance_ids:
+            reservations = {}
+            for id_ in instance_ids:
+                instance = self.get_instance_by_id(id_)
+                if instance and passes_filter_dict(instance, filters):
+                    try:
+                        reservations[instance.reservation_id].instances.append(instance)
+                    except KeyError:
+                        reservation = copy.copy(self.reservations[instance.reservation_id])
+                        reservation.instances = [instance]
+                        reservations[instance.reservation_id] = reservation
+            return list(reservations.values())
+
+        result = []
+        for reservation in self.reservations.values():
+            new_instances = []
+            for instance in reservation.instances:
+                if passes_filter_dict(instance, filters):
+                    new_instances.append(instance)
+            if new_instances:
+                reservation = copy.copy(reservation)
+                reservation.instances = new_instances
+                result.append(reservation)            
+        return result
 
     def describe_instance_status(
         self, instance_ids: List[str], include_all_instances: bool, filters: Any

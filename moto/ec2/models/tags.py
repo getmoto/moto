@@ -54,7 +54,31 @@ class TagBackend:
                         self.tags[resource_id].pop(tag)
         return True
 
-    def describe_tags(
+    # PERFORMANCE PATCH describe_tags to avoid iteration on all tags when looking for a specific resource
+    # this method is called each time a resource is rendered in a response
+    # That's the main optimisation!
+    def describe_tags(self, filters):
+        if "resource-id" in filters and len(filters) == 1 and len(filters["resource-id"]) == 1:
+            results = []
+            resource_id = filters["resource-id"][0]
+            try:
+                tags = self.tags[filters["resource-id"][0]]
+            except KeyError:
+                return results
+            for key, value in tags.items():
+                result = {
+                    "resource_id": resource_id,
+                    "key": key,
+                    "value": value,
+                    "resource_type": EC2_PREFIX_TO_RESOURCE[
+                        get_prefix(resource_id)
+                    ],
+                }
+                results.append(result)
+            return results
+        return self._original_describe_tags(filters)
+
+    def _original_describe_tags(
         self, filters: Optional[Dict[str, List[str]]] = None
     ) -> List[Dict[str, str]]:
         results = []

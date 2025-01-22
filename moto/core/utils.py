@@ -1,6 +1,9 @@
 import datetime
 import inspect
 import re
+import threading
+import time
+from flask import current_app
 from gzip import compress, decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
@@ -89,6 +92,8 @@ def convert_regex_to_flask_path(url_path: str) -> str:
 
 
 class convert_to_flask_response(object):
+    lock = threading.Lock()
+    
     def __init__(self, callback: Callable[..., Any]):
         self.callback = callback
 
@@ -107,9 +112,11 @@ class convert_to_flask_response(object):
 
         from moto.moto_api import recorder
 
+        start_time = time.perf_counter()
         try:
             recorder._record_request(request)
-            result = self.callback(request, request.url, dict(request.headers))
+            with self.lock:
+                result = self.callback(request, request.url, dict(request.headers))
         except ClientError as exc:
             result = 400, {}, exc.response["Error"]["Message"]
         # result is a status, headers, response tuple
@@ -121,7 +128,12 @@ class convert_to_flask_response(object):
         response = Response(response=content, status=status, headers=headers)
         if request.method == "HEAD" and "content-length" in headers:
             response.headers["Content-Length"] = headers["content-length"]
-        return response
+        
+        total_time = time.perf_counter() - start_time
+        time_in_ms = int(total_time * 1000)
+        current_app.logger.info('%s ms %s %s %s', time_in_ms, request.method, request.path, dict(request.args))
+        
+        return response        
 
 
 class convert_flask_to_responses_response(object):
