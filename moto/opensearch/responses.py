@@ -48,7 +48,7 @@ class OpenSearchServiceResponse(BaseResponse):
             return 200, {}, response.describe_domain()
 
     @classmethod
-    def tags(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore JFL
+    def tags(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         if request.method == "GET":
