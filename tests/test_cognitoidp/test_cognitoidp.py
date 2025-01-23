@@ -15,7 +15,7 @@ import pycognito
 import pyotp
 import pytest
 import requests
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
@@ -694,15 +694,6 @@ def test_set_user_pool_mfa_config():
         == "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-
-    # Test error for when `SmsConfiguration` is missing `SnsCaller`
-    # This is asserted by boto3
-    with pytest.raises(ParamValidationError) as ex:
-        conn.set_user_pool_mfa_config(
-            UserPoolId=user_pool_id,
-            SmsMfaConfiguration={"SmsConfiguration": {}},
-            MfaConfiguration="ON",
-        )
 
     # Test error for when `MfaConfiguration` is not one of the expected values
     with pytest.raises(ClientError) as ex:
@@ -2518,6 +2509,28 @@ def test_list_users():
     # empty value Filter should also be supported
     result = conn.list_users(UserPoolId=user_pool_id, Filter='family_name=""')
     assert len(result["Users"]) == 0
+
+    # checking Limit and Filter work correctly together
+    user1_username = "user1@example.com"
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=user1_username,
+        UserAttributes=[{"Name": "phone_number", "Value": "+48555555555"}],
+    )
+
+    result = conn.list_users(
+        UserPoolId=user_pool_id, Filter='phone_number ^= "+48"', Limit=1
+    )
+    assert len(result["Users"]) == 1
+    assert result["PaginationToken"] is not None
+
+    result = conn.list_users(
+        UserPoolId=user_pool_id,
+        Filter='phone_number ^= "+48"',
+        Limit=1,
+        PaginationToken=result["PaginationToken"],
+    )
+    assert len(result["Users"]) == 1
 
 
 @mock_aws

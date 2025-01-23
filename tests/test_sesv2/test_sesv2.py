@@ -456,3 +456,266 @@ def test_delete_contact():
 
     # Verify
     assert len(result["Contacts"]) == 0
+
+
+@mock_aws
+def test_create_configuration_set():
+    # Setup
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    name = "my-sesv2-config-set"
+    tracking_options = {
+        "CustomRedirectDomain": "abc.com",
+        "HttpsPolicy": "OPTIONAL",
+    }
+    delivery_options = {
+        "TlsPolicy": "OPTIONAL",
+        "SendingPoolName": "MySendingPool",
+        "MaxDeliverySeconds": 301,
+    }
+    reputation_options = {
+        "ReputationMetricsEnabled": False,
+    }
+    sending_options = {"SendingEnabled": True}
+    tags = [
+        {"Key": "Owner", "Value": "Zach"},
+    ]
+    suppression_options = {"SuppressedReasons": ["BOUNCE"]}
+    vdm_options = {
+        "DashboardOptions": {"EngagementMetrics": "DISABLED"},
+        "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
+    }
+
+    # Execute
+    client.create_configuration_set(
+        ConfigurationSetName=name,
+        TrackingOptions=tracking_options,
+        DeliveryOptions=delivery_options,
+        ReputationOptions=reputation_options,
+        SendingOptions=sending_options,
+        Tags=tags,
+        SuppressionOptions=suppression_options,
+        VdmOptions=vdm_options,
+    )
+
+    # Validate
+    config_set = client.get_configuration_set(ConfigurationSetName=name)
+    assert config_set["ConfigurationSetName"] == name
+
+
+@mock_aws
+def test_get_configuration_set():
+    # Test GetConfigurationSet returns resources created in both ses and sesv2
+    # Setup
+    client_v1 = boto3.client("ses", region_name="eu-west-1")
+    client_v2 = boto3.client("sesv2", region_name="eu-west-1")
+
+    name_v1 = "my-sesv1"
+    name_v2 = "my-sesv2-config-set"
+    tracking_options = {
+        "CustomRedirectDomain": "abc.com",
+        "HttpsPolicy": "OPTIONAL",
+    }
+    delivery_options = {
+        "TlsPolicy": "OPTIONAL",
+        "SendingPoolName": "MySendingPool",
+        "MaxDeliverySeconds": 301,
+    }
+    reputation_options = {
+        "ReputationMetricsEnabled": False,
+    }
+    sending_options = {"SendingEnabled": True}
+    tags = [
+        {"Key": "Owner", "Value": "Zach"},
+    ]
+    suppression_options = {"SuppressedReasons": ["BOUNCE"]}
+    vdm_options = {
+        "DashboardOptions": {"EngagementMetrics": "DISABLED"},
+        "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
+    }
+
+    client_v1.create_configuration_set(ConfigurationSet=dict({"Name": name_v1}))
+
+    client_v2.create_configuration_set(
+        ConfigurationSetName=name_v2,
+        TrackingOptions=tracking_options,
+        DeliveryOptions=delivery_options,
+        ReputationOptions=reputation_options,
+        SendingOptions=sending_options,
+        Tags=tags,
+        SuppressionOptions=suppression_options,
+        VdmOptions=vdm_options,
+    )
+
+    # Execute
+    config_setv1 = client_v2.get_configuration_set(ConfigurationSetName=name_v1)
+    config_setv2 = client_v2.get_configuration_set(ConfigurationSetName=name_v2)
+
+    # Validate
+    assert config_setv1["ConfigurationSetName"] == name_v1
+    assert config_setv1["Tags"] == []
+
+    assert config_setv2["ConfigurationSetName"] == name_v2
+    assert config_setv2["Tags"] == tags
+    assert config_setv2["DeliveryOptions"] == delivery_options
+
+    # Check for a non-existant config set
+    with pytest.raises(ClientError) as ex:
+        client_v2.get_configuration_set(ConfigurationSetName="invalid")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ConfigurationSetDoesNotExist"
+
+
+@mock_aws
+def test_list_configuration_sets():
+    # Test ListConfigurationSet returns resources created in both ses and sesv2
+    # Setup
+    client_v1 = boto3.client("ses", region_name="eu-west-1")
+    client_v2 = boto3.client("sesv2", region_name="eu-west-1")
+
+    name_v1 = "my-sesv1"
+    name_v2 = "my-sesv2-config-set"
+    tracking_options = {
+        "CustomRedirectDomain": "abc.com",
+        "HttpsPolicy": "OPTIONAL",
+    }
+    delivery_options = {
+        "TlsPolicy": "OPTIONAL",
+        "SendingPoolName": "MySendingPool",
+        "MaxDeliverySeconds": 301,
+    }
+    reputation_options = {
+        "ReputationMetricsEnabled": False,
+    }
+    sending_options = {"SendingEnabled": True}
+    tags = [
+        {"Key": "Owner", "Value": "Zach"},
+    ]
+    suppression_options = {"SuppressedReasons": ["BOUNCE"]}
+    vdm_options = {
+        "DashboardOptions": {"EngagementMetrics": "DISABLED"},
+        "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
+    }
+
+    client_v1.create_configuration_set(ConfigurationSet=dict({"Name": name_v1}))
+
+    client_v2.create_configuration_set(
+        ConfigurationSetName=name_v2,
+        TrackingOptions=tracking_options,
+        DeliveryOptions=delivery_options,
+        ReputationOptions=reputation_options,
+        SendingOptions=sending_options,
+        Tags=tags,
+        SuppressionOptions=suppression_options,
+        VdmOptions=vdm_options,
+    )
+
+    # Execute
+    config_sets = client_v2.list_configuration_sets()
+
+    # Validate
+    assert len(config_sets["ConfigurationSets"]) == 2
+    for c in config_sets["ConfigurationSets"]:
+        assert c in {name_v1, name_v2}
+
+
+@mock_aws
+def test_delete_configuration_set():
+    # Setup
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    name = "my-sesv2-config-set"
+    tracking_options = {
+        "CustomRedirectDomain": "abc.com",
+        "HttpsPolicy": "OPTIONAL",
+    }
+    delivery_options = {
+        "TlsPolicy": "OPTIONAL",
+        "SendingPoolName": "MySendingPool",
+        "MaxDeliverySeconds": 301,
+    }
+    reputation_options = {
+        "ReputationMetricsEnabled": False,
+    }
+    sending_options = {"SendingEnabled": True}
+    tags = [
+        {"Key": "Owner", "Value": "Zach"},
+    ]
+    suppression_options = {"SuppressedReasons": ["BOUNCE"]}
+    vdm_options = {
+        "DashboardOptions": {"EngagementMetrics": "DISABLED"},
+        "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
+    }
+
+    client.create_configuration_set(
+        ConfigurationSetName=name,
+        TrackingOptions=tracking_options,
+        DeliveryOptions=delivery_options,
+        ReputationOptions=reputation_options,
+        SendingOptions=sending_options,
+        Tags=tags,
+        SuppressionOptions=suppression_options,
+        VdmOptions=vdm_options,
+    )
+
+    config_set = client.get_configuration_set(ConfigurationSetName=name)
+    assert config_set["ConfigurationSetName"] == name
+
+    client.delete_configuration_set(ConfigurationSetName=name)
+
+    # Check the resource no longer exists with Get call returning an error code
+    with pytest.raises(ClientError) as ex:
+        client.get_configuration_set(ConfigurationSetName=name)
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ConfigurationSetDoesNotExist"
+
+
+@mock_aws
+def test_create_and_get_dedicated_ip_pool():
+    client = boto3.client("sesv2", "us-east-1")
+    pool_name = "test-pool"
+    scaling_mode = "STANDARD"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    client.create_dedicated_ip_pool(
+        PoolName=pool_name, ScalingMode=scaling_mode, Tags=tags
+    )
+
+    pool = client.get_dedicated_ip_pool(PoolName=pool_name)["DedicatedIpPool"]
+    assert pool["PoolName"] == pool_name
+    assert pool["ScalingMode"] == scaling_mode
+
+
+@mock_aws
+def test_list_dedicated_ip_pools():
+    client = boto3.client("sesv2", "us-east-1")
+    num_pools = 3
+    pool_name = "test-pool"
+    scaling_mode = "STANDARD"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    for i in range(0, num_pools):
+        client.create_dedicated_ip_pool(
+            PoolName=f"{pool_name}-{i}", ScalingMode=scaling_mode, Tags=tags
+        )
+    pools = client.list_dedicated_ip_pools()
+    assert len(pools["DedicatedIpPools"]) == num_pools
+
+
+@mock_aws
+def test_delete_dedicated_ip_pool():
+    client = boto3.client("sesv2", "us-east-1")
+    num_pools = 2
+    pool_name = "test-pool"
+    scaling_mode = "STANDARD"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    for i in range(0, num_pools):
+        client.create_dedicated_ip_pool(
+            PoolName=f"{pool_name}-{i}", ScalingMode=scaling_mode, Tags=tags
+        )
+
+    target_pool_name = "test-pool-1"
+    target_pool = client.get_dedicated_ip_pool(PoolName=target_pool_name)
+    assert target_pool["DedicatedIpPool"]["PoolName"] == target_pool_name
+
+    # Delete the pool and verify it's no longer found
+    client.delete_dedicated_ip_pool(PoolName=target_pool_name)
+    with pytest.raises(ClientError) as e:
+        client.get_dedicated_ip_pool(PoolName=target_pool_name)
+    assert e.value.response["Error"]["Code"] == "NotFoundException"

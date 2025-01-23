@@ -40,6 +40,16 @@ class AccountNotFoundException(JsonRESTError):
         )
 
 
+class AlreadyInOrganizationException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "AlreadyInOrganizationException",
+            "The provided account is already a member of an organization.",
+        )
+
+
 class AWSOrganizationsNotInUseException(JsonRESTError):
     code = 400
 
@@ -80,6 +90,16 @@ class DuplicatePolicyException(JsonRESTError):
     def __init__(self) -> None:
         super().__init__(
             "DuplicatePolicyException", "A policy with the same name already exists."
+        )
+
+
+class OrganizationNotEmptyException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "OrganizationNotEmptyException",
+            "To delete an organization you must first remove all member accounts (except the master).",
         )
 
 

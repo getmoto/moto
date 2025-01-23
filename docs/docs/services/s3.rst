@@ -20,6 +20,7 @@ s3
 - [X] complete_multipart_upload
 - [X] copy_object
 - [X] create_bucket
+- [ ] create_bucket_metadata_table_configuration
 - [X] create_multipart_upload
 - [ ] create_session
 - [X] delete_bucket
@@ -29,6 +30,7 @@ s3
 - [ ] delete_bucket_intelligent_tiering_configuration
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
+- [ ] delete_bucket_metadata_table_configuration
 - [ ] delete_bucket_metrics_configuration
 - [X] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
@@ -50,6 +52,7 @@ s3
 - [ ] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
+- [ ] get_bucket_metadata_table_configuration
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
 - [X] get_bucket_notification_configuration
@@ -113,6 +116,12 @@ s3
 - [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
+  
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        
+
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
 - [ ] put_bucket_inventory_configuration

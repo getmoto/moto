@@ -11,10 +11,12 @@ from moto.stepfunctions.parser.asl.parse.intrinsic.intrinsic_parser import (
 
 
 class PayloadBindingIntrinsicFunc(PayloadBinding):
+    function: Function
+
     def __init__(self, field: str, intrinsic_func: str):
         super().__init__(field=field)
         self.src: Final[str] = intrinsic_func
-        self.function: Final[Function] = IntrinsicParser.parse(self.src)
+        self.function, _ = IntrinsicParser.parse(self.src)
 
     @classmethod
     def from_raw(cls, string_dollar: str, intrinsic_func: str):

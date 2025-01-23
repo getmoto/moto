@@ -28,6 +28,8 @@ def generate_test_id(
 
 
 class TestResourceIdentifier(ResourceIdentifier):
+    __test__ = False  # Prevent pytest discovery
+
     service = SERVICE
     resource = RESOURCE
 

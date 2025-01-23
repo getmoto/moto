@@ -27,6 +27,11 @@ class DBInstanceNotFoundError(RDSClientError):
         )
 
 
+class DBInstanceAlreadyExists(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__("DBInstanceAlreadyExists", "DB instance already exists")
+
+
 class DBSnapshotNotFoundError(RDSClientError):
     def __init__(self, snapshot_identifier: str):
         super().__init__(

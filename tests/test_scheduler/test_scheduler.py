@@ -189,6 +189,7 @@ def test_get_schedule_for_none_existing_schedule():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Schedule my-schedule does not exist."
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404
 
 
 @mock_aws

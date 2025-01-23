@@ -452,6 +452,14 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "aps1-az1"
  },
@@ -1328,6 +1336,14 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "aps1-az1"
  },
@@ -1405,6 +1421,10 @@
  },
  {
   "InstanceType": "p2.xlarge",
+  "Location": "aps1-az1"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "aps1-az1"
  },
  {
@@ -2672,6 +2692,14 @@
   "Location": "aps1-az2"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "aps1-az2"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "aps1-az2"
  },
@@ -3420,6 +3448,14 @@
   "Location": "aps1-az2"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "aps1-az2"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "aps1-az2"
  },
@@ -3485,6 +3521,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "aps1-az2"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "aps1-az2"
  },
  {
@@ -4616,6 +4656,14 @@
   "Location": "aps1-az3"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "aps1-az3"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "aps1-az3"
  },
@@ -5468,6 +5516,14 @@
   "Location": "aps1-az3"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "aps1-az3"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "aps1-az3"
  },
@@ -5541,6 +5597,10 @@
  },
  {
   "InstanceType": "p2.xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "aps1-az3"
  },
  {

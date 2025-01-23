@@ -1,6 +1,142 @@
 Moto Changelog
 ==============
 
+5.0.27
+-----
+Docker Digest for 5.0.27: _sha256:ac5312f68c6b748b667526025f9e7a8c2e4112837c258eee68f96fa36d9dbbef_
+
+    New Methods:
+        * Glue:
+            * create_dev_endpoint()
+            * get_dev_endpoint()
+            * get_dev_endpoints()
+
+        * KMS:
+            * generate_mac()
+            * list_key_rotations()
+            * rotate_key_on_demand()
+            * verify_mac()
+
+        * SES:
+            * delete_configuration_set()
+            * list_configuration_sets()
+
+        * SESv2:
+            * create_configuration_set()
+            * create_dedicated_ip_pool()
+            * delete_configuration_set()
+            * delete_dedicated_ip_pool()
+            * get_configuration_set()
+            * get_dedicated_ip_pool()
+            * list_configuration_sets()
+            * list_dedicated_ip_pools()
+
+    Miscellaneous:
+        * Introduced a new setting for ServerMode, `MOTO_DISABLE_GLOBAL_CORS`. Disabling the global CORS setting makes it possible to test the CORS-policies on S3 buckets
+        * ElastiCache: create_user() now supports the AuthenticationMode-parameter
+        * ElasticSearch/OpenSearch: list_domain_names() now returns domains from both services
+        * Kafka: list_clusters_v2() now returns all parameters
+        * Scheduler: The `schedule_expression_timezone` now defaults to UTC
+        * RDS: create_db_instance() now throws an exception if an instance with that ID already exists
+        * RDS: restore_db_instance_from_db_snapshot() now throws an exception if an instance with that ID already exists
+
+
+5.0.26
+-----
+Docker Digest for 5.0.26: _sha256:1cae28be97cc87151ecabb531d1507b8dd3d52d3636b86143a16cccf4b5fcf43_
+
+    New Services:
+        * Kinesis:
+            * delete_resource_policy()
+            * get_resource_policy()
+            * put_resource_policy()
+
+    Miscellaneous:
+        * DynamoDB: transact_write_items() now validates empty ExpressionAttributeValues
+        * Logs: describe_log_groups() now returns the logStreamArn-property
+        * Organizations now has additional validation around creation and deletion of organizations and accounts
+        * SecretsManager: list_secrets() now properly splits words when filtering
+        * StepFunctions: describe_state_machine() now takes Version ARN's
+        * StepFunctions: describe_state_machine() now returns the versionDescription
+
+5.0.25
+-----
+Docker Digest for 5.0.25: _sha256:1ac2d89ce8c79a6cdfebffb37678a5bd8bb54a39dcbced069f6ac5e29e4cc752_
+
+    New Services:
+        * DSQL:
+            * create_cluster()
+            * get_cluster()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now better calculates the delta between the desired and reported values
+        * S3: select_object_content() now returns the proper Stats (BytesScanned, BytesReturned)
+        * StepFunctions: Various upgrades for the emulated parser
+
+5.0.24
+-----
+Docker Digest for 5.0.24: _sha256:68042b17e9a55c7a32347f802b7a02f2793201b4f1c788ca0e85084f5218c233_
+
+    Miscellaneous:
+        * EC2: Terminating instances will now release private ip addresses from the NIC's attached to the interface
+        * S3: Fixes a bug in complete_multipart_upload() where it was no longer possible to overwrite an earlier multipart upload (Broken in 5.0.23)
+        * S3: get_object_cors() now correctly returns the ExposeHeader-value
+
+
+5.0.23
+-----
+Docker Digest for 5.0.23: _sha256:d41e007bb1f7d41b530959ae9cbed1edf42737ee839faf8da7e925bf19f63105_
+
+    New Services:
+        * Kafka:
+            * create_cluster()
+            * create_cluster_v2()
+            * describe_cluster()
+            * describe_cluster_v2()
+            * delete_cluster()
+            * list_clusters()
+            * list_clusters_v2()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    New Methods:
+        * DirectConnect:
+            * associate_mac_sec_key()
+            * create_lag()
+            * describe_lags()
+            * describe_settings()
+            * disassociate_mac_sec_key()
+            * update_settings()
+
+        * EFS:
+            * describe_file_system_policy()
+            * put_file_system_policy()
+
+        * ES:
+            * describe_elasticsearch_domains()
+
+        * OpenSearch:
+            * describe_domains()
+
+    Miscellaneous:
+        * Athena: list_query_executions() now supports the WorkGroup-parameter
+        * Athena: start_query_execution() now supports the WorkGroup-parameter
+        * CloudFormation: AWS::IAM::Role now supports updates
+        * CognitoIDP: list_users() now correctly filters before applying the Limit
+        * DirectConnect: describe_trusts() no longer requires a DirectoryId-parameter
+        * DynamoDB: The DeleteProtectionEnabled can now be disabled
+        * DynamoDB: update_item() can now return list of binaries
+        * EC2: SecurityGroups now contain a SecurityGroupArn
+        * EC2: update_route() now correctly handles DestinationPrefixListId
+        * KMS: get_public_key() now supports passing in aliases
+        * Lambda: publish_function() now publishes a function even if the updated code hasn't changed
+        * MemoryDB: tag_resource/list_tags_for_resource() now supports Snapshots and SubnetGroups
+        * RDS: copy_db_snapshot() now supports the CopyTags-parameter
+        * RDS: copy_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * RDS: restore_db_instance_from_db_snapshot() now accepts ARN's as the SourceSnapshotIdentifier
+        * S3: complete_multipart_upload() now supports IfNoneMatch-parameter
+
 5.0.22
 -----
 Docker Digest for 5.0.22: _sha256:a51561b8b9d94918788cb89799d37a34c4bcdf4669f081014b3a2df6b4fc0a11_

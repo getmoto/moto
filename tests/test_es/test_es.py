@@ -5,6 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from tests import DEFAULT_ACCOUNT_ID
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -33,7 +34,10 @@ def test_create_elasticsearch_domain_minimal():
 
     domain = resp["DomainStatus"]
     assert domain["DomainName"] == "motosearch"
-    assert domain["ARN"] == f"arn:aws:es:us-east-2:domain/{domain['DomainId']}"
+    assert (
+        domain["ARN"]
+        == f"arn:aws:es:us-east-2:{DEFAULT_ACCOUNT_ID}:domain/{domain['DomainName']}"
+    )
     assert domain["Created"] is True
     assert domain["Deleted"] is False
     assert domain["Processing"] is False
@@ -188,7 +192,10 @@ def test_describe_elasticsearch_domain():
 
     domain = resp["DomainStatus"]
     assert domain["DomainName"] == "motosearch"
-    assert domain["ARN"] == f"arn:aws:es:ap-southeast-1:domain/{domain['DomainId']}"
+    assert (
+        domain["ARN"]
+        == f"arn:aws:es:ap-southeast-1:{DEFAULT_ACCOUNT_ID}:domain/{domain['DomainName']}"
+    )
     assert domain["Created"] is True
     assert domain["Deleted"] is False
     assert domain["Processing"] is False
@@ -205,6 +212,18 @@ def test_list_domain_names_initial():
 
 
 @mock_aws
+def test_list_domain_names_enginetype():
+    client = boto3.client("es", region_name="us-east-1")
+    client.create_elasticsearch_domain(DomainName="elasticsearch-domain")
+
+    resp = client.list_domain_names(EngineType="Elasticsearch")
+    assert len(resp["DomainNames"]) == 1
+
+    resp = client.list_domain_names(EngineType="OpenSearch")
+    assert len(resp["DomainNames"]) == 0
+
+
+@mock_aws
 def test_list_domain_names_with_multiple_domains():
     client = boto3.client("es", region_name="eu-west-1")
     domain_names = [f"env{i}" for i in range(1, 5)]
@@ -214,4 +233,61 @@ def test_list_domain_names_with_multiple_domains():
 
     assert len(resp["DomainNames"]) == 4
     for name in domain_names:
-        assert {"DomainName": name} in resp["DomainNames"]
+        assert {"DomainName": name, "EngineType": "Elasticsearch"} in resp[
+            "DomainNames"
+        ]
+
+
+@mock_aws
+def test_describe_elasticsearch_domains():
+    client = boto3.client("es", region_name="us-east-1")
+    domain_names = [f"env{i}" for i in range(1, 5)]
+    for name in domain_names:
+        client.create_elasticsearch_domain(
+            DomainName=name,
+            ElasticsearchVersion="7.10",
+            AdvancedOptions={"option": "value"},
+            AdvancedSecurityOptions={"Enabled": False},
+        )
+    resp = client.describe_elasticsearch_domains(DomainNames=domain_names)
+
+    assert len(resp["DomainStatusList"]) == 4
+    for domain in resp["DomainStatusList"]:
+        assert domain["DomainName"] in domain_names
+        assert domain["ElasticsearchVersion"] == "7.10"
+        assert "AdvancedSecurityOptions" in domain.keys()
+        assert "AdvancedOptions" in domain.keys()
+
+    # Test for invalid domain name
+    resp = client.describe_elasticsearch_domains(DomainNames=["invalid"])
+    assert len(resp["DomainStatusList"]) == 0
+
+
+@mock_aws
+def test_list_domain_names_opensearch():
+    opensearch_client = boto3.client("opensearch", region_name="us-east-2")
+    status = opensearch_client.create_domain(DomainName="moto-opensearch")[
+        "DomainStatus"
+    ]
+    assert status["Created"]
+    assert "DomainId" in status
+    assert "DomainName" in status
+    assert status["DomainName"] == "moto-opensearch"
+
+    # ensure that elasticsearch client can describe opensearch domains as well
+    es_client = boto3.client("es", region_name="us-east-2")
+    domain_names = es_client.list_domain_names()["DomainNames"]
+    assert len(domain_names) == 1
+    assert domain_names[0]["DomainName"] == "moto-opensearch"
+    assert domain_names[0]["EngineType"] == "OpenSearch"
+
+
+@mock_aws
+def test_list_domain_names_opensearch_deleted():
+    opensearch_client = boto3.client("opensearch", region_name="us-east-2")
+    opensearch_client.create_domain(DomainName="moto-opensearch")
+    opensearch_client.delete_domain(DomainName="moto-opensearch")
+
+    # ensure that elasticsearch client can describe opensearch domains as well
+    es_client = boto3.client("es", region_name="us-east-2")
+    assert es_client.list_domain_names()["DomainNames"] == []

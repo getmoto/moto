@@ -256,6 +256,25 @@ def test_s3_server_post_cors():
     assert res.headers["Access-Control-Allow-Headers"] == "origin, x-requested-with"
 
 
+def test_s3_no_default_cors():
+    """Test default CORS headers are not set if MOTO_DISABLE_GLOBAL_CORS is true"""
+    for disable_cors in [True, False]:
+        with patch("moto.moto_server.werkzeug_app.DISABLE_GLOBAL_CORS", disable_cors):
+            test_client = authenticated_client()
+
+            # Create a bucket and a file
+            test_client.put("/", "http://nodefaultcors.localhost:5000/")
+            test_client.put("/test", "http://nodefaultcors.localhost:5000/")
+            test_client.put("/", "http://tester.localhost:5000/")
+
+            resp = test_client.get(
+                "/test",
+                "http://nodefaultcors.localhost:5000/",
+                headers={"Origin": "example.com"},
+            )
+            assert ("Access-Control-Allow-Origin" not in resp.headers) == disable_cors
+
+
 def test_s3_server_post_cors_exposed_header():
     """Test overriding default CORS headers with custom bucket rules"""
     # github.com/getmoto/moto/issues/4220
@@ -297,7 +316,7 @@ def test_s3_server_post_cors_exposed_header():
     assert res.status_code == 200
 
     cors_res = test_client.get("/?cors", "http://testcors.localhost:5000")
-    assert b"<ExposedHeader>ETag</ExposedHeader>" in cors_res.data
+    assert b"<ExposeHeader>ETag</ExposeHeader>" in cors_res.data
 
     # Test OPTIONS bucket response and key response
     for key_name in ("/", "/test"):

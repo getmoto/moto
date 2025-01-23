@@ -236,6 +236,7 @@ class LogsResponse(BaseResponse):
 
     def describe_log_streams(self) -> str:
         log_group_name = self._get_param("logGroupName")
+        log_group_id = self._get_param("logGroupIdentifier")
         log_stream_name_prefix = self._get_param("logStreamNamePrefix", "")
         descending = self._get_param("descending", False)
         limit = self._get_param("limit", 50)
@@ -243,12 +244,13 @@ class LogsResponse(BaseResponse):
         order_by = self._get_param("orderBy", "LogStreamName")
 
         streams, next_token = self.logs_backend.describe_log_streams(
-            descending,
-            limit,
-            log_group_name,
-            log_stream_name_prefix,
-            next_token,
-            order_by,
+            descending=descending,
+            limit=limit,
+            log_group_name=log_group_name,
+            log_group_id=log_group_id,
+            log_stream_name_prefix=log_stream_name_prefix,
+            next_token=next_token,
+            order_by=order_by,
         )
         return json.dumps({"logStreams": streams, "nextToken": next_token})
 
@@ -272,6 +274,7 @@ class LogsResponse(BaseResponse):
 
     def get_log_events(self) -> str:
         log_group_name = self._get_param("logGroupName")
+        log_group_id = self._get_param("logGroupIdentifier")
         log_stream_name = self._get_param("logStreamName")
         start_time = self._get_param("startTime")
         end_time = self._get_param("endTime")
@@ -284,13 +287,14 @@ class LogsResponse(BaseResponse):
             next_backward_token,
             next_forward_token,
         ) = self.logs_backend.get_log_events(
-            log_group_name,
-            log_stream_name,
-            start_time,
-            end_time,
-            limit,
-            next_token,
-            start_from_head,
+            log_group_name=log_group_name,
+            log_group_id=log_group_id,
+            log_stream_name=log_stream_name,
+            start_time=start_time,
+            end_time=end_time,
+            limit=limit,
+            next_token=next_token,
+            start_from_head=start_from_head,
         )
         return json.dumps(
             {

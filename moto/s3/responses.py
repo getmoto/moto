@@ -184,6 +184,12 @@ class S3Response(BaseResponse):
         self.bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.request = request
         if (
+            not self.body
+            and request.headers.get("Content-Encoding", "") == "aws-chunked"
+            and hasattr(request, "input_stream")
+        ):
+            self.body = request.input_stream.getvalue()
+        if (
             self.request.headers.get("x-amz-content-sha256")
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
         ):
@@ -1347,6 +1353,8 @@ class S3Response(BaseResponse):
 
     def _handle_encoded_body(self, body: bytes) -> bytes:
         decoded_body = b""
+        if not body:
+            return decoded_body
         body_io = io.BytesIO(body)
         # first line should equal '{content_length}\r\n' while the content_length is a hex number
         content_length = int(body_io.readline().strip(), 16)
@@ -1769,6 +1777,8 @@ class S3Response(BaseResponse):
             checksum_value = compute_checksum(
                 self.raw_body, algorithm=checksum_algorithm
             )
+            if isinstance(checksum_value, bytes):
+                checksum_value = checksum_value.decode("utf-8")
             response_headers.update({checksum_header: checksum_value})
         return checksum_algorithm, checksum_value
 
@@ -2533,9 +2543,12 @@ class S3Response(BaseResponse):
 
             multipart_id = query["uploadId"][0]
 
-            if existing is not None and existing.multipart:
-                # Based on testing against AWS, operation seems idempotent
-                # Scenario where both method-calls have a different body hasn't been tested yet
+            if (
+                existing is not None
+                and existing.multipart
+                and existing.multipart.id == multipart_id
+            ):
+                # Operation is idempotent
                 key: Optional[FakeKey] = existing
             else:
                 key = self.backend.complete_multipart_upload(
@@ -2579,10 +2592,10 @@ class S3Response(BaseResponse):
             select_query = request["Expression"]
             input_details = request["InputSerialization"]
             output_details = request["OutputSerialization"]
-            results = self.backend.select_object_content(
+            results, bytes_scanned = self.backend.select_object_content(
                 bucket_name, key_name, select_query, input_details, output_details
             )
-            return 200, {}, serialize_select(results)
+            return 200, {}, serialize_select(results, bytes_scanned)
 
         else:
             raise NotImplementedError(
@@ -2994,7 +3007,7 @@ S3_BUCKET_CORS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     {% endif %}
     {% if cors.exposed_headers is not none %}
       {% for header in cors.exposed_headers %}
-      <ExposedHeader>{{ header }}</ExposedHeader>
+      <ExposeHeader>{{ header }}</ExposeHeader>
       {% endfor %}
     {% endif %}
     {% if cors.max_age_seconds is not none %}

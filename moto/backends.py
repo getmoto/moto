@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
     from moto.ds.models import DirectoryServiceBackend
+    from moto.dsql.models import AuroraDSQLBackend
     from moto.dynamodb.models import DynamoDBBackend
     from moto.dynamodb_v20111205.models import (
         DynamoDBBackend as DynamoDBBackend_v20111205,
@@ -80,6 +81,7 @@ if TYPE_CHECKING:
     from moto.iot.models import IoTBackend
     from moto.iotdata.models import IoTDataPlaneBackend
     from moto.ivs.models import IVSBackend
+    from moto.kafka.models import KafkaBackend
     from moto.kinesis.models import KinesisBackend
     from moto.kinesisvideo.models import KinesisVideoBackend
     from moto.kinesisvideoarchivedmedia.models import KinesisVideoArchivedMediaBackend
@@ -224,6 +226,7 @@ SERVICE_NAMES = Union[
     "Literal['directconnect']",
     "Literal['dms']",
     "Literal['ds']",
+    "Literal['dsql']",
     "Literal['dynamodb']",
     "Literal['dynamodb_v20111205']",
     "Literal['dynamodbstreams']",
@@ -258,6 +261,7 @@ SERVICE_NAMES = Union[
     "Literal['iot']",
     "Literal['iot-data']",
     "Literal['ivs']",
+    "Literal['kafka']",
     "Literal['kinesis']",
     "Literal['kinesisvideo']",
     "Literal['kinesis-video-archived-media']",
@@ -438,6 +442,8 @@ def get_backend(
 @overload
 def get_backend(name: "Literal['ds']") -> "BackendDict[DirectoryServiceBackend]": ...
 @overload
+def get_backend(name: "Literal['dsql']") -> "BackendDict[AuroraDSQLBackend]": ...
+@overload
 def get_backend(name: "Literal['dynamodb']") -> "BackendDict[DynamoDBBackend]": ...
 @overload
 def get_backend(
@@ -527,6 +533,8 @@ def get_backend(name: "Literal['iot']") -> "BackendDict[IoTBackend]": ...
 def get_backend(name: "Literal['iot-data']") -> "BackendDict[IoTDataPlaneBackend]": ...
 @overload
 def get_backend(name: "Literal['ivs']") -> "BackendDict[IVSBackend]": ...
+@overload
+def get_backend(name: "Literal['kafka']") -> "BackendDict[KafkaBackend]": ...
 @overload
 def get_backend(name: "Literal['kinesis']") -> "BackendDict[KinesisBackend]": ...
 @overload

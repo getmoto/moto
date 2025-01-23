@@ -1,7 +1,7 @@
 import boto3
 import pytest
 from botocore.config import Config
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -502,22 +502,6 @@ def test_create_another_member_adminpassword():
 
     badadminpassmemberconf = helpers.create_member_configuration(
         "testmember2", "admin", "Admin12345", False
-    )
-
-    # Too short
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"]["AdminPassword"] = (
-        "badap"
-    )
-    with pytest.raises(ParamValidationError) as ex:
-        conn.create_member(
-            NetworkId=network_id,
-            InvitationId=invitation_id,
-            MemberConfiguration=badadminpassmemberconf,
-        )
-    err = ex.value
-    assert (
-        "Invalid length for parameter MemberConfiguration.FrameworkConfiguration.Fabric.AdminPassword"
-        in str(err)
     )
 
     # No uppercase or numbers

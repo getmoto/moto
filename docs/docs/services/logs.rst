@@ -28,6 +28,8 @@ logs
 - [ ] delete_delivery_destination_policy
 - [ ] delete_delivery_source
 - [X] delete_destination
+- [ ] delete_index_policy
+- [ ] delete_integration
 - [ ] delete_log_anomaly_detector
 - [X] delete_log_group
 - [X] delete_log_stream
@@ -40,6 +42,7 @@ logs
 
 - [X] delete_retention_policy
 - [X] delete_subscription_filter
+- [ ] delete_transformer
 - [ ] describe_account_policies
 - [ ] describe_configuration_templates
 - [ ] describe_deliveries
@@ -51,6 +54,8 @@ logs
         Pagination is not yet implemented
         
 
+- [ ] describe_field_indexes
+- [ ] describe_index_policies
 - [X] describe_log_groups
 - [X] describe_log_streams
 - [X] describe_metric_filters
@@ -82,6 +87,7 @@ logs
 - [ ] get_delivery_destination
 - [ ] get_delivery_destination_policy
 - [ ] get_delivery_source
+- [ ] get_integration
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
 - [ ] get_log_group_fields
@@ -91,8 +97,11 @@ logs
         Not all query commands are implemented yet. Please raise an issue if you encounter unexpected results.
         
 
+- [ ] get_transformer
 - [ ] list_anomalies
+- [ ] list_integrations
 - [ ] list_log_anomaly_detectors
+- [ ] list_log_groups_for_query
 - [X] list_tags_for_resource
 - [X] list_tags_log_group
 - [ ] put_account_policy
@@ -102,6 +111,8 @@ logs
 - [ ] put_delivery_source
 - [X] put_destination
 - [X] put_destination_policy
+- [ ] put_index_policy
+- [ ] put_integration
 - [X] put_log_events
   
         The SequenceToken-parameter is not yet implemented
@@ -116,12 +127,14 @@ logs
 
 - [X] put_retention_policy
 - [X] put_subscription_filter
+- [ ] put_transformer
 - [ ] start_live_tail
 - [X] start_query
 - [ ] stop_query
 - [X] tag_log_group
 - [X] tag_resource
 - [ ] test_metric_filter
+- [ ] test_transformer
 - [X] untag_log_group
 - [X] untag_resource
 - [ ] update_anomaly

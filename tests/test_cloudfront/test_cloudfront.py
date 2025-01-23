@@ -1,6 +1,6 @@
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -151,33 +151,6 @@ def test_update_distribution_no_such_distId():
 
 
 @mock_aws
-def test_update_distribution_distId_is_None():
-    client = boto3.client("cloudfront", region_name="us-east-1")
-
-    # Create standard distribution
-    config = scaffold.example_distribution_config(ref="ref")
-    dist = client.create_distribution(DistributionConfig=config)
-
-    # Make up a fake dist ID by reversing the actual ID
-    dist_id = None
-    dist_etag = dist["ETag"]
-
-    dist_config = dist["Distribution"]["DistributionConfig"]
-    aliases = ["alias1", "alias2"]
-    dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
-
-    with pytest.raises(ParamValidationError) as error:
-        client.update_distribution(
-            DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
-        )
-
-    typename = error.typename
-    assert typename == "ParamValidationError"
-    error_str = "botocore.exceptions.ParamValidationError: Parameter validation failed:\nInvalid type for parameter Id, value: None, type: <class 'NoneType'>, valid types: <class 'str'>"
-    assert error.exconly() == error_str
-
-
-@mock_aws
 def test_update_distribution_IfMatch_not_set():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -203,27 +176,6 @@ def test_update_distribution_IfMatch_not_set():
     assert err["Code"] == "InvalidIfMatchVersion"
     msg = "The If-Match version is missing or not valid for the resource."
     assert err["Message"] == msg
-
-
-@mock_aws
-def test_update_distribution_dist_config_not_set():
-    client = boto3.client("cloudfront", region_name="us-east-1")
-
-    # Create standard distribution
-    config = scaffold.example_distribution_config(ref="ref")
-    dist = client.create_distribution(DistributionConfig=config)
-
-    # Make up a fake dist ID by reversing the actual ID
-    dist_id = dist["Distribution"]["Id"]
-    dist_etag = dist["ETag"]
-
-    with pytest.raises(ParamValidationError) as error:
-        client.update_distribution(Id=dist_id, IfMatch=dist_etag)
-
-    typename = error.typename
-    assert typename == "ParamValidationError"
-    error_str = 'botocore.exceptions.ParamValidationError: Parameter validation failed:\nMissing required parameter in input: "DistributionConfig"'
-    assert error.exconly() == error_str
 
 
 @mock_aws

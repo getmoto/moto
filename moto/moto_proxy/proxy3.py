@@ -155,12 +155,12 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
             return
 
         req_body = b""
-        if "Content-Length" in req.headers:
-            content_length = int(req.headers["Content-Length"])
-            req_body = self.rfile.read(content_length)
-        elif "chunked" in self.headers.get("Transfer-Encoding", ""):
+        if "chunked" in self.headers.get("Transfer-Encoding", ""):
             # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
             req_body = self.read_chunked_body(self.rfile)
+        elif "Content-Length" in req.headers:
+            content_length = int(req.headers["Content-Length"])
+            req_body = self.rfile.read(content_length)
         if self.headers.get("Content-Type", "").startswith("multipart/form-data"):
             boundary = self.headers["Content-Type"].split("boundary=")[-1]
             req_body, form_data = get_body_from_form_data(req_body, boundary)  # type: ignore

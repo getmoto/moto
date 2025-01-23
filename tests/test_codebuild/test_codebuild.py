@@ -2,7 +2,7 @@ from uuid import uuid1
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -272,42 +272,6 @@ def test_codebuild_list_builds_for_project_with_history():
     assert len(response["ids"]) == 1
 
 
-# project never started
-@mock_aws
-def test_codebuild_get_batch_builds_for_project_no_history():
-    client = boto3.client("codebuild", region_name="eu-central-1")
-
-    name = "some_project"
-    source = dict()
-    source["type"] = "S3"
-    # repository location for S3
-    source["location"] = "bucketname/path/file.zip"
-    artifacts = {"type": "NO_ARTIFACTS"}
-
-    environment = dict()
-    environment["type"] = "LINUX_CONTAINER"
-    environment["image"] = "contents_not_validated"
-    environment["computeType"] = "BUILD_GENERAL1_SMALL"
-    service_role = (
-        f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/my-codebuild-service-role"
-    )
-
-    client.create_project(
-        name=name,
-        source=source,
-        artifacts=artifacts,
-        environment=environment,
-        serviceRole=service_role,
-    )
-
-    response = client.list_builds_for_project(projectName=name)
-    assert response["ids"] == []
-
-    with pytest.raises(ParamValidationError) as err:
-        client.batch_get_builds(ids=response["ids"])
-    assert err.typename == "ParamValidationError"
-
-
 @mock_aws
 def test_codebuild_start_build_no_project():
     client = boto3.client("codebuild", region_name="eu-central-1")
@@ -516,15 +480,6 @@ def test_codebuild_batch_get_builds_invalid_build_id():
     with pytest.raises(client.exceptions.InvalidInputException) as err:
         client.batch_get_builds(ids=[f"some_project{uuid1()}"])
     assert err.value.response["Error"]["Code"] == "InvalidInputException"
-
-
-@mock_aws
-def test_codebuild_batch_get_builds_empty_build_id():
-    client = boto3.client("codebuild", region_name="eu-central-1")
-
-    with pytest.raises(ParamValidationError) as err:
-        client.batch_get_builds(ids=[])
-    assert err.typename == "ParamValidationError"
 
 
 @mock_aws

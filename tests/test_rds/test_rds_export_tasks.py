@@ -194,7 +194,7 @@ def test_describe_export_tasks():
         KmsKeyId="",
     )
 
-    exports = client.describe_export_tasks().get("ExportTasks")
+    exports = client.describe_export_tasks()["ExportTasks"]
 
     assert len(exports) == 1
     assert exports[0]["ExportTaskIdentifier"] == "export-snapshot-1"

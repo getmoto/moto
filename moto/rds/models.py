@@ -23,6 +23,7 @@ from .exceptions import (
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
     DBClusterToBeDeletedHasActiveMembers,
+    DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
@@ -1822,6 +1823,8 @@ class RDSBackend(BaseBackend):
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
+        if database_id in self.databases:
+            raise DBInstanceAlreadyExists()
         self._validate_db_identifier(database_id)
         database = DBInstance(self, **db_kwargs)
 
@@ -1890,6 +1893,10 @@ class RDSBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
         copy_tags: bool = False,
     ) -> DBSnapshot:
+        if source_snapshot_identifier.startswith("arn:aws:rds:"):
+            source_snapshot_identifier = self.extract_snapshot_name_from_arn(
+                source_snapshot_identifier
+            )
         if source_snapshot_identifier not in self.database_snapshots:
             raise DBSnapshotNotFoundError(source_snapshot_identifier)
 
@@ -2001,7 +2008,7 @@ class RDSBackend(BaseBackend):
                 "You must specify apply immediately when rotating the master user password.",
             )
         database.update(db_kwargs)
-        initial_state = copy.deepcopy(database)
+        initial_state = copy.copy(database)
         database.master_user_secret_status = (
             "active"  # already set the final state in the background
         )
@@ -2010,13 +2017,36 @@ class RDSBackend(BaseBackend):
     def reboot_db_instance(self, db_instance_identifier: str) -> DBInstance:
         return self.describe_db_instances(db_instance_identifier)[0]
 
+    def extract_snapshot_name_from_arn(self, snapshot_arn: str) -> str:
+        arn_breakdown = snapshot_arn.split(":")
+        region_name, account_id, resource_type, snapshot_name = arn_breakdown[3:7]
+        if resource_type != "snapshot":
+            raise InvalidParameterValue(
+                "The parameter SourceDBSnapshotIdentifier is not a valid identifier. "
+                "Identifiers must begin with a letter; must contain only ASCII "
+                "letters, digits, and hyphens; and must not end with a hyphen or "
+                "contain two consecutive hyphens."
+            )
+        if region_name != self.region_name or account_id != self.account_id:
+            raise NotImplementedError(
+                "Cross account/region snapshot handling is not yet implemented in moto."
+            )
+        return snapshot_name
+
     def restore_db_instance_from_db_snapshot(
         self, from_snapshot_id: str, overrides: Dict[str, Any]
     ) -> DBInstance:
+        if from_snapshot_id.startswith("arn:aws:rds:"):
+            from_snapshot_id = self.extract_snapshot_name_from_arn(from_snapshot_id)
+
         snapshot = self.describe_db_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
+
+        if overrides["db_instance_identifier"] in self.databases:
+            raise DBInstanceAlreadyExists()
+
         new_instance_props = {}
         for key, value in original_database.__dict__.items():
             if key != "backend":
@@ -2042,14 +2072,14 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=source_db_identifier
         )[0]
 
-        # remove the db subnet group as it cannot be copied
-        # and is not used in the restored instance
-        source_dict = db_instance.__dict__
-        if "db_subnet_group" in source_dict:
-            del source_dict["db_subnet_group"]
+        new_instance_props = {}
+        for key, value in db_instance.__dict__.items():
+            # Remove backend / db subnet group as they cannot be copied
+            # and are not used in the restored instance.
+            if key in ("backend", "db_subnet_group"):
+                continue
+            new_instance_props[key] = copy.deepcopy(value)
 
-        new_instance_props = copy.deepcopy(source_dict)
-        new_instance_props.pop("backend")
         if not db_instance.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2507,6 +2537,25 @@ class RDSBackend(BaseBackend):
             db_cluster_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
 
+    def _create_db_cluster_snapshot(
+        self,
+        cluster: DBCluster,
+        db_snapshot_identifier: str,
+        snapshot_type: str,
+        tags: List[Dict[str, str]],
+    ) -> DBClusterSnapshot:
+        if db_snapshot_identifier in self.cluster_snapshots:
+            raise DBClusterSnapshotAlreadyExistsError(db_snapshot_identifier)
+        if len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededError()
+        snapshot = DBClusterSnapshot(
+            self, cluster, db_snapshot_identifier, snapshot_type, tags
+        )
+        self.cluster_snapshots[db_snapshot_identifier] = snapshot
+        return snapshot
+
     def create_db_cluster_snapshot(
         self,
         db_cluster_identifier: str,
@@ -2517,21 +2566,14 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters.get(db_cluster_identifier)
         if cluster is None:
             raise DBClusterNotFoundError(db_cluster_identifier)
-        if db_snapshot_identifier in self.cluster_snapshots:
-            raise DBClusterSnapshotAlreadyExistsError(db_snapshot_identifier)
-        if len(self.cluster_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
-            raise SnapshotQuotaExceededError()
         if tags is None:
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
-        snapshot = DBClusterSnapshot(
-            self, cluster, db_snapshot_identifier, snapshot_type, tags
+
+        return self._create_db_cluster_snapshot(
+            cluster, db_snapshot_identifier, snapshot_type, tags
         )
-        self.cluster_snapshots[db_snapshot_identifier] = snapshot
-        return snapshot
 
     def copy_db_cluster_snapshot(
         self,
@@ -2547,10 +2589,9 @@ class RDSBackend(BaseBackend):
             tags = source_snapshot.tags
         else:
             tags = self._merge_tags(source_snapshot.tags, tags)
-        return self.create_db_cluster_snapshot(
-            db_cluster_identifier=source_snapshot.cluster.db_cluster_identifier,  # type: ignore
-            db_snapshot_identifier=target_snapshot_identifier,
-            tags=tags,
+
+        return self._create_db_cluster_snapshot(
+            source_snapshot.cluster, target_snapshot_identifier, "manual", tags
         )
 
     def delete_db_cluster_snapshot(
@@ -2618,7 +2659,9 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_identifier]
         if cluster.status != "stopped":
             raise InvalidDBClusterStateFault(
-                "DbCluster cluster-id is not in stopped state."
+                f"DbCluster {cluster_identifier} is in {cluster.status} state "
+                "but expected it to be one of "
+                "stopped,inaccessible-encryption-credentials-recoverable."
             )
         temp_state = copy.deepcopy(cluster)
         temp_state.status = "started"
@@ -2645,7 +2688,8 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters[cluster_identifier]
         if cluster.status not in ["available"]:
             raise InvalidDBClusterStateFault(
-                "DbCluster cluster-id is not in available state."
+                f"DbCluster {cluster_identifier} is in {cluster.status} state "
+                "but expected it to be one of available."
             )
         previous_state = copy.deepcopy(cluster)
         cluster.status = "stopped"

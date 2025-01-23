@@ -10,18 +10,37 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 RDS_REGION = "eu-north-1"
 
 
+@pytest.fixture(name="client")
 @mock_aws
-def test_describe_db_cluster_initial():
-    client = boto3.client("rds", region_name=RDS_REGION)
+def get_rds_client():
+    return boto3.client("rds", region_name=RDS_REGION)
 
+
+def create_db_cluster(**extra_kwargs) -> str:
+    client = boto3.client("rds", region_name=RDS_REGION)
+    default_kwargs = {
+        "DBClusterIdentifier": "db-primary-1",
+        "AllocatedStorage": 10,
+        "Engine": "postgres",
+        "DatabaseName": "staging-postgres",
+        "DBClusterInstanceClass": "db.m1.small",
+        "MasterUsername": "root",
+        "MasterUserPassword": "hunter2000",
+        "Port": 1234,
+    }
+    default_kwargs.update(extra_kwargs)
+    client.create_db_cluster(**default_kwargs)
+    return default_kwargs["DBClusterIdentifier"]
+
+
+@mock_aws
+def test_describe_db_cluster_initial(client):
     resp = client.describe_db_clusters()
     assert len(resp["DBClusters"]) == 0
 
 
 @mock_aws
-def test_describe_db_cluster_fails_for_non_existent_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_describe_db_cluster_fails_for_non_existent_cluster(client):
     resp = client.describe_db_clusters()
     assert len(resp["DBClusters"]) == 0
     with pytest.raises(ClientError) as ex:
@@ -32,9 +51,7 @@ def test_describe_db_cluster_fails_for_non_existent_cluster():
 
 
 @mock_aws
-def test_create_db_cluster_invalid_engine():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_invalid_engine(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id", Engine="aurora-postgresql"
@@ -47,9 +64,7 @@ def test_create_db_cluster_invalid_engine():
 
 
 @mock_aws
-def test_create_db_cluster_needs_master_username():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_needs_master_username(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id", Engine="aurora-postgresql"
@@ -62,9 +77,7 @@ def test_create_db_cluster_needs_master_username():
 
 
 @mock_aws
-def test_create_db_cluster_needs_master_user_password():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_needs_master_user_password(client):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             DBClusterIdentifier="cluster-id",
@@ -79,14 +92,9 @@ def test_create_db_cluster_needs_master_user_password():
 
 
 @mock_aws
-def test_create_db_cluster_needs_long_master_user_password():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_needs_long_master_user_password(client):
     with pytest.raises(ClientError) as ex:
-        client.create_db_cluster(
-            DBClusterIdentifier="cluster-id",
-            Engine="aurora-postgresql",
-            MasterUsername="root",
+        create_db_cluster(
             MasterUserPassword="hunter2",
         )
     err = ex.value.response["Error"]
@@ -98,19 +106,12 @@ def test_create_db_cluster_needs_long_master_user_password():
 
 
 @mock_aws
-def test_modify_db_cluster_needs_long_master_user_password():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter21",
-    )
+def test_modify_db_cluster_needs_long_master_user_password(client):
+    db_cluster_identifier = create_db_cluster()
 
     with pytest.raises(ClientError) as ex:
         client.modify_db_cluster(
-            DBClusterIdentifier="cluster-id",
+            DBClusterIdentifier=db_cluster_identifier,
             MasterUserPassword="hunter2",
         )
     err = ex.value.response["Error"]
@@ -122,22 +123,13 @@ def test_modify_db_cluster_needs_long_master_user_password():
 
 
 @mock_aws
-def test_modify_db_cluster_new_cluster_identifier():
-    client = boto3.client("rds", region_name=RDS_REGION)
-    old_id = "cluster-id"
+def test_modify_db_cluster_new_cluster_identifier(client):
+    old_id = create_db_cluster()
     new_id = "new-cluster-id"
-
-    client.create_db_cluster(
-        DBClusterIdentifier=old_id,
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter21",
-    )
 
     resp = client.modify_db_cluster(
         DBClusterIdentifier=old_id,
         NewDBClusterIdentifier=new_id,
-        MasterUserPassword="hunter21",
     )
 
     assert resp["DBCluster"]["DBClusterIdentifier"] == new_id
@@ -152,8 +144,7 @@ def test_modify_db_cluster_new_cluster_identifier():
 
 @pytest.mark.parametrize("with_custom_kms_key", [True, False])
 @mock_aws
-def test_modify_db_cluster_manage_master_user_password(with_custom_kms_key):
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_key):
     cluster_id = "cluster-id"
     custom_kms_key = f"arn:aws:kms:{RDS_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
     custom_kms_key_args = (
@@ -207,27 +198,18 @@ def test_modify_db_cluster_manage_master_user_password(with_custom_kms_key):
 
 @pytest.mark.parametrize("with_apply_immediately", [True, False])
 @mock_aws
-def test_modify_db_cluster_rotate_master_user_password(with_apply_immediately):
-    client = boto3.client("rds", region_name=RDS_REGION)
-    cluster_id = "cluster-id"
-
-    client.create_db_cluster(
-        DBClusterIdentifier=cluster_id,
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter21",
-        ManageMasterUserPassword=True,
-    )
+def test_modify_db_cluster_rotate_master_user_password(client, with_apply_immediately):
+    db_cluster_identifier = create_db_cluster(ManageMasterUserPassword=True)
 
     if with_apply_immediately:
         modify_response = client.modify_db_cluster(
-            DBClusterIdentifier=cluster_id,
+            DBClusterIdentifier=db_cluster_identifier,
             RotateMasterUserPassword=True,
             ApplyImmediately=True,
         )
 
         describe_response = client.describe_db_clusters(
-            DBClusterIdentifier=cluster_id,
+            DBClusterIdentifier=db_cluster_identifier,
         )
 
         assert (
@@ -242,15 +224,13 @@ def test_modify_db_cluster_rotate_master_user_password(with_apply_immediately):
     else:
         with pytest.raises(ClientError):
             client.modify_db_cluster(
-                DBClusterIdentifier=cluster_id,
+                DBClusterIdentifier=db_cluster_identifier,
                 RotateMasterUserPassword=True,
             )
 
 
 @mock_aws
-def test_create_db_cluster__verify_default_properties():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster__verify_default_properties(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-mysql",
@@ -317,9 +297,7 @@ def test_create_db_cluster__verify_default_properties():
 
 
 @mock_aws
-def test_create_db_cluster_additional_parameters():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_additional_parameters(client):
     resp = client.create_db_cluster(
         AvailabilityZones=["eu-north-1b"],
         DatabaseName="users",
@@ -378,9 +356,7 @@ def test_create_db_cluster_additional_parameters():
 
 
 @mock_aws
-def test_describe_db_cluster_after_creation():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_describe_db_cluster_after_creation(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id1",
         Engine="aurora-postgresql",
@@ -411,64 +387,37 @@ def test_describe_db_cluster_after_creation():
 
 
 @mock_aws
-def test_delete_db_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-
-    client.delete_db_cluster(DBClusterIdentifier="cluster-id")
-
+def test_delete_db_cluster(client):
+    db_cluster_identifier = create_db_cluster()
+    client.delete_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     assert len(client.describe_db_clusters()["DBClusters"]) == 0
 
 
 @mock_aws
-def test_delete_db_cluster_do_snapshot():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-
+def test_delete_db_cluster_do_snapshot(client):
+    db_cluster_identifier = create_db_cluster()
     client.delete_db_cluster(
-        DBClusterIdentifier="cluster-id", FinalDBSnapshotIdentifier="final-snapshot"
+        DBClusterIdentifier=db_cluster_identifier,
+        FinalDBSnapshotIdentifier="final-snapshot",
     )
     assert len(client.describe_db_clusters()["DBClusters"]) == 0
     snapshot = client.describe_db_cluster_snapshots()["DBClusterSnapshots"][0]
-    assert snapshot["DBClusterIdentifier"] == "cluster-id"
+    assert snapshot["DBClusterIdentifier"] == db_cluster_identifier
     assert snapshot["DBClusterSnapshotIdentifier"] == "final-snapshot"
     assert snapshot["SnapshotType"] == "automated"
 
 
 @mock_aws
-def test_delete_db_cluster_that_is_protected():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-        DeletionProtection=True,
-    )
-
+def test_delete_db_cluster_that_is_protected(client):
+    db_cluster_identifier = create_db_cluster(DeletionProtection=True)
     with pytest.raises(ClientError) as exc:
-        client.delete_db_cluster(DBClusterIdentifier="cluster-id")
+        client.delete_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     err = exc.value.response["Error"]
     assert err["Message"] == "Can't delete Cluster with protection enabled"
 
 
 @mock_aws
-def test_delete_db_cluster_unknown_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_delete_db_cluster_unknown_cluster(client):
     with pytest.raises(ClientError) as ex:
         client.delete_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
@@ -477,9 +426,7 @@ def test_delete_db_cluster_unknown_cluster():
 
 
 @mock_aws
-def test_start_db_cluster_unknown_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_start_db_cluster_unknown_cluster(client):
     with pytest.raises(ClientError) as ex:
         client.start_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
@@ -488,52 +435,33 @@ def test_start_db_cluster_unknown_cluster():
 
 
 @mock_aws
-def test_start_db_cluster_after_stopping():
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_start_db_cluster_after_stopping(client):
+    db_cluster_identifier = create_db_cluster()
+    client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
 
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-    client.stop_db_cluster(DBClusterIdentifier="cluster-id")
-
-    client.start_db_cluster(DBClusterIdentifier="cluster-id")
+    client.start_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     cluster = client.describe_db_clusters()["DBClusters"][0]
     assert cluster["Status"] == "available"
 
 
 @mock_aws
-def test_start_db_cluster_without_stopping():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
+def test_start_db_cluster_without_stopping(client):
+    db_cluster_identifier = create_db_cluster()
 
     with pytest.raises(ClientError) as ex:
-        client.start_db_cluster(DBClusterIdentifier="cluster-id")
+        client.start_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidDBClusterStateFault"
-    assert err["Message"] == "DbCluster cluster-id is not in stopped state."
+    assert (
+        err["Message"]
+        == f"DbCluster {db_cluster_identifier} is in available state but expected it to be one of stopped,inaccessible-encryption-credentials-recoverable."
+    )
 
 
 @mock_aws
-def test_stop_db_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-
-    resp = client.stop_db_cluster(DBClusterIdentifier="cluster-id")
+def test_stop_db_cluster(client):
+    db_cluster_identifier = create_db_cluster()
+    resp = client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     # Quirk of the AWS implementation - the immediate response show it's still available
     cluster = resp["DBCluster"]
     assert cluster["Status"] == "available"
@@ -544,29 +472,23 @@ def test_stop_db_cluster():
 
 
 @mock_aws
-def test_stop_db_cluster_already_stopped():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
-    client.create_db_cluster(
-        DBClusterIdentifier="cluster-id",
-        Engine="aurora-postgresql",
-        MasterUsername="root",
-        MasterUserPassword="hunter2_",
-    )
-    client.stop_db_cluster(DBClusterIdentifier="cluster-id")
+def test_stop_db_cluster_already_stopped(client):
+    db_cluster_identifier = create_db_cluster()
+    client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
 
     # can't call stop on a stopped cluster
     with pytest.raises(ClientError) as ex:
-        client.stop_db_cluster(DBClusterIdentifier="cluster-id")
+        client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidDBClusterStateFault"
-    assert err["Message"] == "DbCluster cluster-id is not in available state."
+    assert (
+        err["Message"]
+        == f"DbCluster {db_cluster_identifier} is in stopped state but expected it to be one of available."
+    )
 
 
 @mock_aws
-def test_stop_db_cluster_unknown_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_stop_db_cluster_unknown_cluster(client):
     with pytest.raises(ClientError) as ex:
         client.stop_db_cluster(DBClusterIdentifier="cluster-unknown")
     err = ex.value.response["Error"]
@@ -575,10 +497,9 @@ def test_stop_db_cluster_unknown_cluster():
 
 
 @mock_aws
-def test_create_db_cluster_snapshot_fails_for_unknown_cluster():
-    conn = boto3.client("rds", region_name="us-west-2")
+def test_create_db_cluster_snapshot_fails_for_unknown_cluster(client):
     with pytest.raises(ClientError) as exc:
-        conn.create_db_cluster_snapshot(
+        client.create_db_cluster_snapshot(
             DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
         )
     err = exc.value.response["Error"]
@@ -586,66 +507,48 @@ def test_create_db_cluster_snapshot_fails_for_unknown_cluster():
 
 
 @mock_aws
-def test_create_db_cluster_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
-    )
-
-    snapshot = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+def test_create_db_cluster_snapshot(client):
+    db_cluster_identifier = create_db_cluster()
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
+    )["DBClusterSnapshot"]
 
     assert snapshot["Engine"] == "postgres"
     assert snapshot["DBClusterIdentifier"] == "db-primary-1"
     assert snapshot["DBClusterSnapshotIdentifier"] == "g-1"
     assert snapshot["SnapshotType"] == "manual"
-    result = conn.list_tags_for_resource(ResourceName=snapshot["DBClusterSnapshotArn"])
+    result = client.list_tags_for_resource(
+        ResourceName=snapshot["DBClusterSnapshotArn"]
+    )
     assert result["TagList"] == []
 
 
 @mock_aws
-def test_create_db_cluster_snapshot_copy_tags():
-    conn = boto3.client("rds", region_name="us-west-2")
-
-    dbci = "db-primary-1"
-    conn.create_db_cluster(
-        DBClusterIdentifier=dbci,
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_create_db_cluster_snapshot_copy_tags(client):
+    db_cluster_identifier = create_db_cluster(
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
         CopyTagsToSnapshot=True,
     )
 
-    snapshot = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier=dbci, DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
+    )["DBClusterSnapshot"]
 
-    assert snapshot.get("Engine") == "postgres"
-    assert snapshot.get("DBClusterIdentifier") == dbci
-    assert snapshot.get("DBClusterSnapshotIdentifier") == "g-1"
+    assert snapshot["Engine"] == "postgres"
+    assert snapshot["DBClusterIdentifier"] == db_cluster_identifier
+    assert snapshot["DBClusterSnapshotIdentifier"] == "g-1"
 
-    result = conn.list_tags_for_resource(ResourceName=snapshot["DBClusterSnapshotArn"])
+    result = client.list_tags_for_resource(
+        ResourceName=snapshot["DBClusterSnapshotArn"]
+    )
     assert result["TagList"] == [
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
     ]
 
-    snapshot = conn.describe_db_cluster_snapshots(DBClusterIdentifier=dbci)[
-        "DBClusterSnapshots"
-    ][0]
+    snapshot = client.describe_db_cluster_snapshots(
+        DBClusterIdentifier=db_cluster_identifier
+    )["DBClusterSnapshots"][0]
     assert snapshot["TagList"] == [
         {"Key": "foo", "Value": "bar"},
         {"Key": "foo1", "Value": "bar1"},
@@ -653,11 +556,9 @@ def test_create_db_cluster_snapshot_copy_tags():
 
 
 @mock_aws
-def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
-
+def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot(client):
     with pytest.raises(ClientError) as exc:
-        conn.copy_db_cluster_snapshot(
+        client.copy_db_cluster_snapshot(
             SourceDBClusterSnapshotIdentifier="snapshot-1",
             TargetDBClusterSnapshotIdentifier="snapshot-2",
         )
@@ -666,64 +567,66 @@ def test_copy_db_cluster_snapshot_fails_for_unknown_snapshot():
     assert err["Message"] == "DBClusterSnapshot snapshot-1 not found."
 
 
+@pytest.mark.parametrize("delete_cluster", [True, False])
 @mock_aws
-def test_copy_db_cluster_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
-
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_copy_db_cluster_snapshot(delete_cluster: bool, client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
     )
 
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
-    ).get("DBClusterSnapshot")
+    if delete_cluster:
+        client.delete_db_cluster(DBClusterIdentifier=db_cluster_identifier)
 
-    target_snapshot = conn.copy_db_cluster_snapshot(
+    target_snapshot = client.copy_db_cluster_snapshot(
         SourceDBClusterSnapshotIdentifier="snapshot-1",
         TargetDBClusterSnapshotIdentifier="snapshot-2",
-    ).get("DBClusterSnapshot")
+    )["DBClusterSnapshot"]
 
-    assert target_snapshot.get("Engine") == "postgres"
-    assert target_snapshot.get("DBClusterIdentifier") == "db-primary-1"
-    assert target_snapshot.get("DBClusterSnapshotIdentifier") == "snapshot-2"
-    result = conn.list_tags_for_resource(
+    assert target_snapshot["Engine"] == "postgres"
+    assert target_snapshot["DBClusterIdentifier"] == "db-primary-1"
+    assert target_snapshot["DBClusterSnapshotIdentifier"] == "snapshot-2"
+    result = client.list_tags_for_resource(
         ResourceName=target_snapshot["DBClusterSnapshotArn"]
     )
     assert result["TagList"] == []
 
 
 @mock_aws
-def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
+def test_copy_db_cluster_snapshot_type_is_always_manual(client):
+    # Even when copying a snapshot with SnapshotType=="automated", the
+    # SnapshotType of the copy is "manual".
+    db_cluster_identifier = create_db_cluster()
+    client.delete_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        FinalDBSnapshotIdentifier="final-snapshot",
+    )
+    snapshot1 = client.describe_db_cluster_snapshots()["DBClusterSnapshots"][0]
+    assert snapshot1["SnapshotType"] == "automated"
 
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+    snapshot2 = client.copy_db_cluster_snapshot(
+        SourceDBClusterSnapshotIdentifier="final-snapshot",
+        TargetDBClusterSnapshotIdentifier="snapshot-2",
+    )["DBClusterSnapshot"]
+    assert snapshot2["SnapshotType"] == "manual"
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot(client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
     )
 
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
-    ).get("DBClusterSnapshot")
-
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
-    ).get("DBClusterSnapshot")
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-2",
+    )
 
     with pytest.raises(ClientError) as exc:
-        conn.copy_db_cluster_snapshot(
+        client.copy_db_cluster_snapshot(
             SourceDBClusterSnapshotIdentifier="snapshot-1",
             TargetDBClusterSnapshotIdentifier="snapshot-2",
         )
@@ -736,90 +639,63 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot():
 
 
 @mock_aws
-def test_describe_db_cluster_snapshots():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
-    )
+def test_describe_db_cluster_snapshots(client):
+    db_cluster_identifier = create_db_cluster()
 
-    created = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
-    ).get("DBClusterSnapshot")
+    created = client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
+    )["DBClusterSnapshot"]
 
-    assert created.get("Engine") == "postgres"
+    assert created["Engine"] == "postgres"
 
-    by_database_id = conn.describe_db_cluster_snapshots(
+    by_database_id = client.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
-    ).get("DBClusterSnapshots")
-    by_snapshot_id = conn.describe_db_cluster_snapshots(
+    )["DBClusterSnapshots"]
+    by_snapshot_id = client.describe_db_cluster_snapshots(
         DBClusterSnapshotIdentifier="snapshot-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     assert by_snapshot_id == by_database_id
 
     snapshot = by_snapshot_id[0]
     assert snapshot == created
-    assert snapshot.get("Engine") == "postgres"
+    assert snapshot["Engine"] == "postgres"
 
-    conn.create_db_cluster_snapshot(
+    client.create_db_cluster_snapshot(
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
     )
-    snapshots = conn.describe_db_cluster_snapshots(
+    snapshots = client.describe_db_cluster_snapshots(
         DBClusterIdentifier="db-primary-1"
-    ).get("DBClusterSnapshots")
+    )["DBClusterSnapshots"]
     assert len(snapshots) == 2
 
 
 @mock_aws
-def test_delete_db_cluster_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
-    )
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
+def test_delete_db_cluster_snapshot(client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
     )
 
-    conn.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
-    conn.delete_db_cluster_snapshot(DBClusterSnapshotIdentifier="snapshot-1")
+    client.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
+    client.delete_db_cluster_snapshot(DBClusterSnapshotIdentifier="snapshot-1")
     with pytest.raises(ClientError):
-        conn.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
+        client.describe_db_cluster_snapshots(DBClusterSnapshotIdentifier="snapshot-1")
 
 
 @mock_aws
-def test_restore_db_cluster_from_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
-    )
-    assert len(conn.describe_db_clusters()["DBClusters"]) == 1
+def test_restore_db_cluster_from_snapshot(client):
+    db_cluster_identifier = create_db_cluster()
+    assert len(client.describe_db_clusters()["DBClusters"]) == 1
 
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
     )
 
     # restore
-    new_cluster = conn.restore_db_cluster_from_snapshot(
+    new_cluster = client.restore_db_cluster_from_snapshot(
         DBClusterIdentifier="db-restore-1",
         SnapshotIdentifier="snapshot-1",
         Engine="postgres",
@@ -831,33 +707,22 @@ def test_restore_db_cluster_from_snapshot():
     assert new_cluster["Port"] == 1234
 
     # Verify it exists
-    assert len(conn.describe_db_clusters()["DBClusters"]) == 2
-    assert (
-        len(conn.describe_db_clusters(DBClusterIdentifier="db-restore-1")["DBClusters"])
-        == 1
-    )
+    assert len(client.describe_db_clusters()["DBClusters"]) == 2
+    resp = client.describe_db_clusters(DBClusterIdentifier="db-restore-1")
+    assert len(resp["DBClusters"]) == 1
 
 
 @mock_aws
-def test_restore_db_cluster_from_snapshot_and_override_params():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
-    )
-    assert len(conn.describe_db_clusters()["DBClusters"]) == 1
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
+def test_restore_db_cluster_from_snapshot_and_override_params(client):
+    db_cluster_identifier = create_db_cluster()
+    assert len(client.describe_db_clusters()["DBClusters"]) == 1
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
     )
 
     # restore with some updated attributes
-    new_cluster = conn.restore_db_cluster_from_snapshot(
+    new_cluster = client.restore_db_cluster_from_snapshot(
         DBClusterIdentifier="db-restore-1",
         SnapshotIdentifier="snapshot-1",
         Engine="postgres",
@@ -871,71 +736,54 @@ def test_restore_db_cluster_from_snapshot_and_override_params():
 
 
 @mock_aws
-def test_add_tags_to_cluster():
-    conn = boto3.client("rds", region_name="us-west-2")
-    resp = conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_add_tags_to_cluster(client):
+    db_cluster_identifier = create_db_cluster(
         Tags=[{"Key": "k1", "Value": "v1"}],
     )
-    cluster_arn = resp["DBCluster"]["DBClusterArn"]
+    cluster_arn = (
+        f"arn:aws:rds:{RDS_REGION}:123456789012:cluster:{db_cluster_identifier}"
+    )
 
-    conn.add_tags_to_resource(
+    client.add_tags_to_resource(
         ResourceName=cluster_arn, Tags=[{"Key": "k2", "Value": "v2"}]
     )
 
-    tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
+    tags = client.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
     assert tags == [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
 
-    conn.remove_tags_from_resource(ResourceName=cluster_arn, TagKeys=["k1"])
+    client.remove_tags_from_resource(ResourceName=cluster_arn, TagKeys=["k1"])
 
-    tags = conn.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
+    tags = client.list_tags_for_resource(ResourceName=cluster_arn)["TagList"]
     assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
 @mock_aws
-def test_add_tags_to_cluster_snapshot():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_add_tags_to_cluster_snapshot(client):
+    db_cluster_identifier = create_db_cluster(
         Tags=[{"Key": "k1", "Value": "v1"}],
         CopyTagsToSnapshot=True,
     )
-    resp = conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-1"
+    resp = client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
     )
     snapshot_arn = resp["DBClusterSnapshot"]["DBClusterSnapshotArn"]
 
-    conn.add_tags_to_resource(
+    client.add_tags_to_resource(
         ResourceName=snapshot_arn, Tags=[{"Key": "k2", "Value": "v2"}]
     )
 
-    tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
+    tags = client.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
     assert tags == [{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}]
 
-    conn.remove_tags_from_resource(ResourceName=snapshot_arn, TagKeys=["k1"])
+    client.remove_tags_from_resource(ResourceName=snapshot_arn, TagKeys=["k1"])
 
-    tags = conn.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
+    tags = client.list_tags_for_resource(ResourceName=snapshot_arn)["TagList"]
     assert tags == [{"Key": "k2", "Value": "v2"}]
 
 
 @mock_aws
-def test_create_serverless_db_cluster():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_serverless_db_cluster(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         DatabaseName="users",
@@ -957,9 +805,7 @@ def test_create_serverless_db_cluster():
 
 
 @mock_aws
-def test_create_db_cluster_with_enable_http_endpoint_invalid():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_create_db_cluster_with_enable_http_endpoint_invalid(client):
     resp = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         DatabaseName="users",
@@ -976,9 +822,7 @@ def test_create_db_cluster_with_enable_http_endpoint_invalid():
 
 
 @mock_aws
-def test_describe_db_clusters_filter_by_engine():
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_describe_db_clusters_filter_by_engine(client):
     client.create_db_cluster(
         DBClusterIdentifier="id1",
         Engine="aurora-mysql",
@@ -1052,9 +896,8 @@ def test_replicate_cluster():
 
 
 @mock_aws
-def test_createdb_instance_engine_mismatch_fail():
+def test_createdb_instance_engine_mismatch_fail(client):
     # Setup
-    client = boto3.client("rds", "us-east-1")
     cluster_name = "test-cluster"
     client.create_db_cluster(
         DBClusterIdentifier=cluster_name,
@@ -1065,7 +908,6 @@ def test_createdb_instance_engine_mismatch_fail():
     )
 
     # Execute
-
     with pytest.raises(ClientError) as exc:
         client.create_db_instance(
             DBClusterIdentifier=cluster_name,
@@ -1086,130 +928,77 @@ def test_createdb_instance_engine_mismatch_fail():
 
 
 @mock_aws
-def test_describe_db_cluster_snapshot_attributes_default():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_describe_db_cluster_snapshot_attributes_default(client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
     )
 
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
-
-    resp = conn.describe_db_cluster_snapshot_attributes(
+    result = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
-    )
+    )["DBClusterSnapshotAttributesResult"]
 
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"] == []
-    )
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"] == []
 
 
 @mock_aws
-def test_describe_db_cluster_snapshot_attributes():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_describe_db_cluster_snapshot_attributes(client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
     )
 
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
-
-    conn.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test", "test2"],
     )
 
-    resp = conn.describe_db_cluster_snapshot_attributes(
+    result = client.describe_db_cluster_snapshot_attributes(
         DBClusterSnapshotIdentifier="g-1"
-    )
+    )["DBClusterSnapshotAttributesResult"]
 
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-            "AttributeName"
-        ]
-        == "restore"
-    )
-    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["test", "test2"]
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeName"] == "restore"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeValues"] == [
+        "test",
+        "test2",
+    ]
 
 
 @mock_aws
-def test_modify_db_cluster_snapshot_attribute():
-    conn = boto3.client("rds", region_name="us-west-2")
-    conn.create_db_cluster(
-        DBClusterIdentifier="db-primary-1",
-        AllocatedStorage=10,
-        Engine="postgres",
-        DatabaseName="staging-postgres",
-        DBClusterInstanceClass="db.m1.small",
-        MasterUsername="root",
-        MasterUserPassword="hunter2000",
-        Port=1234,
+def test_modify_db_cluster_snapshot_attribute(client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier, DBClusterSnapshotIdentifier="g-1"
     )
 
-    conn.create_db_cluster_snapshot(
-        DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="g-1"
-    ).get("DBClusterSnapshot")
-
-    resp = conn.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test", "test2"],
     )
-    resp = conn.modify_db_cluster_snapshot_attribute(
+    client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToRemove=["test"],
     )
-    resp = conn.modify_db_cluster_snapshot_attribute(
+    result = client.modify_db_cluster_snapshot_attribute(
         DBClusterSnapshotIdentifier="g-1",
         AttributeName="restore",
         ValuesToAdd=["test3"],
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotIdentifier"]
-        == "g-1"
-    )
-    assert (
-        resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-            "AttributeName"
-        ]
-        == "restore"
-    )
-    assert resp["DBClusterSnapshotAttributesResult"]["DBClusterSnapshotAttributes"][0][
-        "AttributeValues"
-    ] == ["test2", "test3"]
+    )["DBClusterSnapshotAttributesResult"]
+    assert result["DBClusterSnapshotIdentifier"] == "g-1"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeName"] == "restore"
+    assert result["DBClusterSnapshotAttributes"][0]["AttributeValues"] == [
+        "test2",
+        "test3",
+    ]
 
 
 @mock_aws
-def test_backtrack_window():
-    client = boto3.client("rds", region_name=RDS_REGION)
+def test_backtrack_window(client):
     window = 86400
     resp = client.create_db_cluster(
         AvailabilityZones=["eu-north-1b"],
@@ -1253,9 +1042,7 @@ def test_backtrack_window():
         ),
     ],
 )
-def test_backtrack_errors(params):
-    client = boto3.client("rds", region_name=RDS_REGION)
-
+def test_backtrack_errors(client, params):
     with pytest.raises(ClientError) as ex:
         client.create_db_cluster(
             AvailabilityZones=["eu-north-1b"],

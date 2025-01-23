@@ -89,8 +89,221 @@ def test_create_user_without_password():
     assert err["Code"] == "InvalidParameterValue"
     assert (
         err["Message"]
-        == "No password was provided. If you want to create/update the user without password, please use the NoPasswordRequired flag."
+        == "Input Authentication type: null is not in the allowed list: [password,no-password-required,iam]"
     )
+
+
+@mock_aws
+def test_create_user_with_iam():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        AuthenticationMode={"Type": "iam"},
+    )
+
+    assert resp["Status"] == "active"
+    assert resp["Engine"] == "Redis"
+    assert resp["AccessString"] == "on ~* +@all"
+    assert resp["UserGroupIds"] == []
+    assert resp["Authentication"]["Type"] == "iam"
+
+
+@mock_aws
+def test_create_user_invalid_authentication_type():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            UserId="user1",
+            UserName="User1",
+            Engine="Redis",
+            AccessString="?",
+            AuthenticationMode={"Type": "invalidtype"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "Input Authentication type: invalidtype is not in the allowed list: [password,no-password-required,iam]"
+    )
+
+
+@mock_aws
+def test_create_user_with_iam_with_passwords():
+    # IAM authentication mode should not come with password fields
+    client = boto3.client("elasticache", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            UserId="user1",
+            UserName="user1",
+            Engine="Redis",
+            AccessString="?",
+            AuthenticationMode={"Type": "iam"},
+            Passwords=["mysecretpassthatsverylong"],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"] == "Password field is not allowed with authentication type: iam"
+    )
+
+
+@mock_aws
+def test_create_user_authmode_password_with_multiple_password_fields():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            UserId="user1",
+            UserName="user1",
+            Engine="Redis",
+            AccessString="on ~* +@all",
+            AuthenticationMode={"Type": "password", "Passwords": ["authmodepassword"]},
+            Passwords=["requestpassword"],
+            NoPasswordRequired=False,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "Passwords provided via multiple arguments. Use only one argument"
+    )
+
+
+@mock_aws
+def test_create_user_with_authmode_password_without_passwords():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            UserId="user1",
+            UserName="user1",
+            Engine="Redis",
+            AccessString="?",
+            AuthenticationMode={"Type": "password"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "A user with Authentication Mode: password, must have at least one password"
+    )
+
+
+@mock_aws
+def test_create_user_with_authmode_no_password():
+    # AuthenticationMode should be either 'password' or 'iam' or 'no-password'
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        AuthenticationMode={"Type": "no-password-required"},
+    )
+
+    assert resp["Status"] == "active"
+    assert resp["Engine"] == "Redis"
+    assert resp["AccessString"] == "on ~* +@all"
+    assert resp["UserGroupIds"] == []
+    assert resp["Authentication"]["Type"] == "no-password-required"
+    assert (
+        "PasswordCount" not in resp["Authentication"]
+    )  # even though optional, we don't expect it for no-password-required
+
+
+@mock_aws
+def test_create_user_with_no_password_required_and_authmode_nopassword():
+    user_id = "user1"
+    client = boto3.client("elasticache", region_name="us-east-1")
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        NoPasswordRequired=True,
+        AuthenticationMode={"Type": "no-password-required"},
+    )
+
+    assert resp["Status"] == "active"
+    assert resp["Engine"] == "Redis"
+    assert resp["AccessString"] == "on ~* +@all"
+    assert resp["UserGroupIds"] == []
+    assert resp["Authentication"]["Type"] == "no-password"
+    assert (
+        "PasswordCount" not in resp["Authentication"]
+    )  # even though optional, we don't expect it for no-password-required
+
+
+@mock_aws
+def test_create_user_with_no_password_required_and_authmode_different():
+    for auth_mode in ["password", "iam"]:
+        client = boto3.client("elasticache", region_name="ap-southeast-1")
+        with pytest.raises(ClientError) as exc:
+            client.create_user(
+                UserId="user1",
+                UserName="user1",
+                Engine="Redis",
+                AccessString="on ~* +@all",
+                NoPasswordRequired=True,
+                AuthenticationMode={"Type": auth_mode},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameterCombination"
+        assert (
+            err["Message"]
+            == f"No password required flag is true but provided authentication type is {auth_mode}"
+        )
+
+
+@mock_aws
+def test_create_user_with_authmode_password():
+    # AuthenticationMode should be either 'password' or 'iam' or 'no-password'
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        AuthenticationMode={
+            "Type": "password",
+            "Passwords": ["mysecretpassthatsverylong"],
+        },
+    )
+
+    assert resp["Status"] == "active"
+    assert resp["Engine"] == "Redis"
+    assert resp["AccessString"] == "on ~* +@all"
+    assert resp["UserGroupIds"] == []
+    assert resp["Authentication"]["Type"] == "password"
+    assert resp["Authentication"]["PasswordCount"] == 1
+
+
+@mock_aws
+def test_create_user_with_authmode_password_multiple():
+    # AuthenticationMode should be either 'password' or 'iam' or 'no-password'
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        AuthenticationMode={
+            "Type": "password",
+            "Passwords": ["mysecretpassthatsverylong", "mysecretpassthatsverylong2"],
+        },
+    )
+
+    assert resp["Status"] == "active"
+    assert resp["Engine"] == "Redis"
+    assert resp["AccessString"] == "on ~* +@all"
+    assert resp["UserGroupIds"] == []
+    assert resp["Authentication"]["Type"] == "password"
+    assert resp["Authentication"]["PasswordCount"] == 2
 
 
 @mock_aws

@@ -273,3 +273,45 @@ def test_transaction_with_empty_key(table_name=None):
         err["Message"]
         == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: pk"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_items__empty_expr_attr_values(table_name=None):
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {"pk": {"S": "tenant#0000001-tenant#0000001"}},
+                        "ConditionExpression": "attribute_not_exists(#n0)",
+                        "TableName": table_name,
+                        "ExpressionAttributeNames": {"#n0": "pk"},
+                        "ExpressionAttributeValues": {},
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeValues must not be empty"
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"pk": {"S": "globals"}},
+                        "UpdateExpression": "SET #0 = {'S': 'asdf'}",
+                        "ExpressionAttributeNames": {"#0": "tenant_count"},
+                        "ExpressionAttributeValues": {},
+                        "TableName": table_name,
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeValues must not be empty"

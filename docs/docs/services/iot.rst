@@ -40,6 +40,7 @@ iot
 - [ ] create_billing_group
 - [X] create_certificate_from_csr
 - [ ] create_certificate_provider
+- [ ] create_command
 - [ ] create_custom_metric
 - [ ] create_dimension
 - [X] create_domain_configuration
@@ -77,6 +78,8 @@ iot
 - [X] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_certificate_provider
+- [ ] delete_command
+- [ ] delete_command_execution
 - [ ] delete_custom_metric
 - [ ] delete_dimension
 - [X] delete_domain_configuration
@@ -157,6 +160,8 @@ iot
 - [ ] get_behavior_model_training_summaries
 - [ ] get_buckets_aggregation
 - [ ] get_cardinality
+- [ ] get_command
+- [ ] get_command_execution
 - [ ] get_effective_policies
 - [X] get_indexing_configuration
 - [X] get_job_document
@@ -170,6 +175,7 @@ iot
 - [X] get_policy_version
 - [X] get_registration_code
 - [ ] get_statistics
+- [ ] get_thing_connectivity_data
 - [X] get_topic_rule
 - [ ] get_topic_rule_destination
 - [ ] get_v2_logging_options
@@ -198,6 +204,8 @@ iot
         Pagination is not yet implemented
         
 
+- [ ] list_command_executions
+- [ ] list_commands
 - [ ] list_custom_metrics
 - [ ] list_detect_mitigation_actions_executions
 - [ ] list_detect_mitigation_actions_tasks
@@ -320,6 +328,7 @@ iot
 
 - [X] update_certificate
 - [ ] update_certificate_provider
+- [ ] update_command
 - [ ] update_custom_metric
 - [ ] update_dimension
 - [X] update_domain_configuration

@@ -121,6 +121,11 @@ class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
         )
 
 
+class ExpressionAttributeValuesEmpty(MockValidationException):
+    def __init__(self) -> None:
+        super().__init__("ExpressionAttributeValues must not be empty")
+
+
 class UpdateExprSyntaxError(InvalidUpdateExpression):
     update_expr_syntax_error_msg = "Syntax error; {error_detail}"
 
