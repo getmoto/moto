@@ -1,6 +1,6 @@
 """SecurityHubBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -163,7 +163,7 @@ class SecurityHubBackend(BaseBackend):
 
     def batch_import_findings(
         self, findings: List[Dict[str, Any]]
-    ) -> tuple[int, int, List[Dict[str, Any]]]:
+    ) -> Tuple[int, int, List[Dict[str, Any]]]:
         """
         Import findings in batch to SecurityHub.
 
