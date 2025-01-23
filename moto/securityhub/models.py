@@ -74,11 +74,12 @@ class SecurityHubBackend(BaseBackend):
                 max_results = int(max_results)
                 if max_results < 1:
                     raise InvalidInputException(
-                        "MaxResults must be a number greater than 0"
+                        op="GetFindings",
+                        msg="MaxResults must be a number greater than 0",
                     )
             except ValueError:
                 raise InvalidInputException(
-                    "MaxResults must be a number greater than 0"
+                    op="GetFindings", msg="MaxResults must be a number greater than 0"
                 )
 
         # Validate sort criteria if provided
@@ -88,10 +89,13 @@ class SecurityHubBackend(BaseBackend):
             for criterion in sort_criteria:
                 if "Field" not in criterion or "SortOrder" not in criterion:
                     raise InvalidInputException(
-                        "SortCriteria must contain Field and SortOrder"
+                        op="GetFindings",
+                        msg="SortCriteria must contain Field and SortOrder",
                     )
                 if criterion["SortOrder"].lower() not in allowed_orders:
-                    raise InvalidInputException("SortOrder must be either asc or desc")
+                    raise InvalidInputException(
+                        op="GetFindings", msg="SortOrder must be either asc or desc"
+                    )
 
         # Apply filters if provided
         if filters:
@@ -195,7 +199,8 @@ class SecurityHubBackend(BaseBackend):
                 ]
                 if missing_fields:
                     raise InvalidInputException(
-                        f"Finding must contain the following required fields: {', '.join(missing_fields)}"
+                        op="BatchImportFindings",
+                        msg=f"Finding must contain the following required fields: {', '.join(missing_fields)}",
                     )
 
                 if (
@@ -203,7 +208,8 @@ class SecurityHubBackend(BaseBackend):
                     or len(finding_data["Resources"]) == 0
                 ):
                     raise InvalidInputException(
-                        "Finding must contain at least one resource in the Resources array"
+                        op="BatchImportFindings",
+                        msg="Finding must contain at least one resource in the Resources array",
                     )
 
                 finding_id = finding_data["Id"]
