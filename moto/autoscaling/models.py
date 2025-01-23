@@ -839,11 +839,14 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 elif isinstance(first_itf, dict):
                     subnet_id = first_itf.get("SubnetId")
 
-        associate_public_ip = (
-            self.launch_config.associate_public_ip_address
-            if self.launch_config
-            else None
-        )
+        associate_public_ip = None
+        if self.launch_config:
+            associate_public_ip = self.launch_config.associate_public_ip_address
+        elif self.launch_template:
+            interfaces = self.launch_template.versions[-1].data.get("NetworkInterface")
+            if interfaces and isinstance(interfaces[0], dict):
+                associate_public_ip = interfaces[0].get("AssociatePublicIpAddress")
+
         reservation = self.autoscaling_backend.ec2_backend.run_instances(
             self.image_id,
             count_needed,
