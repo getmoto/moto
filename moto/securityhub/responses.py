@@ -1,6 +1,7 @@
 """Handles incoming securityhub requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -8,14 +9,14 @@ from .models import securityhub_backends
 
 
 class SecurityHubResponse(BaseResponse):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="securityhub")
 
     @property
-    def securityhub_backend(self):
+    def securityhub_backend(self) -> Any:
         return securityhub_backends[self.current_account][self.region]
 
-    def get_findings(self):
+    def get_findings(self) -> str:
         params = self._get_params()
         filters = params.get("Filters")
         sort_criteria = params.get("SortCriteria")
@@ -34,7 +35,7 @@ class SecurityHubResponse(BaseResponse):
 
         return json.dumps(result)
 
-    def batch_import_findings(self):
+    def batch_import_findings(self) -> str:
         raw_body = self.body
         if isinstance(raw_body, bytes):
             raw_body = raw_body.decode("utf-8")
