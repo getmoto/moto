@@ -1,11 +1,10 @@
 """Handles incoming securityhub requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 
 from moto.core.responses import BaseResponse
 
-from .models import securityhub_backends, SecurityHubBackend
+from .models import SecurityHubBackend, securityhub_backends
 
 
 class SecurityHubResponse(BaseResponse):
