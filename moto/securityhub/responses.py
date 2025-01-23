@@ -5,7 +5,7 @@ from typing import Any
 
 from moto.core.responses import BaseResponse
 
-from .models import securityhub_backends
+from .models import securityhub_backends, SecurityHubBackend
 
 
 class SecurityHubResponse(BaseResponse):
@@ -13,7 +13,7 @@ class SecurityHubResponse(BaseResponse):
         super().__init__(service_name="securityhub")
 
     @property
-    def securityhub_backend(self) -> Any:
+    def securityhub_backend(self) -> SecurityHubBackend:
         return securityhub_backends[self.current_account][self.region]
 
     def get_findings(self) -> str:
