@@ -35612,7 +35612,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -35725,7 +35725,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36120,7 +36120,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36230,7 +36230,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36870,7 +36870,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36985,7 +36985,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37247,7 +37247,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37452,7 +37452,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -43150,7 +43150,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 4750,
@@ -67980,7 +67980,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 4750,
