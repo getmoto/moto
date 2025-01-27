@@ -71,10 +71,11 @@ class SecurityHubBackend(BaseBackend):
         if max_results is not None:
             try:
                 max_results = int(max_results)
-                if max_results < 1:
+                if max_results < 1 or max_results > 100:
+                    print("max_results", max_results)
                     raise InvalidInputException(
                         op="GetFindings",
-                        msg="MaxResults must be a number greater than 0",
+                        msg="MaxResults must be a number between 1 and 100",
                     )
             except ValueError:
                 raise InvalidInputException(
@@ -119,29 +120,6 @@ class SecurityHubBackend(BaseBackend):
 
         for finding_data in findings:
             try:
-                # # Validate required fields
-                # required_fields = [
-                #     "AwsAccountId",
-                #     "CreatedAt",
-                #     "UpdatedAt",
-                #     "Description",
-                #     "GeneratorId",
-                #     "Id",
-                #     "ProductArn",
-                #     "Severity",
-                #     "Title",
-                #     "Types",
-                # ]
-
-                # missing_fields = [
-                #     field for field in required_fields if field not in finding_data
-                # ]
-                # if missing_fields:
-                #     raise InvalidInputException(
-                #         op="BatchImportFindings",
-                #         msg=f"Finding must contain the following required fields: {', '.join(missing_fields)}",
-                #     )
-
                 if (
                     not isinstance(finding_data["Resources"], list)
                     or len(finding_data["Resources"]) == 0
