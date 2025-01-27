@@ -14,7 +14,7 @@ def test_get_findings():
 
     test_finding = {
         "AwsAccountId": DEFAULT_ACCOUNT_ID,
-        "CreatedAt": "2024-01-01T00:00:00.000Z",
+        "CreatedAt": "2024-01-01T00:00:00.001Z",
         "UpdatedAt": "2024-01-01T00:00:00.000Z",
         "Description": "Test finding description",
         "GeneratorId": "test-generator",
