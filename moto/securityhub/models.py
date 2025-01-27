@@ -72,7 +72,6 @@ class SecurityHubBackend(BaseBackend):
             try:
                 max_results = int(max_results)
                 if max_results < 1 or max_results > 100:
-                    print("max_results", max_results)
                     raise InvalidInputException(
                         op="GetFindings",
                         msg="MaxResults must be a number between 1 and 100",
