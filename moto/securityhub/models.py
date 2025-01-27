@@ -12,40 +12,6 @@ class Finding(BaseModel):
         self.id = finding_id
         self.data = finding_data
 
-        # # Ensure required fields exist with default values
-        # self.data.setdefault("Id", finding_id)
-        # self.data.setdefault("AwsAccountId", "")
-        # self.data.setdefault("CreatedAt", "")
-        # self.data.setdefault("Description", "")
-        # self.data.setdefault("GeneratorId", "")
-        # self.data.setdefault("ProductArn", "")
-        # self.data.setdefault("Title", "")
-        # self.data.setdefault("Types", [])
-
-        # # Required but with nested structure
-        # self.data.setdefault("Severity", {"Label": ""})
-        # self.data.setdefault("Resources", [])
-
-        # # Optional fields with default values
-        # self.data.setdefault("UpdatedAt", "")
-        # self.data.setdefault("FirstObservedAt", "")
-        # self.data.setdefault("LastObservedAt", "")
-        # self.data.setdefault("Confidence", 0)
-        # self.data.setdefault("Criticality", 0)
-        # self.data.setdefault("RecordState", "ACTIVE")
-        # self.data.setdefault("WorkflowState", "NEW")
-        # self.data.setdefault("VerificationState", "UNKNOWN")
-
-    # def _get_sortable_value(self, field: str) -> Any:
-    #     """Get a value from the finding data using dot notation"""
-    #     if "." in field:
-    #         parent, child = field.split(".")
-    #         return self.data.get(parent, {}).get(child)
-    #     elif "/" in field:
-    #         parent, child = field.split("/")
-    #         return self.data.get(parent, {}).get(child)
-    #     return self.data.get(field)
-
     def as_dict(self) -> Dict[str, Any]:
         return self.data
 
@@ -64,10 +30,9 @@ class SecurityHubBackend(BaseBackend):
         next_token: Optional[str] = None,
         max_results: Optional[int] = None,
     ) -> Dict[str, Any]:
-        """Gets findings from SecurityHub based on provided filters and sorting criteria"""
         findings = self.findings
 
-        # Validate max_results if provided
+        # Max Results Parameter
         if max_results is not None:
             try:
                 max_results = int(max_results)
@@ -81,7 +46,7 @@ class SecurityHubBackend(BaseBackend):
                     op="GetFindings", msg="MaxResults must be a number greater than 0"
                 )
 
-        # Handle pagination
+        # next_token Parameter
         if next_token:
             start_idx = int(next_token)
         else:
@@ -93,7 +58,6 @@ class SecurityHubBackend(BaseBackend):
 
         paginated_findings = findings[start_idx:end_idx]
 
-        # Generate next token if there are more results
         next_token = str(end_idx) if end_idx < len(findings) else None
 
         return {
@@ -135,10 +99,8 @@ class SecurityHubBackend(BaseBackend):
                 )
 
                 if existing_finding:
-                    # Update existing finding
                     existing_finding.data.update(finding_data)
                 else:
-                    # Create new finding
                     new_finding = Finding(finding_id, finding_data)
                     self.findings.append(new_finding)
 

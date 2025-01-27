@@ -27,11 +27,9 @@ def test_get_findings():
         "Types": ["Software and Configuration Checks"],
     }
 
-    # Import the finding
     import_response = client.batch_import_findings(Findings=[test_finding])
     assert import_response["SuccessCount"] == 1
 
-    # Get the findings
     response = client.get_findings()
 
     assert "Findings" in response
@@ -40,8 +38,6 @@ def test_get_findings():
     finding = response["Findings"][0]
     assert finding["Id"] == "test-finding-001"
     assert finding["SchemaVersion"] == "2018-10-08"
-    # assert finding["WorkflowState"] == "NEW"
-    # assert finding["RecordState"] == "ACTIVE"
 
 
 @mock_aws
@@ -81,10 +77,8 @@ def test_batch_import_findings():
 
 @mock_aws
 def test_get_findings_invalid_parameters():
-    """Test getting findings with invalid parameters."""
     client = boto3.client("securityhub", region_name="us-east-1")
 
-    # Test invalid MaxResults (must be between 1 and 100)
     with pytest.raises(ClientError) as exc:
         client.get_findings(MaxResults=101)
 

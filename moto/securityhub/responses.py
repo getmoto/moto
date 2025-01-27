@@ -18,7 +18,6 @@ class SecurityHubResponse(BaseResponse):
     def get_findings(self) -> str:
         raw_params = self._get_params()
 
-        # Parse the JSON string that's being used as a key
         params = json.loads(next(iter(raw_params.keys()), "{}"))
 
         sort_criteria = params.get("SortCriteria", [])
