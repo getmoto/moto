@@ -46,3 +46,15 @@ def test_list_schedule_groups():
     groups = client.list_schedule_groups()["ScheduleGroups"]
     assert len(groups) == 2
     assert groups[1]["Arn"] == arn1
+
+
+@mock_aws
+def test_get_schedule_groupe_not_found():
+    client = boto3.client("scheduler", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_schedule_group(Name="sg")
+    err = exc.value.response["Error"]
+    assert err["Message"] == "Schedule group sg does not exist."
+    assert err["Code"] == "ResourceNotFoundException"
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 404

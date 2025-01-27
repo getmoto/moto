@@ -6,7 +6,6 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.client import ClientError
-from botocore.exceptions import ParamValidationError
 
 from moto import mock_aws
 
@@ -34,15 +33,6 @@ def test_delete_job():
         client.get_job(JobName=job_name)
 
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
-
-
-@mock_aws
-def test_create_job_default_argument_not_provided():
-    client = create_glue_client()
-    with pytest.raises(ParamValidationError) as exc:
-        client.create_job(Role="test_role", Command=dict(Name="test_command"))
-
-    assert exc.value.kwargs["report"] == 'Missing required parameter in input: "Name"'
 
 
 @mock_aws
@@ -867,3 +857,69 @@ def test_stop_session():
 
     resp = client.get_session(Id=session_id)
     assert resp["Session"]["Status"] == "STOPPING"
+
+
+@mock_aws
+def test_get_dev_endpoints():
+    client = create_glue_client()
+
+    response = client.get_dev_endpoints()
+    assert response["DevEndpoints"] == []
+    assert "NextToken" not in response
+
+    client.create_dev_endpoint(
+        EndpointName="dev-endpoint-1",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+    client.create_dev_endpoint(
+        EndpointName="dev-endpoint-2",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    response = client.get_dev_endpoints()
+    assert len(response["DevEndpoints"]) == 2
+    assert {ep["EndpointName"] for ep in response["DevEndpoints"]} == {
+        "dev-endpoint-1",
+        "dev-endpoint-2",
+    }
+    assert "NextToken" not in response
+
+    response = client.get_dev_endpoints(MaxResults=1)
+    assert len(response["DevEndpoints"]) == 1
+    assert "NextToken" in response
+
+    next_token = response["NextToken"]
+    response = client.get_dev_endpoints(NextToken=next_token)
+    assert len(response["DevEndpoints"]) == 1
+    assert "NextToken" not in response
+
+
+@mock_aws
+def test_create_dev_endpoint():
+    client = create_glue_client()
+
+    response = client.create_dev_endpoint(
+        EndpointName="test-endpoint",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    assert response["EndpointName"] == "test-endpoint"
+    assert response["Status"] == "READY"
+    assert response["RoleArn"] == "arn:aws:iam::123456789012:role/GlueDevEndpoint"
+
+
+@mock_aws
+def test_get_dev_endpoint():
+    client = create_glue_client()
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    response = client.get_dev_endpoint(EndpointName="test-endpoint")
+    assert response["DevEndpoint"]["EndpointName"] == "test-endpoint"
+    assert response["DevEndpoint"]["Status"] == "READY"
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.get_dev_endpoint(EndpointName="nonexistent")

@@ -72,6 +72,15 @@ def test_create_database(client):
 
 
 @mock_aws
+def test_create_database_already_exists():
+    create_db_instance()
+    with pytest.raises(ClientError) as exc:
+        create_db_instance()
+    err = exc.value.response["Error"]
+    assert err["Message"] == "DB instance already exists"
+
+
+@mock_aws
 def test_database_with_deletion_protection_cannot_be_deleted():
     db_instance = create_db_instance(DeletionProtection=True)
     assert db_instance["DBInstanceClass"] == "db.m1.small"
@@ -841,6 +850,25 @@ def test_copy_db_snapshots(
 
 
 @mock_aws
+def test_copy_db_snapshots_snapshot_type_is_always_manual(client):
+    # Even when copying a snapshot with SnapshotType=="automated", the
+    # SnapshotType of the copy is "manual".
+    db_instance_identifier = create_db_instance()["DBInstanceIdentifier"]
+    client.delete_db_instance(
+        DBInstanceIdentifier=db_instance_identifier,
+        FinalDBSnapshotIdentifier="final-snapshot",
+    )
+    snapshot1 = client.describe_db_snapshots()["DBSnapshots"][0]
+    assert snapshot1["SnapshotType"] == "automated"
+
+    snapshot2 = client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="final-snapshot",
+        TargetDBSnapshotIdentifier="snapshot-2",
+    )["DBSnapshot"]
+    assert snapshot2["SnapshotType"] == "manual"
+
+
+@mock_aws
 def test_copy_db_snapshot_invalid_arns(client):
     invalid_arn = (
         f"arn:aws:rds:{DEFAULT_REGION}:123456789012:this-is-not-a-snapshot:snapshot-1"
@@ -985,9 +1013,6 @@ def test_restore_db_instance_from_db_snapshot(
         db_subnet_group_name = create_db_subnet_group()
 
     # restore
-    new_instance = client.restore_db_instance_from_db_snapshot(
-        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier=db_snapshot_identifier
-    )["DBInstance"]
     kwargs = {
         "DBInstanceIdentifier": "db-restore-1",
         "DBSnapshotIdentifier": db_snapshot_identifier,
@@ -1022,6 +1047,23 @@ def test_restore_db_instance_from_db_snapshot(
         )
         == 1
     )
+
+
+@mock_aws
+def test_restore_db_instance_from_db_snapshot_called_twice(client):
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+    client.create_db_snapshot(
+        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot"
+    )
+    client.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot"
+    )
+    with pytest.raises(ClientError) as exc:
+        client.restore_db_instance_from_db_snapshot(
+            DBInstanceIdentifier="db-restore-1", DBSnapshotIdentifier="snapshot"
+        )
+    err = exc.value.response["Error"]
+    assert err["Message"] == "DB instance already exists"
 
 
 @pytest.mark.parametrize(

@@ -3,7 +3,7 @@ from unittest import SkipTest
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.textract.models import TextractBackend
@@ -70,19 +70,6 @@ def test_get_document_text_detection_without_job_id():
         client.get_document_text_detection(JobId="Invalid Job Id")
 
     assert e.value.response["Error"]["Code"] == "InvalidJobIdException"
-
-
-@mock_aws
-def test_get_document_text_detection_without_document_location():
-    client = boto3.client("textract", region_name="us-east-1")
-    with pytest.raises(ParamValidationError) as e:
-        client.start_document_text_detection()
-
-    assert e.typename == "ParamValidationError"
-    assert (
-        'Parameter validation failed:\nMissing required parameter in input: "DocumentLocation"'
-        in e.value.args
-    )
 
 
 @mock_aws

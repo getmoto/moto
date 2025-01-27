@@ -18,12 +18,12 @@ sesv2
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
-- [ ] create_configuration_set
+- [X] create_configuration_set
 - [ ] create_configuration_set_event_destination
 - [X] create_contact
 - [X] create_contact_list
 - [ ] create_custom_verification_email_template
-- [ ] create_dedicated_ip_pool
+- [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
 - [ ] create_email_identity
 - [ ] create_email_identity_policy
@@ -31,12 +31,12 @@ sesv2
 - [ ] create_export_job
 - [ ] create_import_job
 - [ ] create_multi_region_endpoint
-- [ ] delete_configuration_set
+- [X] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
 - [X] delete_contact
 - [X] delete_contact_list
 - [ ] delete_custom_verification_email_template
-- [ ] delete_dedicated_ip_pool
+- [X] delete_dedicated_ip_pool
 - [ ] delete_email_identity
 - [ ] delete_email_identity_policy
 - [ ] delete_email_template
@@ -44,13 +44,13 @@ sesv2
 - [ ] delete_suppressed_destination
 - [ ] get_account
 - [ ] get_blacklist_reports
-- [ ] get_configuration_set
+- [X] get_configuration_set
 - [ ] get_configuration_set_event_destinations
 - [X] get_contact
 - [X] get_contact_list
 - [ ] get_custom_verification_email_template
 - [ ] get_dedicated_ip
-- [ ] get_dedicated_ip_pool
+- [X] get_dedicated_ip_pool
 - [ ] get_dedicated_ips
 - [ ] get_deliverability_dashboard_options
 - [ ] get_deliverability_test_report
@@ -64,11 +64,11 @@ sesv2
 - [ ] get_message_insights
 - [ ] get_multi_region_endpoint
 - [ ] get_suppressed_destination
-- [ ] list_configuration_sets
+- [X] list_configuration_sets
 - [X] list_contact_lists
 - [X] list_contacts
 - [ ] list_custom_verification_email_templates
-- [ ] list_dedicated_ip_pools
+- [X] list_dedicated_ip_pools
 - [ ] list_deliverability_test_reports
 - [ ] list_domain_deliverability_campaigns
 - [ ] list_email_identities

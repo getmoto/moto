@@ -1,6 +1,46 @@
 Moto Changelog
 ==============
 
+5.0.27
+-----
+Docker Digest for 5.0.27: _sha256:ac5312f68c6b748b667526025f9e7a8c2e4112837c258eee68f96fa36d9dbbef_
+
+    New Methods:
+        * Glue:
+            * create_dev_endpoint()
+            * get_dev_endpoint()
+            * get_dev_endpoints()
+
+        * KMS:
+            * generate_mac()
+            * list_key_rotations()
+            * rotate_key_on_demand()
+            * verify_mac()
+
+        * SES:
+            * delete_configuration_set()
+            * list_configuration_sets()
+
+        * SESv2:
+            * create_configuration_set()
+            * create_dedicated_ip_pool()
+            * delete_configuration_set()
+            * delete_dedicated_ip_pool()
+            * get_configuration_set()
+            * get_dedicated_ip_pool()
+            * list_configuration_sets()
+            * list_dedicated_ip_pools()
+
+    Miscellaneous:
+        * Introduced a new setting for ServerMode, `MOTO_DISABLE_GLOBAL_CORS`. Disabling the global CORS setting makes it possible to test the CORS-policies on S3 buckets
+        * ElastiCache: create_user() now supports the AuthenticationMode-parameter
+        * ElasticSearch/OpenSearch: list_domain_names() now returns domains from both services
+        * Kafka: list_clusters_v2() now returns all parameters
+        * Scheduler: The `schedule_expression_timezone` now defaults to UTC
+        * RDS: create_db_instance() now throws an exception if an instance with that ID already exists
+        * RDS: restore_db_instance_from_db_snapshot() now throws an exception if an instance with that ID already exists
+
+
 5.0.26
 -----
 Docker Digest for 5.0.26: _sha256:1cae28be97cc87151ecabb531d1507b8dd3d52d3636b86143a16cccf4b5fcf43_

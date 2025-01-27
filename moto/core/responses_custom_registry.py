@@ -32,6 +32,23 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         self._registered[response.method].append(response)
         return response
 
+    def replace(self, response: responses.BaseResponse) -> responses.BaseResponse:
+        registered = self._registered[response.method]
+        try:
+            index = registered.index(response)
+        except ValueError:
+            raise ValueError(f"Response is not registered for URL {response.url}")
+        registered[index] = response
+        return response
+
+    def remove(self, response: responses.BaseResponse) -> List[responses.BaseResponse]:
+        removed_responses = []
+        registered = self._registered[response.method]
+        while response in registered:
+            registered.remove(response)
+            removed_responses.append(response)
+        return removed_responses
+
     def reset(self) -> None:
         self._registered.clear()
 

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -1760,11 +1760,6 @@ def test_run_instance_with_block_device_mappings_using_no_device():
 
     # moto gives the key with an empty list instead of not having it at all, that's also fine
     assert instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"] == []
-
-    # passing None with NoDevice should raise ParamValidationError
-    kwargs["BlockDeviceMappings"][0]["NoDevice"] = None
-    with pytest.raises(ParamValidationError) as ex:
-        ec2_client.run_instances(**kwargs)
 
     # passing a string other than "" with NoDevice should raise InvalidRequest
     kwargs["BlockDeviceMappings"][0]["NoDevice"] = "yes"

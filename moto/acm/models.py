@@ -369,8 +369,11 @@ class CertBundle(BaseModel):
 
         domain_name_status = "SUCCESS" if self.status == "ISSUED" else self.status
         for san in domain_names:
+            # https://docs.aws.amazon.com/acm/latest/userguide/dns-validation.html
+            # Record name usually follows the SAN - except when the SAN starts with an asterisk
+            rr_name = f"_d930b28be6c5927595552b219965053e.{san[2:] if san.startswith('*.') else san}."
             resource_record = {
-                "Name": f"_d930b28be6c5927595552b219965053e.{san}.",
+                "Name": rr_name,
                 "Type": "CNAME",
                 "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
             }

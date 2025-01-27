@@ -25,7 +25,7 @@ ses
 - [X] create_receipt_rule
 - [X] create_receipt_rule_set
 - [ ] create_template
-- [ ] delete_configuration_set
+- [X] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
 - [ ] delete_configuration_set_tracking_options
 - [ ] delete_custom_verification_email_template
@@ -50,7 +50,7 @@ ses
 - [X] get_send_quota
 - [X] get_send_statistics
 - [X] get_template
-- [ ] list_configuration_sets
+- [X] list_configuration_sets
 - [ ] list_custom_verification_email_templates
 - [X] list_identities
 - [ ] list_identity_policies

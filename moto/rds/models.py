@@ -23,6 +23,7 @@ from .exceptions import (
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
     DBClusterToBeDeletedHasActiveMembers,
+    DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
@@ -1822,6 +1823,8 @@ class RDSBackend(BaseBackend):
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
+        if database_id in self.databases:
+            raise DBInstanceAlreadyExists()
         self._validate_db_identifier(database_id)
         database = DBInstance(self, **db_kwargs)
 
@@ -2040,6 +2043,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
+
+        if overrides["db_instance_identifier"] in self.databases:
+            raise DBInstanceAlreadyExists()
+
         new_instance_props = {}
         for key, value in original_database.__dict__.items():
             if key != "backend":
@@ -2530,6 +2537,25 @@ class RDSBackend(BaseBackend):
             db_cluster_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
 
+    def _create_db_cluster_snapshot(
+        self,
+        cluster: DBCluster,
+        db_snapshot_identifier: str,
+        snapshot_type: str,
+        tags: List[Dict[str, str]],
+    ) -> DBClusterSnapshot:
+        if db_snapshot_identifier in self.cluster_snapshots:
+            raise DBClusterSnapshotAlreadyExistsError(db_snapshot_identifier)
+        if len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededError()
+        snapshot = DBClusterSnapshot(
+            self, cluster, db_snapshot_identifier, snapshot_type, tags
+        )
+        self.cluster_snapshots[db_snapshot_identifier] = snapshot
+        return snapshot
+
     def create_db_cluster_snapshot(
         self,
         db_cluster_identifier: str,
@@ -2540,21 +2566,14 @@ class RDSBackend(BaseBackend):
         cluster = self.clusters.get(db_cluster_identifier)
         if cluster is None:
             raise DBClusterNotFoundError(db_cluster_identifier)
-        if db_snapshot_identifier in self.cluster_snapshots:
-            raise DBClusterSnapshotAlreadyExistsError(db_snapshot_identifier)
-        if len(self.cluster_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
-            raise SnapshotQuotaExceededError()
         if tags is None:
             tags = list()
         if cluster.copy_tags_to_snapshot:
             tags += cluster.get_tags()
-        snapshot = DBClusterSnapshot(
-            self, cluster, db_snapshot_identifier, snapshot_type, tags
+
+        return self._create_db_cluster_snapshot(
+            cluster, db_snapshot_identifier, snapshot_type, tags
         )
-        self.cluster_snapshots[db_snapshot_identifier] = snapshot
-        return snapshot
 
     def copy_db_cluster_snapshot(
         self,
@@ -2570,10 +2589,9 @@ class RDSBackend(BaseBackend):
             tags = source_snapshot.tags
         else:
             tags = self._merge_tags(source_snapshot.tags, tags)
-        return self.create_db_cluster_snapshot(
-            db_cluster_identifier=source_snapshot.cluster.db_cluster_identifier,  # type: ignore
-            db_snapshot_identifier=target_snapshot_identifier,
-            tags=tags,
+
+        return self._create_db_cluster_snapshot(
+            source_snapshot.cluster, target_snapshot_identifier, "manual", tags
         )
 
     def delete_db_cluster_snapshot(
