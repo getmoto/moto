@@ -4043,6 +4043,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -6801,6 +6810,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10943,6 +10961,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -14793,6 +14820,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -17503,6 +17539,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24782,6 +24827,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -31273,6 +31327,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -35405,6 +35468,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.eu-north-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -37510,6 +37582,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -40742,6 +40823,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -43650,6 +43740,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -46153,6 +46252,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52513,6 +52621,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "backup": {
+                "Value": "backup",
+                "endpoint": {
+                  "Value": "backup.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "batch": {
                 "Value": "batch",
                 "endpoint": {
@@ -53502,6 +53619,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55842,6 +55968,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59051,6 +59186,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -61444,6 +61588,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64910,6 +65063,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "codedeploy": {
                 "Value": "codedeploy",
                 "endpoint": {
@@ -67146,6 +67308,15 @@
                 "Value": "codecommit",
                 "endpoint": {
                   "Value": "codecommit.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "codeconnections": {
+                "Value": "codeconnections",
+                "endpoint": {
+                  "Value": "codeconnections.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -635,3 +635,13 @@ class DaysMustProvidedExceptForSelectRequest(S3ClientError):
             "DaysMustProvidedExceptForSelectRequest",
             "`Days` must be provided except for select requests",
         )
+
+
+class MethodNotAllowed(S3ClientError):
+    code = 405
+
+    def __init__(self) -> None:
+        super().__init__(
+            "MethodNotAllowed",
+            "The specified method is not allowed against this resource.",
+        )
