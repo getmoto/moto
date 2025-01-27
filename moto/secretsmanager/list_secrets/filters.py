@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Iterator, List, Union
 
 if TYPE_CHECKING:
     from ..models import FakeSecret
@@ -76,6 +76,8 @@ def _match_pattern(
             return value.startswith(pattern)
     else:
         pattern_words = split_words(pattern)
+        if not pattern_words:
+            return False
         value_words = split_words(value)
         if not case_sensitive:
             pattern_words = [p.lower() for p in pattern_words]
@@ -91,8 +93,39 @@ def _match_pattern(
 
 def split_words(s: str) -> List[str]:
     """
+    Secrets are split by special characters first (/, +, _, etc)
+    Partial results are then split again by UpperCasing
+    """
+    special_chars = ["/", "-", "_", "+", "=", ".", "@"]
+
+    if s in special_chars:
+        # Special case: this does not return any values
+        return []
+
+    for char in special_chars:
+        if char in s:
+            others = special_chars.copy()
+            others.remove(char)
+            contains_other = any([c in s for c in others])
+            if contains_other:
+                # Secret contains two different characters, i.e. my/secret+value
+                # Values like this will not be split
+                return [s]
+            else:
+                return list(split_by_uppercase(s.split(char)))
+    return list(split_by_uppercase(s))
+
+
+def split_by_uppercase(s: Union[str, List[str]]) -> Iterator[str]:
+    """
     Split a string into words. Words are recognized by upper case letters, i.e.:
     test   -> [test]
     MyTest -> [My, Test]
     """
-    return [x.strip() for x in re.split(r"([^a-z][a-z]+)", s) if x]
+    if isinstance(s, str):
+        for x in re.split(r"([^a-z][a-z]+)", s):
+            if x:
+                yield x.strip()
+    else:
+        for word in s:
+            yield from split_by_uppercase(word)

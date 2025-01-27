@@ -214,6 +214,115 @@ def test_with_all_filter():
         conn.delete_secret(SecretId=no_match, ForceDeleteWithoutRecovery=True)
 
 
+@aws_verified
+# Verified, but not marked because it's flaky - AWS can take up to 5 minutes before secrets are listed
+def test_with_all_filter_special_characters():
+    unique_name = str(uuid4())[0:6]
+    secret_with_slash = f"prod/AppBeta/{unique_name}"
+    secret_with_under = f"prod_AppBeta_{unique_name}"
+    secret_with_plus = f"prod+AppBeta+{unique_name}"
+    secret_with_equal = f"prod=AppBeta={unique_name}"
+    secret_with_dot = f"prod.AppBeta.{unique_name}"
+    secret_with_at = f"prod@AppBeta@{unique_name}"
+    secret_with_dash = f"prod-AppBeta-{unique_name}"
+    # Note that this secret is never found, because the pattern is unknown
+    secret_with_dash_and_slash = f"prod-AppBeta/{unique_name}"
+    full_uppercase = f"uat/COMPANY/{unique_name}"
+    partial_uppercase = f"uat/COMPANYthings/{unique_name}"
+
+    all_special_char_names = [
+        secret_with_slash,
+        secret_with_under,
+        secret_with_plus,
+        secret_with_equal,
+        secret_with_dot,
+        secret_with_at,
+        secret_with_dash,
+    ]
+
+    conn = boto_client()
+
+    conn.create_secret(Name=secret_with_slash, SecretString="s")
+    conn.create_secret(Name=secret_with_under, SecretString="s")
+    conn.create_secret(Name=secret_with_plus, SecretString="s")
+    conn.create_secret(Name=secret_with_equal, SecretString="s")
+    conn.create_secret(Name=secret_with_dot, SecretString="s")
+    conn.create_secret(Name=secret_with_at, SecretString="s")
+    conn.create_secret(Name=secret_with_dash, SecretString="s")
+    conn.create_secret(Name=full_uppercase, SecretString="s")
+    conn.create_secret(Name=partial_uppercase, SecretString="s")
+
+    try:
+        # Partial Match
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["AppBeta"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == all_special_char_names
+
+        # Partial Match
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["Beta"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == all_special_char_names
+
+        secrets = conn.list_secrets(
+            Filters=[{"Key": "all", "Values": ["AppBeta", "prod"]}]
+        )["SecretList"]
+        secret_names = [s["Name"] for s in secrets]
+        assert secret_names == all_special_char_names
+
+        # Search for special character itself
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["+"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert not secret_names
+
+        # Search for unique postfix
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": [unique_name]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == (
+            all_special_char_names + [full_uppercase, partial_uppercase]
+        )
+
+        # Search for unique postfix
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["company"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == [full_uppercase]
+
+        # This on it's own is not a word
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["things"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == []
+
+        # This is valid, because it's split as COMPAN + Ythings
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["Ythings"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == [partial_uppercase]
+
+        # Note that individual letters from COMPANY are not searchable,
+        # indicating that AWS splits by terms, rather than each individual upper case
+        # COMPANYThings --> COMPAN, YThings
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["N"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == []
+
+        #
+        secrets = conn.list_secrets(Filters=[{"Key": "all", "Values": ["pany"]}])
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
+        assert secret_names == []
+
+    finally:
+        conn.delete_secret(SecretId=secret_with_slash, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=secret_with_under, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=secret_with_plus, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=secret_with_equal, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=secret_with_dot, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=secret_with_dash, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(
+            SecretId=secret_with_dash_and_slash, ForceDeleteWithoutRecovery=True
+        )
+        conn.delete_secret(SecretId=secret_with_at, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=full_uppercase, ForceDeleteWithoutRecovery=True)
+        conn.delete_secret(SecretId=partial_uppercase, ForceDeleteWithoutRecovery=True)
+
+
 @mock_aws
 def test_with_no_filter_key():
     conn = boto_client()
@@ -441,6 +550,7 @@ def test_with_include_planned_deleted_secrets():
         ("MyTestPhrase", ["My", "Test", "Phrase"]),
         ("myTest", ["my", "Test"]),
         ("my test", ["my", "test"]),
+        ("my/test", ["my", "test"]),
     ],
 )
 def test_word_splitter(input, output):
