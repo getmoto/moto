@@ -1656,12 +1656,18 @@ class AutoScalingBackend(BaseBackend):
         self, instance_id: str, should_decrement: bool
     ) -> Tuple[InstanceState, Any, Any]:
         instance = self.ec2_backend.get_instance(instance_id)
-        instance_state = next(
-            instance_state
-            for group in self.autoscaling_groups.values()
-            for instance_state in group.instance_states
-            if instance_state.instance.id == instance.id
-        )
+        try:
+            instance_state = next(
+                instance_state
+                for group in self.autoscaling_groups.values()
+                for instance_state in group.instance_states
+                if instance_state.instance.id == instance.id
+            )
+        except StopIteration:
+            # Maybe the VM has already been undeployed manually in EC2.
+            # In such a case, AWS does not throw any error here.
+            instance_state = InstanceState(instance, lifecycle_state="Terminated")
+            
         group = instance.autoscaling_group  # type: ignore[attr-defined]
         original_size = group.desired_capacity
         self.detach_instances(group.name, [instance.id], should_decrement)
