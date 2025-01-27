@@ -23,7 +23,7 @@ def test_create_db_instance_success():
         vpcSecurityGroupIds=["sg-0123456789abcdef0"],
         allocatedStorage=123,
     )
-    # assert response["allocatedStorage"] == 123
+    assert response["allocatedStorage"] == 123
     # assert response["dbInstanceType"] == "db.influx.medium"
     # assert response["name"] == "test-instance"
     # assert response["vpcSecurityGroupIds"] == ["sg-0123456789abcdef0"]
