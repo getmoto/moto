@@ -147,7 +147,8 @@ class SecurityHubBackend(BaseBackend):
                     or len(finding_data["Resources"]) == 0
                 ):
                     raise InvalidInputException(
-                        "Finding must contain at least one resource in the Resources array",
+                        op="BatchImportFindings",
+                        msg="Finding must contain at least one resource in the Resources array",
                     )
 
                 finding_id = finding_data["Id"]
