@@ -12,40 +12,39 @@ class Finding(BaseModel):
         self.id = finding_id
         self.data = finding_data
 
-        # Ensure required fields exist with default values
-        self.data.setdefault("Id", finding_id)
-        self.data.setdefault("AwsAccountId", "")
-        self.data.setdefault("CreatedAt", "")
-        self.data.setdefault("Description", "")
-        self.data.setdefault("GeneratorId", "")
-        self.data.setdefault("ProductArn", "")
-        self.data.setdefault("SchemaVersion", "")
-        self.data.setdefault("Title", "")
-        self.data.setdefault("Types", [])
+        # # Ensure required fields exist with default values
+        # self.data.setdefault("Id", finding_id)
+        # self.data.setdefault("AwsAccountId", "")
+        # self.data.setdefault("CreatedAt", "")
+        # self.data.setdefault("Description", "")
+        # self.data.setdefault("GeneratorId", "")
+        # self.data.setdefault("ProductArn", "")
+        # self.data.setdefault("Title", "")
+        # self.data.setdefault("Types", [])
 
-        # Required but with nested structure
-        self.data.setdefault("Severity", {"Label": ""})
-        self.data.setdefault("Resources", [])
+        # # Required but with nested structure
+        # self.data.setdefault("Severity", {"Label": ""})
+        # self.data.setdefault("Resources", [])
 
-        # Optional fields with default values
-        self.data.setdefault("UpdatedAt", "")
-        self.data.setdefault("FirstObservedAt", "")
-        self.data.setdefault("LastObservedAt", "")
-        self.data.setdefault("Confidence", 0)
-        self.data.setdefault("Criticality", 0)
-        self.data.setdefault("RecordState", "ACTIVE")
-        self.data.setdefault("WorkflowState", "NEW")
-        self.data.setdefault("VerificationState", "UNKNOWN")
+        # # Optional fields with default values
+        # self.data.setdefault("UpdatedAt", "")
+        # self.data.setdefault("FirstObservedAt", "")
+        # self.data.setdefault("LastObservedAt", "")
+        # self.data.setdefault("Confidence", 0)
+        # self.data.setdefault("Criticality", 0)
+        # self.data.setdefault("RecordState", "ACTIVE")
+        # self.data.setdefault("WorkflowState", "NEW")
+        # self.data.setdefault("VerificationState", "UNKNOWN")
 
-    def _get_sortable_value(self, field: str) -> Any:
-        """Get a value from the finding data using dot notation"""
-        if "." in field:
-            parent, child = field.split(".")
-            return self.data.get(parent, {}).get(child)
-        elif "/" in field:
-            parent, child = field.split("/")
-            return self.data.get(parent, {}).get(child)
-        return self.data.get(field)
+    # def _get_sortable_value(self, field: str) -> Any:
+    #     """Get a value from the finding data using dot notation"""
+    #     if "." in field:
+    #         parent, child = field.split(".")
+    #         return self.data.get(parent, {}).get(child)
+    #     elif "/" in field:
+    #         parent, child = field.split("/")
+    #         return self.data.get(parent, {}).get(child)
+    #     return self.data.get(field)
 
     def as_dict(self) -> Dict[str, Any]:
         return self.data
@@ -82,29 +81,6 @@ class SecurityHubBackend(BaseBackend):
                     op="GetFindings", msg="MaxResults must be a number greater than 0"
                 )
 
-        # Validate sort criteria if provided
-        if sort_criteria:
-            allowed_orders = ["asc", "desc"]
-
-            for criterion in sort_criteria:
-                if "Field" not in criterion or "SortOrder" not in criterion:
-                    raise InvalidInputException(
-                        op="GetFindings",
-                        msg="SortCriteria must contain Field and SortOrder",
-                    )
-                if criterion["SortOrder"].lower() not in allowed_orders:
-                    raise InvalidInputException(
-                        op="GetFindings", msg="SortOrder must be either asc or desc"
-                    )
-
-        # Apply filters if provided
-        if filters:
-            findings = self._apply_filters(findings, filters)
-
-        # Apply sorting if provided
-        if sort_criteria:
-            findings = self._sort_findings(findings, sort_criteria)
-
         # Handle pagination
         if next_token:
             start_idx = int(next_token)
@@ -125,42 +101,6 @@ class SecurityHubBackend(BaseBackend):
             "NextToken": next_token,
         }
 
-    def _apply_filters(
-        self, findings: List[Finding], filters: Dict[str, Any]
-    ) -> List[Finding]:
-        """Apply the provided filters to the findings"""
-        filtered_findings = findings
-        # Implementation would go through each filter type and apply the corresponding filtering logic
-        return filtered_findings
-
-    def _sort_findings(
-        self, findings: List[Finding], sort_criteria: List[Dict[str, str]]
-    ) -> List[Finding]:
-        """Sort findings based on the provided sort criteria"""
-        for criterion in reversed(sort_criteria):
-            field = criterion["Field"]
-            reverse = criterion["SortOrder"].lower() == "desc"
-
-            findings.sort(key=lambda x: self._get_sort_key(x, field), reverse=reverse)
-
-        return findings
-
-    def _get_sort_key(self, finding: Finding, field: str) -> Any:
-        """Get the sort key for a finding based on the field"""
-        value = finding._get_sortable_value(field)
-
-        # Handle different data types for sorting
-        if field in [
-            "Confidence",
-            "Criticality",
-            "Severity.Normalized",
-            "Severity.Product",
-        ]:
-            return float(value) if value is not None else 0
-        elif field in ["FirstObservedAt", "LastObservedAt", "CreatedAt", "UpdatedAt"]:
-            return value or ""  # Sort empty dates last
-        return str(value) if value is not None else ""
-
     def batch_import_findings(
         self, findings: List[Dict[str, Any]]
     ) -> Tuple[int, int, List[Dict[str, Any]]]:
@@ -179,37 +119,35 @@ class SecurityHubBackend(BaseBackend):
 
         for finding_data in findings:
             try:
-                # Validate required fields
-                required_fields = [
-                    "AwsAccountId",
-                    "CreatedAt",
-                    "Description",
-                    "GeneratorId",
-                    "Id",
-                    "ProductArn",
-                    "Resources",
-                    "SchemaVersion",
-                    "Severity",
-                    "Title",
-                    "Types",
-                ]
+                # # Validate required fields
+                # required_fields = [
+                #     "AwsAccountId",
+                #     "CreatedAt",
+                #     "UpdatedAt",
+                #     "Description",
+                #     "GeneratorId",
+                #     "Id",
+                #     "ProductArn",
+                #     "Severity",
+                #     "Title",
+                #     "Types",
+                # ]
 
-                missing_fields = [
-                    field for field in required_fields if field not in finding_data
-                ]
-                if missing_fields:
-                    raise InvalidInputException(
-                        op="BatchImportFindings",
-                        msg=f"Finding must contain the following required fields: {', '.join(missing_fields)}",
-                    )
+                # missing_fields = [
+                #     field for field in required_fields if field not in finding_data
+                # ]
+                # if missing_fields:
+                #     raise InvalidInputException(
+                #         op="BatchImportFindings",
+                #         msg=f"Finding must contain the following required fields: {', '.join(missing_fields)}",
+                #     )
 
                 if (
                     not isinstance(finding_data["Resources"], list)
                     or len(finding_data["Resources"]) == 0
                 ):
                     raise InvalidInputException(
-                        op="BatchImportFindings",
-                        msg="Finding must contain at least one resource in the Resources array",
+                        "Finding must contain at least one resource in the Resources array",
                     )
 
                 finding_id = finding_data["Id"]

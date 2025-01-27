@@ -17,8 +17,19 @@ class SecurityHubResponse(BaseResponse):
 
     def get_findings(self) -> str:
         params = self._get_params()
+
+        # Don't try to parse JSON if we already have a dict with the right keys
+        if "SortCriteria" in params:
+            sort_criteria = params["SortCriteria"]
+        else:
+            # Try to parse JSON only if needed
+            try:
+                json_params = json.loads(list(params.keys())[0])
+                sort_criteria = json_params.get("SortCriteria")
+            except (json.JSONDecodeError, IndexError):
+                sort_criteria = None
+
         filters = params.get("Filters")
-        sort_criteria = params.get("SortCriteria")
         next_token = params.get("NextToken")
         max_results = params.get("MaxResults")
 
@@ -28,9 +39,6 @@ class SecurityHubResponse(BaseResponse):
             next_token=next_token,
             max_results=max_results,
         )
-
-        if "NextToken" not in result:
-            result["NextToken"] = None
 
         return json.dumps(result)
 
