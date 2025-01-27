@@ -124,6 +124,7 @@ if TYPE_CHECKING:
     from moto.route53resolver.models import Route53ResolverBackend
     from moto.s3.models import S3Backend
     from moto.s3control.models import S3ControlBackend
+    from moto.s3tables.models import S3TablesBackend
     from moto.sagemaker.models import SageMakerModelBackend
     from moto.sagemakermetrics.models import SageMakerMetricsBackend
     from moto.sagemakerruntime.models import SageMakerRuntimeBackend
@@ -307,6 +308,7 @@ SERVICE_NAMES = Union[
     "Literal['s3']",
     "Literal['s3bucket_path']",
     "Literal['s3control']",
+    "Literal['s3tables']",
     "Literal['sagemaker']",
     "Literal['sagemaker-metrics']",
     "Literal['sagemaker-runtime']",
@@ -753,6 +755,8 @@ def get_backend(
 ) -> "BackendDict[WorkSpacesWebBackend]": ...
 @overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
+@overload
+def get_backend(name: "Literal['s3tables']") -> "BackendDict[S3TablesBackend]": ...
 
 
 def get_backend(name: SERVICE_NAMES) -> "BackendDict[SERVICE_BACKEND]":
