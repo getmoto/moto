@@ -483,7 +483,9 @@ class OrganizationsBackend(BaseBackend):
 
     def list_roots(self) -> Dict[str, Any]:
         if self.org:
-            return dict(Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)])
+            return dict(
+                Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)]
+            )
 
         if self.account_id in organizations_backends.master_accounts:
             master_account_id, partition = organizations_backends.master_accounts[
