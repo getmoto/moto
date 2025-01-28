@@ -122,3 +122,35 @@ def test_batch_import_multiple_findings():
     imported_ids = {finding["Id"] for finding in get_response["Findings"]}
     expected_ids = {f"test-finding-{i:03d}" for i in range(1, 4)}
     assert imported_ids == expected_ids
+
+
+@mock_aws
+def test_get_findings_max_results():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    findings = [
+        {
+            "AwsAccountId": DEFAULT_ACCOUNT_ID,
+            "CreatedAt": "2024-01-01T00:00:00.000Z",
+            "UpdatedAt": "2024-01-01T00:00:00.000Z",
+            "Description": f"Test finding description {i}",
+            "GeneratorId": "test-generator",
+            "Id": f"test-finding-{i:03d}",
+            "ProductArn": f"arn:aws:securityhub:{client.meta.region_name}:{DEFAULT_ACCOUNT_ID}:product/{DEFAULT_ACCOUNT_ID}/default",
+            "Resources": [{"Id": f"test-resource-{i}", "Type": "AwsEc2Instance"}],
+            "SchemaVersion": "2018-10-08",
+            "Severity": {"Label": "HIGH"},
+            "Title": f"Test Finding {i}",
+            "Types": ["Software and Configuration Checks"],
+        }
+        for i in range(1, 4)
+    ]
+
+    import_response = client.batch_import_findings(Findings=findings)
+    assert import_response["SuccessCount"] == 3
+
+    get_response = client.get_findings(MaxResults=1)
+    assert "Findings" in get_response
+    assert isinstance(get_response["Findings"], list)
+    assert len(get_response["Findings"]) == 1
+    assert "NextToken" in get_response

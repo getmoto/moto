@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.securityhub.exceptions import InvalidInputException
+from moto.utilities.paginator import Paginator
 
 
 class Finding(BaseModel):
@@ -46,19 +47,14 @@ class SecurityHubBackend(BaseBackend):
                     op="GetFindings", msg="MaxResults must be a number greater than 0"
                 )
 
-        # next_token Parameter
-        if next_token:
-            start_idx = int(next_token)
-        else:
-            start_idx = 0
+        paginator = Paginator(
+            max_results=max_results or 100,
+            unique_attribute=["id"],
+            starting_token=next_token,
+            fail_on_invalid_token=True,
+        )
 
-        end_idx = len(findings)
-        if max_results:
-            end_idx = min(start_idx + max_results, len(findings))
-
-        paginated_findings = findings[start_idx:end_idx]
-
-        next_token = str(end_idx) if end_idx < len(findings) else None
+        paginated_findings, next_token = paginator.paginate(findings)
 
         return {
             "Findings": [f.as_dict() for f in paginated_findings],
