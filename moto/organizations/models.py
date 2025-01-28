@@ -482,7 +482,16 @@ class OrganizationsBackend(BaseBackend):
         self._reset()
 
     def list_roots(self) -> Dict[str, Any]:
-        return dict(Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)])
+        if self.org:
+            return dict(Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)])
+
+        if self.account_id in organizations_backends.master_accounts:
+            master_account_id, partition = organizations_backends.master_accounts[
+                self.account_id
+            ]
+            return organizations_backends[master_account_id][partition].list_roots()
+
+        raise AWSOrganizationsNotInUseException
 
     def create_organizational_unit(self, **kwargs: Any) -> Dict[str, Any]:
         new_ou = FakeOrganizationalUnit(self.org, **kwargs)  # type: ignore
