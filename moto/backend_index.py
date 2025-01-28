@@ -108,6 +108,7 @@ backend_url_patterns = [
     ),
     ("kms", re.compile("https?://kms\\.(.+)\\.amazonaws\\.com")),
     ("lakeformation", re.compile("https?://lakeformation\\.(.+)\\.amazonaws\\.com")),
+    ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",
