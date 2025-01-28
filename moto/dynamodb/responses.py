@@ -879,6 +879,7 @@ class DynamoHandler(BaseResponse):
             result["LastEvaluatedKey"] = last_evaluated_key
         return dynamo_json_dump(result)
 
+    @include_consumed_capacity()
     def delete_item(self) -> str:
         name = self.body["TableName"]
         key = self.body["Key"]
