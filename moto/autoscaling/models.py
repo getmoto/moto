@@ -1308,10 +1308,6 @@ class AutoScalingBackend(BaseBackend):
         detached_instances = [
             x for x in group.instance_states if x.instance.id in instance_ids
         ]
-        for instance in detached_instances:
-            self.ec2_backend.delete_tags(
-                [instance.instance.id], {ASG_NAME_TAG: group.name}
-            )
 
         new_instance_state = [
             x for x in group.instance_states if x.instance.id not in instance_ids
