@@ -234,6 +234,10 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         except CreateAccessKeyFailure as e:
             self._raise_invalid_access_key(e.reason)
 
+    @property
+    def backend(self) -> IAMBackend:
+        return iam_backends[self.account_id][get_partition(self._region)]
+
     def check_signature(self) -> None:
         original_signature = self._get_string_between(
             "Signature=", ",", self._headers["Authorization"]
@@ -252,6 +256,11 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         permitted = False
         for policy in policies:
             iam_policy = IAMPolicy(policy)
+            print(f"check_action_permitted: {resource}")
+            if resource.startswith("ROLE_"):
+                print(resource.removeprefix("ROLE_"))
+                print(self.backend.get_role(resource.removeprefix("ROLE_")))
+                resource = self.backend.get_role(resource.removeprefix("ROLE_")).arn
             permission_result = iam_policy.is_action_permitted(self._action, resource)
             if permission_result == PermissionResult.DENIED:
                 self._raise_access_denied()
@@ -461,8 +470,12 @@ class IAMPolicyStatement:
 
     @staticmethod
     def _match(pattern: str, string: str) -> Optional[Match[str]]:
+        print(string)
+        print(pattern)
         pattern = pattern.replace("*", ".*")
         pattern = f"^{pattern}$"
+        print(pattern)
+        print(re.match(pattern, string))
         return re.match(pattern, string)
 
 

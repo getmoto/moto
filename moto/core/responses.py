@@ -568,8 +568,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
+        print(self.data.keys())
         if hasattr(self, "_determine_resource"):
             resource = self._determine_resource()
+        elif "RoleName" in self.data:
+            print(self.data["RoleName"])
+            resource = "ROLE_" + self.data["RoleName"][0]
         else:
             resource = "*"
 
