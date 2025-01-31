@@ -68,7 +68,7 @@ def test_create_user_with_wrong_engine_type():
     assert err["Code"] == "InvalidParameterValue"
     assert (
         err["Message"]
-        == "Unknown parameter for Engine: invalidengine, must be one of: redis, valkey"
+        == 'Unknown parameter for Engine: "invalidengine", must be one of: redis, valkey'
     )
 
 
