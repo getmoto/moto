@@ -3939,7 +3939,7 @@ class SageMakerModelBackend(BaseBackend):
             return (
                 x
                 if isinstance(x, str)
-                else datetime.fromtimestamp(x).strftime("%Y-%m-%d " "%H:%M:%S")
+                else datetime.fromtimestamp(x).strftime("%Y-%m-%d %H:%M:%S")
             )
 
         if created_after is not None:

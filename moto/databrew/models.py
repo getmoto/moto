@@ -103,7 +103,7 @@ class DataBrewBackend(BaseBackend):
             and float(recipe_version) not in recipe.versions
         ):
             raise ResourceNotFoundException(
-                f"The recipe {recipe_name} version {recipe_version } wasn't found."
+                f"The recipe {recipe_name} version {recipe_version} wasn't found."
             )
 
         if recipe_version in (

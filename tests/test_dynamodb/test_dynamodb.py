@@ -2603,9 +2603,7 @@ def test_update_supports_complex_expression_attribute_values():
     client.update_item(
         TableName="TestTable",
         Key={"SHA256": {"S": "sha-of-file"}},
-        UpdateExpression=(
-            "SET MD5 = :md5," "MyStringSet = :string_set," "MyMap = :map"
-        ),
+        UpdateExpression=("SET MD5 = :md5,MyStringSet = :string_set,MyMap = :map"),
         ExpressionAttributeValues={
             ":md5": {"S": "md5-of-file"},
             ":string_set": {"SS": ["string1", "string2"]},

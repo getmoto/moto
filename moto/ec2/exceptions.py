@@ -547,7 +547,7 @@ class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "RulesPerSecurityGroupLimitExceeded",
-            "The maximum number of rules per security group " "has been reached.",
+            "The maximum number of rules per security group has been reached.",
         )
 
 

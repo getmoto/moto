@@ -722,7 +722,7 @@ class SecretsManagerBackend(BaseBackend):
 
         if rotation_lambda_arn:
             if len(rotation_lambda_arn) > 2048:
-                msg = "RotationLambdaARN " "must <= 2048 characters long."
+                msg = "RotationLambdaARN must <= 2048 characters long."
                 raise InvalidParameterException(msg)
 
         if rotation_rules:
