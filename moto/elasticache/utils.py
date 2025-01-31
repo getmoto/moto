@@ -15,9 +15,11 @@ class AuthenticationTypes(str, Enum):
     PASSWORD = "password"
     IAM = "iam"
 
+
 class EngineTypes(str, Enum):
     REDIS = "redis"
     VALKEY = "valkey"
+
 
 class ValidAuthModeKeys(str, Enum):
     TYPE = "Type"

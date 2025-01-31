@@ -51,6 +51,7 @@ def test_create_user_with_password_too_short():
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == "Passwords length must be between 16-128 characters."
 
+
 @mock_aws
 def test_create_user_with_wrong_engine_type():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
@@ -65,7 +66,11 @@ def test_create_user_with_wrong_engine_type():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
-    assert err["Message"] == "Unknown parameter for Engine: invalidengine, must be one of: redis, valkey"
+    assert (
+        err["Message"]
+        == "Unknown parameter for Engine: invalidengine, must be one of: redis, valkey"
+    )
+
 
 @mock_aws
 def test_create_user_with_password():

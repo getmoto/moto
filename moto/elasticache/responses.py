@@ -39,7 +39,7 @@ class ElastiCacheResponse(BaseResponse):
 
         if passwords:
             authentication_type = AuthenticationTypes.PASSWORD.value
-        
+
         if engine:
             engine_types = [e.value for e in EngineTypes]
             if engine not in engine_types:
