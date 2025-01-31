@@ -44,7 +44,7 @@ class ElastiCacheResponse(BaseResponse):
             engine_types = [e.value for e in EngineTypes]
             if engine not in engine_types:
                 raise InvalidParameterValueException(
-                    f'Unknown parameter for Engine: "{engine}", must be one of: {', '.join(engine_types)}'
+                    f'Unknown parameter for Engine: "{engine}", must be one of: {", ".join(engine_types)}'
                 )
 
         if authentication_mode:
