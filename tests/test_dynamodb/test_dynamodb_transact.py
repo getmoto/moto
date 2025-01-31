@@ -307,34 +307,38 @@ def test_transact_write_items_put_conditional_expressions(table_name=None):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_transact_write_items_failure__return_item(table_name=None):
+@pytest.mark.parametrize("operation", ["ConditionCheck", "Put", "Delete", "Update"])
+def test_transact_write_items_failure__return_item(operation: str, table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb.put_item(TableName=table_name, Item={"pk": {"S": "foo2"}})
-    # Put multiple items
+
+    transact_items = []
+    for i in range(0, 5):
+        item = {
+            operation: {
+                "Key": {"pk": {"S": f"foo{i}"}},
+                "TableName": table_name,
+                "ConditionExpression": "#i <> :i",
+                "ExpressionAttributeNames": {"#i": "pk"},
+                # This man right here - should return item as part of error message
+                "ReturnValuesOnConditionCheckFailure": "ALL_OLD",
+                "ExpressionAttributeValues": {
+                    ":i": {"S": "foo2"},
+                },  # This item already exist, so the ConditionExpression should fail
+            }
+        }
+        if operation == "Update":
+            item[operation]["UpdateExpression"] = "SET foo = :i"
+        elif operation == "Put":
+            del item[operation]["Key"]
+            item[operation]["Item"] = {
+                "pk": {"S": f"foo{i}"},
+                "foo": {"S": "bar"},
+            }
+        transact_items.append(item)
+
     with pytest.raises(ClientError) as ex:
-        dynamodb.transact_write_items(
-            TransactItems=[
-                {
-                    "Put": {
-                        "Item": {
-                            "pk": {"S": f"foo{i}"},
-                            "foo": {"S": "bar"},
-                        },
-                        "TableName": table_name,
-                        "ConditionExpression": "#i <> :i",
-                        "ExpressionAttributeNames": {"#i": "pk"},
-                        # This man right here - should return item as part of error message
-                        "ReturnValuesOnConditionCheckFailure": "ALL_OLD",
-                        "ExpressionAttributeValues": {
-                            ":i": {
-                                "S": "foo2"
-                            }  # This item already exist, so the ConditionExpression should fail
-                        },
-                    }
-                }
-                for i in range(0, 5)
-            ]
-        )
+        dynamodb.transact_write_items(TransactItems=transact_items)
     # Assert the exception is correct
     assert ex.value.response["Error"]["Code"] == "TransactionCanceledException"
     reasons = ex.value.response["CancellationReasons"]
