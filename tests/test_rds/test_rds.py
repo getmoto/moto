@@ -4,6 +4,7 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -758,7 +759,7 @@ def test_create_db_snapshots(client):
 
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot_create_time = datetime.datetime.fromisoformat("2025-01-02T03:04:05.678Z")
+    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
     with freeze_time(snapshot_create_time):
         snapshot = client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
@@ -834,7 +835,7 @@ def test_copy_db_snapshots(
 ):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot_create_time = datetime.datetime.fromisoformat("2025-01-02T03:04:05.678Z")
+    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
     with freeze_time(snapshot_create_time):
         client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
