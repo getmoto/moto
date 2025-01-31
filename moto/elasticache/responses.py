@@ -6,7 +6,7 @@ from .exceptions import (
     PasswordTooShort,
 )
 from .models import ElastiCacheBackend, elasticache_backends
-from .utils import AuthenticationTypes
+from .utils import AuthenticationTypes, EngineTypes, ValidAuthModeKeys
 
 
 class ElastiCacheResponse(BaseResponse):
@@ -39,12 +39,20 @@ class ElastiCacheResponse(BaseResponse):
 
         if passwords:
             authentication_type = AuthenticationTypes.PASSWORD.value
+        
+        if engine:
+            engine_types = [e.value for e in EngineTypes]
+            if engine not in engine_types:
+                raise InvalidParameterValueException(
+                    f'Unknown parameter for Engine: "{engine}", must be one of: {', '.join(engine_types)}'
+                )
 
         if authentication_mode:
             for key in authentication_mode.keys():
-                if key not in ["Type", "Passwords"]:
+                valid_keys = [e.value for e in ValidAuthModeKeys]
+                if key not in valid_keys:
                     raise InvalidParameterValueException(
-                        f'Unknown parameter in AuthenticationMode: "{key}", must be one of: Type, Passwords'
+                        f'Unknown parameter in AuthenticationMode: "{key}", must be one of: {', '.join(valid_keys)}'
                     )
 
             authentication_type = authentication_mode.get("Type")

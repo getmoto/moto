@@ -14,3 +14,11 @@ class AuthenticationTypes(str, Enum):
     NOPASSWORD = "no-password-required"
     PASSWORD = "password"
     IAM = "iam"
+
+class EngineTypes(str, Enum):
+    REDIS = "redis"
+    VALKEY = "valkey"
+
+class ValidAuthModeKeys(str, Enum):
+    TYPE = "Type"
+    PASSWORD = "Passwords"
