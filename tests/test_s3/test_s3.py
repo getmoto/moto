@@ -2127,6 +2127,7 @@ def test_get_object_if_none_match():
         s3_client.get_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
     err_value = err.value
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
+    assert err_value.response["ResponseMetadata"]["HTTPHeaders"]["etag"] == etag
 
 
 @mock_aws
@@ -2227,6 +2228,7 @@ def test_head_object_if_none_match():
         s3_client.head_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
     err_value = err.value
     assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
+    assert err_value.response["ResponseMetadata"]["HTTPHeaders"]["etag"] == etag
 
 
 @mock_aws
