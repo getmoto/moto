@@ -56,7 +56,7 @@ class Ami(TaggedEC2Resource):
         snapshot_description: Optional[str] = None,
         product_codes: Set[str] = set(),
         boot_mode: str = "uefi",
-        tags: Optional[dict] = None,
+        tags: Optional[Dict[str, Any]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
