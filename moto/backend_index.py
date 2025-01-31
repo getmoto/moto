@@ -184,6 +184,7 @@ backend_url_patterns = [
     ("scheduler", re.compile("https?://scheduler\\.(.+)\\.amazonaws\\.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
+    ("securityhub", re.compile("https?://securityhub\\.(.+)\\.amazonaws\\.com")),
     (
         "servicediscovery",
         re.compile("https?://(data-)?servicediscovery\\.(.+)\\.amazonaws\\.com"),
