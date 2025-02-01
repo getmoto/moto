@@ -4,8 +4,10 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
+from freezegun import freeze_time
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.rds.exceptions import InvalidDBInstanceIdentifier, InvalidDBSnapshotIdentifier
 from moto.rds.models import RDSBackend
@@ -757,13 +759,19 @@ def test_create_db_snapshots(client):
 
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    snapshot = client.create_db_snapshot(
-        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
-    )["DBSnapshot"]
+    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
+    with freeze_time(snapshot_create_time):
+        snapshot = client.create_db_snapshot(
+            DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
+        )["DBSnapshot"]
 
     assert snapshot["Engine"] == "postgres"
     assert snapshot["DBInstanceIdentifier"] == "db-primary-1"
     assert snapshot["DBSnapshotIdentifier"] == "g-1"
+    if not settings.TEST_SERVER_MODE:
+        assert snapshot["SnapshotCreateTime"] == snapshot_create_time
+        assert snapshot["SnapshotCreateTime"] == snapshot["OriginalSnapshotCreateTime"]
+
     result = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])
     assert result["TagList"] == []
 
@@ -827,22 +835,30 @@ def test_copy_db_snapshots(
 ):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    client.create_db_snapshot(
-        DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
-    )
+    snapshot_create_time = datetime.datetime(2025, 1, 2, tzinfo=tzutc())
+    with freeze_time(snapshot_create_time):
+        client.create_db_snapshot(
+            DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
+        )
 
     if delete_db_instance:
         # Delete the original instance, but the copy snapshot operation should still succeed.
         client.delete_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    target_snapshot = client.copy_db_snapshot(
-        SourceDBSnapshotIdentifier=db_snapshot_identifier,
-        TargetDBSnapshotIdentifier="snapshot-2",
-    )["DBSnapshot"]
+    target_snapshot_create_time = snapshot_create_time + datetime.timedelta(minutes=1)
+    with freeze_time(target_snapshot_create_time):
+        target_snapshot = client.copy_db_snapshot(
+            SourceDBSnapshotIdentifier=db_snapshot_identifier,
+            TargetDBSnapshotIdentifier="snapshot-2",
+        )["DBSnapshot"]
 
     assert target_snapshot["Engine"] == "postgres"
     assert target_snapshot["DBInstanceIdentifier"] == "db-primary-1"
     assert target_snapshot["DBSnapshotIdentifier"] == "snapshot-2"
+    if not settings.TEST_SERVER_MODE:
+        assert target_snapshot["SnapshotCreateTime"] == target_snapshot_create_time
+        assert target_snapshot["OriginalSnapshotCreateTime"] == snapshot_create_time
+
     result = client.list_tags_for_resource(
         ResourceName=target_snapshot["DBSnapshotArn"]
     )
