@@ -434,7 +434,7 @@ def test_describe_users():
         "UserId": "user1",
         "UserName": "User1",
         "Status": "active",
-        "Engine": "Redis",
+        "Engine": "redis",
         "MinimumEngineVersion": "6.0",
         "AccessString": "on ~* +@all",
         "UserGroupIds": [],
