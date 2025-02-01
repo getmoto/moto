@@ -332,6 +332,37 @@ def test_create_user_twice():
 
 
 @mock_aws
+@pytest.mark.parametrize("engine", ["redis", "Redis", "reDis"])
+def test_create_user_engine_parameter_is_case_insensitive(engine):
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    resp = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine=engine,
+        AccessString="on ~* +@all",
+        AuthenticationMode={"Type": "iam"},
+    )
+    assert resp["Engine"] == engine.lower()
+
+
+@mock_aws
+def test_create_user_with_invalid_engine_type():
+    client = boto3.client("elasticache", region_name="ap-southeast-1")
+    user_id = "user1"
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            UserId=user_id,
+            UserName="User1",
+            Engine="invalidengine",
+            AccessString="on ~* +@all",
+            Passwords=["mysecretpassthatsverylong"],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
 def test_delete_user_unknown():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
@@ -410,22 +441,6 @@ def test_describe_users():
         "Authentication": {"Type": "password", "PasswordCount": 1},
         "ARN": f"arn:aws:elasticache:ap-southeast-1:{ACCOUNT_ID}:user:user1",
     } in resp["Users"]
-
-
-@mock_aws
-def test_create_user_with_wrong_engine_type():
-    client = boto3.client("elasticache", region_name="ap-southeast-1")
-    user_id = "user1"
-    with pytest.raises(ClientError) as exc:
-        client.create_user(
-            UserId=user_id,
-            UserName="User1",
-            Engine="invalidengine",
-            AccessString="on ~* +@all",
-            Passwords=["mysecretpassthatsverylong"],
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "InvalidParameterValue"
 
 
 @mock_aws
