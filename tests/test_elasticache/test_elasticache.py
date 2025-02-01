@@ -16,7 +16,7 @@ def test_create_user_no_password_required():
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         NoPasswordRequired=True,
     )
@@ -24,7 +24,7 @@ def test_create_user_no_password_required():
     assert resp["UserId"] == user_id
     assert resp["UserName"] == "User1"
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["MinimumEngineVersion"] == "6.0"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
@@ -43,7 +43,7 @@ def test_create_user_with_password_too_short():
         client.create_user(
             UserId=user_id,
             UserName="User1",
-            Engine="Redis",
+            Engine="redis",
             AccessString="on ~* +@all",
             Passwords=["mysecretpass"],
         )
@@ -53,13 +53,33 @@ def test_create_user_with_password_too_short():
 
 
 @mock_aws
+def test_create_user_with_wrong_engine_type():
+    client = boto3.client("elasticache", region_name="ap-southeast-1")
+    user_id = "user1"
+    with pytest.raises(ClientError) as exc:
+        client.create_user(
+            UserId=user_id,
+            UserName="User1",
+            Engine="invalidengine",
+            AccessString="on ~* +@all",
+            Passwords=["mysecretpassthatsverylong"],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == 'Unknown parameter for Engine: "invalidengine", must be one of: redis, valkey'
+    )
+
+
+@mock_aws
 def test_create_user_with_password():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     user_id = "user1"
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         Passwords=["mysecretpassthatsverylong"],
     )
@@ -67,7 +87,7 @@ def test_create_user_with_password():
     assert resp["UserId"] == user_id
     assert resp["UserName"] == "User1"
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["MinimumEngineVersion"] == "6.0"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
@@ -83,7 +103,7 @@ def test_create_user_without_password():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:
         client.create_user(
-            UserId="user1", UserName="User1", Engine="Redis", AccessString="?"
+            UserId="user1", UserName="User1", Engine="redis", AccessString="?"
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
@@ -100,13 +120,13 @@ def test_create_user_with_iam():
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         AuthenticationMode={"Type": "iam"},
     )
 
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
     assert resp["Authentication"]["Type"] == "iam"
@@ -119,7 +139,7 @@ def test_create_user_invalid_authentication_type():
         client.create_user(
             UserId="user1",
             UserName="User1",
-            Engine="Redis",
+            Engine="redis",
             AccessString="?",
             AuthenticationMode={"Type": "invalidtype"},
         )
@@ -139,7 +159,7 @@ def test_create_user_with_iam_with_passwords():
         client.create_user(
             UserId="user1",
             UserName="user1",
-            Engine="Redis",
+            Engine="redis",
             AccessString="?",
             AuthenticationMode={"Type": "iam"},
             Passwords=["mysecretpassthatsverylong"],
@@ -158,7 +178,7 @@ def test_create_user_authmode_password_with_multiple_password_fields():
         client.create_user(
             UserId="user1",
             UserName="user1",
-            Engine="Redis",
+            Engine="redis",
             AccessString="on ~* +@all",
             AuthenticationMode={"Type": "password", "Passwords": ["authmodepassword"]},
             Passwords=["requestpassword"],
@@ -179,7 +199,7 @@ def test_create_user_with_authmode_password_without_passwords():
         client.create_user(
             UserId="user1",
             UserName="user1",
-            Engine="Redis",
+            Engine="redis",
             AccessString="?",
             AuthenticationMode={"Type": "password"},
         )
@@ -199,13 +219,13 @@ def test_create_user_with_authmode_no_password():
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         AuthenticationMode={"Type": "no-password-required"},
     )
 
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
     assert resp["Authentication"]["Type"] == "no-password-required"
@@ -221,14 +241,14 @@ def test_create_user_with_no_password_required_and_authmode_nopassword():
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         NoPasswordRequired=True,
         AuthenticationMode={"Type": "no-password-required"},
     )
 
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
     assert resp["Authentication"]["Type"] == "no-password"
@@ -245,7 +265,7 @@ def test_create_user_with_no_password_required_and_authmode_different():
             client.create_user(
                 UserId="user1",
                 UserName="user1",
-                Engine="Redis",
+                Engine="redis",
                 AccessString="on ~* +@all",
                 NoPasswordRequired=True,
                 AuthenticationMode={"Type": auth_mode},
@@ -266,7 +286,7 @@ def test_create_user_with_authmode_password():
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         AuthenticationMode={
             "Type": "password",
@@ -275,7 +295,7 @@ def test_create_user_with_authmode_password():
     )
 
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
     assert resp["Authentication"]["Type"] == "password"
@@ -290,7 +310,7 @@ def test_create_user_with_authmode_password_multiple():
     resp = client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         AuthenticationMode={
             "Type": "password",
@@ -299,7 +319,7 @@ def test_create_user_with_authmode_password_multiple():
     )
 
     assert resp["Status"] == "active"
-    assert resp["Engine"] == "Redis"
+    assert resp["Engine"] == "redis"
     assert resp["AccessString"] == "on ~* +@all"
     assert resp["UserGroupIds"] == []
     assert resp["Authentication"]["Type"] == "password"
@@ -313,7 +333,7 @@ def test_create_user_twice():
     client.create_user(
         UserId=user_id,
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         Passwords=["mysecretpassthatsverylong"],
     )
@@ -322,7 +342,7 @@ def test_create_user_twice():
         client.create_user(
             UserId=user_id,
             UserName="User1",
-            Engine="Redis",
+            Engine="redis",
             AccessString="on ~* +@all",
             Passwords=["mysecretpassthatsverylong"],
         )
@@ -348,7 +368,7 @@ def test_delete_user():
     client.create_user(
         UserId="user1",
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         Passwords=["mysecretpassthatsverylong"],
     )
@@ -391,7 +411,7 @@ def test_describe_users():
     client.create_user(
         UserId="user1",
         UserName="User1",
-        Engine="Redis",
+        Engine="redis",
         AccessString="on ~* +@all",
         Passwords=["mysecretpassthatsverylong"],
     )
@@ -403,7 +423,7 @@ def test_describe_users():
         "UserId": "user1",
         "UserName": "User1",
         "Status": "active",
-        "Engine": "Redis",
+        "Engine": "redis",
         "MinimumEngineVersion": "6.0",
         "AccessString": "on ~* +@all",
         "UserGroupIds": [],
