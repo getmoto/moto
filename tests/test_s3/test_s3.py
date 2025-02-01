@@ -2271,7 +2271,7 @@ def test_put_bucket_cors():
     err_value = err.value
     assert err_value.response["Error"]["Code"] == "InvalidRequest"
     assert err_value.response["Error"]["Message"] == (
-        "Found unsupported HTTP method in CORS config. " "Unsupported method is NOTREAL"
+        "Found unsupported HTTP method in CORS config. Unsupported method is NOTREAL"
     )
 
     with pytest.raises(ClientError) as err:
