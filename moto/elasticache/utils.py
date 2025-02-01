@@ -16,11 +16,5 @@ class AuthenticationTypes(str, Enum):
     IAM = "iam"
 
 
-class EngineTypes(str, Enum):
-    REDIS = "redis"
-    VALKEY = "valkey"
-
-
-class ValidAuthModeKeys(str, Enum):
-    TYPE = "Type"
-    PASSWORD = "Passwords"
+VALID_ENGINE_TYPES = ["Redis", "redis", "valkey"]
+VALID_AUTH_MODE_KEYS = ["Type", "Passwords"]
