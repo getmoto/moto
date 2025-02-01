@@ -6,7 +6,7 @@ from .exceptions import (
     PasswordTooShort,
 )
 from .models import ElastiCacheBackend, elasticache_backends
-from .utils import AuthenticationTypes, VALID_AUTH_MODE_KEYS, VALID_ENGINE_TYPES
+from .utils import VALID_AUTH_MODE_KEYS, VALID_ENGINE_TYPES, AuthenticationTypes
 
 
 class ElastiCacheResponse(BaseResponse):
