@@ -406,7 +406,7 @@ def test_describe_users_initial():
         "UserId": "default",
         "UserName": "default",
         "Status": "active",
-        "Engine": "redis",
+        "Engine": "Redis",
         "MinimumEngineVersion": "6.0",
         "AccessString": "on ~* +@all",
         "UserGroupIds": [],
