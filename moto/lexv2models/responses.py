@@ -11,7 +11,7 @@ class LexModelsV2Response(BaseResponse):
     """Handler for LexModelsV2 requests and responses."""
 
     def __init__(self):
-        super().__init__(service_name="lexv2models")
+        super().__init__(service_name="lexv2-models")
 
     @property
     def lexv2models_backend(self):
