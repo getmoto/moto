@@ -47919,6 +47919,11 @@
                   "Value": "HTTPS"
                 }
               }
+            },
+            "wavelength-zones": {
+              "euw3-cmn1-wlz1": {
+                "Value": "euw3-cmn1-wlz1"
+              }
             }
           },
           "il-central-1": {
