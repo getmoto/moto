@@ -627,60 +627,51 @@ class DynamoDBBackend(BaseBackend):
         ] = []  # [(Code, Message, Item), ..]
         for item in transact_items:
             original_item: Optional[Dict[str, Any]] = None
-            # check transact writes are not performing multiple operations
-            # in the same item
+            # Check transact writes are not performing multiple operations on the same item
             if len(list(item.keys())) > 1:
                 raise TransactWriteSingleOpException
 
             try:
-                if "ConditionCheck" in item:
-                    item = item["ConditionCheck"]
-                    key = item["Key"]
-                    table_name = item["TableName"]
-                    check_unicity(table_name, key)
-                    condition_expression = item.get("ConditionExpression", None)
-                    expression_attribute_names = item.get(
-                        "ExpressionAttributeNames", None
-                    )
-                    expression_attribute_values = item.get(
-                        "ExpressionAttributeValues", None
-                    )
-                    current = self.get_item(table_name, key)
+                op_type, op = next(iter(item.items()))
+                if op_type not in {"ConditionCheck", "Put", "Delete", "Update"}:
+                    raise ValueError("Unsupported transaction operation")
 
+                table_name = op["TableName"]
+                condition_expression = op.get("ConditionExpression")
+                expression_attribute_names = op.get("ExpressionAttributeNames")
+                expression_attribute_values = op.get("ExpressionAttributeValues")
+                return_values_on_condition_check_failure = op.get(
+                    "ReturnValuesOnConditionCheckFailure"
+                )
+
+                if op_type == "Put":
+                    attrs = op["Item"]
+                    table = self.get_table(table_name)
+                    key = {table.hash_key_attr: attrs[table.hash_key_attr]}
+                    if table.range_key_attr is not None:
+                        key[table.range_key_attr] = attrs[table.range_key_attr]
+                else:
+                    key = op["Key"]
+
+                check_unicity(table_name, key)
+
+                current = self.get_item(table_name, key)
+                if condition_expression is not None:
                     condition_op = get_filter_expression(
                         condition_expression,
                         expression_attribute_names,
                         expression_attribute_values,
                     )
                     if not condition_op.expr(current):
-                        raise ConditionalCheckFailed()
-                elif "Put" in item:
-                    item = item["Put"]
-                    attrs = item["Item"]
-                    table_name = item["TableName"]
-                    table = self.get_table(table_name)
-                    key = {table.hash_key_attr: attrs[table.hash_key_attr]}
-                    if table.range_key_attr is not None:
-                        key[table.range_key_attr] = attrs[table.range_key_attr]
-                    check_unicity(table_name, key)
-                    condition_expression = item.get("ConditionExpression", None)
-                    expression_attribute_names = item.get(
-                        "ExpressionAttributeNames", None
-                    )
-                    expression_attribute_values = item.get(
-                        "ExpressionAttributeValues", None
-                    )
+                        if (
+                            return_values_on_condition_check_failure == "ALL_OLD"
+                            and current
+                        ):
+                            original_item = current.to_json()["Attributes"]
+                        raise ConditionalCheckFailed(item=original_item)
 
-                    return_values_on_condition_check_failure = item.get(
-                        "ReturnValuesOnConditionCheckFailure", None
-                    )
-                    current = self.get_item(table_name, attrs)
-                    if (
-                        return_values_on_condition_check_failure == "ALL_OLD"
-                        and current
-                    ):
-                        original_item = current.to_json()["Attributes"]
-
+                if op_type == "Put":
+                    attrs = op["Item"]
                     self.put_item(
                         table_name,
                         attrs,
@@ -688,18 +679,7 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_names=expression_attribute_names,
                         expression_attribute_values=expression_attribute_values,
                     )
-                elif "Delete" in item:
-                    item = item["Delete"]
-                    key = item["Key"]
-                    table_name = item["TableName"]
-                    check_unicity(table_name, key)
-                    condition_expression = item.get("ConditionExpression", None)
-                    expression_attribute_names = item.get(
-                        "ExpressionAttributeNames", None
-                    )
-                    expression_attribute_values = item.get(
-                        "ExpressionAttributeValues", None
-                    )
+                elif op_type == "Delete":
                     self.delete_item(
                         table_name,
                         key,
@@ -707,19 +687,8 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_names=expression_attribute_names,
                         expression_attribute_values=expression_attribute_values,
                     )
-                elif "Update" in item:
-                    item = item["Update"]
-                    key = item["Key"]
-                    table_name = item["TableName"]
-                    check_unicity(table_name, key)
-                    update_expression = item["UpdateExpression"]
-                    condition_expression = item.get("ConditionExpression", None)
-                    expression_attribute_names = item.get(
-                        "ExpressionAttributeNames", None
-                    )
-                    expression_attribute_values = item.get(
-                        "ExpressionAttributeValues", None
-                    )
+                elif op_type == "Update":
+                    update_expression = op["UpdateExpression"]
                     self.update_item(
                         table_name,
                         key,
@@ -728,15 +697,17 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_names=expression_attribute_names,
                         expression_attribute_values=expression_attribute_values,
                     )
-                else:
-                    raise ValueError
                 errors.append((None, None, None))
             except MultipleTransactionsException:
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
                 raise MultipleTransactionsException()
+            except ConditionalCheckFailed as e:
+                errors.append(("ConditionalCheckFailed", str(e.message), original_item))  # type: ignore
             except Exception as e:  # noqa: E722 Do not use bare except
-                errors.append((type(e).__name__, e.message, original_item))  # type: ignore
+                # For other exceptions, capture their details
+                errors.append((type(e).__name__, str(e), original_item))  # type: ignore
+
         if any([code is not None for code, _, _ in errors]):
             # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
