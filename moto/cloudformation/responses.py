@@ -887,7 +887,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
             </member>
           {% endfor %}
         </Tags>
-        <EnableTerminationProtection>{{ stack.enable_termination_protection }}</EnableTerminationProtection>
+        <EnableTerminationProtection>{{ 'true' if stack.enable_termination_protection else 'false' }}</EnableTerminationProtection>
         {% if stack.timeout_in_mins %}
         <TimeoutInMinutes>{{ stack.timeout_in_mins }}</TimeoutInMinutes>
         {% endif %}

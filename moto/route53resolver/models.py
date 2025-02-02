@@ -691,8 +691,7 @@ class Route53ResolverBackend(BaseBackend):
         ]
         if associations:
             raise ResourceInUseException(
-                "Please disassociate this resolver rule from VPC first "
-                "before deleting"
+                "Please disassociate this resolver rule from VPC first before deleting"
             )
 
         self.tagger.delete_all_tags_for_resource(resolver_rule_id)

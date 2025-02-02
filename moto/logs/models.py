@@ -1181,8 +1181,7 @@ class LogsBackend(BaseBackend):
         else:
             # TODO: support Kinesis stream destinations
             raise InvalidParameterException(
-                f"Service '{service}' has not implemented for "
-                f"put_subscription_filter()"
+                f"Service '{service}' has not implemented for put_subscription_filter()"
             )
 
         log_group.put_subscription_filter(

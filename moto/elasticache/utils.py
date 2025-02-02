@@ -8,6 +8,8 @@ PAGINATION_MODEL = {
         "unique_attribute": "cache_cluster_id",
     },
 }
+VALID_AUTH_MODE_KEYS = ["Type", "Passwords"]
+VALID_ENGINE_TYPES = ["redis", "valkey"]
 
 
 class AuthenticationTypes(str, Enum):

@@ -54,6 +54,10 @@ def test_gen_moto_amis():
         "Name": "Windows_Server-2016-English-Nano-Base-2017.10.13",
         "VirtualizationType": "hvm",
         "Hypervisor": "xen",
+        "Tags": [
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "bar", "Value": "baz"},
+        ],
     }
 
     images = []
@@ -67,6 +71,8 @@ def test_gen_moto_amis():
     assert len(images) == 2
     amis = utils.gen_moto_amis(images, drop_images_missing_keys=True)
     assert len(amis) == 1
+    expected_tags = {"foo": "bar", "bar": "baz"}
+    assert amis[0]["tags"] == expected_tags
 
     # with drop=False, it should raise KeyError because of the missing key
     with raises(KeyError, match="'Public'"):
