@@ -527,14 +527,6 @@ class CapacityProviderFailure(BaseObject):
 
 
 class Service(BaseObject, CloudFormationModel):
-    """Set the environment variable MOTO_ECS_SERVICE_RUNNING to a number of running tasks you want
-    the service to transition to, ie if set to 2:
-
-    MOTO_ECS_SERVICE_RUNNING=2
-
-    then describe_services call to return runningCount of the service AND deployment to 2
-    """
-
     def __init__(
         self,
         cluster: Cluster,
@@ -997,6 +989,12 @@ class EC2ContainerServiceBackend(BaseBackend):
     `MOTO_ECS_NEW_ARN=false`
 
     AWS reference: https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/
+
+    Set the environment variable MOTO_ECS_SERVICE_RUNNING to a number of running tasks you want. For example:
+
+    MOTO_ECS_SERVICE_RUNNING=2
+
+    Every describe_services() will return runningCount AND deployment of 2
     """
 
     def __init__(self, region_name: str, account_id: str):
