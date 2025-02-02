@@ -1,0 +1,45 @@
+name: Unit tests in Server Mode
+on: [workflow_call]
+
+jobs:
+  cdk_start:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Start MotoServer
+      run: |
+        pip install build
+        python -m build
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_EC2_LOAD_DEFAULT_AMIS=false -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${{ matrix.python-version }}-slim /moto/scripts/ci_moto_server.sh &
+        python scripts/ci_wait_for_server.py
+    - name: Install CDK
+      id: install-cdk
+      run: |
+        sudo npm install -g aws-cdk
+    - name: Init CDK APP
+      run: |
+        mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
+        mkdir cdk_example_app
+        cd cdk_example_app
+        cdk init app --language python
+        source .venv/bin/activate
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    - name: Bootstrap CDK
+      env:
+        AWS_ENDPOINT_URL: "http://localhost:5000"
+      run: |
+        pwd
+        ls -la
+        cd cdk_example_app
+        source .venv/bin/activate
+        cdk bootstrap -v
