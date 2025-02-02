@@ -13,6 +13,7 @@ VALID_ACTION_TYPE_VALUES = {"expire"}
 
 REQUIRED_SELECTION_PROPERTIES = {"tagStatus", "countType", "countNumber"}
 VALID_SELECTION_PROPERTIES = {
+    "tagPatternList",
     "tagPrefixList",
     "countUnit",
     *REQUIRED_SELECTION_PROPERTIES,
