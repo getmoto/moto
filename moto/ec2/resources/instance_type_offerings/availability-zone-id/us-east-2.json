@@ -8220,6 +8220,10 @@
   "Location": "use2-az3"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "use2-az3"
+ },
+ {
   "InstanceType": "p5e.48xlarge",
   "Location": "use2-az3"
  },
