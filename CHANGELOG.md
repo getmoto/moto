@@ -3,7 +3,7 @@ Moto Changelog
 
 5.0.28
 -----
-Docker Digest for 5.0.28: <autopopulateddigest>
+Docker Digest for 5.0.28: _sha256:d3532929e4c498334949a014e9f0af6617ec1e89d92be690cd192fa3354ad7e6_
 
     * General:
         * Bootstrapping a CDK project is now supported
