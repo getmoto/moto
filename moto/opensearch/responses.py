@@ -56,6 +56,13 @@ class OpenSearchServiceResponse(BaseResponse):
         if request.method == "POST":
             return 200, {}, response.add_tags()
 
+    @classmethod
+    def tag_removal(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return 200, {}, response.remove_tags()
+
     def create_domain(self) -> str:
         domain_name = self._get_param("DomainName")
         if not re.match(r"^[a-z][a-z0-9\-]+$", domain_name):
