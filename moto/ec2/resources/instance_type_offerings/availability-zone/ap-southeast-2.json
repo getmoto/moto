@@ -4140,6 +4140,10 @@
   "Location": "ap-southeast-2b"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "ap-southeast-2b"
  },
@@ -6725,6 +6729,10 @@
  },
  {
   "InstanceType": "p2.xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "ap-southeast-2c"
  },
  {

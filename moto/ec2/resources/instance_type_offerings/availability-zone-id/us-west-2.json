@@ -11696,6 +11696,10 @@
   "Location": "usw2-az4"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "usw2-az4"
+ },
+ {
   "InstanceType": "p5en.48xlarge",
   "Location": "usw2-az4"
  },

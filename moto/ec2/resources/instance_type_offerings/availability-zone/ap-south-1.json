@@ -1424,6 +1424,10 @@
   "Location": "ap-south-1a"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "ap-south-1a"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "ap-south-1a"
  },
@@ -3656,6 +3660,10 @@
   "Location": "ap-south-1b"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "ap-south-1b"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "ap-south-1b"
  },
@@ -5757,6 +5765,10 @@
  },
  {
   "InstanceType": "mac1.metal",
+  "Location": "ap-south-1c"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "ap-south-1c"
  },
  {
