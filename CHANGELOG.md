@@ -1,6 +1,40 @@
 Moto Changelog
 ==============
 
+5.0.28
+-----
+Docker Digest for 5.0.28: <autopopulateddigest>
+
+    * General:
+        * Bootstrapping a CDK project is now supported
+
+    * New Services:
+        * S3 Tables:
+            * create_namespace()
+            * create_table()
+            * create_table_bucket()
+            * delete_namespace()
+            * delete_table()
+            * delete_table_bucket()
+            * get_metadata_location()
+            * get_table()
+            * get_table_bucket()
+            * list_namespaces()
+            * list_table_buckets()
+            * list_tables()
+            * rename_table()
+            * update_metadata_location()
+
+    * Miscellaneous:
+        * DynamoDB: delete_item() now returns ConsumedCapacity
+        * DynamoDB: transact_write_items() now returns a ReturnValuesOnConditionCheckFailure for all operations
+        * ECR: Lifecycle Policies() now support the tagPatternList-parameter
+        * S3: get_object() now returns the ETag when returning a 304 (Not Modified)
+        * SecretsManager: get_secret_value() no longer throws an error after calling rotate_secret(RotateImmediately=False)
+        * SecretsManager: list_secrets() now filters values with special chars correctly
+        * Organizations: list_roots() now returns the roots of the parent organization, if called from within a child organization
+
+
 5.0.27
 -----
 Docker Digest for 5.0.27: _sha256:ac5312f68c6b748b667526025f9e7a8c2e4112837c258eee68f96fa36d9dbbef_
