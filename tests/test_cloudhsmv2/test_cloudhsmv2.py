@@ -1,5 +1,7 @@
 """Unit tests for cloudhsmv2-supported APIs."""
 
+from datetime import datetime
+
 import boto3
 
 from moto import mock_aws
@@ -103,3 +105,140 @@ def test_untag_resource():
     remaining_tags = client.list_tags(ResourceId=resource_id)["TagList"]
     assert len(remaining_tags) == 1
     assert {"Key": "Project", "Value": "Security"} in remaining_tags
+
+
+@mock_aws
+def test_create_cluster():
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
+
+    response = client.create_cluster(
+        BackupRetentionPolicy={"Type": "DAYS", "Value": "7"},
+        HsmType="hsm1.medium",
+        SubnetIds=["subnet-12345678"],
+        TagList=[{"Key": "Environment", "Value": "Production"}],
+    )
+
+    cluster = response["Cluster"]
+    assert cluster["BackupPolicy"] == "DEFAULT"
+    assert cluster["BackupRetentionPolicy"] == {"Type": "DAYS", "Value": "7"}
+    assert "ClusterId" in cluster
+    assert isinstance(cluster["CreateTimestamp"], datetime)
+    assert cluster["HsmType"] == "hsm1.medium"
+    assert cluster["State"] == "CREATE_IN_PROGRESS"
+    assert cluster["SubnetMapping"] == {"subnet-12345678": "us-east-1"}
+    assert cluster["TagList"] == [{"Key": "Environment", "Value": "Production"}]
+    assert "VpcId" in cluster
+
+    # Verify the cluster can be found in describe_clusters
+    clusters = client.describe_clusters()["Clusters"]
+    assert len(clusters) == 1
+    assert clusters[0]["ClusterId"] == cluster["ClusterId"]
+
+
+# @mock_aws
+# def test_delete_cluster():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+
+#     # Create a cluster first
+#     response = client.create_cluster(
+#         HsmType="hsm1.medium",
+#         SubnetIds=["subnet-12345678"],
+#         NetworkType="IPV4",
+#         Mode="FIPS"
+#     )
+#     cluster_id = response["Cluster"]["ClusterId"]
+
+#     # Delete the cluster
+#     delete_response = client.delete_cluster(ClusterId=cluster_id)
+
+#     # Verify the response
+#     deleted_cluster = delete_response["Cluster"]
+#     assert deleted_cluster["ClusterId"] == cluster_id
+#     assert deleted_cluster["State"] == "DELETE_IN_PROGRESS"
+#     assert deleted_cluster["StateMessage"] == "Cluster deletion in progress"
+
+#     # Verify the cluster is no longer listed
+#     clusters = client.describe_clusters()["Clusters"]
+#     assert len(clusters) == 0
+
+
+# @mock_aws
+# def test_delete_nonexistent_cluster():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+
+#     with pytest.raises(client.exceptions.CloudHsmClientException) as ex:
+#         client.delete_cluster(ClusterId="non-existent-cluster")
+
+#     assert "Cluster non-existent-cluster not found" in str(ex.value)
+
+
+# @mock_aws
+# def test_describe_clusters_no_clusters():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+#     response = client.describe_clusters()
+
+#     assert response["Clusters"] == []
+#     assert "NextToken" not in response
+
+
+# @mock_aws
+# def test_describe_clusters_with_filters():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+
+#     # Create two clusters
+#     cluster1 = client.create_cluster(
+#         HsmType="hsm1.medium",
+#         SubnetIds=["subnet-12345678"],
+#         NetworkType="IPV4",
+#         Mode="FIPS"
+#     )
+#     cluster2 = client.create_cluster(
+#         HsmType="hsm1.medium",
+#         SubnetIds=["subnet-87654321"],
+#         NetworkType="IPV4",
+#         Mode="FIPS"
+#     )
+
+#     # Test filtering by cluster ID
+#     response = client.describe_clusters(
+#         Filters={
+#             "clusterIds": [cluster1["Cluster"]["ClusterId"]]
+#         }
+#     )
+#     assert len(response["Clusters"]) == 1
+#     assert response["Clusters"][0]["ClusterId"] == cluster1["Cluster"]["ClusterId"]
+
+#     # Test filtering by state
+#     response = client.describe_clusters(
+#         Filters={
+#             "states": ["CREATE_IN_PROGRESS"]
+#         }
+#     )
+#     assert len(response["Clusters"]) == 2  # Both clusters are in CREATE_IN_PROGRESS state
+
+
+# @mock_aws
+# def test_describe_clusters_pagination():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+
+#     # Create three clusters
+#     for _ in range(3):
+#         client.create_cluster(
+#             HsmType="hsm1.medium",
+#             SubnetIds=["subnet-12345678"],
+#             NetworkType="IPV4",
+#             Mode="FIPS"
+#         )
+
+#     # Test pagination
+#     response = client.describe_clusters(MaxResults=2)
+#     assert len(response["Clusters"]) == 2
+#     assert "NextToken" in response
+
+#     # Get remaining clusters
+#     response2 = client.describe_clusters(
+#         MaxResults=2,
+#         NextToken=response["NextToken"]
+#     )
+#     assert len(response2["Clusters"]) == 1
+#     assert "NextToken" not in response2
