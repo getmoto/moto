@@ -1,23 +1,7 @@
-from jinja2 import Template
-
-from moto.core.exceptions import RESTError
-
-
-class RDSClientError(RESTError):
+class RDSClientError(Exception):
     def __init__(self, code: str, message: str):
-        super().__init__(error_type=code, message=message)
-        template = Template(
-            """
-        <ErrorResponse>
-            <Error>
-              <Code>{{ code }}</Code>
-              <Message>{{ message }}</Message>
-              <Type>Sender</Type>
-            </Error>
-            <RequestId>6876f774-7273-11e4-85dc-39e55ca848d1</RequestId>
-        </ErrorResponse>"""
-        )
-        self.description = template.render(code=code, message=message)
+        super().__init__(message)
+        self.code = code
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -48,8 +32,6 @@ class DBSecurityGroupNotFoundError(RDSClientError):
 
 
 class DBSubnetGroupNotFoundError(RDSClientError):
-    code = 404
-
     def __init__(self, subnet_group_name: str):
         super().__init__(
             "DBSubnetGroupNotFoundFault", f"Subnet Group {subnet_group_name} not found."

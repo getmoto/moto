@@ -8,8 +8,6 @@ from functools import lru_cache
 from re import compile as re_compile
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from jinja2 import Template
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -168,26 +166,6 @@ class ProxyTargetGroup(RDSBaseModel):
     def name(self) -> str:
         return self._name
 
-    def to_xml(self) -> str:
-        template = Template("""<DBProxyName>{{ group.proxy_name }}</DBProxyName>
-      <TargetGroupName>{{ group.group_name }}</TargetGroupName>
-      <TargetGroupArn>{{ group.arn }}</TargetGroupArn>
-      <IsDefault>true</IsDefault>
-      <Status>available</Status>
-      <ConnectionPoolConfig>
-        <MaxConnectionsPercent>{{ group.max_connections }}</MaxConnectionsPercent>
-        <MaxIdleConnectionsPercent>{{ group.max_idle_connections }}</MaxIdleConnectionsPercent>
-        <ConnectionBorrowTimeout>{{ group.borrow_timeout }}</ConnectionBorrowTimeout>
-        <SessionPinningFilters>
-        {% for filter in group.session_pinning_filters %}
-        <member>{{ filter }}</member>
-        {% endfor %}
-        </SessionPinningFilters>
-      </ConnectionPoolConfig>
-      <CreatedDate>{{ group.created_date }}</CreatedDate>
-      <UpdatedDate>{{ group.updated_date }}</UpdatedDate>""")
-        return template.render(group=self)
-
 
 class GlobalCluster(RDSBaseModel):
     resource_type = "global-cluster"
@@ -232,37 +210,6 @@ class GlobalCluster(RDSBaseModel):
     @property
     def global_cluster_arn(self) -> str:
         return self.arn
-
-    def to_xml(self) -> str:
-        template = Template(
-            """
-          <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
-          <GlobalClusterResourceId>{{ cluster.global_cluster_resource_id }}</GlobalClusterResourceId>
-          <GlobalClusterArn>{{ cluster.global_cluster_arn }}</GlobalClusterArn>
-          <Engine>{{ cluster.engine }}</Engine>
-          <Status>available</Status>
-          <EngineVersion>{{ cluster.engine_version }}</EngineVersion>
-          <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
-          <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
-          <GlobalClusterMembers>
-          {% for cluster_member in cluster.members %}
-          <GlobalClusterMember>
-            <DBClusterArn>{{ cluster_member.arn }}</DBClusterArn>
-            <IsWriter>{{ 'true' if cluster_member.is_writer else 'false' }}</IsWriter>
-            {% if not cluster_member.is_writer %}<GlobalWriteForwardingStatus>disabled</GlobalWriteForwardingStatus>{% endif %}
-                <Readers>
-                    {% if cluster_member.is_writer %}
-                        {% for reader in cluster.members %}
-                            {% if not reader.is_writer %}<Reader>{{ reader.db_cluster_arn }}</Reader>{% endif %}
-                        {% endfor %}
-                    {% endif %}
-                </Readers>
-          </GlobalClusterMember>
-          {% endfor %}
-          </GlobalClusterMembers>
-          """
-        )
-        return template.render(cluster=self)
 
 
 class DBCluster(RDSBaseModel):
@@ -517,123 +464,6 @@ class DBCluster(RDSBaseModel):
         cfg["enable_http_endpoint"] = cfg.pop("_enable_http_endpoint")
         return cfg
 
-    def to_xml(self, initial: bool = False) -> str:
-        status = "creating" if initial else self.status
-        template = Template(
-            """<DBCluster>
-              <AllocatedStorage>{{ cluster.allocated_storage }}</AllocatedStorage>
-              <AvailabilityZones>
-              {% for zone in cluster.availability_zones %}
-                  <AvailabilityZone>{{ zone }}</AvailabilityZone>
-              {% endfor %}
-              </AvailabilityZones>
-              <BackupRetentionPeriod>{{ cluster.backup_retention_period }}</BackupRetentionPeriod>
-              <BacktrackWindow>{{ cluster.backtrack_window }}</BacktrackWindow>
-              <DBInstanceStatus>{{ cluster.status }}</DBInstanceStatus>
-              {% if cluster.db_name %}<DatabaseName>{{ cluster.db_name }}</DatabaseName>{% endif %}
-              {% if cluster.kms_key_id %}<KmsKeyId>{{ cluster.kms_key_id }}</KmsKeyId>{% endif %}
-              {% if cluster.network_type %}<NetworkType>{{ cluster.network_type }}</NetworkType>{% endif %}
-              <DBClusterIdentifier>{{ cluster.db_cluster_identifier }}</DBClusterIdentifier>
-              <DBClusterParameterGroup>{{ cluster.parameter_group }}</DBClusterParameterGroup>
-              <DBSubnetGroup>{{ cluster.subnet_group }}</DBSubnetGroup>
-              <ClusterCreateTime>{{ cluster.cluster_create_time }}</ClusterCreateTime>
-              <EarliestRestorableTime>{{ cluster.earliest_restorable_time }}</EarliestRestorableTime>
-              <Engine>{{ cluster.engine }}</Engine>
-              <Status>{{ status }}</Status>
-              <Endpoint>{{ cluster.endpoint }}</Endpoint>
-              <ReaderEndpoint>{{ cluster.reader_endpoint }}</ReaderEndpoint>
-              <MultiAZ>{{ 'true' if cluster.is_multi_az else 'false' }}</MultiAZ>
-              <EngineVersion>{{ cluster.engine_version }}</EngineVersion>
-              <Port>{{ cluster.port }}</Port>
-              {% if cluster.iops %}
-                <Iops>{{ cluster.iops }}</Iops>
-                <StorageType>io1</StorageType>
-              {% endif %}
-              {% if cluster.db_cluster_instance_class %}<DBClusterInstanceClass>{{ cluster.db_cluster_instance_class }}</DBClusterInstanceClass>{% endif %}
-              <MasterUsername>{{ cluster.master_username }}</MasterUsername>
-              <PreferredBackupWindow>{{ cluster.preferred_backup_window }}</PreferredBackupWindow>
-              <PreferredMaintenanceWindow>{{ cluster.preferred_maintenance_window }}</PreferredMaintenanceWindow>
-              <ReadReplicaIdentifiers>
-              {% for replica_id in cluster.read_replica_identifiers %}
-                <ReadReplicaIdentifier>{{ replica_id }}</ReadReplicaIdentifier>
-              {% endfor %}
-              </ReadReplicaIdentifiers>
-              <DBClusterMembers>
-              {% for member in cluster.cluster_members %}
-              <DBClusterMember>
-                <DBInstanceIdentifier>{{ member }}</DBInstanceIdentifier>
-                <IsClusterWriter>true</IsClusterWriter>
-                <DBClusterParameterGroupStatus>in-sync</DBClusterParameterGroupStatus>
-                <PromotionTier>1</PromotionTier>
-              </DBClusterMember>
-              {% endfor %}
-              </DBClusterMembers>
-              <VpcSecurityGroups>
-              {% for id in cluster.vpc_security_group_ids %}
-                  <VpcSecurityGroup>
-                      <VpcSecurityGroupId>{{ id }}</VpcSecurityGroupId>
-                      <Status>active</Status>
-                  </VpcSecurityGroup>
-              {% endfor %}
-              </VpcSecurityGroups>
-              <HostedZoneId>{{ cluster.hosted_zone_id }}</HostedZoneId>
-              <StorageEncrypted>{{ 'true' if cluster.storage_encrypted else 'false' }}</StorageEncrypted>
-              <GlobalWriteForwardingRequested>{{ 'true' if cluster.global_write_forwarding_requested else 'false'  }}</GlobalWriteForwardingRequested>
-              <DbClusterResourceId>{{ cluster.resource_id }}</DbClusterResourceId>
-              <DBClusterArn>{{ cluster.db_cluster_arn }}</DBClusterArn>
-              <AssociatedRoles></AssociatedRoles>
-              <IAMDatabaseAuthenticationEnabled>{{ 'true' if cluster.iam_auth else 'false' }}</IAMDatabaseAuthenticationEnabled>
-              <EngineMode>{{ cluster.engine_mode }}</EngineMode>
-              <DeletionProtection>{{ 'true' if cluster.deletion_protection else 'false' }}</DeletionProtection>
-              <HttpEndpointEnabled>{{ 'true' if cluster.enable_http_endpoint else 'false' }}</HttpEndpointEnabled>
-              <CopyTagsToSnapshot>{{ 'true' if cluster.copy_tags_to_snapshot else 'false' }}</CopyTagsToSnapshot>
-              <CrossAccountClone>false</CrossAccountClone>
-              <DomainMemberships></DomainMemberships>
-              <EnabledCloudwatchLogsExports>
-              {% for export in cluster.enabled_cloudwatch_logs_exports %}
-              <member>{{ export }}</member>
-              {% endfor %}
-              </EnabledCloudwatchLogsExports>
-              <TagList>
-              {%- for tag in cluster.tags -%}
-                <Tag>
-                  <Key>{{ tag['Key'] }}</Key>
-                  <Value>{{ tag['Value'] }}</Value>
-                </Tag>
-              {%- endfor -%}
-              </TagList>
-              {% if cluster.scaling_configuration %}
-              <ScalingConfigurationInfo>
-                {% if "min_capacity" in cluster.scaling_configuration %}<MinCapacity>{{ cluster.scaling_configuration["min_capacity"] }}</MinCapacity>{% endif %}
-                {% if "max_capacity" in cluster.scaling_configuration %}<MaxCapacity>{{ cluster.scaling_configuration["max_capacity"] }}</MaxCapacity>{% endif %}
-                {% if "auto_pause" in cluster.scaling_configuration %}<AutoPause>{{ cluster.scaling_configuration["auto_pause"] }}</AutoPause>{% endif %}
-                {% if "seconds_until_auto_pause" in cluster.scaling_configuration %}<SecondsUntilAutoPause>{{ cluster.scaling_configuration["seconds_until_auto_pause"] }}</SecondsUntilAutoPause>{% endif %}
-                {% if "timeout_action" in cluster.scaling_configuration %}<TimeoutAction>{{ cluster.scaling_configuration["timeout_action"] }}</TimeoutAction>{% endif %}
-                {% if "seconds_before_timeout" in cluster.scaling_configuration %}<SecondsBeforeTimeout>{{ cluster.scaling_configuration["seconds_before_timeout"] }}</SecondsBeforeTimeout>{% endif %}
-              </ScalingConfigurationInfo>
-              {% endif %}
-              {% if cluster.serverless_v2_scaling_configuration %}
-              <ServerlessV2ScalingConfiguration>
-                {% if "MinCapacity" in cluster.serverless_v2_scaling_configuration %}<MinCapacity>{{ cluster.serverless_v2_scaling_configuration["MinCapacity"] }}</MinCapacity>{% endif %}
-                {% if "MaxCapacity" in cluster.serverless_v2_scaling_configuration %}<MaxCapacity>{{ cluster.serverless_v2_scaling_configuration["MaxCapacity"] }}</MaxCapacity>{% endif %}
-              </ServerlessV2ScalingConfiguration>
-              {% endif %}
-              {%- if cluster.global_cluster_identifier -%}
-              <GlobalClusterIdentifier>{{ cluster.global_cluster_identifier }}</GlobalClusterIdentifier>
-              {%- endif -%}
-              {%- if cluster.replication_source_identifier -%}<ReplicationSourceIdentifier>{{ cluster.replication_source_identifier }}</ReplicationSourceIdentifier>{%- endif -%}
-              {%- if cluster.manage_master_user_password -%}
-              <MasterUserSecret>
-                {% set master_user_secret = cluster.master_user_secret() %}
-                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
-                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
-                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
-              </MasterUserSecret>
-              {%- endif -%}
-            </DBCluster>"""
-        )
-        return template.render(cluster=self, status=status)
-
     @staticmethod
     def default_engine_version(engine: str) -> str:
         return {
@@ -714,41 +544,6 @@ class DBClusterSnapshot(RDSBaseModel):
     @property
     def snapshot_arn(self) -> str:
         return self.arn
-
-    def to_xml(self) -> str:
-        template = Template(
-            """
-            <DBClusterSnapshot>
-                <DBClusterSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBClusterSnapshotIdentifier>
-                <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
-                <DBClusterIdentifier>{{ cluster.db_cluster_identifier }}</DBClusterIdentifier>
-                <ClusterCreateTime>{{ snapshot.created_at }}</ClusterCreateTime>
-                <PercentProgress>{{ 100 }}</PercentProgress>
-                <AllocatedStorage>{{ cluster.allocated_storage }}</AllocatedStorage>
-                <MasterUsername>{{ cluster.master_username }}</MasterUsername>
-                <Port>{{ cluster.port }}</Port>
-                <Engine>{{ cluster.engine }}</Engine>
-                <Status>{{ snapshot.status }}</Status>
-                <SnapshotType>{{ snapshot.snapshot_type }}</SnapshotType>
-                <DBClusterSnapshotArn>{{ snapshot.snapshot_arn }}</DBClusterSnapshotArn>
-                <SourceRegion>{{ cluster.region }}</SourceRegion>
-                {% if cluster.iops %}
-                <Iops>{{ cluster.iops }}</Iops>
-                <StorageType>io1</StorageType>
-                {% else %}
-                <StorageType>{{ cluster.storage_type }}</StorageType>
-                {% endif %}
-                <TagList>
-                {%- for tag in snapshot.tags -%}
-                    <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
-                {%- endfor -%}
-                </TagList>
-                <Timezone></Timezone>
-                <LicenseModel>{{ cluster.license_model }}</LicenseModel>
-            </DBClusterSnapshot>
-            """
-        )
-        return template.render(snapshot=self, cluster=self.cluster)
 
 
 class DBInstance(CloudFormationModel, RDSBaseModel):
@@ -962,140 +757,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
         }
 
-    def to_xml(self) -> str:
-        template = Template(
-            """<DBInstance>
-              <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
-              <BackupRetentionPeriod>{{ database.backup_retention_period }}</BackupRetentionPeriod>
-              <DBInstanceStatus>{{ database.status }}</DBInstanceStatus>
-              {% if database.db_name %}<DBName>{{ database.db_name }}</DBName>{% endif %}
-              <MultiAZ>{{ 'true' if database.multi_az else 'false' }}</MultiAZ>
-              <VpcSecurityGroups>
-                {% for vpc_security_group_id in database.vpc_security_group_ids %}
-                <VpcSecurityGroupMembership>
-                  <Status>active</Status>
-                  <VpcSecurityGroupId>{{ vpc_security_group_id }}</VpcSecurityGroupId>
-                </VpcSecurityGroupMembership>
-                {% endfor %}
-              </VpcSecurityGroups>
-              {% if database.db_cluster_identifier %}<DBClusterIdentifier>{{ database.db_cluster_identifier }}</DBClusterIdentifier>{% endif %}
-              <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
-              <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
-              <InstanceCreateTime>{{ database.instance_create_time }}</InstanceCreateTime>
-              <PreferredBackupWindow>{{ database.preferred_backup_window }}</PreferredBackupWindow>
-              <PreferredMaintenanceWindow>{{ database.preferred_maintenance_window }}</PreferredMaintenanceWindow>
-              <ReadReplicaDBInstanceIdentifiers>
-                {% for replica_id in database.replicas %}
-                    <ReadReplicaDBInstanceIdentifier>{{ replica_id }}</ReadReplicaDBInstanceIdentifier>
-                {% endfor %}
-              </ReadReplicaDBInstanceIdentifiers>
-              <StatusInfos>
-                {% if database.is_replica %}
-                <DBInstanceStatusInfo>
-                    <StatusType>read replication</StatusType>
-                    <Status>replicating</Status>
-                    <Normal>true</Normal>
-                    <Message></Message>
-                </DBInstanceStatusInfo>
-                {% endif %}
-              </StatusInfos>
-              <EnabledCloudwatchLogsExports>
-              {% for export in database.enabled_cloudwatch_logs_exports %}
-              <member>{{ export }}</member>
-              {% endfor %}
-              </EnabledCloudwatchLogsExports>
-              {% if database.is_replica %}
-              <ReadReplicaSourceDBInstanceIdentifier>{{ database.source_db_identifier }}</ReadReplicaSourceDBInstanceIdentifier>
-              {% endif %}
-              <Engine>{{ database.engine }}</Engine>
-              <IAMDatabaseAuthenticationEnabled>{{'true' if database.enable_iam_database_authentication else 'false' }}</IAMDatabaseAuthenticationEnabled>
-              <LicenseModel>{{ database.license_model }}</LicenseModel>
-              <EngineVersion>{{ database.engine_version }}</EngineVersion>
-              <OptionGroupMemberships>
-                <OptionGroupMembership>
-                  <OptionGroupName>{{ database.option_group_name }}</OptionGroupName>
-                  <Status>in-sync</Status>
-                </OptionGroupMembership>
-              </OptionGroupMemberships>
-              <DBParameterGroups>
-                {% for db_parameter_group in database.db_parameter_groups() %}
-                <DBParameterGroup>
-                  <ParameterApplyStatus>in-sync</ParameterApplyStatus>
-                  <DBParameterGroupName>{{ db_parameter_group.name }}</DBParameterGroupName>
-                </DBParameterGroup>
-                {% endfor %}
-              </DBParameterGroups>
-              <DBSecurityGroups>
-                {% for security_group in database.security_groups %}
-                <DBSecurityGroup>
-                  <Status>active</Status>
-                  <DBSecurityGroupName>{{ security_group }}</DBSecurityGroupName>
-                </DBSecurityGroup>
-                {% endfor %}
-              </DBSecurityGroups>
-              {% if database.db_subnet_group %}
-              <DBSubnetGroup>
-                <DBSubnetGroupName>{{ database.db_subnet_group.subnet_name }}</DBSubnetGroupName>
-                <DBSubnetGroupDescription>{{ database.db_subnet_group.description }}</DBSubnetGroupDescription>
-                <SubnetGroupStatus>{{ database.db_subnet_group.status }}</SubnetGroupStatus>
-                <Subnets>
-                    {% for subnet in database.db_subnet_group.subnets %}
-                    <Subnet>
-                      <SubnetStatus>Active</SubnetStatus>
-                      <SubnetIdentifier>{{ subnet.id }}</SubnetIdentifier>
-                      <SubnetAvailabilityZone>
-                        <Name>{{ subnet.availability_zone }}</Name>
-                        <ProvisionedIopsCapable>false</ProvisionedIopsCapable>
-                      </SubnetAvailabilityZone>
-                    </Subnet>
-                    {% endfor %}
-                </Subnets>
-                <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
-              </DBSubnetGroup>
-              {% endif %}
-              <PubliclyAccessible>{{ 'true' if database.publicly_accessible else 'false' }}</PubliclyAccessible>
-              <CopyTagsToSnapshot>{{ 'true' if database.copy_tags_to_snapshot else 'false' }}</CopyTagsToSnapshot>
-              <AutoMinorVersionUpgrade>{{ 'true' if database.auto_minor_version_upgrade else 'false' }}</AutoMinorVersionUpgrade>
-              <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
-              <StorageEncrypted>{{ 'true' if database.storage_encrypted else 'false' }}</StorageEncrypted>
-              {% if database.kms_key_id %}
-              <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
-              {% endif %}
-              {% if database.iops %}
-              <Iops>{{ database.iops }}</Iops>
-              <StorageType>io1</StorageType>
-              {% else %}
-              <StorageType>{{ database.storage_type }}</StorageType>
-              {% endif %}
-              <DBInstanceClass>{{ database.db_instance_class }}</DBInstanceClass>
-              <MasterUsername>{{ database.master_username }}</MasterUsername>
-              <Endpoint>
-                <Address>{{ database.address }}</Address>
-                <Port>{{ database.port }}</Port>
-              </Endpoint>
-              <DbInstancePort>{{ database.port }}</DbInstancePort>
-              <DBInstanceArn>{{ database.db_instance_arn }}</DBInstanceArn>
-              <TagList>
-              {%- for tag in database.tags -%}
-                <Tag>
-                  <Key>{{ tag['Key'] }}</Key>
-                  <Value>{{ tag['Value'] }}</Value>
-                </Tag>
-              {%- endfor -%}
-              </TagList>
-              <DeletionProtection>{{ 'true' if database.deletion_protection else 'false' }}</DeletionProtection>
-              {%- if database.manage_master_user_password -%}
-              <MasterUserSecret>
-                {% set master_user_secret = database.master_user_secret() %}
-                {% if "secret_arn" in master_user_secret %}<SecretArn>{{ master_user_secret["secret_arn"] }}</SecretArn>{% endif %}
-                {% if "secret_status" in master_user_secret %}<SecretStatus>{{ master_user_secret["secret_status"] }}</SecretStatus>{% endif %}
-                {% if "kms_key_id" in master_user_secret %}<KmsKeyId>{{ master_user_secret["kms_key_id"] }}</KmsKeyId>{% endif %}
-              </MasterUserSecret>
-              {%- endif -%}
-            </DBInstance>"""
-        )
-        return template.render(database=self)
-
     @property
     def address(self) -> str:
         return (
@@ -1299,57 +960,6 @@ class DBSnapshot(RDSBaseModel):
     def snapshot_arn(self) -> str:
         return self.arn
 
-    def to_xml(self) -> str:
-        template = Template(
-            """<DBSnapshot>
-              <DBSnapshotIdentifier>{{ snapshot.snapshot_id }}</DBSnapshotIdentifier>
-              <DBInstanceIdentifier>{{ database.db_instance_identifier }}</DBInstanceIdentifier>
-              <DbiResourceId>{{ database.dbi_resource_id }}</DbiResourceId>
-              <SnapshotCreateTime>{{ snapshot.created_at }}</SnapshotCreateTime>
-              <Engine>{{ database.engine }}</Engine>
-              <AllocatedStorage>{{ database.allocated_storage }}</AllocatedStorage>
-              <Status>{{ snapshot.status }}</Status>
-              <Port>{{ database.port }}</Port>
-              <AvailabilityZone>{{ database.availability_zone }}</AvailabilityZone>
-              <VpcId>{{ database.db_subnet_group.vpc_id }}</VpcId>
-              <InstanceCreateTime>{{ snapshot.created_at }}</InstanceCreateTime>
-              {% if database.master_username %}
-              <MasterUsername>{{ database.master_username }}</MasterUsername>
-              {% endif %}
-              <EngineVersion>{{ database.engine_version }}</EngineVersion>
-              {% if database.license_model %}
-              <LicenseModel>{{ database.license_model }}</LicenseModel>
-              {% endif %}
-              <SnapshotType>{{ snapshot.snapshot_type }}</SnapshotType>
-              {% if database.iops %}
-              <Iops>{{ database.iops }}</Iops>
-              <StorageType>io1</StorageType>
-              {% else %}
-              <StorageType>{{ database.storage_type }}</StorageType>
-              {% endif %}
-              <OptionGroupName>{{ database.option_group_name }}</OptionGroupName>
-              <PercentProgress>{{ 100 }}</PercentProgress>
-              <SourceRegion>{{ database.region }}</SourceRegion>
-              <SourceDBSnapshotIdentifier></SourceDBSnapshotIdentifier>
-              <TagList>
-              {%- for tag in snapshot.tags -%}
-                <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
-              {%- endfor -%}
-              </TagList>
-              <TdeCredentialArn></TdeCredentialArn>
-              <Encrypted>{{ database.storage_encrypted }}</Encrypted>
-              {% if database.kms_key_id %}
-              <KmsKeyId>{{ database.kms_key_id }}</KmsKeyId>
-              {% endif %}
-              <DBSnapshotArn>{{ snapshot.snapshot_arn }}</DBSnapshotArn>
-              <Timezone></Timezone>
-              {% if database.enable_iam_database_authentication %}
-              <IAMDatabaseAuthenticationEnabled>{{ 'true' if database.enable_iam_database_authentication else 'false' }}</IAMDatabaseAuthenticationEnabled>
-              {% endif %}
-            </DBSnapshot>"""
-        )
-        return template.render(snapshot=self, database=self.database)
-
 
 class ExportTask(BaseModel):
     def __init__(
@@ -1370,35 +980,6 @@ class ExportTask(BaseModel):
         self.status = "complete"
         self.created_at = iso_8601_datetime_with_milliseconds()
         self.source_type = "SNAPSHOT" if type(snapshot) is DBSnapshot else "CLUSTER"
-
-    def to_xml(self) -> str:
-        template = Template(
-            """
-            <ExportTaskIdentifier>{{ task.export_task_identifier }}</ExportTaskIdentifier>
-            <SourceArn>{{ snapshot.snapshot_arn }}</SourceArn>
-            <TaskStartTime>{{ task.created_at }}</TaskStartTime>
-            <TaskEndTime>{{ task.created_at }}</TaskEndTime>
-            <SnapshotTime>{{ snapshot.created_at }}</SnapshotTime>
-            <S3Bucket>{{ task.s3_bucket_name }}</S3Bucket>
-            <S3Prefix>{{ task.s3_prefix }}</S3Prefix>
-            <IamRoleArn>{{ task.iam_role_arn }}</IamRoleArn>
-            <KmsKeyId>{{ task.kms_key_id }}</KmsKeyId>
-            {%- if task.export_only -%}
-            <ExportOnly>
-                {%- for table in task.export_only -%}
-                    <member>{{ table }}</member>
-                {%- endfor -%}
-            </ExportOnly>
-            {%- endif -%}
-            <Status>{{ task.status }}</Status>
-            <PercentProgress>{{ 100 }}</PercentProgress>
-            <TotalExtractedDataInGB>{{ 1 }}</TotalExtractedDataInGB>
-            <FailureCause></FailureCause>
-            <WarningMessage></WarningMessage>
-            <SourceType>{{ task.source_type }}</SourceType>
-            """
-        )
-        return template.render(task=self, snapshot=self.snapshot)
 
 
 class EventSubscription(RDSBaseModel):
@@ -1421,38 +1002,6 @@ class EventSubscription(RDSBaseModel):
     @property
     def name(self) -> str:
         return self.subscription_name
-
-    def to_xml(self) -> str:
-        template = Template(
-            """
-            <EventSubscription>
-              <CustomerAwsId>{{ subscription.account_id }}</CustomerAwsId>
-              <CustSubscriptionId>{{ subscription.name }}</CustSubscriptionId>
-              <SnsTopicArn>{{ subscription.sns_topic_arn }}</SnsTopicArn>
-              <SubscriptionCreationTime>{{ subscription.created_at }}</SubscriptionCreationTime>
-              <SourceType>{{ subscription.source_type }}</SourceType>
-              <SourceIdsList>
-                {%- for source_id in subscription.source_ids -%}
-                  <SourceId>{{ source_id }}</SourceId>
-                {%- endfor -%}
-              </SourceIdsList>
-              <EventCategoriesList>
-                {%- for category in subscription.event_categories -%}
-                  <EventCategory>{{ category }}</EventCategory>
-                {%- endfor -%}
-              </EventCategoriesList>
-              <Status>{{ subscription.status }}</Status>
-              <Enabled>{{ 'true' if subscription.enabled else 'false' }}</Enabled>
-              <EventSubscriptionArn>{{ subscription.arn }}</EventSubscriptionArn>
-              <TagList>
-              {%- for tag in subscription.tags -%}
-                <Tag><Key>{{ tag['Key'] }}</Key><Value>{{ tag['Value'] }}</Value></Tag>
-              {%- endfor -%}
-              </TagList>
-            </EventSubscription>
-            """
-        )
-        return template.render(subscription=self)
 
 
 class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
@@ -1477,36 +1026,6 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
     @property
     def name(self) -> str:
         return self.group_name
-
-    def to_xml(self) -> str:
-        template = Template(
-            """<DBSecurityGroup>
-            <EC2SecurityGroups>
-            {% for security_group in security_group.ec2_security_groups %}
-                <EC2SecurityGroup>
-                    <EC2SecurityGroupId>{{ security_group.id }}</EC2SecurityGroupId>
-                    <EC2SecurityGroupName>{{ security_group.group_name }}</EC2SecurityGroupName>
-                    <EC2SecurityGroupOwnerId>{{ security_group.account_id }}</EC2SecurityGroupOwnerId>
-                    <Status>authorized</Status>
-                </EC2SecurityGroup>
-            {% endfor %}
-            </EC2SecurityGroups>
-
-            <DBSecurityGroupDescription>{{ security_group.description }}</DBSecurityGroupDescription>
-            <IPRanges>
-            {% for ip_range in security_group.ip_ranges %}
-                <IPRange>
-                    <CIDRIP>{{ ip_range }}</CIDRIP>
-                    <Status>authorized</Status>
-                </IPRange>
-            {% endfor %}
-            </IPRanges>
-            <OwnerId>{{ security_group.ownder_id }}</OwnerId>
-            <DBSecurityGroupName>{{ security_group.name }}</DBSecurityGroupName>
-            <DBSecurityGroupArn>{{ security_group.arn }}</DBSecurityGroupArn>
-        </DBSecurityGroup>"""
-        )
-        return template.render(security_group=self)
 
     def authorize_cidr(self, cidr_ip: str) -> None:
         self.ip_ranges.append(cidr_ip)
@@ -1582,30 +1101,6 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
     @property
     def name(self) -> str:
         return self.subnet_name
-
-    def to_xml(self) -> str:
-        template = Template(
-            """<DBSubnetGroup>
-              <VpcId>{{ subnet_group.vpc_id }}</VpcId>
-              <SubnetGroupStatus>{{ subnet_group.status }}</SubnetGroupStatus>
-              <DBSubnetGroupDescription>{{ subnet_group.description }}</DBSubnetGroupDescription>
-              <DBSubnetGroupName>{{ subnet_group.name }}</DBSubnetGroupName>
-              <DBSubnetGroupArn>{{ subnet_group.arn }}</DBSubnetGroupArn>
-              <Subnets>
-                {% for subnet in subnet_group.subnets %}
-                <Subnet>
-                  <SubnetStatus>Active</SubnetStatus>
-                  <SubnetIdentifier>{{ subnet.id }}</SubnetIdentifier>
-                  <SubnetAvailabilityZone>
-                    <Name>{{ subnet.availability_zone }}</Name>
-                    <ProvisionedIopsCapable>false</ProvisionedIopsCapable>
-                  </SubnetAvailabilityZone>
-                </Subnet>
-                {% endfor %}
-              </Subnets>
-            </DBSubnetGroup>"""
-        )
-        return template.render(subnet_group=self)
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -1727,49 +1222,6 @@ class DBProxy(RDSBaseModel):
     @property
     def arn(self) -> str:
         return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.unique_id}"
-
-    def to_xml(self) -> str:
-        template = Template(
-            """
-                <RequireTLS>{{ dbproxy.require_tls }}</RequireTLS>
-                <VpcSecurityGroupIds>
-                {% if dbproxy.vpc_security_group_ids %}
-                  {% for sg in dbproxy.vpc_security_group_ids %}
-                    <member>{{ sg }}</member>
-                  {% endfor %}
-                {% endif %}
-                </VpcSecurityGroupIds>
-                <Auth>
-                  {% for auth in dbproxy.auth %}
-                    <member>
-                        <Description>{{ auth["Description"] }}</Description>
-                        <UserName>{{ auth["UserName"] }}</UserName>
-                        <AuthScheme>{{ auth["AuthScheme"] }}</AuthScheme>
-                        <SecretArn>{{ auth["SecretArn"] }}</SecretArn>
-                        <IAMAuth>{{ auth["IAMAuth"] }}</IAMAuth>
-                        <ClientPasswordAuthType>{{ auth["ClientPasswordAuthType"] }}</ClientPasswordAuthType>
-                    </member>
-                  {% endfor %}
-                </Auth>
-                <EngineFamily>{{ dbproxy.engine_family }}</EngineFamily>
-                <UpdatedDate>{{ dbproxy.updated_date }}</UpdatedDate>
-                <DBProxyName>{{ dbproxy.db_proxy_name }}</DBProxyName>
-                <IdleClientTimeout>{{ dbproxy.idle_client_timeout }}</IdleClientTimeout>
-                <Endpoint>{{ dbproxy.endpoint }}</Endpoint>
-                <CreatedDate>{{ dbproxy.created_date }}</CreatedDate>
-                <RoleArn>{{ dbproxy.role_arn }}</RoleArn>
-                <DebugLogging>{{ 'true' if dbproxy.debug_logging else 'false' }}</DebugLogging>
-                <VpcId>{{ dbproxy.vpc_id }}</VpcId>
-                <DBProxyArn>{{ dbproxy.arn }}</DBProxyArn>
-                <VpcSubnetIds>
-                  {% for vpcsubnetid in dbproxy.vpc_subnet_ids %}
-                    <member>{{ vpcsubnetid }}</member>
-                  {% endfor %}
-                </VpcSubnetIds>
-                <Status>{{ dbproxy.status }}</Status>
-        """
-        )
-        return template.render(dbproxy=self)
 
 
 class RDSBackend(BaseBackend):
@@ -3221,34 +2673,6 @@ class OptionGroup(RDSBaseModel):
     def name(self) -> str:
         return self._name
 
-    def to_xml(self) -> str:
-        template = Template(
-            """<OptionGroup>
-          <OptionGroupName>{{ option_group.name }}</OptionGroupName>
-          <AllowsVpcAndNonVpcInstanceMemberships>{{ option_group.vpc_and_non_vpc_instance_memberships }}</AllowsVpcAndNonVpcInstanceMemberships>
-          <MajorEngineVersion>{{ option_group.major_engine_version }}</MajorEngineVersion>
-          <EngineName>{{ option_group.engine_name }}</EngineName>
-          <OptionGroupDescription>{{ option_group.description }}</OptionGroupDescription>
-          <OptionGroupArn>{{ option_group.arn }}</OptionGroupArn>
-          <Options>
-              {% for name, option_settings in option_group.options.items() %}
-              <Option>
-                <OptionName>{{ name }}</OptionName>
-                <OptionSettings>
-                  {% for setting in option_settings %}
-                  <OptionSetting>
-                    <Name>{{ setting.get("Name") }}</Name>
-                    <Value>{{ setting.get("Value") }}</Value>
-                  </OptionSetting>
-                  {% endfor %}
-                </OptionSettings>
-              </Option>
-              {% endfor %}
-          </Options>
-        </OptionGroup>"""
-        )
-        return template.render(option_group=self)
-
     def remove_options(self, options_to_remove: Any) -> None:
         for option in options_to_remove:
             if isinstance(option, str):
@@ -3283,17 +2707,6 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def name(self) -> str:
         return self._name
-
-    def to_xml(self) -> str:
-        template = Template(
-            """<DBParameterGroup>
-          <DBParameterGroupName>{{ param_group.name }}</DBParameterGroupName>
-          <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
-          <Description>{{ param_group.description }}</Description>
-          <DBParameterGroupArn>{{ param_group.arn }}</DBParameterGroupArn>
-        </DBParameterGroup>"""
-        )
-        return template.render(param_group=self)
 
     def update_parameters(self, new_parameters: Iterable[Dict[str, Any]]) -> None:
         for new_parameter in new_parameters:
@@ -3359,17 +2772,6 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def name(self) -> str:
         return self._name
-
-    def to_xml(self) -> str:
-        template = Template(
-            """<DBClusterParameterGroup>
-          <DBClusterParameterGroupName>{{ param_group.name }}</DBClusterParameterGroupName>
-          <DBParameterGroupFamily>{{ param_group.family }}</DBParameterGroupFamily>
-          <Description>{{ param_group.description }}</Description>
-          <DBClusterParameterGroupArn>{{ param_group.arn }}</DBClusterParameterGroupArn>
-        </DBClusterParameterGroup>"""
-        )
-        return template.render(param_group=self)
 
 
 rds_backends = BackendDict(RDSBackend, "rds")
