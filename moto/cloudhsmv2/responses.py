@@ -16,13 +16,9 @@ class CloudHSMV2Response(BaseResponse):
     @property
     def cloudhsmv2_backend(self):
         """Return backend instance specific for this region."""
-        # TODO
-        # cloudhsmv2_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return cloudhsmv2_backends[self.current_account][self.region]
 
     def list_tags(self):
-        # The params are coming as a JSON string, so we need to parse them first
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
@@ -39,7 +35,6 @@ class CloudHSMV2Response(BaseResponse):
         return 200, {}, json.dumps({"TagList": tag_list, "NextToken": next_token})
 
     def tag_resource(self):
-        # The params are coming as a JSON string, so we need to parse them first
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
@@ -53,12 +48,13 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps(dict())
 
     def untag_resource(self):
-        params = self._get_params()
+        raw_params = list(self._get_params().keys())[0]
+        params = json.loads(raw_params)
+
         resource_id = params.get("ResourceId")
         tag_key_list = params.get("TagKeyList")
         self.cloudhsmv2_backend.untag_resource(
             resource_id=resource_id,
             tag_key_list=tag_key_list,
         )
-        # TODO: adjust response
         return json.dumps(dict())
