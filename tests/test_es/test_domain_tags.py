@@ -71,8 +71,8 @@ def test_remove_tags():
         {"Key": "k2", "Value": "v2"},
     ]
 
-    response = client.remove_tags(ARN=arn, TagKeys=["k1"])
+    client.remove_tags(ARN=arn, TagKeys=["k1"])
     assert client.list_tags(ARN=arn)["TagList"] == [{"Key": "k2", "Value": "v2"}]
 
-    response = client.remove_tags(ARN=arn, TagKeys=["k2"])
+    client.remove_tags(ARN=arn, TagKeys=["k2"])
     assert client.list_tags(ARN=arn)["TagList"] == []
