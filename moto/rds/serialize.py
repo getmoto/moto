@@ -90,6 +90,8 @@ class Serializer(ShapeHelpersMixin):  # , BaseSerializer):
         self.operation_model = operation_model
         self.context = context or {"request_id": "request-id"}
         self.pretty_print = pretty_print
+        if value_picker is None:
+            value_picker = self._default_value_picker
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
 
@@ -115,6 +117,16 @@ class Serializer(ShapeHelpersMixin):  # , BaseSerializer):
     @staticmethod
     def _is_error_result(result: object) -> bool:
         return isinstance(result, Exception)
+
+    @staticmethod
+    def _default_value_picker(obj: Any, key: str, _: Shape, default: Any = None) -> Any:
+        if not hasattr(obj, "__getitem__"):
+            return getattr(obj, key, default)
+
+        try:
+            return obj[key]
+        except (KeyError, IndexError, TypeError, AttributeError):
+            return getattr(obj, key, default)
 
     def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
         return self._value_picker(value, key, shape)
