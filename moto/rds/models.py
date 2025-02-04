@@ -962,6 +962,14 @@ class DBSnapshot(RDSBaseModel):
     def snapshot_arn(self) -> str:
         return self.arn
 
+    @property
+    def snapshot_create_time(self) -> str:
+        return self.created_at
+
+    @property
+    def original_snapshot_create_time(self) -> str:
+        return self.original_created_at
+
 
 class ExportTask(BaseModel):
     def __init__(
