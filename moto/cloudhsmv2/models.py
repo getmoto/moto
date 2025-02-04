@@ -175,9 +175,9 @@ class CloudHSMV2Backend(BaseBackend):
         hsm_type: str,
         source_backup_id: Optional[str],
         subnet_ids: List[str],
-        network_type: str,
+        network_type: Optional[str],
         tag_list: Optional[List[Dict[str, str]]],
-        mode: str,
+        mode: Optional[str],
     ) -> Dict:
         cluster = Cluster(
             backup_retention_policy=backup_retention_policy,
@@ -254,6 +254,16 @@ class CloudHSMV2Backend(BaseBackend):
 
         results, token = paginator.paginate([c.to_dict() for c in clusters])
         return results, token
+
+    def get_resource_policy(self, resource_arn):
+        # implement here
+        return policy
+
+    def describe_backups(
+        self, next_token, max_results, filters, shared, sort_ascending
+    ):
+        # implement here
+        return backups, next_token
 
 
 cloudhsmv2_backends = BackendDict(CloudHSMV2Backend, "cloudhsmv2")

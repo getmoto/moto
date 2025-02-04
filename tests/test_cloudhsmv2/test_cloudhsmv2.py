@@ -135,31 +135,32 @@ def test_create_cluster():
     assert clusters[0]["ClusterId"] == cluster["ClusterId"]
 
 
-# @mock_aws
-# def test_delete_cluster():
-#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+@mock_aws
+def test_delete_cluster():
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
 
-#     # Create a cluster first
-#     response = client.create_cluster(
-#         HsmType="hsm1.medium",
-#         SubnetIds=["subnet-12345678"],
-#         NetworkType="IPV4",
-#         Mode="FIPS"
-#     )
-#     cluster_id = response["Cluster"]["ClusterId"]
+    # Create a cluster first
+    # TODO: For some reason I can't send network type or mode here
+    response = client.create_cluster(
+        HsmType="hsm1.medium",
+        SubnetIds=["subnet-12345678"],
+        # NetworkType="IPV4",
+        # Mode="FIPS",
+    )
+    cluster_id = response["Cluster"]["ClusterId"]
+    print("cluster_id", cluster_id)
+    # Delete the cluster
+    delete_response = client.delete_cluster(ClusterId=cluster_id)
 
-#     # Delete the cluster
-#     delete_response = client.delete_cluster(ClusterId=cluster_id)
+    # Verify the response
+    deleted_cluster = delete_response["Cluster"]
+    assert deleted_cluster["ClusterId"] == cluster_id
+    assert deleted_cluster["State"] == "DELETE_IN_PROGRESS"
+    assert deleted_cluster["StateMessage"] == "Cluster deletion in progress"
 
-#     # Verify the response
-#     deleted_cluster = delete_response["Cluster"]
-#     assert deleted_cluster["ClusterId"] == cluster_id
-#     assert deleted_cluster["State"] == "DELETE_IN_PROGRESS"
-#     assert deleted_cluster["StateMessage"] == "Cluster deletion in progress"
-
-#     # Verify the cluster is no longer listed
-#     clusters = client.describe_clusters()["Clusters"]
-#     assert len(clusters) == 0
+    # Verify the cluster is no longer listed
+    clusters = client.describe_clusters()["Clusters"]
+    assert len(clusters) == 0
 
 
 # @mock_aws
@@ -242,3 +243,19 @@ def test_create_cluster():
 #     )
 #     assert len(response2["Clusters"]) == 1
 #     assert "NextToken" not in response2
+
+
+# @mock_aws
+# def test_get_resource_policy():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-2")
+#     resp = client.get_resource_policy()
+
+#     raise Exception("NotYetImplemented")
+
+
+# @mock_aws
+# def test_describe_backups():
+#     client = boto3.client("cloudhsmv2", region_name="ap-southeast-1")
+#     resp = client.describe_backups()
+
+#     raise Exception("NotYetImplemented")
