@@ -1202,7 +1202,7 @@ def test_create_ses_template():
     assert result["Template"]["TemplateName"] == "MyTemplate"
     assert result["Template"]["SubjectPart"] == "Greetings, {{name}}!"
     assert result["Template"]["HtmlPart"] == (
-        "<h1>Hello {{name}}," "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+        "<h1>Hello {{name}},</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
     )
     # get a template which is not present
     with pytest.raises(ClientError) as ex:

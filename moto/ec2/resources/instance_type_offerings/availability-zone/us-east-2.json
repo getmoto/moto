@@ -8220,6 +8220,10 @@
   "Location": "us-east-2c"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "us-east-2c"
+ },
+ {
   "InstanceType": "p5e.48xlarge",
   "Location": "us-east-2c"
  },

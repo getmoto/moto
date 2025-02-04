@@ -2016,7 +2016,10 @@ def test_put_lifecycle_policy():
                 "description": "test policy",
                 "selection": {
                     "tagStatus": "untagged",
+                    "tagPatternList": ["tagx"],
+                    "tagPrefixList": ["tag-"],
                     "countType": "imageCountMoreThan",
+                    "countUnit": "days",
                     "countNumber": 30,
                 },
                 "action": {"type": "expire"},

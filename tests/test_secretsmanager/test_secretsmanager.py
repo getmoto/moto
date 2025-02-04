@@ -2,6 +2,7 @@ import os
 import re
 import string
 from datetime import datetime, timedelta, timezone
+from time import sleep
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -1309,12 +1310,14 @@ def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=N
         if updated_secret["SecretString"] == "UpdatedValue":
             secret_not_updated = False
         else:
-            from time import sleep
-
             sleep(5)
     rotated_version = updated_secret["VersionId"]
 
     assert initial_version != rotated_version
+
+    u2 = secrets_conn.get_secret_value(SecretId=secret["ARN"])
+    assert u2["SecretString"] == "UpdatedValue"
+    assert u2["VersionId"] == rotated_version
 
     metadata = secrets_conn.describe_secret(SecretId=secret["ARN"])
     assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
@@ -1333,6 +1336,92 @@ def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=N
     finish_secret = [i for i in items if i["pk"] == "finishSecret"][0]
     assert finish_secret["pending_value"]["SecretString"] == "UpdatedValue"
     assert finish_secret["pending_value"]["VersionStages"] == ["AWSPENDING"]
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+@lambda_aws_verified
+@secretsmanager_aws_verified
+def test_rotate_secret_using_lambda_dont_rotate_immediately(
+    secret=None, iam_role_arn=None, table_name=None
+):
+    role_name = iam_role_arn.split("/")[-1]
+    if not allow_aws_request() and not settings.TEST_SERVER_MODE:
+        raise SkipTest("Can only test this in ServerMode")
+
+    iam = boto3.client("iam", "us-east-1")
+    if allow_aws_request():
+        iam.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/SecretsManagerReadWrite",
+            RoleName=role_name,
+        )
+        # Testing this against AWS itself is a bit of pain
+        # Uncomment this to get more insights into what is happening during execution of the Lambda
+        # iam.attach_role_policy(
+        #    PolicyArn="arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+        #    RoleName=role_name,
+        # )
+        iam.attach_role_policy(
+            PolicyArn="arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+            RoleName=role_name,
+        )
+
+    function_name = "moto_test_" + str(uuid4())[0:6]
+
+    # Passing a `RotationLambdaARN` value to `rotate_secret` should invoke lambda
+    lambda_conn = boto3.client("lambda", region_name="us-east-1")
+    func = lambda_conn.create_function(
+        FunctionName=function_name,
+        Runtime="python3.11",
+        Role=iam_role_arn,
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": get_rotation_zip_file()},
+        Publish=True,
+        Environment={"Variables": {"table_name": table_name}},
+    )
+    lambda_conn.add_permission(
+        FunctionName=function_name,
+        StatementId="allow_secrets_manager",
+        Action="lambda:InvokeFunction",
+        Principal="secretsmanager.amazonaws.com",
+    )
+    lambda_conn.get_waiter("function_active_v2").wait(FunctionName=function_name)
+
+    secrets_conn = boto3.client("secretsmanager", region_name="us-east-1")
+
+    initial_version = secret["VersionId"]
+
+    secrets_conn.rotate_secret(
+        SecretId=secret["ARN"],
+        RotationLambdaARN=func["FunctionArn"],
+        RotationRules={"AutomaticallyAfterDays": 30},
+        RotateImmediately=False,
+    )
+
+    lambda_conn.delete_function(FunctionName=function_name)
+
+    current_secret = secrets_conn.get_secret_value(
+        SecretId=secret["ARN"], VersionStage="AWSCURRENT"
+    )
+    assert current_secret["SecretString"] == "old_secret"
+    assert current_secret["VersionId"] == initial_version
+
+    secret = secrets_conn.get_secret_value(SecretId=secret["ARN"])
+    assert secret["SecretString"] == "old_secret"
+    assert secret["VersionId"] == initial_version
+
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    items = dynamodb.Table(table_name).scan()["Items"]
+
+    attempts = 0
+    while not items and attempts < 10:
+        sleep(5)
+        items = dynamodb.Table(table_name).scan()["Items"]
+        attempts += 1
+
+    assert items[0]["pending_value"]["VersionStages"] == ["AWSPENDING"]
+    assert items[0]["pending_value"]["SecretString"] == "old_secret"
+    assert items[0]["pending_value"]["VersionId"] != initial_version
 
 
 @mock_aws

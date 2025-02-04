@@ -571,8 +571,7 @@ class SourceDetail(ConfigEmptyDictable):
         # A more specific message will be used here instead.
         if not event_source:
             raise MissingRequiredConfigRuleParameterException(
-                "Missing required parameter in ConfigRule.SourceDetails: "
-                "'EventSource'"
+                "Missing required parameter in ConfigRule.SourceDetails: 'EventSource'"
             )
         if event_source not in SourceDetail.EVENT_SOURCES:
             raise ValidationException(

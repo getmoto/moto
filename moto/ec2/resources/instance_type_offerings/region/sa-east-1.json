@@ -1392,6 +1392,10 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "sa-east-1"
  },
