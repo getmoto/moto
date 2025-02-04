@@ -3,14 +3,14 @@ from __future__ import annotations
 import copy
 import datetime
 import re
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, defaultdict, namedtuple
 from enum import Enum
 from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 from botocore import xform_name
 from botocore.loaders import create_loader
-from botocore.model import ServiceModel, Shape
+from botocore.model import ServiceModel
 from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
@@ -401,72 +401,62 @@ def get_service_model(service_name: str) -> ServiceModel:
     return service_model
 
 
-class _Missing:
-    def __repr__(self) -> str:
-        return "<moto.missing>"
+class XFormedAttributeAccessMixin:
+    """Mixin allowing access to "xformed" attributes:
 
+    obj.DBInstanceIdentifier will retrieve the value of obj.db_instance_identifier
 
-missing = _Missing()
+    """
 
+    _model_attribute_aliases: Dict[str, List[str]] = {}
+    _xform_cache: Dict[str, str] = {}
 
-def get_value(obj: Any, key: int | str, default: Any = missing) -> Any:
-    if not hasattr(obj, "__getitem__"):
-        return getattr(obj, str(key), default)
+    def __getattr__(self, name: str) -> Any:
+        if name in self.model_attributes:
+            return self.get_modeled_attribute(name)
+        raise AttributeError(f"Attribute '{name}' not found!")
 
-    try:
-        return obj[key]
-    except (KeyError, IndexError, TypeError, AttributeError):
-        return getattr(obj, str(key), default)
+    def get_modeled_attribute(self, attr_name: str) -> Any:
+        for attr_alias in self.model_attribute_aliases[attr_name]:
+            try:
+                return super().__getattribute__(attr_alias)
+            except AttributeError:
+                pass
+        else:
+            raise AttributeError
 
+    @property
+    def model_attributes(self) -> List[str]:
+        return list(self.model_attribute_aliases.keys())
 
-class ValuePicker:
-    def __init__(self, alias_dict: Dict[str, List[str]]) -> None:
-        self.alias_dict = alias_dict
+    @property
+    def model_attribute_aliases(self) -> Dict[str, List[str]]:
+        if not self._model_attribute_aliases:
+            self._model_attribute_aliases = self.get_model_attributes_info()
+        return self._model_attribute_aliases
 
-    def __call__(self, value: Any, key: str, shape: Shape) -> Any:
-        return self._get_value(value, key, shape)
+    @classmethod
+    @lru_cache()
+    def get_model_attributes_info(cls) -> Dict[str, List[str]]:
+        service_name = cls.__module__.split(".")[1]
+        model_name = cls.__name__
+        service_model = get_service_model(service_name)
+        model_shape = service_model.shape_for(model_name)
+        valid_attributes: Dict[str, List[str]] = defaultdict(list)
+        for member_name, member_shape in model_shape.members.items():  # type: ignore[attr-defined]
+            aliases = valid_attributes[member_name]
+            if member_shape.type_name == "list":
+                if member_name != member_shape.name:
+                    xformed_name = cls._xform_name(member_shape.name)
+                    aliases.append(xformed_name)
+            xformed_member_name = cls._xform_name(member_name)
+            aliases.append(xformed_member_name)
+            if member_name.startswith(model_name):
+                short_name = member_name[len(model_name) :]
+                xformed_short_name = cls._xform_name(short_name)
+                aliases.append(xformed_short_name)
+        return valid_attributes
 
-    def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
-        new_value = None
-        possible_keys = self._get_possible_keys(key, value, shape)
-        for key in possible_keys:
-            new_value = get_value(value, key)
-            if new_value is not missing:
-                break
-        if new_value is missing:
-            return None
-        if callable(new_value):
-            new_value = new_value()
-        # Testing if DBInstance.engine was an Engine() instance with a __str__ method
-        if new_value and shape.type_name == "string" and not isinstance(new_value, str):
-            new_value = str(new_value)
-        return new_value
-
-    def _get_possible_keys(self, key: str, obj: Any, shape: Shape) -> List[str]:
-        possible_keys = []
-        # Sometimes the list or structure name differs from the attribute name
-        if shape.type_name in ["list", "structure"]:
-            possible_keys += [shape.name, xform_name(shape.name)]
-        # db_instance_identifier or DBInstanceIdentifier
-        possible_keys += [xform_name(key), key]
-        # Check our alias dict...
-        if key in self.alias_dict:
-            key_aliases = self.alias_dict[key]
-            possible_keys += key_aliases
-        # Translate e.g. DBInstanceIdentifier to identifier if class is DBInstance
-        from moto.rds.models import RDSBaseModel
-
-        obj_is_rds_model = isinstance(obj, RDSBaseModel)
-        obj_is_dto = isinstance(obj, object) and obj.__class__.__name__.endswith("DTO")
-        if obj_is_dto or obj_is_rds_model:  # isinstance(obj, object):
-            # Use alias_dict so DBInstanceDTO resolves to DBInstance
-            default_class_name = obj.__class__.__name__
-            class_name_aliases = self.alias_dict.get(
-                default_class_name, [default_class_name]
-            )
-            class_name = class_name_aliases[0]
-            if class_name in key:
-                short_key = key.replace(class_name, "")
-                possible_keys += [xform_name(short_key), short_key]
-
-        return possible_keys
+    @classmethod
+    def _xform_name(cls, name: str) -> str:
+        return xform_name(name, _xform_cache=cls._xform_cache)
