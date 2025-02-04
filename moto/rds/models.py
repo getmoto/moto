@@ -942,6 +942,7 @@ class DBSnapshot(RDSBaseModel):
         snapshot_id: str,
         snapshot_type: str,
         tags: List[Dict[str, str]],
+        original_created_at: Optional[str] = None,
     ):
         super().__init__(backend)
         self.database = database
@@ -950,6 +951,7 @@ class DBSnapshot(RDSBaseModel):
         self.tags = tags
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds()
+        self.original_created_at = original_created_at or self.created_at
         self.attributes: List[Dict[str, Any]] = []
 
     @property
@@ -959,6 +961,14 @@ class DBSnapshot(RDSBaseModel):
     @property
     def snapshot_arn(self) -> str:
         return self.arn
+
+    @property
+    def snapshot_create_time(self) -> str:
+        return self.created_at
+
+    @property
+    def original_snapshot_create_time(self) -> str:
+        return self.original_created_at
 
 
 class ExportTask(BaseModel):
@@ -1314,6 +1324,7 @@ class RDSBackend(BaseBackend):
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
+        original_created_at: Optional[str] = None,
     ) -> DBSnapshot:
         if isinstance(db_instance, str):
             database = self.databases.get(db_instance)
@@ -1333,7 +1344,12 @@ class RDSBackend(BaseBackend):
         if database.copy_tags_to_snapshot and not tags:
             tags = database.get_tags()
         snapshot = DBSnapshot(
-            self, database, db_snapshot_identifier, snapshot_type, tags
+            self,
+            database,
+            db_snapshot_identifier,
+            snapshot_type,
+            tags,
+            original_created_at,
         )
         self.database_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
@@ -1364,6 +1380,7 @@ class RDSBackend(BaseBackend):
             db_instance=source_snapshot.database,
             db_snapshot_identifier=target_snapshot_identifier,
             tags=tags,
+            original_created_at=source_snapshot.original_created_at,
         )
 
     def delete_db_snapshot(self, db_snapshot_identifier: str) -> DBSnapshot:
