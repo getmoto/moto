@@ -29,6 +29,8 @@ from .exceptions import (
     InvalidDescribeRulesRequest,
     InvalidLoadBalancerActionException,
     InvalidModifyRuleArgumentsError,
+    InvalidProtocol,
+    InvalidProtocolValue,
     InvalidStatusCodeActionTypeError,
     InvalidTargetError,
     InvalidTargetGroupNameError,
@@ -1077,6 +1079,42 @@ class ELBv2Backend(BaseBackend):
             else:
                 raise InvalidActionTypeError(action_type, index)
 
+    def _validate_port_and_protocol(
+        self, loadbalancer_type: str, port: Optional[str], protocol: Optional[str]
+    ) -> None:
+        if loadbalancer_type in {"application", "network"}:
+            if port is None:
+                raise ValidationError("A listener port must be specified")
+            if protocol is None:
+                raise ValidationError("A listener protocol must be specified")
+
+            valid_application_protocols = ["HTTP", "HTTPS"]
+            valid_network_protocols = ["UDP", "TCP", "TLS", "TCP_UDP"]
+            all_valid_protocols = (
+                valid_application_protocols + valid_network_protocols + ["GENEVE"]
+            )
+
+            if protocol not in all_valid_protocols:
+                raise InvalidProtocolValue(
+                    protocol, valid_application_protocols + valid_network_protocols
+                )
+
+            if loadbalancer_type == "application":
+                if protocol not in valid_application_protocols:
+                    raise InvalidProtocol(protocol, valid_application_protocols)
+            else:
+                if protocol not in valid_network_protocols:
+                    raise InvalidProtocol(protocol, valid_network_protocols)
+        else:
+            if port is not None:
+                raise ValidationError(
+                    "A port cannot be specified for gateway listeners"
+                )
+            if protocol is not None:
+                raise ValidationError(
+                    "A protocol cannot be specified for gateway listeners"
+                )
+
     def _validate_fixed_response_action(
         self, action: FakeAction, i: int, index: int
     ) -> None:
@@ -1425,6 +1463,7 @@ Member must satisfy regular expression pattern: {expression}"
         if port in balancer.listeners:
             raise DuplicateListenerError()
 
+        self._validate_port_and_protocol(balancer.loadbalancer_type, port, protocol)
         self._validate_actions(default_actions)
 
         arn = (
