@@ -2390,6 +2390,28 @@ invalid_db_identifiers = invalid_identifiers + ("x" * 64,)
 invalid_db_snapshot_identifiers = invalid_identifiers + ("x" * 256,)
 
 
+@mock_aws
+def test_db_instance_identifier_is_lower_cased(client):
+    instance = create_db_instance(DBInstanceIdentifier="FooBar")
+    assert instance["DBInstanceIdentifier"] == "foobar"
+
+    for identifier in "foobar", "FOOBAR":
+        response = client.describe_db_instances(DBInstanceIdentifier=identifier)
+        assert response["DBInstances"][0]["DBInstanceIdentifier"] == "foobar"
+
+    response = client.modify_db_instance(
+        DBInstanceIdentifier="fOObAR",
+        NewDBInstanceIdentifier="XxYy",
+    )
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
+    response = client.delete_db_instance(DBInstanceIdentifier="xXyY")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
+    response = client.describe_db_instances()
+    assert len(response["DBInstances"]) == 0
+
+
 @pytest.mark.parametrize("invalid_db_identifier", invalid_db_identifiers)
 def test_validate_db_identifier_backend_invalid(invalid_db_identifier):
     with pytest.raises(InvalidDBInstanceIdentifier):

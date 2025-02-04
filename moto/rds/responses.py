@@ -367,7 +367,7 @@ class RDSResponse(BaseResponse):
         del db_kwargs["tags"]
         new_db_instance_identifier = self._get_param("NewDBInstanceIdentifier")
         if new_db_instance_identifier:
-            db_kwargs["new_db_instance_identifier"] = new_db_instance_identifier
+            db_kwargs["new_db_instance_identifier"] = new_db_instance_identifier.lower()
         database = self.backend.modify_db_instance(db_instance_identifier, db_kwargs)
         result = {"DBInstance": DBInstanceDTO(database)}
         return self.serialize(result)
