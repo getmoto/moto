@@ -808,13 +808,12 @@ class KinesisBackend(BaseBackend):
 
         return current_shard_count
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(
         self, stream_arn: Optional[str], stream_name: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Shard]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
-        shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
-        return [shard.to_json() for shard in shards]
+        return sorted(stream.shards.values(), key=lambda x: x.shard_id)
 
     def increase_stream_retention_period(
         self,

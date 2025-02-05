@@ -128,6 +128,28 @@ def test_create_list_update_describe_delete_mesh(client):
 
 
 @mock_aws
+def test_list_meshes_paginated(client):
+    for i in range(5):
+        client.create_mesh(
+            meshName=f"mesh{i}",
+            spec={
+                "egressFilter": {"type": "DROP_ALL"},
+                "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+            },
+            tags=[{"key": "owner", "value": "moto"}],
+        )
+
+    all_meshes = client.list_meshes()["meshes"]
+    assert len(all_meshes) == 5
+
+    page1 = client.list_meshes(limit=2)
+    assert len(page1["meshes"]) == 2
+
+    page2 = client.list_meshes(nextToken=page1["nextToken"])
+    assert len(page2["meshes"]) == 3
+
+
+@mock_aws
 def test_create_describe_list_update_delete_virtual_router(client):
     connection = client.create_mesh(
         meshName=MESH_NAME,
@@ -240,6 +262,43 @@ def test_create_describe_list_update_delete_virtual_router(client):
         err["Message"]
         == f"The mesh {MESH_NAME} does not have a virtual router named {ROUTER_1}."
     )
+
+
+@mock_aws
+def test_list_virtual_routers_paginated(client):
+    mesh = client.create_mesh(
+        meshName=MESH_NAME,
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    for i in range(5):
+        client.create_virtual_router(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            virtualRouterName=f"router{i}",
+            spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
+            tags=[{"key": "router_traffic", "value": "http"}],
+        )
+
+    all_routers = client.list_virtual_routers(meshName=MESH_NAME, meshOwner=mesh_owner)[
+        "virtualRouters"
+    ]
+    assert len(all_routers) == 5
+
+    page1 = client.list_virtual_routers(
+        meshName=MESH_NAME, meshOwner=mesh_owner, limit=2
+    )
+    assert len(page1["virtualRouters"]) == 2
+
+    page2 = client.list_virtual_routers(
+        meshName=MESH_NAME, meshOwner=mesh_owner, nextToken=page1["nextToken"]
+    )
+    assert len(page2["virtualRouters"]) == 3
 
 
 @mock_aws
@@ -586,6 +645,54 @@ def test_create_describe_list_update_delete_route(client):
         err["Message"]
         == f"There is no route named {ROUTE_4} associated with router {ROUTER_NAME} in mesh {MESH_NAME}."
     )
+
+
+@mock_aws
+def test_list_routes_paginated(client):
+    ROUTER_NAME = "mock_virtual_router"
+
+    mesh = client.create_mesh(
+        meshName=MESH_NAME,
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    client.create_virtual_router(
+        meshName=MESH_NAME,
+        meshOwner=mesh_owner,
+        virtualRouterName=ROUTER_NAME,
+        spec={"listeners": [{"portMapping": {"port": 80, "protocol": "http"}}]},
+        tags=[{"key": "router_traffic", "value": "http"}],
+    )
+
+    for idx, license in enumerate(["apache", "mit", "mpl", "bsd"]):
+        client.create_route(
+            meshOwner=mesh_owner,
+            meshName=MESH_NAME,
+            virtualRouterName=ROUTER_NAME,
+            routeName=f"route{idx}",
+            tags=[{"key": "license", "value": license}],
+            spec=grpc_route_spec,
+        )
+
+    all_routes = client.list_routes(meshName=MESH_NAME, virtualRouterName=ROUTER_NAME)[
+        "routes"
+    ]
+    assert len(all_routes) == 4
+
+    page1 = client.list_routes(
+        meshName=MESH_NAME, virtualRouterName=ROUTER_NAME, limit=2
+    )
+    assert len(page1["routes"]) == 2
+
+    page2 = client.list_routes(
+        meshName=MESH_NAME, virtualRouterName=ROUTER_NAME, nextToken=page1["nextToken"]
+    )
+    assert len(page2["routes"]) == 2
 
 
 @mock_aws
@@ -1209,6 +1316,41 @@ def test_create_describe_list_update_delete_virtual_node(client):
 
 
 @mock_aws
+def test_list_virtual_nodes_paginated(client):
+    mesh = client.create_mesh(
+        meshName=MESH_NAME,
+        spec={
+            "egressFilter": {"type": "DROP_ALL"},
+            "serviceDiscovery": {"ipPreference": "IPv4_ONLY"},
+        },
+        tags=[{"key": "owner", "value": "moto"}],
+    )["mesh"]
+    mesh_owner = mesh["metadata"]["meshOwner"]
+
+    for i in range(5):
+        client.create_virtual_node(
+            meshName=MESH_NAME,
+            meshOwner=mesh_owner,
+            spec=grpc_virtual_node_spec,
+            tags=[{"key": "type", "value": "grpc"}],
+            virtualNodeName=f"node{i}",
+        )
+
+    all_nodes = client.list_virtual_nodes(meshName=MESH_NAME, meshOwner=mesh_owner)[
+        "virtualNodes"
+    ]
+    assert len(all_nodes) == 5
+
+    page1 = client.list_virtual_nodes(meshName=MESH_NAME, meshOwner=mesh_owner, limit=2)
+    assert len(page1["virtualNodes"]) == 2
+
+    page2 = client.list_virtual_nodes(
+        meshName=MESH_NAME, meshOwner=mesh_owner, nextToken=page1["nextToken"]
+    )
+    assert len(page2["virtualNodes"]) == 3
+
+
+@mock_aws
 def test_tag_and_list_tags_for_resource(client):
     # create resources
     connection = client.create_mesh(
@@ -1286,9 +1428,18 @@ def test_tag_and_list_tags_for_resource(client):
 
     client.tag_resource(
         resourceArn=virtual_node_arn,
-        tags=[{"key": "organization", "value": "how_moto_got_its_mojo_back"}],
+        tags=[{"key": "k2", "value": "v2"}, {"key": "k3", "value": "v3"}],
     )
     connection = client.list_tags_for_resource(resourceArn=virtual_node_arn)
     tags = connection["tags"]
     assert tags[0] == {"key": "type", "value": "http"}
-    assert tags[1] == {"key": "organization", "value": "how_moto_got_its_mojo_back"}
+    assert tags[1] == {"key": "k2", "value": "v2"}
+    assert tags[2] == {"key": "k3", "value": "v3"}
+
+    page1 = client.list_tags_for_resource(resourceArn=virtual_node_arn, limit=1)
+    assert page1["tags"] == [{"key": "type", "value": "http"}]
+
+    page2 = client.list_tags_for_resource(
+        resourceArn=virtual_node_arn, nextToken=page1["nextToken"]
+    )
+    assert page2["tags"] == [{"key": "k2", "value": "v2"}, {"key": "k3", "value": "v3"}]
