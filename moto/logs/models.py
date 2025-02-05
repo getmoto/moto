@@ -7,10 +7,12 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.exceptions import (
+    ConflictException,
     InvalidParameterException,
     LimitExceededException,
     ResourceAlreadyExistsException,
     ResourceNotFoundException,
+    ValidationException,
 )
 from moto.logs.logs_query import execute_query
 from moto.logs.metric_filters import MetricFilters
@@ -760,6 +762,44 @@ class ExportTask(BaseModel):
         }
 
 
+class DeliveryDestination(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        output_format: Optional[str],
+        delivery_destination_configuration: Dict[str, str],
+        tags: Optional[Dict[str, str]],
+    ):
+        self.name = name
+        self.output_format = output_format
+        self.arn = f"arn:aws:logs:{region}:{account_id}:delivery-destination:{name}"
+        destination_type = delivery_destination_configuration[
+            "destinationResourceArn"
+        ].split(":")[2]
+        if destination_type == "s3":
+            self.delivery_destination_type = "S3"
+        elif destination_type == "logs":
+            self.delivery_destination_type = "CWL"
+        elif destination_type == "firehose":
+            self.delivery_destination_type = "FH"
+        self.delivery_destination_configuration = delivery_destination_configuration
+        self.tags = tags
+
+    def to_dict(self) -> Dict[str, Any]:
+        dct = {
+            "name": self.name,
+            "arn": self.arn,
+            "deliveryDestinationType": self.delivery_destination_type,
+            "outputFormat": self.output_format,
+            "deliveryDestinationConfiguration": self.delivery_destination_configuration,
+            "tags": self.tags,
+        }
+        dct_items = {k: v for k, v in dct.items() if v}
+        return dct_items
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -770,6 +810,7 @@ class LogsBackend(BaseBackend):
         self.destinations: Dict[str, Destination] = dict()
         self.tagger = TaggingService()
         self.export_tasks: Dict[str, ExportTask] = dict()
+        self.delivery_destinations: Dict[str, DeliveryDestination] = dict()
 
     def create_log_group(
         self, log_group_name: str, tags: Dict[str, str], **kwargs: Any
@@ -1347,6 +1388,39 @@ class LogsBackend(BaseBackend):
         if not log_group:
             raise ResourceNotFoundException()
         return log_group
+
+    # def put_delivery_destination_policy(self, delivery_destination_name, delivery_destination_policy):
+    #     # implement here
+    #     return policy
+
+    def put_delivery_destination(
+        self, name: str, output_format: Optional[str], delivery_destination_configuration: Dict[str, str], tags: Optional[Dict[str, str]]
+    ) -> DeliveryDestination:
+        if output_format not in ["w3c", "raw", "json", "plain", "parquet"]:
+            msg = f"1 validation error detected: Value '{output_format}' at 'outputFormat' failed to satisfy constraint: Member must satisfy enum value set: [w3c, raw, json, plain, parquet]"
+            raise ValidationException(msg)
+        if name in self.delivery_destinations:
+            if tags:
+                raise ConflictException()
+            if (
+                output_format
+                and self.delivery_destinations[name].output_format != output_format
+            ):
+                msg = "Update to existing Delivery Destination with new Output Format is not allowed. Please create a new Delivery Destination instead."
+                raise ValidationException(msg)
+
+        delivery_destination = DeliveryDestination(
+            self.account_id,
+            self.region_name,
+            name,
+            output_format,
+            delivery_destination_configuration,
+            tags,
+        )
+        self.delivery_destinations[delivery_destination.name] = delivery_destination
+        # self.tag_resource(destination.arn, tags)
+        # return destination
+        return delivery_destination
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

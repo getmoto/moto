@@ -1165,3 +1165,34 @@ def test_describe_log_streams_no_prefix():
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
     assert err["Message"] == "Cannot order by LastEventTime with a logStreamNamePrefix."
+
+
+# @mock_aws
+# def test_put_delivery_destination_policy():
+#     client = boto3.client("logs", region_name="ap-southeast-1")
+#     resp = client.put_delivery_destination_policy()
+
+#     raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_put_delivery_destination():
+    client = boto3.client("logs", region_name="ap-southeast-1")
+    resp = client.put_delivery_destination(
+        name='test-delivery-destination',
+        outputFormat='json',
+        deliveryDestinationConfiguration={
+            'destinationResourceArn': 'arn:aws:s3:::test-s3-bucket'
+        },
+        tags={
+            'foo': 'bar'
+        }
+    )
+    assert resp['name'] == 'test-delivery-destination'
+    assert resp['outputFormat'] == 'json'
+    assert resp['deliveryDestinationConfiguration'] == {
+        'destinationResourceArn': 'arn:aws:s3:::test-s3-bucket'
+    }
+    assert resp['tags'] == {
+        'foo': 'bar'
+    }

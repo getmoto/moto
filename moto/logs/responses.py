@@ -474,3 +474,30 @@ class LogsResponse(BaseResponse):
         tag_keys = self._get_param("tagKeys")
         self.logs_backend.untag_resource(resource_arn, tag_keys)
         return "{}"
+
+    # def put_delivery_destination_policy(self):
+    #     params = self._get_params()
+    #     delivery_destination_name = params.get("deliveryDestinationName")
+    #     delivery_destination_policy = params.get("deliveryDestinationPolicy")
+    #     policy = self.logs_backend.put_delivery_destination_policy(
+    #         delivery_destination_name=delivery_destination_name,
+    #         delivery_destination_policy=delivery_destination_policy,
+    #     )
+    #     # TODO: adjust response
+    #     return json.dumps(dict(policy=policy))
+
+    def put_delivery_destination(self) -> str:
+        params = self._get_params()
+        name = params.get("name")
+        output_format = params.get("outputFormat")
+        delivery_destination_configuration = params.get(
+            "deliveryDestinationConfiguration"
+        )
+        tags = params.get("tags")
+        delivery_destination = self.logs_backend.put_delivery_destination(
+            name=name,
+            output_format=output_format,
+            delivery_destination_configuration=delivery_destination_configuration,
+            tags=tags,
+        )
+        return json.dumps(deliveryDestination=delivery_destination.to_dict())
