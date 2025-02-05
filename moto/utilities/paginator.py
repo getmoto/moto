@@ -153,6 +153,7 @@ class Paginator:
             )
             if not str(curr_val) == predicate_values[index]:
                 return False
+
         return True
 
     def _build_next_token(self, next_item: Any) -> str:

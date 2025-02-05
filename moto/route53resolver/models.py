@@ -278,7 +278,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             "ModificationTime": self.modification_time,
         }
 
-    def ip_descriptions(self) -> List[Dict[str, Any]]:
+    def ip_descriptions(self) -> List[Dict[str, str]]:
         """Return a list of dicts describing resolver endpoint IP addresses."""
         description = []
         for subnet_id, ip_info in self.subnets.items():
@@ -755,7 +755,7 @@ class Route53ResolverBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_resolver_endpoint_ip_addresses(
         self, resolver_endpoint_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, str]]:
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
         return endpoint.ip_descriptions()
