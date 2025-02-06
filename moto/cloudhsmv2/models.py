@@ -1,7 +1,7 @@
 """CloudHSMV2Backend class with methods for supported APIs."""
 
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
@@ -62,6 +62,64 @@ class Cluster:
         }
 
 
+class Backup:
+    def __init__(
+        self,
+        cluster_id: str,
+        hsm_type: str,
+        mode: str,
+        tag_list: Optional[List[Dict[str, str]]],
+        source_backup: Optional[str] = None,
+        source_cluster: Optional[str] = None,
+        source_region: Optional[str] = None,
+        never_expires: bool = False,
+        region_name: str = "us-east-1",
+    ):
+        self.backup_id = str(uuid.uuid4())
+        self.backup_arn = (
+            f"arn:aws:cloudhsm:{region_name}:123456789012:backup/{self.backup_id}"
+        )
+        # New backups start in CREATE_IN_PROGRESS state
+        self.backup_state = "CREATE_IN_PROGRESS"
+        self.cluster_id = cluster_id
+        self.create_timestamp = utcnow()
+        self.copy_timestamp = utcnow() if source_backup else None
+        self.never_expires = never_expires
+        self.source_region = source_region
+        self.source_backup = source_backup
+        self.source_cluster = source_cluster
+        self.delete_timestamp = None
+        self.tag_list = tag_list or []
+        self.hsm_type = hsm_type
+        self.mode = mode
+
+    def to_dict(self) -> Dict:
+        result = {
+            "BackupId": self.backup_id,
+            "BackupArn": self.backup_arn,
+            "BackupState": self.backup_state,
+            "ClusterId": self.cluster_id,
+            "CreateTimestamp": self.create_timestamp,
+            "NeverExpires": self.never_expires,
+            "TagList": self.tag_list,
+            "HsmType": self.hsm_type,
+            "Mode": self.mode,
+        }
+
+        if self.copy_timestamp:
+            result["CopyTimestamp"] = self.copy_timestamp
+        if self.source_region:
+            result["SourceRegion"] = self.source_region
+        if self.source_backup:
+            result["SourceBackup"] = self.source_backup
+        if self.source_cluster:
+            result["SourceCluster"] = self.source_cluster
+        if self.delete_timestamp:
+            result["DeleteTimestamp"] = self.delete_timestamp
+
+        return result
+
+
 class CloudHSMV2Backend(BaseBackend):
     """Implementation of CloudHSMV2 APIs."""
 
@@ -69,6 +127,8 @@ class CloudHSMV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.tags = {}
         self.clusters = {}
+        self.resource_policies = {}
+        self.backups = {}
 
     def list_tags(self, resource_id, next_token, max_results):
         """List tags for a CloudHSM resource.
@@ -190,6 +250,19 @@ class CloudHSMV2Backend(BaseBackend):
             region_name=self.region_name,
         )
         self.clusters[cluster.cluster_id] = cluster
+
+        # Automatically create a backup for the new cluster
+        backup = Backup(
+            cluster_id=cluster.cluster_id,
+            hsm_type=hsm_type,
+            mode=mode or "DEFAULT",
+            tag_list=tag_list,
+            region_name=self.region_name,
+        )
+        self.backups[backup.backup_id] = backup
+
+        # print("Backup is", self.backups)
+
         return cluster.to_dict()
 
     def delete_cluster(self, cluster_id: str) -> Dict:
@@ -211,7 +284,6 @@ class CloudHSMV2Backend(BaseBackend):
         cluster.state = "DELETE_IN_PROGRESS"
         cluster.state_message = "Cluster deletion in progress"
 
-        # Remove the cluster from the backend
         del self.clusters[cluster_id]
 
         return cluster.to_dict()
@@ -229,7 +301,7 @@ class CloudHSMV2Backend(BaseBackend):
         """
         clusters = list(self.clusters.values())
 
-        # Apply filters if provided
+        # If we have filters, filter the resource
         if filters:
             for key, values in filters.items():
                 if key == "clusterIds":
@@ -239,7 +311,7 @@ class CloudHSMV2Backend(BaseBackend):
                 elif key == "vpcIds":
                     clusters = [c for c in clusters if c.vpc_id in values]
 
-        # Sort clusters by creation timestamp for consistent pagination
+        # Sort clusters by creation timestamp
         clusters = sorted(clusters, key=lambda x: x.create_timestamp)
 
         if not max_results:
@@ -255,15 +327,91 @@ class CloudHSMV2Backend(BaseBackend):
         results, token = paginator.paginate([c.to_dict() for c in clusters])
         return results, token
 
-    def get_resource_policy(self, resource_arn):
-        # implement here
-        return policy
+    # def get_resource_policy(self, resource_arn):
+    #     # implement here
+    #     return policy
 
     def describe_backups(
-        self, next_token, max_results, filters, shared, sort_ascending
-    ):
-        # implement here
-        return backups, next_token
+        self,
+        next_token: Optional[str],
+        max_results: Optional[int],
+        filters: Optional[Dict[str, List[str]]],
+        shared: Optional[bool],
+        sort_ascending: Optional[bool],
+    ) -> Tuple[List[Dict], Optional[str]]:
+        """Describe CloudHSM backups.
+
+        Args:
+            next_token: Token for pagination
+            max_results: Maximum number of results to return
+            filters: Filters to apply
+            shared: Whether to include shared backups
+            sort_ascending: Sort by timestamp ascending if True
+
+        Returns:
+            Tuple containing list of backups and next token
+        """
+        backups = list(self.backups.values())
+        # print("backups are", backups[0].to_dict())
+
+        if filters:
+            for key, values in filters.items():
+                if key == "backupIds":
+                    backups = [b for b in backups if b.backup_id in values]
+                elif key == "sourceBackupIds":
+                    backups = [b for b in backups if b.source_backup in values]
+                elif key == "clusterIds":
+                    backups = [b for b in backups if b.cluster_id in values]
+                elif key == "states":
+                    backups = [b for b in backups if b.backup_state in values]
+                elif key == "neverExpires":
+                    never_expires = values[0].lower() == "true"
+                    backups = [b for b in backups if b.never_expires == never_expires]
+
+        # Sort backups
+        backups.sort(
+            key=lambda x: x.create_timestamp,
+            reverse=not sort_ascending if sort_ascending is not None else True,
+        )
+        if not max_results:
+            # print("\n\ndicts are", [b.to_dict() for b in backups])
+            return [b.to_dict() for b in backups], None
+
+        paginator = Paginator(
+            max_results=max_results,
+            unique_attribute="BackupId",
+            starting_token=next_token,
+            fail_on_invalid_token=False,
+        )
+        results, token = paginator.paginate([b.to_dict() for b in backups])
+        return results, token
+
+    def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
+        """Creates or updates a resource policy for CloudHSM backup.
+
+        Args:
+            resource_arn (str): The ARN of the CloudHSM backup
+            policy (str): The JSON policy document
+
+        Returns:
+            Dict[str, str]: Dictionary containing ResourceArn and Policy
+
+        Raises:
+            ValueError: If the resource doesn't exist or is not in READY state
+        """
+        # Extract backup ID from ARN
+        try:
+            backup_id = resource_arn.split("/")[-1]
+        except IndexError:
+            raise ValueError(f"Invalid resource ARN format: {resource_arn}")
+
+        # Verify backup exists and is in READY state
+        # Note: Need to implement backup verification
+        # once backup implemented
+
+        self.resource_policies[resource_arn] = policy
+
+        return {"ResourceArn": resource_arn, "Policy": policy}
 
 
 cloudhsmv2_backends = BackendDict(CloudHSMV2Backend, "cloudhsmv2")

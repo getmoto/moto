@@ -12,6 +12,10 @@ class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
             return obj.isoformat()
+        # Don't try to convert objects that already have to_dict to dict
+        # if hasattr(obj, "to_dict"):
+        #     return obj.to_dict()
+        # Let the base class handle anything else
         return super().default(obj)
 
 
@@ -68,7 +72,6 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps(dict())
 
     def create_cluster(self):
-        # Use BaseResponse's _get_param method to get individual parameters directly
         backup_retention_policy = self._get_param("BackupRetentionPolicy", {})
         hsm_type = self._get_param("HsmType")
         source_backup_id = self._get_param("SourceBackupId")
@@ -128,19 +131,41 @@ class CloudHSMV2Response(BaseResponse):
     #     # TODO: adjust response
     #     return json.dumps(dict(policy=policy))
 
-    # def describe_backups(self):
+    def describe_backups(self):
+        params = self._get_params()
+        next_token = params.get("NextToken")
+        max_results = params.get("MaxResults")
+        filters = params.get("Filters")
+        shared = params.get("Shared")
+        sort_ascending = params.get("SortAscending")
+
+        backups, next_token = self.cloudhsmv2_backend.describe_backups(
+            next_token=next_token,
+            max_results=max_results,
+            filters=filters,
+            shared=shared,
+            sort_ascending=sort_ascending,
+        )
+
+        # Remove the manual conversion to dictionaries since DateTimeEncoder will handle it
+        response = {"Backups": backups}
+        if next_token:
+            response["NextToken"] = next_token
+
+        # print("\n\n describe response are", response)
+
+        # print("\n\n json dump is", json.dumps(response, cls=DateTimeEncoder))
+
+        return json.dumps(response, cls=DateTimeEncoder)
+
+    # def put_resource_policy(self):
     #     params = self._get_params()
-    #     next_token = params.get("NextToken")
-    #     max_results = params.get("MaxResults")
-    #     filters = params.get("Filters")
-    #     shared = params.get("Shared")
-    #     sort_ascending = params.get("SortAscending")
-    #     backups, next_token = self.cloudhsmv2_backend.describe_backups(
-    #         next_token=next_token,
-    #         max_results=max_results,
-    #         filters=filters,
-    #         shared=shared,
-    #         sort_ascending=sort_ascending,
+    #     print("params", params)
+    #     resource_arn = params.get("ResourceArn")
+    #     policy = params.get("Policy")
+    #     resource_arn, policy = self.cloudhsmv2_backend.put_resource_policy(
+    #         resource_arn=resource_arn,
+    #         policy=policy,
     #     )
     #     # TODO: adjust response
-    #     return json.dumps(dict(backups=backups, nextToken=next_token))
+    #     return json.dumps(dict(resourceArn=resource_arn, policy=policy))

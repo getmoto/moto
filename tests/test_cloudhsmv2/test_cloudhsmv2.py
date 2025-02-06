@@ -148,7 +148,7 @@ def test_delete_cluster():
         # Mode="FIPS",
     )
     cluster_id = response["Cluster"]["ClusterId"]
-    print("cluster_id", cluster_id)
+    # print("cluster_id", cluster_id)
     # Delete the cluster
     delete_response = client.delete_cluster(ClusterId=cluster_id)
 
@@ -253,9 +253,116 @@ def test_delete_cluster():
 #     raise Exception("NotYetImplemented")
 
 
-# @mock_aws
-# def test_describe_backups():
-#     client = boto3.client("cloudhsmv2", region_name="ap-southeast-1")
-#     resp = client.describe_backups()
+@mock_aws
+def test_describe_backups():
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
 
-#     raise Exception("NotYetImplemented")
+    # Create a cluster which will automatically create a backup
+    cluster = client.create_cluster(
+        HsmType="hsm1.medium",
+        SubnetIds=["subnet-12345678"],
+    )
+    cluster_id = cluster["Cluster"]["ClusterId"]
+    # print("\n\n cluster_id is", cluster_id)
+
+    # Verify backup was automatically created
+    response = client.describe_backups()
+    # print("\n\ntesting response in response", response)
+    assert "Backups" in response
+    assert len(response["Backups"]) == 1
+
+    backup = response["Backups"][0]
+    assert backup["ClusterId"] == cluster_id
+    assert backup["HsmType"] == "hsm1.medium"
+    assert backup["BackupState"] == "CREATE_IN_PROGRESS"
+
+    # # Test filters
+    # filtered_response = client.describe_backups(Filters={"clusterIds": [cluster_id]})
+    # assert len(filtered_response["Backups"]) == 1
+    # assert filtered_response["Backups"][0]["ClusterId"] == cluster_id
+
+
+# @mock_aws
+# def test_put_resource_policy():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+
+#     # Create a cluster to get a valid resource ARN
+#     response = client.create_cluster(
+#         HsmType="hsm1.medium",
+#         SubnetIds=["subnet-12345678"]
+#     )
+#     cluster_id = response["Cluster"]["ClusterId"]
+#     resource_arn = f"arn:aws:cloudhsm:us-east-1:123456789012:cluster/{cluster_id}"
+
+#     # Create a sample policy
+#     policy = {
+#         "Version": "2012-10-17",
+#         "Statement": [
+#             {
+#                 "Sid": "EnableSharing",
+#                 "Effect": "Allow",
+#                 "Principal": {
+#                     "AWS": "arn:aws:iam::123456789012:root"
+#                 },
+#                 "Action": [
+#                     "cloudhsmv2:DescribeClusters",
+#                     "cloudhsmv2:DescribeBackups"
+#                 ],
+#                 "Resource": resource_arn
+#             }
+#         ]
+#     }
+
+#     # Put the resource policy
+#     response_2 = client.put_resource_policy(
+#         ResourceArn=resource_arn,
+#         Policy=json.dumps(policy)
+#     )
+
+#     # Verify response structure
+#     assert "ResourceArn" in response_2
+#     assert "Policy" in response_2
+#     assert response_2["ResourceArn"] == resource_arn
+#     assert json.loads(response_2["Policy"]) == policy
+
+
+# @mock_aws
+# def test_put_resource_policy_invalid_arn():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+#
+#     invalid_arn = "arn:aws:cloudhsm:us-east-1:123456789012:cluster/invalid-id"
+#     policy = json.dumps({"Version": "2012-10-17", "Statement": []})
+#
+#     with pytest.raises(ClientError) as exc:
+#         client.put_resource_policy(
+#             ResourceArn=invalid_arn,
+#             Policy=policy
+#         )
+#
+#     err = exc.value.response["Error"]
+#     assert err["Code"] == "ResourceNotFoundException"
+#     assert "Resource not found" in err["Message"]
+#
+#
+# @mock_aws
+# def test_put_resource_policy_invalid_policy():
+#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+#
+#     # Create a cluster to get a valid resource ARN
+#     response = client.create_cluster(
+#         HsmType="hsm1.medium",
+#         SubnetIds=["subnet-12345678"]
+#     )
+#     cluster_id = response["Cluster"]["ClusterId"]
+#     resource_arn = f"arn:aws:cloudhsm:us-east-1:123456789012:cluster/{cluster_id}"
+#
+#     # Try to put an invalid policy
+#     with pytest.raises(ClientError) as exc:
+#         client.put_resource_policy(
+#             ResourceArn=resource_arn,
+#             Policy="invalid-policy-document"
+#         )
+#
+#     err = exc.value.response["Error"]
+#     assert err["Code"] == "InvalidRequestException"
+#     assert "Invalid policy document" in err["Message"]
