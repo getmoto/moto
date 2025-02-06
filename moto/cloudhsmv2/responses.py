@@ -20,17 +20,17 @@ class DateTimeEncoder(json.JSONEncoder):
 
 
 class CloudHSMV2Response(BaseResponse):
-    """Handler for CloudHSMV2 requests and cresponses."""
+    """Handler for CloudHSMV2 requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="cloudhsmv2")
 
     @property
-    def cloudhsmv2_backend(self):
+    def cloudhsmv2_backend(self) -> str:
         """Return backend instance specific for this region."""
         return cloudhsmv2_backends[self.current_account][self.region]
 
-    def list_tags(self):
+    def list_tags(self) -> str:
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
@@ -44,9 +44,9 @@ class CloudHSMV2Response(BaseResponse):
             max_results=max_results,
         )
 
-        return 200, {}, json.dumps({"TagList": tag_list, "NextToken": next_token})
+        return json.dumps({"TagList": tag_list, "NextToken": next_token})
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
@@ -59,7 +59,7 @@ class CloudHSMV2Response(BaseResponse):
         )
         return json.dumps(dict())
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
@@ -71,7 +71,7 @@ class CloudHSMV2Response(BaseResponse):
         )
         return json.dumps(dict())
 
-    def create_cluster(self):
+    def create_cluster(self) -> str:
         backup_retention_policy = self._get_param("BackupRetentionPolicy", {})
         hsm_type = self._get_param("HsmType")
         source_backup_id = self._get_param("SourceBackupId")
@@ -91,7 +91,7 @@ class CloudHSMV2Response(BaseResponse):
         )
         return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
 
-    def delete_cluster(self):
+    def delete_cluster(self) -> str:
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
@@ -102,7 +102,7 @@ class CloudHSMV2Response(BaseResponse):
         except ValueError as e:
             return self.error("ClusterNotFoundFault", str(e))
 
-    def describe_clusters(self):
+    def describe_clusters(self) -> str:
         raw_params = list(self._get_params().keys())[0] if self._get_params() else "{}"
         params = json.loads(raw_params)
 
@@ -131,7 +131,7 @@ class CloudHSMV2Response(BaseResponse):
     #     # TODO: adjust response
     #     return json.dumps(dict(policy=policy))
 
-    def describe_backups(self):
+    def describe_backups(self) -> str:
         params = self._get_params()
         next_token = params.get("NextToken")
         max_results = params.get("MaxResults")
@@ -158,7 +158,7 @@ class CloudHSMV2Response(BaseResponse):
 
         return json.dumps(response, cls=DateTimeEncoder)
 
-    def put_resource_policy(self):
+    def put_resource_policy(self) -> str:
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 

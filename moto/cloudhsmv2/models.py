@@ -1,7 +1,7 @@
 """CloudHSMV2Backend class with methods for supported APIs."""
 
 import uuid
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
@@ -130,17 +130,10 @@ class CloudHSMV2Backend(BaseBackend):
         self.resource_policies = {}
         self.backups = {}
 
-    def list_tags(self, resource_id, next_token, max_results):
-        """List tags for a CloudHSM resource.
-
-        Args:
-            resource_id (str): The identifier of the resource to list tags for
-            next_token (str): Token for pagination
-            max_results (int): Maximum number of results to return
-
-        Returns:
-            tuple: (list of tags, next token)
-        """
+    def list_tags(
+        self, resource_id: str, next_token: str, max_results: int
+    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+        """List tags for a CloudHSM resource."""
         if resource_id not in self.tags:
             return [], None
 
@@ -170,19 +163,10 @@ class CloudHSMV2Backend(BaseBackend):
 
         return results, token
 
-    def tag_resource(self, resource_id, tag_list):
-        """Add or update tags for a CloudHSM resource.
-
-        Args:
-            resource_id (str): The identifier of the resource to tag
-            tag_list (list): List of tag dictionaries with 'Key' and 'Value' pairs
-
-        Returns:
-            dict: Empty dictionary per AWS spec
-
-        Raises:
-            ValueError: If resource_id or tag_list is None
-        """
+    def tag_resource(
+        self, resource_id: str, tag_list: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
+        """Add or update tags for a CloudHSM resource."""
         if resource_id is None:
             raise ValueError("ResourceId must not be None")
         if tag_list is None:
@@ -204,19 +188,10 @@ class CloudHSMV2Backend(BaseBackend):
 
         return {}
 
-    def untag_resource(self, resource_id, tag_key_list):
-        """Remove tags from a CloudHSM resource.
-
-        Args:
-            resource_id (str): The identifier of the resource to untag
-            tag_key_list (list): List of tag keys to remove
-
-        Returns:
-            dict: Empty dictionary per AWS spec
-
-        Raises:
-            ValueError: If resource_id or tag_key_list is None
-        """
+    def untag_resource(
+        self, resource_id: str, tag_key_list: List[str]
+    ) -> Dict[str, Any]:
+        """Remove tags from a CloudHSM resource."""
         if resource_id is None:
             raise ValueError("ResourceId must not be None")
         if tag_key_list is None:
@@ -238,7 +213,7 @@ class CloudHSMV2Backend(BaseBackend):
         network_type: Optional[str],
         tag_list: Optional[List[Dict[str, str]]],
         mode: Optional[str],
-    ) -> Dict:
+    ) -> Dict[str, Any]:
         cluster = Cluster(
             backup_retention_policy=backup_retention_policy,
             hsm_type=hsm_type,
@@ -265,18 +240,8 @@ class CloudHSMV2Backend(BaseBackend):
 
         return cluster.to_dict()
 
-    def delete_cluster(self, cluster_id: str) -> Dict:
-        """Delete a CloudHSM cluster.
-
-        Args:
-            cluster_id (str): The identifier of the cluster to delete
-
-        Returns:
-            dict: The deleted cluster details
-
-        Raises:
-            ValueError: If cluster_id is not found
-        """
+    def delete_cluster(self, cluster_id: str) -> Dict[str, Any]:
+        """Delete a CloudHSM cluster."""
         if cluster_id not in self.clusters:
             raise ValueError(f"Cluster {cluster_id} not found")
 
@@ -288,17 +253,10 @@ class CloudHSMV2Backend(BaseBackend):
 
         return cluster.to_dict()
 
-    def describe_clusters(self, filters, next_token, max_results):
-        """Describe CloudHSM clusters.
-
-        Args:
-            filters (dict): Filters to apply
-            next_token (str): Token for pagination
-            max_results (int): Maximum number of results to return
-
-        Returns:
-            tuple: (list of clusters, next token)
-        """
+    def describe_clusters(
+        self, filters: Dict[str, List[str]], next_token: str, max_results: int
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        """Describe CloudHSM clusters."""
         clusters = list(self.clusters.values())
 
         # If we have filters, filter the resource
@@ -338,19 +296,8 @@ class CloudHSMV2Backend(BaseBackend):
         filters: Optional[Dict[str, List[str]]],
         shared: Optional[bool],
         sort_ascending: Optional[bool],
-    ) -> Tuple[List[Dict], Optional[str]]:
-        """Describe CloudHSM backups.
-
-        Args:
-            next_token: Token for pagination
-            max_results: Maximum number of results to return
-            filters: Filters to apply
-            shared: Whether to include shared backups
-            sort_ascending: Sort by timestamp ascending if True
-
-        Returns:
-            Tuple containing list of backups and next token
-        """
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        """Describe CloudHSM backups."""
         backups = list(self.backups.values())
         # print("backups are", backups[0].to_dict())
 
@@ -387,18 +334,7 @@ class CloudHSMV2Backend(BaseBackend):
         return results, token
 
     def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
-        """Creates or updates a resource policy for CloudHSM backup.
-
-        Args:
-            resource_arn (str): The ARN of the CloudHSM backup
-            policy (str): The JSON policy document
-
-        Returns:
-            Dict[str, str]: Dictionary containing ResourceArn and Policy
-
-        Raises:
-            ValueError: If the resource doesn't exist or is not in READY state
-        """
+        """Creates or updates a resource policy for CloudHSM backup."""
         # Extract backup ID from ARN
         try:
             backup_id = resource_arn.split("/")[-1]
