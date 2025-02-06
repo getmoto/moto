@@ -1,6 +1,6 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 from moto.appmesh.dataclasses.mesh import (
     Mesh,
@@ -35,7 +35,7 @@ from moto.utilities.paginator import paginate
 PAGINATION_MODEL = {
     "list_meshes": {
         "input_token": "next_token",
-        "limit_key": "max_results",
+        "limit_key": "limit",
         "limit_default": 100,
         "unique_attribute": "meshName",
     },
@@ -55,13 +55,13 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 100,
-        "unique_attribute": ["routeName"],
+        "unique_attribute": "route_name",
     },
     "list_virtual_nodes": {
         "input_token": "next_token",
         "limit_key": "limit",
         "limit_default": 100,
-        "unique_attribute": ["virtualNodeName"],
+        "unique_attribute": "virtual_node_name",
     },
 }
 
@@ -249,8 +249,8 @@ class AppMeshBackend(BaseBackend):
         del self.meshes[mesh_name]
         return mesh
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_meshes(self, limit: Optional[int], next_token: Optional[str]):
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_meshes(self) -> List[Dict[str, Union[str, int]]]:
         return [
             {
                 "arn": mesh.metadata.arn,
@@ -284,7 +284,7 @@ class AppMeshBackend(BaseBackend):
         raise ResourceNotFoundError(resource_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_tags_for_resource(self, limit: int, next_token: str, resource_arn: str):
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         return self._get_resource_with_arn(resource_arn=resource_arn).tags
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
@@ -375,10 +375,10 @@ class AppMeshBackend(BaseBackend):
         del mesh.virtual_routers[virtual_router_name]
         return virtual_router
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_virtual_routers(
-        self, limit: int, mesh_name: str, mesh_owner: Optional[str], next_token: str
-    ):
+        self, mesh_name: str, mesh_owner: Optional[str]
+    ) -> List[Dict[str, Union[str, int]]]:
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         return [
             {
@@ -507,25 +507,20 @@ class AppMeshBackend(BaseBackend):
         )
         return route
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_routes(
         self,
-        limit: Optional[int],
         mesh_name: str,
         mesh_owner: Optional[str],
-        next_token: Optional[str],
         virtual_router_name: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[RouteMetadata]:
         self._check_router_validity(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
             virtual_router_name=virtual_router_name,
         )
         virtual_router = self.meshes[mesh_name].virtual_routers[virtual_router_name]
-        return [
-            route.metadata.formatted_for_list_api()
-            for route in virtual_router.routes.values()
-        ]
+        return [route.metadata for route in virtual_router.routes.values()]
 
     def describe_virtual_node(
         self, mesh_name: str, mesh_owner: Optional[str], virtual_node_name: str
@@ -602,20 +597,15 @@ class AppMeshBackend(BaseBackend):
         del self.meshes[mesh_name].virtual_nodes[virtual_node_name]
         return virtual_node
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_virtual_nodes(
         self,
-        limit: Optional[int],
         mesh_name: str,
         mesh_owner: Optional[str],
-        next_token: Optional[str],
-    ) -> List[Dict[str, Any]]:
+    ) -> List[VirtualNodeMetadata]:
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         virtual_nodes = self.meshes[mesh_name].virtual_nodes
-        return [
-            virtual_node.metadata.formatted_for_list_api()
-            for virtual_node in virtual_nodes.values()
-        ]
+        return [virtual_node.metadata for virtual_node in virtual_nodes.values()]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

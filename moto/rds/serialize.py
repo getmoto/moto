@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Optional, Tuple, Union
+from functools import lru_cache
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import xmltodict
+from botocore import xform_name
 from botocore.model import (
     ListShape,
     NoShapeFoundError,
@@ -15,6 +18,8 @@ from botocore.model import (
 )
 from botocore.utils import parse_to_aware_datetime
 from typing_extensions import TypeAlias
+
+from .utils import get_service_model
 
 Serialized: TypeAlias = MutableMapping[str, Any]
 
@@ -90,6 +95,8 @@ class Serializer(ShapeHelpersMixin):  # , BaseSerializer):
         self.operation_model = operation_model
         self.context = context or {"request_id": "request-id"}
         self.pretty_print = pretty_print
+        if value_picker is None:
+            value_picker = self._default_value_picker
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
 
@@ -115,6 +122,16 @@ class Serializer(ShapeHelpersMixin):  # , BaseSerializer):
     @staticmethod
     def _is_error_result(result: object) -> bool:
         return isinstance(result, Exception)
+
+    @staticmethod
+    def _default_value_picker(obj: Any, key: str, _: Shape, default: Any = None) -> Any:
+        if not hasattr(obj, "__getitem__"):
+            return getattr(obj, key, default)
+
+        try:
+            return obj[key]
+        except (KeyError, IndexError, TypeError, AttributeError):
+            return getattr(obj, key, default)
 
     def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
         return self._value_picker(value, key, shape)
@@ -384,3 +401,64 @@ class QuerySerializer(BaseXMLSerializer):
 SERIALIZERS = {
     "query": QuerySerializer,
 }
+
+
+class XFormedAttributeAccessMixin:
+    """Mixin allowing access to "xformed" attributes:
+
+    obj.DBInstanceIdentifier will retrieve the value of obj.db_instance_identifier
+
+    """
+
+    _model_attribute_aliases: Dict[str, List[str]] = {}
+    _xform_cache: Dict[str, str] = {}
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self.model_attributes:
+            return self.get_modeled_attribute(name)
+        raise AttributeError(f"Attribute '{name}' not found!")
+
+    def get_modeled_attribute(self, attr_name: str) -> Any:
+        for attr_alias in self.model_attribute_aliases[attr_name]:
+            try:
+                return super().__getattribute__(attr_alias)
+            except AttributeError:
+                pass
+        else:
+            raise AttributeError
+
+    @property
+    def model_attributes(self) -> List[str]:
+        return list(self.model_attribute_aliases.keys())
+
+    @property
+    def model_attribute_aliases(self) -> Dict[str, List[str]]:
+        if not self._model_attribute_aliases:
+            self._model_attribute_aliases = self.get_model_attributes_info()
+        return self._model_attribute_aliases
+
+    @classmethod
+    @lru_cache()
+    def get_model_attributes_info(cls) -> Dict[str, List[str]]:
+        service_name = cls.__module__.split(".")[1]
+        model_name = cls.__name__
+        service_model = get_service_model(service_name)
+        model_shape = service_model.shape_for(model_name)
+        valid_attributes: Dict[str, List[str]] = defaultdict(list)
+        for member_name, member_shape in model_shape.members.items():  # type: ignore[attr-defined]
+            aliases = valid_attributes[member_name]
+            if member_shape.type_name == "list":
+                if member_name != member_shape.name:
+                    xformed_name = cls._xform_name(member_shape.name)
+                    aliases.append(xformed_name)
+            xformed_member_name = cls._xform_name(member_name)
+            aliases.append(xformed_member_name)
+            if member_name.startswith(model_name):
+                short_name = member_name[len(model_name) :]
+                xformed_short_name = cls._xform_name(short_name)
+                aliases.append(xformed_short_name)
+        return valid_attributes
+
+    @classmethod
+    def _xform_name(cls, name: str) -> str:
+        return xform_name(name, _xform_cache=cls._xform_cache)
