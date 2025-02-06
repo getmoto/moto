@@ -257,17 +257,14 @@ def test_delete_cluster():
 def test_describe_backups():
     client = boto3.client("cloudhsmv2", region_name="us-east-1")
 
-    # Create a cluster which will automatically create a backup
     cluster = client.create_cluster(
         HsmType="hsm1.medium",
         SubnetIds=["subnet-12345678"],
     )
     cluster_id = cluster["Cluster"]["ClusterId"]
-    # print("\n\n cluster_id is", cluster_id)
 
     # Verify backup was automatically created
     response = client.describe_backups()
-    # print("\n\ntesting response in response", response)
     assert "Backups" in response
     assert len(response["Backups"]) == 1
 
@@ -282,48 +279,41 @@ def test_describe_backups():
     # assert filtered_response["Backups"][0]["ClusterId"] == cluster_id
 
 
-# @mock_aws
-# def test_put_resource_policy():
-#     client = boto3.client("cloudhsmv2", region_name="us-east-1")
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("cloudhsmv2", region_name="us-east-1")
 
-#     # Create a cluster to get a valid resource ARN
-#     response = client.create_cluster(
-#         HsmType="hsm1.medium",
-#         SubnetIds=["subnet-12345678"]
-#     )
-#     cluster_id = response["Cluster"]["ClusterId"]
-#     resource_arn = f"arn:aws:cloudhsm:us-east-1:123456789012:cluster/{cluster_id}"
+    # Create a cluster to get a valid resource ARN
+    response = client.create_cluster(
+        HsmType="hsm1.medium", SubnetIds=["subnet-12345678"]
+    )
+    cluster_id = response["Cluster"]["ClusterId"]
+    resource_arn = f"arn:aws:cloudhsm:us-east-1:123456789012:cluster/{cluster_id}"
 
-#     # Create a sample policy
-#     policy = {
-#         "Version": "2012-10-17",
-#         "Statement": [
-#             {
-#                 "Sid": "EnableSharing",
-#                 "Effect": "Allow",
-#                 "Principal": {
-#                     "AWS": "arn:aws:iam::123456789012:root"
-#                 },
-#                 "Action": [
-#                     "cloudhsmv2:DescribeClusters",
-#                     "cloudhsmv2:DescribeBackups"
-#                 ],
-#                 "Resource": resource_arn
-#             }
-#         ]
-#     }
+    # Create a sample policy
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "EnableSharing",
+                "Effect": "Allow",
+                "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                "Action": ["cloudhsmv2:DescribeClusters", "cloudhsmv2:DescribeBackups"],
+                "Resource": resource_arn,
+            }
+        ],
+    }
 
-#     # Put the resource policy
-#     response_2 = client.put_resource_policy(
-#         ResourceArn=resource_arn,
-#         Policy=json.dumps(policy)
-#     )
+    # Put the resource policy
+    response_2 = client.put_resource_policy(
+        ResourceArn=resource_arn, Policy=json.dumps(policy)
+    )
 
-#     # Verify response structure
-#     assert "ResourceArn" in response_2
-#     assert "Policy" in response_2
-#     assert response_2["ResourceArn"] == resource_arn
-#     assert json.loads(response_2["Policy"]) == policy
+    # Verify response structure
+    assert "ResourceArn" in response_2
+    assert "Policy" in response_2
+    assert response_2["ResourceArn"] == resource_arn
+    assert json.loads(response_2["Policy"]) == policy
 
 
 # @mock_aws

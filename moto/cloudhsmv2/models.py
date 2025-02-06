@@ -400,15 +400,19 @@ class CloudHSMV2Backend(BaseBackend):
             ValueError: If the resource doesn't exist or is not in READY state
         """
         # Extract backup ID from ARN
-        # try:
-        #     backup_id = resource_arn.split("/")[-1]
-        #
-        # except IndexError:
-        #     raise ValueError(f"Invalid resource ARN format: {resource_arn}")
+        try:
+            backup_id = resource_arn.split("/")[-1]
+        except IndexError:
+            raise ValueError(f"Invalid resource ARN format: {resource_arn}")
 
-        # Verify backup exists and is in READY state
-        # Note: Need to implement backup verification
-        # once backup implemented
+        # Verify backup exists
+        if backup_id not in self.backups:
+            raise ValueError(f"Backup {backup_id} not found")
+
+        # Verify backup is in READY state
+        backup = self.backups[backup_id]
+        if backup.backup_state != "READY":
+            raise ValueError(f"Backup {backup_id} is not in READY state")
 
         self.resource_policies[resource_arn] = policy
 

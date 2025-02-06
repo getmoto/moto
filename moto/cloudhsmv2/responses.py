@@ -9,18 +9,18 @@ from .models import cloudhsmv2_backends
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return obj.isoformat()
+    def default(self, o):
+        if isinstance(o, datetime):
+            return o.isoformat()
         # Don't try to convert objects that already have to_dict to dict
-        # if hasattr(obj, "to_dict"):
-        #     return obj.to_dict()
+        # if hasattr(o, "to_dict"):
+        #     return o.to_dict()
         # Let the base class handle anything else
-        return super().default(obj)
+        return super().default(o)
 
 
 class CloudHSMV2Response(BaseResponse):
-    """Handler for CloudHSMV2 requests and responses."""
+    """Handler for CloudHSMV2 requests and cresponses."""
 
     def __init__(self):
         super().__init__(service_name="cloudhsmv2")
@@ -158,14 +158,15 @@ class CloudHSMV2Response(BaseResponse):
 
         return json.dumps(response, cls=DateTimeEncoder)
 
-    # def put_resource_policy(self):
-    #     params = self._get_params()
-    #     print("params", params)
-    #     resource_arn = params.get("ResourceArn")
-    #     policy = params.get("Policy")
-    #     resource_arn, policy = self.cloudhsmv2_backend.put_resource_policy(
-    #         resource_arn=resource_arn,
-    #         policy=policy,
-    #     )
-    #     # TODO: adjust response
-    #     return json.dumps(dict(resourceArn=resource_arn, policy=policy))
+    def put_resource_policy(self):
+        raw_params = list(self._get_params().keys())[0]
+        params = json.loads(raw_params)
+
+        resource_arn = params.get("ResourceArn")
+        policy = params.get("Policy")
+
+        result = self.cloudhsmv2_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy=policy,
+        )
+        return json.dumps(result)
