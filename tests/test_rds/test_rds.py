@@ -2421,6 +2421,9 @@ def test_db_instance_identifier_is_lower_cased(client):
     )
     assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
 
+    response = client.reboot_db_instance(DBInstanceIdentifier="XXyy")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
     response = client.delete_db_instance(DBInstanceIdentifier="xXyY")
     assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
 
