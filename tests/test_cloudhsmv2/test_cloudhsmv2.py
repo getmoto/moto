@@ -310,6 +310,8 @@ def test_put_resource_policy():
         ResourceArn=resource_arn, Policy=json.dumps(policy)
     )
 
+    print("\n\n response_2 are", response_2)
+
     # Verify response structure
     assert "ResourceArn" in response_2
     assert "Policy" in response_2

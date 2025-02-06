@@ -162,6 +162,8 @@ class CloudHSMV2Response(BaseResponse):
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
 
+        print("\n\n params are", params)
+
         resource_arn = params.get("ResourceArn")
         policy = params.get("Policy")
 

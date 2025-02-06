@@ -234,6 +234,7 @@ class CloudHSMV2Backend(BaseBackend):
             tag_list=tag_list,
             region_name=self.region_name,
         )
+        print("\n\n backup are", backup.backup_arn)
         self.backups[backup.backup_id] = backup
 
         # print("Backup is", self.backups)
@@ -334,24 +335,34 @@ class CloudHSMV2Backend(BaseBackend):
         return results, token
 
     def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
-        """Creates or updates a resource policy for CloudHSM backup."""
-        # Extract backup ID from ARN
+        """Creates or updates a resource policy for CloudHSM cluster or backup."""
+        # Determine if this is a cluster or backup ARN
         try:
-            backup_id = resource_arn.split("/")[-1]
+            resource_type = resource_arn.split(":")[-1].split("/")[0]
+            resource_id = resource_arn.split("/")[-1]
         except IndexError:
             raise ValueError(f"Invalid resource ARN format: {resource_arn}")
 
-        # Verify backup exists
-        if backup_id not in self.backups:
-            raise ValueError(f"Backup {backup_id} not found")
-
-        # Verify backup is in READY state
-        backup = self.backups[backup_id]
-        if backup.backup_state != "READY":
-            raise ValueError(f"Backup {backup_id} is not in READY state")
+        if resource_type == "cluster":
+            if resource_id not in self.clusters:
+                raise ValueError(f"Cluster with ID {resource_id} not found")
+            # No need to check state for clusters
+        elif resource_type == "backup":
+            matching_backup = None
+            for backup in self.backups.values():
+                if backup.backup_arn == resource_arn:
+                    matching_backup = backup
+                    break
+            if not matching_backup:
+                raise ValueError(f"Backup with ARN {resource_arn} not found")
+            if matching_backup.backup_state != "READY":
+                raise ValueError(
+                    f"Backup {matching_backup.backup_id} is not in READY state"
+                )
+        else:
+            raise ValueError(f"Invalid resource type in ARN: {resource_type}")
 
         self.resource_policies[resource_arn] = policy
-
         return {"ResourceArn": resource_arn, "Policy": policy}
 
 
