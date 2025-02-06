@@ -1734,7 +1734,9 @@ class RDSBackend(BaseBackend):
         return database
 
     def create_db_instance_read_replica(self, db_kwargs: Dict[str, Any]) -> DBInstance:
-        database_id = db_kwargs["db_instance_identifier"]
+        database_id = db_kwargs["db_instance_identifier"] = db_kwargs[
+            "db_instance_identifier"
+        ].lower()
         source_database_id = db_kwargs["source_db_instance_identifier"]
         primary = self.find_db_from_id(source_database_id)
         if self.arn_regex.match(source_database_id):
