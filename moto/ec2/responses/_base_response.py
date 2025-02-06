@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 
 from moto.core.responses import BaseResponse
 
-from ..exceptions import EmptyTagSpecError, InvalidParameter
+from ..exceptions import EC2ClientError, EmptyTagSpecError, InvalidParameter
 from ..utils import convert_tag_spec
 
 
@@ -15,9 +15,14 @@ class EC2BaseResponse(BaseResponse):
 
     def _filters_from_querystring(self) -> Dict[str, str]:
         # [{"Name": x1, "Value": y1}, ..]
-        _filters = self._get_multi_param("Filter.")
+        _filters = self._get_multi_param("Filter.", skip_result_conversion=True)
         # return {x1: y1, ...}
-        return {f["Name"]: f["Value"] for f in _filters}
+        try:
+            return {f["Name"]: f.get("Value", []) for f in _filters}
+        except KeyError:
+            raise EC2ClientError(
+                "InvalidParameterValue", "The filter 'null' is invalid."
+            )
 
     def _parse_tag_specification(
         self, expected_type: Optional[str] = None
