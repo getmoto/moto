@@ -24,16 +24,17 @@ class LexModelsV2Response(BaseResponse):
     # add methods from here
 
     def create_bot(self):
-        params = self._get_params()
-        bot_name = params.get("botName")
-        description = params.get("description")
-        role_arn = params.get("roleArn")
-        data_privacy = params.get("dataPrivacy")
-        idle_session_ttl_in_seconds = params.get("idleSessionTTLInSeconds")
-        bot_tags = params.get("botTags")
-        test_bot_alias_tags = params.get("testBotAliasTags")
-        bot_type = params.get("botType")
-        bot_members = params.get("botMembers")
+        # params = self._get_params()
+        bot_name = self._get_param("botName")
+        description = self._get_param("description")
+        role_arn = self._get_param("roleArn")
+        data_privacy = self._get_param("dataPrivacy")
+        idle_session_ttl_in_seconds = self._get_param(
+            "idleSessionTTLInSeconds")
+        bot_tags = self._get_param("botTags")
+        test_bot_alias_tags = self._get_param("testBotAliasTags")
+        bot_type = self._get_param("botType")
+        bot_members = self._get_param("botMembers")
         (
             bot_id,
             bot_name,
@@ -58,7 +59,6 @@ class LexModelsV2Response(BaseResponse):
             bot_type=bot_type,
             bot_members=bot_members,
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botId=bot_id,
@@ -78,7 +78,7 @@ class LexModelsV2Response(BaseResponse):
 
     def describe_bot(self):
         params = self._get_params()
-        bot_id = params.get("botId")
+        bot_id = self._get_param("botId")
         (
             bot_id,
             bot_name,
@@ -192,14 +192,15 @@ class LexModelsV2Response(BaseResponse):
 
     def create_bot_alias(self):
         params = self._get_params()
-        bot_alias_name = params.get("botAliasName")
-        description = params.get("description")
-        bot_version = params.get("botVersion")
-        bot_alias_locale_settings = params.get("botAliasLocaleSettings")
-        conversation_log_settings = params.get("conversationLogSettings")
-        sentiment_analysis_settings = params.get("sentimentAnalysisSettings")
-        bot_id = params.get("botId")
-        tags = params.get("tags")
+        bot_alias_name = self._get_param("botAliasName")
+        description = self._get_param("description")
+        bot_version = self._get_param("botVersion")
+        bot_alias_locale_settings = self._get_param("botAliasLocaleSettings")
+        conversation_log_settings = self._get_param("conversationLogSettings")
+        sentiment_analysis_settings = self._get_param(
+            "sentimentAnalysisSettings")
+        bot_id = self._get_param("botId")
+        tags = self._get_param("tags")
         (
             bot_alias_id,
             bot_alias_name,
@@ -240,9 +241,8 @@ class LexModelsV2Response(BaseResponse):
         )
 
     def describe_bot_alias(self):
-        params = self._get_params()
-        bot_alias_id = params.get("botAliasId")
-        bot_id = params.get("botId")
+        bot_alias_id = self._get_param("botAliasId")
+        bot_id = self._get_param("botId")
         (
             bot_alias_id,
             bot_alias_name,
@@ -364,7 +364,8 @@ class LexModelsV2Response(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(
-            dict(botAliasId=bot_alias_id, botId=bot_id, botAliasStatus=bot_alias_status)
+            dict(botAliasId=bot_alias_id, botId=bot_id,
+                 botAliasStatus=bot_alias_status)
         )
 
     def create_resource_policy(self):
