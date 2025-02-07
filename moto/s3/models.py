@@ -232,10 +232,25 @@ class FakeKey(BaseModel, ManagedState):
             self._metadata = {}  # type: ignore
         self._metadata.update(metadata)
 
-    def set_storage_class(self, storage: Optional[str]) -> None:
-        if storage is not None and storage not in STORAGE_CLASS:
-            raise InvalidStorageClass(storage=storage)
-        self._storage_class = storage
+    @property
+    def storage_class(self) -> str:
+        return self._storage_class
+
+    @storage_class.setter
+    def storage_class(self, value: str) -> None:
+        old_storage_class = self._storage_class
+        if value is not None and value not in STORAGE_CLASS:
+            raise InvalidStorageClass(storage=value)
+        self._storage_class = value
+        if old_storage_class != value:
+            s3_backend = s3_backends[self.account_id][self.partition]
+            bucket = s3_backend.get_bucket(self.bucket_name)
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.OBJECT_STORAGE_CLASS_CHANGED,
+                bucket,
+                self,
+            )
 
     def set_expiry(self, expiry: Optional[datetime.datetime]) -> None:
         self._expiry = expiry

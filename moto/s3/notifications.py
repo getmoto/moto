@@ -50,6 +50,7 @@ class S3NotificationEvent(str, Enum):
     OBJECT_TAGGING_EVENT = "s3:ObjectTagging:*"
     OBJECT_TAGGING_PUT_EVENT = "s3:ObjectTagging:Put"
     OBJECT_TAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
+    OBJECT_STORAGE_CLASS_CHANGED = "s3:ObjectStorageClass:Changed"
 
     @classmethod
     def events(self) -> List[str]:
@@ -239,6 +240,8 @@ def _detail_type(event_name: str) -> str:
     elif event_name in [
         e for e in S3NotificationEvent.events() if "LifecycleTransition" in e
     ]:
+        return "Object Storage Class Changed"
+    elif event_name == S3NotificationEvent.OBJECT_STORAGE_CLASS_CHANGED:
         return "Object Storage Class Changed"
     elif event_name in [
         e for e in S3NotificationEvent.events() if "IntelligentTiering" in e
