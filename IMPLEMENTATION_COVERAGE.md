@@ -1210,6 +1210,30 @@
 - [ ] update_vpc_origin
 </details>
 
+## cloudhsmv2
+<details>
+<summary>50% implemented</summary>
+
+- [ ] copy_backup_to_region
+- [X] create_cluster
+- [ ] create_hsm
+- [ ] delete_backup
+- [X] delete_cluster
+- [ ] delete_hsm
+- [ ] delete_resource_policy
+- [X] describe_backups
+- [X] describe_clusters
+- [X] get_resource_policy
+- [ ] initialize_cluster
+- [X] list_tags
+- [ ] modify_backup_attributes
+- [ ] modify_cluster
+- [X] put_resource_policy
+- [ ] restore_backup
+- [X] tag_resource
+- [X] untag_resource
+</details>
+
 ## cloudtrail
 <details>
 <summary>28% implemented</summary>
@@ -1258,6 +1282,7 @@
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] search_sample_queries
 - [ ] start_dashboard_refresh
 - [ ] start_event_data_store_ingestion
 - [ ] start_import
@@ -7757,6 +7782,38 @@
 - [ ] update_storage_lens_group
 </details>
 
+## s3tables
+<details>
+<summary>53% implemented</summary>
+
+- [X] create_namespace
+- [X] create_table
+- [X] create_table_bucket
+- [X] delete_namespace
+- [X] delete_table
+- [X] delete_table_bucket
+- [ ] delete_table_bucket_policy
+- [ ] delete_table_policy
+- [X] get_namespace
+- [X] get_table
+- [X] get_table_bucket
+- [ ] get_table_bucket_maintenance_configuration
+- [ ] get_table_bucket_policy
+- [ ] get_table_maintenance_configuration
+- [ ] get_table_maintenance_job_status
+- [ ] get_table_metadata_location
+- [ ] get_table_policy
+- [X] list_namespaces
+- [X] list_table_buckets
+- [X] list_tables
+- [ ] put_table_bucket_maintenance_configuration
+- [ ] put_table_bucket_policy
+- [ ] put_table_maintenance_configuration
+- [ ] put_table_policy
+- [X] rename_table
+- [X] update_table_metadata_location
+</details>
+
 ## sagemaker
 <details>
 <summary>31% implemented</summary>
@@ -9414,7 +9471,6 @@
 - clouddirectory
 - cloudfront-keyvaluestore
 - cloudhsm
-- cloudhsmv2
 - cloudsearch
 - cloudsearchdomain
 - cloudtrail-data
@@ -9584,7 +9640,6 @@
 - route53profiles
 - rum
 - s3outposts
-- s3tables
 - sagemaker-a2i-runtime
 - sagemaker-edge
 - sagemaker-featurestore-runtime
