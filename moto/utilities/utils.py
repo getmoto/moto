@@ -98,6 +98,10 @@ def filter_resources(
                 ):
                     result.remove(resource)
                     break
+            elif attrs[0] in filters:
+                # In case the filter exists but the value of the filter is empty, the filter shouldn't match
+                result.remove(resource)
+                break
     return result
 
 
