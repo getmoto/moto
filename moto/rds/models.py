@@ -1970,8 +1970,8 @@ class RDSBackend(BaseBackend):
         self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
             if self.databases[db_instance_identifier].deletion_protection:
-                raise InvalidParameterValue(
-                    "Can't delete Instance with protection enabled"
+                raise InvalidParameterCombination(
+                    "Cannot delete protected DB Instance, please disable deletion protection and try again."
                 )
             if db_snapshot_name:
                 self.create_auto_snapshot(db_instance_identifier, db_snapshot_name)

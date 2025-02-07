@@ -1479,6 +1479,7 @@ def test_modify_non_existent_option_group(client):
     )
 
 
+@pytest.mark.aws_verified
 @mock_aws
 def test_delete_database_with_protection(client):
     create_db_instance(DBInstanceIdentifier="db-primary-1", DeletionProtection=True)
@@ -1486,7 +1487,11 @@ def test_delete_database_with_protection(client):
     with pytest.raises(ClientError) as exc:
         client.delete_db_instance(DBInstanceIdentifier="db-primary-1")
     err = exc.value.response["Error"]
-    assert err["Message"] == "Can't delete Instance with protection enabled"
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "Cannot delete protected DB Instance, please disable deletion protection and try again."
+    )
 
 
 @mock_aws
