@@ -7,6 +7,8 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
 from moto.utilities.paginator import Paginator
 
+from .exceptions import InvalidRequestException, ResourceNotFoundException
+
 
 class Cluster:
     def __init__(
@@ -79,8 +81,7 @@ class Backup:
         self.backup_arn = (
             f"arn:aws:cloudhsm:{region_name}:123456789012:backup/{self.backup_id}"
         )
-        # New backups start in CREATE_IN_PROGRESS state
-        self.backup_state = "CREATE_IN_PROGRESS"
+        self.backup_state = "READY"
         self.cluster_id = cluster_id
         self.create_timestamp = utcnow()
         self.copy_timestamp = utcnow() if source_backup else None
@@ -234,10 +235,7 @@ class CloudHSMV2Backend(BaseBackend):
             tag_list=tag_list,
             region_name=self.region_name,
         )
-        print("\n\n backup are", backup.backup_arn)
         self.backups[backup.backup_id] = backup
-
-        # print("Backup is", self.backups)
 
         return cluster.to_dict()
 
@@ -286,9 +284,23 @@ class CloudHSMV2Backend(BaseBackend):
         results, token = paginator.paginate([c.to_dict() for c in clusters])
         return results, token
 
-    # def get_resource_policy(self, resource_arn):
-    #     # implement here
-    #     return policy
+    def get_resource_policy(self, resource_arn: str) -> str:
+        """Gets the resource policy attached to a CloudHSM backup."""
+        if not resource_arn:
+            raise InvalidRequestException("ResourceArn must not be empty")
+
+        # Verify backup exists
+        matching_backup = None
+        for backup in self.backups.values():
+            if backup.backup_arn == resource_arn:
+                matching_backup = backup
+                break
+
+        if not matching_backup:
+            raise ResourceNotFoundException(f"Backup with ARN {resource_arn} not found")
+
+        # Return the policy if it exists, otherwise return None
+        return self.resource_policies.get(resource_arn)
 
     def describe_backups(
         self,
@@ -300,7 +312,6 @@ class CloudHSMV2Backend(BaseBackend):
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         """Describe CloudHSM backups."""
         backups = list(self.backups.values())
-        # print("backups are", backups[0].to_dict())
 
         if filters:
             for key, values in filters.items():
@@ -322,7 +333,6 @@ class CloudHSMV2Backend(BaseBackend):
             reverse=not sort_ascending if sort_ascending is not None else True,
         )
         if not max_results:
-            # print("\n\ndicts are", [b.to_dict() for b in backups])
             return [b.to_dict() for b in backups], None
 
         paginator = Paginator(
@@ -335,32 +345,19 @@ class CloudHSMV2Backend(BaseBackend):
         return results, token
 
     def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
-        """Creates or updates a resource policy for CloudHSM cluster or backup."""
-        # Determine if this is a cluster or backup ARN
-        try:
-            resource_type = resource_arn.split(":")[-1].split("/")[0]
-            resource_id = resource_arn.split("/")[-1]
-        except IndexError:
-            raise ValueError(f"Invalid resource ARN format: {resource_arn}")
+        # Find the backup
+        matching_backup = None
+        for backup in self.backups.values():
+            if backup.backup_arn == resource_arn:
+                matching_backup = backup
+                break
+        if not matching_backup:
+            raise ResourceNotFoundException(f"Backup with ARN {resource_arn} not found")
 
-        if resource_type == "cluster":
-            if resource_id not in self.clusters:
-                raise ValueError(f"Cluster with ID {resource_id} not found")
-            # No need to check state for clusters
-        elif resource_type == "backup":
-            matching_backup = None
-            for backup in self.backups.values():
-                if backup.backup_arn == resource_arn:
-                    matching_backup = backup
-                    break
-            if not matching_backup:
-                raise ValueError(f"Backup with ARN {resource_arn} not found")
-            if matching_backup.backup_state != "READY":
-                raise ValueError(
-                    f"Backup {matching_backup.backup_id} is not in READY state"
-                )
-        else:
-            raise ValueError(f"Invalid resource type in ARN: {resource_type}")
+        if matching_backup.backup_state != "READY":
+            raise InvalidRequestException(
+                f"Backup {matching_backup.backup_id} is not in READY state"
+            )
 
         self.resource_policies[resource_arn] = policy
         return {"ResourceArn": resource_arn, "Policy": policy}

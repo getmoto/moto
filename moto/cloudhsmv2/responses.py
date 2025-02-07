@@ -122,14 +122,14 @@ class CloudHSMV2Response(BaseResponse):
 
         return json.dumps(response, cls=DateTimeEncoder)
 
-    # def get_resource_policy(self):
-    #     params = self._get_params()
-    #     resource_arn = params.get("ResourceArn")
-    #     policy = self.cloudhsmv2_backend.get_resource_policy(
-    #         resource_arn=resource_arn,
-    #     )
-    #     # TODO: adjust response
-    #     return json.dumps(dict(policy=policy))
+    def get_resource_policy(self) -> str:
+        raw_params = list(self._get_params().keys())[0]
+        params = json.loads(raw_params)
+        resource_arn = params.get("ResourceArn")
+        policy = self.cloudhsmv2_backend.get_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"Policy": policy})
 
     def describe_backups(self) -> str:
         params = self._get_params()
@@ -152,17 +152,11 @@ class CloudHSMV2Response(BaseResponse):
         if next_token:
             response["NextToken"] = next_token
 
-        # print("\n\n describe response are", response)
-
-        # print("\n\n json dump is", json.dumps(response, cls=DateTimeEncoder))
-
         return json.dumps(response, cls=DateTimeEncoder)
 
     def put_resource_policy(self) -> str:
         raw_params = list(self._get_params().keys())[0]
         params = json.loads(raw_params)
-
-        print("\n\n params are", params)
 
         resource_arn = params.get("ResourceArn")
         policy = params.get("Policy")
