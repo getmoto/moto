@@ -74,6 +74,7 @@ class Key(CloudFormationModel):
         account_id: str,
         region: str,
         multi_region: bool = False,
+        origin: str = "AWS_KMS"
     ):
         self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()
@@ -97,7 +98,7 @@ class Key(CloudFormationModel):
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
         self.key_material = generate_master_key()
-        self.origin = "AWS_KMS"
+        self.origin = origin
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
         self.private_key = generate_private_key(self.key_spec)
@@ -317,6 +318,7 @@ class KmsBackend(BaseBackend):
         description: str,
         tags: Optional[List[Dict[str, str]]],
         multi_region: bool = False,
+        origin: str = "AWS_KMS",
     ) -> Key:
         """
         The provided Policy currently does not need to be valid. If it is valid, Moto will perform authorization checks on key-related operations, just like AWS does.
@@ -336,6 +338,7 @@ class KmsBackend(BaseBackend):
             self.account_id,
             self.region_name,
             multi_region,
+            origin,
         )
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
