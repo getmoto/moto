@@ -548,7 +548,7 @@ class DBCluster(RDSBaseModel):
 
     @property
     def db_cluster_parameter_group(self) -> str:
-        return self.cluster.parameter_group
+        return self.parameter_group
 
     @property
     def status(self) -> str:
