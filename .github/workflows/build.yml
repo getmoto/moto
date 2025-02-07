@@ -108,3 +108,8 @@ jobs:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_proxymode.yml
+
+  testcdk:
+    needs: [lint]
+    if: "!contains(github.event.pull_request.labels.*.name, 'java')"
+    uses: ./.github/workflows/tests_cdk.yml

@@ -149,19 +149,18 @@ def test_delete_job_execution():
 @mock_aws
 def test_list_job_executions_for_job():
     client = boto3.client("iot", region_name="eu-west-1")
-    name = "my-thing"
     job_id = "TestJob"
     # thing
-    thing = client.create_thing(thingName=name)
-    assert thing["thingName"] == name
-    assert "thingArn" in thing
+    thing_arns = [
+        client.create_thing(thingName=f"mything_{i}")["thingArn"] for i in range(10)
+    ]
 
     # job document
     job_document = {"field": "value"}
 
     job = client.create_job(
         jobId=job_id,
-        targets=[thing["thingArn"]],
+        targets=thing_arns,
         document=json.dumps(job_document),
         description="Description",
         presignedUrlConfig={
@@ -176,11 +175,24 @@ def test_list_job_executions_for_job():
     assert "jobArn" in job
     assert "description" in job
 
-    job_execution = client.list_job_executions_for_job(jobId=job_id)
-    assert job_execution["executionSummaries"][0]["thingArn"] == thing["thingArn"]
+    job_executions = client.list_job_executions_for_job(jobId=job_id)[
+        "executionSummaries"
+    ]
+    assert len(job_executions) == 10
+    assert job_executions[0]["thingArn"] in thing_arns
 
-    job_execution = client.list_job_executions_for_job(jobId=job_id, status="QUEUED")
-    assert job_execution["executionSummaries"][0]["thingArn"] == thing["thingArn"]
+    job_executions = client.list_job_executions_for_job(jobId=job_id, status="QUEUED")[
+        "executionSummaries"
+    ]
+    assert len(job_executions) == 10
+
+    page1 = client.list_job_executions_for_job(jobId=job_id, maxResults=4)
+    assert len(page1["executionSummaries"]) == 4
+
+    page2 = client.list_job_executions_for_job(
+        jobId=job_id, nextToken=page1["nextToken"]
+    )
+    assert len(page2["executionSummaries"]) == 6
 
 
 @mock_aws

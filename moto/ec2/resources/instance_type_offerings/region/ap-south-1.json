@@ -1448,6 +1448,10 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "ap-south-1"
  },

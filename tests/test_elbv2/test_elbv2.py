@@ -37,7 +37,7 @@ def test_create_load_balancer():
     assert tags == {"key_name": "a_value"}
 
 
-def create_load_balancer():
+def create_load_balancer(load_balancer_type: str = "application"):
     conn = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 
@@ -58,6 +58,7 @@ def create_load_balancer():
         SecurityGroups=[security_group.id],
         Scheme="internal",
         Tags=[{"Key": "key_name", "Value": "a_value"}],
+        Type=load_balancer_type,
     )
     return response, vpc, security_group, subnet1, subnet2, conn
 
@@ -255,8 +256,9 @@ def test_create_elb_in_multiple_region():
 
 
 @mock_aws
-def test_create_listeners_without_port():
-    response, vpc, _, _, _, conn = create_load_balancer()
+@pytest.mark.parametrize("load_balancer_type", ["application", "network"])
+def test_create_listeners_without_port(load_balancer_type):
+    response, vpc, _, _, _, conn = create_load_balancer(load_balancer_type)
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
     response = conn.create_target_group(
         Name="a-target",
@@ -274,18 +276,161 @@ def test_create_listeners_without_port():
     )
     target_group = response["TargetGroups"][0]
     target_group_arn = target_group["TargetGroupArn"]
-    response = conn.create_listener(
-        LoadBalancerArn=load_balancer_arn,
-        Protocol="HTTP",
-        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
-    )
+    with pytest.raises(ClientError) as exc:
+        conn.create_listener(
+            LoadBalancerArn=load_balancer_arn,
+            Protocol="HTTP",
+            DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A listener port must be specified"
 
-    listener = response["Listeners"][0]
-    assert listener.get("Port") is None
-    assert listener["Protocol"] == "HTTP"
-    assert listener["DefaultActions"] == [
-        {"TargetGroupArn": target_group_arn, "Type": "forward"}
-    ]
+
+@mock_aws
+@pytest.mark.parametrize("load_balancer_type", ["application", "network"])
+def test_create_listeners_without_protocol(load_balancer_type):
+    response, _, _, _, _, conn = create_load_balancer(load_balancer_type)
+    load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+    with pytest.raises(ClientError) as exc:
+        conn.create_listener(
+            LoadBalancerArn=load_balancer_arn,
+            Port=8080,
+            DefaultActions=[
+                {
+                    "Type": "fixed-response",
+                    "FixedResponseConfig": {
+                        "MessageBody": "Hello, World!",
+                        "StatusCode": "200",
+                        "ContentType": "text/plain",
+                    },
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == "A listener protocol must be specified"
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    ["load_balancer_type", "protocol", "exception_message"],
+    [
+        (
+            "application",
+            "GENEVE",
+            "Listener protocol 'GENEVE' must be one of 'HTTP, HTTPS'",
+        ),
+        (
+            "network",
+            "GENEVE",
+            "Listener protocol 'GENEVE' must be one of 'UDP, TCP, TLS, TCP_UDP'",
+        ),
+        (
+            "application",
+            "TCP",
+            "Listener protocol 'TCP' must be one of 'HTTP, HTTPS'",
+        ),
+        (
+            "application",
+            "UDP",
+            "Listener protocol 'UDP' must be one of 'HTTP, HTTPS'",
+        ),
+        (
+            "application",
+            "TCP_UDP",
+            "Listener protocol 'TCP_UDP' must be one of 'HTTP, HTTPS'",
+        ),
+        (
+            "application",
+            "TLS",
+            "Listener protocol 'TLS' must be one of 'HTTP, HTTPS'",
+        ),
+        (
+            "network",
+            "HTTP",
+            "Listener protocol 'HTTP' must be one of 'UDP, TCP, TLS, TCP_UDP'",
+        ),
+        (
+            "network",
+            "HTTPS",
+            "Listener protocol 'HTTPS' must be one of 'UDP, TCP, TLS, TCP_UDP'",
+        ),
+        (
+            "application",
+            "INVALID",
+            "1 validation error detected: Value 'INVALID' at 'protocol' failed to satisfy constraint: "
+            "Member must satisfy enum value set: [HTTP, HTTPS, UDP, TCP, TLS, TCP_UDP]",
+        ),
+        (
+            "network",
+            "INVALID",
+            "1 validation error detected: Value 'INVALID' at 'protocol' failed to satisfy constraint: "
+            "Member must satisfy enum value set: [HTTP, HTTPS, UDP, TCP, TLS, TCP_UDP]",
+        ),
+    ],
+)
+def test_create_listeners_with_invalid_protocol(
+    load_balancer_type, protocol, exception_message
+):
+    response, _, _, _, _, conn = create_load_balancer(load_balancer_type)
+    load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+    with pytest.raises(ClientError) as exc:
+        conn.create_listener(
+            LoadBalancerArn=load_balancer_arn,
+            Port=1234,
+            Protocol=protocol,
+            DefaultActions=[
+                {
+                    "Type": "fixed-response",
+                    "FixedResponseConfig": {
+                        "MessageBody": "Hello, World!",
+                        "StatusCode": "200",
+                        "ContentType": "text/plain",
+                    },
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == exception_message
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    ["param", "value", "exception_message"],
+    [
+        ("Port", 80, "A port cannot be specified for gateway listeners"),
+        ("Protocol", "TCP", "A protocol cannot be specified for gateway listeners"),
+    ],
+)
+def test_create_gateway_listener_with_invalid_params(param, value, exception_message):
+    response, vpc, _, _, _, conn = create_load_balancer("gateway")
+    load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+    response = conn.create_target_group(
+        Name="a-target",
+        Protocol="TCP",
+        Port=80,
+        VpcId=vpc.id,
+        HealthCheckProtocol="TCP",
+        HealthCheckPort="traffic-port",
+        HealthCheckPath="/",
+        HealthCheckIntervalSeconds=5,
+        HealthCheckTimeoutSeconds=3,
+        HealthyThresholdCount=5,
+        UnhealthyThresholdCount=2,
+    )
+    target_group = response["TargetGroups"][0]
+    target_group_arn = target_group["TargetGroupArn"]
+    with pytest.raises(ClientError) as exc:
+        conn.create_listener(
+            LoadBalancerArn=load_balancer_arn,
+            DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+            **{param: value},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationError"
+    assert err["Message"] == exception_message
 
 
 @mock_aws

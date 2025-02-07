@@ -636,7 +636,10 @@ def test_create_receipt_rule_set():
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule_set(RuleSetName="testRuleSet")
 
-    assert ex.value.response["Error"]["Code"] == "RuleSetNameAlreadyExists"
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"] == "Rule set already exists: testRuleSet"
+    )
 
 
 @mock_aws
@@ -704,7 +707,8 @@ def test_create_receipt_rule():
             },
         )
 
-    assert ex.value.response["Error"]["Code"] == "RuleAlreadyExists"
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
+    assert ex.value.response["Error"]["Message"] == "Rule already exists: testRule"
 
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
@@ -736,6 +740,10 @@ def test_create_receipt_rule():
         )
 
     assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Rule set does not exist: InvalidRuleSetaName"
+    )
 
 
 @mock_aws
@@ -897,6 +905,10 @@ def test_describe_receipt_rule():
         conn.describe_receipt_rule(RuleSetName="invalidRuleSetName", RuleName=rule_name)
 
     assert error.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        error.value.response["Error"]["Message"]
+        == "Rule set does not exist: invalidRuleSetName"
+    )
 
     with pytest.raises(ClientError) as error:
         conn.describe_receipt_rule(
@@ -904,6 +916,10 @@ def test_describe_receipt_rule():
         )
 
     assert error.value.response["Error"]["Code"] == "RuleDoesNotExist"
+    assert (
+        error.value.response["Error"]["Message"]
+        == "Rule does not exist: invalidRuleName"
+    )
 
 
 @mock_aws
@@ -1202,7 +1218,7 @@ def test_create_ses_template():
     assert result["Template"]["TemplateName"] == "MyTemplate"
     assert result["Template"]["SubjectPart"] == "Greetings, {{name}}!"
     assert result["Template"]["HtmlPart"] == (
-        "<h1>Hello {{name}}," "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+        "<h1>Hello {{name}},</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
     )
     # get a template which is not present
     with pytest.raises(ClientError) as ex:

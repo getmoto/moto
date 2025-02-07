@@ -68,7 +68,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
             self.configuration["EnforceWorkGroupConfiguration"] = True
         if "EngineVersion" not in self.configuration:
             self.configuration["EngineVersion"] = {
-                "EffectiveEngineVersion": "Athena engine " "version 3",
+                "EffectiveEngineVersion": "Athena engine version 3",
                 "SelectedEngineVersion": "AUTO",
             }
         if "PublishCloudWatchMetricsEnabled" not in self.configuration:
@@ -346,7 +346,7 @@ class AthenaBackend(BaseBackend):
             for row in self.query_results[exec_id].rows:
                 query_result += ",".join(
                     [
-                        f"\"{r['VarCharValue']}\"" if "VarCharValue" in r else ""
+                        f'"{r["VarCharValue"]}"' if "VarCharValue" in r else ""
                         for r in row["Data"]
                     ]
                 )

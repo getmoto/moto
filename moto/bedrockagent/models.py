@@ -166,13 +166,13 @@ class AgentsforBedrockBackend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "agentId",
+            "unique_attribute": "agent_id",
         },
         "list_knowledge_bases": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "knowledgeBaseId",
+            "unique_attribute": "knowledge_base_id",
         },
     }
 
@@ -224,12 +224,9 @@ class AgentsforBedrockBackend(BaseBackend):
             raise ResourceNotFoundException(f"Agent {agent_id} not found")
         return self.agents[agent_id]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_agents(
-        self, max_results: Optional[int], next_token: Optional[str]
-    ) -> List[Any]:
-        agent_summaries = [agent.dict_summary() for agent in self.agents.values()]
-        return agent_summaries
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_agents(self) -> List[Agent]:
+        return [agent for agent in self.agents.values()]
 
     def delete_agent(
         self, agent_id: str, skip_resource_in_use_check: Optional[bool]
@@ -273,15 +270,9 @@ class AgentsforBedrockBackend(BaseBackend):
             self.tag_resource(knowledge_base.knowledge_base_arn, tags)
         return knowledge_base
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_knowledge_bases(
-        self, max_results: Optional[int], next_token: Optional[str]
-    ) -> List[Any]:
-        knowledge_base_summaries = [
-            knowledge_base.dict_summary()
-            for knowledge_base in self.knowledge_bases.values()
-        ]
-        return knowledge_base_summaries
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_knowledge_bases(self) -> List[KnowledgeBase]:
+        return [knowledge_base for knowledge_base in self.knowledge_bases.values()]
 
     def delete_knowledge_base(self, knowledge_base_id: str) -> Tuple[str, str]:
         if knowledge_base_id in self.knowledge_bases:

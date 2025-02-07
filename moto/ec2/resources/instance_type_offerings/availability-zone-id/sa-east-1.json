@@ -1376,6 +1376,10 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "sae1-az1"
  },
@@ -4841,6 +4845,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "sae1-az3"
  },
  {

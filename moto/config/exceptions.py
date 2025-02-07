@@ -268,7 +268,7 @@ class InvalidResourceParameters(JsonRESTError):
     def __init__(self) -> None:
         super().__init__(
             "ValidationException",
-            "Both Resource ID and Resource Name " "cannot be specified in the request",
+            "Both Resource ID and Resource Name cannot be specified in the request",
         )
 
 
