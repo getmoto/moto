@@ -2,20 +2,18 @@
 
 import json
 from datetime import datetime
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
-from .models import cloudhsmv2_backends
+from .models import CloudHSMV2Backend, cloudhsmv2_backends
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o: Any) -> Any:
         if isinstance(o, datetime):
             return o.isoformat()
-        # Don't try to convert objects that already have to_dict to dict
-        # if hasattr(o, "to_dict"):
-        #     return o.to_dict()
-        # Let the base class handle anything else
+
         return super().default(o)
 
 
@@ -26,7 +24,7 @@ class CloudHSMV2Response(BaseResponse):
         super().__init__(service_name="cloudhsmv2")
 
     @property
-    def cloudhsmv2_backend(self) -> str:
+    def cloudhsmv2_backend(self) -> CloudHSMV2Backend:
         """Return backend instance specific for this region."""
         return cloudhsmv2_backends[self.current_account][self.region]
 
@@ -96,11 +94,8 @@ class CloudHSMV2Response(BaseResponse):
         params = json.loads(raw_params)
 
         cluster_id = params.get("ClusterId")
-        try:
-            cluster = self.cloudhsmv2_backend.delete_cluster(cluster_id=cluster_id)
-            return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
-        except ValueError as e:
-            return self.error("ClusterNotFoundFault", str(e))
+        cluster = self.cloudhsmv2_backend.delete_cluster(cluster_id=cluster_id)
+        return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
 
     def describe_clusters(self) -> str:
         raw_params = list(self._get_params().keys())[0] if self._get_params() else "{}"
@@ -132,10 +127,15 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps({"Policy": policy})
 
     def describe_backups(self) -> str:
-        params = self._get_params()
+        raw_params = list(self._get_params().keys())[0] if self._get_params() else "{}"
+        params = json.loads(raw_params)
+
         next_token = params.get("NextToken")
         max_results = params.get("MaxResults")
-        filters = params.get("Filters")
+        filters_raw = params.get("Filters", {})
+        filters = (
+            json.loads(filters_raw) if isinstance(filters_raw, str) else filters_raw
+        )
         shared = params.get("Shared")
         sort_ascending = params.get("SortAscending")
 
@@ -147,7 +147,6 @@ class CloudHSMV2Response(BaseResponse):
             sort_ascending=sort_ascending,
         )
 
-        # Remove the manual conversion to dictionaries since DateTimeEncoder will handle it
         response = {"Backups": backups}
         if next_token:
             response["NextToken"] = next_token

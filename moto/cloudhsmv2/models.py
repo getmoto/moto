@@ -17,16 +17,16 @@ class Cluster:
         hsm_type: str,
         source_backup_id: Optional[str],
         subnet_ids: List[str],
-        network_type: str,
-        tag_list: Optional[List[Dict[str, str]]],
-        mode: str,
-        region_name: str,
+        network_type: str = "IPV4",
+        tag_list: Optional[List[Dict[str, str]]] = None,
+        mode: str = "DEFAULT",
+        region_name: str = "us-east-1",
     ):
         self.cluster_id = str(uuid.uuid4())
         self.backup_policy = "DEFAULT"
         self.backup_retention_policy = backup_retention_policy
         self.create_timestamp = utcnow()
-        self.hsms = []
+        self.hsms: List[Dict[str, Any]] = []
         self.hsm_type = hsm_type
         self.source_backup_id = source_backup_id
         self.state = "CREATE_IN_PROGRESS"
@@ -44,7 +44,7 @@ class Cluster:
         self.tag_list = tag_list or []
         self.mode = mode
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "BackupPolicy": self.backup_policy,
             "BackupRetentionPolicy": self.backup_retention_policy,
@@ -94,7 +94,7 @@ class Backup:
         self.hsm_type = hsm_type
         self.mode = mode
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, Any]:
         result = {
             "BackupId": self.backup_id,
             "BackupArn": self.backup_arn,
@@ -124,12 +124,12 @@ class Backup:
 class CloudHSMV2Backend(BaseBackend):
     """Implementation of CloudHSMV2 APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.tags = {}
-        self.clusters = {}
-        self.resource_policies = {}
-        self.backups = {}
+        self.tags: Dict[str, List[Dict[str, str]]] = {}
+        self.clusters: Dict[str, Cluster] = {}
+        self.resource_policies: Dict[str, str] = {}
+        self.backups: Dict[str, Backup] = {}
 
     def list_tags(
         self, resource_id: str, next_token: str, max_results: int
@@ -220,9 +220,9 @@ class CloudHSMV2Backend(BaseBackend):
             hsm_type=hsm_type,
             source_backup_id=source_backup_id,
             subnet_ids=subnet_ids,
-            network_type=network_type,
+            network_type=network_type or "IPV4",
             tag_list=tag_list,
-            mode=mode,
+            mode=mode or "DEFAULT",
             region_name=self.region_name,
         )
         self.clusters[cluster.cluster_id] = cluster
@@ -284,7 +284,7 @@ class CloudHSMV2Backend(BaseBackend):
         results, token = paginator.paginate([c.to_dict() for c in clusters])
         return results, token
 
-    def get_resource_policy(self, resource_arn: str) -> str:
+    def get_resource_policy(self, resource_arn: str) -> Optional[str]:
         """Gets the resource policy attached to a CloudHSM backup."""
         if not resource_arn:
             raise InvalidRequestException("ResourceArn must not be empty")
@@ -295,7 +295,6 @@ class CloudHSMV2Backend(BaseBackend):
             if backup.backup_arn == resource_arn:
                 matching_backup = backup
                 break
-
         if not matching_backup:
             raise ResourceNotFoundException(f"Backup with ARN {resource_arn} not found")
 
