@@ -751,6 +751,47 @@ def test_delete_database(client):
 
 
 @mock_aws
+def test_max_allocated_storage(client):
+    # MaxAllocatedStorage is not set or included in details by default.
+    details = create_db_instance()
+    assert "MaxAllocatedStorage" not in details
+    # Can't set to less than AllocatedStorage.
+    with pytest.raises(ClientError) as excinfo:
+        create_db_instance(
+            DBInstanceIdentifier="less-than-allocated-storage",
+            AllocatedStorage=50,
+            MaxAllocatedStorage=25,
+        )
+    error_info = excinfo.value.response["Error"]
+    assert error_info["Code"] == "InvalidParameterCombination"
+    assert error_info["Message"] == "Max storage size must be greater than storage size"
+    # Set at creation time.
+    details = create_db_instance(
+        DBInstanceIdentifier="test-max-allocated-storage", MaxAllocatedStorage=500
+    )
+    assert details["MaxAllocatedStorage"] == 500
+    # Set to higher limit.
+    details = client.modify_db_instance(
+        DBInstanceIdentifier=details["DBInstanceIdentifier"], MaxAllocatedStorage=1000
+    )["DBInstance"]
+    assert details["MaxAllocatedStorage"] == 1000
+    # Disable by setting equal to AllocatedStorage.
+    details = client.modify_db_instance(
+        DBInstanceIdentifier=details["DBInstanceIdentifier"],
+        MaxAllocatedStorage=details["AllocatedStorage"],
+    )["DBInstance"]
+    assert "MaxAllocatedStorage" not in details
+    # Can't set to less than AllocatedStorage.
+    with pytest.raises(ClientError) as excinfo:
+        client.modify_db_instance(
+            DBInstanceIdentifier=details["DBInstanceIdentifier"], MaxAllocatedStorage=5
+        )
+    error_info = excinfo.value.response["Error"]
+    assert error_info["Code"] == "InvalidParameterCombination"
+    assert error_info["Message"] == "Max storage size must be greater than storage size"
+
+
+@mock_aws
 def test_create_db_snapshots(client):
     with pytest.raises(ClientError):
         client.create_db_snapshot(

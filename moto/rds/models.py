@@ -757,6 +757,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         engine: str,
         port: Optional[int] = None,
         allocated_storage: Optional[int] = None,
+        max_allocated_storage: Optional[int] = None,
         backup_retention_period: int = 1,
         character_set_name: Optional[str] = None,
         auto_minor_version_upgrade: bool = True,
@@ -815,11 +816,13 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             "manage_master_user_password", False
         )
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
-        self.allocated_storage = allocated_storage
-        if self.allocated_storage is None:
-            self.allocated_storage = DBInstance.default_allocated_storage(
+        self.allocated_storage = (
+            allocated_storage
+            or DBInstance.default_allocated_storage(
                 engine=self.engine, storage_type=self.storage_type
             )
+        )
+        self.max_allocated_storage = max_allocated_storage or self.allocated_storage
         self.db_cluster_identifier: Optional[str] = db_cluster_identifier
         self.db_instance_identifier = db_instance_identifier
         self.source_db_identifier = source_db_instance_identifier
@@ -954,6 +957,22 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
         }
         return secret_info if self.manage_master_user_password else None
+
+    @property
+    def max_allocated_storage(self) -> Optional[int]:
+        return (
+            self._max_allocated_storage
+            if self._max_allocated_storage != self.allocated_storage
+            else None
+        )
+
+    @max_allocated_storage.setter
+    def max_allocated_storage(self, value: int) -> None:
+        if value < self.allocated_storage:
+            raise InvalidParameterCombination(
+                "Max storage size must be greater than storage size"
+            )
+        self._max_allocated_storage = value
 
     @property
     def address(self) -> str:
