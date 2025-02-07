@@ -7,7 +7,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
 from moto.utilities.paginator import Paginator
 
-from .exceptions import InvalidRequestException, ResourceNotFoundException
+from .exceptions import ResourceNotFoundException
 
 
 class Cluster:
@@ -29,8 +29,8 @@ class Cluster:
         self.hsms: List[Dict[str, Any]] = []
         self.hsm_type = hsm_type
         self.source_backup_id = source_backup_id
-        self.state = "CREATE_IN_PROGRESS"
-        self.state_message = "Cluster creation in progress"
+        self.state = "ACTIVE"
+        self.state_message = "The cluster is ready for use."
         self.subnet_mapping = {subnet_id: region_name for subnet_id in subnet_ids}
         self.vpc_id = "vpc-" + str(uuid.uuid4())[:8]
         self.network_type = network_type
@@ -134,7 +134,6 @@ class CloudHSMV2Backend(BaseBackend):
     def list_tags(
         self, resource_id: str, next_token: str, max_results: int
     ) -> Tuple[List[Dict[str, str]], Optional[str]]:
-        """List tags for a CloudHSM resource."""
         if resource_id not in self.tags:
             return [], None
 
@@ -143,7 +142,6 @@ class CloudHSMV2Backend(BaseBackend):
         if not max_results:
             return tags, None
 
-        # Add padding to the token if it exists
         if next_token:
             padding = 4 - (len(next_token) % 4)
             if padding != 4:
@@ -158,7 +156,6 @@ class CloudHSMV2Backend(BaseBackend):
 
         results, token = paginator.paginate(tags)
 
-        # Remove padding from the token before returning
         if token:
             token = token.rstrip("=")
 
@@ -167,16 +164,9 @@ class CloudHSMV2Backend(BaseBackend):
     def tag_resource(
         self, resource_id: str, tag_list: List[Dict[str, str]]
     ) -> Dict[str, Any]:
-        """Add or update tags for a CloudHSM resource."""
-        if resource_id is None:
-            raise ValueError("ResourceId must not be None")
-        if tag_list is None:
-            raise ValueError("TagList must not be None")
-
         if resource_id not in self.tags:
             self.tags[resource_id] = []
 
-        # Update existing tags and add new ones
         for new_tag in tag_list:
             tag_exists = False
             for existing_tag in self.tags[resource_id]:
@@ -192,12 +182,6 @@ class CloudHSMV2Backend(BaseBackend):
     def untag_resource(
         self, resource_id: str, tag_key_list: List[str]
     ) -> Dict[str, Any]:
-        """Remove tags from a CloudHSM resource."""
-        if resource_id is None:
-            raise ValueError("ResourceId must not be None")
-        if tag_key_list is None:
-            raise ValueError("TagKeyList must not be None")
-
         if resource_id in self.tags:
             self.tags[resource_id] = [
                 tag for tag in self.tags[resource_id] if tag["Key"] not in tag_key_list
@@ -227,7 +211,6 @@ class CloudHSMV2Backend(BaseBackend):
         )
         self.clusters[cluster.cluster_id] = cluster
 
-        # Automatically create a backup for the new cluster
         backup = Backup(
             cluster_id=cluster.cluster_id,
             hsm_type=hsm_type,
@@ -240,25 +223,20 @@ class CloudHSMV2Backend(BaseBackend):
         return cluster.to_dict()
 
     def delete_cluster(self, cluster_id: str) -> Dict[str, Any]:
-        """Delete a CloudHSM cluster."""
         if cluster_id not in self.clusters:
-            raise ValueError(f"Cluster {cluster_id} not found")
+            raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
 
         cluster = self.clusters[cluster_id]
-        cluster.state = "DELETE_IN_PROGRESS"
-        cluster.state_message = "Cluster deletion in progress"
-
+        cluster.state = "DELETED"
+        cluster.state_message = "Cluster deleted"
         del self.clusters[cluster_id]
-
         return cluster.to_dict()
 
     def describe_clusters(
         self, filters: Dict[str, List[str]], next_token: str, max_results: int
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        """Describe CloudHSM clusters."""
         clusters = list(self.clusters.values())
 
-        # If we have filters, filter the resource
         if filters:
             for key, values in filters.items():
                 if key == "clusterIds":
@@ -268,7 +246,6 @@ class CloudHSMV2Backend(BaseBackend):
                 elif key == "vpcIds":
                     clusters = [c for c in clusters if c.vpc_id in values]
 
-        # Sort clusters by creation timestamp
         clusters = sorted(clusters, key=lambda x: x.create_timestamp)
 
         if not max_results:
@@ -285,20 +262,6 @@ class CloudHSMV2Backend(BaseBackend):
         return results, token
 
     def get_resource_policy(self, resource_arn: str) -> Optional[str]:
-        """Gets the resource policy attached to a CloudHSM backup."""
-        if not resource_arn:
-            raise InvalidRequestException("ResourceArn must not be empty")
-
-        # Verify backup exists
-        matching_backup = None
-        for backup in self.backups.values():
-            if backup.backup_arn == resource_arn:
-                matching_backup = backup
-                break
-        if not matching_backup:
-            raise ResourceNotFoundException(f"Backup with ARN {resource_arn} not found")
-
-        # Return the policy if it exists, otherwise return None
         return self.resource_policies.get(resource_arn)
 
     def describe_backups(
@@ -309,7 +272,6 @@ class CloudHSMV2Backend(BaseBackend):
         shared: Optional[bool],
         sort_ascending: Optional[bool],
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        """Describe CloudHSM backups."""
         backups = list(self.backups.values())
 
         if filters:
@@ -326,7 +288,6 @@ class CloudHSMV2Backend(BaseBackend):
                     never_expires = values[0].lower() == "true"
                     backups = [b for b in backups if b.never_expires == never_expires]
 
-        # Sort backups
         backups.sort(
             key=lambda x: x.create_timestamp,
             reverse=not sort_ascending if sort_ascending is not None else True,
@@ -344,20 +305,6 @@ class CloudHSMV2Backend(BaseBackend):
         return results, token
 
     def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
-        # Find the backup
-        matching_backup = None
-        for backup in self.backups.values():
-            if backup.backup_arn == resource_arn:
-                matching_backup = backup
-                break
-        if not matching_backup:
-            raise ResourceNotFoundException(f"Backup with ARN {resource_arn} not found")
-
-        if matching_backup.backup_state != "READY":
-            raise InvalidRequestException(
-                f"Backup {matching_backup.backup_id} is not in READY state"
-            )
-
         self.resource_policies[resource_arn] = policy
         return {"ResourceArn": resource_arn, "Policy": policy}
 

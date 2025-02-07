@@ -94,6 +94,7 @@ class CloudHSMV2Response(BaseResponse):
         params = json.loads(raw_params)
 
         cluster_id = params.get("ClusterId")
+
         cluster = self.cloudhsmv2_backend.delete_cluster(cluster_id=cluster_id)
         return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
 
