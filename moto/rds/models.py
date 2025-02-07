@@ -295,15 +295,34 @@ class DBCluster(RDSBaseModel):
 
     resource_type = "cluster"
 
-    def __init__(self, backend: RDSBackend, db_cluster_identifier: str, **kwargs: Any):
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_cluster_identifier: str,
+        engine: str,
+        engine_version: Optional[str] = None,
+        master_username: Optional[str] = None,
+        master_user_password: Optional[str] = None,
+        backup_retention_period: Optional[int] = 1,
+        character_set_name: Optional[str] = None,
+        copy_tags_to_snapshot: Optional[bool] = False,
+        database_name: Optional[str] = None,
+        db_cluster_parameter_group_name: Optional[str] = None,
+        port: Optional[int] = None,
+        preferred_backup_window: Optional[str] = "01:37-02:07",
+        preferred_maintenance_window: Optional[str] = "wed:02:40-wed:03:10",
+        storage_encrypted: Optional[bool] = False,
+        tags: Optional[List[Dict[str, str]]] = None,
+        vpc_security_group_ids: Optional[List[str]] = None,
+        deletion_protection: Optional[bool] = False,
+        **kwargs: Any,
+    ):
         super().__init__(backend)
-        self.database_name = kwargs.get("database_name")
+        self.database_name = database_name
         self.db_cluster_identifier = db_cluster_identifier
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
-        self.deletion_protection = kwargs.get("deletion_protection")
-        if self.deletion_protection is None:
-            self.deletion_protection = False
-        self.engine = kwargs.get("engine")
+        self.deletion_protection = deletion_protection
+        self.engine = engine
         if self.engine not in ClusterEngine.list_cluster_engines():
             raise InvalidParameterValue(
                 (
@@ -315,18 +334,16 @@ class DBCluster(RDSBaseModel):
                     valid_engines=ClusterEngine.list_cluster_engines(),
                 )
             )
-        self.engine_version = kwargs.get(
-            "engine_version"
-        ) or DBCluster.default_engine_version(self.engine)
+        self.engine_version = engine_version or DBCluster.default_engine_version(
+            self.engine
+        )
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
         self.kms_key_id = kwargs.get("kms_key_id")
         self.network_type = kwargs.get("network_type") or "IPV4"
         self._status = "creating"
         self.cluster_create_time = iso_8601_datetime_with_milliseconds()
-        self.copy_tags_to_snapshot = kwargs.get("copy_tags_to_snapshot")
-        if self.copy_tags_to_snapshot is None:
-            self.copy_tags_to_snapshot = False
+        self.copy_tags_to_snapshot = copy_tags_to_snapshot
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
             self.storage_type = DBCluster.default_storage_type(iops=self.iops)
@@ -335,7 +352,8 @@ class DBCluster(RDSBaseModel):
             self.allocated_storage = DBCluster.default_allocated_storage(
                 engine=self.engine, storage_type=self.storage_type
             )
-        self.master_username = kwargs.get("master_username")
+        self.master_username = master_username
+        self.character_set_name = character_set_name
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         if (
             not self.master_username
@@ -348,7 +366,7 @@ class DBCluster(RDSBaseModel):
                 "The parameter MasterUsername must be provided and must not be blank."
             )
         else:
-            self.master_user_password = kwargs.get("master_user_password")  # type: ignore
+            self.master_user_password = master_user_password or ""
 
         self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
         self.manage_master_user_password = kwargs.get(
@@ -368,33 +386,25 @@ class DBCluster(RDSBaseModel):
         default_pg = (
             "default.neptune1.3" if self.engine == "neptune" else "default.aurora8.0"
         )
-        self.parameter_group = (
-            kwargs.get("db_cluster_parameter_group_name") or default_pg
-        )
+        self.parameter_group = db_cluster_parameter_group_name or default_pg
         self.subnet_group = kwargs.get("db_subnet_group_name") or "default"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
         self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
-        self.port: int = kwargs.get("port")  # type: ignore
-        if self.port is None:
-            self.port = DBCluster.default_port(self.engine)
-        self.preferred_backup_window = (
-            kwargs.get("preferred_backup_window") or "01:37-02:07"
-        )
-        self.preferred_maintenance_window = "wed:02:40-wed:03:10"
+        self.port = port or DBCluster.default_port(self.engine)
+        self.preferred_backup_window = preferred_backup_window or "01:37-02:07"
+        self.preferred_maintenance_window = preferred_maintenance_window
         # This should default to the default security group
-        self._vpc_security_group_ids: List[str] = kwargs.get(
-            "vpc_security_group_ids", []
-        )
+        self._vpc_security_group_ids = vpc_security_group_ids or []
         self.hosted_zone_id = "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(14)
         )
         self.resource_id = "cluster-" + "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
         )
-        self.tags = kwargs.get("tags", [])
+        self.tags = tags or []
         self.enabled_cloudwatch_logs_exports = (
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
@@ -418,9 +428,7 @@ class DBCluster(RDSBaseModel):
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
-        self.storage_encrypted = kwargs.get("storage_encrypted", False)
-        if self.storage_encrypted is None:
-            self.storage_encrypted = False
+        self.storage_encrypted = storage_encrypted
         if self.storage_encrypted:
             self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
         else:
@@ -429,7 +437,7 @@ class DBCluster(RDSBaseModel):
             self._global_write_forwarding_requested = kwargs.get(
                 "enable_global_write_forwarding"
             )
-        self.backup_retention_period = kwargs.get("backup_retention_period") or 1
+        self.backup_retention_period = backup_retention_period
 
         if backtrack := kwargs.get("backtrack_window"):
             if self.engine == "aurora-mysql":
