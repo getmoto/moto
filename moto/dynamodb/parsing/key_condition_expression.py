@@ -23,7 +23,7 @@ def parse_expression(
     expression_attribute_values: Dict[str, Dict[str, str]],
     expression_attribute_names: Dict[str, str],
     schema: List[Dict[str, str]],
-) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]]]:
+) -> Tuple[Dict[str, Any], Optional[str], List[Dict[str, Any]], List[str]]:
     """
     Parse a KeyConditionExpression using the provided expression attribute names/values
 
@@ -37,6 +37,7 @@ def parse_expression(
     current_phrase = ""
     key_name = comparison = ""
     key_values: List[Union[Dict[str, str], str]] = []
+    expression_attribute_names_used: List[str] = []
     results: List[Tuple[str, str, Any]] = []
     tokenizer = GenericTokenizer(key_condition_expression)
     for crnt_char in tokenizer:
@@ -50,9 +51,11 @@ def parse_expression(
                 else:
                     # start_date < :sk and primary = :pk
                     #            ^
-                    key_name = expression_attribute_names.get(
-                        current_phrase, current_phrase
-                    )
+                    if expression_attribute_names.get(current_phrase):
+                        key_name = expression_attribute_names[current_phrase]
+                        expression_attribute_names_used.append(current_phrase)
+                    else:
+                        key_name = current_phrase
                     current_phrase = ""
                     current_stage = EXPRESSION_STAGES.COMPARISON
                     tokenizer.skip_white_space()
@@ -103,9 +106,11 @@ def parse_expression(
                 EXPRESSION_STAGES.KEY_NAME,
                 EXPRESSION_STAGES.INITIAL_STAGE,
             ]:
-                key_name = expression_attribute_names.get(
-                    current_phrase, current_phrase
-                )
+                if expression_attribute_names.get(current_phrase):
+                    key_name = expression_attribute_names[current_phrase]
+                    expression_attribute_names_used.append(current_phrase)
+                else:
+                    key_name = current_phrase
             current_phrase = ""
             if crnt_char in ["<", ">"] and tokenizer.peek() == "=":
                 comparison = crnt_char + tokenizer.__next__()
@@ -118,9 +123,11 @@ def parse_expression(
             if current_stage == EXPRESSION_STAGES.KEY_NAME:
                 # hashkey = :id and begins_with(sortkey,     :sk)
                 #                                      ^ --> ^
-                key_name = expression_attribute_names.get(
-                    current_phrase, current_phrase
-                )
+                if expression_attribute_names.get(current_phrase):
+                    key_name = expression_attribute_names[current_phrase]
+                    expression_attribute_names_used.append(current_phrase)
+                else:
+                    key_name = current_phrase
                 current_phrase = ""
                 current_stage = EXPRESSION_STAGES.KEY_VALUE
                 tokenizer.skip_white_space()
@@ -192,6 +199,7 @@ def parse_expression(
         hash_value,
         range_comparison.upper() if range_comparison else None,
         range_values,
+        expression_attribute_names_used,
     )
 
 

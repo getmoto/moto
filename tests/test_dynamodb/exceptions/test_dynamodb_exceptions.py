@@ -307,6 +307,265 @@ def test_update_item_unused_attribute_name(table_name=None):
     )
 
 
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_put_item_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.put_item(
+            Item={"pk": "pk1", "spec": {}, "am": 0},
+            ConditionExpression="attribute_not_exists(body)",
+            ExpressionAttributeNames={"#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_get_item_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.get_item(
+            Key={"pk": "example_id"},
+            ProjectionExpression="pk",
+            ExpressionAttributeNames={"#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_query_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="(#0 = 1) AND (begins_with(#1, a))",
+            ExpressionAttributeNames={"#0": "pk", "#1": "sk", "#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_scan_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.scan(
+            TableName=table_name,
+            FilterExpression="#h = :h",
+            ExpressionAttributeNames={"#h": "pk", "#count": "count"},
+            ExpressionAttributeValues={":h": {"S": "hash_value"}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_delete_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    table = ddb.Table(table_name)
+
+    with pytest.raises(ClientError) as exc:
+        table.delete_item(
+            Key={"pk": "pk1"},
+            ConditionExpression="attribute_not_exists(body)",
+            ExpressionAttributeNames={"#count": "count"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_batch_get_item_unused_attribute_name(table_name=None):
+    ddb = boto3.resource("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.batch_get_item(
+            RequestItems={
+                "users": {
+                    "Keys": [
+                        {"username": {"S": "user0"}},
+                        {"username": {"S": "user1"}},
+                        {"username": {"S": "user2"}},
+                        {"username": {"S": "user3"}},
+                    ],
+                    "ConsistentRead": True,
+                    "ProjectionExpression": "#rl",
+                    "ExpressionAttributeNames": {"#rl": "username", "#count": "count"},
+                }
+            }
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_put_unused_attribute_name(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {
+                            "pk": {"S": "foo"},
+                            "foo": {"S": "bar"},
+                        },
+                        "TableName": table_name,
+                        "ConditionExpression": "#i <> foo",
+                        "ExpressionAttributeNames": {"#i": "pk", "#count": "count"},
+                    },
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_update_unused_attribute_name(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": table_name,
+                        "UpdateExpression": "SET #e = test",
+                        "ExpressionAttributeNames": {
+                            "#e": "email_address",
+                            "#count": "count",
+                        },
+                    }
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_delete_unused_attribute_name(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Delete": {
+                        "Key": {
+                            "pk": {"S": "foo"},
+                            "foo": {"S": "bar"},
+                        },
+                        "TableName": table_name,
+                        "ConditionExpression": "#i <> foo",
+                        "ExpressionAttributeNames": {"#i": "pk", "#count": "count"},
+                    },
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_item_unused_attribute_name_in_condition_check(table_name=None):
+    ddb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "ConditionCheck": {
+                        "Key": {"id": {"S": "foo"}},
+                        "TableName": table_name,
+                        "ConditionExpression": "attribute_exists(#e)",
+                        "ExpressionAttributeNames": {
+                            "#e": "email_address",
+                            "#count": "count",
+                        },
+                    }
+                },
+                {
+                    "Put": {
+                        "Item": {
+                            "id": {"S": "bar"},
+                            "email_address": {"S": "bar@moto.com"},
+                        },
+                        "TableName": table_name,
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
+    )
+
+
 @mock_aws
 def test_batch_get_item_non_existing_table():
     client = boto3.client("dynamodb", region_name="us-west-2")
