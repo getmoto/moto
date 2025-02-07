@@ -3031,6 +3031,7 @@ class OptionGroup(RDSBaseModel):
         engine_name: str,
         major_engine_version: str,
         option_group_description: Optional[str] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
     ):
         super().__init__(backend)
         self.engine_name = engine_name
@@ -3040,7 +3041,7 @@ class OptionGroup(RDSBaseModel):
         self.vpc_and_non_vpc_instance_memberships = False
         self._options: Dict[str, Any] = {}
         self.vpcId = "null"
-        self.tags: List[Dict[str, str]] = []
+        self.tags = tags or []
 
     @property
     def name(self) -> str:
