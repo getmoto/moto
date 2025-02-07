@@ -2301,9 +2301,7 @@ class RDSBackend(BaseBackend):
             original_cluster = find_cluster(cluster_identifier)
             original_cluster.read_replica_identifiers.append(cluster.db_cluster_arn)
 
-        initial_state = copy.deepcopy(cluster)  # Return status=creating
-        cluster.status = "available"  # Already set the final status in the background
-        return initial_state
+        return cluster
 
     def modify_db_cluster(self, kwargs: Dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
