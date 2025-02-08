@@ -1023,11 +1023,7 @@ class Table(CloudFormationModel):
             hash_key_attrs, range_key_attrs
         )
         for attr in attrs_to_sort_by:
-            if (
-                attr is not None
-                and attr in item.attrs
-                and item.attrs[attr] != DynamoType(dct.get(attr))  # type: ignore
-            ):
+            if attr in item.attrs and item.attrs[attr] != DynamoType(dct.get(attr)):  # type: ignore
                 return (
                     (item.attrs[attr] < DynamoType(dct.get(attr)))  # type: ignore
                     == scan_index_forward
@@ -1052,7 +1048,6 @@ class Table(CloudFormationModel):
     def _generate_attr_to_sort_by(
         self, hash_key_attrs: List[str], range_key_attrs: List[Optional[str]]
     ) -> List[str]:
-        attrs_to_sort_by = []
         gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
         table_hash_key = str(
             hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
@@ -1068,10 +1063,9 @@ class Table(CloudFormationModel):
             table_hash_key,
             table_range_key,
         ]
-        attrs_to_sort_by_final: List[str] = [
+        return [
             attr for attr in attrs_to_sort_by if attr is not None and attr != "None"
         ]
-        return attrs_to_sort_by_final
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]

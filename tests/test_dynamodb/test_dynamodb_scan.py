@@ -499,16 +499,17 @@ def test_scan_gsi_pagination_with_string_gsi_range_no_sk(table_name=None):
     subjects = set([int(r["pk"]) for r in results])
     assert subjects == set(range(10))
 
+
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(add_range=False, add_gsi_range=True)
 def test_scan_gsi_order_range_key(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
 
-    table.put_item(Item={"pk": "1", "gsi_pk": "john", "gsi_sk": f"4"})
-    table.put_item(Item={"pk": "2", "gsi_pk": "john", "gsi_sk": f"1"})
-    table.put_item(Item={"pk": "3", "gsi_pk": "john", "gsi_sk": f"2"})
-    table.put_item(Item={"pk": "4", "gsi_pk": "john", "gsi_sk": f"3"})
+    table.put_item(Item={"pk": "1", "gsi_pk": "john", "gsi_sk": "4"})
+    table.put_item(Item={"pk": "2", "gsi_pk": "john", "gsi_sk": "1"})
+    table.put_item(Item={"pk": "3", "gsi_pk": "john", "gsi_sk": "2"})
+    table.put_item(Item={"pk": "4", "gsi_pk": "john", "gsi_sk": "3"})
 
     for i in range(1, 3):
         table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": f"{i}"})
@@ -525,6 +526,7 @@ def test_scan_gsi_order_range_key(table_name=None):
     assert items[2]["gsi_sk"] == "3"
     assert items[3]["gsi_sk"] == "4"
 
+
 @pytest.mark.aws_verified
 @dynamodb_aws_verified(add_range=False, add_gsi_range=True)
 def test_scan_gsi_exlusive_start_key(table_name=None):
@@ -536,9 +538,12 @@ def test_scan_gsi_exlusive_start_key(table_name=None):
 
     page = table.scan(IndexName="test_gsi", Limit=3)
     assert len(page["Items"]) == 3
-    page = table.scan(IndexName="test_gsi", Limit=3, ExclusiveStartKey=page["LastEvaluatedKey"])
+    page = table.scan(
+        IndexName="test_gsi", Limit=3, ExclusiveStartKey=page["LastEvaluatedKey"]
+    )
     # the total are four, we are using the ExclusiveStartKey of third item, only one left
     assert len(page["Items"]) == 1
+
 
 @mock_aws
 class TestFilterExpression:
