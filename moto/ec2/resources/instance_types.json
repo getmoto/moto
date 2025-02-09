@@ -1712,7 +1712,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 9500,
@@ -4398,7 +4398,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 9500,
@@ -4645,7 +4645,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 19000,
@@ -24185,6 +24185,134 @@
     72,
     84,
     96
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "f2.6xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 7500,
+    "BaselineIops": 30000,
+    "BaselineThroughputInMBps": 937.5,
+    "MaximumBandwidthInMbps": 7500,
+    "MaximumIops": 30000,
+    "MaximumThroughputInMBps": 937.5
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FpgaInfo": {
+   "Fpgas": [
+    {
+     "Count": 1,
+     "Manufacturer": "Xilinx",
+     "MemoryInfo": {
+      "SizeInMiB": 81920
+     },
+     "Name": "Virtex UltraScale+ (VU47P)"
+    }
+   ],
+   "TotalFpgaMemoryInMiB": 81920
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 940,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 940
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "f2.6xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 12.5,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AMD",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.4
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 12,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 24,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    6,
+    9,
+    12
    ],
    "ValidThreadsPerCore": [
     1,
