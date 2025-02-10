@@ -1056,6 +1056,15 @@
                   "Value": "https"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "acm-pca.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -1186,6 +1195,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "acm-pca.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "acm-pca.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "https"
@@ -41858,6 +41876,15 @@
               "Value": "https://aws.amazon.com/keyspaces/"
             },
             "regions": {
+              "af-south-1": {
+                "Value": "af-south-1",
+                "endpoint": {
+                  "Value": "cassandra.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, TLS"
+                }
+              },
               "ap-east-1": {
                 "Value": "ap-east-1",
                 "endpoint": {
@@ -48625,6 +48652,10 @@
             }
           },
           "pca-connector-ad": {
+            "Value": "pca-connector-ad",
+            "longName": {
+              "Value": "Private CA Connector for Active Directory"
+            },
             "regions": {
               "af-south-1": {
                 "Value": "af-south-1",
@@ -48734,6 +48765,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
@@ -48801,6 +48841,15 @@
                 "Value": "eu-west-3",
                 "endpoint": {
                   "Value": "pca-connector-ad.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "il-central-1": {
+                "Value": "il-central-1",
+                "endpoint": {
+                  "Value": "pca-connector-ad.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -57568,6 +57617,15 @@
                 "Value": "ap-southeast-4",
                 "endpoint": {
                   "Value": "api.sagemaker.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "api.sagemaker.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

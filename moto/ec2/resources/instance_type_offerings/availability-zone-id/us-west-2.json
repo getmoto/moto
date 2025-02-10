@@ -820,6 +820,18 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "usw2-az1"
  },
@@ -7525,6 +7537,18 @@
  },
  {
   "InstanceType": "f1.4xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "f2.12xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
   "Location": "usw2-az3"
  },
  {

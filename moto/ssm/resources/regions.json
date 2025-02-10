@@ -1057,6 +1057,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mcs": {
+                "Value": "mcs",
+                "endpoint": {
+                  "Value": "cassandra.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, TLS"
+                }
+              },
               "mediaconnect": {
                 "Value": "mediaconnect",
                 "endpoint": {
@@ -23460,6 +23469,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sagemaker-metrics": {
                 "Value": "sagemaker-metrics",
                 "endpoint": {
@@ -23711,6 +23729,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "apigateway": {
@@ -27537,6 +27564,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48828,6 +48864,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pca-connector-scep": {
                 "Value": "pca-connector-scep",
                 "endpoint": {
@@ -52558,6 +52603,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "acm-pca": {
+                "Value": "acm-pca",
+                "endpoint": {
+                  "Value": "acm-pca.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
                 }
               },
               "apigateway": {
