@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.securityhub.exceptions import InvalidInputException
-from moto.utilities.paginator import Paginator
+from moto.utilities.paginator import paginate
 
 
 class Finding(BaseModel):
@@ -20,20 +20,31 @@ class Finding(BaseModel):
 class SecurityHubBackend(BaseBackend):
     """Implementation of SecurityHub APIs."""
 
+    PAGINATION_MODEL = {
+        "get_findings": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "Id",
+            "fail_on_invalid_token": True,
+        }
+    }
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.findings: List[Finding] = []
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def get_findings(
         self,
         filters: Optional[Dict[str, Any]] = None,
         sort_criteria: Optional[List[Dict[str, str]]] = None,
-        next_token: Optional[str] = None,
         max_results: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        findings = self.findings
-
-        # Max Results Parameter
+        next_token: Optional[str] = None,
+    ) -> List[Dict[str, str]]:
+        """
+        Returns findings based on optional filters and sort criteria.
+        """
         if max_results is not None:
             try:
                 max_results = int(max_results)
@@ -47,19 +58,12 @@ class SecurityHubBackend(BaseBackend):
                     op="GetFindings", msg="MaxResults must be a number greater than 0"
                 )
 
-        paginator = Paginator(
-            max_results=max_results or 100,
-            unique_attribute=["id"],
-            starting_token=next_token,
-            fail_on_invalid_token=True,
-        )
+        findings = self.findings
 
-        paginated_findings, next_token = paginator.paginate(findings)
+        # TODO: Apply filters if provided
+        # TODO: Apply sort criteria if provided
 
-        return {
-            "Findings": [f.as_dict() for f in paginated_findings],
-            "NextToken": next_token,
-        }
+        return [f.as_dict() for f in findings]
 
     def batch_import_findings(
         self, findings: List[Dict[str, Any]]

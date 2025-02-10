@@ -16,23 +16,20 @@ class SecurityHubResponse(BaseResponse):
         return securityhub_backends[self.current_account][self.region]
 
     def get_findings(self) -> str:
-        raw_params = self._get_params()
+        filters = self._get_param("Filters")
+        sort_criteria = self._get_param("SortCriteria")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
 
-        params = json.loads(next(iter(raw_params.keys()), "{}"))
-
-        sort_criteria = params.get("SortCriteria", [])
-        filters = params.get("Filters", {})
-        next_token = params.get("NextToken", None)
-        max_results = params.get("MaxResults", 100)
-
-        result = self.securityhub_backend.get_findings(
+        findings, next_token = self.securityhub_backend.get_findings(
             filters=filters,
             sort_criteria=sort_criteria,
-            next_token=next_token,
             max_results=max_results,
+            next_token=next_token,
         )
 
-        return json.dumps(result)
+        response = {"Findings": findings, "NextToken": next_token}
+        return json.dumps(response)
 
     def batch_import_findings(self) -> str:
         raw_body = self.body

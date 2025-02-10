@@ -1258,6 +1258,7 @@
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] search_sample_queries
 - [ ] start_dashboard_refresh
 - [ ] start_event_data_store_ingestion
 - [ ] start_import
@@ -7757,6 +7758,38 @@
 - [ ] update_storage_lens_group
 </details>
 
+## s3tables
+<details>
+<summary>53% implemented</summary>
+
+- [X] create_namespace
+- [X] create_table
+- [X] create_table_bucket
+- [X] delete_namespace
+- [X] delete_table
+- [X] delete_table_bucket
+- [ ] delete_table_bucket_policy
+- [ ] delete_table_policy
+- [X] get_namespace
+- [X] get_table
+- [X] get_table_bucket
+- [ ] get_table_bucket_maintenance_configuration
+- [ ] get_table_bucket_policy
+- [ ] get_table_maintenance_configuration
+- [ ] get_table_maintenance_job_status
+- [ ] get_table_metadata_location
+- [ ] get_table_policy
+- [X] list_namespaces
+- [X] list_table_buckets
+- [X] list_tables
+- [ ] put_table_bucket_maintenance_configuration
+- [ ] put_table_bucket_policy
+- [ ] put_table_maintenance_configuration
+- [ ] put_table_policy
+- [X] rename_table
+- [X] update_table_metadata_location
+</details>
+
 ## sagemaker
 <details>
 <summary>31% implemented</summary>
@@ -8197,6 +8230,91 @@
 - [X] update_secret
 - [X] update_secret_version_stage
 - [ ] validate_resource_policy
+</details>
+
+## securityhub
+<details>
+<summary>2% implemented</summary>
+
+- [ ] accept_administrator_invitation
+- [ ] accept_invitation
+- [ ] batch_delete_automation_rules
+- [ ] batch_disable_standards
+- [ ] batch_enable_standards
+- [ ] batch_get_automation_rules
+- [ ] batch_get_configuration_policy_associations
+- [ ] batch_get_security_controls
+- [ ] batch_get_standards_control_associations
+- [X] batch_import_findings
+- [ ] batch_update_automation_rules
+- [ ] batch_update_findings
+- [ ] batch_update_standards_control_associations
+- [ ] create_action_target
+- [ ] create_automation_rule
+- [ ] create_configuration_policy
+- [ ] create_finding_aggregator
+- [ ] create_insight
+- [ ] create_members
+- [ ] decline_invitations
+- [ ] delete_action_target
+- [ ] delete_configuration_policy
+- [ ] delete_finding_aggregator
+- [ ] delete_insight
+- [ ] delete_invitations
+- [ ] delete_members
+- [ ] describe_action_targets
+- [ ] describe_hub
+- [ ] describe_organization_configuration
+- [ ] describe_products
+- [ ] describe_standards
+- [ ] describe_standards_controls
+- [ ] disable_import_findings_for_product
+- [ ] disable_organization_admin_account
+- [ ] disable_security_hub
+- [ ] disassociate_from_administrator_account
+- [ ] disassociate_from_master_account
+- [ ] disassociate_members
+- [ ] enable_import_findings_for_product
+- [ ] enable_organization_admin_account
+- [ ] enable_security_hub
+- [ ] get_administrator_account
+- [ ] get_configuration_policy
+- [ ] get_configuration_policy_association
+- [ ] get_enabled_standards
+- [ ] get_finding_aggregator
+- [ ] get_finding_history
+- [X] get_findings
+- [ ] get_insight_results
+- [ ] get_insights
+- [ ] get_invitations_count
+- [ ] get_master_account
+- [ ] get_members
+- [ ] get_security_control_definition
+- [ ] invite_members
+- [ ] list_automation_rules
+- [ ] list_configuration_policies
+- [ ] list_configuration_policy_associations
+- [ ] list_enabled_products_for_import
+- [ ] list_finding_aggregators
+- [ ] list_invitations
+- [ ] list_members
+- [ ] list_organization_admin_accounts
+- [ ] list_security_control_definitions
+- [ ] list_standards_control_associations
+- [ ] list_tags_for_resource
+- [ ] start_configuration_policy_association
+- [ ] start_configuration_policy_disassociation
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_action_target
+- [ ] update_configuration_policy
+- [ ] update_finding_aggregator
+- [ ] update_findings
+- [ ] update_insight
+- [ ] update_organization_configuration
+- [ ] update_security_control
+- [ ] update_security_hub_configuration
+- [ ] update_standards_control
 </details>
 
 ## service-quotas
@@ -9584,7 +9702,6 @@
 - route53profiles
 - rum
 - s3outposts
-- s3tables
 - sagemaker-a2i-runtime
 - sagemaker-edge
 - sagemaker-featurestore-runtime
@@ -9592,7 +9709,6 @@
 - savingsplans
 - schemas
 - security-ir
-- securityhub
 - securitylake
 - serverlessrepo
 - servicecatalog
