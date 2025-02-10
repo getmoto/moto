@@ -576,6 +576,10 @@
   "Location": "eu-west-2a"
  },
  {
+  "InstanceType": "f2.6xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "eu-west-2a"
  },
@@ -4525,6 +4529,10 @@
  },
  {
   "InstanceType": "f2.48xlarge",
+  "Location": "eu-west-2c"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
   "Location": "eu-west-2c"
  },
  {
