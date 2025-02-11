@@ -26,10 +26,3 @@ class ResourceNotFoundException(TimestreamInfluxDBException):
 
     def __init__(self, message: str):
         super().__init__("ResourceNotFoundException", message)
-
-
-class AccessDeniedException(TimestreamInfluxDBException):
-    code = 400
-
-    def __init__(self, message: str):
-        super().__init__("AccessDeniedException", message)
