@@ -79,7 +79,7 @@ def test_create_db_instance_name_invalid():
         "1muststartwithletter",
         "cantendwithhyphen_",
         "nodoublehyphen--",
-        "nop",
+        "no",
         "longlonglonglonglonglonglonglonglonglongname",
     ]
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
