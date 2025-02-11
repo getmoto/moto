@@ -80,7 +80,7 @@ def test_create_db_instance_name_invalid():
         "cantendwithhyphen_",
         "nodoublehyphen--",
         "nop",
-        "longlonglonglonglonglonglonglonglonglongname"
+        "longlonglonglonglonglonglonglonglonglongname",
     ]
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
@@ -108,11 +108,10 @@ def test_create_db_instance_invalid_storage_type():
             vpcSubnetIds=["subnet-0123456789abcdef0"],
             vpcSecurityGroupIds=["sg-0123456789abcdef0"],
             allocatedStorage=123,
-            dbStorageType="invalid"
+            dbStorageType="invalid",
         )
-        
-        assert exc.value.response["Error"]["Code"] == "ValidationException"
 
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_aws
@@ -126,9 +125,9 @@ def test_create_db_instance_invalid_instance_type():
             vpcSubnetIds=["subnet-0123456789abcdef0"],
             vpcSecurityGroupIds=["sg-0123456789abcdef0"],
             allocatedStorage=123,
-            dbInstanceType="invalid"
+            dbInstanceType="invalid",
         )
-        
+
     assert exc.value.response["Error"]["Code"] == "ValidationException"
 
 

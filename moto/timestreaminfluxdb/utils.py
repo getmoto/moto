@@ -9,6 +9,7 @@ def random_id(size: int = 10) -> str:
     chars = list(range(10)) + list(string.ascii_lowercase)
     return "".join(str(random.choice(chars)) for x in range(size))
 
+
 def validate_name(name: str) -> None:
     """
     The name that uniquely identifies the DB instance when interacting with the Amazon Timestream for InfluxDB API and CLI commands.
