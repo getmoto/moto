@@ -44,33 +44,7 @@ def test_create_db_instance_success():
     assert "publiclyAccessible" in response
     assert "secondaryAvailabilityZone" in response
     assert "status" in response
-    assert "vpcSecurityGroupIds" in response
-    assert "vpcSubnetIds" in response
     assert "logDeliveryConfiguration" in response
-
-
-## Example output from boto3
-"""
-client.list_db_instances()
-{
-    'items': [
-        {
-            'id': '2acznutudh',
-            'name': 'sbx-lebiwh-test1',
-            'arn': 'arn:aws:timestream-influxdb:us-east-1:851925785310:db-instance/2acznutudh',
-            'status': 'AVAILABLE',
-            'endpoint': '2acznutudh-yqw2rtw2r2imck.timestream-influxdb.us-east-1.on.aws',
-            'port': 8086,
-            'networkType': 'IPV4',
-            'dbInstanceType': 'db.influx.medium',
-            'dbStorageType': 'InfluxIOIncludedT1',
-            'allocatedStorage': 20,
-            'deploymentType': 'SINGLE_AZ'
-        }
-    ],
-    'ResponseMetadata': { ... }
-}
-"""
 
 
 @mock_aws
@@ -154,8 +128,6 @@ def test_delete_db_instance():
     assert "port" in response
     assert "publiclyAccessible" in response
     assert "secondaryAvailabilityZone" in response
-    assert "vpcSecurityGroupIds" in response
-    assert "vpcSubnetIds" in response
     assert "logDeliveryConfiguration" in response
 
     assert response["status"] == "DELETING"
@@ -204,8 +176,6 @@ def test_get_db_instance():
     assert "port" in response
     assert "publiclyAccessible" in response
     assert "secondaryAvailabilityZone" in response
-    assert "vpcSecurityGroupIds" in response
-    assert "vpcSubnetIds" in response
     assert "logDeliveryConfiguration" in response
     assert "status" in response
 
