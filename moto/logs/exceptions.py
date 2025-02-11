@@ -53,9 +53,6 @@ class ValidationException(LogsClientError):
 
 
 class ConflictException(LogsClientError):
-    def __init__(self) -> None:
+    def __init__(self, msg: str) -> None:
         self.code = 400
-        super().__init__(
-            "ConflictException",
-            "Tags can only be provided when a resource is being created, not updated.",
-        )
+        super().__init__("ConflictException", msg)

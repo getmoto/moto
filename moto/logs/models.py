@@ -771,6 +771,7 @@ class DeliveryDestination(BaseModel):
         output_format: Optional[str],
         delivery_destination_configuration: Dict[str, str],
         tags: Optional[Dict[str, str]],
+        policy: Optional[str] = None,
     ):
         self.name = name
         self.output_format = output_format
@@ -786,6 +787,7 @@ class DeliveryDestination(BaseModel):
             self.delivery_destination_type = "FH"
         self.delivery_destination_configuration = delivery_destination_configuration
         self.tags = tags
+        self.policy = policy
 
     def to_dict(self) -> Dict[str, Any]:
         dct = {
@@ -794,6 +796,122 @@ class DeliveryDestination(BaseModel):
             "deliveryDestinationType": self.delivery_destination_type,
             "outputFormat": self.output_format,
             "deliveryDestinationConfiguration": self.delivery_destination_configuration,
+            "tags": self.tags,
+        }
+        dct_items = {k: v for k, v in dct.items() if v}
+        return dct_items
+
+
+class DeliverySource(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        resource_arn: str,
+        log_type: str,
+        tags: Optional[Dict[str, str]],
+    ):
+        res_arns = []
+        res_arns.append(resource_arn)
+        self.name = name
+        self.arn = f"arn:aws:logs:{region}:{account_id}:delivery-source:{name}"
+        self.resource_arns = res_arns
+        self.service = resource_arn.split(":")[2]
+        self.log_type = log_type
+        self.tags = tags
+
+    def to_dict(self) -> Dict[str, Any]:
+        dct = {
+            "name": self.name,
+            "arn": self.arn,
+            "resourceArns": self.resource_arns,
+            "service": self.service,
+            "logType": self.log_type,
+            "tags": self.tags,
+        }
+        dct_items = {k: v for k, v in dct.items() if v}
+        return dct_items
+
+
+class Delivery(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        delivery_source_name: str,
+        delivery_destination_arn: str,
+        destination_type: str,
+        record_fields: Optional[List[str]],
+        field_delimiter: Optional[str],
+        s3_delivery_configuration: Optional[Dict[str, Any]],
+        tags: Optional[Dict[str, str]],
+    ):
+        self.id = mock_random.get_random_string(length=16)
+        self.arn = f"arn:aws:logs:{region}:{account_id}:delivery:{self.id}"
+        self.delivery_source_name = delivery_source_name
+        self.delivery_destination_arn = delivery_destination_arn
+        self.destination_type = destination_type
+        # Default record fields
+        default_record_fields = [
+            "date",
+            "time",
+            "x-edge-location",
+            "sc-bytes",
+            "c-ip",
+            "cs-method",
+            "cs(Host)",
+            "cs-uri-stem",
+            "sc-status",
+            "cs(Referer)",
+            "cs(User-Agent)",
+            "cs-uri-query",
+            "cs(Cookie)",
+            "x-edge-result-type",
+            "x-edge-request-id",
+            "x-host-header",
+            "cs-protocol",
+            "cs-bytes",
+            "time-taken",
+            "x-forwarded-for",
+            "ssl-protocol",
+            "ssl-cipher",
+            "x-edge-response-result-type",
+            "cs-protocol-version",
+            "fle-status",
+            "fle-encrypted-fields",
+            "c-port",
+            "time-to-first-byte",
+            "x-edge-detailed-result-type",
+            "sc-content-type",
+            "sc-content-len",
+            "sc-range-start",
+            "sc-range-end",
+        ]
+        self.record_fields = record_fields or default_record_fields
+        self.field_delimiter = field_delimiter
+        default_s3_configuration = {}
+        if destination_type == "S3":
+            # Default s3 configuration
+            default_s3_configuration = {
+                "suffixPath": "AWSLogs/{account-id}/CloudFront/",
+                "enableHiveCompatiblePath": False,
+            }
+        self.s3_delivery_configuration = (
+            s3_delivery_configuration or default_s3_configuration
+        )
+        self.tags = tags
+
+    def to_dict(self) -> Dict[str, Any]:
+        dct = {
+            "id": self.id,
+            "arn": self.arn,
+            "deliverySourceName": self.delivery_source_name,
+            "deliveryDestinationArn": self.delivery_destination_arn,
+            "deliveryDestinationType": self.destination_type,
+            "recordFields": self.record_fields,
+            "fieldDelimiter": self.field_delimiter,
+            "s3DeliveryConfiguration": self.s3_delivery_configuration,
             "tags": self.tags,
         }
         dct_items = {k: v for k, v in dct.items() if v}
@@ -811,6 +929,8 @@ class LogsBackend(BaseBackend):
         self.tagger = TaggingService()
         self.export_tasks: Dict[str, ExportTask] = dict()
         self.delivery_destinations: Dict[str, DeliveryDestination] = dict()
+        self.delivery_sources: Dict[str, DeliverySource] = dict()
+        self.deliveries: Dict[str, Delivery] = dict()
 
     def create_log_group(
         self, log_group_name: str, tags: Dict[str, str], **kwargs: Any
@@ -1389,38 +1509,253 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         return log_group
 
-    # def put_delivery_destination_policy(self, delivery_destination_name, delivery_destination_policy):
-    #     # implement here
-    #     return policy
-
     def put_delivery_destination(
-        self, name: str, output_format: Optional[str], delivery_destination_configuration: Dict[str, str], tags: Optional[Dict[str, str]]
+        self,
+        name: str,
+        output_format: Optional[str],
+        delivery_destination_configuration: Dict[str, str],
+        tags: Optional[Dict[str, str]],
     ) -> DeliveryDestination:
-        if output_format not in ["w3c", "raw", "json", "plain", "parquet"]:
+        if output_format and output_format not in [
+            "w3c",
+            "raw",
+            "json",
+            "plain",
+            "parquet",
+        ]:
             msg = f"1 validation error detected: Value '{output_format}' at 'outputFormat' failed to satisfy constraint: Member must satisfy enum value set: [w3c, raw, json, plain, parquet]"
             raise ValidationException(msg)
         if name in self.delivery_destinations:
             if tags:
-                raise ConflictException()
+                raise ConflictException(
+                    msg="Tags can only be provided when a resource is being created, not updated."
+                )
             if (
                 output_format
                 and self.delivery_destinations[name].output_format != output_format
             ):
                 msg = "Update to existing Delivery Destination with new Output Format is not allowed. Please create a new Delivery Destination instead."
                 raise ValidationException(msg)
-
         delivery_destination = DeliveryDestination(
-            self.account_id,
-            self.region_name,
-            name,
-            output_format,
-            delivery_destination_configuration,
-            tags,
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            output_format=output_format,
+            delivery_destination_configuration=delivery_destination_configuration,
+            tags=tags,
+            policy=None,
         )
-        self.delivery_destinations[delivery_destination.name] = delivery_destination
-        # self.tag_resource(destination.arn, tags)
-        # return destination
+        self.delivery_destinations[name] = delivery_destination
+        if tags:
+            self.tag_resource(delivery_destination.arn, tags)
         return delivery_destination
+
+    def get_delivery_destination(self, name: str) -> DeliveryDestination:
+        if name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        delivery_destination = self.delivery_destinations[name]
+        return delivery_destination
+
+    def describe_delivery_destinations(self) -> List[DeliveryDestination]:
+        # Pagination not yet implemented
+        delivery_destinations = list(self.delivery_destinations.values())
+        return delivery_destinations
+
+    def put_delivery_destination_policy(
+        self, delivery_destination_name: str, delivery_destination_policy: str
+    ) -> Dict[str, str]:
+        if delivery_destination_name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        dd = self.delivery_destinations[delivery_destination_name]
+        dd.policy = delivery_destination_policy
+        return {"deliveryDestinationPolicy": delivery_destination_policy}
+
+    def get_delivery_destination_policy(
+        self, delivery_destination_name: str
+    ) -> Dict[str, Any]:
+        if delivery_destination_name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        policy = self.delivery_destinations[delivery_destination_name].policy
+        return {"deliveryDestinationPolicy": policy}
+
+    def put_delivery_source(
+        self, name: str, resource_arn: str, log_type: str, tags: Dict[str, str]
+    ) -> DeliverySource:
+        log_types = {
+            "cloudfront": "ACCESS_LOGS",
+            "bedrock": "APPLICATION_LOGS",
+            "codewhisperer": "EVENT_LOGS",
+            "mediapackage": ["EGRESS_ACCESS_LOGS", "INGRESS_ACCESS_LOGS"],
+            "mediatailor": [
+                "AD_DECISION_SERVER_LOGS",
+                "MANIFEST_SERVICE_LOGS",
+                "TRANSCODE_LOGS",
+            ],
+            "sso": "ERROR_LOGS",
+            "qdeveloper": "EVENT_LOGS",
+            "ses": "APPLICATION_LOG",
+            "workmail": [
+                "ACCESS_CONTROL_LOGS",
+                "AUTHENTICATION_LOGS",
+                "WORKMAIL_AVAILABILITY_PROVIDER_LOGS",
+                "WORKMAIL_MAILBOX_ACCESS_LOGS",
+                "WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS",
+            ],
+        }
+        resource_type = resource_arn.split(":")[2]
+
+        if resource_type not in log_types:
+            raise ResourceNotFoundException(msg="Cannot access provided service.")
+
+        if log_type not in log_types[resource_type]:
+            raise ValidationException(
+                msg=" This service is not allowed for this LogSource."
+            )
+
+        if name in self.delivery_sources:
+            if tags:
+                raise ConflictException(
+                    msg="Tags can only be provided when a resource is being created, not updated."
+                )
+            if resource_arn not in self.delivery_sources[name].resource_arns:
+                raise ConflictException(
+                    msg="Update to existing Delivery Source with new ResourceId is not allowed. Please create a new Delivery Source instead."
+                )
+        delivery_source = DeliverySource(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            resource_arn=resource_arn,
+            log_type=log_type,
+            tags=tags,
+        )
+        self.delivery_sources[name] = delivery_source
+        if tags:
+            self.tag_resource(delivery_source.arn, tags)
+        return delivery_source
+
+    def describe_delivery_sources(self) -> List[DeliverySource]:
+        # Pagination not yet implemented
+        delivery_sources = list(self.delivery_sources.values())
+        return delivery_sources
+
+    def get_delivery_source(self, name: str) -> DeliverySource:
+        if name not in self.delivery_sources:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Source does not exist in this account.."
+            )
+        delivery_source = self.delivery_sources[name]
+        return delivery_source
+
+    def create_delivery(
+        self,
+        delivery_source_name: str,
+        delivery_destination_arn: str,
+        record_fields: Optional[List[str]],
+        field_delimiter: Optional[str],
+        s3_delivery_configuration: Optional[Dict[str, Any]],
+        tags: Optional[Dict[str, str]],
+    ) -> Delivery:
+        if delivery_source_name not in self.delivery_sources:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Source does not exist in this account."
+            )
+        if delivery_destination_arn not in [
+            dd.arn for dd in self.delivery_destinations.values()
+        ]:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+
+        for delivery in self.deliveries.values():
+            if (
+                delivery.delivery_source_name == delivery_source_name
+                and delivery.delivery_destination_arn == delivery_destination_arn
+            ):
+                raise ConflictException(msg="The specified Delivery already exists")
+            if delivery.delivery_source_name == delivery_source_name:
+                for dd in self.delivery_destinations.values():
+                    if (
+                        dd.arn == delivery_destination_arn
+                        and delivery.destination_type == dd.delivery_destination_type
+                    ):
+                        raise ConflictException(
+                            msg="Delivery already exists for this Delivery Source with the same Delivery Destination Type."
+                        )
+
+        for dd in list(self.delivery_destinations.values()):
+            if dd.arn == delivery_destination_arn:
+                destination_type = dd.delivery_destination_type
+
+        delivery = Delivery(
+            account_id=self.account_id,
+            region=self.region_name,
+            delivery_source_name=delivery_source_name,
+            delivery_destination_arn=delivery_destination_arn,
+            destination_type=destination_type,
+            record_fields=record_fields,
+            field_delimiter=field_delimiter,
+            s3_delivery_configuration=s3_delivery_configuration,
+            tags=tags,
+        )
+        self.deliveries[delivery.id] = delivery
+        if tags:
+            self.tag_resource(delivery.arn, tags)
+        return delivery
+
+    def describe_deliveries(self) -> List[Delivery]:
+        # Pagination not yet implemented
+        deliveries = list(self.deliveries.values())
+        return deliveries
+
+    def get_delivery(self, id: str) -> Delivery:
+        if id not in self.deliveries:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery does not exist in this account."
+            )
+        delivery = self.deliveries[id]
+        return delivery
+
+    def delete_delivery(self, id: str) -> None:
+        if id not in self.deliveries:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery does not exist in this account."
+            )
+        self.deliveries.pop(id)
+        return
+
+    def delete_delivery_destination(self, name: str) -> None:
+        if name not in self.delivery_destinations:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        self.delivery_destinations.pop(name)
+        return
+
+    def delete_delivery_destination_policy(
+        self, delivery_destination_name: str
+    ) -> None:
+        delivery_destination = self.delivery_destinations.get(delivery_destination_name)
+        if not delivery_destination:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Destination does not exist in this account."
+            )
+        delivery_destination.policy = None
+        return
+
+    def delete_delivery_source(self, name: str) -> None:
+        if name not in self.delivery_sources:
+            raise ResourceNotFoundException(
+                msg="Requested Delivery Source does not exist in this account."
+            )
+        self.delivery_sources.pop(name)
+        return
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

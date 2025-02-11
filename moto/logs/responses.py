@@ -475,29 +475,128 @@ class LogsResponse(BaseResponse):
         self.logs_backend.untag_resource(resource_arn, tag_keys)
         return "{}"
 
-    # def put_delivery_destination_policy(self):
-    #     params = self._get_params()
-    #     delivery_destination_name = params.get("deliveryDestinationName")
-    #     delivery_destination_policy = params.get("deliveryDestinationPolicy")
-    #     policy = self.logs_backend.put_delivery_destination_policy(
-    #         delivery_destination_name=delivery_destination_name,
-    #         delivery_destination_policy=delivery_destination_policy,
-    #     )
-    #     # TODO: adjust response
-    #     return json.dumps(dict(policy=policy))
-
     def put_delivery_destination(self) -> str:
-        params = self._get_params()
-        name = params.get("name")
-        output_format = params.get("outputFormat")
-        delivery_destination_configuration = params.get(
+        name = self._get_param("name")
+        output_format = self._get_param("outputFormat")
+        delivery_destination_configuration = self._get_param(
             "deliveryDestinationConfiguration"
         )
-        tags = params.get("tags")
+        tags = self._get_param("tags")
         delivery_destination = self.logs_backend.put_delivery_destination(
             name=name,
             output_format=output_format,
             delivery_destination_configuration=delivery_destination_configuration,
             tags=tags,
         )
-        return json.dumps(deliveryDestination=delivery_destination.to_dict())
+        return json.dumps(dict(deliveryDestination=delivery_destination.to_dict()))
+
+    def get_delivery_destination(self) -> str:
+        name = self._get_param("name")
+        delivery_destination = self.logs_backend.get_delivery_destination(
+            name=name,
+        )
+        return json.dumps(dict(deliveryDestination=delivery_destination.to_dict()))
+
+    def describe_delivery_destinations(self) -> str:
+        delivery_destinations = self.logs_backend.describe_delivery_destinations()
+        return json.dumps(
+            dict(deliveryDestinations=[dd.to_dict() for dd in delivery_destinations])
+        )
+
+    def put_delivery_destination_policy(self) -> str:
+        delivery_destination_name = self._get_param("deliveryDestinationName")
+        delivery_destination_policy = self._get_param("deliveryDestinationPolicy")
+        policy = self.logs_backend.put_delivery_destination_policy(
+            delivery_destination_name=delivery_destination_name,
+            delivery_destination_policy=delivery_destination_policy,
+        )
+        return json.dumps(dict(policy=policy))
+
+    def get_delivery_destination_policy(self) -> str:
+        delivery_destination_name = self._get_param("deliveryDestinationName")
+        policy = self.logs_backend.get_delivery_destination_policy(
+            delivery_destination_name=delivery_destination_name,
+        )
+        return json.dumps(dict(policy=policy))
+
+    def put_delivery_source(self) -> str:
+        name = self._get_param("name")
+        resource_arn = self._get_param("resourceArn")
+        log_type = self._get_param("logType")
+        tags = self._get_param("tags")
+        delivery_source = self.logs_backend.put_delivery_source(
+            name=name,
+            resource_arn=resource_arn,
+            log_type=log_type,
+            tags=tags,
+        )
+        return json.dumps(dict(deliverySource=delivery_source.to_dict()))
+
+    def describe_delivery_sources(self) -> str:
+        delivery_sources = self.logs_backend.describe_delivery_sources()
+        return json.dumps(
+            dict(deliverySources=[ds.to_dict() for ds in delivery_sources])
+        )
+
+    def get_delivery_source(self) -> str:
+        name = self._get_param("name")
+        delivery_source = self.logs_backend.get_delivery_source(
+            name=name,
+        )
+        return json.dumps(dict(deliverySource=delivery_source.to_dict()))
+
+    def create_delivery(self) -> str:
+        delivery_source_name = self._get_param("deliverySourceName")
+        delivery_destination_arn = self._get_param("deliveryDestinationArn")
+        record_fields = self._get_param("recordFields")
+        field_delimiter = self._get_param("fieldDelimiter")
+        s3_delivery_configuration = self._get_param("s3DeliveryConfiguration")
+        tags = self._get_param("tags")
+        delivery = self.logs_backend.create_delivery(
+            delivery_source_name=delivery_source_name,
+            delivery_destination_arn=delivery_destination_arn,
+            record_fields=record_fields,
+            field_delimiter=field_delimiter,
+            s3_delivery_configuration=s3_delivery_configuration,
+            tags=tags,
+        )
+        return json.dumps(dict(delivery=delivery.to_dict()))
+
+    def describe_deliveries(self) -> str:
+        deliveries = self.logs_backend.describe_deliveries()
+        return json.dumps(dict(deliveries=[d.to_dict() for d in deliveries]))
+
+    def get_delivery(self) -> str:
+        id = self._get_param("id")
+        delivery = self.logs_backend.get_delivery(
+            id=id,
+        )
+        return json.dumps(dict(delivery=delivery.to_dict()))
+
+    def delete_delivery(self) -> str:
+        id = self._get_param("id")
+        self.logs_backend.delete_delivery(
+            id=id,
+        )
+        return ""
+
+    def delete_delivery_destination(self) -> str:
+        name = self._get_param("name")
+        self.logs_backend.delete_delivery_destination(
+            name=name,
+        )
+        return ""
+
+    def delete_delivery_destination_policy(self) -> str:
+        delivery_destination_name = self._get_param("deliveryDestinationName")
+        self.logs_backend.delete_delivery_destination_policy(
+            delivery_destination_name=delivery_destination_name,
+        )
+        return ""
+
+    def delete_delivery_source(self) -> str:
+        name = self._get_param("name")
+        self.logs_backend.delete_delivery_source(
+            name=name,
+        )
+        return ""
