@@ -12,7 +12,7 @@ from .exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from .utils import random_id, validate_name, validate_port, validate_storage
+from .utils import random_id, validate_name
 
 
 class InstanceStatus(str, Enum):
@@ -183,8 +183,6 @@ class TimestreamInfluxDBBackend(BaseBackend):
                 )
 
         validate_name(name)
-        validate_storage(allocated_storage)
-        validate_port(port)
 
         if db_storage_type not in [t.value for t in DBStorageType]:
             raise ValidationException(f"Unknown DB storage type {db_storage_type}")

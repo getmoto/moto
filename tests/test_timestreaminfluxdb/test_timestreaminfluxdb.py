@@ -79,6 +79,8 @@ def test_create_db_instance_name_invalid():
         "1muststartwithletter",
         "cantendwithhyphen_",
         "nodoublehyphen--",
+        "nop",
+        "longlonglonglonglonglonglonglonglonglongname"
     ]
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
@@ -93,6 +95,41 @@ def test_create_db_instance_name_invalid():
                 allocatedStorage=123,
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
+
+
+@mock_aws
+def test_create_db_instance_invalid_storage_type():
+    client = boto3.client("timestream-influxdb", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_db_instance(
+            name="test-instance",
+            password="password123",
+            dbInstanceType="db.influx.medium",
+            vpcSubnetIds=["subnet-0123456789abcdef0"],
+            vpcSecurityGroupIds=["sg-0123456789abcdef0"],
+            allocatedStorage=123,
+            dbStorageType="invalid"
+        )
+        
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+
+
+
+@mock_aws
+def test_create_db_instance_invalid_instance_type():
+    client = boto3.client("timestream-influxdb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_db_instance(
+            name="test-instance",
+            password="password123",
+            vpcSubnetIds=["subnet-0123456789abcdef0"],
+            vpcSecurityGroupIds=["sg-0123456789abcdef0"],
+            allocatedStorage=123,
+            dbInstanceType="invalid"
+        )
+        
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
 
 
 @mock_aws
