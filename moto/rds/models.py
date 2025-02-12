@@ -2706,7 +2706,7 @@ class RDSBackend(BaseBackend):
                 if resource.arn.endswith(resource_name):
                     return resource
 
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+    def _get_resource_for_tagging(self, arn: str) -> Any:
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
             resource_type = arn_breakdown[len(arn_breakdown) - 2]
@@ -2716,34 +2716,27 @@ class RDSBackend(BaseBackend):
                 resource_type = arn_breakdown[-3]
                 resource_name = arn_breakdown[-2] + ":" + arn_breakdown[-1]
             resource = self._find_resource(resource_type, resource_name)
-            if resource:
-                return resource.get_tags()
-            return []
+            return resource
         raise RDSClientError("InvalidParameterValue", f"Invalid resource name: {arn}")
 
+    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+        resource = self._get_resource_for_tagging(arn)
+        if resource:
+            return resource.get_tags()
+        return []
+
     def remove_tags_from_resource(self, arn: str, tag_keys: List[str]) -> None:
-        if self.arn_regex.match(arn):
-            arn_breakdown = arn.split(":")
-            resource_type = arn_breakdown[len(arn_breakdown) - 2]
-            resource_name = arn_breakdown[len(arn_breakdown) - 1]
-            resource = self._find_resource(resource_type, resource_name)
-            if resource:
-                resource.remove_tags(tag_keys)
-            return
-        raise RDSClientError("InvalidParameterValue", f"Invalid resource name: {arn}")
+        resource = self._get_resource_for_tagging(arn)
+        if resource:
+            resource.remove_tags(tag_keys)
 
     def add_tags_to_resource(  # type: ignore[return]
         self, arn: str, tags: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:
-        if self.arn_regex.match(arn):
-            arn_breakdown = arn.split(":")
-            resource_type = arn_breakdown[-2]
-            resource_name = arn_breakdown[-1]
-            resource = self._find_resource(resource_type, resource_name)
-            if resource:
-                return resource.add_tags(tags)
-            return []
-        raise RDSClientError("InvalidParameterValue", f"Invalid resource name: {arn}")
+        resource = self._get_resource_for_tagging(arn)
+        if resource:
+            return resource.add_tags(tags)
+        return []
 
     @staticmethod
     def _filter_resources(resources: Any, filters: Any, resource_class: Any) -> Any:  # type: ignore[misc]
