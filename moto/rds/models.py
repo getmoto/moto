@@ -760,6 +760,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         db_instance_identifier: str,
         db_instance_class: str,
         engine: str,
+        engine_version: Optional[str] = None,
         port: Optional[int] = None,
         allocated_storage: Optional[int] = None,
         max_allocated_storage: Optional[int] = None,
@@ -799,20 +800,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             raise InvalidParameterValue(
                 f"Value {self.engine} for parameter Engine is invalid. Reason: engine {self.engine} not supported"
             )
-        self.engine_version = kwargs.get("engine_version", None)
-        if not self.engine_version and self.engine in self.default_engine_versions:
-            self.engine_version = self.default_engine_versions[self.engine]
         self.iops = iops
-        self.storage_encrypted = storage_encrypted
-        if self.storage_encrypted:
-            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
-        else:
-            self.kms_key_id = kwargs.get("kms_key_id")
-        self.storage_type = storage_type
-        if self.storage_type is None:
-            self.storage_type = DBInstance.default_storage_type(iops=self.iops)
-        self.master_username = master_username
-        self.master_user_password = master_user_password
         self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
         self.master_user_secret_status = kwargs.get(
             "master_user_secret_status", "active"
@@ -821,14 +809,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             "manage_master_user_password", False
         )
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
-        self.allocated_storage = (
-            allocated_storage
-            or DBInstance.default_allocated_storage(
-                engine=self.engine, storage_type=self.storage_type
-            )
-        )
-        self.max_allocated_storage = max_allocated_storage or self.allocated_storage
-        self.db_cluster_identifier: Optional[str] = db_cluster_identifier
         self.db_instance_identifier = db_instance_identifier
         self.source_db_identifier = source_db_instance_identifier
         self.db_instance_class = db_instance_class
@@ -839,7 +819,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         self.instance_create_time = iso_8601_datetime_with_milliseconds()
         self.publicly_accessible = publicly_accessible
         self.copy_tags_to_snapshot = copy_tags_to_snapshot
-        self.backup_retention_period = backup_retention_period
         self.availability_zone = kwargs.get("availability_zone")
         if not self.availability_zone:
             self.availability_zone = f"{self.region}a"
@@ -858,14 +837,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             default_sg = ec2_backend.get_default_security_group(default_vpc.id)
             self.vpc_security_group_ids.append(default_sg.id)  # type: ignore
         self.preferred_maintenance_window = preferred_maintenance_window.lower()
-        self.preferred_backup_window = preferred_backup_window
-        msg = valid_preferred_maintenance_window(
-            self.preferred_maintenance_window,
-            self.preferred_backup_window,
-        )
-        if msg:
-            raise RDSClientError("InvalidParameterValue", msg)
-
         self.db_parameter_group_name = db_parameter_group_name
         if (
             self.db_parameter_group_name
@@ -874,7 +845,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
             not in rds_backends[self.account_id][self.region].db_parameter_groups
         ):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
-
         self.license_model = license_model
         self.option_group_name = option_group_name
         self.option_group_supplied = self.option_group_name is not None
@@ -891,7 +861,6 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         }
         if not self.option_group_name and self.engine in self.default_option_groups:
             self.option_group_name = self.default_option_groups[self.engine]
-        self.character_set_name = character_set_name
         self.enable_iam_database_authentication = kwargs.get(
             "enable_iam_database_authentication", False
         )
@@ -900,8 +869,55 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = tags or []
         self.deletion_protection = deletion_protection
-
         self.enabled_cloudwatch_logs_exports = enable_cloudwatch_logs_exports or []
+
+        self.db_cluster_identifier = db_cluster_identifier
+        if self.db_cluster_identifier is None:
+            self.storage_type = storage_type or DBInstance.default_storage_type(
+                iops=self.iops
+            )
+            self.allocated_storage = (
+                allocated_storage
+                or DBInstance.default_allocated_storage(
+                    engine=self.engine, storage_type=self.storage_type
+                )
+            )
+            self.max_allocated_storage = max_allocated_storage or self.allocated_storage
+            self.storage_encrypted = storage_encrypted
+            if self.storage_encrypted:
+                self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+            else:
+                self.kms_key_id = kwargs.get("kms_key_id")
+            self.backup_retention_period = backup_retention_period
+            self.character_set_name = character_set_name
+            self.engine_version = engine_version
+            if not self.engine_version and self.engine in self.default_engine_versions:
+                self.engine_version = self.default_engine_versions[self.engine]
+            self.master_username = master_username
+            self.master_user_password = master_user_password
+            self.preferred_backup_window = preferred_backup_window
+            msg = valid_preferred_maintenance_window(
+                self.preferred_maintenance_window,
+                self.preferred_backup_window,
+            )
+            if msg:
+                raise RDSClientError("InvalidParameterValue", msg)
+        else:
+            # TODO: Refactor this into a DBClusterInstance subclass
+            self.cluster = self.backend.clusters[self.db_cluster_identifier]
+            self.allocated_storage = self.cluster.allocated_storage or 1
+            self.max_allocated_storage = (
+                self.cluster.allocated_storage or self.allocated_storage
+            )
+            self.storage_encrypted = self.cluster.storage_encrypted or True
+            self.preferred_backup_window = self.cluster.preferred_backup_window
+            self.backup_retention_period = self.cluster.backup_retention_period or 1
+            self.character_set_name = self.cluster.character_set_name
+            self.engine_version = self.cluster.engine_version
+            self.master_username = self.cluster.master_username
+            self.master_user_password = self.cluster.master_user_password
+            if self.db_name is None:
+                self.db_name = self.cluster.database_name
 
     @property
     def name(self) -> str:
@@ -965,11 +981,8 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
 
     @property
     def max_allocated_storage(self) -> Optional[int]:
-        return (
-            self._max_allocated_storage
-            if self._max_allocated_storage != self.allocated_storage
-            else None
-        )
+        value: int = self._max_allocated_storage or 0  # type: ignore[has-type]
+        return value if value != self.allocated_storage else None
 
     @max_allocated_storage.setter
     def max_allocated_storage(self, value: int) -> None:
