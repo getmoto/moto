@@ -2747,6 +2747,57 @@ def test_delete_db_instance_with_delete_automated_backups_param(
     assert any(valid_conditions)
 
 
+@mock_aws
+def test_describe_db_instance_automated_backups_lifecycle(client):
+    instance_id = "test-instance"
+    create_db_instance(DBInstanceIdentifier=instance_id)
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 1
+    automated_backup = automated_backups[0]
+    assert automated_backup["DBInstanceIdentifier"] == instance_id
+    assert automated_backup["Status"] == "active"
+
+    client.delete_db_instance(
+        DBInstanceIdentifier=instance_id,
+        SkipFinalSnapshot=True,
+        DeleteAutomatedBackups=False,
+    )
+
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 1
+    automated_backup = automated_backups[0]
+    assert automated_backup["DBInstanceIdentifier"] == instance_id
+    assert automated_backup["Status"] == "retained"
+
+
+@mock_aws
+def test_delete_automated_backups_by_default(client):
+    instance_id = "test-instance"
+    create_db_instance(DBInstanceIdentifier=instance_id)
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 1
+    automated_backup = automated_backups[0]
+    assert automated_backup["DBInstanceIdentifier"] == instance_id
+    assert automated_backup["Status"] == "active"
+
+    client.delete_db_instance(DBInstanceIdentifier=instance_id, SkipFinalSnapshot=True)
+
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 0
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"

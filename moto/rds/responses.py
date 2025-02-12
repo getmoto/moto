@@ -776,6 +776,13 @@ class RDSResponse(BaseResponse):
         result = {"DBProxyTargetGroup": group}
         return self.serialize(result)
 
+    def describe_db_instance_automated_backups(self) -> TYPE_RESPONSE:
+        automated_backups = self.backend.describe_db_instance_automated_backups(
+            **self.parameters
+        )
+        result = {"DBInstanceAutomatedBackups": automated_backups}
+        return self.serialize(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 

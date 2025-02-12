@@ -1606,6 +1606,25 @@ class DBProxy(RDSBaseModel):
         return self.unique_id
 
 
+class DBInstanceAutomatedBackup(XFormedAttributeAccessMixin):
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_instance_identifier: str,
+        automated_snapshots: List[DBSnapshot],
+    ) -> None:
+        self.backend = backend
+        self.db_instance_identifier = db_instance_identifier
+        self.automated_snapshots = automated_snapshots
+
+    @property
+    def status(self) -> str:
+        status = "active"
+        if self.db_instance_identifier not in self.backend.databases:
+            status = "retained"
+        return status
+
+
 class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -3075,6 +3094,26 @@ class RDSBackend(BaseBackend):
         if "SessionPinningFilters" in config:
             target_group.session_pinning_filters = config["SessionPinningFilters"]
         return target_group
+
+    def describe_db_instance_automated_backups(
+        self,
+        db_instance_identifier: Optional[str] = None,
+        **_: Any,
+    ) -> List[DBInstanceAutomatedBackup]:
+        snapshots = list(self.database_snapshots.values())
+        if db_instance_identifier is not None:
+            snapshots = [
+                snap
+                for snap in self.database_snapshots.values()
+                if snap.db_instance_identifier == db_instance_identifier
+            ]
+        snapshots_grouped = defaultdict(list)
+        for snapshot in snapshots:
+            if snapshot.snapshot_type == "automated":
+                snapshots_grouped[snapshot.db_instance_identifier].append(snapshot)
+        return [
+            DBInstanceAutomatedBackup(self, k, v) for k, v in snapshots_grouped.items()
+        ]
 
 
 class OptionGroup(RDSBaseModel):
