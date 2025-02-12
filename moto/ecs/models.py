@@ -386,7 +386,8 @@ class Task(BaseObject, ManagedState):
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
         self.overrides = overrides or {}
-        self.containers: List[Dict[str, Any]] = []
+        # t = Container(task_definition)
+        self.containers = [Container(task_definition)]
         self.started_by = started_by
         self.tags = tags or []
         self.launch_type = launch_type
@@ -451,6 +452,7 @@ class Task(BaseObject, ManagedState):
             response_object.pop("tags", None)
         response_object["taskArn"] = self.task_arn
         response_object["lastStatus"] = self.last_status
+        response_object["containers"] = [self.containers[0].response_object]
         return response_object
 
 
@@ -755,6 +757,32 @@ class Service(BaseObject, CloudFormationModel):
         if attribute_name == "Name":
             return self.name
         raise UnformattedGetAttTemplateException()
+
+
+class Container(BaseObject):
+    def __init__(
+        self,
+        task_def: TaskDefinition,
+    ):
+        self.container_arn = f"{task_def.arn}/{str(mock_random.uuid4())}"
+        self.task_arn = task_def.arn
+
+        container_def = task_def.container_definitions[0]
+        self.image = container_def["image"]
+        self.last_status = "PENDING"
+        self.exitCode = 0
+
+        self.network_interfaces = [List[Dict[str, Any]]]
+        self.healthStatus = "HEALTHY"
+
+        self.cpu = container_def["cpu"]
+        self.memory = container_def["memory"]
+        self.environment = container_def["environment"]
+        self.name = container_def["name"]
+
+    def response_object_run_task(self) -> Dict[str, Any]:  # type: ignore
+        response_object = self.gen_response_object()
+        return response_object
 
 
 class ContainerInstance(BaseObject):
@@ -1387,7 +1415,6 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tags=tags or [],
                         launch_type=launch_type or "",
                         networking_configuration=networking_configuration,
-
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
