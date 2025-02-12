@@ -386,7 +386,6 @@ class Task(BaseObject, ManagedState):
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
         self.overrides = overrides or {}
-        # t = Container(task_definition)
         self.containers = [Container(task_definition)]
         self.started_by = started_by
         self.tags = tags or []
