@@ -1803,7 +1803,7 @@ class RDSBackend(BaseBackend):
     def describe_db_snapshots(
         self,
         db_instance_identifier: Optional[str],
-        db_snapshot_identifier: str,
+        db_snapshot_identifier: Optional[str] = None,
         snapshot_type: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> List[DBSnapshot]:
@@ -1999,6 +1999,7 @@ class RDSBackend(BaseBackend):
         db_instance_identifier: str,
         final_db_snapshot_identifier: Optional[str] = None,
         skip_final_snapshot: Optional[bool] = False,
+        delete_automated_backups: Optional[bool] = True,
     ) -> DBInstance:
         self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
@@ -2020,6 +2021,14 @@ class RDSBackend(BaseBackend):
                 self.clusters[database.db_cluster_identifier].cluster_members.remove(
                     db_instance_identifier
                 )
+            automated_snapshots = self.describe_db_snapshots(
+                db_instance_identifier,
+                db_snapshot_identifier=None,
+                snapshot_type="automated",
+            )
+            if delete_automated_backups:
+                for snapshot in automated_snapshots:
+                    self.delete_db_snapshot(snapshot.db_snapshot_identifier)
             database.status = "deleting"
             return database
         else:

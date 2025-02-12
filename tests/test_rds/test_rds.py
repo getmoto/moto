@@ -743,11 +743,11 @@ def test_delete_database(client):
     assert len(instances["DBInstances"]) == 0
 
     # Saved the snapshot
-    snapshot = client.describe_db_snapshots(DBInstanceIdentifier="db-1")["DBSnapshots"][
-        0
-    ]
+    snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-1", DBSnapshotIdentifier="primary-1-snapshot"
+    )["DBSnapshots"][0]
     assert snapshot["Engine"] == "postgres"
-    assert snapshot["SnapshotType"] == "automated"
+    assert snapshot["SnapshotType"] == "manual"
 
 
 @mock_aws
@@ -922,13 +922,16 @@ def test_copy_db_snapshots_snapshot_type_is_always_manual(client):
     db_instance_identifier = create_db_instance()["DBInstanceIdentifier"]
     client.delete_db_instance(
         DBInstanceIdentifier=db_instance_identifier,
-        FinalDBSnapshotIdentifier="final-snapshot",
+        SkipFinalSnapshot=True,
+        DeleteAutomatedBackups=False,
     )
-    snapshot1 = client.describe_db_snapshots()["DBSnapshots"][0]
+    snapshot1 = client.describe_db_snapshots(
+        DBInstanceIdentifier=db_instance_identifier, SnapshotType="automated"
+    )["DBSnapshots"][0]
     assert snapshot1["SnapshotType"] == "automated"
 
     snapshot2 = client.copy_db_snapshot(
-        SourceDBSnapshotIdentifier="final-snapshot",
+        SourceDBSnapshotIdentifier=snapshot1["DBSnapshotIdentifier"],
         TargetDBSnapshotIdentifier="snapshot-2",
     )["DBSnapshot"]
     assert snapshot2["SnapshotType"] == "manual"
@@ -2713,6 +2716,35 @@ def test_delete_db_instance_with_skip_final_snapshot_param(client, skip_final_sn
     assert any(valid_conditions)
     if not skip_final_snapshot:
         assert resp["DBSnapshots"][0]["DBSnapshotIdentifier"] == "final-snapshot"
+
+
+@mock_aws
+@pytest.mark.parametrize("delete_automated_backups", [False, True])
+def test_delete_db_instance_with_delete_automated_backups_param(
+    client,
+    delete_automated_backups,
+):
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+
+    client.delete_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        SkipFinalSnapshot=True,
+        DeleteAutomatedBackups=delete_automated_backups,
+    )
+
+    with pytest.raises(ClientError):
+        client.describe_db_instances(DBInstanceIdentifier="db-primary-1")
+
+    resp = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1",
+        SnapshotType="automated",
+    )
+    automated_snapshot_count = len(resp["DBSnapshots"])
+    valid_conditions = [
+        (delete_automated_backups and automated_snapshot_count == 0),
+        (automated_snapshot_count >= 1 and not delete_automated_backups),
+    ]
+    assert any(valid_conditions)
 
 
 def validation_helper(exc):
