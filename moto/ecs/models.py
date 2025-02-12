@@ -759,7 +759,7 @@ class Service(BaseObject, CloudFormationModel):
         raise UnformattedGetAttTemplateException()
 
 
-class Container(BaseObject):
+class Container(BaseObject, CloudFormationModel):
     def __init__(
         self,
         task_def: TaskDefinition,
