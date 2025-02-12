@@ -356,6 +356,43 @@ def test_create_db_cluster_additional_parameters(client):
 
 
 @mock_aws
+def test_modify_db_cluster_serverless_v2_scaling_configuration(client):
+    resp = client.create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora-postgresql",
+        EngineMode="serverless",
+        MasterUsername="root",
+        MasterUserPassword="hunter2_",
+        ServerlessV2ScalingConfiguration={
+            "MinCapacity": 2,
+            "MaxCapacity": 4,
+        },
+    )
+    cluster = resp["DBCluster"]
+    assert cluster["Engine"] == "aurora-postgresql"
+    assert cluster["EngineMode"] == "serverless"
+    assert cluster["ServerlessV2ScalingConfiguration"] == {
+        "MaxCapacity": 4.0,
+        "MinCapacity": 2.0,
+    }
+    client.modify_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        ServerlessV2ScalingConfiguration={
+            "MinCapacity": 4,
+            "MaxCapacity": 8,
+        },
+    )
+    resp = client.describe_db_clusters(DBClusterIdentifier="cluster-id")
+    cluster_modified = resp["DBClusters"][0]
+    assert cluster_modified["Engine"] == "aurora-postgresql"
+    assert cluster_modified["EngineMode"] == "serverless"
+    assert cluster_modified["ServerlessV2ScalingConfiguration"] == {
+        "MaxCapacity": 8.0,
+        "MinCapacity": 4.0,
+    }
+
+
+@mock_aws
 def test_describe_db_cluster_after_creation(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id1",
