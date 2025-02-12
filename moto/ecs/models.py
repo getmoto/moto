@@ -772,7 +772,7 @@ class Container(BaseObject, CloudFormationModel):
         self.exitCode = 0
 
         self.network_interfaces = [List[Dict[str, Any]]]
-        self.healthStatus = "HEALTHY"
+        self.health_status = "HEALTHY"
 
         self.cpu = container_def["cpu"]
         self.memory = container_def["memory"]
