@@ -767,17 +767,18 @@ class Container(BaseObject, CloudFormationModel):
         self.task_arn = task_def.arn
 
         container_def = task_def.container_definitions[0]
-        self.image = container_def["image"]
+        self.image = container_def.get("image")
         self.last_status = "PENDING"
         self.exitCode = 0
 
         self.network_interfaces: List[Dict[str, Any]] = []
         self.health_status = "HEALTHY"
 
-        self.cpu = container_def["cpu"]
-        self.memory = container_def["memory"]
-        self.environment = container_def["environment"]
-        self.name = container_def["name"]
+        self.cpu = container_def.get("cpu")
+        self.memory = container_def.get("memory")
+        self.environment = container_def.get("environment")
+        self.name = container_def.get("name")
+        self.command = container_def.get("command")
 
     def response_object_run_task(self) -> Dict[str, Any]:  # type: ignore
         response_object = self.gen_response_object()
