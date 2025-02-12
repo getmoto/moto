@@ -302,7 +302,7 @@ class TestDBSnapshotFilters:
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "snapshot-type", "Values": ["automated"]}]
         )["DBSnapshots"]
-        assert len(snapshots) == 0
+        assert len(snapshots) == 2
 
     def test_multiple_filters(self):
         snapshots = self.client.describe_db_snapshots(

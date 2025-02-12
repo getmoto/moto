@@ -251,8 +251,8 @@ def test_stop_database(client):
             DBInstanceIdentifier=mydb["DBInstanceIdentifier"],
             DBSnapshotIdentifier="rocky4570-rds-snap",
         )
-    response = client.describe_db_snapshots()
-    assert response["DBSnapshots"] == []
+    with pytest.raises(ClientError):
+        client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
 
 
 @mock_aws
@@ -273,7 +273,7 @@ def test_start_database(client):
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
-    response = client.describe_db_snapshots()
+    response = client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
     assert response["DBSnapshots"][0]["DBSnapshotIdentifier"] == "rocky4570-rds-snap"
     response = client.start_db_instance(
         DBInstanceIdentifier=mydb["DBInstanceIdentifier"]
@@ -281,7 +281,7 @@ def test_start_database(client):
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert response["DBInstance"]["DBInstanceStatus"] == "available"
     # starting database should not remove snapshot
-    response = client.describe_db_snapshots()
+    response = client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
     assert response["DBSnapshots"][0]["DBSnapshotIdentifier"] == "rocky4570-rds-snap"
     # test stopping database, create snapshot with existing snapshot already
     # created should throw error
@@ -830,6 +830,15 @@ def test_create_db_snapshots_copy_tags(client):
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
 
+    snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="automated"
+    )["DBSnapshots"][0]
+    result = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])
+    assert result["TagList"] == [
+        {"Value": "bar", "Key": "foo"},
+        {"Value": "bar1", "Key": "foo1"},
+    ]
+
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
     )["DBSnapshot"]
@@ -854,9 +863,9 @@ def test_create_db_snapshots_with_tags(client):
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
 
-    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")[
-        "DBSnapshots"
-    ]
+    snapshots = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="manual"
+    )["DBSnapshots"]
     assert snapshots[0]["DBSnapshotIdentifier"] == "g-1"
     assert snapshots[0]["TagList"] == [
         {"Value": "bar", "Key": "foo"},
@@ -995,7 +1004,9 @@ def test_describe_db_snapshots(client):
     assert created["Engine"] == "postgres"
     assert created["SnapshotType"] == "manual"
 
-    by_database_id = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")
+    by_database_id = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="manual"
+    )
     by_snapshot_id = client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
     assert by_snapshot_id["DBSnapshots"] == by_database_id["DBSnapshots"]
 
@@ -1005,9 +1016,9 @@ def test_describe_db_snapshots(client):
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-2"
     )
-    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")[
-        "DBSnapshots"
-    ]
+    snapshots = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="manual"
+    )["DBSnapshots"]
     assert len(snapshots) == 2
 
 

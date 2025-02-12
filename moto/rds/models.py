@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Un
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.ec2.models import ec2_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
@@ -1218,6 +1218,11 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         backend = rds_backends[account_id][region_name]
         backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
 
+    def save_automated_backup(self) -> None:
+        time_stamp = utcnow().strftime("%Y-%m-%d-%H-%M")
+        snapshot_id = f"rds:{self.db_instance_identifier}-{time_stamp}"
+        self.backend.create_auto_snapshot(self.db_instance_identifier, snapshot_id)
+
 
 class DBSnapshot(RDSBaseModel):
     resource_type = "snapshot"
@@ -1674,6 +1679,7 @@ class RDSBackend(BaseBackend):
                     )
                 cluster.cluster_members.append(database_id)
         self.databases[database_id] = database
+        database.save_automated_backup()
         return database
 
     def create_auto_snapshot(
@@ -1798,6 +1804,7 @@ class RDSBackend(BaseBackend):
         self,
         db_instance_identifier: Optional[str],
         db_snapshot_identifier: str,
+        snapshot_type: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> List[DBSnapshot]:
         snapshots = self.database_snapshots
@@ -1809,6 +1816,18 @@ class RDSBackend(BaseBackend):
             filters = merge_filters(
                 filters, {"db-snapshot-id": [db_snapshot_identifier]}
             )
+        snapshot_types = (
+            ["automated", "manual"]
+            if (
+                snapshot_type is None
+                and (filters is not None and "snapshot-type" not in filters)
+            )
+            else [snapshot_type]
+            if snapshot_type is not None
+            else []
+        )
+        if snapshot_types:
+            filters = merge_filters(filters, {"snapshot-type": snapshot_types})
         if filters:
             snapshots = self._filter_resources(snapshots, filters, DBSnapshot)
         if db_snapshot_identifier and not snapshots and not db_instance_identifier:
@@ -2630,6 +2649,10 @@ class RDSBackend(BaseBackend):
             arn_breakdown = arn.split(":")
             resource_type = arn_breakdown[len(arn_breakdown) - 2]
             resource_name = arn_breakdown[len(arn_breakdown) - 1]
+            # FIXME: HACK for automated snapshots
+            if resource_type == "rds":
+                resource_type = arn_breakdown[-3]
+                resource_name = arn_breakdown[-2] + ":" + arn_breakdown[-1]
             resource = self._find_resource(resource_type, resource_name)
             if resource:
                 return resource.get_tags()

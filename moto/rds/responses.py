@@ -173,10 +173,11 @@ class RDSResponse(BaseResponse):
     def describe_db_snapshots(self) -> TYPE_RESPONSE:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
+        snapshot_type = self.parameters.get("SnapshotType")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_db_snapshots(
-            db_instance_identifier, db_snapshot_identifier, filter_dict
+            db_instance_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         result = {"DBSnapshots": snapshots}
         return self.serialize(result)
