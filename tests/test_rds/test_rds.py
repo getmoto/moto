@@ -2871,6 +2871,28 @@ def test_restore_db_instance_to_point_in_time_with_allocated_storage(client):
     assert exc.response["Error"]["Code"] == "InvalidParameterValue"
 
 
+@mock_aws
+def test_copy_unencrypted_db_snapshot_to_encrypted_db_snapshot(client):
+    instance_identifier = "unencrypted-db-instance"
+    create_db_instance(DBInstanceIdentifier=instance_identifier, StorageEncrypted=False)
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_identifier,
+        DBSnapshotIdentifier="unencrypted-db-snapshot",
+    ).get("DBSnapshot")
+    assert snapshot["Encrypted"] is False
+
+    client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="unencrypted-db-snapshot",
+        TargetDBSnapshotIdentifier="encrypted-db-snapshot",
+        KmsKeyId="alias/aws/rds",
+    )
+    snapshot = client.describe_db_snapshots(
+        DBSnapshotIdentifier="encrypted-db-snapshot"
+    ).get("DBSnapshots")[0]
+    assert snapshot["DBSnapshotIdentifier"] == "encrypted-db-snapshot"
+    assert snapshot["Encrypted"] is True
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"

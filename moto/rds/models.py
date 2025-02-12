@@ -14,6 +14,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.ec2.models import ec2_backends
+from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
 
@@ -910,6 +911,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
                 self.cluster.allocated_storage or self.allocated_storage
             )
             self.storage_encrypted = self.cluster.storage_encrypted or True
+            self.kms_key_id = self.cluster.kms_key_id
             self.preferred_backup_window = self.cluster.preferred_backup_window
             self.backup_retention_period = self.cluster.backup_retention_period or 1
             self.character_set_name = self.cluster.character_set_name
@@ -1245,9 +1247,10 @@ class DBSnapshot(RDSBaseModel):
         snapshot_type: str,
         tags: Optional[List[Dict[str, str]]] = None,
         original_created_at: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
     ):
         super().__init__(backend)
-        self.database = database  # TODO: Refactor this out.
+        self.database = copy.copy(database)  # TODO: Refactor this out.
         self.snapshot_id = snapshot_id
         self.snapshot_type = snapshot_type
         self.tags = tags or []
@@ -1261,7 +1264,12 @@ class DBSnapshot(RDSBaseModel):
         self.db_instance_identifier = database.db_instance_identifier
         self.engine = database.engine
         self.engine_version = database.engine_version
-        self.encrypted = database.storage_encrypted
+        if kms_key_id is not None:
+            self.kms_key_id = kms_key_id
+            self.encrypted = self.database.storage_encrypted = True
+        else:
+            self.kms_key_id = database.kms_key_id
+            self.encrypted = database.storage_encrypted
         self.iam_database_authentication_enabled = (
             database.enable_iam_database_authentication
         )
@@ -1662,6 +1670,10 @@ class RDSBackend(BaseBackend):
             OptionGroup: self.option_groups,
         }
 
+    @property
+    def kms(self) -> KmsBackend:
+        return kms_backends[self.account_id][self.region_name]
+
     @lru_cache()
     def db_cluster_options(self, engine) -> List[Dict[str, Any]]:  # type: ignore
         from moto.rds.utils import decode_orderable_db_instance
@@ -1717,6 +1729,7 @@ class RDSBackend(BaseBackend):
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
         original_created_at: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
     ) -> DBSnapshot:
         if isinstance(db_instance, str):
             database = self.databases.get(db_instance)
@@ -1742,25 +1755,30 @@ class RDSBackend(BaseBackend):
             snapshot_type,
             tags,
             original_created_at,
+            kms_key_id,
         )
         self.database_snapshots[db_snapshot_identifier] = snapshot
         return snapshot
 
     def copy_db_snapshot(
         self,
-        source_snapshot_identifier: str,
-        target_snapshot_identifier: str,
+        source_db_snapshot_identifier: str,
+        target_db_snapshot_identifier: str,
         tags: Optional[List[Dict[str, str]]] = None,
-        copy_tags: bool = False,
+        copy_tags: Optional[bool] = False,
+        kms_key_id: Optional[str] = None,
     ) -> DBSnapshot:
-        if source_snapshot_identifier.startswith("arn:aws:rds:"):
-            source_snapshot_identifier = self.extract_snapshot_name_from_arn(
-                source_snapshot_identifier
+        if source_db_snapshot_identifier.startswith("arn:aws:rds:"):
+            source_db_snapshot_identifier = self.extract_snapshot_name_from_arn(
+                source_db_snapshot_identifier
             )
-        if source_snapshot_identifier not in self.database_snapshots:
-            raise DBSnapshotNotFoundError(source_snapshot_identifier)
-
-        source_snapshot = self.database_snapshots[source_snapshot_identifier]
+        if source_db_snapshot_identifier not in self.database_snapshots:
+            raise DBSnapshotNotFoundError(source_db_snapshot_identifier)
+        if kms_key_id is not None:
+            key = self.kms.describe_key(kms_key_id)
+            # We do this in case an alias was passed in.
+            kms_key_id = key.id
+        source_snapshot = self.database_snapshots[source_db_snapshot_identifier]
 
         # When tags are passed, AWS does NOT copy/merge tags of the
         # source snapshot, even when copy_tags=True is given.
@@ -1770,9 +1788,10 @@ class RDSBackend(BaseBackend):
 
         return self.create_db_snapshot(
             db_instance=source_snapshot.database,
-            db_snapshot_identifier=target_snapshot_identifier,
+            db_snapshot_identifier=target_db_snapshot_identifier,
             tags=tags,
             original_created_at=source_snapshot.original_created_at,
+            kms_key_id=kms_key_id,
         )
 
     def delete_db_snapshot(self, db_snapshot_identifier: str) -> DBSnapshot:

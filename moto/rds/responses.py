@@ -152,17 +152,11 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def copy_db_snapshot(self) -> TYPE_RESPONSE:
-        source_snapshot_identifier = self.parameters.get("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
-        copy_tags = self.parameters.get("CopyTags")
         self.backend.validate_db_snapshot_identifier(
             target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
         )
-
-        snapshot = self.backend.copy_db_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags, copy_tags
-        )
+        snapshot = self.backend.copy_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
         return self.serialize(result)
 
