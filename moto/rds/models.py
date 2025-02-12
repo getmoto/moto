@@ -1225,14 +1225,14 @@ class DBSnapshot(RDSBaseModel):
         database: DBInstance,
         snapshot_id: str,
         snapshot_type: str,
-        tags: List[Dict[str, str]],
+        tags: Optional[List[Dict[str, str]]] = None,
         original_created_at: Optional[str] = None,
     ):
         super().__init__(backend)
         self.database = database
         self.snapshot_id = snapshot_id
         self.snapshot_type = snapshot_type
-        self.tags = tags
+        self.tags = tags or []
         self.status = "available"
         self.created_at = iso_8601_datetime_with_milliseconds()
         self.original_created_at = original_created_at or self.created_at
