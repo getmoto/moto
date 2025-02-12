@@ -1934,7 +1934,11 @@ class RDSBackend(BaseBackend):
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
             del new_instance_props["option_group_name"]
-
+        if "allocated_storage" in overrides:
+            if overrides["allocated_storage"] < snapshot.allocated_storage:
+                raise InvalidParameterValue(
+                    "The allocated storage size can't be less than the source snapshot or backup size."
+                )
         for key, value in overrides.items():
             if value:
                 new_instance_props[key] = value
@@ -1963,7 +1967,11 @@ class RDSBackend(BaseBackend):
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
             del new_instance_props["option_group_name"]
-
+        if "allocated_storage" in overrides:
+            if overrides["allocated_storage"] < db_instance.allocated_storage:
+                raise InvalidParameterValue(
+                    "Allocated storage size can't be less than the source instance size."
+                )
         for key, value in overrides.items():
             if value:
                 new_instance_props[key] = value

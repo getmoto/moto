@@ -1,4 +1,5 @@
 import datetime
+import time
 from uuid import uuid4
 
 import boto3
@@ -2796,6 +2797,78 @@ def test_delete_automated_backups_by_default(client):
     )
     automated_backups = resp["DBInstanceAutomatedBackups"]
     assert len(automated_backups) == 0
+
+
+@mock_aws
+def test_restore_db_instance_from_db_snapshot_with_allocated_storage(client):
+    instance_id = "db-primary-1"
+    allocated_storage = 20
+    create_db_instance(
+        DBInstanceIdentifier=instance_id,
+        AllocatedStorage=allocated_storage,
+        Engine="postgres",
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_id, DBSnapshotIdentifier="snap"
+    ).get("DBSnapshot")
+    snapshot_id = snapshot["DBSnapshotIdentifier"]
+    # Default
+    restored = client.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="restored-default",
+        DBSnapshotIdentifier=snapshot_id,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage
+    # More than snapshot allocated storage
+    restored = client.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="restored-with-allocated-storage",
+        DBSnapshotIdentifier=snapshot_id,
+        AllocatedStorage=allocated_storage * 2,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage * 2
+    # Less than snapshot allocated storage
+    with pytest.raises(ClientError, match=r"allocated storage") as excinfo:
+        client.restore_db_instance_from_db_snapshot(
+            DBInstanceIdentifier="restored-with-too-little-storage",
+            DBSnapshotIdentifier=snapshot_id,
+            AllocatedStorage=int(allocated_storage / 2),
+        )
+    exc = excinfo.value
+    assert exc.response["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_restore_db_instance_to_point_in_time_with_allocated_storage(client):
+    allocated_storage = 20
+    details_source = create_db_instance(AllocatedStorage=allocated_storage)
+    source_identifier = details_source["DBInstanceIdentifier"]
+    restore_time = datetime.datetime.fromtimestamp(
+        time.time() - 600, datetime.timezone.utc
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Default
+    restored = client.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier=source_identifier,
+        TargetDBInstanceIdentifier="pit-default",
+        RestoreTime=restore_time,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage
+    # More than source allocated storage
+    restored = client.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier=source_identifier,
+        TargetDBInstanceIdentifier="pit-with-allocated-storage",
+        RestoreTime=restore_time,
+        AllocatedStorage=allocated_storage * 2,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage * 2
+    # Less than source allocated storage
+    with pytest.raises(ClientError, match=r"Allocated storage") as excinfo:
+        client.restore_db_instance_to_point_in_time(
+            SourceDBInstanceIdentifier=source_identifier,
+            TargetDBInstanceIdentifier="pit-with-too-little-storage",
+            RestoreTime=restore_time,
+            AllocatedStorage=int(allocated_storage / 2),
+        )
+    exc = excinfo.value
+    assert exc.response["Error"]["Code"] == "InvalidParameterValue"
 
 
 def validation_helper(exc):
