@@ -1995,7 +1995,10 @@ class RDSBackend(BaseBackend):
         return backend.describe_db_instances(db_name)[0]
 
     def delete_db_instance(
-        self, db_instance_identifier: str, db_snapshot_name: Optional[str] = None
+        self,
+        db_instance_identifier: str,
+        final_db_snapshot_identifier: Optional[str] = None,
+        skip_final_snapshot: Optional[bool] = False,
     ) -> DBInstance:
         self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
@@ -2003,8 +2006,12 @@ class RDSBackend(BaseBackend):
                 raise InvalidParameterCombination(
                     "Cannot delete protected DB Instance, please disable deletion protection and try again."
                 )
-            if db_snapshot_name:
-                self.create_auto_snapshot(db_instance_identifier, db_snapshot_name)
+            if final_db_snapshot_identifier and not skip_final_snapshot:
+                self.create_db_snapshot(
+                    db_instance_identifier,
+                    final_db_snapshot_identifier,
+                    snapshot_type="manual",
+                )
             database = self.databases.pop(db_instance_identifier)
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_instance_identifier)  # type: ignore

@@ -2685,6 +2685,36 @@ def test_modify_db_snapshot_attribute(client):
     assert snapshot_attributes[0]["AttributeValues"] == ["Test2", "Test3"]
 
 
+@mock_aws
+@pytest.mark.parametrize("skip_final_snapshot", [False, True])
+def test_delete_db_instance_with_skip_final_snapshot_param(client, skip_final_snapshot):
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+
+    deletion_kwargs = dict(
+        DBInstanceIdentifier="db-primary-1", SkipFinalSnapshot=skip_final_snapshot
+    )
+    if not skip_final_snapshot:
+        deletion_kwargs["FinalDBSnapshotIdentifier"] = "final-snapshot"
+    client.delete_db_instance(**deletion_kwargs)
+
+    with pytest.raises(ClientError):
+        client.describe_db_instances(DBInstanceIdentifier="db-primary-1")
+
+    resp = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1",
+        DBSnapshotIdentifier="final-snapshot",
+        SnapshotType="manual",
+    )
+    snapshot_count = len(resp["DBSnapshots"])
+    valid_conditions = [
+        (skip_final_snapshot and snapshot_count == 0),
+        (snapshot_count == 1 and not skip_final_snapshot),
+    ]
+    assert any(valid_conditions)
+    if not skip_final_snapshot:
+        assert resp["DBSnapshots"][0]["DBSnapshotIdentifier"] == "final-snapshot"
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"

@@ -121,16 +121,12 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def delete_db_instance(self) -> TYPE_RESPONSE:
-        db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_name = self.parameters.get("FinalDBSnapshotIdentifier")
         if db_snapshot_name is not None:
             self.backend.validate_db_snapshot_identifier(
                 db_snapshot_name, parameter_name="FinalDBSnapshotIdentifier"
             )
-
-        database = self.backend.delete_db_instance(
-            db_instance_identifier, db_snapshot_name
-        )
+        database = self.backend.delete_db_instance(**self.parameters)
         result = {"DBInstance": database}
         return self.serialize(result)
 
