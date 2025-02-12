@@ -1242,7 +1242,7 @@ class DBSnapshot(RDSBaseModel):
         original_created_at: Optional[str] = None,
     ):
         super().__init__(backend)
-        self.database = database
+        self.database = database  # TODO: Refactor this out.
         self.snapshot_id = snapshot_id
         self.snapshot_type = snapshot_type
         self.tags = tags or []
@@ -1250,30 +1250,27 @@ class DBSnapshot(RDSBaseModel):
         self.created_at = iso_8601_datetime_with_milliseconds()
         self.original_created_at = original_created_at or self.created_at
         self.attributes: List[Dict[str, Any]] = []
+        # Database attributes are captured at the time the snapshot is taken.
+        self.allocated_storage = database.allocated_storage
+        self.dbi_resource_id = database.dbi_resource_id
+        self.db_instance_identifier = database.db_instance_identifier
+        self.engine = database.engine
+        self.engine_version = database.engine_version
+        self.encrypted = database.storage_encrypted
+        self.iam_database_authentication_enabled = (
+            database.enable_iam_database_authentication
+        )
+        self.instance_create_time = database.created
+        self.master_username = database.master_username
+        self.port = database.port
 
     @property
     def name(self) -> str:
         return self.snapshot_id
 
     @property
-    def dbi_resource_id(self) -> str:
-        return self.database.dbi_resource_id
-
-    @property
-    def engine(self) -> str:
-        return self.database.engine
-
-    @property
     def db_snapshot_identifier(self) -> str:
         return self.snapshot_id
-
-    @property
-    def db_instance_identifier(self) -> str:
-        return self.database.db_instance_identifier
-
-    @property
-    def iam_database_authentication_enabled(self) -> bool:
-        return self.database.enable_iam_database_authentication
 
     @property
     def snapshot_create_time(self) -> str:
@@ -1889,8 +1886,12 @@ class RDSBackend(BaseBackend):
 
         new_instance_props = {}
         for key, value in original_database.__dict__.items():
-            if key != "backend":
-                new_instance_props[key] = copy.deepcopy(value)
+            if key not in [
+                "backend",
+                "db_parameter_group_name",
+                "vpc_security_group_ids",
+            ]:
+                new_instance_props[key] = copy.copy(value)
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
