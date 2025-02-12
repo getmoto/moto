@@ -1387,6 +1387,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tags=tags or [],
                         launch_type=launch_type or "",
                         networking_configuration=networking_configuration,
+
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
