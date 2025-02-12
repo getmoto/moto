@@ -308,6 +308,7 @@ class DBCluster(RDSBaseModel):
         copy_tags_to_snapshot: Optional[bool] = False,
         database_name: Optional[str] = None,
         db_cluster_parameter_group_name: Optional[str] = None,
+        db_subnet_group_name: Optional[str] = None,
         port: Optional[int] = None,
         preferred_backup_window: Optional[str] = "01:37-02:07",
         preferred_maintenance_window: Optional[str] = "wed:02:40-wed:03:10",
@@ -387,7 +388,7 @@ class DBCluster(RDSBaseModel):
             "default.neptune1.3" if self.engine == "neptune" else "default.aurora8.0"
         )
         self.parameter_group = db_cluster_parameter_group_name or default_pg
-        self.subnet_group = kwargs.get("db_subnet_group_name") or "default"
+        self.db_subnet_group = db_subnet_group_name or "default"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
@@ -499,10 +500,6 @@ class DBCluster(RDSBaseModel):
                 "The parameter MasterUserPassword is not a valid password because it is shorter than 8 characters."
             )
         self._master_user_password = val
-
-    @property
-    def db_subnet_group(self) -> str:
-        return self.subnet_group
 
     @property
     def enable_http_endpoint(self) -> bool:
