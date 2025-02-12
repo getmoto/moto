@@ -771,7 +771,7 @@ class Container(BaseObject, CloudFormationModel):
         self.last_status = "PENDING"
         self.exitCode = 0
 
-        self.network_interfaces = [List[Dict[str, Any]]]
+        self.network_interfaces: List[Dict[str, Any]] = []
         self.health_status = "HEALTHY"
 
         self.cpu = container_def["cpu"]
