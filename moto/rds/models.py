@@ -2592,8 +2592,8 @@ class RDSBackend(BaseBackend):
         if cluster_identifier in self.clusters:
             cluster = self.clusters[cluster_identifier]
             if cluster.deletion_protection:
-                raise InvalidParameterValue(
-                    "Can't delete Cluster with protection enabled"
+                raise InvalidParameterCombination(
+                    "Cannot delete protected Cluster, please disable deletion protection and try again."
                 )
             if cluster.cluster_members:
                 raise DBClusterToBeDeletedHasActiveMembers()

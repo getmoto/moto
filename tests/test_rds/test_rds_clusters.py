@@ -453,7 +453,90 @@ def test_delete_db_cluster_that_is_protected(client):
     with pytest.raises(ClientError) as exc:
         client.delete_db_cluster(DBClusterIdentifier=db_cluster_identifier)
     err = exc.value.response["Error"]
-    assert err["Message"] == "Can't delete Cluster with protection enabled"
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "Cannot delete protected Cluster, please disable deletion protection and try again."
+    )
+
+
+@mock_aws
+def test_delete_db_cluster_with_instances_deletion_protection_disabled(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+        Port=1234,
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-1",
+        DBInstanceClass="db.m1.small",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier="cluster-1",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-2",
+        DBInstanceClass="db.m1.small",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier="cluster-1",
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1").get(
+        "DBClusters"
+    )[0]
+    assert len(cluster["DBClusterMembers"]) == 2
+    client.delete_db_instance(DBInstanceIdentifier="test-instance-1")
+    client.delete_db_instance(DBInstanceIdentifier="test-instance-2")
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1").get(
+        "DBClusters"
+    )[0]
+    assert len(cluster["DBClusterMembers"]) == 0
+    cluster = client.delete_db_cluster(DBClusterIdentifier="cluster-1").get("DBCluster")
+    assert cluster["DBClusterIdentifier"] == "cluster-1"
+
+
+@mock_aws
+def test_delete_db_cluster_with_instances_deletion_protection_enabled(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+        Port=1234,
+        DeletionProtection=True,
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-1",
+        DBInstanceClass="db.m1.small",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier="cluster-1",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-2",
+        DBInstanceClass="db.m1.small",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier="cluster-1",
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1").get(
+        "DBClusters"
+    )[0]
+    assert len(cluster["DBClusterMembers"]) == 2
+    client.delete_db_instance(DBInstanceIdentifier="test-instance-1")
+    client.delete_db_instance(DBInstanceIdentifier="test-instance-2")
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1").get(
+        "DBClusters"
+    )[0]
+    assert len(cluster["DBClusterMembers"]) == 0
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_cluster(DBClusterIdentifier="cluster-1")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "Cannot delete protected Cluster, please disable deletion protection and try again."
+    )
 
 
 @mock_aws
