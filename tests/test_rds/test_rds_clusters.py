@@ -438,10 +438,12 @@ def test_delete_db_cluster_do_snapshot(client):
         FinalDBSnapshotIdentifier="final-snapshot",
     )
     assert len(client.describe_db_clusters()["DBClusters"]) == 0
-    snapshot = client.describe_db_cluster_snapshots()["DBClusterSnapshots"][0]
+    snapshot = client.describe_db_cluster_snapshots(
+        DBClusterSnapshotIdentifier="final-snapshot"
+    )["DBClusterSnapshots"][0]
     assert snapshot["DBClusterIdentifier"] == db_cluster_identifier
     assert snapshot["DBClusterSnapshotIdentifier"] == "final-snapshot"
-    assert snapshot["SnapshotType"] == "automated"
+    assert snapshot["SnapshotType"] == "manual"
 
 
 @mock_aws
@@ -687,10 +689,12 @@ def test_describe_db_cluster_snapshots(client):
     assert created["Engine"] == "postgres"
 
     by_database_id = client.describe_db_cluster_snapshots(
-        DBClusterIdentifier="db-primary-1"
+        DBClusterIdentifier="db-primary-1",
+        SnapshotType="manual",
     )["DBClusterSnapshots"]
     by_snapshot_id = client.describe_db_cluster_snapshots(
-        DBClusterSnapshotIdentifier="snapshot-1"
+        DBClusterSnapshotIdentifier="snapshot-1",
+        SnapshotType="manual",
     )["DBClusterSnapshots"]
     assert by_snapshot_id == by_database_id
 
@@ -702,7 +706,8 @@ def test_describe_db_cluster_snapshots(client):
         DBClusterIdentifier="db-primary-1", DBClusterSnapshotIdentifier="snapshot-2"
     )
     snapshots = client.describe_db_cluster_snapshots(
-        DBClusterIdentifier="db-primary-1"
+        DBClusterIdentifier="db-primary-1",
+        SnapshotType="manual",
     )["DBClusterSnapshots"]
     assert len(snapshots) == 2
 

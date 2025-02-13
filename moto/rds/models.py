@@ -671,6 +671,13 @@ class DBCluster(RDSBaseModel):
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
         }[engine][storage_type]
 
+    def save_automated_backup(self) -> None:
+        time_stamp = utcnow().strftime("%Y-%m-%d-%H-%M")
+        snapshot_id = f"rds:{self.db_cluster_identifier}-{time_stamp}"
+        self.backend.create_auto_cluster_snapshot(
+            self.db_cluster_identifier, snapshot_id
+        )
+
 
 class DBClusterSnapshot(RDSBaseModel):
     resource_type = "cluster-snapshot"
@@ -2380,7 +2387,7 @@ class RDSBackend(BaseBackend):
         cluster_id = kwargs["db_cluster_identifier"]
         cluster = DBCluster(self, **kwargs)
         self.clusters[cluster_id] = cluster
-
+        cluster.save_automated_backup()
         if cluster.global_cluster_identifier:
             for regional_backend in rds_backends[self.account_id]:
                 if (
@@ -2543,6 +2550,7 @@ class RDSBackend(BaseBackend):
         self,
         db_cluster_identifier: Optional[str],
         db_snapshot_identifier: str,
+        snapshot_type: Optional[str] = None,
         filters: Any = None,
     ) -> List[DBClusterSnapshot]:
         snapshots = self.cluster_snapshots
@@ -2552,6 +2560,18 @@ class RDSBackend(BaseBackend):
             filters = merge_filters(
                 filters, {"db-cluster-snapshot-id": [db_snapshot_identifier]}
             )
+        snapshot_types = (
+            ["automated", "manual"]
+            if (
+                snapshot_type is None
+                and (filters is not None and "snapshot-type" not in filters)
+            )
+            else [snapshot_type]
+            if snapshot_type is not None
+            else []
+        )
+        if snapshot_types:
+            filters = merge_filters(filters, {"snapshot-type": snapshot_types})
         if filters:
             snapshots = self._filter_resources(snapshots, filters, DBClusterSnapshot)
         if db_snapshot_identifier and not snapshots and not db_cluster_identifier:
@@ -2574,7 +2594,7 @@ class RDSBackend(BaseBackend):
                 self.remove_from_global_cluster(global_id, cluster_identifier)
 
             if snapshot_name:
-                self.create_auto_cluster_snapshot(cluster_identifier, snapshot_name)
+                self.create_db_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
         raise DBClusterNotFoundError(cluster_identifier)
 

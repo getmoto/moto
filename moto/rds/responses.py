@@ -474,10 +474,11 @@ class RDSResponse(BaseResponse):
     def describe_db_cluster_snapshots(self) -> TYPE_RESPONSE:
         db_cluster_identifier = self.parameters.get("DBClusterIdentifier")
         db_snapshot_identifier = self.parameters.get("DBClusterSnapshotIdentifier")
+        snapshot_type = self.parameters.get("SnapshotType")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_db_cluster_snapshots(
-            db_cluster_identifier, db_snapshot_identifier, filter_dict
+            db_cluster_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         results = {"DBClusterSnapshots": snapshots}
         return self.serialize(results)
