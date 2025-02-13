@@ -344,7 +344,7 @@ class DBCluster(RDSBaseModel):
         self.kms_key_id = kwargs.get("kms_key_id")
         self.network_type = kwargs.get("network_type") or "IPV4"
         self._status = "creating"
-        self.cluster_create_time = iso_8601_datetime_with_milliseconds()
+        self.cluster_create_time = self.created
         self.copy_tags_to_snapshot = copy_tags_to_snapshot
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
@@ -485,6 +485,10 @@ class DBCluster(RDSBaseModel):
     @property
     def db_cluster_resource_id(self) -> str:
         return self.resource_id
+
+    @property
+    def latest_restorable_time(self) -> str:
+        return iso_8601_datetime_with_milliseconds(utcnow())
 
     @property
     def master_user_password(self) -> str:
@@ -825,7 +829,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         if self.port is None:
             self.port = DBInstance.default_port(self.engine)
         self.db_name = db_name
-        self.instance_create_time = iso_8601_datetime_with_milliseconds()
+        self.instance_create_time = self.created
         self.publicly_accessible = publicly_accessible
         self.copy_tags_to_snapshot = copy_tags_to_snapshot
         self.availability_zone = kwargs.get("availability_zone")
@@ -941,6 +945,10 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
     @property
     def physical_resource_id(self) -> Optional[str]:
         return self.db_instance_identifier
+
+    @property
+    def latest_restorable_time(self) -> str:
+        return iso_8601_datetime_with_milliseconds(utcnow())
 
     def db_parameter_groups(self) -> List[DBParameterGroup]:
         if not self.db_parameter_group_name or self.is_default_parameter_group(
