@@ -1337,6 +1337,32 @@ def test_ami_filter_by_unknown_ownerid():
     assert len(images) == 0
 
 
+@mock_aws()
+def test_ami_filter_without_value():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2_resource = boto3.resource("ec2", region_name="us-west-1")
+
+    image_name = str(uuid4())[0:12]
+
+    instance = ec2_resource.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance.create_image(Name=image_name)
+
+    images = client.describe_images(Filters=[{"Name": "owner-alias", "Values": []}])[
+        "Images"
+    ]
+    assert len(images) == 0
+
+    images = client.describe_images(Filters=[{"Name": "owner-alias"}])["Images"]
+    assert len(images) == 0
+
+    with pytest.raises(ClientError) as err:
+        client.describe_images(Filters=[{"Values": ["123"]}])
+
+    assert err.value.response["Error"]["Code"] == "InvalidParameterValue"
+
+
 @mock_aws
 def test_describe_images_dryrun():
     client = boto3.client("ec2", region_name="us-east-1")

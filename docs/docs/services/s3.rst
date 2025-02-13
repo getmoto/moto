@@ -116,6 +116,12 @@ s3
 - [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
+  
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        
+
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
 - [ ] put_bucket_inventory_configuration

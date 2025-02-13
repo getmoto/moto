@@ -160,17 +160,18 @@ backend_url_patterns = [
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("s3", re.compile("https?://s3(?!-control)(.*)\\.amazonaws.com")),
+    ("s3", re.compile("https?://s3(?!(-control|tables))(.*)\\.amazonaws.com")),
     (
         "s3",
         re.compile(
-            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!-control)(.*)\\.amazonaws.com"
+            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!(-control|tables))(.*)\\.amazonaws.com"
         ),
     ),
     (
         "s3control",
         re.compile("https?://([0-9]+)\\.s3-control\\.(.+)\\.amazonaws\\.com"),
     ),
+    ("s3tables", re.compile("https?://s3tables\\.(.+)\\.amazonaws\\.com")),
     ("sagemaker", re.compile("https?://api\\.sagemaker\\.(.+)\\.amazonaws.com")),
     (
         "sagemakermetrics",
@@ -183,6 +184,7 @@ backend_url_patterns = [
     ("scheduler", re.compile("https?://scheduler\\.(.+)\\.amazonaws\\.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
+    ("securityhub", re.compile("https?://securityhub\\.(.+)\\.amazonaws\\.com")),
     (
         "servicediscovery",
         re.compile("https?://(data-)?servicediscovery\\.(.+)\\.amazonaws\\.com"),

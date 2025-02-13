@@ -80,7 +80,7 @@ class TooManyEntriesInBatchRequest(RESTError):
     def __init__(self, number: int):
         super().__init__(
             "TooManyEntriesInBatchRequest",
-            "Maximum number of entries per request are 10. " f"You have sent {number}.",
+            f"Maximum number of entries per request are 10. You have sent {number}.",
         )
 
 

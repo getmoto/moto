@@ -17,27 +17,28 @@ def secretsmanager_aws_verified(func):
     """
 
     @wraps(func)
-    def pagination_wrapper():
+    def pagination_wrapper(**kwargs):
         allow_aws_request = (
             os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
         )
 
         if allow_aws_request:
-            return create_secret_and_execute(func)
+            return create_secret_and_execute(kwargs, func)
         else:
             with mock_aws():
-                return create_secret_and_execute(func)
+                return create_secret_and_execute(kwargs, func)
 
-    def create_secret_and_execute(func):
+    def create_secret_and_execute(kwargs, func):
         sm_client = boto3.client("secretsmanager", "us-east-1")
 
-        secret_arn = sm_client.create_secret(
+        secret = sm_client.create_secret(
             Name=f"moto_secret_{str(uuid4())[0:6]}",
             SecretString="old_secret",
-        )["ARN"]
+        )
         try:
-            return func(secret_arn)
+            kwargs["secret"] = secret
+            return func(**kwargs)
         finally:
-            sm_client.delete_secret(SecretId=secret_arn)
+            sm_client.delete_secret(SecretId=secret["ARN"])
 
     return pagination_wrapper

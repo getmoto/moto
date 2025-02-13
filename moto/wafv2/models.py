@@ -61,7 +61,7 @@ PAGINATION_MODEL = {
         "input_token": "next_marker",
         "limit_key": "limit",
         "limit_default": 100,
-        "unique_attribute": "ARN",
+        "unique_attribute": "arn",
     },
 }
 
@@ -514,15 +514,15 @@ class WAFV2Backend(BaseBackend):
         raise WAFNonexistentItemException
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_web_acls(self) -> List[Dict[str, Any]]:
-        return [wacl.to_short_dict() for wacl in self.wacls.values()]
+    def list_web_acls(self) -> List[FakeWebACL]:
+        return [wacl for wacl in self.wacls.values()]
 
     def _is_duplicate_name(self, name: str) -> bool:
         all_wacl_names = set(wacl.name for wacl in self.wacls.values())
         return name in all_wacl_names
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_rule_groups(self, scope: str) -> List[Any]:
+    def list_rule_groups(self, scope: str) -> List[FakeRuleGroup]:
         rule_groups = [
             group for group in self.rule_groups.values() if group.scope == scope
         ]

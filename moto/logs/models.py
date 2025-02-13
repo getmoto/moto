@@ -802,18 +802,16 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException()
         del self.groups[log_group_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def describe_log_groups(
         self, log_group_name_prefix: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[LogGroup]:
         groups = [
-            group.to_describe_dict()
+            group
             for name, group in self.groups.items()
             if name.startswith(log_group_name_prefix or "")
         ]
-        groups = sorted(groups, key=lambda x: x["logGroupName"])
-
-        return groups
+        return sorted(groups, key=lambda x: x.name)
 
     def get_destination(self, destination_name: str) -> Destination:
         for destination in self.destinations:
@@ -1181,8 +1179,7 @@ class LogsBackend(BaseBackend):
         else:
             # TODO: support Kinesis stream destinations
             raise InvalidParameterException(
-                f"Service '{service}' has not implemented for "
-                f"put_subscription_filter()"
+                f"Service '{service}' has not implemented for put_subscription_filter()"
             )
 
         log_group.put_subscription_filter(

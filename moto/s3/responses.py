@@ -184,6 +184,12 @@ class S3Response(BaseResponse):
         self.bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.request = request
         if (
+            not self.body
+            and request.headers.get("Content-Encoding", "") == "aws-chunked"
+            and hasattr(request, "input_stream")
+        ):
+            self.body = request.input_stream.getvalue()
+        if (
             self.request.headers.get("x-amz-content-sha256")
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
         ):
@@ -1347,6 +1353,8 @@ class S3Response(BaseResponse):
 
     def _handle_encoded_body(self, body: bytes) -> bytes:
         decoded_body = b""
+        if not body:
+            return decoded_body
         body_io = io.BytesIO(body)
         # first line should equal '{content_length}\r\n' while the content_length is a hex number
         content_length = int(body_io.readline().strip(), 16)
@@ -1493,14 +1501,20 @@ class S3Response(BaseResponse):
     def get_object(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
         response_headers = self._get_cors_headers_other()
-        if not_modified:
-            return 304, response_headers, "Not Modified"
 
         if key.version_id != "null":
             response_headers["x-amz-version-id"] = key.version_id
 
-        response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
+
+        if not_modified:
+            # Real S3 omits any content-* headers for a 304
+            for header in list(response_headers.keys()):
+                if header.startswith("content-"):
+                    response_headers.pop(header)
+            return 304, response_headers, "Not Modified"
+
+        response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
 
         part_number = self._get_int_param("partNumber")
@@ -1769,6 +1783,8 @@ class S3Response(BaseResponse):
             checksum_value = compute_checksum(
                 self.raw_body, algorithm=checksum_algorithm
             )
+            if isinstance(checksum_value, bytes):
+                checksum_value = checksum_value.decode("utf-8")
             response_headers.update({checksum_header: checksum_value})
         return checksum_algorithm, checksum_value
 

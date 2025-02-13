@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -370,28 +370,6 @@ def test_create_function_error_ephemeral_too_big():
         "failed to satisfy constraint: "
         "Member must have value less than or equal to 10240"
     )
-
-
-@mock_aws
-def test_create_function_error_ephemeral_too_small():
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
-
-    with pytest.raises(ParamValidationError) as exc:
-        conn.create_function(
-            FunctionName=function_name,
-            Role=get_role_name(),
-            Code={"ImageUri": image_uri},
-            Description="test lambda function",
-            Timeout=3,
-            MemorySize=128,
-            Publish=True,
-            EphemeralStorage={"Size": 200},
-        )
-
-    # this one is handled by botocore, not moto
-    assert exc.typename == "ParamValidationError"
 
 
 @mock_aws

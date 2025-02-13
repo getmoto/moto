@@ -56,6 +56,7 @@ from moto.s3.exceptions import (
     InvalidTagError,
     InvalidTargetBucketForLogging,
     MalformedXML,
+    MethodNotAllowed,
     MissingBucket,
     MissingKey,
     NoSuchPublicAccessBlockConfiguration,
@@ -196,7 +197,7 @@ class FakeKey(BaseModel, ManagedState):
         return f"arn:{self.partition}:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
 
     @value.setter  # type: ignore
-    def value(self, new_value: bytes) -> None:
+    def value(self, new_value: bytes) -> None:  # type: ignore[misc]
         self._value_buffer.seek(0)
         self._value_buffer.truncate()
 
@@ -1646,6 +1647,9 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+class FakeTableStorageBucket(FakeBucket): ...
+
+
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
     """
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
@@ -1711,6 +1715,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.buckets: Dict[str, FakeBucket] = {}
+        self.table_buckets: Dict[str, FakeTableStorageBucket] = {}
         self.tagger = TaggingService()
         self._pagination_tokens: Dict[str, str] = {}
 
@@ -1719,7 +1724,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
         #
         # First, check all known buckets/keys
-        for bucket in self.buckets.values():
+        for bucket in itertools.chain(
+            self.buckets.values(), self.table_buckets.values()
+        ):
             for key in bucket.keys.values():  # type: ignore
                 if isinstance(key, FakeKey):
                     key.dispose()
@@ -1876,12 +1883,24 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return new_bucket
 
+    def create_table_storage_bucket(self, region_name: str) -> FakeTableStorageBucket:
+        # every s3 table is assigned a unique s3 bucket with a random name
+        bucket_name = f"{str(random.uuid4())}--table-s3"
+        new_bucket = FakeTableStorageBucket(
+            name=bucket_name, account_id=self.account_id, region_name=region_name
+        )
+        self.table_buckets[bucket_name] = new_bucket
+        return new_bucket
+
     def list_buckets(self) -> List[FakeBucket]:
         return list(self.buckets.values())
 
     def get_bucket(self, bucket_name: str) -> FakeBucket:
         if bucket_name in self.buckets:
             return self.buckets[bucket_name]
+
+        if bucket_name in self.table_buckets:
+            return self.table_buckets[bucket_name]
 
         if bucket_name in s3_backends.bucket_accounts:
             if not s3_allow_crossdomain_access():
@@ -1902,6 +1921,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         else:
             s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
+
+    def delete_table_storage_bucket(self, bucket_name: str) -> Optional[FakeBucket]:
+        bucket = self.get_bucket(bucket_name)
+        assert isinstance(bucket, FakeTableStorageBucket)
+        # table storage buckets can be deleted while not empty
+        if bucket.keys:
+            for key in bucket.keys.values():  # type: ignore
+                if isinstance(key, FakeKey):
+                    key.dispose()
+            for part in bucket.multiparts.values():
+                part.dispose()
+        s3_backends.bucket_accounts.pop(bucket_name, None)
+        return self.table_buckets.pop(bucket_name)
 
     def get_bucket_accelerate_configuration(self, bucket_name: str) -> Optional[str]:
         bucket = self.get_bucket(bucket_name)
@@ -2433,6 +2465,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_cors(
         self, bucket_name: str, cors_rules: List[Dict[str, Any]]
     ) -> None:
+        """
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_cors(cors_rules)
 
@@ -2644,6 +2681,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         MOTO_S3_DEFAULT_MAX_KEYS=5
         """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2702,6 +2741,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         MOTO_S3_DEFAULT_MAX_KEYS=5
         """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         result_keys, result_folders, _, _ = self.list_objects(
             bucket, prefix, delimiter, marker=None, max_keys=None
         )
@@ -2784,6 +2825,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bypass: bool = False,
     ) -> Tuple[bool, Dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
 
         response_meta = {}
         delete_key = bucket.keys.get(key_name)

@@ -25,6 +25,7 @@ def test_validate():
                 "description": "test policy",
                 "selection": {
                     "tagStatus": "tagged",
+                    "tagPatternList": ["tagx"],
                     "tagPrefixList": ["3.9"],
                     "countType": "sinceImagePushed",
                     "countUnit": "days",

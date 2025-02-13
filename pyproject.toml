@@ -4,6 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 addopts = "--color=yes"
+filterwarnings = [
+    # https://github.com/boto/boto3/issues/3889#issuecomment-2578155761
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore"
+]
 markers = [
     "network: requires network connection",
     "requires_docker: requires running docker",

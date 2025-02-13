@@ -12,7 +12,7 @@ data "aws_subnets" "all" {
 resource "aws_lb" "this" {
   name                       = "nlb-test"
   internal                   = true
-  load_balancer_type         = "network"
+  load_balancer_type         = "application"
   subnets                    = data.aws_subnets.all.ids
   enable_deletion_protection = false
 }

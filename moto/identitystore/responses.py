@@ -172,7 +172,9 @@ class IdentityStoreResponse(BaseResponse):
             filters=filters,
         )
 
-        return json.dumps(dict(Groups=groups, NextToken=next_token))
+        return json.dumps(
+            dict(Groups=[g._asdict() for g in groups], NextToken=next_token)
+        )
 
     def describe_group(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")

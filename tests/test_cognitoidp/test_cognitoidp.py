@@ -9,13 +9,14 @@ import re
 import time
 import uuid
 from unittest import SkipTest, mock
+from uuid import UUID
 
 import boto3
 import pycognito
 import pyotp
 import pytest
 import requests
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from joserfc import jwk, jws, jwt
 
 import moto.cognitoidp.models
@@ -694,15 +695,6 @@ def test_set_user_pool_mfa_config():
         == "[SmsConfiguration] is a required member of [SoftwareTokenMfaConfiguration]."
     )
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-
-    # Test error for when `SmsConfiguration` is missing `SnsCaller`
-    # This is asserted by boto3
-    with pytest.raises(ParamValidationError) as ex:
-        conn.set_user_pool_mfa_config(
-            UserPoolId=user_pool_id,
-            SmsMfaConfiguration={"SmsConfiguration": {}},
-            MfaConfiguration="ON",
-        )
 
     # Test error for when `MfaConfiguration` is not one of the expected values
     with pytest.raises(ClientError) as ex:
@@ -1554,6 +1546,126 @@ def test_group_in_access_token(user_pool=None, user_pool_client=None):
 
     payload = get_jwt_payload(result["AuthenticationResult"]["AccessToken"])
     assert payload.claims["cognito:groups"] == [group_name]
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(
+    generate_secret=True, explicit_auth_flows=["ADMIN_NO_SRP_AUTH"]
+)
+def test_jti_in_tokens(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = "P2$Sword"
+    new_password = "P2$Sword"
+    user_pool_id = user_pool["UserPool"]["Id"]
+    user_attribute_value = str(uuid.uuid4())
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+    client_secret = user_pool_client["UserPoolClient"]["ClientSecret"]
+    secret_hash = pycognito.aws_srp.AWSSRP.get_secret_hash(
+        username=username, client_id=client_id, client_secret=client_secret
+    )
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": "given_name", "Value": user_attribute_value}],
+    )
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={
+            "USERNAME": username,
+            "PASSWORD": temporary_password,
+            "SECRET_HASH": secret_hash,
+        },
+    )
+
+    # This sets a new password and logs the user in (creates tokens)
+    initial_login = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        Session=result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={
+            "USERNAME": username,
+            "NEW_PASSWORD": new_password,
+            "SECRET_HASH": secret_hash,
+        },
+    )["AuthenticationResult"]
+
+    initial_access_claims = get_jwt_payload(initial_login["AccessToken"]).claims
+
+    initial_id_claims = get_jwt_payload(initial_login["IdToken"]).claims
+
+    # origin_jti
+    # A token-revocation identifier associated with your user's refresh token.
+    # Should be the same for all tokens, for a single session
+    assert UUID(initial_access_claims["origin_jti"])
+    assert initial_access_claims["origin_jti"] == initial_id_claims["origin_jti"]
+
+    # jti
+    # The unique identifier of the JWT.
+    # Should be unique for every token
+    assert UUID(initial_access_claims["jti"])
+    assert UUID(initial_id_claims["jti"])
+    assert initial_access_claims["jti"] != initial_id_claims["jti"]
+
+    # refresh current session
+    refreshed_tokens = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="REFRESH_TOKEN",
+        AuthParameters={
+            "SECRET_HASH": secret_hash,
+            "REFRESH_TOKEN": initial_login["RefreshToken"],
+        },
+    )["AuthenticationResult"]
+    refresh_access_claims = get_jwt_payload(refreshed_tokens["AccessToken"]).claims
+
+    refresh_id_claims = get_jwt_payload(refreshed_tokens["IdToken"]).claims
+
+    assert initial_access_claims["origin_jti"] == refresh_access_claims["origin_jti"]
+    assert refresh_access_claims["origin_jti"] == refresh_id_claims["origin_jti"]
+
+    assert initial_access_claims["jti"] != refresh_access_claims["jti"]
+    assert refresh_access_claims["jti"] != refresh_id_claims["jti"]
+
+    # new session
+    aws_srp = pycognito.aws_srp.AWSSRP(
+        username=username,
+        password=new_password,
+        pool_id=user_pool_id,
+        client_id=client_id,
+        client_secret=client_secret,
+        client=conn,
+    )
+    auth_params = aws_srp.get_auth_params()
+
+    result = conn.initiate_auth(
+        ClientId=client_id,
+        AuthFlow="USER_SRP_AUTH",
+        AuthParameters=auth_params,
+    )
+
+    challenge_response = aws_srp.process_challenge(
+        result["ChallengeParameters"], auth_params
+    )
+    new_session = conn.respond_to_auth_challenge(
+        ClientId=client_id,
+        ChallengeName=result["ChallengeName"],
+        ChallengeResponses=challenge_response,
+    )["AuthenticationResult"]
+    new_access_claims = get_jwt_payload(new_session["AccessToken"]).claims
+
+    new_id_claims = get_jwt_payload(new_session["IdToken"]).claims
+
+    assert initial_access_claims["origin_jti"] != new_access_claims["origin_jti"]
+    assert new_access_claims["origin_jti"] == new_id_claims["origin_jti"]
+
+    assert new_access_claims["jti"] != new_id_claims["jti"]
 
 
 @mock_aws

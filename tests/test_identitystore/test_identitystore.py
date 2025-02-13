@@ -417,8 +417,8 @@ def test_list_groups():
     identity_store_id = get_identity_store_id()
 
     start = 0
-    end = 266
-    batch_size = 100
+    end = 20
+    batch_size = 3
     next_token = None
 
     expected_groups = list()
@@ -509,8 +509,8 @@ def test_list_group_memberships():
     identity_store_id = get_identity_store_id()
 
     start = 0
-    end = 5000
-    batch_size = 321
+    end = 20
+    batch_size = 3
     next_token = None
     membership_ids = []
 

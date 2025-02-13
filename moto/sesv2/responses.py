@@ -122,3 +122,83 @@ class SESV2Response(BaseResponse):
         )
         # TODO: adjust response
         return json.dumps(dict(emailIdentities=email_identities, nextToken=next_token))
+
+    def create_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        tracking_options = self._get_param("TrackingOptions")
+        delivery_options = self._get_param("DeliveryOptions")
+        reputation_options = self._get_param("ReputationOptions")
+        sending_options = self._get_param("SendingOptions")
+        tags = self._get_param("Tags")
+        suppression_options = self._get_param("SuppressionOptions")
+        vdm_options = self._get_param("VdmOptions")
+        self.sesv2_backend.create_configuration_set(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+        return json.dumps({})
+
+    def delete_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        self.sesv2_backend.delete_configuration_set(
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps({})
+
+    def get_configuration_set(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        config_set = self.sesv2_backend.get_configuration_set(
+            configuration_set_name=configuration_set_name,
+        )
+        return json.dumps(config_set.to_dict_v2())
+
+    def list_configuration_sets(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        configuration_sets = self.sesv2_backend.list_configuration_sets(
+            next_token=next_token, page_size=page_size
+        )
+        return json.dumps(
+            dict(ConfigurationSets=configuration_sets, NextToken=next_token)
+        )
+
+    def create_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        tags = self._get_param("Tags")
+        scaling_mode = self._get_param("ScalingMode")
+        self.sesv2_backend.create_dedicated_ip_pool(
+            pool_name=pool_name,
+            tags=tags,
+            scaling_mode=scaling_mode,
+        )
+        return json.dumps({})
+
+    def delete_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        self.sesv2_backend.delete_dedicated_ip_pool(
+            pool_name=pool_name,
+        )
+        return json.dumps({})
+
+    def list_dedicated_ip_pools(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        dedicated_ip_pools, next_token = self.sesv2_backend.list_dedicated_ip_pools(
+            next_token=next_token, page_size=page_size
+        )
+        return json.dumps(
+            dict(DedicatedIpPools=dedicated_ip_pools, NextToken=next_token)
+        )
+
+    def get_dedicated_ip_pool(self) -> str:
+        pool_name = self._get_param("PoolName")
+        dedicated_ip_pool = self.sesv2_backend.get_dedicated_ip_pool(
+            pool_name=pool_name,
+        )
+        return json.dumps(dict(DedicatedIpPool=dedicated_ip_pool.to_dict()))

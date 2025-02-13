@@ -460,6 +460,42 @@
   "Location": "me-central-1a"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "me-central-1a"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "me-central-1a"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "me-central-1a"
  },
@@ -1176,6 +1212,42 @@
   "Location": "me-central-1b"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "me-central-1b"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "me-central-1b"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "me-central-1b"
  },
@@ -1881,6 +1953,42 @@
  },
  {
   "InstanceType": "m6i.xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "me-central-1c"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
   "Location": "me-central-1c"
  },
  {

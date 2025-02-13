@@ -1,8 +1,12 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 import requests
+from responses import Response
 
 from moto import mock_aws, settings
+from moto.core.models import responses_mock
 
 
 @mock_aws
@@ -48,3 +52,20 @@ def test_decorator_ordering() -> None:
 
     resp = requests.get(presigned_url)
     assert resp.status_code == 200
+
+
+@mock_aws()
+def test_replace_and_remove_mock() -> None:
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Only need to test responses mock in decorator mode")
+    rsp1 = Response(method="GET", url="http://example.com", body="test")
+    responses_mock.add(rsp1)
+
+    assert requests.get("http://example.com/").text == "test"
+
+    rsp2 = Response(method="GET", url="http://example.com", body="test2")
+    responses_mock.replace(rsp2)
+
+    assert requests.get("http://example.com/").text == "test2"
+
+    responses_mock.remove("GET", "https://example.com/")

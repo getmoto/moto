@@ -15,7 +15,13 @@ class TestDBInstanceFilters:
         for i in range(10):
             instance_identifier = f"db-instance-{i}"
             cluster_identifier = f"db-cluster-{i}"
-            engine = "postgres" if (i % 3) else "mysql"
+            engine = "aurora-postgresql" if (i % 3) else "aurora-mysql"
+            client.create_db_cluster(
+                DBClusterIdentifier=cluster_identifier,
+                Engine=engine,
+                MasterUsername="root",
+                MasterUserPassword="password",
+            )
             client.create_db_instance(
                 DBInstanceIdentifier=instance_identifier,
                 DBClusterIdentifier=cluster_identifier,
@@ -55,7 +61,7 @@ class TestDBInstanceFilters:
 
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "db-cluster-id", "Values": [db_cluster_identifier]}]
-        ).get("DBInstances")
+        )["DBInstances"]
         assert len(db_instances) == 1
         assert db_instances[0]["DBClusterIdentifier"] == db_cluster_identifier
 
@@ -65,7 +71,7 @@ class TestDBInstanceFilters:
 
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_identifier]}]
-        ).get("DBInstances")
+        )["DBInstances"]
         assert len(db_instances) == 1
         assert db_instances[0]["DBInstanceIdentifier"] == db_instance_identifier
 
@@ -75,7 +81,7 @@ class TestDBInstanceFilters:
 
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_arn]}]
-        ).get("DBInstances")
+        )["DBInstances"]
         assert len(db_instances) == 1
         assert db_instances[0]["DBInstanceArn"] == db_instance_arn
 
@@ -85,20 +91,20 @@ class TestDBInstanceFilters:
 
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "dbi-resource-id", "Values": [dbi_resource_identifier]}]
-        ).get("DBInstances")
+        )["DBInstances"]
         for db_instance in db_instances:
             assert db_instance["DbiResourceId"] == dbi_resource_identifier
 
     def test_engine_filter(self):
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "engine", "Values": ["postgres"]}]
-        ).get("DBInstances")
+        )["DBInstances"]
         for db_instance in db_instances:
             assert db_instance["Engine"] == "postgres"
 
         db_instances = self.client.describe_db_instances(
             Filters=[{"Name": "engine", "Values": ["oracle"]}]
-        ).get("DBInstances")
+        )["DBInstances"]
         assert len(db_instances) == 0
 
     def test_multiple_filters(self):
@@ -108,7 +114,7 @@ class TestDBInstanceFilters:
                     "Name": "db-instance-id",
                     "Values": ["db-instance-0", "db-instance-1", "db-instance-3"],
                 },
-                {"Name": "engine", "Values": ["mysql", "oracle"]},
+                {"Name": "engine", "Values": ["aurora-mysql", "oracle"]},
             ]
         )
         returned_identifiers = [
@@ -148,7 +154,7 @@ class TestDBInstanceFilters:
             DBInstanceIdentifier="db-instance-0",
             Filters=[
                 {"Name": "db-instance-id", "Values": ["db-instance-1"]},
-                {"Name": "engine", "Values": ["postgres"]},
+                {"Name": "engine", "Values": ["aurora-postgresql"]},
             ],
         )
         returned_identifiers = [
@@ -164,7 +170,7 @@ class TestDBInstanceFilters:
             DBInstanceIdentifier="db-instance-0",
             Filters=[
                 {"Name": "db-instance-id", "Values": ["db-instance-1"]},
-                {"Name": "engine", "Values": ["mysql", "postgres"]},
+                {"Name": "engine", "Values": ["aurora-mysql", "aurora-postgresql"]},
             ],
         )
         returned_identifiers = [
@@ -239,7 +245,7 @@ class TestDBSnapshotFilters:
     def test_db_snapshot_id_filter(self):
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "db-snapshot-id", "Values": ["db-instance-1-snapshot-0"]}]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         assert len(snapshots) == 1
         assert snapshots[0]["DBSnapshotIdentifier"] == "db-instance-1-snapshot-0"
 
@@ -249,7 +255,7 @@ class TestDBSnapshotFilters:
 
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_identifier]}]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         for snapshot in snapshots:
             assert snapshot["DBInstanceIdentifier"] == db_instance_identifier
 
@@ -260,7 +266,7 @@ class TestDBSnapshotFilters:
 
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "db-instance-id", "Values": [db_instance_arn]}]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         for snapshot in snapshots:
             assert snapshot["DBInstanceIdentifier"] == db_instance_identifier
 
@@ -270,20 +276,20 @@ class TestDBSnapshotFilters:
 
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "dbi-resource-id", "Values": [dbi_resource_identifier]}]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         for snapshot in snapshots:
             assert snapshot["DbiResourceId"] == dbi_resource_identifier
 
     def test_engine_filter(self):
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "engine", "Values": ["postgres"]}]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         for snapshot in snapshots:
             assert snapshot["Engine"] == "postgres"
 
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "engine", "Values": ["oracle"]}]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         assert len(snapshots) == 0
 
     def test_snapshot_type_filter(self):
@@ -296,7 +302,7 @@ class TestDBSnapshotFilters:
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "snapshot-type", "Values": ["automated"]}]
         )["DBSnapshots"]
-        assert len(snapshots) == 0
+        assert len(snapshots) == 2
 
     def test_multiple_filters(self):
         snapshots = self.client.describe_db_snapshots(
@@ -308,7 +314,7 @@ class TestDBSnapshotFilters:
                 },
                 {"Name": "engine", "Values": ["mysql"]},
             ]
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         assert len(snapshots) == 1
         assert snapshots[0]["DBSnapshotIdentifier"] == "db-instance-0-snapshot-1"
 
@@ -364,7 +370,7 @@ class TestDBSnapshotFilters:
                 },
                 {"Name": "engine", "Values": ["mysql", "postgres"]},
             ],
-        ).get("DBSnapshots")
+        )["DBSnapshots"]
         returned_identifiers = [ss["DBSnapshotIdentifier"] for ss in snapshots]
         assert len(returned_identifiers) == 2
         assert "db-instance-0-snapshot-0" in returned_identifiers

@@ -152,9 +152,7 @@ class Repository(BaseObject, CloudFormationModel):
         response_object["repositoryArn"] = self.arn
         response_object["repositoryName"] = self.name
         response_object["repositoryUri"] = self.uri
-        response_object["createdAt"] = iso_8601_datetime_without_milliseconds(
-            self.created_at
-        )
+        response_object["createdAt"] = self.created_at.timestamp()
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
 

@@ -721,7 +721,7 @@ class SecretsManagerBackend(BaseBackend):
 
         if rotation_lambda_arn:
             if len(rotation_lambda_arn) > 2048:
-                msg = "RotationLambdaARN " "must <= 2048 characters long."
+                msg = "RotationLambdaARN must <= 2048 characters long."
                 raise InvalidParameterException(msg)
 
         if rotation_rules:
@@ -760,30 +760,27 @@ class SecretsManagerBackend(BaseBackend):
             pass
 
         if secret.versions:
-            old_secret_version = secret.versions[secret.default_version_id]  # type: ignore
-
             if client_request_token:
                 self._client_request_token_validator(client_request_token)
                 new_version_id = client_request_token
             else:
                 new_version_id = str(mock_random.uuid4())
 
-            # We add the new secret version as "pending". The previous version remains
-            # as "current" for now. Once we've passed the new secret through the lambda
-            # rotation function (if provided) we can then update the status to "current".
-            old_secret_version_secret_string = (
-                old_secret_version["secret_string"]
-                if "secret_string" in old_secret_version
-                else None
-            )
-            self._add_secret(
-                secret_id,
-                old_secret_version_secret_string,
-                description=secret.description,
-                tags=secret.tags,
-                version_id=new_version_id,
-                version_stages=["AWSPENDING"],
-            )
+            # We add a "pending" stage. The previous version remains as "current" for now.
+            # Caller is responsible for creating the new secret in the Lambda
+            secret_version = {
+                "createdate": int(time.time()),
+                "version_id": new_version_id,
+                "version_stages": ["AWSPENDING"],
+            }
+            if not rotate_immediately:
+                if secret.secret_string is not None:
+                    secret_version["secret_string"] = secret.secret_string
+                if secret.secret_binary is not None:
+                    secret_version["secret_binary"] = secret.secret_binary
+
+            secret.remove_version_stages_from_old_versions(["AWSPENDING"])
+            secret.versions[new_version_id] = secret_version
 
         secret.rotation_requested = True
         secret.rotation_lambda_arn = rotation_lambda_arn or ""
@@ -826,7 +823,10 @@ class SecretsManagerBackend(BaseBackend):
                     headers=request_headers,
                     response_headers=response_headers,
                 )
-            secret.set_default_version_id(new_version_id)
+            if rotate_immediately:
+                # If we don't rotate, we only invoke the testSecret step
+                # This should be done with the existing (old) version ID
+                secret.set_default_version_id(new_version_id)
 
         elif secret.versions:
             # AWS will always require a Lambda ARN
