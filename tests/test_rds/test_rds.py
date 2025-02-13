@@ -1,4 +1,5 @@
 import datetime
+import time
 from uuid import uuid4
 
 import boto3
@@ -251,8 +252,8 @@ def test_stop_database(client):
             DBInstanceIdentifier=mydb["DBInstanceIdentifier"],
             DBSnapshotIdentifier="rocky4570-rds-snap",
         )
-    response = client.describe_db_snapshots()
-    assert response["DBSnapshots"] == []
+    with pytest.raises(ClientError):
+        client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
 
 
 @mock_aws
@@ -273,7 +274,7 @@ def test_start_database(client):
     )
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
-    response = client.describe_db_snapshots()
+    response = client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
     assert response["DBSnapshots"][0]["DBSnapshotIdentifier"] == "rocky4570-rds-snap"
     response = client.start_db_instance(
         DBInstanceIdentifier=mydb["DBInstanceIdentifier"]
@@ -281,7 +282,7 @@ def test_start_database(client):
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert response["DBInstance"]["DBInstanceStatus"] == "available"
     # starting database should not remove snapshot
-    response = client.describe_db_snapshots()
+    response = client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
     assert response["DBSnapshots"][0]["DBSnapshotIdentifier"] == "rocky4570-rds-snap"
     # test stopping database, create snapshot with existing snapshot already
     # created should throw error
@@ -743,11 +744,52 @@ def test_delete_database(client):
     assert len(instances["DBInstances"]) == 0
 
     # Saved the snapshot
-    snapshot = client.describe_db_snapshots(DBInstanceIdentifier="db-1")["DBSnapshots"][
-        0
-    ]
+    snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-1", DBSnapshotIdentifier="primary-1-snapshot"
+    )["DBSnapshots"][0]
     assert snapshot["Engine"] == "postgres"
-    assert snapshot["SnapshotType"] == "automated"
+    assert snapshot["SnapshotType"] == "manual"
+
+
+@mock_aws
+def test_max_allocated_storage(client):
+    # MaxAllocatedStorage is not set or included in details by default.
+    details = create_db_instance()
+    assert "MaxAllocatedStorage" not in details
+    # Can't set to less than AllocatedStorage.
+    with pytest.raises(ClientError) as excinfo:
+        create_db_instance(
+            DBInstanceIdentifier="less-than-allocated-storage",
+            AllocatedStorage=50,
+            MaxAllocatedStorage=25,
+        )
+    error_info = excinfo.value.response["Error"]
+    assert error_info["Code"] == "InvalidParameterCombination"
+    assert error_info["Message"] == "Max storage size must be greater than storage size"
+    # Set at creation time.
+    details = create_db_instance(
+        DBInstanceIdentifier="test-max-allocated-storage", MaxAllocatedStorage=500
+    )
+    assert details["MaxAllocatedStorage"] == 500
+    # Set to higher limit.
+    details = client.modify_db_instance(
+        DBInstanceIdentifier=details["DBInstanceIdentifier"], MaxAllocatedStorage=1000
+    )["DBInstance"]
+    assert details["MaxAllocatedStorage"] == 1000
+    # Disable by setting equal to AllocatedStorage.
+    details = client.modify_db_instance(
+        DBInstanceIdentifier=details["DBInstanceIdentifier"],
+        MaxAllocatedStorage=details["AllocatedStorage"],
+    )["DBInstance"]
+    assert "MaxAllocatedStorage" not in details
+    # Can't set to less than AllocatedStorage.
+    with pytest.raises(ClientError) as excinfo:
+        client.modify_db_instance(
+            DBInstanceIdentifier=details["DBInstanceIdentifier"], MaxAllocatedStorage=5
+        )
+    error_info = excinfo.value.response["Error"]
+    assert error_info["Code"] == "InvalidParameterCombination"
+    assert error_info["Message"] == "Max storage size must be greater than storage size"
 
 
 @mock_aws
@@ -789,6 +831,15 @@ def test_create_db_snapshots_copy_tags(client):
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
 
+    snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="automated"
+    )["DBSnapshots"][0]
+    result = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])
+    assert result["TagList"] == [
+        {"Value": "bar", "Key": "foo"},
+        {"Value": "bar1", "Key": "foo1"},
+    ]
+
     snapshot = client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
     )["DBSnapshot"]
@@ -813,9 +864,9 @@ def test_create_db_snapshots_with_tags(client):
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
     )
 
-    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")[
-        "DBSnapshots"
-    ]
+    snapshots = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="manual"
+    )["DBSnapshots"]
     assert snapshots[0]["DBSnapshotIdentifier"] == "g-1"
     assert snapshots[0]["TagList"] == [
         {"Value": "bar", "Key": "foo"},
@@ -872,13 +923,16 @@ def test_copy_db_snapshots_snapshot_type_is_always_manual(client):
     db_instance_identifier = create_db_instance()["DBInstanceIdentifier"]
     client.delete_db_instance(
         DBInstanceIdentifier=db_instance_identifier,
-        FinalDBSnapshotIdentifier="final-snapshot",
+        SkipFinalSnapshot=True,
+        DeleteAutomatedBackups=False,
     )
-    snapshot1 = client.describe_db_snapshots()["DBSnapshots"][0]
+    snapshot1 = client.describe_db_snapshots(
+        DBInstanceIdentifier=db_instance_identifier, SnapshotType="automated"
+    )["DBSnapshots"][0]
     assert snapshot1["SnapshotType"] == "automated"
 
     snapshot2 = client.copy_db_snapshot(
-        SourceDBSnapshotIdentifier="final-snapshot",
+        SourceDBSnapshotIdentifier=snapshot1["DBSnapshotIdentifier"],
         TargetDBSnapshotIdentifier="snapshot-2",
     )["DBSnapshot"]
     assert snapshot2["SnapshotType"] == "manual"
@@ -954,7 +1008,9 @@ def test_describe_db_snapshots(client):
     assert created["Engine"] == "postgres"
     assert created["SnapshotType"] == "manual"
 
-    by_database_id = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")
+    by_database_id = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="manual"
+    )
     by_snapshot_id = client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
     assert by_snapshot_id["DBSnapshots"] == by_database_id["DBSnapshots"]
 
@@ -964,9 +1020,9 @@ def test_describe_db_snapshots(client):
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-2"
     )
-    snapshots = client.describe_db_snapshots(DBInstanceIdentifier="db-primary-1")[
-        "DBSnapshots"
-    ]
+    snapshots = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1", SnapshotType="manual"
+    )["DBSnapshots"]
     assert len(snapshots) == 2
 
 
@@ -1438,6 +1494,7 @@ def test_modify_non_existent_option_group(client):
     )
 
 
+@pytest.mark.aws_verified
 @mock_aws
 def test_delete_database_with_protection(client):
     create_db_instance(DBInstanceIdentifier="db-primary-1", DeletionProtection=True)
@@ -1445,7 +1502,11 @@ def test_delete_database_with_protection(client):
     with pytest.raises(ClientError) as exc:
         client.delete_db_instance(DBInstanceIdentifier="db-primary-1")
     err = exc.value.response["Error"]
-    assert err["Message"] == "Can't delete Instance with protection enabled"
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "Cannot delete protected DB Instance, please disable deletion protection and try again."
+    )
 
 
 @mock_aws
@@ -2626,6 +2687,210 @@ def test_modify_db_snapshot_attribute(client):
 
     assert snapshot_attributes[0]["AttributeName"] == "restore"
     assert snapshot_attributes[0]["AttributeValues"] == ["Test2", "Test3"]
+
+
+@mock_aws
+@pytest.mark.parametrize("skip_final_snapshot", [False, True])
+def test_delete_db_instance_with_skip_final_snapshot_param(client, skip_final_snapshot):
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+
+    deletion_kwargs = dict(
+        DBInstanceIdentifier="db-primary-1", SkipFinalSnapshot=skip_final_snapshot
+    )
+    if not skip_final_snapshot:
+        deletion_kwargs["FinalDBSnapshotIdentifier"] = "final-snapshot"
+    client.delete_db_instance(**deletion_kwargs)
+
+    with pytest.raises(ClientError):
+        client.describe_db_instances(DBInstanceIdentifier="db-primary-1")
+
+    resp = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1",
+        DBSnapshotIdentifier="final-snapshot",
+        SnapshotType="manual",
+    )
+    snapshot_count = len(resp["DBSnapshots"])
+    valid_conditions = [
+        (skip_final_snapshot and snapshot_count == 0),
+        (snapshot_count == 1 and not skip_final_snapshot),
+    ]
+    assert any(valid_conditions)
+    if not skip_final_snapshot:
+        assert resp["DBSnapshots"][0]["DBSnapshotIdentifier"] == "final-snapshot"
+
+
+@mock_aws
+@pytest.mark.parametrize("delete_automated_backups", [False, True])
+def test_delete_db_instance_with_delete_automated_backups_param(
+    client,
+    delete_automated_backups,
+):
+    create_db_instance(DBInstanceIdentifier="db-primary-1")
+
+    client.delete_db_instance(
+        DBInstanceIdentifier="db-primary-1",
+        SkipFinalSnapshot=True,
+        DeleteAutomatedBackups=delete_automated_backups,
+    )
+
+    with pytest.raises(ClientError):
+        client.describe_db_instances(DBInstanceIdentifier="db-primary-1")
+
+    resp = client.describe_db_snapshots(
+        DBInstanceIdentifier="db-primary-1",
+        SnapshotType="automated",
+    )
+    automated_snapshot_count = len(resp["DBSnapshots"])
+    valid_conditions = [
+        (delete_automated_backups and automated_snapshot_count == 0),
+        (automated_snapshot_count >= 1 and not delete_automated_backups),
+    ]
+    assert any(valid_conditions)
+
+
+@mock_aws
+def test_describe_db_instance_automated_backups_lifecycle(client):
+    instance_id = "test-instance"
+    create_db_instance(DBInstanceIdentifier=instance_id)
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 1
+    automated_backup = automated_backups[0]
+    assert automated_backup["DBInstanceIdentifier"] == instance_id
+    assert automated_backup["Status"] == "active"
+
+    client.delete_db_instance(
+        DBInstanceIdentifier=instance_id,
+        SkipFinalSnapshot=True,
+        DeleteAutomatedBackups=False,
+    )
+
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 1
+    automated_backup = automated_backups[0]
+    assert automated_backup["DBInstanceIdentifier"] == instance_id
+    assert automated_backup["Status"] == "retained"
+
+
+@mock_aws
+def test_delete_automated_backups_by_default(client):
+    instance_id = "test-instance"
+    create_db_instance(DBInstanceIdentifier=instance_id)
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 1
+    automated_backup = automated_backups[0]
+    assert automated_backup["DBInstanceIdentifier"] == instance_id
+    assert automated_backup["Status"] == "active"
+
+    client.delete_db_instance(DBInstanceIdentifier=instance_id, SkipFinalSnapshot=True)
+
+    resp = client.describe_db_instance_automated_backups(
+        DBInstanceIdentifier=instance_id,
+    )
+    automated_backups = resp["DBInstanceAutomatedBackups"]
+    assert len(automated_backups) == 0
+
+
+@mock_aws
+def test_restore_db_instance_from_db_snapshot_with_allocated_storage(client):
+    instance_id = "db-primary-1"
+    allocated_storage = 20
+    create_db_instance(
+        DBInstanceIdentifier=instance_id,
+        AllocatedStorage=allocated_storage,
+        Engine="postgres",
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_id, DBSnapshotIdentifier="snap"
+    ).get("DBSnapshot")
+    snapshot_id = snapshot["DBSnapshotIdentifier"]
+    # Default
+    restored = client.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="restored-default",
+        DBSnapshotIdentifier=snapshot_id,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage
+    # More than snapshot allocated storage
+    restored = client.restore_db_instance_from_db_snapshot(
+        DBInstanceIdentifier="restored-with-allocated-storage",
+        DBSnapshotIdentifier=snapshot_id,
+        AllocatedStorage=allocated_storage * 2,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage * 2
+    # Less than snapshot allocated storage
+    with pytest.raises(ClientError, match=r"allocated storage") as excinfo:
+        client.restore_db_instance_from_db_snapshot(
+            DBInstanceIdentifier="restored-with-too-little-storage",
+            DBSnapshotIdentifier=snapshot_id,
+            AllocatedStorage=int(allocated_storage / 2),
+        )
+    exc = excinfo.value
+    assert exc.response["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_restore_db_instance_to_point_in_time_with_allocated_storage(client):
+    allocated_storage = 20
+    details_source = create_db_instance(AllocatedStorage=allocated_storage)
+    source_identifier = details_source["DBInstanceIdentifier"]
+    restore_time = datetime.datetime.fromtimestamp(
+        time.time() - 600, datetime.timezone.utc
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Default
+    restored = client.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier=source_identifier,
+        TargetDBInstanceIdentifier="pit-default",
+        RestoreTime=restore_time,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage
+    # More than source allocated storage
+    restored = client.restore_db_instance_to_point_in_time(
+        SourceDBInstanceIdentifier=source_identifier,
+        TargetDBInstanceIdentifier="pit-with-allocated-storage",
+        RestoreTime=restore_time,
+        AllocatedStorage=allocated_storage * 2,
+    ).get("DBInstance")
+    assert restored["AllocatedStorage"] == allocated_storage * 2
+    # Less than source allocated storage
+    with pytest.raises(ClientError, match=r"Allocated storage") as excinfo:
+        client.restore_db_instance_to_point_in_time(
+            SourceDBInstanceIdentifier=source_identifier,
+            TargetDBInstanceIdentifier="pit-with-too-little-storage",
+            RestoreTime=restore_time,
+            AllocatedStorage=int(allocated_storage / 2),
+        )
+    exc = excinfo.value
+    assert exc.response["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_copy_unencrypted_db_snapshot_to_encrypted_db_snapshot(client):
+    instance_identifier = "unencrypted-db-instance"
+    create_db_instance(DBInstanceIdentifier=instance_identifier, StorageEncrypted=False)
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_identifier,
+        DBSnapshotIdentifier="unencrypted-db-snapshot",
+    ).get("DBSnapshot")
+    assert snapshot["Encrypted"] is False
+
+    client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="unencrypted-db-snapshot",
+        TargetDBSnapshotIdentifier="encrypted-db-snapshot",
+        KmsKeyId="alias/aws/rds",
+    )
+    snapshot = client.describe_db_snapshots(
+        DBSnapshotIdentifier="encrypted-db-snapshot"
+    ).get("DBSnapshots")[0]
+    assert snapshot["DBSnapshotIdentifier"] == "encrypted-db-snapshot"
+    assert snapshot["Encrypted"] is True
 
 
 def validation_helper(exc):
