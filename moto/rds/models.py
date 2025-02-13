@@ -77,6 +77,42 @@ def find_cluster(cluster_arn: str) -> DBCluster:
     return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
 
 
+class SnapshotAttributesMixin:
+    ALLOWED_ATTRIBUTE_NAMES = ["restore"]
+
+    attributes: Dict[str, List[str]]
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.attributes = defaultdict(list)
+        for attribute in self.ALLOWED_ATTRIBUTE_NAMES:
+            self.attributes[attribute] = []
+
+    def modify_attribute(
+        self,
+        attribute_name: str,
+        values_to_add: Optional[List[str]],
+        values_to_remove: Optional[List[str]],
+    ) -> None:
+        if not values_to_add:
+            values_to_add = []
+        if not values_to_remove:
+            values_to_remove = []
+        if attribute_name not in self.ALLOWED_ATTRIBUTE_NAMES:
+            raise InvalidParameterValue(f"Invalid snapshot attribute {attribute_name}")
+        common_values = set(values_to_add).intersection(values_to_remove)
+        if common_values:
+            raise InvalidParameterCombination(
+                "A value may not appear in both the add list and remove list. "
+                + f"{common_values}"
+            )
+        add = self.attributes[attribute_name] + values_to_add
+        new_attribute_values = [value for value in add if value not in values_to_remove]
+        if len(new_attribute_values) > int(os.getenv("MAX_SHARED_ACCOUNTS", 20)):
+            raise SharedSnapshotQuotaExceeded()
+        self.attributes[attribute_name] = new_attribute_values
+
+
 class TaggingMixin:
     _tags: List[Dict[str, str]] = []
 
@@ -115,7 +151,8 @@ class TaggingMixin:
 class RDSBaseModel(TaggingMixin, XFormedAttributeAccessMixin, BaseModel):
     resource_type: str
 
-    def __init__(self, backend: RDSBackend) -> None:
+    def __init__(self, backend: RDSBackend, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
         self.backend = backend
         self.created = iso_8601_datetime_with_milliseconds()
 
@@ -686,9 +723,9 @@ class DBCluster(RDSBaseModel):
         )
 
 
-class DBClusterSnapshot(RDSBaseModel):
+class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
     resource_type = "cluster-snapshot"
-    ALLOWED_ATTRIBUTE_NAMES = ["restore"]
+
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"],
@@ -709,8 +746,9 @@ class DBClusterSnapshot(RDSBaseModel):
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
         kms_key_id: Optional[str] = None,
+        **kwargs: Any,
     ):
-        super().__init__(backend)
+        super().__init__(backend=backend, **kwargs)
         self.db_cluster_snapshot_identifier = snapshot_id
         self.snapshot_type = snapshot_type
         self.percent_progress = 100
@@ -738,9 +776,6 @@ class DBClusterSnapshot(RDSBaseModel):
         self.master_username = self.cluster.master_username
         self.port = self.cluster.port
         self.storage_encrypted = self.cluster.storage_encrypted
-        self.attributes: Dict[str, List[str]] = defaultdict(list)
-        for attribute in self.ALLOWED_ATTRIBUTE_NAMES:
-            self.attributes[attribute] = []
 
     @property
     def name(self) -> str:
@@ -753,32 +788,6 @@ class DBClusterSnapshot(RDSBaseModel):
     @property
     def snapshot_create_time(self) -> str:
         return self.created
-
-    def modify_attribute(
-        self,
-        attribute_name: str,
-        values_to_add: Optional[List[str]],
-        values_to_remove: Optional[List[str]],
-    ) -> None:
-        if not values_to_add:
-            values_to_add = []
-        if not values_to_remove:
-            values_to_remove = []
-        if attribute_name not in self.ALLOWED_ATTRIBUTE_NAMES:
-            raise InvalidParameterValue(
-                f"Invalid cluster snapshot attribute {attribute_name}"
-            )
-        common_values = set(values_to_add).intersection(values_to_remove)
-        if common_values:
-            raise InvalidParameterCombination(
-                "A value may not appear in both the add list and remove list. "
-                + f"{common_values}"
-            )
-        add = self.attributes[attribute_name] + values_to_add
-        new_attribute_values = [value for value in add if value not in values_to_remove]
-        if len(new_attribute_values) > int(os.getenv("MAX_SHARED_ACCOUNTS", 20)):
-            raise SharedSnapshotQuotaExceeded()
-        self.attributes[attribute_name] = new_attribute_values
 
 
 class DBInstance(CloudFormationModel, RDSBaseModel):
@@ -1284,9 +1293,9 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         self.backend.create_auto_snapshot(self.db_instance_identifier, snapshot_id)
 
 
-class DBSnapshot(RDSBaseModel):
+class DBSnapshot(SnapshotAttributesMixin, RDSBaseModel):
     resource_type = "snapshot"
-    ALLOWED_ATTRIBUTE_NAMES = ["restore"]
+
     SUPPORTED_FILTERS = {
         "db-instance-id": FilterDef(
             ["database.db_instance_arn", "database.db_instance_identifier"],
@@ -1309,8 +1318,9 @@ class DBSnapshot(RDSBaseModel):
         tags: Optional[List[Dict[str, str]]] = None,
         original_created_at: Optional[str] = None,
         kms_key_id: Optional[str] = None,
+        **kwargs: Any,
     ):
-        super().__init__(backend)
+        super().__init__(backend=backend, **kwargs)
         self.database = copy.copy(database)  # TODO: Refactor this out.
         self.db_snapshot_identifier = snapshot_id
         self.snapshot_type = snapshot_type
@@ -1342,9 +1352,6 @@ class DBSnapshot(RDSBaseModel):
         self.instance_create_time = database.created
         self.master_username = database.master_username
         self.port = database.port
-        self.attributes: Dict[str, List[str]] = defaultdict(list)
-        for attribute in self.ALLOWED_ATTRIBUTE_NAMES:
-            self.attributes[attribute] = []
 
     @property
     def name(self) -> str:
@@ -1357,32 +1364,6 @@ class DBSnapshot(RDSBaseModel):
     @property
     def snapshot_create_time(self) -> str:
         return self.created
-
-    def modify_attribute(
-        self,
-        attribute_name: str,
-        values_to_add: Optional[List[str]],
-        values_to_remove: Optional[List[str]],
-    ) -> None:
-        if not values_to_add:
-            values_to_add = []
-        if not values_to_remove:
-            values_to_remove = []
-        if attribute_name not in self.ALLOWED_ATTRIBUTE_NAMES:
-            raise InvalidParameterValue(
-                f"Invalid db snapshot attribute {attribute_name}"
-            )
-        common_values = set(values_to_add).intersection(values_to_remove)
-        if common_values:
-            raise InvalidParameterCombination(
-                "A value may not appear in both the add list and remove list. "
-                + f"{common_values}"
-            )
-        add = self.attributes[attribute_name] + values_to_add
-        new_attribute_values = [value for value in add if value not in values_to_remove]
-        if len(new_attribute_values) > int(os.getenv("MAX_SHARED_ACCOUNTS", 20)):
-            raise SharedSnapshotQuotaExceeded()
-        self.attributes[attribute_name] = new_attribute_values
 
 
 class ExportTask(RDSBaseModel):
