@@ -790,6 +790,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         deletion_protection: bool = False,
         option_group_name: Optional[str] = None,
         enable_cloudwatch_logs_exports: Optional[List[str]] = None,
+        ca_certificate_identifier: str = "rds-ca-default",
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -847,6 +848,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         ):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
         self.license_model = license_model
+        self.ca_certificate_identifier = ca_certificate_identifier
         self.option_group_name = option_group_name
         self.option_group_supplied = self.option_group_name is not None
         if (

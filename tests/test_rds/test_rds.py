@@ -2893,6 +2893,29 @@ def test_copy_unencrypted_db_snapshot_to_encrypted_db_snapshot(client):
     assert snapshot["Encrypted"] is True
 
 
+@mock_aws
+def test_ca_certificate_identifier(client):
+    # Check for CACertificateIdentifier default value
+    instance = create_db_instance(DBInstanceIdentifier="db-with-defaults")
+    assert instance["CACertificateIdentifier"] == "rds-ca-default"
+    # Set at creation time.
+    instance = create_db_instance(
+        DBInstanceIdentifier="db-with-cert-specified",
+        CACertificateIdentifier="rds-ca-2019",
+    )
+    identifier = instance["DBInstanceIdentifier"]
+    # Get the value using describe_db_instances
+    instance = client.describe_db_instances(DBInstanceIdentifier=identifier)[
+        "DBInstances"
+    ][0]
+    assert instance["CACertificateIdentifier"] == "rds-ca-2019"
+    # Update the value
+    instance = client.modify_db_instance(
+        DBInstanceIdentifier=identifier, CACertificateIdentifier="rds-ca-2024"
+    )["DBInstance"]
+    assert instance["CACertificateIdentifier"] == "rds-ca-2024"
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
