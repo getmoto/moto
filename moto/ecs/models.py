@@ -780,10 +780,6 @@ class Container(BaseObject, CloudFormationModel):
         self.name = container_def.get("name")
         self.command = container_def.get("command")
 
-    def response_object_run_task(self) -> Dict[str, Any]:  # type: ignore
-        response_object = self.gen_response_object()
-        return response_object
-
 
 class ContainerInstance(BaseObject):
     def __init__(
