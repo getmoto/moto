@@ -448,26 +448,12 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def create_db_cluster_snapshot(self) -> TYPE_RESPONSE:
-        db_cluster_identifier = self.parameters.get("DBClusterIdentifier")
-        db_snapshot_identifier = self.parameters.get("DBClusterSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
-        snapshot = self.backend.create_db_cluster_snapshot(
-            db_cluster_identifier, db_snapshot_identifier, tags=tags
-        )
+        snapshot = self.backend.create_db_cluster_snapshot(**self.parameters)
         result = {"DBClusterSnapshot": snapshot}
         return self.serialize(result)
 
     def copy_db_cluster_snapshot(self) -> TYPE_RESPONSE:
-        source_snapshot_identifier = self.parameters.get(
-            "SourceDBClusterSnapshotIdentifier"
-        )
-        target_snapshot_identifier = self.parameters.get(
-            "TargetDBClusterSnapshotIdentifier"
-        )
-        tags = self.parameters.get("Tags", [])
-        snapshot = self.backend.copy_db_cluster_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags
-        )
+        snapshot = self.backend.copy_db_cluster_snapshot(**self.parameters)
         result = {"DBClusterSnapshot": snapshot}
         return self.serialize(result)
 
@@ -618,7 +604,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBSnapshotAttributesResult": {
                 "DBSnapshotIdentifier": db_snapshot_identifier,
-                "DBSnapshotAttributes": db_snapshot_attributes_result,
+                "DBSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -635,7 +624,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBSnapshotAttributesResult": {
                 "DBSnapshotIdentifier": db_snapshot_identifier,
-                "DBSnapshotAttributes": db_snapshot_attributes_result,
+                "DBSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -651,7 +643,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBClusterSnapshotAttributesResult": {
                 "DBClusterSnapshotIdentifier": db_cluster_snapshot_identifier,
-                "DBClusterSnapshotAttributes": db_cluster_snapshot_attributes_result,
+                "DBClusterSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_cluster_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -670,7 +665,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBClusterSnapshotAttributesResult": {
                 "DBClusterSnapshotIdentifier": db_cluster_snapshot_identifier,
-                "DBClusterSnapshotAttributes": db_cluster_snapshot_attributes_result,
+                "DBClusterSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_cluster_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)

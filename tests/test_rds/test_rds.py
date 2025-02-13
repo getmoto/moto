@@ -16,6 +16,17 @@ from tests import aws_verified
 
 from . import DEFAULT_REGION
 
+test_tags = [
+    {
+        "Key": "foo",
+        "Value": "bar",
+    },
+    {
+        "Key": "foo1",
+        "Value": "bar1",
+    },
+]
+
 
 @pytest.fixture(name="client")
 @mock_aws
@@ -2638,7 +2649,7 @@ def test_describe_db_snapshot_attributes_default(client):
     resp = client.describe_db_snapshot_attributes(DBSnapshotIdentifier="snapshot-1")
 
     assert resp["DBSnapshotAttributesResult"]["DBSnapshotIdentifier"] == "snapshot-1"
-    assert resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"] == []
+    assert len(resp["DBSnapshotAttributesResult"]["DBSnapshotAttributes"]) >= 1
 
 
 @mock_aws
@@ -2914,6 +2925,299 @@ def test_ca_certificate_identifier(client):
         DBInstanceIdentifier=identifier, CACertificateIdentifier="rds-ca-2024"
     )["DBInstance"]
     assert instance["CACertificateIdentifier"] == "rds-ca-2024"
+
+
+@mock_aws
+def test_describe_and_modify_snapshot_attributes(client):
+    instance_id = "test-instance"
+    create_db_instance(
+        DBInstanceIdentifier=instance_id,
+        Engine="postgres",
+        StorageEncrypted=False,
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_id, DBSnapshotIdentifier="snapshot-1"
+    )["DBSnapshot"]
+    assert snapshot["DBSnapshotIdentifier"] == "snapshot-1"
+    snapshot_attribute_result = client.describe_db_snapshot_attributes(
+        DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+    )["DBSnapshotAttributesResult"]
+    assert snapshot_attribute_result["DBSnapshotIdentifier"] == "snapshot-1"
+    assert len(snapshot_attribute_result["DBSnapshotAttributes"]) == 1
+    assert (
+        snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeName"]
+        == "restore"
+    )
+    assert (
+        len(snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeValues"])
+        == 0
+    )
+    # Modify the snapshot attribute (Add)
+    customer_accounts_add = ["123", "456"]
+    snapshot_attribute_result = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+        AttributeName="restore",
+        ValuesToAdd=customer_accounts_add,
+    )["DBSnapshotAttributesResult"]
+    assert snapshot_attribute_result["DBSnapshotIdentifier"] == "snapshot-1"
+    assert len(snapshot_attribute_result["DBSnapshotAttributes"]) == 1
+    assert (
+        snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeName"]
+        == "restore"
+    )
+    assert (
+        len(snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeValues"])
+        == 2
+    )
+    assert (
+        snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeValues"]
+        == customer_accounts_add
+    )
+    # Modify the snapshot attribute (Add + Remove)
+    customer_accounts_add = ["789"]
+    customer_accounts_remove = ["123", "456"]
+    snapshot_attribute_result = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+        AttributeName="restore",
+        ValuesToAdd=customer_accounts_add,
+        ValuesToRemove=customer_accounts_remove,
+    )["DBSnapshotAttributesResult"]
+    assert snapshot_attribute_result["DBSnapshotIdentifier"] == "snapshot-1"
+    assert len(snapshot_attribute_result["DBSnapshotAttributes"]) == 1
+    assert (
+        snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeName"]
+        == "restore"
+    )
+    assert (
+        len(snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeValues"])
+        == 1
+    )
+    assert (
+        snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeValues"]
+        == customer_accounts_add
+    )
+    # Modify the snapshot attribute (Remove)
+    customer_accounts_remove = ["789"]
+    snapshot_attribute_result = client.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+        AttributeName="restore",
+        ValuesToRemove=customer_accounts_remove,
+    )["DBSnapshotAttributesResult"]
+    assert snapshot_attribute_result["DBSnapshotIdentifier"] == "snapshot-1"
+    assert len(snapshot_attribute_result["DBSnapshotAttributes"]) == 1
+    assert (
+        snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeName"]
+        == "restore"
+    )
+    assert (
+        len(snapshot_attribute_result["DBSnapshotAttributes"][0]["AttributeValues"])
+        == 0
+    )
+
+
+@mock_aws
+def test_describe_snapshot_attributes_fails_with_invalid_snapshot_identifier(client):
+    with pytest.raises(ClientError) as ex:
+        client.describe_db_snapshot_attributes(
+            DBSnapshotIdentifier="invalid_snapshot_id",
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert resp["Error"]["Code"] == "DBSnapshotNotFound"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_with_invalid_snapshot_id(client):
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_snapshot_attribute(
+            DBSnapshotIdentifier="invalid_snapshot_id",
+            AttributeName="restore",
+            ValuesToRemove=["123"],
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert resp["Error"]["Code"] == "DBSnapshotNotFound"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_with_invalid_attribute_name(client):
+    instance_id = "test-instance"
+    create_db_instance(
+        DBInstanceIdentifier=instance_id,
+        Engine="postgres",
+        StorageEncrypted=False,
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_id, DBSnapshotIdentifier="snapshot-1"
+    )["DBSnapshot"]
+    assert snapshot["DBSnapshotIdentifier"] == "snapshot-1"
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_snapshot_attribute(
+            DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+            AttributeName="invalid_name",
+            ValuesToAdd=["123"],
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_with_invalid_parameter_combination(client):
+    instance_id = "test-instance"
+    create_db_instance(
+        DBInstanceIdentifier=instance_id,
+        Engine="postgres",
+        StorageEncrypted=False,
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_id, DBSnapshotIdentifier="snapshot-1"
+    )["DBSnapshot"]
+    assert snapshot["DBSnapshotIdentifier"] == "snapshot-1"
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_snapshot_attribute(
+            DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+            AttributeName="restore",
+            ValuesToAdd=["123", "456"],
+            ValuesToRemove=["456"],
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "InvalidParameterCombination"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_when_exceeding_number_of_shared_accounts(
+    client,
+):
+    instance_id = "test-instance"
+    create_db_instance(
+        DBInstanceIdentifier=instance_id,
+        Engine="postgres",
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier=instance_id, DBSnapshotIdentifier="snapshot-1"
+    )["DBSnapshot"]
+    assert snapshot["DBSnapshotIdentifier"] == "snapshot-1"
+
+    customer_accounts_add = [str(x) for x in range(30)]
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_snapshot_attribute(
+            DBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+            AttributeName="restore",
+            ValuesToAdd=customer_accounts_add,
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "SharedSnapshotQuotaExceeded"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_for_automated_snapshot(client):
+    create_db_instance(
+        DBInstanceIdentifier="test-instance",
+        Engine="postgres",
+    )
+    # Automated snapshots
+    auto_snapshot = client.describe_db_snapshots(
+        DBInstanceIdentifier="test-instance", SnapshotType="automated"
+    ).get("DBSnapshots")[0]
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_snapshot_attribute(
+            DBSnapshotIdentifier=auto_snapshot["DBSnapshotIdentifier"],
+            AttributeName="restore",
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_copy_db_snapshot_fails_for_inaccessible_kms_key_arn(client):
+    create_db_instance(
+        DBInstanceIdentifier="test-instance",
+        Engine="postgres",
+        StorageEncrypted=True,
+    )
+    snapshot = client.create_db_snapshot(
+        DBInstanceIdentifier="test-instance", DBSnapshotIdentifier="snapshot-1"
+    )["DBSnapshot"]
+    assert snapshot["DBSnapshotIdentifier"] == "snapshot-1"
+
+    kms_key_id = (
+        "arn:aws:kms:us-east-1:123456789012:key/6e551f00-8a97-4e3b-b620-1a59080bd1be"
+    )
+    with pytest.raises(ClientError) as ex:
+        client.copy_db_snapshot(
+            SourceDBSnapshotIdentifier="snapshot-1",
+            TargetDBSnapshotIdentifier="snapshot-1-copy",
+            KmsKeyId=kms_key_id,
+        )
+    message = f"Specified KMS key [{kms_key_id}] does not exist, is not enabled or you do not have permissions to access it."
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "KMSKeyNotAccessibleFault"
+    assert message in resp["Error"]["Message"]
+
+
+@mock_aws
+def test_copy_db_snapshot_copy_tags_from_source_snapshot(client):
+    create_db_instance(
+        DBInstanceIdentifier="instance-1",
+        Engine="postgres",
+    )
+    snapshot = client.create_db_snapshot(
+        DBSnapshotIdentifier="snap-1",
+        DBInstanceIdentifier="instance-1",
+        Tags=test_tags,
+    )["DBSnapshot"]
+    tag_list = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])[
+        "TagList"
+    ]
+    tag_list == test_tags
+    copied_snapshot = client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="snap-1",
+        TargetDBSnapshotIdentifier="snap-1-copy",
+        CopyTags=True,
+    )["DBSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=copied_snapshot["DBSnapshotArn"]
+    )["TagList"]
+    assert tag_list == test_tags
+
+
+@mock_aws
+def test_copy_db_snapshot_tags_in_request(client):
+    create_db_instance(
+        DBInstanceIdentifier="instance-1",
+        Engine="postgres",
+    )
+    snapshot = client.create_db_snapshot(
+        DBSnapshotIdentifier="snap-1",
+        DBInstanceIdentifier="instance-1",
+        Tags=test_tags,
+    )["DBSnapshot"]
+    tag_list = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])[
+        "TagList"
+    ]
+    assert tag_list == test_tags
+    new_snapshot_tags = [
+        {
+            "Key": "foo",
+            "Value": "baz",
+        },
+    ]
+    copied_snapshot = client.copy_db_snapshot(
+        SourceDBSnapshotIdentifier="snap-1",
+        TargetDBSnapshotIdentifier="snap-1-copy",
+        Tags=new_snapshot_tags,
+        CopyTags=True,
+    )["DBSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=copied_snapshot["DBSnapshotArn"]
+    )["TagList"]
+    assert tag_list == new_snapshot_tags
 
 
 def validation_helper(exc):

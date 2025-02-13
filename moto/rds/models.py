@@ -32,10 +32,11 @@ from .exceptions import (
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
     DBSnapshotAlreadyExistsError,
-    DBSnapshotNotFoundError,
+    DBSnapshotNotFoundFault,
     DBSubnetGroupNotFoundError,
     ExportTaskAlreadyExistsError,
     ExportTaskNotFoundError,
+    InvalidDBClusterSnapshotStateFault,
     InvalidDBClusterStateFault,
     InvalidDBClusterStateFaultError,
     InvalidDBInstanceEngine,
@@ -47,9 +48,11 @@ from .exceptions import (
     InvalidParameterCombination,
     InvalidParameterValue,
     InvalidSubnet,
+    KMSKeyNotAccessibleFault,
     OptionGroupNotFoundFaultError,
     RDSClientError,
-    SnapshotQuotaExceededError,
+    SharedSnapshotQuotaExceeded,
+    SnapshotQuotaExceededFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
 )
@@ -112,7 +115,7 @@ class TaggingMixin:
 class RDSBaseModel(TaggingMixin, XFormedAttributeAccessMixin, BaseModel):
     resource_type: str
 
-    def __init__(self, backend: RDSBackend):
+    def __init__(self, backend: RDSBackend) -> None:
         self.backend = backend
         self.created = iso_8601_datetime_with_milliseconds()
 
@@ -317,6 +320,7 @@ class DBCluster(RDSBaseModel):
         tags: Optional[List[Dict[str, str]]] = None,
         vpc_security_group_ids: Optional[List[str]] = None,
         deletion_protection: Optional[bool] = False,
+        kms_key_id: Optional[str] = None,
         **kwargs: Any,
     ):
         super().__init__(backend)
@@ -341,7 +345,6 @@ class DBCluster(RDSBaseModel):
         )
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
-        self.kms_key_id = kwargs.get("kms_key_id")
         self.network_type = kwargs.get("network_type") or "IPV4"
         self._status = "creating"
         self.cluster_create_time = self.created
@@ -432,9 +435,9 @@ class DBCluster(RDSBaseModel):
         self.is_writer: bool = False
         self.storage_encrypted = storage_encrypted
         if self.storage_encrypted:
-            self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
+            self.kms_key_id = kms_key_id or "default_kms_key_id"
         else:
-            self.kms_key_id = kwargs.get("kms_key_id")
+            self.kms_key_id = kms_key_id  # type: ignore[assignment]
         if self.engine == "aurora-mysql" or self.engine == "aurora-postgresql":
             self._global_write_forwarding_requested = kwargs.get(
                 "enable_global_write_forwarding"
@@ -685,14 +688,14 @@ class DBCluster(RDSBaseModel):
 
 class DBClusterSnapshot(RDSBaseModel):
     resource_type = "cluster-snapshot"
-
+    ALLOWED_ATTRIBUTE_NAMES = ["restore"]
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"],
             "DB Cluster Identifiers",
         ),
         "db-cluster-snapshot-id": FilterDef(
-            ["snapshot_id"], "DB Cluster Snapshot Identifiers"
+            ["db_cluster_snapshot_identifier"], "DB Cluster Snapshot Identifiers"
         ),
         "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
         "engine": FilterDef(["cluster.engine"], "Engine Names"),
@@ -703,41 +706,79 @@ class DBClusterSnapshot(RDSBaseModel):
         backend: RDSBackend,
         cluster: DBCluster,
         snapshot_id: str,
-        snapshot_type: str,
-        tags: List[Dict[str, str]],
+        snapshot_type: str = "manual",
+        tags: Optional[List[Dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
     ):
         super().__init__(backend)
-        self.cluster = cluster
-        self.snapshot_id = snapshot_id
+        self.db_cluster_snapshot_identifier = snapshot_id
         self.snapshot_type = snapshot_type
-        self.tags = tags
+        self.percent_progress = 100
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds()
-        self.attributes: List[Dict[str, Any]] = []
+        # If tags are provided at creation, AWS does *not* copy tags from the
+        # db_cluster (even if copy_tags_to_snapshot is True).
+        if tags is not None:
+            self.tags = tags
+        elif cluster.copy_tags_to_snapshot:
+            self.tags = cluster.tags or []
+        else:
+            self.tags = []
+        self.cluster = copy.copy(cluster)
+        self.allocated_storage = self.cluster.allocated_storage
+        self.cluster_create_time = self.cluster.created
+        self.db_cluster_identifier = self.cluster.db_cluster_identifier
+        if kms_key_id is not None:
+            self.kms_key_id = self.cluster.kms_key_id = kms_key_id
+            self.encrypted = self.cluster.storage_encrypted = True
+        else:
+            self.kms_key_id = self.cluster.kms_key_id  # type: ignore[assignment]
+            self.encrypted = self.cluster.storage_encrypted  # type: ignore[assignment]
+        self.engine = self.cluster.engine
+        self.engine_version = self.cluster.engine_version
+        self.master_username = self.cluster.master_username
+        self.port = self.cluster.port
+        self.storage_encrypted = self.cluster.storage_encrypted
+        self.attributes: Dict[str, List[str]] = defaultdict(list)
+        for attribute in self.ALLOWED_ATTRIBUTE_NAMES:
+            self.attributes[attribute] = []
 
     @property
     def name(self) -> str:
-        return self.snapshot_id
+        return self.db_cluster_snapshot_identifier
 
     @property
     def db_cluster_snapshot_arn(self) -> str:
         return self.arn
 
     @property
-    def db_cluster_snapshot_identifier(self) -> str:
-        return self.snapshot_id
+    def snapshot_create_time(self) -> str:
+        return self.created
 
-    @property
-    def db_cluster_identifier(self) -> str:
-        return self.cluster.db_cluster_identifier
-
-    @property
-    def db_cluster_arn(self) -> str:
-        return self.cluster.arn
-
-    @property
-    def engine(self) -> Optional[str]:
-        return self.cluster.engine
+    def modify_attribute(
+        self,
+        attribute_name: str,
+        values_to_add: Optional[List[str]],
+        values_to_remove: Optional[List[str]],
+    ) -> None:
+        if not values_to_add:
+            values_to_add = []
+        if not values_to_remove:
+            values_to_remove = []
+        if attribute_name not in self.ALLOWED_ATTRIBUTE_NAMES:
+            raise InvalidParameterValue(
+                f"Invalid cluster snapshot attribute {attribute_name}"
+            )
+        common_values = set(values_to_add).intersection(values_to_remove)
+        if common_values:
+            raise InvalidParameterCombination(
+                "A value may not appear in both the add list and remove list. "
+                + f"{common_values}"
+            )
+        add = self.attributes[attribute_name] + values_to_add
+        new_attribute_values = [value for value in add if value not in values_to_remove]
+        if len(new_attribute_values) > int(os.getenv("MAX_SHARED_ACCOUNTS", 20)):
+            raise SharedSnapshotQuotaExceeded()
+        self.attributes[attribute_name] = new_attribute_values
 
 
 class DBInstance(CloudFormationModel, RDSBaseModel):
@@ -1245,12 +1286,15 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
 
 class DBSnapshot(RDSBaseModel):
     resource_type = "snapshot"
+    ALLOWED_ATTRIBUTE_NAMES = ["restore"]
     SUPPORTED_FILTERS = {
         "db-instance-id": FilterDef(
             ["database.db_instance_arn", "database.db_instance_identifier"],
             "DB Instance Identifiers",
         ),
-        "db-snapshot-id": FilterDef(["snapshot_id"], "DB Snapshot Identifiers"),
+        "db-snapshot-id": FilterDef(
+            ["db_snapshot_identifier"], "DB Snapshot Identifiers"
+        ),
         "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
         "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
         "engine": FilterDef(["database.engine"], "Engine Names"),
@@ -1261,20 +1305,25 @@ class DBSnapshot(RDSBaseModel):
         backend: RDSBackend,
         database: DBInstance,
         snapshot_id: str,
-        snapshot_type: str,
+        snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
         original_created_at: Optional[str] = None,
         kms_key_id: Optional[str] = None,
     ):
         super().__init__(backend)
         self.database = copy.copy(database)  # TODO: Refactor this out.
-        self.snapshot_id = snapshot_id
+        self.db_snapshot_identifier = snapshot_id
         self.snapshot_type = snapshot_type
-        self.tags = tags or []
         self.status = "available"
-        self.created_at = iso_8601_datetime_with_milliseconds()
-        self.original_created_at = original_created_at or self.created_at
-        self.attributes: List[Dict[str, Any]] = []
+        self.original_snapshot_create_time = original_created_at or self.created
+        # If tags are provided at creation, AWS does *not* copy tags from the
+        # db_cluster (even if copy_tags_to_snapshot is True).
+        if tags is not None:
+            self.tags = tags
+        elif database.copy_tags_to_snapshot:
+            self.tags = database.tags or []
+        else:
+            self.tags = []
         # Database attributes are captured at the time the snapshot is taken.
         self.allocated_storage = database.allocated_storage
         self.dbi_resource_id = database.dbi_resource_id
@@ -1293,22 +1342,47 @@ class DBSnapshot(RDSBaseModel):
         self.instance_create_time = database.created
         self.master_username = database.master_username
         self.port = database.port
+        self.attributes: Dict[str, List[str]] = defaultdict(list)
+        for attribute in self.ALLOWED_ATTRIBUTE_NAMES:
+            self.attributes[attribute] = []
 
     @property
     def name(self) -> str:
-        return self.snapshot_id
+        return self.db_snapshot_identifier
 
     @property
-    def db_snapshot_identifier(self) -> str:
-        return self.snapshot_id
+    def db_snapshot_arn(self) -> str:
+        return self.arn
 
     @property
     def snapshot_create_time(self) -> str:
-        return self.created_at
+        return self.created
 
-    @property
-    def original_snapshot_create_time(self) -> str:
-        return self.original_created_at
+    def modify_attribute(
+        self,
+        attribute_name: str,
+        values_to_add: Optional[List[str]],
+        values_to_remove: Optional[List[str]],
+    ) -> None:
+        if not values_to_add:
+            values_to_add = []
+        if not values_to_remove:
+            values_to_remove = []
+        if attribute_name not in self.ALLOWED_ATTRIBUTE_NAMES:
+            raise InvalidParameterValue(
+                f"Invalid db snapshot attribute {attribute_name}"
+            )
+        common_values = set(values_to_add).intersection(values_to_remove)
+        if common_values:
+            raise InvalidParameterCombination(
+                "A value may not appear in both the add list and remove list. "
+                + f"{common_values}"
+            )
+        add = self.attributes[attribute_name] + values_to_add
+        new_attribute_values = [value for value in add if value not in values_to_remove]
+        if len(new_attribute_values) > int(os.getenv("MAX_SHARED_ACCOUNTS", 20)):
+            raise SharedSnapshotQuotaExceeded()
+        self.attributes[attribute_name] = new_attribute_values
 
 
 class ExportTask(RDSBaseModel):
@@ -1760,7 +1834,7 @@ class RDSBackend(BaseBackend):
         if len(self.database_snapshots) >= int(
             os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
         ):
-            raise SnapshotQuotaExceededError()
+            raise SnapshotQuotaExceededFault()
         if tags is None:
             tags = list()
         if database.copy_tags_to_snapshot and not tags:
@@ -1781,39 +1855,51 @@ class RDSBackend(BaseBackend):
         self,
         source_db_snapshot_identifier: str,
         target_db_snapshot_identifier: str,
+        kms_key_id: Optional[str] = None,
         tags: Optional[List[Dict[str, str]]] = None,
         copy_tags: Optional[bool] = False,
-        kms_key_id: Optional[str] = None,
+        **_: Any,
     ) -> DBSnapshot:
         if source_db_snapshot_identifier.startswith("arn:aws:rds:"):
             source_db_snapshot_identifier = self.extract_snapshot_name_from_arn(
                 source_db_snapshot_identifier
             )
         if source_db_snapshot_identifier not in self.database_snapshots:
-            raise DBSnapshotNotFoundError(source_db_snapshot_identifier)
-        if kms_key_id is not None:
-            key = self.kms.describe_key(kms_key_id)
-            # We do this in case an alias was passed in.
-            kms_key_id = key.id
-        source_snapshot = self.database_snapshots[source_db_snapshot_identifier]
+            raise DBSnapshotNotFoundFault(source_db_snapshot_identifier)
+        if target_db_snapshot_identifier in self.database_snapshots:
+            raise DBSnapshotAlreadyExistsError(target_db_snapshot_identifier)
 
+        if len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededFault()
+        try:
+            if kms_key_id is not None:
+                key = self.kms.describe_key(str(kms_key_id))
+                # We do this in case an alias was passed in.
+                kms_key_id = key.id
+        except Exception:
+            raise KMSKeyNotAccessibleFault(str(kms_key_id))
+        source_db_snapshot = self.database_snapshots[source_db_snapshot_identifier]
         # When tags are passed, AWS does NOT copy/merge tags of the
         # source snapshot, even when copy_tags=True is given.
         # But when tags=[], AWS does honor copy_tags=True.
-        if not tags:
-            tags = source_snapshot.tags if copy_tags else []
-
-        return self.create_db_snapshot(
-            db_instance=source_snapshot.database,
-            db_snapshot_identifier=target_db_snapshot_identifier,
+        if copy_tags and not tags:
+            tags = source_db_snapshot.tags or []
+        target_db_snapshot = DBSnapshot(
+            self,
+            source_db_snapshot.database,
+            target_db_snapshot_identifier,
             tags=tags,
-            original_created_at=source_snapshot.original_created_at,
             kms_key_id=kms_key_id,
+            original_created_at=source_db_snapshot.original_snapshot_create_time,
         )
+        self.database_snapshots[target_db_snapshot_identifier] = target_db_snapshot
+        return target_db_snapshot
 
     def delete_db_snapshot(self, db_snapshot_identifier: str) -> DBSnapshot:
         if db_snapshot_identifier not in self.database_snapshots:
-            raise DBSnapshotNotFoundError(db_snapshot_identifier)
+            raise DBSnapshotNotFoundFault(db_snapshot_identifier)
 
         return self.database_snapshots.pop(db_snapshot_identifier)
 
@@ -1886,7 +1972,7 @@ class RDSBackend(BaseBackend):
         if filters:
             snapshots = self._filter_resources(snapshots, filters, DBSnapshot)
         if db_snapshot_identifier and not snapshots and not db_instance_identifier:
-            raise DBSnapshotNotFoundError(db_snapshot_identifier)
+            raise DBSnapshotNotFoundFault(db_snapshot_identifier)
         return list(snapshots.values())
 
     def modify_db_instance(
@@ -2477,62 +2563,72 @@ class RDSBackend(BaseBackend):
             db_cluster_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
 
-    def _create_db_cluster_snapshot(
-        self,
-        cluster: DBCluster,
-        db_snapshot_identifier: str,
-        snapshot_type: str,
-        tags: List[Dict[str, str]],
-    ) -> DBClusterSnapshot:
-        if db_snapshot_identifier in self.cluster_snapshots:
-            raise DBClusterSnapshotAlreadyExistsError(db_snapshot_identifier)
-        if len(self.cluster_snapshots) >= int(
-            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
-        ):
-            raise SnapshotQuotaExceededError()
-        snapshot = DBClusterSnapshot(
-            self, cluster, db_snapshot_identifier, snapshot_type, tags
-        )
-        self.cluster_snapshots[db_snapshot_identifier] = snapshot
-        return snapshot
-
     def create_db_cluster_snapshot(
         self,
         db_cluster_identifier: str,
-        db_snapshot_identifier: str,
+        db_cluster_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> DBClusterSnapshot:
-        cluster = self.clusters.get(db_cluster_identifier)
-        if cluster is None:
+        if db_cluster_snapshot_identifier in self.cluster_snapshots:
+            raise DBClusterSnapshotAlreadyExistsError(db_cluster_snapshot_identifier)
+        if db_cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(db_cluster_identifier)
-        if tags is None:
-            tags = list()
-        if cluster.copy_tags_to_snapshot:
-            tags += cluster.get_tags()
-
-        return self._create_db_cluster_snapshot(
-            cluster, db_snapshot_identifier, snapshot_type, tags
+        if snapshot_type == "manual" and len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededFault()
+        cluster = self.clusters[db_cluster_identifier]
+        snapshot = DBClusterSnapshot(
+            self, cluster, db_cluster_snapshot_identifier, snapshot_type, tags
         )
+        self.cluster_snapshots[db_cluster_snapshot_identifier] = snapshot
+        return snapshot
 
     def copy_db_cluster_snapshot(
         self,
-        source_snapshot_identifier: str,
-        target_snapshot_identifier: str,
+        source_db_cluster_snapshot_identifier: str,
+        target_db_cluster_snapshot_identifier: str,
+        kms_key_id: Optional[str] = None,
+        copy_tags: bool = False,
         tags: Optional[List[Dict[str, str]]] = None,
+        **_: Any,
     ) -> DBClusterSnapshot:
-        if source_snapshot_identifier not in self.cluster_snapshots:
-            raise DBClusterSnapshotNotFoundError(source_snapshot_identifier)
+        if source_db_cluster_snapshot_identifier not in self.cluster_snapshots:
+            raise DBClusterSnapshotNotFoundError(source_db_cluster_snapshot_identifier)
+        if target_db_cluster_snapshot_identifier in self.cluster_snapshots:
+            raise DBClusterSnapshotAlreadyExistsError(
+                target_db_cluster_snapshot_identifier
+            )
 
-        source_snapshot = self.cluster_snapshots[source_snapshot_identifier]
-        if tags is None:
-            tags = source_snapshot.tags
-        else:
-            tags = self._merge_tags(source_snapshot.tags, tags)
-
-        return self._create_db_cluster_snapshot(
-            source_snapshot.cluster, target_snapshot_identifier, "manual", tags
+        if len(self.cluster_snapshots) >= int(
+            os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
+        ):
+            raise SnapshotQuotaExceededFault()
+        try:
+            if kms_key_id is not None:
+                key = self.kms.describe_key(str(kms_key_id))
+                # We do this in case an alias was passed in.
+                kms_key_id = key.id
+        except Exception:
+            raise KMSKeyNotAccessibleFault(str(kms_key_id))
+        source_db_cluster_snapshot = self.cluster_snapshots[
+            source_db_cluster_snapshot_identifier
+        ]
+        # If tags are supplied, copy_tags is ignored (verified against real AWS backend 2025-02-12).
+        if copy_tags and not tags:
+            tags = source_db_cluster_snapshot.tags or []
+        target_db_cluster_snapshot = DBClusterSnapshot(
+            self,
+            source_db_cluster_snapshot.cluster,
+            target_db_cluster_snapshot_identifier,
+            tags=tags,
+            kms_key_id=kms_key_id,
         )
+        self.cluster_snapshots[target_db_cluster_snapshot_identifier] = (
+            target_db_cluster_snapshot
+        )
+        return target_db_cluster_snapshot
 
     def delete_db_cluster_snapshot(
         self, db_snapshot_identifier: str
@@ -2657,7 +2753,7 @@ class RDSBackend(BaseBackend):
         if export_task_id in self.export_tasks:
             raise ExportTaskAlreadyExistsError(export_task_id)
         if snapshot_type == "snapshot" and snapshot_id not in self.database_snapshots:
-            raise DBSnapshotNotFoundError(snapshot_id)
+            raise DBSnapshotNotFoundFault(snapshot_id)
         elif (
             snapshot_type == "cluster-snapshot"
             and snapshot_id not in self.cluster_snapshots
@@ -2934,7 +3030,7 @@ class RDSBackend(BaseBackend):
 
     def describe_db_snapshot_attributes(
         self, db_snapshot_identifier: str
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, List[str]]:
         snapshot = self.describe_db_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=db_snapshot_identifier
         )[0]
@@ -2946,36 +3042,20 @@ class RDSBackend(BaseBackend):
         attribute_name: str,
         values_to_add: Optional[List[str]] = None,
         values_to_remove: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, List[str]]:
         snapshot = self.describe_db_snapshots(
             db_instance_identifier=None, db_snapshot_identifier=db_snapshot_identifier
         )[0]
-        attribute_present = False
-        for attribute in snapshot.attributes:
-            if attribute["AttributeName"] == attribute_name:
-                attribute_present = True
-                if values_to_add:
-                    attribute["AttributeValues"] = (
-                        list(attribute["AttributeValues"]) + values_to_add
-                    )
-                if values_to_remove:
-                    attribute["AttributeValues"] = [
-                        i
-                        for i in attribute["AttributeValues"]
-                        if i not in values_to_remove
-                    ]
-        if not attribute_present and values_to_add:
-            snapshot.attributes.append(
-                {
-                    "AttributeName": attribute_name,
-                    "AttributeValues": values_to_add,
-                }
+        if db_snapshot_identifier.startswith("rds:"):  # automated snapshot
+            raise InvalidParameterValue(
+                "The parameter DBSnapshotIdentifier is not a valid identifier."
             )
+        snapshot.modify_attribute(attribute_name, values_to_add, values_to_remove)
         return snapshot.attributes
 
     def describe_db_cluster_snapshot_attributes(
         self, db_cluster_snapshot_identifier: str
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, List[str]]:
         snapshot = self.describe_db_cluster_snapshots(
             db_cluster_identifier=None,
             db_snapshot_identifier=db_cluster_snapshot_identifier,
@@ -2988,32 +3068,16 @@ class RDSBackend(BaseBackend):
         attribute_name: str,
         values_to_add: Optional[List[str]] = None,
         values_to_remove: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, List[str]]:
         snapshot = self.describe_db_cluster_snapshots(
             db_cluster_identifier=None,
             db_snapshot_identifier=db_cluster_snapshot_identifier,
         )[0]
-        attribute_present = False
-        for attribute in snapshot.attributes:
-            if attribute["AttributeName"] == attribute_name:
-                attribute_present = True
-                if values_to_add:
-                    attribute["AttributeValues"] = (
-                        list(attribute["AttributeValues"]) + values_to_add
-                    )
-                if values_to_remove:
-                    attribute["AttributeValues"] = [
-                        i
-                        for i in attribute["AttributeValues"]
-                        if i not in values_to_remove
-                    ]
-        if not attribute_present and values_to_add:
-            snapshot.attributes.append(
-                {
-                    "AttributeName": attribute_name,
-                    "AttributeValues": values_to_add,
-                }
+        if snapshot.snapshot_type != "manual":
+            raise InvalidDBClusterSnapshotStateFault(
+                "automated snapshots cannot be modified."
             )
+        snapshot.modify_attribute(attribute_name, values_to_add, values_to_remove)
         return snapshot.attributes
 
     def create_db_proxy(

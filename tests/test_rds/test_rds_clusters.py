@@ -10,6 +10,17 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from . import DEFAULT_REGION
 from .test_rds import create_db_instance
 
+test_tags = [
+    {
+        "Key": "foo",
+        "Value": "bar",
+    },
+    {
+        "Key": "foo1",
+        "Value": "bar1",
+    },
+]
+
 
 @pytest.fixture(name="client")
 @mock_aws
@@ -1065,7 +1076,7 @@ def test_describe_db_cluster_snapshot_attributes_default(client):
     )["DBClusterSnapshotAttributesResult"]
 
     assert result["DBClusterSnapshotIdentifier"] == "g-1"
-    assert result["DBClusterSnapshotAttributes"] == []
+    assert len(result["DBClusterSnapshotAttributes"]) >= 1
 
 
 @mock_aws
@@ -1186,3 +1197,438 @@ def test_backtrack_errors(client, params):
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == params[2]
+
+
+@mock_aws
+def test_describe_and_modify_cluster_snapshot_attributes(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    cluster_snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap", DBClusterIdentifier="cluster-1"
+    )["DBClusterSnapshot"]
+    assert cluster_snapshot["DBClusterSnapshotIdentifier"] == "cluster-snap"
+    cluster_snapshot_attribute_results = client.describe_db_cluster_snapshot_attributes(
+        DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"]
+    )["DBClusterSnapshotAttributesResult"]
+    assert (
+        cluster_snapshot_attribute_results["DBClusterSnapshotIdentifier"]
+        == "cluster-snap"
+    )
+    assert len(cluster_snapshot_attribute_results["DBClusterSnapshotAttributes"]) == 1
+    assert (
+        cluster_snapshot_attribute_results["DBClusterSnapshotAttributes"][0][
+            "AttributeName"
+        ]
+        == "restore"
+    )
+    assert (
+        len(
+            cluster_snapshot_attribute_results["DBClusterSnapshotAttributes"][0][
+                "AttributeValues"
+            ]
+        )
+        == 0
+    )
+
+    # Modify the snapshot attribute (Add)
+    customer_accounts_add = ["123", "456"]
+    cluster_snapshot_attribute_result = client.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"],
+        AttributeName="restore",
+        ValuesToAdd=customer_accounts_add,
+    )["DBClusterSnapshotAttributesResult"]
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotIdentifier"]
+        == "cluster-snap"
+    )
+    assert len(cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"]) == 1
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+            "AttributeName"
+        ]
+        == "restore"
+    )
+    assert (
+        len(
+            cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+                "AttributeValues"
+            ]
+        )
+        == 2
+    )
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+            "AttributeValues"
+        ]
+        == customer_accounts_add
+    )
+
+    # Modify the snapshot attribute (Add + Remove)
+    customer_accounts_add = ["789"]
+    customer_accounts_remove = ["123", "456"]
+    cluster_snapshot_attribute_result = client.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"],
+        AttributeName="restore",
+        ValuesToAdd=customer_accounts_add,
+        ValuesToRemove=customer_accounts_remove,
+    )["DBClusterSnapshotAttributesResult"]
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotIdentifier"]
+        == "cluster-snap"
+    )
+    assert len(cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"]) == 1
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+            "AttributeName"
+        ]
+        == "restore"
+    )
+    assert (
+        len(
+            cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+                "AttributeValues"
+            ]
+        )
+        == 1
+    )
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+            "AttributeValues"
+        ]
+        == customer_accounts_add
+    )
+
+    # Modify the snapshot attribute (Add + Remove)
+    customer_accounts_remove = ["789"]
+    cluster_snapshot_attribute_result = client.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"],
+        AttributeName="restore",
+        ValuesToRemove=customer_accounts_remove,
+    )["DBClusterSnapshotAttributesResult"]
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotIdentifier"]
+        == "cluster-snap"
+    )
+    assert len(cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"]) == 1
+    assert (
+        cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+            "AttributeName"
+        ]
+        == "restore"
+    )
+    assert (
+        len(
+            cluster_snapshot_attribute_result["DBClusterSnapshotAttributes"][0][
+                "AttributeValues"
+            ]
+        )
+        == 0
+    )
+
+
+@mock_aws
+def test_describe_snapshot_attributes_fails_with_invalid_cluster_snapshot_identifier(
+    client,
+):
+    with pytest.raises(ClientError) as ex:
+        client.describe_db_cluster_snapshot_attributes(
+            DBClusterSnapshotIdentifier="invalid_snapshot_id",
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert resp["Error"]["Code"] == "DBClusterSnapshotNotFoundFault"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_with_fails_invalid_cluster_snapshot_identifier(
+    client,
+):
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster_snapshot_attribute(
+            DBClusterSnapshotIdentifier="invalid_snapshot_id",
+            AttributeName="restore",
+            ValuesToRemove=["123"],
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 404
+    assert resp["Error"]["Code"] == "DBClusterSnapshotNotFoundFault"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_with_invalid_attribute_name(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    cluster_snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap", DBClusterIdentifier="cluster-1"
+    ).get("DBClusterSnapshot")
+    assert cluster_snapshot["DBClusterSnapshotIdentifier"] == "cluster-snap"
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster_snapshot_attribute(
+            DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"],
+            AttributeName="invalid_name",
+            ValuesToAdd=["123"],
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_with_fails_invalid_parameter_combination(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    cluster_snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap", DBClusterIdentifier="cluster-1"
+    ).get("DBClusterSnapshot")
+    assert cluster_snapshot["DBClusterSnapshotIdentifier"] == "cluster-snap"
+
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster_snapshot_attribute(
+            DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"],
+            AttributeName="restore",
+            ValuesToAdd=["123", "456"],
+            ValuesToRemove=["456"],
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "InvalidParameterCombination"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_when_exceeding_number_of_shared_accounts(
+    client,
+):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    cluster_snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap", DBClusterIdentifier="cluster-1"
+    ).get("DBClusterSnapshot")
+    assert cluster_snapshot["DBClusterSnapshotIdentifier"] == "cluster-snap"
+
+    customer_accounts_add = [str(x) for x in range(30)]
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster_snapshot_attribute(
+            DBClusterSnapshotIdentifier=cluster_snapshot["DBClusterSnapshotIdentifier"],
+            AttributeName="restore",
+            ValuesToAdd=customer_accounts_add,
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "SharedSnapshotQuotaExceeded"
+
+
+@mock_aws
+def test_modify_snapshot_attributes_fails_for_automated_snapshot(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    # Automated snapshots
+    auto_snapshot = client.describe_db_cluster_snapshots(MaxRecords=20).get(
+        "DBClusterSnapshots"
+    )[0]
+    with pytest.raises(ClientError) as ex:
+        client.modify_db_cluster_snapshot_attribute(
+            DBClusterSnapshotIdentifier=auto_snapshot["DBClusterSnapshotIdentifier"],
+            AttributeName="restore",
+        )
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "InvalidDBClusterSnapshotStateFault"
+
+
+@mock_aws
+def test_copy_unencrypted_db_cluster_snapshot_to_encrypted_db_cluster_snapshot(client):
+    create_db_cluster(
+        DBClusterIdentifier="unencrypted-cluster-1",
+        Engine="aurora-postgresql",
+        StorageEncrypted=False,
+    )
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterIdentifier="unencrypted-cluster-1",
+        DBClusterSnapshotIdentifier="unencrypted-db-cluster-snapshot",
+    )["DBClusterSnapshot"]
+    assert snapshot["StorageEncrypted"] is False
+
+    client.copy_db_cluster_snapshot(
+        SourceDBClusterSnapshotIdentifier="unencrypted-db-cluster-snapshot",
+        TargetDBClusterSnapshotIdentifier="encrypted-db-cluster-snapshot",
+        KmsKeyId="alias/aws/rds",
+    )
+    snapshot = client.describe_db_cluster_snapshots(
+        DBClusterSnapshotIdentifier="encrypted-db-cluster-snapshot"
+    )["DBClusterSnapshots"][0]
+    assert snapshot["Engine"] == "aurora-postgresql"
+    assert snapshot["DBClusterSnapshotIdentifier"] == "encrypted-db-cluster-snapshot"
+    assert snapshot["StorageEncrypted"] is True
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_fails_for_existing_target_snapshot(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier="cluster-1", DBClusterSnapshotIdentifier="source-snapshot"
+    )
+
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier="cluster-1", DBClusterSnapshotIdentifier="target-snapshot"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_cluster_snapshot(
+            SourceDBClusterSnapshotIdentifier="source-snapshot",
+            TargetDBClusterSnapshotIdentifier="target-snapshot",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBClusterSnapshotAlreadyExistsFault"
+    assert "target-snapshot already exists" in err["Message"]
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_fails_when_limit_exceeded(client, monkeypatch):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier="cluster-1", DBClusterSnapshotIdentifier="source-snapshot"
+    )
+    with pytest.raises(ClientError) as exc:
+        monkeypatch.setenv("MOTO_RDS_SNAPSHOT_LIMIT", "1")
+        client.copy_db_cluster_snapshot(
+            SourceDBClusterSnapshotIdentifier="source-snapshot",
+            TargetDBClusterSnapshotIdentifier="target-snapshot",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotQuotaExceeded"
+    assert (
+        err["Message"]
+        == "The request cannot be processed because it would exceed the maximum number of snapshots."
+    )
+
+
+@mock_aws
+def test_create_db_cluster_snapshot_with_tags_overrides_copy_snapshot_tags(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+        CopyTagsToSnapshot=True,
+        Tags=test_tags,
+    )
+    new_snapshot_tags = [
+        {
+            "Key": "foo",
+            "Value": "baz",
+        },
+    ]
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap",
+        DBClusterIdentifier="cluster-1",
+        Tags=new_snapshot_tags,
+    )["DBClusterSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=snapshot["DBClusterSnapshotArn"]
+    )["TagList"]
+    assert tag_list == new_snapshot_tags
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_fails_for_inaccessible_kms_key_arn(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+        StorageEncrypted=True,
+    )
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterIdentifier="cluster-1", DBClusterSnapshotIdentifier="snapshot-1"
+    )["DBClusterSnapshot"]
+    assert snapshot["DBClusterSnapshotIdentifier"] == "snapshot-1"
+
+    kms_key_id = (
+        "arn:aws:kms:us-east-1:123456789012:key/6e551f00-8a97-4e3b-b620-1a59080bd1be"
+    )
+    with pytest.raises(ClientError) as ex:
+        client.copy_db_cluster_snapshot(
+            SourceDBClusterSnapshotIdentifier="snapshot-1",
+            TargetDBClusterSnapshotIdentifier="snapshot-1-copy",
+            KmsKeyId=kms_key_id,
+        )
+    message = f"Specified KMS key [{kms_key_id}] does not exist, is not enabled or you do not have permissions to access it."
+    resp = ex.value.response
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert resp["Error"]["Code"] == "KMSKeyNotAccessibleFault"
+    assert message in resp["Error"]["Message"]
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_copy_tags_from_source_snapshot(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap",
+        DBClusterIdentifier="cluster-1",
+        Tags=test_tags,
+    )["DBClusterSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=snapshot["DBClusterSnapshotArn"]
+    )["TagList"]
+    assert tag_list == test_tags
+    copied_snapshot = client.copy_db_cluster_snapshot(
+        SourceDBClusterSnapshotIdentifier="cluster-snap",
+        TargetDBClusterSnapshotIdentifier="cluster-snap-copy",
+        CopyTags=True,
+    )["DBClusterSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=copied_snapshot["DBClusterSnapshotArn"]
+    )["TagList"]
+    assert tag_list == test_tags
+
+
+@mock_aws
+def test_copy_db_cluster_snapshot_tags_in_request(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    snapshot = client.create_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier="cluster-snap",
+        DBClusterIdentifier="cluster-1",
+        Tags=test_tags,
+    )["DBClusterSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=snapshot["DBClusterSnapshotArn"]
+    )["TagList"]
+    assert tag_list == test_tags
+    new_snapshot_tags = [
+        {
+            "Key": "foo",
+            "Value": "baz",
+        },
+    ]
+    copied_snapshot = client.copy_db_cluster_snapshot(
+        SourceDBClusterSnapshotIdentifier="cluster-snap",
+        TargetDBClusterSnapshotIdentifier="cluster-snap-copy",
+        Tags=new_snapshot_tags,
+        CopyTags=True,
+    )["DBClusterSnapshot"]
+    tag_list = client.list_tags_for_resource(
+        ResourceName=copied_snapshot["DBClusterSnapshotArn"]
+    )["TagList"]
+    assert tag_list == new_snapshot_tags
