@@ -7,17 +7,18 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-RDS_REGION = "eu-north-1"
+from . import DEFAULT_REGION
+from .test_rds import create_db_instance
 
 
 @pytest.fixture(name="client")
 @mock_aws
 def get_rds_client():
-    return boto3.client("rds", region_name=RDS_REGION)
+    return boto3.client("rds", region_name=DEFAULT_REGION)
 
 
 def create_db_cluster(**extra_kwargs) -> str:
-    client = boto3.client("rds", region_name=RDS_REGION)
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
     default_kwargs = {
         "DBClusterIdentifier": "db-primary-1",
         "AllocatedStorage": 10,
@@ -146,7 +147,7 @@ def test_modify_db_cluster_new_cluster_identifier(client):
 @mock_aws
 def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_key):
     cluster_id = "cluster-id"
-    custom_kms_key = f"arn:aws:kms:{RDS_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    custom_kms_key = f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
     custom_kms_key_args = (
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
@@ -178,7 +179,7 @@ def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_k
     assert len(master_user_secret.keys()) == 3
     assert (
         master_user_secret["SecretArn"]
-        == "arn:aws:secretsmanager:eu-north-1:123456789012:secret:rds!cluster-id"
+        == f"arn:aws:secretsmanager:{DEFAULT_REGION}:123456789012:secret:rds!cluster-id"
     )
     assert master_user_secret["SecretStatus"] == "active"
     if with_custom_kms_key:
@@ -186,7 +187,7 @@ def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_k
     else:
         assert (
             master_user_secret["KmsKeyId"]
-            == "arn:aws:kms:eu-north-1:123456789012:key/cluster-id"
+            == f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/cluster-id"
         )
     assert len(describe_response["DBClusters"][0]["MasterUserSecret"].keys()) == 3
     assert (
@@ -246,9 +247,9 @@ def test_create_db_cluster__verify_default_properties(client):
 
     assert "AvailabilityZones" in cluster
     assert set(cluster["AvailabilityZones"]) == {
-        "eu-north-1a",
-        "eu-north-1b",
-        "eu-north-1c",
+        "us-west-2a",
+        "us-west-2b",
+        "us-west-2c",
     }
     assert cluster["BackupRetentionPeriod"] == 1
     assert cluster["DBClusterIdentifier"] == "cluster-id"
@@ -256,7 +257,7 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["DBSubnetGroup"] == "default"
     assert cluster["Status"] == "creating"
     assert re.match(
-        "cluster-id.cluster-[a-z0-9]{12}.eu-north-1.rds.amazonaws.com",
+        "cluster-id.cluster-[a-z0-9]{12}.us-west-2.rds.amazonaws.com",
         cluster["Endpoint"],
     )
     endpoint = cluster["Endpoint"]
@@ -278,7 +279,7 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["StorageEncrypted"] is False
     assert re.match(r"cluster-[A-Z0-9]{26}", cluster["DbClusterResourceId"])
     assert cluster["DBClusterArn"] == (
-        f"arn:aws:rds:eu-north-1:{ACCOUNT_ID}:cluster:cluster-id"
+        f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:cluster:cluster-id"
     )
     assert cluster["AssociatedRoles"] == []
     assert cluster["IAMDatabaseAuthenticationEnabled"] is False
@@ -783,7 +784,7 @@ def test_add_tags_to_cluster(client):
         Tags=[{"Key": "k1", "Value": "v1"}],
     )
     cluster_arn = (
-        f"arn:aws:rds:{RDS_REGION}:123456789012:cluster:{db_cluster_identifier}"
+        f"arn:aws:rds:{DEFAULT_REGION}:123456789012:cluster:{db_cluster_identifier}"
     )
 
     client.add_tags_to_resource(

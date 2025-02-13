@@ -14,7 +14,7 @@ from moto.rds.exceptions import InvalidDBInstanceIdentifier, InvalidDBSnapshotId
 from moto.rds.models import RDSBackend
 from tests import aws_verified
 
-DEFAULT_REGION = "us-west-2"
+from . import DEFAULT_REGION
 
 
 @pytest.fixture(name="client")
