@@ -188,7 +188,10 @@ class S3Response(BaseResponse):
             and request.headers.get("Content-Encoding", "") == "aws-chunked"
             and hasattr(request, "input_stream")
         ):
-            self.body = request.input_stream.getvalue()
+            if isinstance(request.input_stream, io.BytesIO):
+                self.body = request.input_stream.getvalue()
+            else:
+                self.body = request.input_stream
         if (
             self.request.headers.get("x-amz-content-sha256")
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
