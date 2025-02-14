@@ -74,7 +74,7 @@ class Key(CloudFormationModel):
         account_id: str,
         region: str,
         multi_region: bool = False,
-        origin: str = "AWS_KMS"
+        origin: str = "AWS_KMS",
     ):
         self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()

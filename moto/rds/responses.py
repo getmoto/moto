@@ -121,16 +121,12 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def delete_db_instance(self) -> TYPE_RESPONSE:
-        db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_name = self.parameters.get("FinalDBSnapshotIdentifier")
         if db_snapshot_name is not None:
             self.backend.validate_db_snapshot_identifier(
                 db_snapshot_name, parameter_name="FinalDBSnapshotIdentifier"
             )
-
-        database = self.backend.delete_db_instance(
-            db_instance_identifier, db_snapshot_name
-        )
+        database = self.backend.delete_db_instance(**self.parameters)
         result = {"DBInstance": database}
         return self.serialize(result)
 
@@ -156,27 +152,22 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def copy_db_snapshot(self) -> TYPE_RESPONSE:
-        source_snapshot_identifier = self.parameters.get("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
-        copy_tags = self.parameters.get("CopyTags")
         self.backend.validate_db_snapshot_identifier(
             target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
         )
-
-        snapshot = self.backend.copy_db_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags, copy_tags
-        )
+        snapshot = self.backend.copy_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
         return self.serialize(result)
 
     def describe_db_snapshots(self) -> TYPE_RESPONSE:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
+        snapshot_type = self.parameters.get("SnapshotType")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_db_snapshots(
-            db_instance_identifier, db_snapshot_identifier, filter_dict
+            db_instance_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         result = {"DBSnapshots": snapshots}
         return self.serialize(result)
@@ -777,6 +768,13 @@ class RDSResponse(BaseResponse):
             proxy_name=proxy_name, config=config
         )
         result = {"DBProxyTargetGroup": group}
+        return self.serialize(result)
+
+    def describe_db_instance_automated_backups(self) -> TYPE_RESPONSE:
+        automated_backups = self.backend.describe_db_instance_automated_backups(
+            **self.parameters
+        )
+        result = {"DBInstanceAutomatedBackups": automated_backups}
         return self.serialize(result)
 
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
