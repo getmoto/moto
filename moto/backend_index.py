@@ -206,6 +206,10 @@ backend_url_patterns = [
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
+        "timestreaminfluxdb",
+        re.compile("https?://timestream-influxdb\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
         "timestreamquery",
         re.compile("https?://query\\.timestream\\.(.+)\\.amazonaws\\.com"),
     ),
