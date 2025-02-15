@@ -1764,9 +1764,11 @@ class RDSBackend(BaseBackend):
             key = match.group("key")
             kms_backend = self.get_backend("kms", region, account)  # type: ignore[assignment]
             assert isinstance(kms_backend, KmsBackend)
-        kms_key = kms_backend.describe_key(key)
-        # We do this in case an alias was passed in.
-        validated_key = kms_key.id
+        try:
+            kms_key = kms_backend.describe_key(key)
+        except KeyError:
+            raise KMSKeyNotAccessibleFault(kms_key_id)
+        validated_key = kms_key.arn
         return validated_key
 
     def get_backend(

@@ -3202,12 +3202,6 @@ def test_copy_db_snapshot_tags_in_request(client):
         "TagList"
     ]
     assert tag_list == test_tags
-    new_snapshot_tags = [
-        {
-            "Key": "foo",
-            "Value": "baz",
-        },
-    ]
     copied_snapshot = client.copy_db_snapshot(
         SourceDBSnapshotIdentifier="snap-1",
         TargetDBSnapshotIdentifier="snap-1-copy",
@@ -3341,6 +3335,25 @@ def test_copy_db_snapshot_fails_when_limit_exceeded(client, monkeypatch):
         err["Message"]
         == "The request cannot be processed because it would exceed the maximum number of snapshots."
     )
+
+
+@mock_aws
+def test_copy_snapshot_fails_with_non_existent_kms_key_id(client):
+    instance = create_db_instance()
+    client.create_db_snapshot(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"],
+        DBSnapshotIdentifier="source-snapshot",
+    )
+    non_existent_key = f"arn:aws:kms:{DEFAULT_REGION}:{ACCOUNT_ID}:key/6e551f00-8a97-4e3b-b620-1a59080bd1be"
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_snapshot(
+            SourceDBSnapshotIdentifier="source-snapshot",
+            TargetDBSnapshotIdentifier="target-snapshot",
+            KmsKeyId=non_existent_key,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "KMSKeyNotAccessibleFault"
+    assert "does not exist" in err["Message"]
 
 
 def validation_helper(exc):
