@@ -1,10 +1,11 @@
 """Handles incoming lexv2models requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
-from .models import lexv2models_backends
+from .models import LexModelsV2Backend, lexv2models_backends
 
 
 class LexModelsV2Response(BaseResponse):
@@ -16,15 +17,11 @@ class LexModelsV2Response(BaseResponse):
     @property
     def lexv2models_backend(self):
         """Return backend instance specific for this region."""
-        # TODO
         # lexv2models_backends is not yet typed
         # Please modify moto/backends.py to add the appropriate type annotations for this service
         return lexv2models_backends[self.current_account][self.region]
 
-    # add methods from here
-
-    def create_bot(self):
-        # params = self._get_params()
+    def create_bot(self) -> str:
         bot_name = self._get_param("botName")
         description = self._get_param("description")
         role_arn = self._get_param("roleArn")
@@ -59,6 +56,7 @@ class LexModelsV2Response(BaseResponse):
             bot_type=bot_type,
             bot_members=bot_members,
         )
+
         return json.dumps(
             dict(
                 botId=bot_id,
@@ -66,7 +64,7 @@ class LexModelsV2Response(BaseResponse):
                 description=description,
                 roleArn=role_arn,
                 dataPrivacy=data_privacy,
-                idleSessionTtlInSeconds=idle_session_ttl_in_seconds,
+                idleSessionTTLInSeconds=idle_session_ttl_in_seconds,
                 botStatus=bot_status,
                 creationDateTime=creation_date_time,
                 botTags=bot_tags,
@@ -76,8 +74,7 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    def describe_bot(self):
-        params = self._get_params()
+    def describe_bot(self) -> str:
         bot_id = self._get_param("botId")
         (
             bot_id,
@@ -95,7 +92,6 @@ class LexModelsV2Response(BaseResponse):
         ) = self.lexv2models_backend.describe_bot(
             bot_id=bot_id,
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botId=bot_id,
@@ -103,7 +99,7 @@ class LexModelsV2Response(BaseResponse):
                 description=description,
                 roleArn=role_arn,
                 dataPrivacy=data_privacy,
-                idleSessionTtlInSeconds=idle_session_ttl_in_seconds,
+                idleSessionTTLInSeconds=idle_session_ttl_in_seconds,
                 botStatus=bot_status,
                 creationDateTime=creation_date_time,
                 lastUpdatedDateTime=last_updated_date_time,
@@ -113,18 +109,16 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    # add templates from here
-
-    def update_bot(self):
-        params = self._get_params()
-        bot_id = params.get("botId")
-        bot_name = params.get("botName")
-        description = params.get("description")
-        role_arn = params.get("roleArn")
-        data_privacy = params.get("dataPrivacy")
-        idle_session_ttl_in_seconds = params.get("idleSessionTTLInSeconds")
-        bot_type = params.get("botType")
-        bot_members = params.get("botMembers")
+    def update_bot(self) -> str:
+        bot_id = self._get_param("botId")
+        bot_name = self._get_param("botName")
+        description = self._get_param("description")
+        role_arn = self._get_param("roleArn")
+        data_privacy = self._get_param("dataPrivacy")
+        idle_session_ttl_in_seconds = self._get_param(
+            "idleSessionTTLInSeconds")
+        bot_type = self._get_param("botType")
+        bot_members = self._get_param("botMembers")
         (
             bot_id,
             bot_name,
@@ -147,7 +141,6 @@ class LexModelsV2Response(BaseResponse):
             bot_type=bot_type,
             bot_members=bot_members,
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botId=bot_id,
@@ -155,7 +148,7 @@ class LexModelsV2Response(BaseResponse):
                 description=description,
                 roleArn=role_arn,
                 dataPrivacy=data_privacy,
-                idleSessionTtlInSeconds=idle_session_ttl_in_seconds,
+                idleSessionTTLInSeconds=idle_session_ttl_in_seconds,
                 botStatus=bot_status,
                 creationDateTime=creation_date_time,
                 lastUpdatedDateTime=last_updated_date_time,
@@ -164,34 +157,29 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    def list_bots(self):
-        params = self._get_params()
-        sort_by = params.get("sortBy")
-        filters = params.get("filters")
-        max_results = params.get("maxResults")
-        next_token = params.get("nextToken")
+    def list_bots(self) -> str:
+        sort_by = self._get_param("sortBy")
+        filters = self._get_param("filters")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
         bot_summaries, next_token = self.lexv2models_backend.list_bots(
             sort_by=sort_by,
             filters=filters,
             max_results=max_results,
             next_token=next_token,
         )
-        # TODO: adjust response
         return json.dumps(dict(botSummaries=bot_summaries, nextToken=next_token))
 
-    def delete_bot(self):
-        params = self._get_params()
-        bot_id = params.get("botId")
-        skip_resource_in_use_check = params.get("skipResourceInUseCheck")
+    def delete_bot(self) -> str:
+        bot_id = self._get_param("botId")
+        skip_resource_in_use_check = self._get_param("skipResourceInUseCheck")
         bot_id, bot_status = self.lexv2models_backend.delete_bot(
             bot_id=bot_id,
             skip_resource_in_use_check=skip_resource_in_use_check,
         )
-        # TODO: adjust response
         return json.dumps(dict(botId=bot_id, botStatus=bot_status))
 
-    def create_bot_alias(self):
-        params = self._get_params()
+    def create_bot_alias(self) -> str:
         bot_alias_name = self._get_param("botAliasName")
         description = self._get_param("description")
         bot_version = self._get_param("botVersion")
@@ -223,7 +211,6 @@ class LexModelsV2Response(BaseResponse):
             bot_id=bot_id,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botAliasId=bot_alias_id,
@@ -240,7 +227,7 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    def describe_bot_alias(self):
+    def describe_bot_alias(self) -> str:
         bot_alias_id = self._get_param("botAliasId")
         bot_id = self._get_param("botId")
         (
@@ -261,7 +248,6 @@ class LexModelsV2Response(BaseResponse):
             bot_alias_id=bot_alias_id,
             bot_id=bot_id,
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botAliasId=bot_alias_id,
@@ -280,16 +266,16 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    def update_bot_alias(self):
-        params = self._get_params()
-        bot_alias_id = params.get("botAliasId")
-        bot_alias_name = params.get("botAliasName")
-        description = params.get("description")
-        bot_version = params.get("botVersion")
-        bot_alias_locale_settings = params.get("botAliasLocaleSettings")
-        conversation_log_settings = params.get("conversationLogSettings")
-        sentiment_analysis_settings = params.get("sentimentAnalysisSettings")
-        bot_id = params.get("botId")
+    def update_bot_alias(self) -> str:
+        bot_alias_id = self._get_param("botAliasId")
+        bot_alias_name = self._get_param("botAliasName")
+        description = self._get_param("description")
+        bot_version = self._get_param("botVersion")
+        bot_alias_locale_settings = self._get_param("botAliasLocaleSettings")
+        conversation_log_settings = self._get_param("conversationLogSettings")
+        sentiment_analysis_settings = self._get_param(
+            "sentimentAnalysisSettings")
+        bot_id = self._get_param("botId")
         (
             bot_alias_id,
             bot_alias_name,
@@ -312,7 +298,6 @@ class LexModelsV2Response(BaseResponse):
             sentiment_analysis_settings=sentiment_analysis_settings,
             bot_id=bot_id,
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botAliasId=bot_alias_id,
@@ -329,11 +314,10 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    def list_bot_aliases(self):
-        params = self._get_params()
-        bot_id = params.get("botId")
-        max_results = params.get("maxResults")
-        next_token = params.get("nextToken")
+    def list_bot_aliases(self) -> str:
+        bot_id = self._get_param("botId")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
         bot_alias_summaries, next_token, bot_id = (
             self.lexv2models_backend.list_bot_aliases(
                 bot_id=bot_id,
@@ -341,7 +325,6 @@ class LexModelsV2Response(BaseResponse):
                 next_token=next_token,
             )
         )
-        # TODO: adjust response
         return json.dumps(
             dict(
                 botAliasSummaries=bot_alias_summaries,
@@ -350,11 +333,10 @@ class LexModelsV2Response(BaseResponse):
             )
         )
 
-    def delete_bot_alias(self):
-        params = self._get_params()
-        bot_alias_id = params.get("botAliasId")
-        bot_id = params.get("botId")
-        skip_resource_in_use_check = params.get("skipResourceInUseCheck")
+    def delete_bot_alias(self) -> str:
+        bot_alias_id = self._get_param("botAliasId")
+        bot_id = self._get_param("botId")
+        skip_resource_in_use_check = self._get_param("skipResourceInUseCheck")
         bot_alias_id, bot_id, bot_alias_status = (
             self.lexv2models_backend.delete_bot_alias(
                 bot_alias_id=bot_alias_id,
@@ -362,87 +344,72 @@ class LexModelsV2Response(BaseResponse):
                 skip_resource_in_use_check=skip_resource_in_use_check,
             )
         )
-        # TODO: adjust response
         return json.dumps(
             dict(botAliasId=bot_alias_id, botId=bot_id,
                  botAliasStatus=bot_alias_status)
         )
 
-    def create_resource_policy(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceArn")
-        policy = params.get("policy")
+    def create_resource_policy(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        policy = self._get_param("policy")
         resource_arn, revision_id = self.lexv2models_backend.create_resource_policy(
             resource_arn=resource_arn,
             policy=policy,
         )
-        # TODO: adjust response
         return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
 
-    def describe_resource_policy(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceArn")
+    def describe_resource_policy(self) -> str:
+        resource_arn = self._get_param("resourceArn")
         resource_arn, policy, revision_id = (
             self.lexv2models_backend.describe_resource_policy(
                 resource_arn=resource_arn,
             )
         )
-        # TODO: adjust response
         return json.dumps(
             dict(resourceArn=resource_arn, policy=policy, revisionId=revision_id)
         )
 
-    def update_resource_policy(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceArn")
-        policy = params.get("policy")
-        expected_revision_id = params.get("expectedRevisionId")
+    def update_resource_policy(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        policy = self._get_param("policy")
+        expected_revision_id = self._get_param("expectedRevisionId")
         resource_arn, revision_id = self.lexv2models_backend.update_resource_policy(
             resource_arn=resource_arn,
             policy=policy,
             expected_revision_id=expected_revision_id,
         )
-        # TODO: adjust response
         return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
 
-    def delete_resource_policy(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceArn")
-        expected_revision_id = params.get("expectedRevisionId")
+    def delete_resource_policy(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        expected_revision_id = self._get_param("expectedRevisionId")
         resource_arn, revision_id = self.lexv2models_backend.delete_resource_policy(
             resource_arn=resource_arn,
             expected_revision_id=expected_revision_id,
         )
-        # TODO: adjust response
         return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
 
-    def tag_resource(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceARN")
-        tags = params.get("tags")
+    def tag_resource(self) -> str:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tags = self._get_param("tags")
         self.lexv2models_backend.tag_resource(
             resource_arn=resource_arn,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
-    def untag_resource(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceARN")
-        tag_keys = params.get("tagKeys")
+    def untag_resource(self) -> str:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
+        tag_keys = self.__dict__["data"]["tagKeys"]
         self.lexv2models_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
-    def list_tags_for_resource(self):
-        params = self._get_params()
-        resource_arn = params.get("resourceARN")
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.lexv2models_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        # TODO: adjust response
         return json.dumps(dict(tags=tags))
