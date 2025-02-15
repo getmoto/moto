@@ -3242,6 +3242,7 @@ def test_copy_snapshot_cross_region():
 
 
 @mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE, reason="Cannot set env in server mode")
 def test_share_db_snapshot_cross_account():
     rds = boto3.client("rds", region_name=DEFAULT_REGION)
     rds.create_db_instance(
@@ -3279,6 +3280,7 @@ def test_share_db_snapshot_cross_account():
 
 
 @mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE, reason="Cannot set env in server mode")
 def test_share_db_cluster_snapshot_cross_account():
     rds = boto3.client("rds", region_name=DEFAULT_REGION)
     rds.create_db_cluster(
@@ -3317,6 +3319,7 @@ def test_share_db_cluster_snapshot_cross_account():
 
 
 @mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE, reason="Cannot set env in server mode")
 def test_copy_db_snapshot_fails_when_limit_exceeded(client, monkeypatch):
     instance = create_db_instance()
     client.create_db_snapshot(

@@ -4,7 +4,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import DEFAULT_REGION
@@ -1499,6 +1499,7 @@ def test_copy_db_cluster_snapshot_fails_for_existing_target_snapshot(client):
 
 
 @mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE, reason="Cannot set env in server mode")
 def test_copy_db_cluster_snapshot_fails_when_limit_exceeded(client, monkeypatch):
     create_db_cluster(
         DBClusterIdentifier="cluster-1",
