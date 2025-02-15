@@ -3220,6 +3220,129 @@ def test_copy_db_snapshot_tags_in_request(client):
     assert tag_list == new_snapshot_tags
 
 
+@mock_aws
+def test_copy_snapshot_cross_region():
+    source_region = "us-west-2"
+    source_client = boto3.client("rds", region_name=source_region)
+    source_client.create_db_instance(
+        DBInstanceIdentifier="db-1",
+        Engine="postgres",
+        DBInstanceClass="db.m1.small",
+    )
+    source_snapshot = source_client.create_db_snapshot(
+        DBInstanceIdentifier="db-1",
+        DBSnapshotIdentifier="snapshot-1",
+    )["DBSnapshot"]
+    dest_region = "us-east-2"
+    dest_client = boto3.client("rds", region_name=dest_region)
+    dest_client.copy_db_snapshot(
+        TargetDBSnapshotIdentifier="cross-region-copy",
+        SourceDBSnapshotIdentifier=source_snapshot["DBSnapshotArn"],
+        SourceRegion=source_region,
+    )
+    dest_snapshot = dest_client.describe_db_snapshots(
+        DBSnapshotIdentifier="cross-region-copy"
+    )["DBSnapshots"][0]
+    assert dest_snapshot["DBSnapshotIdentifier"] == "cross-region-copy"
+    assert dest_region in dest_snapshot["DBSnapshotArn"]
+
+
+@mock_aws
+def test_share_db_snapshot_cross_account():
+    rds = boto3.client("rds", region_name=DEFAULT_REGION)
+    rds.create_db_instance(
+        DBInstanceIdentifier="db-1",
+        Engine="postgres",
+        DBInstanceClass="db.m1.small",
+    )
+    snapshot = rds.create_db_snapshot(
+        DBInstanceIdentifier="db-1",
+        DBSnapshotIdentifier="snapshot-1",
+    )["DBSnapshot"]
+    destination_account = "210987654321"
+    with pytest.MonkeyPatch.context() as mp:
+        kms = boto3.client("kms", region_name=DEFAULT_REGION)
+        mp.setenv("MOTO_ACCOUNT_ID", destination_account)
+        resp = kms.create_key(Description="acting as another account")
+    kms_key_id = resp["KeyMetadata"]["Arn"]
+    shared_snapshot_id = snapshot["DBSnapshotIdentifier"] + "-shared"
+    snapshot_copy = rds.copy_db_snapshot(
+        SourceDBSnapshotIdentifier=snapshot["DBSnapshotIdentifier"],
+        TargetDBSnapshotIdentifier=shared_snapshot_id,
+        KmsKeyId=kms_key_id,
+    )["DBSnapshot"]
+    assert snapshot_copy
+    rds.modify_db_snapshot_attribute(
+        DBSnapshotIdentifier=shared_snapshot_id,
+        AttributeName="restore",
+        ValuesToAdd=[destination_account],
+    )
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("MOTO_ACCOUNT_ID", destination_account)
+        resp = rds.describe_db_snapshots(SnapshotType="shared")
+    snapshot = resp["DBSnapshots"][0]
+    assert snapshot["DBSnapshotIdentifier"] == shared_snapshot_id
+
+
+@mock_aws
+def test_share_db_cluster_snapshot_cross_account():
+    rds = boto3.client("rds", region_name=DEFAULT_REGION)
+    rds.create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
+    snapshot = rds.create_db_cluster_snapshot(
+        DBClusterIdentifier="cluster-1",
+        DBClusterSnapshotIdentifier="snapshot-1",
+    )["DBClusterSnapshot"]
+    destination_account = "210987654321"
+    with pytest.MonkeyPatch.context() as mp:
+        kms = boto3.client("kms", region_name=DEFAULT_REGION)
+        mp.setenv("MOTO_ACCOUNT_ID", destination_account)
+        resp = kms.create_key(Description="acting as another account")
+    kms_key_id = resp["KeyMetadata"]["Arn"]
+    shared_snapshot_id = snapshot["DBClusterSnapshotIdentifier"] + "-shared"
+    snapshot_copy = rds.copy_db_cluster_snapshot(
+        SourceDBClusterSnapshotIdentifier=snapshot["DBClusterSnapshotIdentifier"],
+        TargetDBClusterSnapshotIdentifier=shared_snapshot_id,
+        KmsKeyId=kms_key_id,
+    )["DBClusterSnapshot"]
+    assert snapshot_copy
+    rds.modify_db_cluster_snapshot_attribute(
+        DBClusterSnapshotIdentifier=shared_snapshot_id,
+        AttributeName="restore",
+        ValuesToAdd=[destination_account],
+    )
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("MOTO_ACCOUNT_ID", destination_account)
+        resp = rds.describe_db_cluster_snapshots(SnapshotType="shared")
+    snapshot = resp["DBClusterSnapshots"][0]
+    assert snapshot["DBClusterSnapshotIdentifier"] == shared_snapshot_id
+
+
+@mock_aws
+def test_copy_db_snapshot_fails_when_limit_exceeded(client, monkeypatch):
+    instance = create_db_instance()
+    client.create_db_snapshot(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"],
+        DBSnapshotIdentifier="source-snapshot",
+    )
+    with pytest.raises(ClientError) as exc:
+        monkeypatch.setenv("MOTO_RDS_SNAPSHOT_LIMIT", "1")
+        client.copy_db_snapshot(
+            SourceDBSnapshotIdentifier="source-snapshot",
+            TargetDBSnapshotIdentifier="target-snapshot",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotQuotaExceeded"
+    assert (
+        err["Message"]
+        == "The request cannot be processed because it would exceed the maximum number of snapshots."
+    )
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"

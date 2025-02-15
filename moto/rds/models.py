@@ -6,9 +6,11 @@ import os
 import re
 import string
 from collections import OrderedDict, defaultdict
-from functools import lru_cache
+from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
+
+from typing_extensions import Literal, Type
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -75,6 +77,11 @@ def find_cluster(cluster_arn: str) -> DBCluster:
     arn_parts = cluster_arn.split(":")
     region, account = arn_parts[3], arn_parts[4]
     return rds_backends[account][region].describe_db_clusters(cluster_arn)[0]
+
+
+KMS_ARN_PATTERN = re.compile(
+    r"^arn:(aws|aws-us-gov|aws-cn):kms:(?P<region>\w+(?:-\w+)+):(?P<account_id>\d{12}):key\/(?P<key>[A-Za-z0-9]+(?:-[A-Za-z0-9]+)+)$"
+)
 
 
 class SnapshotAttributesMixin:
@@ -1746,6 +1753,88 @@ class RDSBackend(BaseBackend):
     def kms(self) -> KmsBackend:
         return kms_backends[self.account_id][self.region_name]
 
+    def _validate_kms_key(self, kms_key_id: str) -> str:
+        key = kms_key_id
+        kms_backend = self.kms
+        if (match := re.fullmatch(KMS_ARN_PATTERN, kms_key_id)) is not None:
+            region = match.group("region")
+            if region != self.region_name:
+                raise KMSKeyNotAccessibleFault(kms_key_id)
+            account = match.group("account_id")
+            key = match.group("key")
+            kms_backend = self.get_backend("kms", region, account)  # type: ignore[assignment]
+            assert isinstance(kms_backend, KmsBackend)
+        kms_key = kms_backend.describe_key(key)
+        # We do this in case an alias was passed in.
+        validated_key = kms_key.id
+        return validated_key
+
+    def get_backend(
+        self,
+        service: Literal["kms"] | Literal["rds"],
+        region: Optional[str] = None,
+        account_id: Optional[str] = None,
+    ) -> KmsBackend | RDSBackend:
+        from moto.backends import get_backend as get_moto_backend
+
+        if region is None:
+            region = self.region_name
+
+        if account_id is None:
+            account_id = self.account_id
+
+        return get_moto_backend(service)[account_id][region]
+
+    def get_snapshot(
+        self,
+        identifier: str,
+        resource_type: Type[DBSnapshot] | Type[DBClusterSnapshot],
+        not_found_exception: Type[DBSnapshotNotFoundFault]
+        | Type[DBClusterSnapshotNotFoundError],
+    ) -> DBSnapshot | DBClusterSnapshot:
+        region = self.region_name
+        if identifier.startswith("arn"):
+            region = identifier.split(":")[3]
+            identifier = identifier.split(":")[-1]
+        backend = self.get_backend("rds", region=region)
+        assert isinstance(backend, RDSBackend)
+        snapshots = backend.resource_map[resource_type]
+        if identifier not in snapshots:  # type: ignore[operator]
+            raise not_found_exception(identifier)
+        return snapshots[identifier]  # type: ignore[index]
+
+    get_db_snapshot = partialmethod(
+        get_snapshot,
+        resource_type=DBSnapshot,
+        not_found_exception=DBSnapshotNotFoundFault,
+    )
+    get_db_cluster_snapshot = partialmethod(
+        get_snapshot,
+        resource_type=DBClusterSnapshot,
+        not_found_exception=DBClusterSnapshotNotFoundError,
+    )
+
+    def get_shared_snapshots(
+        self, resource_type: Type[DBSnapshot] | Type[DBClusterSnapshot]
+    ) -> List[DBSnapshot | DBClusterSnapshot]:
+        snapshots_shared = []
+        for backend_container in rds_backends.values():
+            for backend in backend_container.values():
+                if backend.region_name != self.region_name:
+                    continue
+                snapshots = backend.resource_map[resource_type].values()  # type: ignore[attr-defined]
+                for snapshot in snapshots:
+                    if self.account_id in snapshot.attributes["restore"]:
+                        snapshots_shared.append(snapshot)
+        return snapshots_shared
+
+    get_shared_db_snapshots = partialmethod(
+        get_shared_snapshots, resource_type=DBSnapshot
+    )
+    get_shared_db_cluster_snapshots = partialmethod(
+        get_shared_snapshots, resource_type=DBClusterSnapshot
+    )
+
     @lru_cache()
     def db_cluster_options(self, engine) -> List[Dict[str, Any]]:  # type: ignore
         from moto.rds.utils import decode_orderable_db_instance
@@ -1842,26 +1931,17 @@ class RDSBackend(BaseBackend):
         **_: Any,
     ) -> DBSnapshot:
         if source_db_snapshot_identifier.startswith("arn:aws:rds:"):
-            source_db_snapshot_identifier = self.extract_snapshot_name_from_arn(
-                source_db_snapshot_identifier
-            )
-        if source_db_snapshot_identifier not in self.database_snapshots:
-            raise DBSnapshotNotFoundFault(source_db_snapshot_identifier)
+            self.extract_snapshot_name_from_arn(source_db_snapshot_identifier)
         if target_db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(target_db_snapshot_identifier)
 
-        if len(self.cluster_snapshots) >= int(
+        if len(self.database_snapshots) >= int(
             os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
         ):
             raise SnapshotQuotaExceededFault()
-        try:
-            if kms_key_id is not None:
-                key = self.kms.describe_key(str(kms_key_id))
-                # We do this in case an alias was passed in.
-                kms_key_id = key.id
-        except Exception:
-            raise KMSKeyNotAccessibleFault(str(kms_key_id))
-        source_db_snapshot = self.database_snapshots[source_db_snapshot_identifier]
+        if kms_key_id is not None:
+            kms_key_id = self._validate_kms_key(kms_key_id)
+        source_db_snapshot = self.get_db_snapshot(source_db_snapshot_identifier)
         # When tags are passed, AWS does NOT copy/merge tags of the
         # source snapshot, even when copy_tags=True is given.
         # But when tags=[], AWS does honor copy_tags=True.
@@ -1929,6 +2009,8 @@ class RDSBackend(BaseBackend):
         snapshot_type: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> List[DBSnapshot]:
+        if snapshot_type == "shared":
+            return self.get_shared_db_snapshots()  # type: ignore[return-value]
         snapshots = self.database_snapshots
         if db_instance_identifier:
             filters = merge_filters(
@@ -2004,10 +2086,6 @@ class RDSBackend(BaseBackend):
                 "Identifiers must begin with a letter; must contain only ASCII "
                 "letters, digits, and hyphens; and must not end with a hyphen or "
                 "contain two consecutive hyphens."
-            )
-        if region_name != self.region_name or account_id != self.account_id:
-            raise NotImplementedError(
-                "Cross account/region snapshot handling is not yet implemented in moto."
             )
         return snapshot_name
 
@@ -2575,8 +2653,6 @@ class RDSBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
         **_: Any,
     ) -> DBClusterSnapshot:
-        if source_db_cluster_snapshot_identifier not in self.cluster_snapshots:
-            raise DBClusterSnapshotNotFoundError(source_db_cluster_snapshot_identifier)
         if target_db_cluster_snapshot_identifier in self.cluster_snapshots:
             raise DBClusterSnapshotAlreadyExistsError(
                 target_db_cluster_snapshot_identifier
@@ -2586,16 +2662,11 @@ class RDSBackend(BaseBackend):
             os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
         ):
             raise SnapshotQuotaExceededFault()
-        try:
-            if kms_key_id is not None:
-                key = self.kms.describe_key(str(kms_key_id))
-                # We do this in case an alias was passed in.
-                kms_key_id = key.id
-        except Exception:
-            raise KMSKeyNotAccessibleFault(str(kms_key_id))
-        source_db_cluster_snapshot = self.cluster_snapshots[
+        if kms_key_id is not None:
+            kms_key_id = self._validate_kms_key(kms_key_id)
+        source_db_cluster_snapshot = self.get_db_cluster_snapshot(
             source_db_cluster_snapshot_identifier
-        ]
+        )
         # If tags are supplied, copy_tags is ignored (verified against real AWS backend 2025-02-12).
         if copy_tags and not tags:
             tags = source_db_cluster_snapshot.tags or []
@@ -2638,6 +2709,8 @@ class RDSBackend(BaseBackend):
         snapshot_type: Optional[str] = None,
         filters: Any = None,
     ) -> List[DBClusterSnapshot]:
+        if snapshot_type == "shared":
+            return self.get_shared_db_cluster_snapshots()  # type: ignore[return-value]
         snapshots = self.cluster_snapshots
         if db_cluster_identifier:
             filters = merge_filters(filters, {"db-cluster-id": [db_cluster_identifier]})
