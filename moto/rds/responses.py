@@ -776,6 +776,11 @@ class RDSResponse(BaseResponse):
         result = {"DBInstanceAutomatedBackups": automated_backups}
         return self.serialize(result)
 
+    def describe_events(self) -> TYPE_RESPONSE:
+        events = self.backend.describe_events(**self.parameters)
+        result = {"Events": events}
+        return self.serialize(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 

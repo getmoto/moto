@@ -10,7 +10,7 @@ from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from typing_extensions import Literal, Type
+from typing_extensions import Literal, Protocol, Type
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -118,6 +118,30 @@ class SnapshotAttributesMixin:
         if len(new_attribute_values) > int(os.getenv("MAX_SHARED_ACCOUNTS", 20)):
             raise SharedSnapshotQuotaExceeded()
         self.attributes[attribute_name] = new_attribute_values
+
+
+class ResourceWithEvents(Protocol):
+    arn: str
+    event_source_type: str
+
+    @property
+    def resource_id(self) -> str:
+        pass
+
+
+class EventMixin:
+    arn: str
+    backend: RDSBackend
+    event_source_type: str
+
+    def add_event(self, event_type: str) -> None:
+        self.backend.add_event(event_type, self)
+
+    @property
+    def resource_id(self) -> str:
+        raise NotImplementedError(
+            "Concrete classes must implement resource_id property."
+        )
 
 
 class TaggingMixin:
@@ -793,7 +817,7 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         return self.created
 
 
-class DBInstance(CloudFormationModel, RDSBaseModel):
+class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
@@ -816,7 +840,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         "sqlserver-web": "11.00.2100.60.v1",
         "postgres": "9.3.3",
     }
-
+    event_source_type = "db-instance"
     resource_type = "db"
 
     def __init__(
@@ -1291,12 +1315,15 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
 
     def save_automated_backup(self) -> None:
+        self.add_event("DB_INSTANCE_BACKUP_START")
         time_stamp = utcnow().strftime("%Y-%m-%d-%H-%M")
         snapshot_id = f"rds:{self.db_instance_identifier}-{time_stamp}"
         self.backend.create_auto_snapshot(self.db_instance_identifier, snapshot_id)
+        self.add_event("DB_INSTANCE_BACKUP_FINISH")
 
 
-class DBSnapshot(SnapshotAttributesMixin, RDSBaseModel):
+class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
+    event_source_type = "db-snapshot"
     resource_type = "snapshot"
 
     SUPPORTED_FILTERS = {
@@ -1729,6 +1756,7 @@ class RDSBackend(BaseBackend):
         self.subnet_groups: Dict[str, DBSubnetGroup] = {}
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
+        self.events: List[Event] = []
         self.resource_map = {
             DBCluster: self.clusters,
             DBClusterParameterGroup: self.db_cluster_parameter_groups,
@@ -1869,6 +1897,7 @@ class RDSBackend(BaseBackend):
                     )
                 cluster.cluster_members.append(database_id)
         self.databases[database_id] = database
+        database.add_event("DB_INSTANCE_CREATE")
         database.save_automated_backup()
         return database
 
@@ -1877,9 +1906,12 @@ class RDSBackend(BaseBackend):
         db_instance_identifier: str,
         db_snapshot_identifier: str,
     ) -> DBSnapshot:
-        return self.create_db_snapshot(
+        snapshot = self.create_db_snapshot(
             db_instance_identifier, db_snapshot_identifier, snapshot_type="automated"
         )
+        snapshot.add_event("DB_SNAPSHOT_CREATE_AUTOMATED_START")
+        snapshot.add_event("DB_SNAPSHOT_CREATE_AUTOMATED_FINISH")
+        return snapshot
 
     def create_db_snapshot(
         self,
@@ -3281,6 +3313,27 @@ class RDSBackend(BaseBackend):
             DBInstanceAutomatedBackup(self, k, v) for k, v in snapshots_grouped.items()
         ]
 
+    def add_event(self, event_type: str, resource: ResourceWithEvents) -> None:
+        event = Event(event_type, resource)
+        self.events.append(event)
+
+    def describe_events(
+        self,
+        source_identifier: Optional[str] = None,
+        source_type: Optional[str] = None,
+        **_: Any,
+    ) -> List[Event]:
+        if source_identifier is not None and source_type is None:
+            raise InvalidParameterCombination(
+                "Cannot specify source identifier without source type"
+            )
+        events = self.events
+        if source_identifier is not None:
+            events = [e for e in events if e.source_identifier == source_identifier]
+        if source_type is not None:
+            events = [e for e in events if e.source_type == source_type]
+        return events
+
 
 class OptionGroup(RDSBaseModel):
     resource_type = "og"
@@ -3419,6 +3472,52 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.name
+
+
+class Event(XFormedAttributeAccessMixin):
+    EVENT_MAP = {
+        "DB_INSTANCE_BACKUP_START": {
+            "Categories": ["backup"],
+            "Message": "Backing up DB instance",
+        },
+        "DB_INSTANCE_BACKUP_FINISH": {
+            "Categories": ["backup"],
+            "Message": "Finished DB instance backup",
+        },
+        "DB_INSTANCE_CREATE": {
+            "Categories": ["creation"],
+            "Message": "DB instance created",
+        },
+        "DB_SNAPSHOT_CREATE_AUTOMATED_START": {
+            "Categories": ["creation"],
+            "Message": "Creating automated snapshot",
+        },
+        "DB_SNAPSHOT_CREATE_AUTOMATED_FINISH": {
+            "Categories": ["creation"],
+            "Message": "Automated snapshot created",
+        },
+        "DB_SNAPSHOT_CREATE_MANUAL_START": {
+            "Categories": ["creation"],
+            "Message": "Creating manual snapshot",
+        },
+        "DB_SNAPSHOT_CREATE_MANUAL_FINISH": {
+            "Categories": ["creation"],
+            "Message": "Manual snapshot created",
+        },
+    }
+
+    def __init__(self, event_type: str, resource: ResourceWithEvents) -> None:
+        event_metadata = self.EVENT_MAP[event_type]
+        self.source_identifier = resource.resource_id
+        self.source_type = resource.event_source_type
+        self.message = event_metadata["Message"]
+        self.event_categories = event_metadata["Categories"]
+        self.source_arn = resource.arn
+        self.date = utcnow()
+
+    @property
+    def resource_id(self) -> str:
+        return f"{self.source_identifier}-{self.source_type}-{self.date}"
 
 
 rds_backends = BackendDict(RDSBackend, "rds")

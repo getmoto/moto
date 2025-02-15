@@ -3359,6 +3359,27 @@ def test_copy_snapshot_fails_with_non_existent_kms_key_id(client):
     assert "does not exist" in err["Message"]
 
 
+@mock_aws
+def test_describe_events(client):
+    instance = create_db_instance()
+    events = client.describe_events(
+        SourceIdentifier=instance["DBInstanceIdentifier"], SourceType="db-instance"
+    )["Events"]
+    assert len(events) >= 1
+    first_event = events[0]
+    assert first_event["SourceIdentifier"] == instance["DBInstanceIdentifier"]
+    assert first_event["Message"] == "DB instance created"
+
+
+@mock_aws
+def test_describe_events_source_identifier_without_source_type_fails(client):
+    with pytest.raises(ClientError) as exc:
+        client.describe_events(SourceIdentifier="test")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert err["Message"] == "Cannot specify source identifier without source type"
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
