@@ -164,8 +164,8 @@ class RDSBaseModel(TaggingMixin, XFormedAttributeAccessMixin, BaseModel):
         self.created = iso_8601_datetime_with_milliseconds()
 
     @property
-    def name(self) -> str:
-        raise NotImplementedError("Subclasses must implement name property.")
+    def resource_id(self) -> str:
+        raise NotImplementedError("Subclasses must implement resource_id property.")
 
     @property
     def region(self) -> str:
@@ -181,7 +181,7 @@ class RDSBaseModel(TaggingMixin, XFormedAttributeAccessMixin, BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.name}"
+        return f"arn:{self.partition}:rds:{self.region}:{self.account_id}:{self.resource_type}:{self.resource_id}"
 
 
 class DBProxyTarget(RDSBaseModel):
@@ -245,7 +245,7 @@ class DBProxyTargetGroup(RDSBaseModel):
         self.is_default = True
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self._name
 
     @property
@@ -293,7 +293,7 @@ class GlobalCluster(RDSBaseModel):
         self.status = "available"
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.global_cluster_identifier
 
     @property
@@ -450,7 +450,7 @@ class DBCluster(RDSBaseModel):
         self.hosted_zone_id = "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(14)
         )
-        self.resource_id = "cluster-" + "".join(
+        self.db_cluster_resource_id = "cluster-" + "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(26)
         )
         self.tags = tags or []
@@ -515,7 +515,7 @@ class DBCluster(RDSBaseModel):
                 )
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.db_cluster_identifier
 
     @property
@@ -528,10 +528,6 @@ class DBCluster(RDSBaseModel):
     @property
     def db_cluster_arn(self) -> str:
         return self.arn
-
-    @property
-    def db_cluster_resource_id(self) -> str:
-        return self.resource_id
 
     @property
     def latest_restorable_time(self) -> str:
@@ -595,11 +591,11 @@ class DBCluster(RDSBaseModel):
     @property
     def master_user_secret(self) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
         secret_info = {
-            "SecretArn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "SecretArn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.resource_id}",
             "SecretStatus": self.master_user_secret_status,
             "KmsKeyId": self.master_user_secret_kms_key_id
             if self.master_user_secret_kms_key_id is not None
-            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.resource_id}",
         }
         return secret_info if self.manage_master_user_password else None
 
@@ -785,7 +781,7 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         self.storage_encrypted = self.cluster.storage_encrypted
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.db_cluster_snapshot_identifier
 
     @property
@@ -992,7 +988,7 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
                 self.db_name = self.cluster.database_name
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.db_instance_identifier
 
     @property
@@ -1047,11 +1043,11 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
     @property
     def master_user_secret(self) -> Dict[str, Any] | None:  # type: ignore[misc]
         secret_info = {
-            "SecretArn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.name}",
+            "SecretArn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.resource_id}",
             "SecretStatus": self.master_user_secret_status,
             "KmsKeyId": self.master_user_secret_kms_key_id
             if self.master_user_secret_kms_key_id is not None
-            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.name}",
+            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.resource_id}",
         }
         return secret_info if self.manage_master_user_password else None
 
@@ -1244,9 +1240,9 @@ class DBInstance(CloudFormationModel, RDSBaseModel):
         db_security_groups = properties.get("DBSecurityGroups")
         if not db_security_groups:
             db_security_groups = []
-        security_groups = [group.group_name for group in db_security_groups]
+        security_groups = [group.name for group in db_security_groups]
         db_subnet_group = properties.get("DBSubnetGroupName")
-        db_subnet_group_name = db_subnet_group.subnet_name if db_subnet_group else None
+        db_subnet_group_name = db_subnet_group.name if db_subnet_group else None
         db_kwargs = {
             "auto_minor_version_upgrade": properties.get("AutoMinorVersionUpgrade"),
             "allocated_storage": properties.get("AllocatedStorage"),
@@ -1361,7 +1357,7 @@ class DBSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         self.port = database.port
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.db_snapshot_identifier
 
     @property
@@ -1414,7 +1410,7 @@ class EventSubscription(RDSBaseModel):
         self.created_at = iso_8601_datetime_with_milliseconds()
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.subscription_name
 
     @property
@@ -1441,7 +1437,7 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
         tags: List[Dict[str, str]],
     ):
         super().__init__(backend)
-        self.group_name = group_name
+        self.name = group_name
         self.description = description
         self.status = "authorized"
         self._ip_ranges: List[Any] = []
@@ -1450,8 +1446,8 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
         self.vpc_id = None
 
     @property
-    def name(self) -> str:
-        return self.group_name
+    def resource_id(self) -> str:
+        return self.name
 
     @property
     def ec2_security_groups(self) -> List[Dict[str, str]]:
@@ -1541,7 +1537,7 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         tags: List[Dict[str, str]],
     ):
         super().__init__(backend)
-        self.subnet_name = subnet_name
+        self.name = subnet_name
         self.description = description
         self._subnets = subnets
         self.status = "Complete"
@@ -1549,8 +1545,8 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         self.vpc_id = self._subnets[0].vpc_id
 
     @property
-    def name(self) -> str:
-        return self.subnet_name
+    def resource_id(self) -> str:
+        return self.name
 
     @property
     def db_subnet_group_description(self) -> str:
@@ -1689,7 +1685,7 @@ class DBProxy(RDSBaseModel):
         self.unique_id = f"prx-{random.get_random_string(17, lower_case=True)}"
 
     @property
-    def name(self) -> str:
+    def resource_id(self) -> str:
         return self.unique_id
 
 
@@ -2307,7 +2303,7 @@ class RDSBackend(BaseBackend):
         subnet_group = self.subnet_groups.pop(subnet_name)
         if not subnet_group:
             raise DBSubnetGroupNotFoundError(subnet_name)
-        subnet_group.subnet_name = subnet_name
+        subnet_group.name = subnet_name
         subnet_group.subnets = subnets  # type: ignore[assignment]
         if description is not None:
             subnet_group.description = description
@@ -3302,15 +3298,15 @@ class OptionGroup(RDSBaseModel):
         self.engine_name = engine_name
         self.major_engine_version = major_engine_version
         self.description = option_group_description
-        self._name = option_group_name
+        self.name = option_group_name
         self.vpc_and_non_vpc_instance_memberships = False
         self._options: Dict[str, Any] = {}
         self.vpcId = "null"
         self.tags = tags or []
 
     @property
-    def name(self) -> str:
-        return self._name
+    def resource_id(self) -> str:
+        return self.name
 
     @property
     def options(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
@@ -3349,15 +3345,15 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
         tags: Optional[List[Dict[str, str]]] = None,
     ):
         super().__init__(backend)
-        self._name = db_parameter_group_name
+        self.name = db_parameter_group_name
         self.description = description
         self.family = db_parameter_group_family
         self.tags = tags or []
         self.parameters: Dict[str, Any] = defaultdict(dict)
 
     @property
-    def name(self) -> str:
-        return self._name
+    def resource_id(self) -> str:
+        return self.name
 
     def update_parameters(self, new_parameters: Iterable[Dict[str, Any]]) -> None:
         for new_parameter in new_parameters:
@@ -3415,14 +3411,14 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
 
     def __init__(self, backend: RDSBackend, name: str, description: str, family: str):
         super().__init__(backend)
-        self._name = name
+        self.name = name
         self.description = description
         self.db_parameter_group_family = family
         self.parameters: Dict[str, Any] = defaultdict(dict)
 
     @property
-    def name(self) -> str:
-        return self._name
+    def resource_id(self) -> str:
+        return self.name
 
 
 rds_backends = BackendDict(RDSBackend, "rds")

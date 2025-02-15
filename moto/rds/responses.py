@@ -788,7 +788,7 @@ class RDSResponse(BaseResponse):
             )
             raise InvalidParameterValue(msg)
         all_resources = list(resources)
-        all_ids = [resource.name for resource in all_resources]
+        all_ids = [resource.resource_id for resource in all_resources]
         if marker:
             start = all_ids.index(marker) + 1
         else:
@@ -796,5 +796,5 @@ class RDSResponse(BaseResponse):
         paginated_resources = all_resources[start : start + page_size]
         next_marker = None
         if len(all_resources) > start + page_size:
-            next_marker = paginated_resources[-1].name
+            next_marker = paginated_resources[-1].resource_id
         return paginated_resources, next_marker
