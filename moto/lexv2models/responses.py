@@ -11,11 +11,11 @@ from .models import LexModelsV2Backend, lexv2models_backends
 class LexModelsV2Response(BaseResponse):
     """Handler for LexModelsV2 requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="lexv2-models")
 
     @property
-    def lexv2models_backend(self):
+    def lexv2models_backend(self) -> LexModelsV2Backend:
         """Return backend instance specific for this region."""
         # lexv2models_backends is not yet typed
         # Please modify moto/backends.py to add the appropriate type annotations for this service
@@ -26,26 +26,13 @@ class LexModelsV2Response(BaseResponse):
         description = self._get_param("description")
         role_arn = self._get_param("roleArn")
         data_privacy = self._get_param("dataPrivacy")
-        idle_session_ttl_in_seconds = self._get_param(
-            "idleSessionTTLInSeconds")
+        idle_session_ttl_in_seconds = self._get_param("idleSessionTTLInSeconds")
         bot_tags = self._get_param("botTags")
         test_bot_alias_tags = self._get_param("testBotAliasTags")
         bot_type = self._get_param("botType")
         bot_members = self._get_param("botMembers")
-        (
-            bot_id,
-            bot_name,
-            description,
-            role_arn,
-            data_privacy,
-            idle_session_ttl_in_seconds,
-            bot_status,
-            creation_date_time,
-            bot_tags,
-            test_bot_alias_tags,
-            bot_type,
-            bot_members,
-        ) = self.lexv2models_backend.create_bot(
+
+        resp = self.lexv2models_backend.create_bot(
             bot_name=bot_name,
             description=description,
             role_arn=role_arn,
@@ -57,55 +44,14 @@ class LexModelsV2Response(BaseResponse):
             bot_members=bot_members,
         )
 
-        return json.dumps(
-            dict(
-                botId=bot_id,
-                botName=bot_name,
-                description=description,
-                roleArn=role_arn,
-                dataPrivacy=data_privacy,
-                idleSessionTTLInSeconds=idle_session_ttl_in_seconds,
-                botStatus=bot_status,
-                creationDateTime=creation_date_time,
-                botTags=bot_tags,
-                testBotAliasTags=test_bot_alias_tags,
-                botType=bot_type,
-                botMembers=bot_members,
-            )
-        )
+        return json.dumps(resp)
 
     def describe_bot(self) -> str:
         bot_id = self._get_param("botId")
-        (
-            bot_id,
-            bot_name,
-            description,
-            role_arn,
-            data_privacy,
-            idle_session_ttl_in_seconds,
-            bot_status,
-            creation_date_time,
-            last_updated_date_time,
-            bot_type,
-            bot_members,
-            failure_reasons,
-        ) = self.lexv2models_backend.describe_bot(
-            bot_id=bot_id,
-        )
+
         return json.dumps(
-            dict(
-                botId=bot_id,
-                botName=bot_name,
-                description=description,
-                roleArn=role_arn,
-                dataPrivacy=data_privacy,
-                idleSessionTTLInSeconds=idle_session_ttl_in_seconds,
-                botStatus=bot_status,
-                creationDateTime=creation_date_time,
-                lastUpdatedDateTime=last_updated_date_time,
-                botType=bot_type,
-                botMembers=bot_members,
-                failureReasons=failure_reasons,
+            self.lexv2models_backend.describe_bot(
+                bot_id=bot_id,
             )
         )
 
@@ -115,57 +61,26 @@ class LexModelsV2Response(BaseResponse):
         description = self._get_param("description")
         role_arn = self._get_param("roleArn")
         data_privacy = self._get_param("dataPrivacy")
-        idle_session_ttl_in_seconds = self._get_param(
-            "idleSessionTTLInSeconds")
+        idle_session_ttl_in_seconds = self._get_param("idleSessionTTLInSeconds")
         bot_type = self._get_param("botType")
         bot_members = self._get_param("botMembers")
-        (
-            bot_id,
-            bot_name,
-            description,
-            role_arn,
-            data_privacy,
-            idle_session_ttl_in_seconds,
-            bot_status,
-            creation_date_time,
-            last_updated_date_time,
-            bot_type,
-            bot_members,
-        ) = self.lexv2models_backend.update_bot(
-            bot_id=bot_id,
-            bot_name=bot_name,
-            description=description,
-            role_arn=role_arn,
-            data_privacy=data_privacy,
-            idle_session_ttl_in_seconds=idle_session_ttl_in_seconds,
-            bot_type=bot_type,
-            bot_members=bot_members,
-        )
+
         return json.dumps(
-            dict(
-                botId=bot_id,
-                botName=bot_name,
+            self.lexv2models_backend.update_bot(
+                bot_id=bot_id,
+                bot_name=bot_name,
                 description=description,
-                roleArn=role_arn,
-                dataPrivacy=data_privacy,
-                idleSessionTTLInSeconds=idle_session_ttl_in_seconds,
-                botStatus=bot_status,
-                creationDateTime=creation_date_time,
-                lastUpdatedDateTime=last_updated_date_time,
-                botType=bot_type,
-                botMembers=bot_members,
+                role_arn=role_arn,
+                data_privacy=data_privacy,
+                idle_session_ttl_in_seconds=idle_session_ttl_in_seconds,
+                bot_type=bot_type,
+                bot_members=bot_members,
             )
         )
 
     def list_bots(self) -> str:
-        sort_by = self._get_param("sortBy")
-        filters = self._get_param("filters")
-        max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
         bot_summaries, next_token = self.lexv2models_backend.list_bots(
-            sort_by=sort_by,
-            filters=filters,
-            max_results=max_results,
             next_token=next_token,
         )
         return json.dumps(dict(botSummaries=bot_summaries, nextToken=next_token))
@@ -185,44 +100,19 @@ class LexModelsV2Response(BaseResponse):
         bot_version = self._get_param("botVersion")
         bot_alias_locale_settings = self._get_param("botAliasLocaleSettings")
         conversation_log_settings = self._get_param("conversationLogSettings")
-        sentiment_analysis_settings = self._get_param(
-            "sentimentAnalysisSettings")
+        sentiment_analysis_settings = self._get_param("sentimentAnalysisSettings")
         bot_id = self._get_param("botId")
         tags = self._get_param("tags")
-        (
-            bot_alias_id,
-            bot_alias_name,
-            description,
-            bot_version,
-            bot_alias_locale_settings,
-            conversation_log_settings,
-            sentiment_analysis_settings,
-            bot_alias_status,
-            bot_id,
-            creation_date_time,
-            tags,
-        ) = self.lexv2models_backend.create_bot_alias(
-            bot_alias_name=bot_alias_name,
-            description=description,
-            bot_version=bot_version,
-            bot_alias_locale_settings=bot_alias_locale_settings,
-            conversation_log_settings=conversation_log_settings,
-            sentiment_analysis_settings=sentiment_analysis_settings,
-            bot_id=bot_id,
-            tags=tags,
-        )
+
         return json.dumps(
-            dict(
-                botAliasId=bot_alias_id,
-                botAliasName=bot_alias_name,
+            self.lexv2models_backend.create_bot_alias(
+                bot_alias_name=bot_alias_name,
                 description=description,
-                botVersion=bot_version,
-                botAliasLocaleSettings=bot_alias_locale_settings,
-                conversationLogSettings=conversation_log_settings,
-                sentimentAnalysisSettings=sentiment_analysis_settings,
-                botAliasStatus=bot_alias_status,
-                botId=bot_id,
-                creationDateTime=creation_date_time,
+                bot_version=bot_version,
+                bot_alias_locale_settings=bot_alias_locale_settings,
+                conversation_log_settings=conversation_log_settings,
+                sentiment_analysis_settings=sentiment_analysis_settings,
+                bot_id=bot_id,
                 tags=tags,
             )
         )
@@ -230,39 +120,11 @@ class LexModelsV2Response(BaseResponse):
     def describe_bot_alias(self) -> str:
         bot_alias_id = self._get_param("botAliasId")
         bot_id = self._get_param("botId")
-        (
-            bot_alias_id,
-            bot_alias_name,
-            description,
-            bot_version,
-            bot_alias_locale_settings,
-            conversation_log_settings,
-            sentiment_analysis_settings,
-            bot_alias_history_events,
-            bot_alias_status,
-            bot_id,
-            creation_date_time,
-            last_updated_date_time,
-            parent_bot_networks,
-        ) = self.lexv2models_backend.describe_bot_alias(
-            bot_alias_id=bot_alias_id,
-            bot_id=bot_id,
-        )
+
         return json.dumps(
-            dict(
-                botAliasId=bot_alias_id,
-                botAliasName=bot_alias_name,
-                description=description,
-                botVersion=bot_version,
-                botAliasLocaleSettings=bot_alias_locale_settings,
-                conversationLogSettings=conversation_log_settings,
-                sentimentAnalysisSettings=sentiment_analysis_settings,
-                botAliasHistoryEvents=bot_alias_history_events,
-                botAliasStatus=bot_alias_status,
-                botId=bot_id,
-                creationDateTime=creation_date_time,
-                lastUpdatedDateTime=last_updated_date_time,
-                parentBotNetworks=parent_bot_networks,
+            self.lexv2models_backend.describe_bot_alias(
+                bot_alias_id=bot_alias_id,
+                bot_id=bot_id,
             )
         )
 
@@ -273,44 +135,19 @@ class LexModelsV2Response(BaseResponse):
         bot_version = self._get_param("botVersion")
         bot_alias_locale_settings = self._get_param("botAliasLocaleSettings")
         conversation_log_settings = self._get_param("conversationLogSettings")
-        sentiment_analysis_settings = self._get_param(
-            "sentimentAnalysisSettings")
+        sentiment_analysis_settings = self._get_param("sentimentAnalysisSettings")
         bot_id = self._get_param("botId")
-        (
-            bot_alias_id,
-            bot_alias_name,
-            description,
-            bot_version,
-            bot_alias_locale_settings,
-            conversation_log_settings,
-            sentiment_analysis_settings,
-            bot_alias_status,
-            bot_id,
-            creation_date_time,
-            last_updated_date_time,
-        ) = self.lexv2models_backend.update_bot_alias(
-            bot_alias_id=bot_alias_id,
-            bot_alias_name=bot_alias_name,
-            description=description,
-            bot_version=bot_version,
-            bot_alias_locale_settings=bot_alias_locale_settings,
-            conversation_log_settings=conversation_log_settings,
-            sentiment_analysis_settings=sentiment_analysis_settings,
-            bot_id=bot_id,
-        )
+
         return json.dumps(
-            dict(
-                botAliasId=bot_alias_id,
-                botAliasName=bot_alias_name,
+            self.lexv2models_backend.update_bot_alias(
+                bot_alias_id=bot_alias_id,
+                bot_alias_name=bot_alias_name,
                 description=description,
-                botVersion=bot_version,
-                botAliasLocaleSettings=bot_alias_locale_settings,
-                conversationLogSettings=conversation_log_settings,
-                sentimentAnalysisSettings=sentiment_analysis_settings,
-                botAliasStatus=bot_alias_status,
-                botId=bot_id,
-                creationDateTime=creation_date_time,
-                lastUpdatedDateTime=last_updated_date_time,
+                bot_version=bot_version,
+                bot_alias_locale_settings=bot_alias_locale_settings,
+                conversation_log_settings=conversation_log_settings,
+                sentiment_analysis_settings=sentiment_analysis_settings,
+                bot_id=bot_id,
             )
         )
 
@@ -345,8 +182,7 @@ class LexModelsV2Response(BaseResponse):
             )
         )
         return json.dumps(
-            dict(botAliasId=bot_alias_id, botId=bot_id,
-                 botAliasStatus=bot_alias_status)
+            dict(botAliasId=bot_alias_id, botId=bot_id, botAliasStatus=bot_alias_status)
         )
 
     def create_resource_policy(self) -> str:

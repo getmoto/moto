@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 
@@ -112,7 +112,7 @@ class LexModelsV2Backend(BaseBackend):
         bot_tags: Optional[Dict[str, str]],
         test_bot_alias_tags: Optional[Dict[str, str]],
         bot_type: str,
-        bot_members: str,
+        bot_members: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         bot = FakeBot(
             account_id=self.account_id,
@@ -144,50 +144,50 @@ class LexModelsV2Backend(BaseBackend):
         )
         self.bot_aliases[test_alias.id] = test_alias
 
-        return (
-            bot.id,
-            bot.bot_name,
-            bot.description,
-            bot.role_arn,
-            bot.data_privacy,
-            bot.idle_session_ttl_in_seconds,
-            bot.status,
-            bot.creation_date_time,
-            self.list_tags_for_resource(bot.arn),
-            test_bot_alias_tags,
-            bot.bot_type,
-            bot.bot_members,
-        )
+        return {
+            "botId": bot.id,
+            "botName": bot.bot_name,
+            "description": bot.description,
+            "roleArn": bot.role_arn,
+            "dataPrivacy": bot.data_privacy,
+            "idleSessionTTLInSeconds": bot.idle_session_ttl_in_seconds,
+            "botStatus": bot.status,
+            "creationDateTime": bot.creation_date_time,
+            "botTags": self.list_tags_for_resource(bot.arn),
+            "testBotAliasTags": test_bot_alias_tags,
+            "botType": bot.bot_type,
+            "botMembers": bot.bot_members,
+        }
 
-    def describe_bot(self, bot_id) -> str:
+    def describe_bot(self, bot_id: str) -> Dict[str, Any]:
         bot = self.bots[bot_id]
 
-        return (
-            bot.id,
-            bot.bot_name,
-            bot.description,
-            bot.role_arn,
-            bot.data_privacy,
-            bot.idle_session_ttl_in_seconds,
-            bot.status,
-            bot.creation_date_time,
-            bot.last_updated_date_time,
-            bot.bot_type,
-            bot.bot_members,
-            bot.failure_reasons,
-        )
+        return {
+            "botId": bot.id,
+            "botName": bot.bot_name,
+            "description": bot.description,
+            "roleArn": bot.role_arn,
+            "dataPrivacy": bot.data_privacy,
+            "idleSessionTTLInSeconds": bot.idle_session_ttl_in_seconds,
+            "botStatus": bot.status,
+            "creationDateTime": bot.creation_date_time,
+            "lastUpdatedDateTime": bot.last_updated_date_time,
+            "botType": bot.bot_type,
+            "botMembers": bot.bot_members,
+            "failureReasons": bot.failure_reasons,
+        }
 
     def update_bot(
         self,
-        bot_id,
-        bot_name,
-        description,
-        role_arn,
-        data_privacy,
-        idle_session_ttl_in_seconds,
-        bot_type,
-        bot_members,
-    ) -> str:
+        bot_id: str,
+        bot_name: str,
+        description: str,
+        role_arn: str,
+        data_privacy: Optional[Dict[str, Any]],
+        idle_session_ttl_in_seconds: int,
+        bot_type: str,
+        bot_members: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
         bot = self.bots[bot_id]
 
         bot.bot_name = bot_name
@@ -199,21 +199,21 @@ class LexModelsV2Backend(BaseBackend):
         bot.bot_members = bot_members
         bot.last_updated_date_time = datetime.now().isoformat()
 
-        return (
-            bot.id,
-            bot.bot_name,
-            bot.description,
-            bot.role_arn,
-            bot.data_privacy,
-            bot.idle_session_ttl_in_seconds,
-            bot.status,
-            bot.creation_date_time,
-            bot.last_updated_date_time,
-            bot.bot_type,
-            bot.bot_members,
-        )
+        return {
+            "botId": bot.id,
+            "botName": bot.bot_name,
+            "description": bot.description,
+            "roleArn": bot.role_arn,
+            "dataPrivacy": bot.data_privacy,
+            "idleSessionTTLInSeconds": bot.idle_session_ttl_in_seconds,
+            "botStatus": bot.status,
+            "creationDateTime": bot.creation_date_time,
+            "lastUpdatedDateTime": bot.last_updated_date_time,
+            "botType": bot.bot_type,
+            "botMembers": bot.bot_members,
+        }
 
-    def list_bots(self, sort_by, filters, max_results, next_token) -> List[Dict[str, Any]]:
+    def list_bots(self, next_token: str) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         bot_summaries = [
             {
                 "botId": bot.id,
@@ -228,21 +228,23 @@ class LexModelsV2Backend(BaseBackend):
         ]
         return bot_summaries, next_token
 
-    def delete_bot(self, bot_id, skip_resource_in_use_check):
+    def delete_bot(
+        self, bot_id: str, skip_resource_in_use_check: bool
+    ) -> Tuple[str, str]:
         bot = self.bots.pop(bot_id)
         return bot.id, bot.status
 
     def create_bot_alias(
         self,
-        bot_alias_name,
-        description,
-        bot_version,
-        bot_alias_locale_settings,
-        conversation_log_settings,
-        sentiment_analysis_settings,
-        bot_id,
-        tags,
-    ):
+        bot_alias_name: str,
+        description: str,
+        bot_version: str,
+        bot_alias_locale_settings: Optional[Dict[str, Any]],
+        conversation_log_settings: Optional[Dict[str, Any]],
+        sentiment_analysis_settings: Optional[Dict[str, Any]],
+        bot_id: str,
+        tags: Optional[Dict[str, str]],
+    ) -> Dict[str, Any]:
         bot_alias = FakeBotAlias(
             self.account_id,
             self.region_name,
@@ -260,50 +262,50 @@ class LexModelsV2Backend(BaseBackend):
         if tags:
             self.tag_resource(bot_alias.arn, tags)
 
-        return (
-            bot_alias.id,
-            bot_alias.bot_alias_name,
-            bot_alias.description,
-            bot_alias.bot_version,
-            bot_alias.bot_alias_locale_settings,
-            bot_alias.conversation_log_settings,
-            bot_alias.sentiment_analysis_settings,
-            bot_alias.status,
-            bot_alias.bot_id,
-            bot_alias.creation_date_time,
-            self.list_tags_for_resource(bot_alias.arn),
-        )
+        return {
+            "botAliasId": bot_alias.id,
+            "botAliasName": bot_alias.bot_alias_name,
+            "description": bot_alias.description,
+            "botVersion": bot_alias.bot_version,
+            "botAliasLocaleSettings": bot_alias.bot_alias_locale_settings,
+            "conversationLogSettings": bot_alias.conversation_log_settings,
+            "sentimentAnalysisSettings": bot_alias.sentiment_analysis_settings,
+            "botAliasStatus": bot_alias.status,
+            "creationDateTime": bot_alias.creation_date_time,
+            "botId": bot_alias.bot_id,
+            "tags": self.list_tags_for_resource(bot_alias.arn),
+        }
 
-    def describe_bot_alias(self, bot_alias_id, bot_id):
+    def describe_bot_alias(self, bot_alias_id: str, bot_id: str) -> Dict[str, Any]:
         ba = self.bot_aliases[bot_alias_id]
 
-        return (
-            ba.id,
-            ba.bot_alias_name,
-            ba.description,
-            ba.bot_version,
-            ba.bot_alias_locale_settings,
-            ba.conversation_log_settings,
-            ba.sentiment_analysis_settings,
-            ba.history_events,
-            ba.status,
-            ba.bot_id,
-            ba.creation_date_time,
-            ba.last_updated_date_time,
-            ba.parent_bot_networks,
-        )
+        return {
+            "botAliasId": ba.id,
+            "botAliasName": ba.bot_alias_name,
+            "description": ba.description,
+            "botVersion": ba.bot_version,
+            "botAliasLocaleSettings": ba.bot_alias_locale_settings,
+            "conversationLogSettings": ba.conversation_log_settings,
+            "sentimentAnalysisSettings": ba.sentiment_analysis_settings,
+            "botAliasHistoryEvents": ba.history_events,
+            "botAliasStatus": ba.status,
+            "botId": ba.bot_id,
+            "creationDateTime": ba.creation_date_time,
+            "lastUpdatedDateTime": ba.last_updated_date_time,
+            "parentBotNetworks": ba.parent_bot_networks,
+        }
 
     def update_bot_alias(
         self,
-        bot_alias_id,
-        bot_alias_name,
-        description,
-        bot_version,
-        bot_alias_locale_settings,
-        conversation_log_settings,
-        sentiment_analysis_settings,
-        bot_id,
-    ):
+        bot_alias_id: str,
+        bot_alias_name: str,
+        description: str,
+        bot_version: str,
+        bot_alias_locale_settings: Optional[Dict[str, Any]],
+        conversation_log_settings: Optional[Dict[str, Any]],
+        sentiment_analysis_settings: Optional[Dict[str, Any]],
+        bot_id: str,
+    ) -> Dict[str, Any]:
         ba = self.bot_aliases[bot_alias_id]
 
         ba.bot_alias_name = bot_alias_name
@@ -315,21 +317,23 @@ class LexModelsV2Backend(BaseBackend):
         ba.bot_id = bot_id
         ba.last_updated_date_time = datetime.now().isoformat()
 
-        return (
-            bot_alias_id,
-            ba.bot_alias_name,
-            ba.description,
-            ba.bot_version,
-            ba.bot_alias_locale_settings,
-            ba.conversation_log_settings,
-            ba.sentiment_analysis_settings,
-            ba.status,
-            ba.bot_id,
-            ba.creation_date_time,
-            ba.last_updated_date_time,
-        )
+        return {
+            "botAliasId": ba.id,
+            "botAliasName": ba.bot_alias_name,
+            "description": ba.description,
+            "botVersion": ba.bot_version,
+            "botAliasLocaleSettings": ba.bot_alias_locale_settings,
+            "conversationLogSettings": ba.conversation_log_settings,
+            "sentimentAnalysisSettings": ba.sentiment_analysis_settings,
+            "botAliasStatus": ba.status,
+            "botId": ba.bot_id,
+            "creationDateTime": ba.creation_date_time,
+            "lastUpdatedDateTime": ba.last_updated_date_time,
+        }
 
-    def list_bot_aliases(self, bot_id, max_results, next_token):
+    def list_bot_aliases(
+        self, bot_id: str, max_results: int, next_token: str
+    ) -> Tuple[List[Dict[str, Any]], Optional[str], str]:
         bot_alias_summaries = [
             {
                 "botAliasId": ba.id,
@@ -345,20 +349,24 @@ class LexModelsV2Backend(BaseBackend):
 
         return bot_alias_summaries, next_token, bot_id
 
-    def delete_bot_alias(self, bot_alias_id, bot_id, skip_resource_in_use_check):
+    def delete_bot_alias(
+        self, bot_alias_id: str, bot_id: str, skip_resource_in_use_check: bool
+    ) -> Tuple[str, str, str]:
         ba = self.bot_aliases.pop(bot_alias_id)
         return ba.id, ba.bot_id, ba.status
 
-    def create_resource_policy(self, resource_arn, policy):
+    def create_resource_policy(self, resource_arn: str, policy: str) -> Tuple[str, str]:
         rp = FakeResourcePolicy(resource_arn, policy)
         self.resource_policies[rp.resource_arn] = rp
         return rp.resource_arn, rp.revision_id
 
-    def describe_resource_policy(self, resource_arn):
+    def describe_resource_policy(self, resource_arn: str) -> Tuple[str, str, str]:
         rp = self.resource_policies[resource_arn]
         return rp.resource_arn, rp.policy, rp.revision_id
 
-    def update_resource_policy(self, resource_arn, policy, expected_revision_id):
+    def update_resource_policy(
+        self, resource_arn: str, policy: str, expected_revision_id: str
+    ) -> Tuple[str, str]:
         rp = self.resource_policies[resource_arn]
         if expected_revision_id != rp.revision_id:
             raise Exception("Revision ID mismatch")
@@ -366,7 +374,9 @@ class LexModelsV2Backend(BaseBackend):
         rp.revision_id = str(uuid.uuid4())
         return rp.resource_arn, rp.revision_id
 
-    def delete_resource_policy(self, resource_arn, expected_revision_id):
+    def delete_resource_policy(
+        self, resource_arn: str, expected_revision_id: str
+    ) -> Tuple[str, str]:
         rp = self.resource_policies[resource_arn]
         if expected_revision_id != rp.revision_id:
             raise Exception("Revision ID mismatch")
