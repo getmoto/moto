@@ -1023,13 +1023,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # - lambci/lambda (the repo with older/outdated AWSLambda images
                     #
                     # We'll cycle through all of them - when we find the repo that contains our image, we use it
-                    image_repos = set(
-                        [
-                            settings.moto_lambda_image(),
-                            "mlupin/docker-lambda",
-                            "lambci/lambda",
-                        ]
-                    )
+                    image_repos = {  # dict maintains insertion order
+                        settings.moto_lambda_image(): None,
+                        "mlupin/docker-lambda": None,
+                        "lambci/lambda": None,
+                    }
                     for image_repo in image_repos:
                         image_ref = (
                             image_repo
