@@ -504,7 +504,7 @@ class DBCluster(RDSBaseModel):
         self.serverless_v2_scaling_configuration = kwargs.get(
             "serverless_v2_scaling_configuration"
         )
-        self.cluster_members: List[str] = list()
+        self.cluster_members: List[DBInstance] = list()
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
@@ -686,8 +686,8 @@ class DBCluster(RDSBaseModel):
     def db_cluster_members(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
         members = [
             {
-                "DBInstanceIdentifier": member,
-                "IsClusterWriter": True,
+                "DBInstanceIdentifier": member.db_instance_identifier,
+                "IsClusterWriter": member.is_cluster_writer,
                 "DBClusterParameterGroupStatus": "in-sync",
                 "PromotionTier": 1,
             }
@@ -1457,6 +1457,7 @@ class DBInstanceClustered(DBInstance):
         super().__init__(db_cluster_identifier=db_cluster_identifier, **kwargs)
         self.cluster = self.backend.clusters[db_cluster_identifier]
         self.db_cluster_identifier = db_cluster_identifier
+        self.is_cluster_writer = True if not self.cluster.cluster_members else False
 
     @property
     def allocated_storage(self) -> int:
@@ -2153,7 +2154,7 @@ class RDSBackend(BaseBackend):
                     raise InvalidDBInstanceEngine(
                         str(database.engine), str(cluster.engine)
                     )
-                cluster.cluster_members.append(database_id)
+                cluster.cluster_members.append(database)
         self.databases[database_id] = database
         database.add_event("DB_INSTANCE_CREATE")
         database.save_automated_backup()
@@ -2527,7 +2528,7 @@ class RDSBackend(BaseBackend):
                 primary.remove_replica(database)
             if database.db_cluster_identifier in self.clusters:
                 self.clusters[database.db_cluster_identifier].cluster_members.remove(
-                    db_instance_identifier
+                    database
                 )
             automated_snapshots = self.describe_db_snapshots(
                 db_instance_identifier,
