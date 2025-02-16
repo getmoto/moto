@@ -2171,6 +2171,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-east-1.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -6959,6 +6965,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-northeast-2.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -9252,6 +9264,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-northeast-3.amazonaws.com"
                 }
               },
               "controltower": {
@@ -13251,6 +13269,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-south-2.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -14980,6 +15004,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-southeast-1.amazonaws.com"
                 }
               },
               "controltower": {
@@ -17722,6 +17752,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-southeast-2.amazonaws.com"
                 }
               },
               "controltower": {
@@ -23280,6 +23316,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager": {
                 "Value": "license-manager",
                 "endpoint": {
@@ -24254,6 +24299,15 @@
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27471,6 +27525,15 @@
                 "Value": "lambda",
                 "endpoint": {
                   "Value": "lambda.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31523,6 +31586,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.eu-central-1.amazonaws.com"
                 }
               },
               "controltower": {
@@ -40985,6 +41054,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.eu-west-1.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -46374,6 +46449,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.eu-west-3.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -48297,6 +48378,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.il-central-1.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -48700,6 +48787,15 @@
                 "Value": "lambda",
                 "endpoint": {
                   "Value": "lambda.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "launch-wizard": {
+                "Value": "launch-wizard",
+                "endpoint": {
+                  "Value": "launchwizard.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51278,6 +51374,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.me-south-1.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -53124,6 +53226,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "service-quotas": {
                 "Value": "service-quotas",
                 "endpoint": {
@@ -53762,6 +53873,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.sa-east-1.amazonaws.com"
                 }
               },
               "controltower": {
@@ -56207,6 +56324,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.us-east-1.amazonaws.com"
                 }
               },
               "controltower": {
@@ -59369,6 +59492,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.us-east-2.amazonaws.com"
                 }
               },
               "controltower": {
