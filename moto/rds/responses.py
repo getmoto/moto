@@ -421,7 +421,7 @@ class RDSResponse(BaseResponse):
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         clusters = self.backend.describe_db_clusters(
-            cluster_identifier=_id, filters=filter_dict
+            db_cluster_identifier=_id, filters=filter_dict
         )
         result = {"DBClusters": clusters}
         return self.serialize(result)

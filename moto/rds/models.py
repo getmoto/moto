@@ -2991,15 +2991,15 @@ class RDSBackend(BaseBackend):
         return self.cluster_snapshots.pop(db_snapshot_identifier)
 
     def describe_db_clusters(
-        self, cluster_identifier: Optional[str] = None, filters: Any = None
+        self, db_cluster_identifier: Optional[str] = None, filters: Any = None
     ) -> List[DBCluster]:
         clusters = self.clusters
-        if cluster_identifier:
-            filters = merge_filters(filters, {"db-cluster-id": [cluster_identifier]})
+        if db_cluster_identifier:
+            filters = merge_filters(filters, {"db-cluster-id": [db_cluster_identifier]})
         if filters:
             clusters = self._filter_resources(clusters, filters, DBCluster)
-        if cluster_identifier and not clusters:
-            raise DBClusterNotFoundError(cluster_identifier)
+        if db_cluster_identifier and not clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
         return list(clusters.values())  # type: ignore
 
     def describe_db_cluster_snapshots(
@@ -3332,7 +3332,7 @@ class RDSBackend(BaseBackend):
             if not re.match(ARN_PARTITION_REGEX + ":rds", source_db_cluster_identifier):
                 raise InvalidParameterValue("Malformed db cluster arn dbci")
             source_cluster = self.describe_db_clusters(
-                cluster_identifier=source_db_cluster_identifier
+                db_cluster_identifier=source_db_cluster_identifier
             )[0]
             # We should not specify an engine at the same time, as we'll take it from the source cluster
             if engine is not None:
@@ -3374,7 +3374,7 @@ class RDSBackend(BaseBackend):
         try:
             global_cluster = self.global_clusters[global_cluster_identifier]
             cluster = self.describe_db_clusters(
-                cluster_identifier=db_cluster_identifier
+                db_cluster_identifier=db_cluster_identifier
             )[0]
             global_cluster.members.remove(cluster)
             return global_cluster
