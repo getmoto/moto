@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import datetime
 import math
 import os
 import re
@@ -2477,6 +2478,33 @@ class RDSBackend(BaseBackend):
         new_instance_props["db_instance_identifier"] = target_db_identifier
 
         return self.create_db_instance(new_instance_props)
+
+    def restore_db_cluster_to_point_in_time(
+        self,
+        db_cluster_identifier: str,
+        source_db_cluster_identifier: str,
+        restore_type: str = "full-copy",
+        restore_to_time: Optional[datetime.datetime] = None,
+        use_latest_restorable_time: bool = False,
+        **overrides: Dict[str, Any],
+    ) -> DBCluster:
+        db_cluster = self.describe_db_clusters(
+            db_cluster_identifier=source_db_cluster_identifier
+        )[0]
+        new_cluster_props = {}
+        for key, value in db_cluster.__dict__.items():
+            if key.startswith("_"):
+                key = key[1:]
+            # Remove backend / db subnet group as they cannot be copied
+            # and are not used in the restored instance.
+            if key in ("backend", "db_subnet_group", "vpc_security_group_ids"):
+                continue
+            new_cluster_props[key] = copy.copy(value)
+        for key, value in overrides.items():
+            if value:
+                new_cluster_props[key] = value
+        new_cluster_props["db_cluster_identifier"] = db_cluster_identifier
+        return self.create_db_cluster(new_cluster_props)
 
     def stop_db_instance(
         self, db_instance_identifier: str, db_snapshot_identifier: Optional[str] = None

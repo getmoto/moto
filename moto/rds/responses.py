@@ -204,6 +204,11 @@ class RDSResponse(BaseResponse):
         result = {"DBInstance": new_instance}
         return self.serialize(result)
 
+    def restore_db_cluster_to_point_in_time(self) -> TYPE_RESPONSE:
+        cluster = self.backend.restore_db_cluster_to_point_in_time(**self.parameters)
+        result = {"DBCluster": cluster}
+        return self.serialize(result)
+
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self.parameters.get("ResourceName")
         tags = self.backend.list_tags_for_resource(arn)

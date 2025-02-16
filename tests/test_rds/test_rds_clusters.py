@@ -1668,3 +1668,25 @@ def test_copy_db_cluster_snapshot_tags_in_request(client):
         ResourceName=copied_snapshot["DBClusterSnapshotArn"]
     )["TagList"]
     assert tag_list == new_snapshot_tags
+
+
+@mock_aws
+def test_restore_db_instance_to_point_in_time(client):
+    details_source = client.create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+        Port=1234,
+        CopyTagsToSnapshot=True,
+    )["DBCluster"]
+    details_target = client.restore_db_cluster_to_point_in_time(
+        SourceDBClusterIdentifier="cluster-1",
+        DBClusterIdentifier="pit-id",
+        UseLatestRestorableTime=True,
+    )["DBCluster"]
+    assert details_target["CopyTagsToSnapshot"] == details_source["CopyTagsToSnapshot"]
+    assert details_target["DatabaseName"] == details_source["DatabaseName"]
+    assert details_target["Port"] == details_source["Port"]
+    assert details_target["MasterUsername"] == details_source["MasterUsername"]
