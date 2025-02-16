@@ -123,9 +123,10 @@ class KmsResponse(BaseResponse):
         description = self._get_param("Description")
         tags = self._get_param("Tags")
         multi_region = self._get_param("MultiRegion")
+        origin = self._get_param("Origin") or "AWS_KMS"
 
         key = self.kms_backend.create_key(
-            policy, key_usage, key_spec, description, tags, multi_region
+            policy, key_usage, key_spec, description, tags, multi_region, origin
         )
         return json.dumps(key.to_dict())
 
