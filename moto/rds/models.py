@@ -372,19 +372,21 @@ class DBCluster(RDSBaseModel):
         backend: RDSBackend,
         db_cluster_identifier: str,
         engine: str,
+        allocated_storage: int = 1,
         engine_version: Optional[str] = None,
         master_username: Optional[str] = None,
         master_user_password: Optional[str] = None,
-        backup_retention_period: Optional[int] = 1,
+        backup_retention_period: int = 1,
         character_set_name: Optional[str] = None,
         copy_tags_to_snapshot: Optional[bool] = False,
         database_name: Optional[str] = None,
         db_cluster_parameter_group_name: Optional[str] = None,
         db_subnet_group_name: Optional[str] = None,
+        license_model: str = "general-public-license",
         port: Optional[int] = None,
-        preferred_backup_window: Optional[str] = "01:37-02:07",
-        preferred_maintenance_window: Optional[str] = "wed:02:40-wed:03:10",
-        storage_encrypted: Optional[bool] = False,
+        preferred_backup_window: str = "01:37-02:07",
+        preferred_maintenance_window: str = "wed:02:40-wed:03:10",
+        storage_encrypted: bool = False,
         tags: Optional[List[Dict[str, str]]] = None,
         vpc_security_group_ids: Optional[List[str]] = None,
         deletion_protection: Optional[bool] = False,
@@ -411,6 +413,11 @@ class DBCluster(RDSBaseModel):
         self.engine_version = engine_version or DBCluster.default_engine_version(
             self.engine
         )
+        semantic = self.engine_version.split(".")
+        option_suffix = semantic[0]
+        if len(semantic) > 1:
+            option_suffix = option_suffix + "-" + semantic[1]
+        self.option_group_name = f"default:{self.engine}-{option_suffix}"
         self.engine_mode = kwargs.get("engine_mode") or "provisioned"
         self.iops = kwargs.get("iops")
         self.network_type = kwargs.get("network_type") or "IPV4"
@@ -420,7 +427,7 @@ class DBCluster(RDSBaseModel):
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
             self.storage_type = DBCluster.default_storage_type(iops=self.iops)
-        self.allocated_storage = kwargs.get("allocated_storage")
+        self.allocated_storage = allocated_storage
         if self.allocated_storage is None:
             self.allocated_storage = DBCluster.default_allocated_storage(
                 engine=self.engine, storage_type=self.storage_type
@@ -467,7 +474,7 @@ class DBCluster(RDSBaseModel):
         self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.port = port or DBCluster.default_port(self.engine)
-        self.preferred_backup_window = preferred_backup_window or "01:37-02:07"
+        self.preferred_backup_window = preferred_backup_window
         self.preferred_maintenance_window = preferred_maintenance_window
         # This should default to the default security group
         self._vpc_security_group_ids = vpc_security_group_ids or []
@@ -502,10 +509,7 @@ class DBCluster(RDSBaseModel):
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
         self.storage_encrypted = storage_encrypted
-        if self.storage_encrypted:
-            self.kms_key_id = kms_key_id or "default_kms_key_id"
-        else:
-            self.kms_key_id = kms_key_id  # type: ignore[assignment]
+        self.kms_key_id = kms_key_id or "default_kms_key_id"
         if self.engine == "aurora-mysql" or self.engine == "aurora-postgresql":
             self._global_write_forwarding_requested = kwargs.get(
                 "enable_global_write_forwarding"
@@ -537,6 +541,7 @@ class DBCluster(RDSBaseModel):
                 raise InvalidParameterCombination(
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
                 )
+        self.license_model = license_model
 
     @property
     def resource_id(self) -> str:
@@ -845,6 +850,7 @@ class DBLogFile(XFormedAttributeAccessMixin):
 
 
 class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
+    BOTOCORE_MODEL = "DBInstance"
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
@@ -858,6 +864,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     default_engine_versions = {
         "MySQL": "5.6.21",
         "mysql": "5.6.21",
+        "oracle-se2": "11.2.0.4.v3",
         "oracle-se1": "11.2.0.4.v3",
         "oracle-se": "11.2.0.4.v3",
         "oracle-ee": "11.2.0.4.v3",
@@ -963,16 +970,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             not in rds_backends[self.account_id][self.region].db_parameter_groups
         ):
             raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
-        self.license_model = license_model
         self.ca_certificate_identifier = ca_certificate_identifier
-        self.option_group_name = option_group_name
-        self.option_group_supplied = self.option_group_name is not None
-        if (
-            self.option_group_name
-            and self.option_group_name
-            not in rds_backends[self.account_id][self.region].option_groups
-        ):
-            raise OptionGroupNotFoundFaultError(self.option_group_name)
         self.enable_iam_database_authentication = kwargs.get(
             "enable_iam_database_authentication", False
         )
@@ -998,12 +996,13 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             if self.storage_encrypted:
                 self.kms_key_id = kwargs.get("kms_key_id", "default_kms_key_id")
             else:
-                self.kms_key_id = kwargs.get("kms_key_id")
+                self.kms_key_id = None
             self.backup_retention_period = backup_retention_period
             self.character_set_name = character_set_name
-            self.engine_version = engine_version
-            if not self.engine_version and self.engine in self.default_engine_versions:
-                self.engine_version = self.default_engine_versions[self.engine]
+            self.engine_version = (
+                engine_version or self.default_engine_versions[self.engine]
+            )
+            self.license_model = license_model
             self.master_username = master_username
             self.master_user_password = master_user_password
             self.preferred_backup_window = preferred_backup_window
@@ -1013,39 +1012,145 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             )
             if msg:
                 raise RDSClientError("InvalidParameterValue", msg)
-        else:
-            # TODO: Refactor this into a DBClusterInstance subclass
-            self.cluster = self.backend.clusters[self.db_cluster_identifier]
-            self.allocated_storage = self.cluster.allocated_storage or 1
-            self.max_allocated_storage = (
-                self.cluster.allocated_storage or self.allocated_storage
-            )
-            self.storage_type = "aurora"
-            self.storage_encrypted = self.cluster.storage_encrypted or True
-            self.kms_key_id = self.cluster.kms_key_id
-            self.preferred_backup_window = self.cluster.preferred_backup_window
-            self.backup_retention_period = self.cluster.backup_retention_period or 1
-            self.character_set_name = self.cluster.character_set_name
-            self.engine_version = self.cluster.engine_version
-            self.master_username = self.cluster.master_username
-            self.master_user_password = self.cluster.master_user_password
-            if self.db_name is None:
-                self.db_name = self.cluster.database_name
-
-        self.default_option_groups = {
-            "MySQL": "default.mysql5.6",
-            "mysql": "default.mysql5.6",
-            "postgres": "default.postgres9.3",
-        }
-        if not self.option_group_name:
+            self.option_group_supplied = option_group_name is not None
+            if (
+                option_group_name
+                and option_group_name
+                not in rds_backends[self.account_id][self.region].option_groups
+            ):
+                raise OptionGroupNotFoundFaultError(option_group_name)
+            self.default_option_groups = {
+                "MySQL": "default.mysql5.6",
+                "mysql": "default.mysql5.6",
+                "postgres": "default.postgres9.3",
+            }
             if self.engine and self.engine_version:
                 semantic = self.engine_version.split(".")
                 option_suffix = semantic[0]
                 if len(semantic) > 1:
                     option_suffix = option_suffix + "-" + semantic[1]
-                self.option_group_name = f"default:{self.engine}-{option_suffix}"
-            elif self.engine in self.default_option_groups:
-                self.option_group_name = self.default_option_groups[self.engine]
+                default_option_group_name = f"default:{self.engine}-{option_suffix}"
+            else:
+                default_option_group_name = self.default_option_groups[self.engine]
+            self.option_group_name = option_group_name or default_option_group_name
+
+    @property
+    def allocated_storage(self) -> int:
+        return self._allocated_storage
+
+    @allocated_storage.setter
+    def allocated_storage(self, value: int) -> None:
+        self._allocated_storage = value
+
+    @property
+    def backup_retention_period(self) -> int:
+        return self._backup_retention_period
+
+    @backup_retention_period.setter
+    def backup_retention_period(self, value: int) -> None:
+        self._backup_retention_period = value
+
+    @property
+    def character_set_name(self) -> Optional[str]:
+        return self._character_set_name
+
+    @character_set_name.setter
+    def character_set_name(self, value: Optional[str]) -> None:
+        self._character_set_name = value
+
+    @property
+    def db_name(self) -> Optional[str]:
+        return self._db_name
+
+    @db_name.setter
+    def db_name(self, value: Optional[str]) -> None:
+        self._db_name = value
+
+    @property
+    def engine_version(self) -> str:
+        return self._engine_version
+
+    @engine_version.setter
+    def engine_version(self, value: str) -> None:
+        self._engine_version = value
+
+    @property
+    def kms_key_id(self) -> Optional[str]:
+        return self._kms_key_id
+
+    @kms_key_id.setter
+    def kms_key_id(self, value: Optional[str]) -> None:
+        self._kms_key_id = value
+
+    @property
+    def license_model(self) -> str:
+        return self._license_model
+
+    @license_model.setter
+    def license_model(self, value: str) -> None:
+        self._license_model = value
+
+    @property
+    def master_username(self) -> Optional[str]:
+        return self._master_username
+
+    @master_username.setter
+    def master_username(self, value: Optional[str]) -> None:
+        self._master_username = value
+
+    @property
+    def master_user_password(self) -> Optional[str]:
+        return self._master_user_password
+
+    @master_user_password.setter
+    def master_user_password(self, value: Optional[str]) -> None:
+        self._master_user_password = value
+
+    @property
+    def max_allocated_storage(self) -> Optional[int]:
+        if self._max_allocated_storage > self.allocated_storage:
+            return self._max_allocated_storage
+        return None
+
+    @max_allocated_storage.setter
+    def max_allocated_storage(self, value: int) -> None:
+        if value < self.allocated_storage:
+            raise InvalidParameterCombination(
+                "Max storage size must be greater than storage size"
+            )
+        self._max_allocated_storage = value
+
+    @property
+    def option_group_name(self) -> str:
+        return self._option_group_name
+
+    @option_group_name.setter
+    def option_group_name(self, value: str) -> None:
+        self._option_group_name = value
+
+    @property
+    def preferred_backup_window(self) -> str:
+        return self._preferred_backup_window
+
+    @preferred_backup_window.setter
+    def preferred_backup_window(self, value: str) -> None:
+        self._preferred_backup_window = value
+
+    @property
+    def storage_encrypted(self) -> bool:
+        return self._storage_encrypted
+
+    @storage_encrypted.setter
+    def storage_encrypted(self, value: bool) -> None:
+        self._storage_encrypted = value
+
+    @property
+    def storage_type(self) -> str:
+        return self._storage_type
+
+    @storage_type.setter
+    def storage_type(self, value: str) -> None:
+        self._storage_type = value
 
     @property
     def resource_id(self) -> str:
@@ -1112,19 +1217,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.resource_id}",
         }
         return secret_info if self.manage_master_user_password else None
-
-    @property
-    def max_allocated_storage(self) -> Optional[int]:
-        value: int = self._max_allocated_storage or 0  # type: ignore[has-type]
-        return value if value != self.allocated_storage else None
-
-    @max_allocated_storage.setter
-    def max_allocated_storage(self, value: int) -> None:
-        if value < self.allocated_storage:
-            raise InvalidParameterCombination(
-                "Max storage size must be greater than storage size"
-            )
-        self._max_allocated_storage = value
 
     @property
     def address(self) -> str:
@@ -1360,6 +1452,132 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.add_event("DB_INSTANCE_BACKUP_FINISH")
 
 
+class DBInstanceClustered(DBInstance):
+    def __init__(self, db_cluster_identifier: str, **kwargs: Any) -> None:
+        super().__init__(db_cluster_identifier=db_cluster_identifier, **kwargs)
+        self.cluster = self.backend.clusters[db_cluster_identifier]
+        self.db_cluster_identifier = db_cluster_identifier
+
+    @property
+    def allocated_storage(self) -> int:
+        return self.cluster.allocated_storage
+
+    @allocated_storage.setter
+    def allocated_storage(self, value: int) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def backup_retention_period(self) -> int:
+        return self.cluster.backup_retention_period
+
+    @backup_retention_period.setter
+    def backup_retention_period(self, value: int) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def character_set_name(self) -> Optional[str]:
+        return self.cluster.character_set_name
+
+    @character_set_name.setter
+    def character_set_name(self, value: Optional[str]) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    # TODO: Need to understand better how this works with Aurora instances.
+    # According to the boto3 documentation, `db_name` is valid:
+    # "The name of the database to create when the primary instance
+    # of the DB cluster is created. If this parameter isn't specified,
+    # no database is created in the DB instance."
+    # So does that mean the cluster.database_name and the instance.db_name
+    # can differ?
+    @property
+    def db_name(self) -> Optional[str]:
+        return self._db_name or self.cluster.database_name
+
+    @db_name.setter
+    def db_name(self, value: Optional[str]) -> None:
+        self._db_name = value
+
+    @property
+    def engine_version(self) -> str:
+        return self.cluster.engine_version
+
+    @engine_version.setter
+    def engine_version(self, value: str) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def kms_key_id(self) -> Optional[str]:
+        return self.cluster.kms_key_id
+
+    @kms_key_id.setter
+    def kms_key_id(self, value: Optional[str]) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def license_model(self) -> str:
+        return self.cluster.license_model
+
+    @license_model.setter
+    def license_model(self, value: str) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def master_username(self) -> Optional[str]:
+        return self.cluster.master_username
+
+    @master_username.setter
+    def master_username(self, value: Optional[str]) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def master_user_password(self) -> Optional[str]:
+        return self.cluster.master_user_password
+
+    @master_user_password.setter
+    def master_user_password(self, value: Optional[str]) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def max_allocated_storage(self) -> Optional[int]:
+        return None
+
+    @max_allocated_storage.setter
+    def max_allocated_storage(self, value: int) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def option_group_name(self) -> str:
+        return self.cluster.option_group_name
+
+    @option_group_name.setter
+    def option_group_name(self, value: str) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def preferred_backup_window(self) -> str:
+        return self.cluster.preferred_backup_window
+
+    @preferred_backup_window.setter
+    def preferred_backup_window(self, value: str) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def storage_encrypted(self) -> bool:
+        return self.cluster.storage_encrypted
+
+    @storage_encrypted.setter
+    def storage_encrypted(self, value: bool) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def storage_type(self) -> str:
+        return "aurora"
+
+    @storage_type.setter
+    def storage_type(self, value: str) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+
 class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
     event_source_type = "db-snapshot"
     resource_type = "snapshot"
@@ -1408,12 +1626,11 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         self.db_instance_identifier = database.db_instance_identifier
         self.engine = database.engine
         self.engine_version = database.engine_version
-        if kms_key_id is not None:
-            self.kms_key_id = kms_key_id
-            self.encrypted = self.database.storage_encrypted = True
-        else:
-            self.kms_key_id = database.kms_key_id
-            self.encrypted = database.storage_encrypted
+        self.kms_key_id = kms_key_id or database.kms_key_id
+        self.storage_encrypted = (
+            self.kms_key_id is not None or database.storage_encrypted
+        )
+        self.encrypted = self.kms_key_id is not None and self.storage_encrypted
         self.iam_database_authentication_enabled = (
             database.enable_iam_database_authentication
         )
@@ -1916,7 +2133,10 @@ class RDSBackend(BaseBackend):
         if database_id in self.databases:
             raise DBInstanceAlreadyExists()
         self._validate_db_identifier(database_id)
-        database = DBInstance(self, **db_kwargs)
+        if db_kwargs.get("db_cluster_identifier") is None:
+            database = DBInstance(self, **db_kwargs)
+        else:
+            database = DBInstanceClustered(backend=self, **db_kwargs)
 
         cluster_id = database.db_cluster_identifier
         if cluster_id is not None:
@@ -2177,12 +2397,17 @@ class RDSBackend(BaseBackend):
 
         new_instance_props = {}
         for key, value in original_database.__dict__.items():
+            if key.startswith("_"):
+                key = key[1:]
             if key not in [
                 "backend",
                 "db_parameter_group_name",
                 "vpc_security_group_ids",
+                "max_allocated_storage",
             ]:
                 new_instance_props[key] = copy.copy(value)
+        new_instance_props["kms_key_id"] = snapshot.kms_key_id
+        new_instance_props["storage_encrypted"] = snapshot.encrypted
         if not original_database.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
             # Force this reconstruction, and prevent any validation on the default value
@@ -2210,11 +2435,14 @@ class RDSBackend(BaseBackend):
 
         new_instance_props = {}
         for key, value in db_instance.__dict__.items():
+            if key.startswith("_"):
+                key = key[1:]
             # Remove backend / db subnet group as they cannot be copied
             # and are not used in the restored instance.
-            if key in ("backend", "db_subnet_group"):
+            if key in ("backend", "db_subnet_group", "max_allocated_storage"):
                 continue
             new_instance_props[key] = copy.deepcopy(value)
+        new_instance_props["db_name"] = db_instance.db_name
 
         if not db_instance.option_group_supplied:
             # If the option group is not supplied originally, the 'option_group_name' will receive a default value
@@ -2672,7 +2900,7 @@ class RDSBackend(BaseBackend):
         cluster_id = kwargs.get("new_db_cluster_identifier", cluster_id)
         self.clusters[cluster_id] = cluster
 
-        initial_state = copy.deepcopy(cluster)  # Return status=creating
+        initial_state = copy.copy(cluster)  # Return status=creating
 
         # Already set the final status in the background
         cluster.status = "available"

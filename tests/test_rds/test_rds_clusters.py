@@ -405,6 +405,41 @@ def test_modify_db_cluster_serverless_v2_scaling_configuration(client):
 
 
 @mock_aws
+def test_modify_db_cluster_engine_version(client):
+    cluster_id = create_db_cluster(
+        DBClusterIdentifier="cluster-id",
+        Engine="aurora-postgresql",
+        EngineVersion="9.6",
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_id)["DBClusters"][
+        0
+    ]
+    assert cluster["Engine"] == "aurora-postgresql"
+    assert cluster["EngineVersion"] == "9.6"
+    instance = create_db_instance(
+        DBInstanceIdentifier="clustered-instance",
+        DBClusterIdentifier=cluster["DBClusterIdentifier"],
+        Engine="aurora-postgresql",
+    )
+    assert instance["Engine"] == cluster["Engine"]
+    assert instance["EngineVersion"] == cluster["EngineVersion"]
+    client.modify_db_cluster(
+        DBClusterIdentifier=cluster_id,
+        EngineVersion="10.2",
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_id)["DBClusters"][
+        0
+    ]
+    assert cluster["Engine"] == "aurora-postgresql"
+    assert cluster["EngineVersion"] == "10.2"
+    instance = client.describe_db_instances(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"]
+    )["DBInstances"][0]
+    assert instance["Engine"] == cluster["Engine"]
+    assert instance["EngineVersion"] == cluster["EngineVersion"]
+
+
+@mock_aws
 def test_describe_db_cluster_after_creation(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-id1",
