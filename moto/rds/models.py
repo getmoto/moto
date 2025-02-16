@@ -2106,8 +2106,12 @@ class RDSBackend(BaseBackend):
                 db_kwargs.pop("new_db_instance_identifier")
             )
             self.databases[db_instance_identifier] = database
-        preferred_backup_window = db_kwargs.get("preferred_backup_window")
-        preferred_maintenance_window = db_kwargs.get("preferred_maintenance_window")
+        preferred_backup_window = db_kwargs.get(
+            "preferred_backup_window", database.preferred_backup_window
+        )
+        preferred_maintenance_window = db_kwargs.get(
+            "preferred_maintenance_window", database.preferred_maintenance_window
+        )
         if preferred_maintenance_window or preferred_backup_window:
             msg = valid_preferred_maintenance_window(
                 preferred_maintenance_window, preferred_backup_window
