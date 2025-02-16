@@ -4992,6 +4992,10 @@
   "Location": "ap-southeast-2b"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "ap-southeast-2b"
  },
@@ -7577,6 +7581,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
   "Location": "ap-southeast-2c"
  },
  {

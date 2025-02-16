@@ -2556,6 +2556,10 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "ap-southeast-2"
  },
