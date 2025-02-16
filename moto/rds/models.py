@@ -3094,7 +3094,7 @@ class RDSBackend(BaseBackend):
             db_cluster_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_cluster = snapshot.cluster
-        new_cluster_props = copy.deepcopy(original_cluster.get_cfg())
+        new_cluster_props = copy.copy(original_cluster.get_cfg())
         for key, value in overrides.items():
             if value:
                 new_cluster_props[key] = value
