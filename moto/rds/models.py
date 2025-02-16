@@ -467,7 +467,7 @@ class DBCluster(RDSBaseModel):
             "default.neptune1.3" if self.engine == "neptune" else "default.aurora8.0"
         )
         self.parameter_group = db_cluster_parameter_group_name or default_pg
-        self.db_subnet_group = db_subnet_group_name or "default"
+        self.db_subnet_group_name = db_subnet_group_name or "default"
         self.url_identifier = "".join(
             random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
         )
@@ -542,6 +542,14 @@ class DBCluster(RDSBaseModel):
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
                 )
         self.license_model = license_model
+
+    @property
+    def db_subnet_group(self) -> str:
+        # Despite the documentation saying this attribute returns:
+        # "Information about the subnet group associated with the DB cluster,
+        # including the name, description, and subnets in the subnet group."
+        # It just returns the name...
+        return self.db_subnet_group_name
 
     @property
     def resource_id(self) -> str:
@@ -949,11 +957,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.availability_zone = f"{self.region}a"
         self.multi_az = multi_az
         self.db_subnet_group_name = db_subnet_group_name
-        self.db_subnet_group = None
-        if self.db_subnet_group_name:
-            self.db_subnet_group = rds_backends[self.account_id][
-                self.region
-            ].describe_db_subnet_groups(self.db_subnet_group_name)[0]
         self.db_security_groups = db_security_groups or []
         self.vpc_security_group_ids = vpc_security_group_ids or []
         if not self.vpc_security_group_ids:
@@ -1033,6 +1036,18 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             else:
                 default_option_group_name = self.default_option_groups[self.engine]
             self.option_group_name = option_group_name or default_option_group_name
+
+    @property
+    def db_subnet_group_name(self) -> Optional[str]:
+        return self._db_subnet_group_name
+
+    @db_subnet_group_name.setter
+    def db_subnet_group_name(self, value: Optional[str]) -> None:
+        self._db_subnet_group_name = value
+        if self._db_subnet_group_name is not None:
+            self.db_subnet_group = rds_backends[self.account_id][
+                self.region
+            ].describe_db_subnet_groups(self._db_subnet_group_name)[0]
 
     @property
     def allocated_storage(self) -> int:
