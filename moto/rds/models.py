@@ -973,13 +973,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             not in rds_backends[self.account_id][self.region].option_groups
         ):
             raise OptionGroupNotFoundFaultError(self.option_group_name)
-        self.default_option_groups = {
-            "MySQL": "default.mysql5.6",
-            "mysql": "default.mysql5.6",
-            "postgres": "default.postgres9.3",
-        }
-        if not self.option_group_name and self.engine in self.default_option_groups:
-            self.option_group_name = self.default_option_groups[self.engine]
         self.enable_iam_database_authentication = kwargs.get(
             "enable_iam_database_authentication", False
         )
@@ -989,7 +982,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.tags = tags or []
         self.deletion_protection = deletion_protection
         self.enabled_cloudwatch_logs_exports = enable_cloudwatch_logs_exports or []
-
         self.db_cluster_identifier = db_cluster_identifier
         if self.db_cluster_identifier is None:
             self.storage_type = storage_type or DBInstance.default_storage_type(
@@ -1028,6 +1020,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.max_allocated_storage = (
                 self.cluster.allocated_storage or self.allocated_storage
             )
+            self.storage_type = "aurora"
             self.storage_encrypted = self.cluster.storage_encrypted or True
             self.kms_key_id = self.cluster.kms_key_id
             self.preferred_backup_window = self.cluster.preferred_backup_window
@@ -1038,6 +1031,21 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.master_user_password = self.cluster.master_user_password
             if self.db_name is None:
                 self.db_name = self.cluster.database_name
+
+        self.default_option_groups = {
+            "MySQL": "default.mysql5.6",
+            "mysql": "default.mysql5.6",
+            "postgres": "default.postgres9.3",
+        }
+        if not self.option_group_name:
+            if self.engine and self.engine_version:
+                semantic = self.engine_version.split(".")
+                option_suffix = semantic[0]
+                if len(semantic) > 1:
+                    option_suffix = option_suffix + "-" + semantic[1]
+                self.option_group_name = f"default:{self.engine}-{option_suffix}"
+            elif self.engine in self.default_option_groups:
+                self.option_group_name = self.default_option_groups[self.engine]
 
     @property
     def resource_id(self) -> str:
@@ -1064,15 +1072,17 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
                 db_parameter_group_name,
             ) = self.default_db_parameter_group_details()
             description = f"Default parameter group for {db_family}"
-            return [
-                DBParameterGroup(
-                    backend=self.backend,
-                    db_parameter_group_name=db_parameter_group_name,
-                    db_parameter_group_family=db_family,
-                    description=description,
-                    tags=[],
-                )
-            ]
+            if db_parameter_group_name in self.backend.db_parameter_groups:
+                return [self.backend.db_parameter_groups[db_parameter_group_name]]
+            default_group = DBParameterGroup(
+                backend=self.backend,
+                db_parameter_group_name=db_parameter_group_name,
+                db_parameter_group_family=db_family,
+                description=description,
+                tags=[],
+            )
+            self.backend.db_parameter_groups[db_parameter_group_name] = default_group
+            return [default_group]
         else:
             backend = rds_backends[self.account_id][self.region]
             if self.db_parameter_group_name not in backend.db_parameter_groups:
@@ -1595,7 +1605,7 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         self.name = subnet_name
         self.description = description
         self._subnets = subnets
-        self.status = "Complete"
+        self.subnet_group_status = "Complete"
         self.tags = tags
         self.vpc_id = self._subnets[0].vpc_id
 
