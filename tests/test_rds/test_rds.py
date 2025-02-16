@@ -3380,6 +3380,28 @@ def test_describe_events_source_identifier_without_source_type_fails(client):
     assert err["Message"] == "Cannot specify source identifier without source type"
 
 
+@mock_aws
+def test_describe_db_log_files(client):
+    instance = create_db_instance(Engine="postgres")
+    log_files = client.describe_db_log_files(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"]
+    )["DescribeDBLogFiles"]
+    assert len(log_files) >= 1
+    first_log_file = log_files[0]
+    assert "LogFileName" in first_log_file
+    assert "LastWritten" in first_log_file
+    assert "Size" in first_log_file
+
+
+@mock_aws
+def test_describe_db_log_files_with_non_existent_identifier_fails(client):
+    with pytest.raises(ClientError) as exc:
+        client.describe_db_log_files(DBInstanceIdentifier="non-existent-identifier")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBInstanceNotFound"
+    assert "non-existent-identifier not found" in err["Message"]
+
+
 def validation_helper(exc):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"

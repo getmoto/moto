@@ -14,7 +14,7 @@ from typing_extensions import Literal, Protocol, Type
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time, utcnow
 from moto.ec2.models import ec2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
@@ -817,6 +817,33 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         return self.created
 
 
+class LogFileManager:
+    def __init__(self, engine: str) -> None:
+        self.log_files = []
+        filename = f"error/{engine}.log"
+        if engine == "postgres":
+            formatted_time = utcnow().strftime("%Y-%m-%d-%H")
+            filename = f"error/postgresql.log.{formatted_time}"
+        self.log_files.append(DBLogFile(filename))
+
+    @property
+    def files(self) -> List[DBLogFile]:
+        return self.log_files
+
+
+class DBLogFile(XFormedAttributeAccessMixin):
+    BOTOCORE_MODEL = "DescribeDBLogFilesDetails"
+
+    def __init__(self, name: str) -> None:
+        self.log_file_name = name
+        self.last_written = int(unix_time())
+        self.size = 123
+
+    @property
+    def resource_id(self) -> str:
+        return f"{self.log_file_name}-{self.last_written}-{self.size}"
+
+
 class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
@@ -890,6 +917,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             raise InvalidParameterValue(
                 f"Value {self.engine} for parameter Engine is invalid. Reason: engine {self.engine} not supported"
             )
+        self.log_file_manager = LogFileManager(self.engine)
         self.iops = iops
         self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
         self.master_user_secret_status = kwargs.get(
@@ -3333,6 +3361,12 @@ class RDSBackend(BaseBackend):
         if source_type is not None:
             events = [e for e in events if e.source_type == source_type]
         return events
+
+    def describe_db_log_files(self, db_instance_identifier: str) -> List[DBLogFile]:
+        if db_instance_identifier not in self.databases:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        database = self.databases[db_instance_identifier]
+        return database.log_file_manager.files
 
 
 class OptionGroup(RDSBaseModel):

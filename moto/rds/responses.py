@@ -781,6 +781,11 @@ class RDSResponse(BaseResponse):
         result = {"Events": events}
         return self.serialize(result)
 
+    def describe_db_log_files(self) -> TYPE_RESPONSE:
+        log_files = self.backend.describe_db_log_files(**self.parameters)
+        result = {"DescribeDBLogFiles": log_files}
+        return self.serialize(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 
