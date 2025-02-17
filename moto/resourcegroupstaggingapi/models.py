@@ -165,8 +165,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return sagemaker_backends[self.account_id][self.region_name]
 
     @property
-    def lexv2_backend(self) -> LexModelsV2Backend:
-        return lexv2models_backends[self.account_id][self.region_name]
+    def lexv2_backend(self) -> Optional[LexModelsV2Backend]:
+        if self.region_name in lexv2models_backends[self.account_id].regions:
+            return lexv2models_backends[self.account_id][self.region_name]
+        return None
 
     def _get_resources_generator(
         self,
@@ -461,24 +463,25 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
 
         # LexV2
-        lex_v2_resource_map: Dict[str, Dict[str, Any]] = {
-            "lexv2:bot": self.lexv2_backend.bots,
-            "lexv2:bot-alias": self.lexv2_backend.bot_aliases,
-        }
-        for resource_type, resource_source in lex_v2_resource_map.items():
-            if (
-                not resource_type_filters
-                or "lexv2" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resource_source.values():
-                    tags = format_tags(resource.tags)
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": resource.arn,
-                        "Tags": tags,
-                    }
+        if self.lexv2_backend:
+            lex_v2_resource_map: Dict[str, Dict[str, Any]] = {
+                "lexv2:bot": self.lexv2_backend.bots,
+                "lexv2:bot-alias": self.lexv2_backend.bot_aliases,
+            }
+            for resource_type, resource_source in lex_v2_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "lexv2" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        tags = format_tags(resource.tags)
+                        if not tags or not tag_filter(tags):
+                            continue
+                        yield {
+                            "ResourceARN": resource.arn,
+                            "Tags": tags,
+                        }
 
         # LOGS
         if (

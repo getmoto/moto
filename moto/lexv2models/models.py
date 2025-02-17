@@ -213,7 +213,7 @@ class LexModelsV2Backend(BaseBackend):
             "botMembers": bot.bot_members,
         }
 
-    def list_bots(self, next_token: str) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    def list_bots(self) -> List[Dict[str, Any]]:
         bot_summaries = [
             {
                 "botId": bot.id,
@@ -226,7 +226,7 @@ class LexModelsV2Backend(BaseBackend):
             }
             for bot in self.bots.values()
         ]
-        return bot_summaries, next_token
+        return bot_summaries
 
     def delete_bot(
         self, bot_id: str, skip_resource_in_use_check: bool
@@ -332,8 +332,8 @@ class LexModelsV2Backend(BaseBackend):
         }
 
     def list_bot_aliases(
-        self, bot_id: str, max_results: int, next_token: str
-    ) -> Tuple[List[Dict[str, Any]], Optional[str], str]:
+        self, bot_id: str, max_results: int
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         bot_alias_summaries = [
             {
                 "botAliasId": ba.id,
@@ -347,7 +347,7 @@ class LexModelsV2Backend(BaseBackend):
             for ba in self.bot_aliases.values()
         ]
 
-        return bot_alias_summaries, next_token, bot_id
+        return bot_alias_summaries, bot_id
 
     def delete_bot_alias(
         self, bot_alias_id: str, bot_id: str, skip_resource_in_use_check: bool

@@ -79,11 +79,8 @@ class LexModelsV2Response(BaseResponse):
         )
 
     def list_bots(self) -> str:
-        next_token = self._get_param("nextToken")
-        bot_summaries, next_token = self.lexv2models_backend.list_bots(
-            next_token=next_token,
-        )
-        return json.dumps(dict(botSummaries=bot_summaries, nextToken=next_token))
+        bot_summaries = self.lexv2models_backend.list_bots()
+        return json.dumps(dict(botSummaries=bot_summaries, nextToken=None))
 
     def delete_bot(self) -> str:
         bot_id = self._get_param("botId")
@@ -154,18 +151,13 @@ class LexModelsV2Response(BaseResponse):
     def list_bot_aliases(self) -> str:
         bot_id = self._get_param("botId")
         max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        bot_alias_summaries, next_token, bot_id = (
-            self.lexv2models_backend.list_bot_aliases(
-                bot_id=bot_id,
-                max_results=max_results,
-                next_token=next_token,
-            )
+        bot_alias_summaries, bot_id = self.lexv2models_backend.list_bot_aliases(
+            bot_id=bot_id, max_results=max_results
         )
         return json.dumps(
             dict(
                 botAliasSummaries=bot_alias_summaries,
-                nextToken=next_token,
+                nextToken=None,
                 botId=bot_id,
             )
         )
