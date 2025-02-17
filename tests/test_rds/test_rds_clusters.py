@@ -815,6 +815,45 @@ def test_copy_db_cluster_snapshot_fails_for_existed_target_snapshot(client):
 
 
 @mock_aws
+def test_create_db_cluster_snapshot_fails_for_existing_snapshot_id(client):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_db_cluster_snapshot(
+            DBClusterIdentifier=db_cluster_identifier,
+            DBClusterSnapshotIdentifier="snapshot-1",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBClusterSnapshotAlreadyExistsFault"
+    assert "snapshot-1 already exists." in err["Message"]
+
+
+@mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE, reason="Cannot set env in server mode")
+def test_create_db_cluster_snapshot_fails_when_limit_exceeded(client, monkeypatch):
+    db_cluster_identifier = create_db_cluster()
+    client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier="snapshot-1",
+    )
+    with pytest.raises(ClientError) as exc:
+        monkeypatch.setenv("MOTO_RDS_SNAPSHOT_LIMIT", "1")
+        client.create_db_cluster_snapshot(
+            DBClusterIdentifier=db_cluster_identifier,
+            DBClusterSnapshotIdentifier="snapshot-2",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotQuotaExceeded"
+    assert (
+        err["Message"]
+        == "The request cannot be processed because it would exceed the maximum number of snapshots."
+    )
+
+
+@mock_aws
 def test_describe_db_cluster_snapshots(client):
     db_cluster_identifier = create_db_cluster()
 

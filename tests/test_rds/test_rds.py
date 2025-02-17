@@ -1060,11 +1060,11 @@ def test_delete_db_snapshot(client):
     client.create_db_snapshot(
         DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="snapshot-1"
     )
-
-    client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")["DBSnapshots"][0]
     client.delete_db_snapshot(DBSnapshotIdentifier="snapshot-1")
-    with pytest.raises(ClientError):
-        client.describe_db_snapshots(DBSnapshotIdentifier="snapshot-1")
+    with pytest.raises(ClientError) as exc:
+        client.delete_db_snapshot(DBSnapshotIdentifier="snapshot-1")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBSnapshotNotFound"
 
 
 @pytest.mark.parametrize(
@@ -3331,6 +3331,49 @@ def test_copy_db_snapshot_fails_when_limit_exceeded(client, monkeypatch):
         client.copy_db_snapshot(
             SourceDBSnapshotIdentifier="source-snapshot",
             TargetDBSnapshotIdentifier="target-snapshot",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotQuotaExceeded"
+    assert (
+        err["Message"]
+        == "The request cannot be processed because it would exceed the maximum number of snapshots."
+    )
+
+
+@mock_aws
+def test_copy_db_snapshot_fails_when_target_already_exists(client):
+    instance = create_db_instance()
+    client.create_db_snapshot(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"],
+        DBSnapshotIdentifier="snapshot-1",
+    )
+    client.create_db_snapshot(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"],
+        DBSnapshotIdentifier="snapshot-2",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_snapshot(
+            SourceDBSnapshotIdentifier="snapshot-2",
+            TargetDBSnapshotIdentifier="snapshot-1",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBSnapshotAlreadyExists"
+    assert "snapshot-1 already exists" in err["Message"]
+
+
+@mock_aws
+@pytest.mark.skipif(settings.TEST_SERVER_MODE, reason="Cannot set env in server mode")
+def test_create_db_snapshot_fails_when_limit_exceeded(client, monkeypatch):
+    instance = create_db_instance()
+    client.create_db_snapshot(
+        DBInstanceIdentifier=instance["DBInstanceIdentifier"],
+        DBSnapshotIdentifier="snapshot-1",
+    )
+    with pytest.raises(ClientError) as exc:
+        monkeypatch.setenv("MOTO_RDS_SNAPSHOT_LIMIT", "1")
+        client.create_db_snapshot(
+            DBInstanceIdentifier=instance["DBInstanceIdentifier"],
+            DBSnapshotIdentifier="snapshot-2",
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "SnapshotQuotaExceeded"
