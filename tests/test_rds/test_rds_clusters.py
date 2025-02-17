@@ -1068,6 +1068,42 @@ def test_replicate_cluster():
 
 
 @mock_aws
+def test_db_cluster_multi_az(client):
+    ec2 = boto3.client("ec2", region_name=DEFAULT_REGION)
+    resp = ec2.describe_availability_zones()
+    zones = [z["ZoneName"] for z in resp["AvailabilityZones"]]
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+    )
+    client.create_db_instance(
+        DBInstanceIdentifier="test-zone-a",
+        DBInstanceClass="db.m1.small",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier="cluster-1",
+        AvailabilityZone=zones[0],
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1")[
+        "DBClusters"
+    ][0]
+    assert cluster["MultiAZ"] is False
+    client.create_db_instance(
+        DBInstanceIdentifier="test-zone-b",
+        DBInstanceClass="db.m1.small",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier="cluster-1",
+        AvailabilityZone=zones[1],
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1")[
+        "DBClusters"
+    ][0]
+    assert cluster["MultiAZ"] is True
+
+
+@mock_aws
 def test_createdb_instance_engine_mismatch_fail(client):
     # Setup
     cluster_name = "test-cluster"

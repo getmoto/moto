@@ -557,10 +557,15 @@ class DBCluster(RDSBaseModel):
 
     @property
     def multi_az(self) -> bool:
-        return (
-            len(self.read_replica_identifiers) > 0
-            or self.replication_source_identifier is not None
+        availability_zones = list(
+            set([instance.availability_zone for instance in self._members])
         )
+        multi_az_conditions = [
+            (len(self.read_replica_identifiers) > 0),
+            (self.replication_source_identifier is not None),
+            (len(availability_zones) > 1),
+        ]
+        return any(multi_az_conditions)
 
     @property
     def db_cluster_arn(self) -> str:
@@ -964,6 +969,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         option_group_name: Optional[str] = None,
         enable_cloudwatch_logs_exports: Optional[List[str]] = None,
         ca_certificate_identifier: str = "rds-ca-default",
+        availability_zone: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -995,9 +1001,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.instance_create_time = self.created
         self.publicly_accessible = publicly_accessible
         self.copy_tags_to_snapshot = copy_tags_to_snapshot
-        self.availability_zone = kwargs.get("availability_zone")
-        if not self.availability_zone:
-            self.availability_zone = f"{self.region}a"
+        self.availability_zone: str = availability_zone or f"{self.region}a"
         self.multi_az = multi_az
         self.db_subnet_group_name = db_subnet_group_name
         self.db_security_groups = db_security_groups or []
