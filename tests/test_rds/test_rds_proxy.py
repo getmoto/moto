@@ -5,7 +5,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-DEFAULT_REGION = "us-west-2"
+from . import DEFAULT_REGION
 
 
 @mock_aws
