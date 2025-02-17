@@ -137,17 +137,11 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def create_db_snapshot(self) -> TYPE_RESPONSE:
-        db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
-        db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
         self.backend.validate_db_snapshot_identifier(
-            db_snapshot_identifier, parameter_name="DBSnapshotIdentifier"
+            self.parameters["DBSnapshotIdentifier"],
+            parameter_name="DBSnapshotIdentifier",
         )
-        snapshot = self.backend.create_db_snapshot(
-            db_instance_identifier,
-            db_snapshot_identifier,
-            tags=tags,
-        )
+        snapshot = self.backend.create_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
         return self.serialize(result)
 

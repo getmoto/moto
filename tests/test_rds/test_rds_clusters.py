@@ -404,39 +404,46 @@ def test_modify_db_cluster_serverless_v2_scaling_configuration(client):
     }
 
 
+@pytest.mark.parametrize(
+    "attr_info",
+    [
+        ("BackupRetentionPeriod", 15, 32),
+        ("EngineVersion", "9.6", "10.2"),
+    ],
+    ids=[
+        "BackupRetentionPeriod",
+        "EngineVersion",
+    ],
+)
 @mock_aws
-def test_modify_db_cluster_engine_version(client):
-    cluster_id = create_db_cluster(
+def test_db_instance_in_cluster_gets_attributes_from_cluster(client, attr_info):
+    attribute, initial_value, modified_value = attr_info
+    cluster = client.create_db_cluster(
         DBClusterIdentifier="cluster-id",
         Engine="aurora-postgresql",
-        EngineVersion="9.6",
-    )
-    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_id)["DBClusters"][
-        0
-    ]
-    assert cluster["Engine"] == "aurora-postgresql"
-    assert cluster["EngineVersion"] == "9.6"
+        MasterUsername="root",
+        MasterUserPassword="<PASSWORD>",
+        **{attribute: initial_value},
+    )["DBCluster"]
     instance = create_db_instance(
         DBInstanceIdentifier="clustered-instance",
         DBClusterIdentifier=cluster["DBClusterIdentifier"],
         Engine="aurora-postgresql",
     )
-    assert instance["Engine"] == cluster["Engine"]
-    assert instance["EngineVersion"] == cluster["EngineVersion"]
-    client.modify_db_cluster(
-        DBClusterIdentifier=cluster_id,
-        EngineVersion="10.2",
-    )
-    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_id)["DBClusters"][
-        0
-    ]
-    assert cluster["Engine"] == "aurora-postgresql"
-    assert cluster["EngineVersion"] == "10.2"
+    assert instance["AllocatedStorage"] == cluster["AllocatedStorage"]
+    assert instance["MasterUsername"] == cluster["MasterUsername"]
+    assert instance["PreferredBackupWindow"] == cluster["PreferredBackupWindow"]
+    assert instance["StorageEncrypted"] == cluster["StorageEncrypted"]
+    assert instance[attribute] == cluster[attribute] == initial_value
+    cluster = client.modify_db_cluster(
+        DBClusterIdentifier=cluster["DBClusterIdentifier"],
+        ApplyImmediately=True,
+        **{attribute: modified_value},
+    )["DBCluster"]
     instance = client.describe_db_instances(
         DBInstanceIdentifier=instance["DBInstanceIdentifier"]
     )["DBInstances"][0]
-    assert instance["Engine"] == cluster["Engine"]
-    assert instance["EngineVersion"] == cluster["EngineVersion"]
+    assert instance[attribute] == cluster[attribute] == modified_value
 
 
 @mock_aws
@@ -1707,7 +1714,7 @@ def test_copy_db_cluster_snapshot_tags_in_request(client):
 
 
 @mock_aws
-def test_restore_db_instance_to_point_in_time(client):
+def test_restore_db_cluster_to_point_in_time(client):
     details_source = client.create_db_cluster(
         DBClusterIdentifier="cluster-1",
         DatabaseName="db_name",
@@ -1721,11 +1728,19 @@ def test_restore_db_instance_to_point_in_time(client):
         SourceDBClusterIdentifier="cluster-1",
         DBClusterIdentifier="pit-id",
         UseLatestRestorableTime=True,
+        # Overrides
+        DeletionProtection=True,
+        CopyTagsToSnapshot=False,
+        Port=4321,
     )["DBCluster"]
-    assert details_target["CopyTagsToSnapshot"] == details_source["CopyTagsToSnapshot"]
+    assert details_target["CopyTagsToSnapshot"] != details_source["CopyTagsToSnapshot"]
     assert details_target["DatabaseName"] == details_source["DatabaseName"]
-    assert details_target["Port"] == details_source["Port"]
+    assert details_target["Port"] != details_source["Port"]
     assert details_target["MasterUsername"] == details_source["MasterUsername"]
+    # Overrides
+    assert details_target["CopyTagsToSnapshot"] is False
+    assert details_target["DeletionProtection"] is True
+    assert details_target["Port"] == 4321
 
 
 @mock_aws
@@ -1764,3 +1779,43 @@ def test_failover_db_cluster(client):
     assert cluster_members[0]["IsClusterWriter"] is False
     assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
     assert cluster_members[1]["IsClusterWriter"] is True
+
+
+@mock_aws
+def test_db_cluster_writer_promotion(client):
+    client.create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+    )
+    for i in range(3):
+        client.create_db_instance(
+            DBInstanceIdentifier=f"test-instance-{i}",
+            DBInstanceClass="db.m1.small",
+            Engine="aurora-postgresql",
+            DBClusterIdentifier="cluster-1",
+            PromotionTier=15 - i,
+        )
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1")[
+        "DBClusters"
+    ][0]
+    assert len(cluster["DBClusterMembers"]) == 3
+    writer = next(
+        i["DBInstanceIdentifier"]
+        for i in cluster["DBClusterMembers"]
+        if i["IsClusterWriter"]
+    )
+    assert writer == "test-instance-0"
+    client.delete_db_instance(DBInstanceIdentifier="test-instance-0")
+    cluster = client.describe_db_clusters(DBClusterIdentifier="cluster-1")[
+        "DBClusters"
+    ][0]
+    assert len(cluster["DBClusterMembers"]) == 2
+    writer = next(
+        i["DBInstanceIdentifier"]
+        for i in cluster["DBClusterMembers"]
+        if i["IsClusterWriter"]
+    )
+    assert writer == "test-instance-2"

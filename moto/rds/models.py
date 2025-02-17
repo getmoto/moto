@@ -127,7 +127,7 @@ class ResourceWithEvents(Protocol):
 
     @property
     def resource_id(self) -> str:
-        pass
+        raise NotImplementedError()
 
 
 class EventMixin:
@@ -373,7 +373,7 @@ class DBCluster(RDSBaseModel):
         backend: RDSBackend,
         db_cluster_identifier: str,
         engine: str,
-        allocated_storage: int = 1,
+        allocated_storage: Optional[int] = None,
         engine_version: Optional[str] = None,
         master_username: Optional[str] = None,
         master_user_password: Optional[str] = None,
@@ -428,11 +428,12 @@ class DBCluster(RDSBaseModel):
         self.storage_type = kwargs.get("storage_type")
         if self.storage_type is None:
             self.storage_type = DBCluster.default_storage_type(iops=self.iops)
-        self.allocated_storage = allocated_storage
-        if self.allocated_storage is None:
-            self.allocated_storage = DBCluster.default_allocated_storage(
+        self.allocated_storage = (
+            allocated_storage
+            or DBCluster.default_allocated_storage(
                 engine=self.engine, storage_type=self.storage_type
             )
+        )
         self.master_username = master_username
         self.character_set_name = character_set_name
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
@@ -534,8 +535,6 @@ class DBCluster(RDSBaseModel):
             self.backtrack_window = 0
 
         self.iam_auth = kwargs.get("enable_iam_database_authentication", False)
-        if self.iam_auth is None:
-            self.iam_auth = False
         if self.iam_auth:
             if not self.engine.startswith("aurora-"):
                 raise InvalidParameterCombination(
@@ -577,7 +576,7 @@ class DBCluster(RDSBaseModel):
 
     @property
     def master_user_password(self) -> str:
-        return self._master_user_password
+        raise NotImplementedError("Password not retrievable.")
 
     @master_user_password.setter
     def master_user_password(self, val: str) -> None:
@@ -688,11 +687,8 @@ class DBCluster(RDSBaseModel):
     def designate_writer(self) -> None:
         if self.writer or not self._members:
             return
-        if len(self._members) == 1:
-            self.writer = self._members[0]
-        else:
-            promotion_list = sorted(self._members, key=lambda x: x.promotion_tier)
-            self.writer = promotion_list[0]
+        promotion_list = sorted(self._members, key=lambda x: x.promotion_tier)
+        self.writer = promotion_list[0]
 
     @property
     def associated_roles(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
@@ -782,10 +778,7 @@ class DBCluster(RDSBaseModel):
 
     @staticmethod
     def default_storage_type(iops: Any) -> str:  # type: ignore[misc]
-        if iops is None:
-            return "gp2"
-        else:
-            return "io1"
+        return "gp2" if iops is None else "io1"
 
     @staticmethod
     def default_allocated_storage(engine: str, storage_type: str) -> int:
@@ -900,10 +893,6 @@ class DBLogFile(XFormedAttributeAccessMixin):
         self.last_written = int(unix_time())
         self.size = 123
 
-    @property
-    def resource_id(self) -> str:
-        return f"{self.log_file_name}-{self.last_written}-{self.size}"
-
 
 class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     BOTOCORE_MODEL = "DBInstance"
@@ -920,15 +909,15 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     default_engine_versions = {
         "MySQL": "5.6.21",
         "mysql": "5.6.21",
-        "oracle-se2": "11.2.0.4.v3",
-        "oracle-se1": "11.2.0.4.v3",
-        "oracle-se": "11.2.0.4.v3",
         "oracle-ee": "11.2.0.4.v3",
-        "sqlserver-ee": "11.00.2100.60.v1",
-        "sqlserver-se": "11.00.2100.60.v1",
-        "sqlserver-ex": "11.00.2100.60.v1",
-        "sqlserver-web": "11.00.2100.60.v1",
+        "oracle-se": "11.2.0.4.v3",
+        "oracle-se1": "11.2.0.4.v3",
+        "oracle-se2": "11.2.0.4.v3",
         "postgres": "9.3.3",
+        "sqlserver-ee": "11.00.2100.60.v1",
+        "sqlserver-ex": "11.00.2100.60.v1",
+        "sqlserver-se": "11.00.2100.60.v1",
+        "sqlserver-web": "11.00.2100.60.v1",
     }
     event_source_type = "db-instance"
     resource_type = "db"
@@ -1024,8 +1013,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.enable_iam_database_authentication = kwargs.get(
             "enable_iam_database_authentication", False
         )
-        if self.enable_iam_database_authentication is None:
-            self.enable_iam_database_authentication = False
         self.dbi_resource_id = "db-M5ENSHXFPU6XHZ4G4ZEI5QIO2U"
         self.tags = tags or []
         self.deletion_protection = deletion_protection
@@ -1069,24 +1056,17 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
                 not in rds_backends[self.account_id][self.region].option_groups
             ):
                 raise OptionGroupNotFoundFaultError(option_group_name)
-            self.default_option_groups = {
-                "MySQL": "default.mysql5.6",
-                "mysql": "default.mysql5.6",
-                "postgres": "default.postgres9.3",
-            }
-            if self.engine and self.engine_version:
-                semantic = self.engine_version.split(".")
-                option_suffix = semantic[0]
-                if len(semantic) > 1:
-                    option_suffix = option_suffix + "-" + semantic[1]
-                default_option_group_name = f"default:{self.engine}-{option_suffix}"
-            else:
-                default_option_group_name = self.default_option_groups[self.engine]
+            assert self.engine and self.engine_version
+            semantic = self.engine_version.split(".")
+            option_suffix = semantic[0]
+            if len(semantic) > 1:
+                option_suffix = option_suffix + "-" + semantic[1]
+            default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
 
     @property
     def db_subnet_group_name(self) -> Optional[str]:
-        return self._db_subnet_group_name
+        raise NotImplementedError("write only property")
 
     @db_subnet_group_name.setter
     def db_subnet_group_name(self, value: Optional[str]) -> None:
@@ -1162,7 +1142,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
     @property
     def master_user_password(self) -> Optional[str]:
-        return self._master_user_password
+        raise NotImplementedError("Password is not retrievable.")
 
     @master_user_password.setter
     def master_user_password(self, value: Optional[str]) -> None:
@@ -1261,9 +1241,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         return param_group_name.startswith(f"default.{self.engine.lower()}")  # type: ignore
 
     def default_db_parameter_group_details(self) -> Tuple[str, str]:
-        if not self.engine_version:
-            return "", ""
-
+        assert self.engine and self.engine_version
         minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
         db_family = f"{self.engine.lower()}{minor_engine_version}"  # type: ignore
 
@@ -1409,10 +1387,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
     @staticmethod
     def default_storage_type(iops: Any) -> str:  # type: ignore[misc]
-        if iops is None:
-            return "gp2"
-        else:
-            return "io1"
+        return "gp2" if iops is None else "io1"
 
     @staticmethod
     def default_allocated_storage(engine: str, storage_type: str) -> int:
@@ -1597,7 +1572,7 @@ class DBInstanceClustered(DBInstance):
 
     @property
     def master_user_password(self) -> Optional[str]:
-        return self.cluster.master_user_password
+        raise NotImplementedError("Password is not retrievable.")
 
     @master_user_password.setter
     def master_user_password(self, value: Optional[str]) -> None:
@@ -1680,10 +1655,10 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         self.original_snapshot_create_time = original_created_at or self.created
         # If tags are provided at creation, AWS does *not* copy tags from the
         # db_cluster (even if copy_tags_to_snapshot is True).
-        if tags is not None:
+        if tags:
             self.tags = tags
-        elif database.copy_tags_to_snapshot:
-            self.tags = database.tags or []
+        elif database.copy_tags_to_snapshot and database.tags:
+            self.tags = database.tags
         else:
             self.tags = []
         # Database attributes are captured at the time the snapshot is taken.
@@ -1751,8 +1726,6 @@ class EventSubscription(RDSBaseModel):
         self.event_categories = kwargs.get("event_categories", [])
         self.source_ids = kwargs.get("source_ids", [])
         self.enabled = kwargs.get("enabled", False)
-        if self.enabled is None:
-            self.enabled = False
         self.tags = kwargs.get("tags", [])
         self.status = "active"
         self.created_at = iso_8601_datetime_with_milliseconds()
@@ -2119,13 +2092,10 @@ class RDSBackend(BaseBackend):
     def get_backend(
         self,
         service: Literal["kms"] | Literal["rds"],
-        region: Optional[str] = None,
+        region: str,
         account_id: Optional[str] = None,
     ) -> KmsBackend | RDSBackend:
         from moto.backends import get_backend as get_moto_backend
-
-        if region is None:
-            region = self.region_name
 
         if account_id is None:
             account_id = self.account_id
@@ -2238,19 +2208,16 @@ class RDSBackend(BaseBackend):
 
     def create_db_snapshot(
         self,
-        db_instance: Union[str, DBInstance],
+        db_instance_identifier: str,
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
         original_created_at: Optional[str] = None,
         kms_key_id: Optional[str] = None,
     ) -> DBSnapshot:
-        if isinstance(db_instance, str):
-            database = self.databases.get(db_instance)
-            if not database:
-                raise DBInstanceNotFoundError(db_instance)
-        else:
-            database = db_instance
+        database = self.databases.get(db_instance_identifier)
+        if not database:
+            raise DBInstanceNotFoundError(db_instance_identifier)
 
         if db_snapshot_identifier in self.database_snapshots:
             raise DBSnapshotAlreadyExistsError(db_snapshot_identifier)
@@ -2258,10 +2225,6 @@ class RDSBackend(BaseBackend):
             os.environ.get("MOTO_RDS_SNAPSHOT_LIMIT", "100")
         ):
             raise SnapshotQuotaExceededFault()
-        if tags is None:
-            tags = list()
-        if database.copy_tags_to_snapshot and not tags:
-            tags = database.get_tags()
         snapshot = DBSnapshot(
             self,
             database,
@@ -2549,8 +2512,7 @@ class RDSBackend(BaseBackend):
                 continue
             new_cluster_props[key] = copy.copy(value)
         for key, value in overrides.items():
-            if value:
-                new_cluster_props[key] = value
+            new_cluster_props[key] = value
         new_cluster_props["db_cluster_identifier"] = db_cluster_identifier
         return self.create_db_cluster(new_cluster_props)
 
@@ -3328,15 +3290,6 @@ class RDSBackend(BaseBackend):
             raise InvalidParameterCombination(str(e))
 
     @staticmethod
-    def _merge_tags(  # type: ignore[misc]
-        old_tags: List[Dict[str, Any]], new_tags: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        tags_dict = dict()
-        tags_dict.update({d["Key"]: d["Value"] for d in old_tags})
-        tags_dict.update({d["Key"]: d["Value"] for d in new_tags})
-        return [{"Key": k, "Value": v} for k, v in tags_dict.items()]
-
-    @staticmethod
     def _validate_db_identifier(db_identifier: str) -> None:
         # https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
         # Constraints:
@@ -3887,10 +3840,6 @@ class Event(XFormedAttributeAccessMixin):
         self.event_categories = event_metadata["Categories"]
         self.source_arn = resource.arn
         self.date = utcnow()
-
-    @property
-    def resource_id(self) -> str:
-        return f"{self.source_identifier}-{self.source_type}-{self.date}"
 
 
 rds_backends = BackendDict(RDSBackend, "rds")
