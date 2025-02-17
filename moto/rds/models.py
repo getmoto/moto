@@ -505,7 +505,6 @@ class DBCluster(RDSBaseModel):
         self.serverless_v2_scaling_configuration = kwargs.get(
             "serverless_v2_scaling_configuration"
         )
-        self.cluster_members: List[DBInstance] = list()
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
         self.read_replica_identifiers: List[str] = list()
         self.is_writer: bool = False
@@ -653,6 +652,44 @@ class DBCluster(RDSBaseModel):
         self._status = value
 
     @property
+    def _members(self) -> List[DBInstanceClustered]:
+        return [
+            db_instance
+            for db_instance in self.backend.databases.values()
+            if isinstance(db_instance, DBInstanceClustered)
+            and db_instance.db_cluster_identifier == self.resource_id
+        ]
+
+    @property
+    def writer(self) -> Optional[DBInstanceClustered]:
+        return next(
+            (
+                db_instance
+                for db_instance in self._members
+                if db_instance.is_cluster_writer
+            ),
+            None,
+        )
+
+    @writer.setter
+    def writer(self, db_instance: DBInstanceClustered) -> None:
+        db_instance.is_cluster_writer = True
+
+    @property
+    def members(self) -> List[DBInstanceClustered]:
+        self.designate_writer()
+        return self._members
+
+    def designate_writer(self) -> None:
+        if self.writer or not self._members:
+            return
+        if len(self._members) == 1:
+            self.writer = self._members[0]
+        else:
+            promotion_list = sorted(self._members, key=lambda x: x.promotion_tier)
+            self.writer = promotion_list[0]
+
+    @property
     def associated_roles(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
         return []
 
@@ -698,9 +735,9 @@ class DBCluster(RDSBaseModel):
                 "DBInstanceIdentifier": member.db_instance_identifier,
                 "IsClusterWriter": member.is_cluster_writer,
                 "DBClusterParameterGroupStatus": "in-sync",
-                "PromotionTier": 1,
+                "PromotionTier": member.promotion_tier,
             }
-            for member in self.cluster_members
+            for member in self.members
         ]
         return members
 
@@ -755,6 +792,11 @@ class DBCluster(RDSBaseModel):
             "neptune": {"gp2": 0, "io1": 0, "standard": 0},
             "postgres": {"gp2": 20, "io1": 100, "standard": 5},
         }[engine][storage_type]
+
+    def failover(self, target_instance: DBInstanceClustered) -> None:
+        if self.writer is not None:
+            self.writer.is_cluster_writer = False
+        self.writer = target_instance
 
     def save_automated_backup(self) -> None:
         time_stamp = utcnow().strftime("%Y-%m-%d-%H-%M")
@@ -1469,11 +1511,14 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
 
 class DBInstanceClustered(DBInstance):
-    def __init__(self, db_cluster_identifier: str, **kwargs: Any) -> None:
+    def __init__(
+        self, db_cluster_identifier: str, promotion_tier: int = 1, **kwargs: Any
+    ) -> None:
         super().__init__(db_cluster_identifier=db_cluster_identifier, **kwargs)
         self.cluster = self.backend.clusters[db_cluster_identifier]
-        self.db_cluster_identifier = db_cluster_identifier
-        self.is_cluster_writer = True if not self.cluster.cluster_members else False
+        self.db_cluster_identifier: str = db_cluster_identifier
+        self.is_cluster_writer = True if not self.cluster.members else False
+        self.promotion_tier = promotion_tier
 
     @property
     def allocated_storage(self) -> int:
@@ -2170,7 +2215,6 @@ class RDSBackend(BaseBackend):
                     raise InvalidDBInstanceEngine(
                         str(database.engine), str(cluster.engine)
                     )
-                cluster.cluster_members.append(database)
         self.databases[database_id] = database
         database.add_event("DB_INSTANCE_CREATE")
         database.save_automated_backup()
@@ -2506,6 +2550,15 @@ class RDSBackend(BaseBackend):
         new_cluster_props["db_cluster_identifier"] = db_cluster_identifier
         return self.create_db_cluster(new_cluster_props)
 
+    def failover_db_cluster(
+        self, db_cluster_identifier: str, target_db_instance_identifier: str
+    ) -> DBCluster:
+        cluster = self.clusters[db_cluster_identifier]
+        instance = self.databases[target_db_instance_identifier]
+        assert isinstance(instance, DBInstanceClustered)
+        cluster.failover(instance)
+        return cluster
+
     def stop_db_instance(
         self, db_instance_identifier: str, db_snapshot_identifier: Optional[str] = None
     ) -> DBInstance:
@@ -2569,10 +2622,6 @@ class RDSBackend(BaseBackend):
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_instance_identifier)  # type: ignore
                 primary.remove_replica(database)
-            if database.db_cluster_identifier in self.clusters:
-                self.clusters[database.db_cluster_identifier].cluster_members.remove(
-                    database
-                )
             automated_snapshots = self.describe_db_snapshots(
                 db_instance_identifier,
                 db_snapshot_identifier=None,
@@ -3089,7 +3138,7 @@ class RDSBackend(BaseBackend):
                 raise InvalidParameterCombination(
                     "Cannot delete protected Cluster, please disable deletion protection and try again."
                 )
-            if cluster.cluster_members:
+            if cluster.members:
                 raise DBClusterToBeDeletedHasActiveMembers()
             global_id = cluster.global_cluster_identifier or ""
             if global_id in self.global_clusters:

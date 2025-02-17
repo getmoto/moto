@@ -209,6 +209,11 @@ class RDSResponse(BaseResponse):
         result = {"DBCluster": cluster}
         return self.serialize(result)
 
+    def failover_db_cluster(self) -> TYPE_RESPONSE:
+        cluster = self.backend.failover_db_cluster(**self.parameters)
+        result = {"DBCluster": cluster}
+        return self.serialize(result)
+
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self.parameters.get("ResourceName")
         tags = self.backend.list_tags_for_resource(arn)

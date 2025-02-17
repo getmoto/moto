@@ -1690,3 +1690,41 @@ def test_restore_db_instance_to_point_in_time(client):
     assert details_target["DatabaseName"] == details_source["DatabaseName"]
     assert details_target["Port"] == details_source["Port"]
     assert details_target["MasterUsername"] == details_source["MasterUsername"]
+
+
+@mock_aws
+def test_failover_db_cluster(client):
+    cluster_identifier = "cluster-1"
+    create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-primary",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-replica",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)[
+        "DBClusters"
+    ][0]
+    cluster_members = cluster["DBClusterMembers"]
+    assert len(cluster_members) == 2
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is True
+    assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
+    assert cluster_members[1]["IsClusterWriter"] is False
+    cluster_failed_over = client.failover_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        TargetDBInstanceIdentifier="test-instance-replica",
+    )["DBCluster"]
+    cluster_members = cluster_failed_over["DBClusterMembers"]
+    assert len(cluster_members) == 2
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is False
+    assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
+    assert cluster_members[1]["IsClusterWriter"] is True
