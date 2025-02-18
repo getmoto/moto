@@ -188,7 +188,7 @@ class S3Response(BaseResponse):
             and request.headers.get("Content-Encoding", "") == "aws-chunked"
             and hasattr(request, "input_stream")
         ):
-            self.body = request.input_stream.getvalue()
+            self.body = request.input_stream
         if (
             self.request.headers.get("x-amz-content-sha256")
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
@@ -1351,20 +1351,21 @@ class S3Response(BaseResponse):
             line = body_io.readline()
         return bytes(new_body)
 
-    def _handle_encoded_body(self, body: bytes) -> bytes:
+    def _handle_encoded_body(self, body: Union[io.BufferedIOBase, bytes]) -> bytes:
         decoded_body = b""
         if not body:
             return decoded_body
-        body_io = io.BytesIO(body)
+        if isinstance(body, bytes):
+            body = io.BytesIO(body)
         # first line should equal '{content_length}\r\n' while the content_length is a hex number
-        content_length = int(body_io.readline().strip(), 16)
+        content_length = int(body.readline().strip(), 16)
         while content_length > 0:
             # read the content_length of the actual data
-            decoded_body += body_io.read(content_length)
+            decoded_body += body.read(content_length)
             # next is line with just '\r\n' so we skip it
-            body_io.readline()
+            body.readline()
             # read another line with '{content_length}\r\n'
-            content_length = int(body_io.readline().strip(), 16)
+            content_length = int(body.readline().strip(), 16)
 
         return decoded_body
         # last line should equal
