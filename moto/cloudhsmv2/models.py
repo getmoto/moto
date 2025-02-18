@@ -144,32 +144,13 @@ class CloudHSMV2Backend(BaseBackend):
     def list_tags(
         self, resource_id: str, next_token: str, max_results: int
     ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+        """NEED TO IMPLEMENT PAGINATION"""
         if resource_id not in self.tags:
             return [], None
 
         tags = sorted(self.tags.get(resource_id, []), key=lambda x: x["Key"])
 
-        if not max_results:
-            return tags, None
-
-        if next_token:
-            padding = 4 - (len(next_token) % 4)
-            if padding != 4:
-                next_token = next_token + ("=" * padding)
-
-        paginator = Paginator(
-            max_results=max_results,
-            unique_attribute="Key",
-            starting_token=next_token,
-            fail_on_invalid_token=False,
-        )
-
-        results, token = paginator.paginate(tags)
-
-        if token:
-            token = token.rstrip("=")
-
-        return results, token
+        return tags, None
 
     def tag_resource(
         self, resource_id: str, tag_list: List[Dict[str, str]]

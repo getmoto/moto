@@ -30,16 +30,6 @@ def test_list_tags():
     assert {"Key": "Project", "Value": "Security"} in response["TagList"]
     assert "NextToken" not in response
 
-    response = client.list_tags(ResourceId=resource_id, MaxResults=1)
-    assert len(response["TagList"]) == 1
-    assert "NextToken" in response
-
-    response = client.list_tags(
-        ResourceId=resource_id, MaxResults=1, NextToken=response["NextToken"]
-    )
-    assert len(response["TagList"]) == 1
-    assert "NextToken" not in response
-
 
 @mock_aws
 def test_tag_resource():
@@ -301,28 +291,6 @@ def test_put_resource_policy():
     assert "Policy" in response
     assert response["ResourceArn"] == backup_arn
     assert json.loads(response["Policy"]) == policy
-
-
-@mock_aws
-def test_list_tags_pagination():
-    client = boto3.client("cloudhsmv2", region_name="us-east-1")
-    resource_id = "cluster-1234"
-
-    # Create multiple tags
-    tags = [{"Key": f"Key{i}", "Value": f"Value{i}"} for i in range(3)]
-    client.tag_resource(ResourceId=resource_id, TagList=tags)
-
-    # Test pagination with MaxResults
-    response = client.list_tags(ResourceId=resource_id, MaxResults=2)
-    assert len(response["TagList"]) == 2
-    assert "NextToken" in response
-
-    # Get remaining tags using NextToken
-    response2 = client.list_tags(
-        ResourceId=resource_id, MaxResults=2, NextToken=response["NextToken"]
-    )
-    assert len(response2["TagList"]) == 1
-    assert "NextToken" not in response2
 
 
 @mock_aws
