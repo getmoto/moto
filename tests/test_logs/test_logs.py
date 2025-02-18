@@ -1204,6 +1204,30 @@ def test_put_delivery_destination():
         "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
     }
     assert delivery_destination["tags"] == {"key1": "value1"}
+    
+    # Invalid OutputFormat
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_destination(
+            name="test-dd",
+            outputFormat="foobar",
+            deliveryDestinationConfiguration={
+                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+            },
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    # Cannot update OutoutFormat
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_destination(
+            name="test-delivery-destination",
+            outputFormat="plain",
+            deliveryDestinationConfiguration={
+                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+            },
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
 
 
 @mock_aws
@@ -1228,41 +1252,41 @@ def test_put_delivery_destination_update():
     }
 
 
-@mock_aws
-def test_put_delivery_destination_invalid_outputformat():
-    client = boto3.client("logs", "us-east-1")
-    with pytest.raises(ClientError) as ex:
-        client.put_delivery_destination(
-            name="test-delivery-destination",
-            outputFormat="foobar",
-            deliveryDestinationConfiguration={
-                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-            },
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationException"
+# @mock_aws
+# def test_put_delivery_destination_invalid_outputformat():
+#     client = boto3.client("logs", "us-east-1")
+    # with pytest.raises(ClientError) as ex:
+    #     client.put_delivery_destination(
+    #         name="test-delivery-destination",
+    #         outputFormat="foobar",
+    #         deliveryDestinationConfiguration={
+    #             "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+    #         },
+    #     )
+    # err = ex.value.response["Error"]
+    # assert err["Code"] == "ValidationException"
 
 
-@mock_aws
-def test_put_delivery_destination_cannot_update_outputformat():
-    client = boto3.client("logs", "us-east-1")
-    client.put_delivery_destination(
-        name="test-delivery-destination",
-        outputFormat="json",
-        deliveryDestinationConfiguration={
-            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-        },
-    )
-    with pytest.raises(ClientError) as ex:
-        client.put_delivery_destination(
-            name="test-delivery-destination",
-            outputFormat="plain",
-            deliveryDestinationConfiguration={
-                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-            },
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ValidationException"
+# @mock_aws
+# def test_put_delivery_destination_cannot_update_outputformat():
+#     client = boto3.client("logs", "us-east-1")
+    # client.put_delivery_destination(
+    #     name="test-delivery-destination",
+    #     outputFormat="json",
+    #     deliveryDestinationConfiguration={
+    #         "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+    #     },
+    # )
+    # with pytest.raises(ClientError) as ex:
+    #     client.put_delivery_destination(
+    #         name="test-delivery-destination",
+    #         outputFormat="plain",
+    #         deliveryDestinationConfiguration={
+    #             "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+    #         },
+    #     )
+    # err = ex.value.response["Error"]
+    # assert err["Code"] == "ValidationException"
 
 
 @mock_aws
