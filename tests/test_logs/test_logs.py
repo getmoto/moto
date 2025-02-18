@@ -1204,7 +1204,7 @@ def test_put_delivery_destination():
         "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
     }
     assert delivery_destination["tags"] == {"key1": "value1"}
-    
+
     # Invalid OutputFormat
     with pytest.raises(ClientError) as ex:
         client.put_delivery_destination(
@@ -1251,6 +1251,7 @@ def test_put_delivery_destination_update():
         "destinationResourceArn": "arn:aws:s3:::test-s3-bucket-2"
     }
 
+
 @mock_aws
 def test_get_delivery_destination():
     client = boto3.client("logs", "us-east-1")
@@ -1272,6 +1273,7 @@ def test_get_delivery_destination():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
 
 @mock_aws
 def test_describe_delivery_destinations():
@@ -1310,6 +1312,7 @@ def test_put_delivery_destination_policy():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
 
 @mock_aws
 def test_get_delivery_destination_policy():
@@ -1355,17 +1358,17 @@ def test_put_delivery_source():
     assert "logType" in resp["deliverySource"]
     assert "tags" in resp["deliverySource"]
 
-    # Invalid resource source. 
+    # Invalid resource source.
     with pytest.raises(ClientError) as ex:
         client.put_delivery_source(
             name="test-ds",
-            resourceArn="arn:aws:s3:::test-s3-bucket", # S3 cannot be a source
+            resourceArn="arn:aws:s3:::test-s3-bucket",  # S3 cannot be a source
             logType="ACCESS_LOGS",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
-    #Invalid Log type
+    # Invalid Log type
     with pytest.raises(ClientError) as ex:
         client.put_delivery_source(
             name="test-ds",
@@ -1538,7 +1541,7 @@ def test_get_delivery():
     assert "delivery" in resp
     assert resp["delivery"]["id"] == delivery_id
 
-    #Invalid delivery id
+    # Invalid delivery id
     with pytest.raises(ClientError) as ex:
         client.get_delivery(id="foobar")
     err = ex.value.response["Error"]
@@ -1570,11 +1573,12 @@ def test_delete_delivery():
     resp = client.describe_deliveries()
     assert len(resp["deliveries"]) == 0
 
-    #invalid delivery id
+    # invalid delivery id
     with pytest.raises(ClientError) as ex:
         client.delete_delivery(id="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
 
 @mock_aws
 def test_delete_delivery_destination():
@@ -1597,6 +1601,7 @@ def test_delete_delivery_destination():
         client.delete_delivery_destination(name="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
 
 @mock_aws
 def test_delete_delivery_destination_policy():
@@ -1629,6 +1634,7 @@ def test_delete_delivery_destination_policy():
         client.delete_delivery_destination_policy(deliveryDestinationName="test")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+
 
 @mock_aws
 def test_delete_delivery_source():
