@@ -1329,10 +1329,7 @@ def test_get_delivery_destination_policy():
     )
     assert "deliveryDestinationPolicy" in resp["policy"]
 
-
-@mock_aws
-def test_get_delivery_destination_policy_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    #  Invalide name for destination policy
     with pytest.raises(ClientError) as ex:
         client.get_delivery_destination_policy(
             deliveryDestinationName="foobar",
@@ -1358,32 +1355,25 @@ def test_put_delivery_source():
     assert "logType" in resp["deliverySource"]
     assert "tags" in resp["deliverySource"]
 
-
-@mock_aws
-def test_put_delivery_source_invalid_resource_source():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid resource source. 
     with pytest.raises(ClientError) as ex:
         client.put_delivery_source(
-            name="test-delivery-source",
-            resourceArn="arn:aws:s3:::test-s3-bucket",
+            name="test-ds",
+            resourceArn="arn:aws:s3:::test-s3-bucket", # S3 cannot be a source
             logType="ACCESS_LOGS",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
-
-@mock_aws
-def test_put_delivery_source_wrong_log_type():
-    client = boto3.client("logs", "us-east-1")
+    #Invalid Log type
     with pytest.raises(ClientError) as ex:
         client.put_delivery_source(
-            name="test-delivery-source",
+            name="test-ds",
             resourceArn="arn:aws:cloudfront::123456789012:distribution/E1Q5F5862X9VJ5",
             logType="EVENT_LOGS",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
-
 
 @mock_aws
 def test_put_delivery_source_cannot_update_resourcearn():
