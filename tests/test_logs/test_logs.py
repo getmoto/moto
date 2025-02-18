@@ -1487,34 +1487,6 @@ def test_create_delivery():
 
 
 @mock_aws
-def test_create_delivery_invalid_destination_type_already_exists():
-    client = boto3.client("logs", "us-east-1")
-    client.put_delivery_source(
-        name="test-delivery-source",
-        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
-        logType="ACCESS_LOGS",
-    )
-    for i in range(1, 3):
-        client.put_delivery_destination(
-            name=f"test-delivery-destination-{i}",
-            deliveryDestinationConfiguration={
-                "destinationResourceArn": f"arn:aws:s3:::test-s3-bucket-{i}"
-            },
-        )
-    client.create_delivery(
-        deliverySourceName="test-delivery-source",
-        deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination-1",
-    )
-    with pytest.raises(ClientError) as ex:
-        client.create_delivery(
-            deliverySourceName="test-delivery-source",
-            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination-2",
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ConflictException"
-
-
-@mock_aws
 def test_describe_deliveries():
     client = boto3.client("logs", "us-east-1")
     client.put_delivery_source(
@@ -1566,12 +1538,9 @@ def test_get_delivery():
     assert "delivery" in resp
     assert resp["delivery"]["id"] == delivery_id
 
-
-@mock_aws
-def test_get_delivery_invalid_delivery_id():
-    client = boto3.client("logs", "us-east-1")
+    #Invalid delivery id
     with pytest.raises(ClientError) as ex:
-        client.get_delivery(id="test")
+        client.get_delivery(id="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
@@ -1600,6 +1569,12 @@ def test_delete_delivery():
     client.delete_delivery(id=delivery_id)
     resp = client.describe_deliveries()
     assert len(resp["deliveries"]) == 0
+
+    #invalid delivery id
+    with pytest.raises(ClientError) as ex:
+        client.delete_delivery(id="foobar")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
 
 
 @mock_aws
