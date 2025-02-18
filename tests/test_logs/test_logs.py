@@ -1251,44 +1251,6 @@ def test_put_delivery_destination_update():
         "destinationResourceArn": "arn:aws:s3:::test-s3-bucket-2"
     }
 
-
-# @mock_aws
-# def test_put_delivery_destination_invalid_outputformat():
-#     client = boto3.client("logs", "us-east-1")
-    # with pytest.raises(ClientError) as ex:
-    #     client.put_delivery_destination(
-    #         name="test-delivery-destination",
-    #         outputFormat="foobar",
-    #         deliveryDestinationConfiguration={
-    #             "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-    #         },
-    #     )
-    # err = ex.value.response["Error"]
-    # assert err["Code"] == "ValidationException"
-
-
-# @mock_aws
-# def test_put_delivery_destination_cannot_update_outputformat():
-#     client = boto3.client("logs", "us-east-1")
-    # client.put_delivery_destination(
-    #     name="test-delivery-destination",
-    #     outputFormat="json",
-    #     deliveryDestinationConfiguration={
-    #         "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-    #     },
-    # )
-    # with pytest.raises(ClientError) as ex:
-    #     client.put_delivery_destination(
-    #         name="test-delivery-destination",
-    #         outputFormat="plain",
-    #         deliveryDestinationConfiguration={
-    #             "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-    #         },
-    #     )
-    # err = ex.value.response["Error"]
-    # assert err["Code"] == "ValidationException"
-
-
 @mock_aws
 def test_get_delivery_destination():
     client = boto3.client("logs", "us-east-1")
@@ -1303,17 +1265,13 @@ def test_get_delivery_destination():
     assert "deliveryDestination" in resp
     assert resp["deliveryDestination"]["name"] == "test-delivery-destination-1"
 
-
-@mock_aws
-def test_get_delivery_destination_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid name for delivery destination
     with pytest.raises(ClientError) as ex:
         client.get_delivery_destination(
-            name="test",
+            name="foobar",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-
 
 @mock_aws
 def test_describe_delivery_destinations():
@@ -1344,10 +1302,7 @@ def test_put_delivery_destination_policy():
     )
     assert "policy" in resp
 
-
-@mock_aws
-def test_put_delivery_destination_policy_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid name for destination policy
     with pytest.raises(ClientError) as ex:
         client.put_delivery_destination_policy(
             deliveryDestinationName="foobar",
@@ -1355,7 +1310,6 @@ def test_put_delivery_destination_policy_invalid_name():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-
 
 @mock_aws
 def test_get_delivery_destination_policy():
