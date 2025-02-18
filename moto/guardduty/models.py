@@ -14,6 +14,8 @@ class GuardDutyBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.admin_account_ids: List[str] = []
         self.detectors: Dict[str, Detector] = {}
+        self.admin_accounts = {}  # Store admin accounts by detector_id
+
 
     def create_detector(
         self,
@@ -85,6 +87,26 @@ class GuardDutyBackend(BaseBackend):
         if detector_id not in self.detectors:
             raise DetectorNotFoundException
         return self.detectors[detector_id]
+    
+    # def get_administrator_account(self, detector_id: str) -> "Detector":
+    #     if not self.admin_account_ids:
+    #         raise DetectorNotFoundException
+    #     return {}
+
+    def get_administrator_account(self, detector_id: str) -> Dict[str, Any]:
+        """Get administrator account details."""
+        # First validate detector exists
+        self.get_detector(detector_id)
+        
+        if not self.admin_account_ids:
+            return {}
+            
+        return {
+            "Administrator": {
+                "AccountId": self.admin_account_ids[0],
+                "RelationshipStatus": "ENABLED"
+            }
+        }
 
     def get_filter(self, detector_id: str, filter_name: str) -> "Filter":
         detector = self.get_detector(detector_id)
