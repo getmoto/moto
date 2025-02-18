@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
-from moto.utilities.paginator import Paginator
+from moto.utilities.paginator import Paginator, paginate
 
 from .exceptions import ResourceNotFoundException
 
@@ -124,6 +124,16 @@ class Backup:
 class CloudHSMV2Backend(BaseBackend):
     """Implementation of CloudHSMV2 APIs."""
 
+    PAGINATION_MODEL = {
+        "describe_clusters": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "ClusterId",
+            "fail_on_invalid_token": False,
+        }
+    }
+
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.tags: Dict[str, List[Dict[str, str]]] = {}
@@ -232,9 +242,18 @@ class CloudHSMV2Backend(BaseBackend):
         del self.clusters[cluster_id]
         return cluster.to_dict()
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def describe_clusters(
-        self, filters: Dict[str, List[str]], next_token: str, max_results: int
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        self, filters: Optional[Dict[str, List[str]]] = None
+    ) -> List[Dict[str, str]]:
+        """List all clusters with optional filtering.
+
+        Args:
+            filters: Optional dictionary of filters to apply
+
+        Returns:
+            List of cluster dictionaries
+        """
         clusters = list(self.clusters.values())
 
         if filters:
@@ -247,19 +266,7 @@ class CloudHSMV2Backend(BaseBackend):
                     clusters = [c for c in clusters if c.vpc_id in values]
 
         clusters = sorted(clusters, key=lambda x: x.create_timestamp)
-
-        if not max_results:
-            return [c.to_dict() for c in clusters], None
-
-        paginator = Paginator(
-            max_results=max_results,
-            unique_attribute="ClusterId",
-            starting_token=next_token,
-            fail_on_invalid_token=False,
-        )
-
-        results, token = paginator.paginate([c.to_dict() for c in clusters])
-        return results, token
+        return [c.to_dict() for c in clusters]
 
     def get_resource_policy(self, resource_arn: str) -> Optional[str]:
         return self.resource_policies.get(resource_arn)
