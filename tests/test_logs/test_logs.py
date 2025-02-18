@@ -1375,14 +1375,7 @@ def test_put_delivery_source():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
 
-@mock_aws
-def test_put_delivery_source_cannot_update_resourcearn():
-    client = boto3.client("logs", "us-east-1")
-    client.put_delivery_source(
-        name="test-delivery-source",
-        resourceArn="arn:aws:cloudfront::123456789012:distribution/E1Q5F5862X9VJ5",
-        logType="ACCESS_LOGS",
-    )
+    # Cannot update resource source with a differen resourceArn
     with pytest.raises(ClientError) as ex:
         client.put_delivery_source(
             name="test-delivery-source",
@@ -1419,13 +1412,10 @@ def test_get_delivery_source():
     assert "deliverySource" in resp
     assert resp["deliverySource"]["name"] == "test-delivery-source-1"
 
-
-@mock_aws
-def test_get_delivery_source_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid name for delivery source
     with pytest.raises(ClientError) as ex:
         client.get_delivery_source(
-            name="test",
+            name="foobar",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
@@ -1469,54 +1459,24 @@ def test_create_delivery():
     assert "s3DeliveryConfiguration" in resp["delivery"]
     assert "tags" in resp["delivery"]
 
+    # Invalid delivery source
+    with pytest.raises(ClientError) as ex:
+        client.create_delivery(
+            deliverySourceName="foobar",
+            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+        )
+    err = ex.value.response["Error"]
 
-@mock_aws
-def test_create_delivery_invalid_delivery_source():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid Delivery destination
     with pytest.raises(ClientError) as ex:
         client.create_delivery(
             deliverySourceName="test-delivery-source",
-            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:foobar",
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
-
-@mock_aws
-def test_create_delivery_invalid_delivery_destination():
-    client = boto3.client("logs", "us-east-1")
-    client.put_delivery_source(
-        name="test-delivery-source",
-        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
-        logType="ACCESS_LOGS",
-    )
-    with pytest.raises(ClientError) as ex:
-        client.create_delivery(
-            deliverySourceName="test-delivery-source",
-            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
-        )
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-
-
-@mock_aws
-def test_create_delivery_invalid_delivery_already_exists():
-    client = boto3.client("logs", "us-east-1")
-    client.put_delivery_source(
-        name="test-delivery-source",
-        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
-        logType="ACCESS_LOGS",
-    )
-    client.put_delivery_destination(
-        name="test-delivery-destination",
-        deliveryDestinationConfiguration={
-            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
-        },
-    )
-    client.create_delivery(
-        deliverySourceName="test-delivery-source",
-        deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
-    )
+    # Delivery already exists
     with pytest.raises(ClientError) as ex:
         client.create_delivery(
             deliverySourceName="test-delivery-source",
