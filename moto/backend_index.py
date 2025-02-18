@@ -184,6 +184,7 @@ backend_url_patterns = [
     ("scheduler", re.compile("https?://scheduler\\.(.+)\\.amazonaws\\.com")),
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
+    ("securityhub", re.compile("https?://securityhub\\.(.+)\\.amazonaws\\.com")),
     (
         "servicediscovery",
         re.compile("https?://(data-)?servicediscovery\\.(.+)\\.amazonaws\\.com"),
@@ -204,6 +205,10 @@ backend_url_patterns = [
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
+    (
+        "timestreaminfluxdb",
+        re.compile("https?://timestream-influxdb\\.(.+)\\.amazonaws\\.com"),
+    ),
     (
         "timestreamquery",
         re.compile("https?://query\\.timestream\\.(.+)\\.amazonaws\\.com"),

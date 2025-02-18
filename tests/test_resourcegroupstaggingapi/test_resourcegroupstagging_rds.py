@@ -27,6 +27,17 @@ class TestRdsTagging(unittest.TestCase):
             group = self.resources_tagged if i else self.resources_untagged
             group.append(database["DBInstanceArn"])
             group.append(snapshot["DBSnapshotArn"])
+        automated_snapshots = self.rds.describe_db_snapshots(
+            Filters=[
+                {
+                    "Name": "db-instance-id",
+                    "Values": ["db-instance-1", "db-instance-2"],
+                },
+                {"Name": "snapshot-type", "Values": ["automated"]},
+            ],
+        )["DBSnapshots"]
+        for snapshot in automated_snapshots:
+            self.resources_tagged.append(snapshot["DBSnapshotArn"])
 
     def test_get_resources_rds(self):
         def assert_response(response, expected_count, resource_type=None):
@@ -40,15 +51,15 @@ class TestRdsTagging(unittest.TestCase):
                     assert f":{resource_type}:" in arn
 
         resp = self.rtapi.get_resources(ResourceTypeFilters=["rds"])
-        assert_response(resp, 4)
+        assert_response(resp, 6)
         resp = self.rtapi.get_resources(ResourceTypeFilters=["rds:db"])
         assert_response(resp, 2, resource_type="db")
         resp = self.rtapi.get_resources(ResourceTypeFilters=["rds:snapshot"])
-        assert_response(resp, 2, resource_type="snapshot")
+        assert_response(resp, 4, resource_type="snapshot")
         resp = self.rtapi.get_resources(
             TagFilters=[{"Key": "test", "Values": ["value-1"]}]
         )
-        assert_response(resp, 2)
+        assert_response(resp, 3)
 
     def test_tag_resources_rds(self):
         # WHEN

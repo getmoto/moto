@@ -6392,6 +6392,10 @@
   "Location": "ap-south-1c"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "ap-south-1c"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "ap-south-1c"
  },

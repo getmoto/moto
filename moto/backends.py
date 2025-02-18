@@ -146,6 +146,7 @@ if TYPE_CHECKING:
     from moto.support.models import SupportBackend
     from moto.swf.models import SWFBackend
     from moto.textract.models import TextractBackend
+    from moto.timestreaminfluxdb.models import TimestreamInfluxDBBackend
     from moto.timestreamquery.models import TimestreamQueryBackend
     from moto.timestreamwrite.models import TimestreamWriteBackend
     from moto.transcribe.models import TranscribeBackend
@@ -330,6 +331,7 @@ SERVICE_NAMES = Union[
     "Literal['support']",
     "Literal['swf']",
     "Literal['textract']",
+    "Literal['timestream-influxdb']",
     "Literal['timestream-query']",
     "Literal['timestream-write']",
     "Literal['transcribe']",
@@ -733,6 +735,10 @@ def get_backend(name: "Literal['support']") -> "BackendDict[SupportBackend]": ..
 def get_backend(name: "Literal['swf']") -> "BackendDict[SWFBackend]": ...
 @overload
 def get_backend(name: "Literal['textract']") -> "BackendDict[TextractBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['timestream-influxdb']",
+) -> "BackendDict[TimestreamInfluxDBBackend]": ...
 @overload
 def get_backend(
     name: "Literal['timestream-query']",

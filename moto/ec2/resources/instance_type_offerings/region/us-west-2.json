@@ -2228,6 +2228,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "p5e.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "p5en.48xlarge",
   "Location": "us-west-2"
  },
