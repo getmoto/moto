@@ -1576,16 +1576,6 @@ def test_delete_delivery():
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
 
-
-@mock_aws
-def test_delete_delivery_invalid_id():
-    client = boto3.client("logs", "us-east-1")
-    with pytest.raises(ClientError) as ex:
-        client.delete_delivery(id="test")
-    err = ex.value.response["Error"]
-    assert err["Code"] == "ResourceNotFoundException"
-
-
 @mock_aws
 def test_delete_delivery_destination():
     client = boto3.client("logs", "us-east-1")
@@ -1602,15 +1592,11 @@ def test_delete_delivery_destination():
     resp = client.describe_delivery_destinations()
     assert len(resp["deliveryDestinations"]) == 0
 
-
-@mock_aws
-def test_delete_delivery_destination_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid name for delivery destination
     with pytest.raises(ClientError) as ex:
-        client.delete_delivery_destination(name="test")
+        client.delete_delivery_destination(name="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-
 
 @mock_aws
 def test_delete_delivery_destination_policy():
@@ -1638,15 +1624,11 @@ def test_delete_delivery_destination_policy():
     )
     assert resp["policy"] == {}
 
-
-@mock_aws
-def test_delete_delivery_destination_policy_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid name for delivery destination policy
     with pytest.raises(ClientError) as ex:
         client.delete_delivery_destination_policy(deliveryDestinationName="test")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
-
 
 @mock_aws
 def test_delete_delivery_source():
@@ -1663,11 +1645,8 @@ def test_delete_delivery_source():
     resp = client.describe_delivery_sources()
     assert len(resp["deliverySources"]) == 0
 
-
-@mock_aws
-def test_delete_delivery_source_invalid_name():
-    client = boto3.client("logs", "us-east-1")
+    # Invalid name for delivery source
     with pytest.raises(ClientError) as ex:
-        client.delete_delivery_source(name="test")
+        client.delete_delivery_source(name="foobar")
     err = ex.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
