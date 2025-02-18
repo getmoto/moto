@@ -38,6 +38,7 @@ def test_global_cluster_members():
         == f"arn:aws:rds::{DEFAULT_ACCOUNT_ID}:global-cluster:gc1"
     )
     assert global_cluster["Status"] == "available"
+    assert "Endpoint" in global_cluster
     assert global_cluster["Engine"] == "aurora-mysql"
     assert "mysql_aurora" in global_cluster["EngineVersion"]
     assert global_cluster["StorageEncrypted"] is False

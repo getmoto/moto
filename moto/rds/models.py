@@ -303,7 +303,8 @@ class GlobalCluster(RDSBaseModel):
     ):
         super().__init__(backend)
         self.global_cluster_identifier = global_cluster_identifier
-        self.global_cluster_resource_id = "cluster-" + random.get_random_hex(8)
+        self.unique_identifier = random.get_random_hex(8)
+        self.global_cluster_resource_id = f"cluster-{self.unique_identifier}"
         self.engine = engine
         self.engine_version = engine_version or DBCluster.default_engine_version(
             self.engine
@@ -325,6 +326,11 @@ class GlobalCluster(RDSBaseModel):
     def arn(self) -> str:
         # Global Clusters do not belong to a particular region.
         return super().arn.replace(self.region, "")
+
+    @property
+    def endpoint(self) -> str:
+        ep = f"{self.global_cluster_identifier}.global-{self.unique_identifier}.global.rds.amazonaws.com"
+        return ep
 
     @property
     def global_cluster_arn(self) -> str:
