@@ -58,7 +58,7 @@ def test_global_cluster_members():
     assert len(resp["GlobalClusters"]) == 1
     global_cluster = resp["GlobalClusters"][0]
     assert global_cluster["GlobalClusterIdentifier"] == "gc1"
-
+    assert "Endpoint" in global_cluster
     assert len(global_cluster["GlobalClusterMembers"]) == 1
     assert global_cluster["GlobalClusterMembers"][0]["DBClusterArn"] == cluster_arn
 
