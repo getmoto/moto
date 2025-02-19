@@ -27,6 +27,7 @@ from ..exceptions import (
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
     InvalidSubnetIdError,
+    OperationDisableApiStopNotPermitted,
     OperationNotPermitted4,
 )
 from ..utils import (
@@ -143,7 +144,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
         self.root_device_name = ami.root_device_name if ami else None
-        self.disable_api_stop = False
+        self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
 
         # handle weird bug around user_data -- something grabs the repr(), so
@@ -753,6 +754,8 @@ class InstanceBackend:
     ) -> List[Tuple[Instance, InstanceState]]:
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
+            if instance.disable_api_stop == "true":
+                raise OperationDisableApiStopNotPermitted(instance.id)
             previous_state = instance.start()
             started_instances.append((instance, previous_state))
 
