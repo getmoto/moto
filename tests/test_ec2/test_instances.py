@@ -2323,6 +2323,39 @@ def test_instance_stop_protection():
         "stopped",
     ]
 
+    # Run instance without stop protection
+    response = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = response["Instances"][0]["InstanceId"]
+
+    # Enable it afterwards
+    # Note that we're using the DisableApiStop here, instead of Attribute="disableApiStop", to verify both work
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiStop={"Value": True}
+    )
+
+    # Verify it's set
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is True
+
+    with pytest.raises(ClientError) as ex:
+        client.stop_instances(InstanceIds=[instance_id])
+    assert ex.value.response["Error"]["Code"] == "OperationNotPermitted"
+
+    # Verify we can disable it
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiStop={"Value": False}
+    )
+
+    # Verify it's set
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is False
+
+    client.stop_instances(InstanceIds=[instance_id])
+
 
 @mock_aws
 def test_terminate_unknown_instances():
