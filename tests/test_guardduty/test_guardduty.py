@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import json
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
@@ -177,32 +176,31 @@ def test_delete_detector():
 
     assert client.list_detectors()["DetectorIds"] == []
 
+
 @mock_aws
 def test_get_administrator_account():
     # Create GuardDuty client
     guardduty_client = boto3.client("guardduty", region_name="us-east-1")
-    
+
     # Create detector first
     detector_response = guardduty_client.create_detector(Enable=True)
     detector_id = detector_response["DetectorId"]
-    
+
     # Enable organization admin account
     guardduty_client.enable_organization_admin_account(AdminAccountId="someaccount")
-    
+
     # List organization admin accounts to verify
     list_resp = guardduty_client.list_organization_admin_accounts()
-    print(f"List admin response: {list_resp}")
-    
+
     # Verify admin account details in the list response
     assert list_resp["AdminAccounts"][0]["AdminAccountId"] == "someaccount"
     assert list_resp["AdminAccounts"][0]["AdminStatus"] == "ENABLED"
-    
+
     # Get administrator account details
     resp = guardduty_client.get_administrator_account(DetectorId=detector_id)
-    print(f"Get admin response: {resp}")
-    
+
     # Assertions for get_administrator_account response
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-    
+
     # Remove the previous assertion about Administrator
     # As the response you showed doesn't contain this structure
