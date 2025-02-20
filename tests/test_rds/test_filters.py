@@ -15,7 +15,13 @@ class TestDBInstanceFilters:
         for i in range(10):
             instance_identifier = f"db-instance-{i}"
             cluster_identifier = f"db-cluster-{i}"
-            engine = "postgres" if (i % 3) else "mysql"
+            engine = "aurora-postgresql" if (i % 3) else "aurora-mysql"
+            client.create_db_cluster(
+                DBClusterIdentifier=cluster_identifier,
+                Engine=engine,
+                MasterUsername="root",
+                MasterUserPassword="password",
+            )
             client.create_db_instance(
                 DBInstanceIdentifier=instance_identifier,
                 DBClusterIdentifier=cluster_identifier,
@@ -108,7 +114,7 @@ class TestDBInstanceFilters:
                     "Name": "db-instance-id",
                     "Values": ["db-instance-0", "db-instance-1", "db-instance-3"],
                 },
-                {"Name": "engine", "Values": ["mysql", "oracle"]},
+                {"Name": "engine", "Values": ["aurora-mysql", "oracle"]},
             ]
         )
         returned_identifiers = [
@@ -148,7 +154,7 @@ class TestDBInstanceFilters:
             DBInstanceIdentifier="db-instance-0",
             Filters=[
                 {"Name": "db-instance-id", "Values": ["db-instance-1"]},
-                {"Name": "engine", "Values": ["postgres"]},
+                {"Name": "engine", "Values": ["aurora-postgresql"]},
             ],
         )
         returned_identifiers = [
@@ -164,7 +170,7 @@ class TestDBInstanceFilters:
             DBInstanceIdentifier="db-instance-0",
             Filters=[
                 {"Name": "db-instance-id", "Values": ["db-instance-1"]},
-                {"Name": "engine", "Values": ["mysql", "postgres"]},
+                {"Name": "engine", "Values": ["aurora-mysql", "aurora-postgresql"]},
             ],
         )
         returned_identifiers = [
@@ -296,7 +302,7 @@ class TestDBSnapshotFilters:
         snapshots = self.client.describe_db_snapshots(
             Filters=[{"Name": "snapshot-type", "Values": ["automated"]}]
         )["DBSnapshots"]
-        assert len(snapshots) == 0
+        assert len(snapshots) == 2
 
     def test_multiple_filters(self):
         snapshots = self.client.describe_db_snapshots(
@@ -444,4 +450,4 @@ class TestDBClusterSnapshotFilters:
         snapshots = self.client.describe_db_cluster_snapshots(
             Filters=[{"Name": "snapshot-type", "Values": ["automated"]}]
         )["DBClusterSnapshots"]
-        assert len(snapshots) == 0
+        assert len(snapshots) == 2

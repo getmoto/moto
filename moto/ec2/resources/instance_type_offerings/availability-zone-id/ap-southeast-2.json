@@ -2556,6 +2556,10 @@
   "Location": "apse2-az1"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "apse2-az1"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "apse2-az1"
  },
@@ -5141,6 +5145,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse2-az2"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
   "Location": "apse2-az2"
  },
  {

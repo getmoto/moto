@@ -121,16 +121,12 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def delete_db_instance(self) -> TYPE_RESPONSE:
-        db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_name = self.parameters.get("FinalDBSnapshotIdentifier")
         if db_snapshot_name is not None:
             self.backend.validate_db_snapshot_identifier(
                 db_snapshot_name, parameter_name="FinalDBSnapshotIdentifier"
             )
-
-        database = self.backend.delete_db_instance(
-            db_instance_identifier, db_snapshot_name
-        )
+        database = self.backend.delete_db_instance(**self.parameters)
         result = {"DBInstance": database}
         return self.serialize(result)
 
@@ -141,42 +137,31 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def create_db_snapshot(self) -> TYPE_RESPONSE:
-        db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
-        db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
         self.backend.validate_db_snapshot_identifier(
-            db_snapshot_identifier, parameter_name="DBSnapshotIdentifier"
+            self.parameters["DBSnapshotIdentifier"],
+            parameter_name="DBSnapshotIdentifier",
         )
-        snapshot = self.backend.create_db_snapshot(
-            db_instance_identifier,
-            db_snapshot_identifier,
-            tags=tags,
-        )
+        snapshot = self.backend.create_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
         return self.serialize(result)
 
     def copy_db_snapshot(self) -> TYPE_RESPONSE:
-        source_snapshot_identifier = self.parameters.get("SourceDBSnapshotIdentifier")
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
-        copy_tags = self.parameters.get("CopyTags")
         self.backend.validate_db_snapshot_identifier(
             target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
         )
-
-        snapshot = self.backend.copy_db_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags, copy_tags
-        )
+        snapshot = self.backend.copy_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
         return self.serialize(result)
 
     def describe_db_snapshots(self) -> TYPE_RESPONSE:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
+        snapshot_type = self.parameters.get("SnapshotType")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_db_snapshots(
-            db_instance_identifier, db_snapshot_identifier, filter_dict
+            db_instance_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         result = {"DBSnapshots": snapshots}
         return self.serialize(result)
@@ -211,6 +196,16 @@ class RDSResponse(BaseResponse):
             source_db_identifier, target_db_identifier, db_kwargs
         )
         result = {"DBInstance": new_instance}
+        return self.serialize(result)
+
+    def restore_db_cluster_to_point_in_time(self) -> TYPE_RESPONSE:
+        cluster = self.backend.restore_db_cluster_to_point_in_time(**self.parameters)
+        result = {"DBCluster": cluster}
+        return self.serialize(result)
+
+    def failover_db_cluster(self) -> TYPE_RESPONSE:
+        cluster = self.backend.failover_db_cluster(**self.parameters)
+        result = {"DBCluster": cluster}
         return self.serialize(result)
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
@@ -430,7 +425,7 @@ class RDSResponse(BaseResponse):
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         clusters = self.backend.describe_db_clusters(
-            cluster_identifier=_id, filters=filter_dict
+            db_cluster_identifier=_id, filters=filter_dict
         )
         result = {"DBClusters": clusters}
         return self.serialize(result)
@@ -457,36 +452,23 @@ class RDSResponse(BaseResponse):
         return self.serialize(result)
 
     def create_db_cluster_snapshot(self) -> TYPE_RESPONSE:
-        db_cluster_identifier = self.parameters.get("DBClusterIdentifier")
-        db_snapshot_identifier = self.parameters.get("DBClusterSnapshotIdentifier")
-        tags = self.parameters.get("Tags", [])
-        snapshot = self.backend.create_db_cluster_snapshot(
-            db_cluster_identifier, db_snapshot_identifier, tags=tags
-        )
+        snapshot = self.backend.create_db_cluster_snapshot(**self.parameters)
         result = {"DBClusterSnapshot": snapshot}
         return self.serialize(result)
 
     def copy_db_cluster_snapshot(self) -> TYPE_RESPONSE:
-        source_snapshot_identifier = self.parameters.get(
-            "SourceDBClusterSnapshotIdentifier"
-        )
-        target_snapshot_identifier = self.parameters.get(
-            "TargetDBClusterSnapshotIdentifier"
-        )
-        tags = self.parameters.get("Tags", [])
-        snapshot = self.backend.copy_db_cluster_snapshot(
-            source_snapshot_identifier, target_snapshot_identifier, tags
-        )
+        snapshot = self.backend.copy_db_cluster_snapshot(**self.parameters)
         result = {"DBClusterSnapshot": snapshot}
         return self.serialize(result)
 
     def describe_db_cluster_snapshots(self) -> TYPE_RESPONSE:
         db_cluster_identifier = self.parameters.get("DBClusterIdentifier")
         db_snapshot_identifier = self.parameters.get("DBClusterSnapshotIdentifier")
+        snapshot_type = self.parameters.get("SnapshotType")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
         snapshots = self.backend.describe_db_cluster_snapshots(
-            db_cluster_identifier, db_snapshot_identifier, filter_dict
+            db_cluster_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         results = {"DBClusterSnapshots": snapshots}
         return self.serialize(results)
@@ -626,7 +608,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBSnapshotAttributesResult": {
                 "DBSnapshotIdentifier": db_snapshot_identifier,
-                "DBSnapshotAttributes": db_snapshot_attributes_result,
+                "DBSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -643,7 +628,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBSnapshotAttributesResult": {
                 "DBSnapshotIdentifier": db_snapshot_identifier,
-                "DBSnapshotAttributes": db_snapshot_attributes_result,
+                "DBSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -659,7 +647,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBClusterSnapshotAttributesResult": {
                 "DBClusterSnapshotIdentifier": db_cluster_snapshot_identifier,
-                "DBClusterSnapshotAttributes": db_cluster_snapshot_attributes_result,
+                "DBClusterSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_cluster_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -678,7 +669,10 @@ class RDSResponse(BaseResponse):
         result = {
             "DBClusterSnapshotAttributesResult": {
                 "DBClusterSnapshotIdentifier": db_cluster_snapshot_identifier,
-                "DBClusterSnapshotAttributes": db_cluster_snapshot_attributes_result,
+                "DBClusterSnapshotAttributes": [
+                    {"AttributeName": name, "AttributeValues": values}
+                    for name, values in db_cluster_snapshot_attributes_result.items()
+                ],
             }
         }
         return self.serialize(result)
@@ -779,6 +773,23 @@ class RDSResponse(BaseResponse):
         result = {"DBProxyTargetGroup": group}
         return self.serialize(result)
 
+    def describe_db_instance_automated_backups(self) -> TYPE_RESPONSE:
+        automated_backups = self.backend.describe_db_instance_automated_backups(
+            **self.parameters
+        )
+        result = {"DBInstanceAutomatedBackups": automated_backups}
+        return self.serialize(result)
+
+    def describe_events(self) -> TYPE_RESPONSE:
+        events = self.backend.describe_events(**self.parameters)
+        result = {"Events": events}
+        return self.serialize(result)
+
+    def describe_db_log_files(self) -> TYPE_RESPONSE:
+        log_files = self.backend.describe_db_log_files(**self.parameters)
+        result = {"DescribeDBLogFiles": log_files}
+        return self.serialize(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 
@@ -791,7 +802,7 @@ class RDSResponse(BaseResponse):
             )
             raise InvalidParameterValue(msg)
         all_resources = list(resources)
-        all_ids = [resource.name for resource in all_resources]
+        all_ids = [resource.resource_id for resource in all_resources]
         if marker:
             start = all_ids.index(marker) + 1
         else:
@@ -799,5 +810,5 @@ class RDSResponse(BaseResponse):
         paginated_resources = all_resources[start : start + page_size]
         next_marker = None
         if len(all_resources) > start + page_size:
-            next_marker = paginated_resources[-1].name
+            next_marker = paginated_resources[-1].resource_id
         return paginated_resources, next_marker
