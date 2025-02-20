@@ -754,8 +754,6 @@ class InstanceBackend:
     ) -> List[Tuple[Instance, InstanceState]]:
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
-            if instance.disable_api_stop == "true":
-                raise OperationDisableApiStopNotPermitted(instance.id)
             previous_state = instance.start()
             started_instances.append((instance, previous_state))
 
@@ -766,6 +764,8 @@ class InstanceBackend:
     ) -> List[Tuple[Instance, InstanceState]]:
         stopped_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
+            if instance.disable_api_stop == "true":
+                raise OperationDisableApiStopNotPermitted(instance.id)
             previous_state = instance.stop()
             stopped_instances.append((instance, previous_state))
 
