@@ -304,9 +304,9 @@ class InvalidAttributeTypeError(MockValidationException):
 
 
 class DuplicateUpdateExpression(InvalidUpdateExpression):
-    def __init__(self, names: List[str]):
+    def __init__(self, name_1: List[str], name_2: List[str]):
         super().__init__(
-            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{names[0]}], path two: [{names[1]}]"
+            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{", ".join(name_1)}], path two: [{", ".join(name_2)}]"
         )
 
 
