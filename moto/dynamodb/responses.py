@@ -8,7 +8,7 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.utilities import dynamo_json_dump
-from moto.dynamodb.parsing.ast_nodes import UpdateExpressionSetClause
+from moto.dynamodb.parsing.ast_nodes import UpdateExpressionSetClause  # type: ignore
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
@@ -800,7 +800,7 @@ class DynamoHandler(BaseResponse):
             expressions = [x.strip() for x in projection_expression.split(",")]
             duplicates = extract_duplicates(expressions)
             if duplicates:
-                raise InvalidProjectionExpression(duplicates)
+                raise InvalidProjectionExpression(duplicates[0], duplicates[1])
             for expression in expressions:
                 check_projection_expression(expression)
             return [
@@ -1158,7 +1158,9 @@ class DynamoHandler(BaseResponse):
                 # set counts in update expressions are only limited inside transactions
                 update_expression = item["Update"]["UpdateExpression"]
                 update_expression_ast = UpdateExpressionParser.make(update_expression)
-                set_clauses = update_expression_ast.find_clauses([UpdateExpressionSetClause])
+                set_clauses = update_expression_ast.find_clauses(
+                    [UpdateExpressionSetClause]
+                )
                 if len(set_clauses) > 1:
                     raise MockValidationException(
                         'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'

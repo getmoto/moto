@@ -283,11 +283,17 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             self.table.update_item(
                 Key={"pk": "foo"},
                 UpdateExpression="set #stringSet = :h, #nestedStringSet = :w",
-                ExpressionAttributeNames={"#stringSet": "string_set", "#nestedStringSet": "string_set.nested"},
+                ExpressionAttributeNames={
+                    "#stringSet": "string_set",
+                    "#nestedStringSet": "string_set.nested",
+                },
                 ExpressionAttributeValues={":h": "H", ":w": "W"},
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
-        assert exc.value.response["Error"]["Message"] == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set, nested]"
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set, nested]"
+        )
 
     def test_delete_and_add_on_different_set(self):
         self.table.update_item(
