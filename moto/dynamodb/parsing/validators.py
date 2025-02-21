@@ -18,6 +18,8 @@ from moto.dynamodb.exceptions import (
     MockValidationException,
     ProvidedKeyDoesNotExist,
     UpdateHashRangeKeyException,
+    DuplicateUpdateExpression,
+    TooManyClauses
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.table import Table
@@ -34,14 +36,18 @@ from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
     NoneExistingPath,
     UpdateExpressionAddAction,
     UpdateExpressionClause,
+    UpdateExpressionAddClause,
+    UpdateExpressionRemoveClause,
     UpdateExpressionDeleteAction,
     UpdateExpressionFunction,
     UpdateExpressionPath,
     UpdateExpressionRemoveAction,
     UpdateExpressionSetAction,
     UpdateExpressionValue,
+    UpdateExpression
 )
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import extract_duplicates
 
 
 class ExpressionAttributeValueProcessor(DepthFirstTraverser):  # type: ignore[misc]
@@ -443,6 +449,61 @@ class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
         if key_to_update in self.table_key_attributes:
             raise UpdateHashRangeKeyException(key_to_update)
         return node
+    
+class OverlappingPathsValidator(DepthFirstTraverser):
+    def __init__(self, expression_attribute_names: Dict[str, str]):
+        self.expression_attribute_names = expression_attribute_names
+
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpression],
+        Callable[[UpdateExpression], UpdateExpression],
+    ]:
+        return {UpdateExpression: self.check_for_overlapping_paths}
+
+    def check_for_overlapping_paths(
+        self, node: UpdateExpression
+    ) -> UpdateExpression:
+        actions = node.find_clauses([UpdateExpressionSetAction, UpdateExpressionAddAction, UpdateExpressionRemoveAction, UpdateExpressionDeleteAction])
+        substituted_paths = []
+        for action in actions:
+            path = action.children[0]
+            path_name = path.children[0]
+            if isinstance(path_name, ExpressionAttributeName):
+                substituted_paths.append(self.expression_attribute_names[path_name.get_attribute_name_placeholder()])
+            else:
+                substituted_paths.append(path.to_str())
+
+        duplicates = extract_duplicates(substituted_paths)
+        if duplicates:
+            # There might be more than one attribute duplicated:
+            # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
+            raise DuplicateUpdateExpression(*duplicates)
+        return node
+    
+class ActionCountValidator(DepthFirstTraverser):
+
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpression],
+        Callable[[UpdateExpression], UpdateExpression],
+    ]:
+        return {UpdateExpression: self.verify_action_counts}
+
+    def verify_action_counts(
+        self, node: UpdateExpression
+    ) -> UpdateExpression:
+        add_clauses = node.find_clauses([UpdateExpressionAddClause])
+        remove_clauses = node.find_clauses([UpdateExpressionRemoveClause])
+
+        # Only allow single ADD/REMOVE clauses
+        if len(add_clauses) > 1:
+            raise TooManyClauses("ADD")
+        if len(remove_clauses) > 1:
+            raise TooManyClauses("REMOVE")
+        return node
 
 
 class Validator:
@@ -490,6 +551,8 @@ class UpdateExpressionValidator(Validator):
     def get_ast_processors(self) -> List[DepthFirstTraverser]:
         """Get the different processors that go through the AST tree and processes the nodes."""
         processors = [
+            ActionCountValidator(),
+            OverlappingPathsValidator(self.expression_attribute_names),
             UpdateHashRangeKeyValidator(
                 self.table.table_key_attrs, self.expression_attribute_names or {}
             ),
@@ -501,6 +564,6 @@ class UpdateExpressionValidator(Validator):
             NoneExistingPathChecker(),
             ExecuteOperations(),
             TypeMismatchValidator(self.table.attr),
-            EmptyStringKeyValueValidator(self.table.attribute_keys),
+            EmptyStringKeyValueValidator(self.table.attribute_keys)
         ]
         return processors

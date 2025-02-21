@@ -8,6 +8,7 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.utilities import dynamo_json_dump
+from moto.dynamodb.parsing.ast_nodes import UpdateExpressionSetClause
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
@@ -1153,10 +1154,16 @@ class DynamoHandler(BaseResponse):
                     table,
                     custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
                 )
+
+                # set counts in update expressions are only limited inside transactions
                 update_expression = item["Update"]["UpdateExpression"]
-                UpdateExpressionParser.make(update_expression).validate(
-                    limit_set_actions=True
-                )
+                update_expression_ast = UpdateExpressionParser.make(update_expression)
+                set_clauses = update_expression_ast.find_clauses([UpdateExpressionSetClause])
+                if len(set_clauses) > 1:
+                    raise MockValidationException(
+                        'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+                    )
+
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
