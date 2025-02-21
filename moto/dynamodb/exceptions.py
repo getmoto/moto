@@ -311,14 +311,10 @@ class DuplicateUpdateExpression(InvalidUpdateExpression):
 
 
 class InvalidProjectionExpression(MockValidationException):
-    msg = (
-        "Invalid ProjectionExpression: "
-        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
-        "path one: [{paths[0]}], path two: [{paths[1]}]"
-    )
-
-    def __init__(self, paths: List[str]):
-        super().__init__(self.msg.format(paths=paths))
+    def __init__(self, path_1: List[str], path_2: List[str]):
+        super().__init__(
+            f"Invalid ProjectionExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{", ".join(path_1)}], path two: [{", ".join(path_2)}]"
+        )
 
 
 class TooManyClauses(InvalidUpdateExpression):
