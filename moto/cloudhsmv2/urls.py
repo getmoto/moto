@@ -3,6 +3,7 @@
 from .responses import CloudHSMV2Response
 
 url_bases = [
+    r"https?://cloudhsm\.(.+)\.amazonaws\.com",
     r"https?://cloudhsmv2\.(.+)\.amazonaws\.com",
 ]
 

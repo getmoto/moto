@@ -29,8 +29,7 @@ class CloudHSMV2Response(BaseResponse):
         return cloudhsmv2_backends[self.current_account][self.region]
 
     def list_tags(self) -> str:
-        raw_params = list(self._get_params().keys())[0]
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         resource_id = params.get("ResourceId")
         next_token = params.get("NextToken")
@@ -45,8 +44,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps({"TagList": tag_list, "NextToken": next_token})
 
     def tag_resource(self) -> str:
-        raw_params = list(self._get_params().keys())[0]
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         resource_id = params.get("ResourceId")
         tag_list = params.get("TagList")
@@ -58,8 +56,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps(dict())
 
     def untag_resource(self) -> str:
-        raw_params = list(self._get_params().keys())[0]
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         resource_id = params.get("ResourceId")
         tag_key_list = params.get("TagKeyList")
@@ -90,8 +87,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
 
     def delete_cluster(self) -> str:
-        raw_params = list(self._get_params().keys())[0]
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         cluster_id = params.get("ClusterId")
 
@@ -99,8 +95,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
 
     def describe_clusters(self) -> str:
-        raw_params = list(self._get_params().keys())[0] if self._get_params() else "{}"
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         filters = params.get("Filters", {})
         next_token = params.get("NextToken")
@@ -119,8 +114,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps(response, cls=DateTimeEncoder)
 
     def get_resource_policy(self) -> str:
-        raw_params = list(self._get_params().keys())[0]
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
         policy = self.cloudhsmv2_backend.get_resource_policy(
             resource_arn=resource_arn,
@@ -128,8 +122,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps({"Policy": policy})
 
     def describe_backups(self) -> str:
-        raw_params = list(self._get_params().keys())[0] if self._get_params() else "{}"
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         next_token = params.get("NextToken")
         max_results = params.get("MaxResults")
@@ -155,8 +148,7 @@ class CloudHSMV2Response(BaseResponse):
         return json.dumps(response, cls=DateTimeEncoder)
 
     def put_resource_policy(self) -> str:
-        raw_params = list(self._get_params().keys())[0]
-        params = json.loads(raw_params)
+        params = json.loads(self.body)
 
         resource_arn = params.get("ResourceArn")
         policy = params.get("Policy")
