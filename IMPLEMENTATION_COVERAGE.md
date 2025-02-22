@@ -1215,6 +1215,30 @@
 - [ ] update_vpc_origin
 </details>
 
+## cloudhsmv2
+<details>
+<summary>50% implemented</summary>
+
+- [ ] copy_backup_to_region
+- [X] create_cluster
+- [ ] create_hsm
+- [ ] delete_backup
+- [X] delete_cluster
+- [ ] delete_hsm
+- [ ] delete_resource_policy
+- [X] describe_backups
+- [X] describe_clusters
+- [X] get_resource_policy
+- [ ] initialize_cluster
+- [X] list_tags
+- [ ] modify_backup_attributes
+- [ ] modify_cluster
+- [X] put_resource_policy
+- [ ] restore_backup
+- [X] tag_resource
+- [X] untag_resource
+</details>
+
 ## cloudtrail
 <details>
 <summary>28% implemented</summary>
@@ -9537,7 +9561,6 @@
 - clouddirectory
 - cloudfront-keyvaluestore
 - cloudhsm
-- cloudhsmv2
 - cloudsearch
 - cloudsearchdomain
 - cloudtrail-data
