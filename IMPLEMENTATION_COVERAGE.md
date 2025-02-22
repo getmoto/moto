@@ -995,7 +995,7 @@
 
 ## cloudformation
 <details>
-<summary>39% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] activate_organizations_access
 - [ ] activate_type
@@ -1006,6 +1006,7 @@
 - [ ] create_generated_template
 - [X] create_stack
 - [X] create_stack_instances
+- [ ] create_stack_refactor
 - [X] create_stack_set
 - [ ] deactivate_organizations_access
 - [ ] deactivate_type
@@ -1025,6 +1026,7 @@
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
 - [X] describe_stack_instance
+- [ ] describe_stack_refactor
 - [X] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [X] describe_stack_resources
@@ -1038,6 +1040,7 @@
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
+- [ ] execute_stack_refactor
 - [ ] get_generated_template
 - [X] get_stack_policy
 - [X] get_template
@@ -1053,6 +1056,8 @@
 - [ ] list_resource_scans
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
+- [ ] list_stack_refactor_actions
+- [ ] list_stack_refactors
 - [X] list_stack_resources
 - [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results
@@ -5309,21 +5314,21 @@
 
 ## logs
 <details>
-<summary>40% implemented</summary>
+<summary>57% implemented</summary>
 
 - [ ] associate_kms_key
 - [X] cancel_export_task
-- [ ] create_delivery
+- [X] create_delivery
 - [X] create_export_task
 - [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
-- [ ] delete_delivery
-- [ ] delete_delivery_destination
-- [ ] delete_delivery_destination_policy
-- [ ] delete_delivery_source
+- [X] delete_delivery
+- [X] delete_delivery_destination
+- [X] delete_delivery_destination_policy
+- [X] delete_delivery_source
 - [X] delete_destination
 - [ ] delete_index_policy
 - [ ] delete_integration
@@ -5338,9 +5343,9 @@
 - [ ] delete_transformer
 - [ ] describe_account_policies
 - [ ] describe_configuration_templates
-- [ ] describe_deliveries
-- [ ] describe_delivery_destinations
-- [ ] describe_delivery_sources
+- [X] describe_deliveries
+- [X] describe_delivery_destinations
+- [X] describe_delivery_sources
 - [X] describe_destinations
 - [X] describe_export_tasks
 - [ ] describe_field_indexes
@@ -5355,10 +5360,10 @@
 - [ ] disassociate_kms_key
 - [X] filter_log_events
 - [ ] get_data_protection_policy
-- [ ] get_delivery
-- [ ] get_delivery_destination
-- [ ] get_delivery_destination_policy
-- [ ] get_delivery_source
+- [X] get_delivery
+- [X] get_delivery_destination
+- [X] get_delivery_destination_policy
+- [X] get_delivery_source
 - [ ] get_integration
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
@@ -5374,9 +5379,9 @@
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
-- [ ] put_delivery_destination
-- [ ] put_delivery_destination_policy
-- [ ] put_delivery_source
+- [X] put_delivery_destination
+- [X] put_delivery_destination_policy
+- [X] put_delivery_source
 - [X] put_destination
 - [X] put_destination_policy
 - [ ] put_index_policy
