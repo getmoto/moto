@@ -28,6 +28,10 @@ cloudhsmv2
 - [X] get_resource_policy
 - [ ] initialize_cluster
 - [X] list_tags
+  
+        Pagination is not yet implemented
+        
+
 - [ ] modify_backup_attributes
 - [ ] modify_cluster
 - [X] put_resource_policy
