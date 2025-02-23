@@ -5336,6 +5336,114 @@
 - [X] update_function_url_config
 </details>
 
+## lexv2-models
+<details>
+<summary>16% implemented</summary>
+
+- [ ] batch_create_custom_vocabulary_item
+- [ ] batch_delete_custom_vocabulary_item
+- [ ] batch_update_custom_vocabulary_item
+- [ ] build_bot_locale
+- [X] create_bot
+- [X] create_bot_alias
+- [ ] create_bot_locale
+- [ ] create_bot_replica
+- [ ] create_bot_version
+- [ ] create_export
+- [ ] create_intent
+- [X] create_resource_policy
+- [ ] create_resource_policy_statement
+- [ ] create_slot
+- [ ] create_slot_type
+- [ ] create_test_set_discrepancy_report
+- [ ] create_upload_url
+- [X] delete_bot
+- [X] delete_bot_alias
+- [ ] delete_bot_locale
+- [ ] delete_bot_replica
+- [ ] delete_bot_version
+- [ ] delete_custom_vocabulary
+- [ ] delete_export
+- [ ] delete_import
+- [ ] delete_intent
+- [X] delete_resource_policy
+- [ ] delete_resource_policy_statement
+- [ ] delete_slot
+- [ ] delete_slot_type
+- [ ] delete_test_set
+- [ ] delete_utterances
+- [X] describe_bot
+- [X] describe_bot_alias
+- [ ] describe_bot_locale
+- [ ] describe_bot_recommendation
+- [ ] describe_bot_replica
+- [ ] describe_bot_resource_generation
+- [ ] describe_bot_version
+- [ ] describe_custom_vocabulary_metadata
+- [ ] describe_export
+- [ ] describe_import
+- [ ] describe_intent
+- [X] describe_resource_policy
+- [ ] describe_slot
+- [ ] describe_slot_type
+- [ ] describe_test_execution
+- [ ] describe_test_set
+- [ ] describe_test_set_discrepancy_report
+- [ ] describe_test_set_generation
+- [ ] generate_bot_element
+- [ ] get_test_execution_artifacts_url
+- [ ] list_aggregated_utterances
+- [ ] list_bot_alias_replicas
+- [X] list_bot_aliases
+- [ ] list_bot_locales
+- [ ] list_bot_recommendations
+- [ ] list_bot_replicas
+- [ ] list_bot_resource_generations
+- [ ] list_bot_version_replicas
+- [ ] list_bot_versions
+- [X] list_bots
+- [ ] list_built_in_intents
+- [ ] list_built_in_slot_types
+- [ ] list_custom_vocabulary_items
+- [ ] list_exports
+- [ ] list_imports
+- [ ] list_intent_metrics
+- [ ] list_intent_paths
+- [ ] list_intent_stage_metrics
+- [ ] list_intents
+- [ ] list_recommended_intents
+- [ ] list_session_analytics_data
+- [ ] list_session_metrics
+- [ ] list_slot_types
+- [ ] list_slots
+- [X] list_tags_for_resource
+- [ ] list_test_execution_result_items
+- [ ] list_test_executions
+- [ ] list_test_set_records
+- [ ] list_test_sets
+- [ ] list_utterance_analytics_data
+- [ ] list_utterance_metrics
+- [ ] search_associated_transcripts
+- [ ] start_bot_recommendation
+- [ ] start_bot_resource_generation
+- [ ] start_import
+- [ ] start_test_execution
+- [ ] start_test_set_generation
+- [ ] stop_bot_recommendation
+- [X] tag_resource
+- [X] untag_resource
+- [X] update_bot
+- [X] update_bot_alias
+- [ ] update_bot_locale
+- [ ] update_bot_recommendation
+- [ ] update_export
+- [ ] update_intent
+- [X] update_resource_policy
+- [ ] update_slot
+- [ ] update_slot_type
+- [ ] update_test_set
+</details>
+
 ## logs
 <details>
 <summary>57% implemented</summary>
@@ -5796,7 +5904,7 @@
 
 ## neptune
 <details>
-<summary>57% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
@@ -5838,12 +5946,12 @@
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
-- [ ] describe_events
+- [X] describe_events
 - [X] describe_global_clusters
 - [X] describe_orderable_db_instance_options
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_valid_db_instance_modifications
-- [ ] failover_db_cluster
+- [X] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
 - [X] modify_db_cluster
@@ -5864,7 +5972,7 @@
 - [ ] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [X] restore_db_cluster_from_snapshot
-- [ ] restore_db_cluster_to_point_in_time
+- [X] restore_db_cluster_to_point_in_time
 - [X] start_db_cluster
 - [X] stop_db_cluster
 </details>
@@ -6792,7 +6900,7 @@
 
 ## rds
 <details>
-<summary>42% implemented</summary>
+<summary>45% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -6861,9 +6969,9 @@
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
-- [ ] describe_db_instance_automated_backups
+- [X] describe_db_instance_automated_backups
 - [X] describe_db_instances
-- [ ] describe_db_log_files
+- [X] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
 - [X] describe_db_proxies
@@ -6881,7 +6989,7 @@
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
-- [ ] describe_events
+- [X] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
 - [ ] describe_integrations
@@ -6897,7 +7005,7 @@
 - [ ] disable_http_endpoint
 - [ ] download_db_log_file_portion
 - [ ] enable_http_endpoint
-- [ ] failover_db_cluster
+- [X] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
 - [ ] modify_activity_stream
@@ -6939,7 +7047,7 @@
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
 - [X] restore_db_cluster_from_snapshot
-- [ ] restore_db_cluster_to_point_in_time
+- [X] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
 - [X] restore_db_instance_to_point_in_time
@@ -8556,6 +8664,7 @@
 - [ ] put_account_sending_attributes
 - [ ] put_account_suppression_attributes
 - [ ] put_account_vdm_attributes
+- [ ] put_configuration_set_archiving_options
 - [ ] put_configuration_set_delivery_options
 - [ ] put_configuration_set_reputation_options
 - [ ] put_configuration_set_sending_options
@@ -9115,6 +9224,29 @@
 - [ ] update_adapter
 </details>
 
+## timestream-influxdb
+<details>
+<summary>41% implemented</summary>
+
+- [ ] create_db_cluster
+- [X] create_db_instance
+- [ ] create_db_parameter_group
+- [ ] delete_db_cluster
+- [X] delete_db_instance
+- [ ] get_db_cluster
+- [X] get_db_instance
+- [ ] get_db_parameter_group
+- [ ] list_db_clusters
+- [X] list_db_instances
+- [ ] list_db_instances_for_cluster
+- [ ] list_db_parameter_groups
+- [X] list_tags_for_resource
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_db_cluster
+- [ ] update_db_instance
+</details>
+
 ## timestream-query
 <details>
 <summary>40% implemented</summary>
@@ -9653,7 +9785,6 @@
 - launch-wizard
 - lex-models
 - lex-runtime
-- lexv2-models
 - lexv2-runtime
 - license-manager
 - license-manager-linux-subscriptions
@@ -9758,7 +9889,6 @@
 - support-app
 - synthetics
 - taxsettings
-- timestream-influxdb
 - tnb
 - translate
 - trustedadvisor

@@ -122,19 +122,28 @@ int main(int argc, char **argv) {
         auto creds = provider->GetAWSCredentials();
 
         Aws::S3::S3Client s3Client(clientConfig);
-        listBuckets(clientConfig);
+        bool list_success = listBuckets(clientConfig);
+        if (!list_success) {
+            result = 1;
+        }
 
         Aws::String uuid1 = Aws::Utils::UUID::RandomUUID();
         Aws::String uuid2 = Aws::Utils::UUID::RandomUUID();
         Aws::String bucket1 = Aws::Utils::StringUtils::ToLower(uuid1.c_str());
         Aws::String bucket2 = Aws::Utils::StringUtils::ToLower(uuid2.c_str());
 
-        createBucket(bucket1, clientConfig);
+        createBucket(bucket1, clientConfig);  // Not validating these - the subsequent operations will tell us if these didn't work
         createBucket(bucket2, clientConfig);
 
-        putObject(bucket1, "test.txt", clientConfig);
+        bool put_success = putObject(bucket1, "test.txt", clientConfig);
+        if (!put_success) {
+            result = 1;
+        }
 
-        copyObject("test.txt", bucket1, bucket2, clientConfig);
+        bool copy_success = copyObject("test.txt", bucket1, bucket2, clientConfig);
+        if (!copy_success) {
+            result = 1;
+        }
     }
 
     Aws::ShutdownAPI(options); // Should only be called once.

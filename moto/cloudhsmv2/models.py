@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
-from moto.utilities.paginator import Paginator, paginate
+from moto.utilities.paginator import paginate
 
 from .exceptions import ResourceNotFoundException
 
@@ -125,13 +125,20 @@ class CloudHSMV2Backend(BaseBackend):
     """Implementation of CloudHSMV2 APIs."""
 
     PAGINATION_MODEL = {
+        "describe_backups": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "backup_id",
+            "fail_on_invalid_token": False,
+        },
         "describe_clusters": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
             "unique_attribute": "ClusterId",
             "fail_on_invalid_token": False,
-        }
+        },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:
@@ -144,7 +151,9 @@ class CloudHSMV2Backend(BaseBackend):
     def list_tags(
         self, resource_id: str, next_token: str, max_results: int
     ) -> Tuple[List[Dict[str, str]], Optional[str]]:
-        """NEED TO IMPLEMENT PAGINATION"""
+        """
+        Pagination is not yet implemented
+        """
         if resource_id not in self.tags:
             return [], None
 
@@ -227,14 +236,6 @@ class CloudHSMV2Backend(BaseBackend):
     def describe_clusters(
         self, filters: Optional[Dict[str, List[str]]] = None
     ) -> List[Dict[str, str]]:
-        """List all clusters with optional filtering.
-
-        Args:
-            filters: Optional dictionary of filters to apply
-
-        Returns:
-            List of cluster dictionaries
-        """
         clusters = list(self.clusters.values())
 
         if filters:
@@ -252,14 +253,13 @@ class CloudHSMV2Backend(BaseBackend):
     def get_resource_policy(self, resource_arn: str) -> Optional[str]:
         return self.resource_policies.get(resource_arn)
 
+    @paginate(PAGINATION_MODEL)
     def describe_backups(
         self,
-        next_token: Optional[str],
-        max_results: Optional[int],
         filters: Optional[Dict[str, List[str]]],
         shared: Optional[bool],
         sort_ascending: Optional[bool],
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> List[Backup]:
         backups = list(self.backups.values())
 
         if filters:
@@ -280,17 +280,7 @@ class CloudHSMV2Backend(BaseBackend):
             key=lambda x: x.create_timestamp,
             reverse=not sort_ascending if sort_ascending is not None else True,
         )
-        if not max_results:
-            return [b.to_dict() for b in backups], None
-
-        paginator = Paginator(
-            max_results=max_results,
-            unique_attribute="BackupId",
-            starting_token=next_token,
-            fail_on_invalid_token=False,
-        )
-        results, token = paginator.paginate([b.to_dict() for b in backups])
-        return results, token
+        return backups
 
     def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
         self.resource_policies[resource_arn] = policy

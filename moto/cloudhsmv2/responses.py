@@ -141,7 +141,7 @@ class CloudHSMV2Response(BaseResponse):
             sort_ascending=sort_ascending,
         )
 
-        response = {"Backups": backups}
+        response = {"Backups": [b.to_dict() for b in backups]}
         if next_token:
             response["NextToken"] = next_token
 

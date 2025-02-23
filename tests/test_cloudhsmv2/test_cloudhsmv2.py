@@ -306,6 +306,8 @@ def test_describe_backups_pagination():
             Mode="FIPS",
         )
 
+    assert len(client.describe_backups()["Backups"]) == 3
+
     # Test pagination with MaxResults
     response = client.describe_backups(MaxResults=2)
     assert len(response["Backups"]) == 2
