@@ -179,28 +179,30 @@ def test_delete_detector():
 
 @mock_aws
 def test_get_administrator_account():
-    # Create GuardDuty client
     guardduty_client = boto3.client("guardduty", region_name="us-east-1")
 
-    # Create detector first
     detector_response = guardduty_client.create_detector(Enable=True)
     detector_id = detector_response["DetectorId"]
 
-    # Enable organization admin account
     guardduty_client.enable_organization_admin_account(AdminAccountId="someaccount")
 
-    # List organization admin accounts to verify
     list_resp = guardduty_client.list_organization_admin_accounts()
 
-    # Verify admin account details in the list response
     assert list_resp["AdminAccounts"][0]["AdminAccountId"] == "someaccount"
     assert list_resp["AdminAccounts"][0]["AdminStatus"] == "ENABLED"
 
-    # Get administrator account details
     resp = guardduty_client.get_administrator_account(DetectorId=detector_id)
-
-    # Assertions for get_administrator_account response
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    # Remove the previous assertion about Administrator
-    # As the response you showed doesn't contain this structure
+@mock_aws
+def test_no_administrator_account():
+    guardduty_client = boto3.client("guardduty", region_name="us-east-1")
+
+    detector_response = guardduty_client.create_detector(Enable=True)
+    detector_id = detector_response["DetectorId"]
+    list_resp = guardduty_client.list_organization_admin_accounts()
+
+    resp = guardduty_client.get_administrator_account(DetectorId=detector_id)
+
+    assert "AdminAccountId" not in list_resp
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200

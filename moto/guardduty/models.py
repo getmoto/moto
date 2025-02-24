@@ -89,14 +89,9 @@ class GuardDutyBackend(BaseBackend):
             raise DetectorNotFoundException
         return self.detectors[detector_id]
 
-    # def get_administrator_account(self, detector_id: str) -> "Detector":
-    #     if not self.admin_account_ids:
-    #         raise DetectorNotFoundException
-    #     return {}
 
     def get_administrator_account(self, detector_id: str) -> Dict[str, Any]:
         """Get administrator account details."""
-        # First validate detector exists
         self.get_detector(detector_id)
 
         if not self.admin_account_ids:
