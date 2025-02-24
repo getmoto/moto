@@ -117,11 +117,11 @@ class SESV2Response(BaseResponse):
         params = self._get_params()
         next_token = params.get("NextToken")
         page_size = params.get("PageSize")
-        email_identities, next_token = self.sesv2_backend.list_email_identities(
+        email_identities = self.sesv2_backend.list_email_identities(
             next_token=next_token,
         )
         # TODO: adjust response
-        return json.dumps(dict(emailIdentities=email_identities, nextToken=next_token))
+        return json.dumps(dict(EmailIdentities=email_identities, NextToken=next_token))
 
     def create_configuration_set(self) -> str:
         configuration_set_name = self._get_param("ConfigurationSetName")

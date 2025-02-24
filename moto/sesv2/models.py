@@ -226,9 +226,8 @@ class SESV2Backend(BaseBackend):
         # implement here
         return identity_type, verified_for_sending_status, dkim_attributes
     
-    def list_email_identities(self, next_token):
-        # implement here
-        return email_identities, next_token
+    def list_email_identities(self, next_token) -> List[Dict[str, Any]]:
+        return self.email_identities.values()
 
     def create_configuration_set(
         self,
