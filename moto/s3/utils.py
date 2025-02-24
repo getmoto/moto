@@ -217,11 +217,7 @@ def compute_checksum(body: bytes, algorithm: str, encode_base64: bool = True) ->
 
 
 def _hash(fn: Any, args: Any) -> bytes:
-    try:
-        return fn(*args, usedforsecurity=False).digest()
-    except TypeError:
-        # The usedforsecurity-parameter is only available as of Python 3.9
-        return fn(*args).digest()
+    return fn(*args, usedforsecurity=False).digest()
 
 
 def cors_matches_origin(origin_header: str, allowed_origins: List[str]) -> bool:

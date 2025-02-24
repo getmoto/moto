@@ -111,11 +111,7 @@ def md5_hash(data: Any = None) -> Any:
     Required for Moto to work in FIPS-enabled systems
     """
     args = (data,) if data else ()
-    try:
-        return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
-    except TypeError:
-        # The usedforsecurity-parameter is only available as of Python 3.9
-        return hashlib.md5(*args)
+    return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
 
 
 class LowercaseDict(MutableMapping[str, Any]):
