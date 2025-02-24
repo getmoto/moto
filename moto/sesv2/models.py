@@ -1,6 +1,6 @@
 """SESV2Backend class with methods for supported APIs."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -101,6 +101,37 @@ class ContactList(BaseModel):
         }
 
 
+class EmailIdentity(BaseModel):
+    def __init__(
+        self,
+        email_identity: str,
+        tags: Optional[Dict[str,str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
+    ) -> None:
+        self.email_identity = email_identity
+        self.tags = tags
+        self.dkim_signing_attributes = dkim_signing_attributes
+        self.configuration_set_name = configuration_set_name
+        self.identity_type = "EMAIL_ADDRESS"
+        self.verified_for_sending_status = "PENDING"
+        self.dkim_attributes = {
+            "signingEnabled": False,
+            "tokens": [],
+        }
+
+    @property
+    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "IdentityType": self.identity_type,
+            "IdentityName": self.email_identity,
+            "VerifiedForSendingStatus": self.verified_for_sending_status,
+            "DkimAttributes": self.dkim_attributes,
+            "Tags": self.tags,
+            "ConfigurationSetName": self.configuration_set_name,
+        }
+
+
 class DedicatedIpPool(BaseModel):
     def __init__(
         self, pool_name: str, scaling_mode: str, tags: List[Dict[str, str]]
@@ -124,6 +155,7 @@ class SESV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
+        self.email_identities: Dict[str, Dict[str, Any]] = {}
         self.v1_backend = ses_backends[self.account_id][self.region_name]
         self.dedicated_ip_pools: Dict[str, DedicatedIpPool] = {}
 
@@ -189,6 +221,13 @@ class SESV2Backend(BaseBackend):
             source=source, destinations=destinations, raw_data=raw_data
         )
         return message
+
+    def create_email_identity(self, email_identity: str, tags: Optional[Dict[str,str]], dkim_signing_attributes: Optional[object], configuration_set_name: Optional[str]) :
+        # implement here
+        return identity_type, verified_for_sending_status, dkim_attributes
+    
+    def list_email_identities(self, next_token) -> List[Dict[str, Any]]:
+        return self.email_identities.values()
 
     def create_configuration_set(
         self,
