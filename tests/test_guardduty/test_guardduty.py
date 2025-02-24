@@ -194,6 +194,7 @@ def test_get_administrator_account():
     resp = guardduty_client.get_administrator_account(DetectorId=detector_id)
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
+
 @mock_aws
 def test_no_administrator_account():
     guardduty_client = boto3.client("guardduty", region_name="us-east-1")
