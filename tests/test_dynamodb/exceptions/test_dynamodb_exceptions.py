@@ -358,7 +358,7 @@ def test_query_unused_attribute_name(table_name=None):
 
     with pytest.raises(ClientError) as exc:
         table.query(
-            KeyConditionExpression="(#0 = 1) AND (begins_with(#1, a))",
+            KeyConditionExpression="(#0 = x) AND (begins_with(#1, a))",
             ExpressionAttributeNames={"#0": "pk", "#1": "sk", "#count": "count"},
         )
     err = exc.value.response["Error"]
