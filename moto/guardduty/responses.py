@@ -32,9 +32,10 @@ class GuardDutyResponse(BaseResponse):
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
         data_sources = self._get_param("dataSources")
         tags = self._get_param("tags")
+        features = self._get_param("features")
 
         detector_id = self.guardduty_backend.create_detector(
-            enable, finding_publishing_frequency, data_sources, tags
+            enable, finding_publishing_frequency, data_sources, tags, features
         )
 
         return json.dumps(dict(detectorId=detector_id))
@@ -89,9 +90,10 @@ class GuardDutyResponse(BaseResponse):
         enable = self._get_param("enable")
         finding_publishing_frequency = self._get_param("findingPublishingFrequency")
         data_sources = self._get_param("dataSources")
+        features = self._get_param("features")
 
         self.guardduty_backend.update_detector(
-            detector_id, enable, finding_publishing_frequency, data_sources
+            detector_id, enable, finding_publishing_frequency, data_sources, features
         )
         return "{}"
 

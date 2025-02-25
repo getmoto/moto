@@ -234,7 +234,7 @@ class CloudWatchResponse(BaseResponse):
 
     def delete_dashboards(self) -> Union[str, ERROR_RESPONSE]:
         dashboards = self._get_multi_param("DashboardNames.member")
-        if dashboards is None:
+        if not dashboards:
             return self._error("InvalidParameterValue", "Need at least 1 dashboard")
 
         error = self.cloudwatch_backend.delete_dashboards(dashboards)

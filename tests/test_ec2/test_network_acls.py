@@ -69,6 +69,7 @@ def test_network_acl_entries():
         Protocol="6",  # TCP
         RuleAction="ALLOW",
         CidrBlock="0.0.0.0/0",
+        Ipv6CidrBlock="asdf",
         Egress=False,
         PortRange={"From": 443, "To": 443},
     )
@@ -88,6 +89,7 @@ def test_network_acl_entries():
     assert entries[0]["Egress"] is False
     assert entries[0]["PortRange"] == {"To": 443, "From": 443}
     assert entries[0]["CidrBlock"] == "0.0.0.0/0"
+    assert entries[0]["Ipv6CidrBlock"] == "asdf"
 
 
 @mock_aws

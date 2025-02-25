@@ -100,10 +100,12 @@ class ACMPCAResponse(BaseResponse):
     def issue_certificate(self) -> str:
         params = json.loads(self.body)
         certificate_authority_arn = params.get("CertificateAuthorityArn")
+        template_arn = params.get("TemplateArn")
         csr = params.get("Csr").encode("utf-8")
         certificate_arn = self.acmpca_backend.issue_certificate(
             certificate_authority_arn=certificate_authority_arn,
             csr=csr,
+            template_arn=template_arn,
         )
         return json.dumps(dict(CertificateArn=certificate_arn))
 

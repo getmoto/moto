@@ -1,6 +1,6 @@
 import copy
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
@@ -324,7 +324,7 @@ class Table(CloudFormationModel):
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
             )
-            kms.add_alias(key.id, ddb_alias)
+            kms.create_alias(key.id, ddb_alias)
         ebs_key = kms.describe_key(ddb_alias)
         return ebs_key.arn
 
@@ -746,18 +746,9 @@ class Table(CloudFormationModel):
 
         # SORT
         if index_name:
-            if len(range_attrs) == 2:
-                # Convert to float if necessary to ensure proper ordering
-                def conv(x: DynamoType) -> Any:
-                    return float(x.value) if x.type == "N" else x.value
-
-                possible_results.sort(
-                    key=lambda item: (  # type: ignore
-                        conv(item.attrs[range_attrs[0]])  # type: ignore
-                        if item.attrs.get(range_attrs[0])  # type: ignore
-                        else None
-                    )
-                )
+            possible_results = self.sorted_items(
+                hash_attrs, range_attrs, possible_results
+            )
         else:
             possible_results.sort(key=lambda item: item.range_key)  # type: ignore
 
@@ -883,10 +874,7 @@ class Table(CloudFormationModel):
             else:
                 if idx_col_set.issubset(set(hash_set.attrs)):  # type: ignore
                     items.append(hash_set)  # type: ignore
-        return sorted(
-            items,
-            key=lambda x: (x.hash_key, x.range_key) if x.range_key else x.hash_key,
-        )
+        return items
 
     def scan(
         self,
@@ -897,6 +885,7 @@ class Table(CloudFormationModel):
         index_name: Optional[str] = None,
         consistent_read: bool = False,
         projection_expression: Optional[List[List[str]]] = None,
+        segments: Union[Tuple[None, None], Tuple[int, int]] = (None, None),
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results: List[Item] = []
         result_size = 0
@@ -933,6 +922,7 @@ class Table(CloudFormationModel):
                 range_attrs = [self.range_key_attr]
 
             items = self.has_idx_items(index_name)
+            items = self.sorted_items(hash_attrs, range_attrs, items)
         else:
             hash_attrs = [self.hash_key_attr]
             range_attrs = [self.range_key_attr]
@@ -942,6 +932,9 @@ class Table(CloudFormationModel):
         last_evaluated_key = None
         processing_previous_page = exclusive_start_key is not None
         for item in items:
+            if not item.is_within_segment(segments):
+                continue
+
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
@@ -1026,6 +1019,35 @@ class Table(CloudFormationModel):
         If that is the case, we compare by the RK of the main table instead
         Related: https://github.com/getmoto/moto/issues/7761
         """
+        attrs_to_sort_by = self._generate_attr_to_sort_by(
+            hash_key_attrs, range_key_attrs
+        )
+        for attr in attrs_to_sort_by:
+            if attr in item.attrs and item.attrs[attr] != DynamoType(dct.get(attr)):  # type: ignore
+                return (
+                    (item.attrs[attr] < DynamoType(dct.get(attr)))  # type: ignore
+                    == scan_index_forward
+                )
+        # Keys were equal, items are identical
+        return True
+
+    def sorted_items(
+        self,
+        hash_key_attrs: List[str],
+        range_key_attrs: List[Optional[str]],
+        items: List[Item],
+    ) -> List[Item]:
+        attrs_to_sort_by = self._generate_attr_to_sort_by(
+            hash_key_attrs, range_key_attrs
+        )
+        items.sort(
+            key=lambda x: tuple([x.attrs[key] for key in attrs_to_sort_by]),
+        )
+        return items
+
+    def _generate_attr_to_sort_by(
+        self, hash_key_attrs: List[str], range_key_attrs: List[Optional[str]]
+    ) -> List[str]:
         gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
         table_hash_key = str(
             hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
@@ -1041,18 +1063,9 @@ class Table(CloudFormationModel):
             table_hash_key,
             table_range_key,
         ]
-        for attr in attrs_to_sort_by:
-            if (
-                attr is not None
-                and attr in item.attrs
-                and item.attrs[attr] != DynamoType(dct.get(attr))  # type: ignore
-            ):
-                return (
-                    (item.attrs[attr] < DynamoType(dct.get(attr)))  # type: ignore
-                    == scan_index_forward
-                )
-        # Keys were equal, items are identical
-        return True
+        return [
+            attr for attr in attrs_to_sort_by if attr is not None and attr != "None"
+        ]
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]
@@ -1198,3 +1211,10 @@ class RestoredPITTable(Table):
             "RestoreInProgress": False,
         }
         return result
+
+
+class ResourcePolicy:
+    def __init__(self, resource_arn: str, policy_doc: str):
+        self.resource_arn = resource_arn
+        self.policy_doc = policy_doc
+        self.revision_id = str(int(unix_time_millis()))

@@ -19,13 +19,14 @@ from tests.test_s3 import empty_bucket, s3_aws_verified
 @mock_aws
 def test_put_bucket_logging():
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    wrong_region_client = boto3.client("s3", region_name="us-west-2")
     bucket_name = "mybucket"
     log_bucket = "logbucket"
     wrong_region_bucket = "wrongregionlogbucket"
     s3_client.create_bucket(Bucket=bucket_name)
     # Adding the ACL for log-delivery later...
     s3_client.create_bucket(Bucket=log_bucket)
-    s3_client.create_bucket(
+    wrong_region_client.create_bucket(
         Bucket=wrong_region_bucket,
         CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
     )

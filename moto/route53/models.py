@@ -33,7 +33,7 @@ from moto.route53.exceptions import (
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, validate_domain_name
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
@@ -647,10 +647,12 @@ class Route53Backend(BaseBackend):
             return self.resource_tags[resource_id]
         return {}
 
-    def list_tags_for_resources(self, resource_ids: List[str]) -> Dict[str, str]:
-        resources = {}
+    def list_tags_for_resources(self, resource_ids: List[str]) -> List[Dict[str, Any]]:
+        resources = []
         for id in resource_ids:
-            resources.update(self.list_tags_for_resource(id))
+            resource_set = {"ResourceId": id, "Tags": {}}
+            resource_set["Tags"] = self.list_tags_for_resource(id)
+            resources.append(resource_set)
         return resources
 
     def list_resource_record_sets(
@@ -659,6 +661,8 @@ class Route53Backend(BaseBackend):
         """
         The StartRecordIdentifier-parameter is not yet implemented
         """
+        if start_name:
+            validate_domain_name(start_name)
         the_zone = self.get_hosted_zone(zone_id)
         all_records = list(the_zone.get_record_sets(start_type, start_name))
         records = all_records[0:max_items]
@@ -674,6 +678,9 @@ class Route53Backend(BaseBackend):
         the_zone = self.get_hosted_zone(zoneid)
 
         for value in change_list:
+            validate_domain_name(
+                value["ResourceRecordSet"]["Name"], code="InvalidChangeBatch"
+            )
             if value["Action"] == "CREATE" and value in the_zone.rr_changes:
                 name = value["ResourceRecordSet"]["Name"] + "."
                 _type = value["ResourceRecordSet"]["Type"]
@@ -908,7 +915,7 @@ class Route53Backend(BaseBackend):
 
         log_groups = logs_backends[self.account_id][region].describe_log_groups()
         for entry in log_groups[0] if log_groups else []:
-            if log_group_arn == entry["arn"]:
+            if log_group_arn == f"{entry.arn}:*":
                 break
         else:
             # There is no CloudWatch Logs log group with the specified ARN.

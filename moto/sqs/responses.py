@@ -489,6 +489,9 @@ class SQSResponse(BaseResponse):
         else:
             receipts = self._get_multi_param("DeleteMessageBatchRequestEntry")
 
+        if not receipts:
+            raise EmptyBatchRequest(action="Delete")
+
         for r in receipts:
             for key in list(r.keys()):
                 if key == "Id":

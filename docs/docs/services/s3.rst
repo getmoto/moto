@@ -20,6 +20,7 @@ s3
 - [X] complete_multipart_upload
 - [X] copy_object
 - [X] create_bucket
+- [ ] create_bucket_metadata_table_configuration
 - [X] create_multipart_upload
 - [ ] create_session
 - [X] delete_bucket
@@ -29,6 +30,7 @@ s3
 - [ ] delete_bucket_intelligent_tiering_configuration
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
+- [ ] delete_bucket_metadata_table_configuration
 - [ ] delete_bucket_metrics_configuration
 - [X] delete_bucket_ownership_controls
 - [X] delete_bucket_policy
@@ -39,7 +41,7 @@ s3
 - [X] delete_object_tagging
 - [X] delete_objects
 - [X] delete_public_access_block
-- [ ] get_bucket_accelerate_configuration
+- [X] get_bucket_accelerate_configuration
 - [X] get_bucket_acl
 - [ ] get_bucket_analytics_configuration
 - [X] get_bucket_cors
@@ -50,6 +52,7 @@ s3
 - [ ] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
+- [ ] get_bucket_metadata_table_configuration
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
 - [X] get_bucket_notification_configuration
@@ -82,7 +85,11 @@ s3
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
 - [ ] list_directory_buckets
-- [ ] list_multipart_uploads
+- [X] list_multipart_uploads
+  
+        The delimiter and max-uploads parameters have not yet been implemented.
+        
+
 - [X] list_object_versions
   
         The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
@@ -109,6 +116,12 @@ s3
 - [X] put_bucket_acl
 - [ ] put_bucket_analytics_configuration
 - [X] put_bucket_cors
+  
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        
+
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
 - [ ] put_bucket_inventory_configuration
@@ -149,7 +162,7 @@ s3
 - [ ] put_bucket_request_payment
 - [X] put_bucket_tagging
 - [X] put_bucket_versioning
-- [ ] put_bucket_website
+- [X] put_bucket_website
 - [X] put_object
 - [X] put_object_acl
 - [X] put_object_legal_hold

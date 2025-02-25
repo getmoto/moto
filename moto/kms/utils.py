@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import hmac
 import io
 import os
 import struct
@@ -443,3 +446,28 @@ def decrypt(
         raise InvalidCiphertextException()
 
     return plaintext, ciphertext.key_id
+
+
+def generate_hmac(
+    key: bytes,
+    message: bytes,
+    mac_algorithm: str,
+) -> str:
+    """
+    Returns a base64 encoded HMAC
+    """
+
+    algos = {
+        "HMAC_SHA_224": hashlib.sha224,
+        "HMAC_SHA_256": hashlib.sha256,
+        "HMAC_SHA_384": hashlib.sha384,
+        "HMAC_SHA_512": hashlib.sha512,
+    }
+
+    hmac_val = hmac.new(
+        key=key,
+        msg=message,
+        digestmod=algos[mac_algorithm],
+    )
+
+    return base64.b64encode(hmac_val.digest()).decode("utf-8")

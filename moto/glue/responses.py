@@ -34,7 +34,7 @@ class GlueResponse(BaseResponse):
         self.glue_backend.create_database(
             database_name,
             database_input,  # type: ignore[arg-type]
-            self.parameters.get("Tags"),  # type: ignore[arg-type]
+            self.parameters.get("Tags"),
         )
         return ""
 
@@ -736,3 +736,60 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("Name")
         self.glue_backend.delete_trigger(name)  # type: ignore[arg-type]
         return json.dumps({"Name": name})
+
+    def get_dev_endpoints(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+
+        endpoints, next_token = self.glue_backend.get_dev_endpoints(
+            next_token=next_token, max_results=max_results
+        )
+
+        return json.dumps(
+            dict(
+                DevEndpoints=[endpoint.as_dict() for endpoint in endpoints],
+                NextToken=next_token,
+            )
+        )
+
+    def create_dev_endpoint(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        role_arn = self._get_param("RoleArn")
+        security_group_ids = self._get_param("SecurityGroupIds")
+        subnet_id = self._get_param("SubnetId")
+        public_key = self._get_param("PublicKey")
+        public_keys = self._get_param("PublicKeys")
+        number_of_nodes = self._get_int_param("NumberOfNodes")
+        worker_type = self._get_param("WorkerType", "Standard")
+        glue_version = self._get_param("GlueVersion", "1.0")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        extra_python_libs_s3_path = self._get_param("ExtraPythonLibsS3Path")
+        extra_jars_s3_path = self._get_param("ExtraJarsS3Path")
+        security_configuration = self._get_param("SecurityConfiguration")
+        tags = self._get_param("Tags")
+        arguments = self._get_param("Arguments")
+
+        dev_endpoint = self.glue_backend.create_dev_endpoint(
+            endpoint_name=endpoint_name,
+            role_arn=role_arn,
+            security_group_ids=security_group_ids,
+            subnet_id=subnet_id,
+            public_key=public_key,
+            public_keys=public_keys,
+            number_of_nodes=number_of_nodes,
+            worker_type=worker_type,
+            glue_version=glue_version,
+            number_of_workers=number_of_workers,
+            extra_python_libs_s3_path=extra_python_libs_s3_path,
+            extra_jars_s3_path=extra_jars_s3_path,
+            security_configuration=security_configuration,
+            tags=tags,
+            arguments=arguments,
+        )
+
+        return json.dumps(dev_endpoint.as_dict())
+
+    def get_dev_endpoint(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        dev_endpoint = self.glue_backend.get_dev_endpoint(endpoint_name)
+        return json.dumps({"DevEndpoint": dev_endpoint.as_dict()})

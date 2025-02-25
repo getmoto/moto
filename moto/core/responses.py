@@ -92,6 +92,11 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
         _method = op_model.http["method"]
         request_uri = op_model.http["requestUri"]
         if service_name == "route53" and request_uri.endswith("/rrset/"):
+            # Terraform 5.50 made a request to /rrset/
+            # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
+            request_uri += "?"
+        if service_name == "lambda" and request_uri.endswith("/functions/"):
+            # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
         method_urls[_method][uri_regexp] = op_model.name
@@ -196,6 +201,7 @@ class ActionAuthenticatorMixin(object):
                 data=self.data,  # type: ignore[attr-defined]
                 body=self.body,  # type: ignore[attr-defined]
                 headers=self.headers,  # type: ignore[attr-defined]
+                action=self._get_action(),  # type: ignore[attr-defined]
             )
             iam_request.check_signature()
             iam_request.check_action_permitted(resource)
@@ -302,7 +308,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
 
         @functools.wraps(to_call)  # type: ignore
-        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
             response = getattr(cls(), to_call.__name__)(request, full_url, headers)
             if isinstance(response, str):
                 status = 200
@@ -363,6 +369,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         if hasattr(self.body, "read"):
             self.body = self.body.read()
+        self.raw_body = self.body
 
         # https://github.com/getmoto/moto/issues/6692
         # Content coming from SDK's can be GZipped for performance reasons
@@ -503,35 +510,35 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @staticmethod
     def uri_to_regexp(uri: str) -> str:
         """converts uri w/ placeholder to regexp
-          '/cars/{carName}/drivers/{DriverName}'
-        -> '^/cars/.*/drivers/[^/]*$'
+          '/accounts/{AwsAccountId}/namespaces/{Namespace}/groups'
+        -> '^/accounts/(?P<AwsAccountId>[^/]+)/namespaces/(?P<Namespace>[^/]+)/groups$'
 
-          '/cars/{carName}/drivers/{DriverName}/drive'
-        -> '^/cars/.*/drivers/.*/drive$'
+          '/trustStores/{trustStoreArn+}'
+        -> '^/trustStores/(?P<trustStoreArn>.+)$'
 
         """
 
-        def _convert(elem: str, is_last: bool) -> str:
+        def _convert(elem: str) -> str:
             if not re.match("^{.*}$", elem):
                 # URL-parts sometimes contain a $
                 # Like Greengrass: /../deployments/$reset
                 # We don't want to our regex to think this marks an end-of-line, so let's escape it
                 return elem.replace("$", r"\$")
+
+            # When the element ends with +} the parameter can contain a / otherwise not.
+            slash_allowed = elem.endswith("+}")
             name = (
                 elem.replace("{", "")
                 .replace("}", "")
                 .replace("+", "")
                 .replace("-", "_")
             )
-            if is_last:
-                return f"(?P<{name}>[^/]+)"
-            return f"(?P<{name}>.*)"
+            if slash_allowed:
+                return f"(?P<{name}>.+)"
+            return f"(?P<{name}>[^/]+)"
 
         elems = uri.split("/")
-        num_elems = len(elems)
-        regexp = "/".join(
-            [_convert(elem, (i == num_elems - 1)) for i, elem in enumerate(elems)]
-        )
+        regexp = "/".join([_convert(elem) for elem in elems])
         return f"^{regexp}$"
 
     def _get_action_from_method_and_request_uri(
@@ -551,7 +558,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return None  # type: ignore[return-value]
 
     def _get_action(self) -> str:
-        action = self.querystring.get("Action", [""])[0]
+        action = self.querystring.get("Action")
+        if action and isinstance(action, list):
+            action = action[0]
         if action:
             return action
         # Some services use a header for the action
@@ -1139,6 +1148,8 @@ def to_str(value: Any, spec: Dict[str, Any]) -> str:
         return utcfromtimestamp(value).replace(tzinfo=datetime.timezone.utc).isoformat()
     elif vtype == "string":
         return str(value)
+    elif vtype == "structure":
+        return ""
     elif value is None:
         return "null"
     else:

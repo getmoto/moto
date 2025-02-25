@@ -121,6 +121,11 @@ class ExpressionAttributeValueNotDefined(InvalidUpdateExpression):
         )
 
 
+class ExpressionAttributeValuesEmpty(MockValidationException):
+    def __init__(self) -> None:
+        super().__init__("ExpressionAttributeValues must not be empty")
+
+
 class UpdateExprSyntaxError(InvalidUpdateExpression):
     update_expr_syntax_error_msg = "Syntax error; {error_detail}"
 
@@ -305,11 +310,22 @@ class DuplicateUpdateExpression(InvalidUpdateExpression):
         )
 
 
-class TooManyAddClauses(InvalidUpdateExpression):
-    msg = 'The "ADD" section can only be used once in an update expression;'
+class InvalidProjectionExpression(MockValidationException):
+    msg = (
+        "Invalid ProjectionExpression: "
+        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
+        "path one: [{paths[0]}], path two: [{paths[1]}]"
+    )
 
-    def __init__(self) -> None:
-        super().__init__(self.msg)
+    def __init__(self, paths: List[str]):
+        super().__init__(self.msg.format(paths=paths))
+
+
+class TooManyClauses(InvalidUpdateExpression):
+    def __init__(self, _type: str) -> None:
+        super().__init__(
+            f'The "{_type}" section can only be used once in an update expression;'
+        )
 
 
 class ResourceNotFoundException(JsonRESTError):
@@ -395,3 +411,11 @@ class DeletionProtectedException(MockValidationException):
     def __init__(self, table_name: str):
         msg = f"1 validation error detected: Table '{table_name}' can't be deleted while DeletionProtectionEnabled is set to True"
         super().__init__(msg)
+
+
+class PolicyNotFoundException(DynamodbException):
+    error_type = ERROR_TYPE_PREFIX + "PolicyNotFoundException"
+
+    def __init__(self, message: str):
+        super().__init__(PolicyNotFoundException.error_type, message=message)
+        self.exception_msg = message

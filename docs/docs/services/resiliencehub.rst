@@ -14,6 +14,7 @@ resiliencehub
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_resource_grouping_recommendations
 - [ ] add_draft_app_version_resource_mappings
 - [ ] batch_update_recommendation_status
 - [X] create_app
@@ -44,7 +45,9 @@ resiliencehub
 - [ ] describe_app_version_resources_resolution_status
 - [ ] describe_app_version_template
 - [ ] describe_draft_app_version_resources_import_status
+- [ ] describe_metrics_export
 - [X] describe_resiliency_policy
+- [ ] describe_resource_grouping_recommendation_task
 - [X] import_resources_to_draft_app_version
 - [ ] list_alarm_recommendations
 - [ ] list_app_assessment_compliance_drifts
@@ -98,8 +101,10 @@ resiliencehub
         The FromAssessmentTime/ToAssessmentTime-parameters are not yet implemented
         
 
+- [ ] list_metrics
 - [ ] list_recommendation_templates
 - [X] list_resiliency_policies
+- [ ] list_resource_grouping_recommendations
 - [ ] list_sop_recommendations
 - [ ] list_suggested_resiliency_policies
 - [X] list_tags_for_resource
@@ -107,9 +112,12 @@ resiliencehub
 - [ ] list_unsupported_app_version_resources
 - [X] publish_app_version
 - [ ] put_draft_app_version_template
+- [ ] reject_resource_grouping_recommendations
 - [ ] remove_draft_app_version_resource_mappings
 - [ ] resolve_app_version_resources
 - [ ] start_app_assessment
+- [ ] start_metrics_export
+- [ ] start_resource_grouping_recommendation_task
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_app

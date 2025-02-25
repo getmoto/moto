@@ -45,6 +45,7 @@ from moto.s3.exceptions import (
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
+    InvalidBucketState,
     InvalidNotificationDestination,
     InvalidNotificationEvent,
     InvalidObjectState,
@@ -55,6 +56,7 @@ from moto.s3.exceptions import (
     InvalidTagError,
     InvalidTargetBucketForLogging,
     MalformedXML,
+    MethodNotAllowed,
     MissingBucket,
     MissingKey,
     NoSuchPublicAccessBlockConfiguration,
@@ -142,7 +144,7 @@ class FakeKey(BaseModel, ManagedState):
         self.last_modified = utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.website_redirect_location: Optional[str] = None
-        self.checksum_algorithm = None
+        self.checksum_algorithm: Optional[str] = None
         self._storage_class: Optional[str] = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
         self._expiry: Optional[datetime.datetime] = None
@@ -195,7 +197,7 @@ class FakeKey(BaseModel, ManagedState):
         return f"arn:{self.partition}:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
 
     @value.setter  # type: ignore
-    def value(self, new_value: bytes) -> None:
+    def value(self, new_value: bytes) -> None:  # type: ignore[misc]
         self._value_buffer.seek(0)
         self._value_buffer.truncate()
 
@@ -371,12 +373,14 @@ class FakeKey(BaseModel, ManagedState):
         self.value = state["value"]  # type: ignore
         self.lock = threading.Lock()
 
-    @property
-    def is_locked(self) -> bool:
+    def is_locked(self, governance_bypass: bool) -> bool:
         if self.lock_legal_status == "ON":
             return True
 
-        if self.lock_mode == "COMPLIANCE":
+        if self.lock_mode == "GOVERNANCE" and governance_bypass:
+            return False
+
+        if self.lock_mode in ["GOVERNANCE", "COMPLIANCE"]:
             now = utcnow()
             try:
                 until = datetime.datetime.strptime(
@@ -655,6 +659,9 @@ def get_canned_acl(acl: str) -> FakeAcl:
 
 
 class LifecycleFilter(BaseModel):
+    tag_key: Optional[str]
+    tag_value: Optional[str]
+
     def __init__(
         self,
         prefix: Optional[str] = None,
@@ -1047,7 +1054,7 @@ class FakeBucket(CloudFormationModel):
         self.versioning_status: Optional[str] = None
         self.rules: List[LifecycleRule] = []
         self.policy: Optional[bytes] = None
-        self.website_configuration: Optional[Dict[str, Any]] = None
+        self.website_configuration: Optional[bytes] = None
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.cors: List[CorsRule] = []
         self.logging: Dict[str, Any] = {}
@@ -1640,6 +1647,9 @@ class FakeBucket(CloudFormationModel):
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+class FakeTableStorageBucket(FakeBucket): ...
+
+
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
     """
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
@@ -1686,11 +1696,26 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     If this dependency is not installed, Moto will fall-back to the CRC32-computation when computing checksums.
 
+    _-_-_-_
+
+    S3 has two endpoint styles, where the bucket name can be either part of the domain (bucket.s3.amazonaws.com) or part of the path (s3.amazonaws.com/bucket).
+
+    If you're running MotoServer on a custom host, for instance on `http://moto.service:5000`, a CreateBucket-request then becomes `http://moto.service:5000/bucketname`.
+
+    However, because Moto tries to get the bucket-name from the domain first, it will think that 'moto' is the bucket name.
+
+    You can disable this behaviour with an environment variable, so that Moto will always look at the path instead:
+
+    .. sourcecode:: bash
+
+        S3_IGNORE_SUBDOMAIN_BUCKETNAME=true
+
     """
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.buckets: Dict[str, FakeBucket] = {}
+        self.table_buckets: Dict[str, FakeTableStorageBucket] = {}
         self.tagger = TaggingService()
         self._pagination_tokens: Dict[str, str] = {}
 
@@ -1699,7 +1724,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
         #
         # First, check all known buckets/keys
-        for bucket in self.buckets.values():
+        for bucket in itertools.chain(
+            self.buckets.values(), self.table_buckets.values()
+        ):
             for key in bucket.keys.values():  # type: ignore
                 if isinstance(key, FakeKey):
                     key.dispose()
@@ -1856,12 +1883,24 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         return new_bucket
 
+    def create_table_storage_bucket(self, region_name: str) -> FakeTableStorageBucket:
+        # every s3 table is assigned a unique s3 bucket with a random name
+        bucket_name = f"{str(random.uuid4())}--table-s3"
+        new_bucket = FakeTableStorageBucket(
+            name=bucket_name, account_id=self.account_id, region_name=region_name
+        )
+        self.table_buckets[bucket_name] = new_bucket
+        return new_bucket
+
     def list_buckets(self) -> List[FakeBucket]:
         return list(self.buckets.values())
 
     def get_bucket(self, bucket_name: str) -> FakeBucket:
         if bucket_name in self.buckets:
             return self.buckets[bucket_name]
+
+        if bucket_name in self.table_buckets:
+            return self.table_buckets[bucket_name]
 
         if bucket_name in s3_backends.bucket_accounts:
             if not s3_allow_crossdomain_access():
@@ -1882,6 +1921,23 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         else:
             s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
+
+    def delete_table_storage_bucket(self, bucket_name: str) -> Optional[FakeBucket]:
+        bucket = self.get_bucket(bucket_name)
+        assert isinstance(bucket, FakeTableStorageBucket)
+        # table storage buckets can be deleted while not empty
+        if bucket.keys:
+            for key in bucket.keys.values():  # type: ignore
+                if isinstance(key, FakeKey):
+                    key.dispose()
+            for part in bucket.multiparts.values():
+                part.dispose()
+        s3_backends.bucket_accounts.pop(bucket_name, None)
+        return self.table_buckets.pop(bucket_name)
+
+    def get_bucket_accelerate_configuration(self, bucket_name: str) -> Optional[str]:
+        bucket = self.get_bucket(bucket_name)
+        return bucket.accelerate_configuration
 
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
         self.get_bucket(bucket_name).versioning_status = status
@@ -2086,15 +2142,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_lifecycle()
 
-    def set_bucket_website_configuration(
-        self, bucket_name: str, website_configuration: Dict[str, Any]
+    def put_bucket_website(
+        self, bucket_name: str, website_configuration: bytes
     ) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.website_configuration = website_configuration
 
-    def get_bucket_website_configuration(
-        self, bucket_name: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_bucket_website_configuration(self, bucket_name: str) -> Optional[bytes]:
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
 
@@ -2201,11 +2255,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         key_name: str,
         acl: Optional[FakeAcl],
+        disable_notification: Optional[bool] = False,
     ) -> None:
         key = self.get_object(bucket_name, key_name)
         # TODO: Support the XML-based ACL format
         if key is not None:
             key.set_acl(acl)
+            bucket = self.get_bucket(key.bucket_name)  # type: ignore
+
+            notify_event_name = (
+                notifications.S3NotificationEvent.OBJECT_ACL_UPDATE_EVENT
+            )
+
+            if not disable_notification:
+                notifications.send_event(
+                    self.account_id, notify_event_name, bucket, key
+                )
         else:
             raise MissingKey(key=key_name)
 
@@ -2377,6 +2442,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         years: Optional[int] = None,
     ) -> None:
         bucket = self.get_bucket(bucket_name)
+        if not bucket.is_versioned:
+            raise InvalidBucketState(
+                "Versioning must be 'Enabled' on the bucket to apply a Object Lock configuration"
+            )
 
         if bucket.keys.item_size() > 0:
             raise BucketNeedsToBeNew
@@ -2396,6 +2465,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_cors(
         self, bucket_name: str, cors_rules: List[Dict[str, Any]]
     ) -> None:
+        """
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_cors(cors_rules)
 
@@ -2548,6 +2622,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket_name=bucket_name,
             key_name=key.name,
             acl=multipart.acl,
+            disable_notification=True,  # avoid sending ObjectAcl:Put events here
         )
 
         notifications.send_event(
@@ -2558,7 +2633,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         return key
 
-    def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
+    def list_multipart_uploads(self, bucket_name: str) -> Dict[str, FakeMultipart]:
+        """
+        The delimiter and max-uploads parameters have not yet been implemented.
+        """
         bucket = self.get_bucket(bucket_name)
         return bucket.multiparts
 
@@ -2603,6 +2681,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         MOTO_S3_DEFAULT_MAX_KEYS=5
         """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2661,6 +2741,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
         MOTO_S3_DEFAULT_MAX_KEYS=5
         """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         result_keys, result_folders, _, _ = self.list_objects(
             bucket, prefix, delimiter, marker=None, max_keys=None
         )
@@ -2741,8 +2823,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         version_id: Optional[str] = None,
         bypass: bool = False,
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    ) -> Tuple[bool, Dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
 
         response_meta = {}
         delete_key = bucket.keys.get(key_name)
@@ -2769,10 +2853,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
-                            if (
-                                hasattr(key, "is_locked")
-                                and key.is_locked
-                                and not bypass
+                            if isinstance(key, FakeKey) and key.is_locked(
+                                governance_bypass=bypass
                             ):
                                 raise AccessDeniedByLock
 
@@ -2807,19 +2889,39 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
             return True, response_meta
         except KeyError:
-            return False, None
+            return False, response_meta
 
     def delete_objects(
-        self, bucket_name: str, objects: List[Dict[str, Any]]
-    ) -> List[Tuple[str, Optional[str]]]:
-        deleted_objects = []
+        self,
+        bucket_name: str,
+        objects: List[Dict[str, Any]],
+        bypass_retention: bool = False,
+    ) -> Tuple[List[Tuple[str, Optional[str], Optional[str]]], List[str]]:
+        deleted = []
+        errors = []
         for object_ in objects:
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            self.delete_object(bucket_name, key_name, version_id=version_id)
-            deleted_objects.append((key_name, version_id))
-        return deleted_objects
+            try:
+                success, headers = self.delete_object(
+                    bucket_name,
+                    key_name,
+                    version_id=version_id,
+                    bypass=bypass_retention,
+                )
+                deleted.append(
+                    (
+                        key_name,
+                        version_id,
+                        headers.get("version-id")
+                        if headers and not version_id
+                        else None,
+                    )
+                )
+            except AccessDeniedByLock:
+                errors.append(key_name)
+        return deleted, errors
 
     def copy_object(
         self,
@@ -2935,7 +3037,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         select_query: str,
         input_details: Dict[str, Any],
         output_details: Dict[str, Any],
-    ) -> List[bytes]:
+    ) -> Tuple[List[bytes], int]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
 
@@ -2964,7 +3066,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 "FileHeaderInfo", ""
             ) == "USE"
             query_input = csv_to_json(query_input, use_headers)
-        query_result = parse_query(query_input, select_query)  # type: ignore
+        query_result, bytes_scanned = parse_query(query_input, select_query)  # type: ignore
 
         record_delimiter = "\n"
         if "JSON" in output_details:
@@ -2982,7 +3084,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             from py_partiql_parser import json_to_csv
 
             query_result = json_to_csv(query_result, field_delim, record_delimiter)
-            return [query_result.encode("utf-8")]  # type: ignore
+            return [query_result.encode("utf-8")], bytes_scanned  # type: ignore
 
         else:
             from py_partiql_parser import SelectEncoder
@@ -2993,7 +3095,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     + record_delimiter
                 ).encode("utf-8")
                 for x in query_result
-            ]
+            ], bytes_scanned
 
     def restore_object(
         self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]

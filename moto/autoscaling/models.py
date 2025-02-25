@@ -487,7 +487,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: List[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
-        self.created_time = created_time
+        self.created_time = created_time.isoformat()
 
     @property
     def tags(self) -> List[Dict[str, str]]:
@@ -720,6 +720,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         return self.launch_config.security_groups  # type: ignore[union-attr]
 
+    @property
+    def instance_tags(self) -> Dict[str, str]:
+        if self.launch_template:
+            version = self.launch_template.get_version(self.launch_template_version)
+            return version.instance_tags
+        return {}
+
     def update(
         self,
         availability_zones: List[str],
@@ -815,6 +822,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self, count_needed: int, propagated_tags: Dict[str, str]
     ) -> None:
         propagated_tags[ASG_NAME_TAG] = self.name
+        propagated_tags.update(self.instance_tags)
 
         # VPCZoneIdentifier:
         # A comma-separated list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created.
@@ -1171,6 +1179,8 @@ class AutoScalingBackend(BaseBackend):
                 "Valid requests must contain either LaunchTemplate, LaunchConfigurationName "
                 "or MixedInstancesPolicy parameter."
             )
+        if name not in self.autoscaling_groups:
+            raise ValidationError("AutoScalingGroup name not found - null")
 
         group = self.autoscaling_groups[name]
         group.update(

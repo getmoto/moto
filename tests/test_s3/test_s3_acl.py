@@ -81,11 +81,9 @@ def test_acl_switching_nonexistent_key():
 
 @mock_aws
 def test_s3_object_in_public_bucket():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("test-bucket")
-    bucket.create(
-        ACL="public-read", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    bucket.create(ACL="public-read")
     bucket.put_object(Body=b"ABCD", Key="file.txt")
 
     s3_anonymous = boto3.resource("s3")
@@ -107,11 +105,9 @@ def test_s3_object_in_public_bucket():
 
 @mock_aws
 def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("test-bucket")
-    bucket.create(
-        ACL="public-read", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    bucket.create(ACL="public-read")
     bucket.put_object(Body=b"ABCD", Key="file.txt")
 
     params = {"Bucket": "test-bucket", "Key": "file.txt"}
@@ -128,11 +124,9 @@ def test_s3_object_in_public_bucket_using_multiple_presigned_urls():
 
 @mock_aws
 def test_s3_object_in_private_bucket():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("test-bucket")
-    bucket.create(
-        ACL="private", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    bucket.create(ACL="private")
     bucket.put_object(ACL="private", Body=b"ABCD", Key="file.txt")
 
     s3_anonymous = boto3.resource("s3")

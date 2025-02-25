@@ -7,6 +7,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    name: "Test Against AWS"
+    if: ${{ github.repository == 'getmoto/moto' }}
     permissions:
       id-token: write
 
@@ -38,8 +40,9 @@ jobs:
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
+        role-duration-seconds: 7200
     - name: Test with pytest
       env:
         MOTO_TEST_ALLOW_AWS_REQUEST: ${{ true }}
       run: |
-        pytest -sv tests/test_cloudformation/ tests/test_dynamodb/ tests/test_ec2/ tests/test_iam/ tests/test_lakeformation/ tests/test_logs/ tests/test_sqs/ tests/test_ses/ tests/test_s3* tests/test_sns/ -m aws_verified
+        pytest -sv -n auto --dist loadfile tests/test_applicationautoscaling/ tests/test_athena/ tests/test_cloudformation/ tests/test_dynamodb/ tests/test_ec2/ tests/test_events/ tests/test_iam/ tests/test_iot/ tests/test_lakeformation/ tests/test_logs/ tests/test_sqs/ tests/test_ses/ tests/test_s3* tests/test_stepfunctions/ tests/test_sns/ tests/test_timestreamwrite/ -m aws_verified

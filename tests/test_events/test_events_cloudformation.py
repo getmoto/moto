@@ -1,6 +1,7 @@
 import copy
 import json
 from string import Template
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -8,6 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests import aws_verified
 
 archive_template = Template(
     json.dumps(
@@ -68,6 +70,64 @@ empty = json.dumps(
         "Resources": {},
     }
 )
+
+rule_with_targets = """---
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  MyEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: "TestEventBusName"
+
+  DestQueue:
+    Type: AWS::SQS::Queue
+
+  MyQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt DestQueue.Arn
+              Condition:
+                ArnEquals:
+                  aws:SourceArn: !GetAtt MyRule.Arn
+            - Effect: Allow
+              Principal:
+                Service: events.amazonaws.com
+              Action: sqs:SendMessage
+              Resource: !GetAtt DestQueue.Arn
+      Queues:
+        - !Ref DestQueue
+
+  MyRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !GetAtt MyEventBus.Name
+      EventPattern:
+        source:
+          - my.source
+        detail-type:
+          - Malicious
+      State: ENABLED
+      Targets:
+        - Id: meh
+          Arn: !GetAtt DestQueue.Arn
+          InputTransformer:
+            InputPathsMap:
+              account: $.account
+              detail: $.detail
+              detail-type: $.detail-type
+              id: $.id
+              region: $.region
+              resources: $.resources
+              time: $.time
+            InputTemplate: '{\"id\": \"<id>\",\"detail-type\": \"<detail-type>\",\"time\":\"<time>\",\"region\": \"<region>\",\"account\": \"<account>\",\"resources\":<resources>,\"http_method\": \"POST\",\"http_endpoint\":\"/test/endpoint\",\"detail\":<detail>}'
+"""
 
 
 @mock_aws
@@ -183,3 +243,71 @@ def test_delete_rule():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "Rule test-rule does not exist."
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_create_rule_with_targets():
+    # given
+    cfn_client = boto3.client("cloudformation", region_name="eu-central-1")
+    sqs_client = boto3.client("sqs", region_name="eu-central-1")
+    sts = boto3.client("sts", "us-east-1")
+
+    account_id = sts.get_caller_identity()["Account"]
+    stack_name = f"test-stack-{str(uuid4())[0:6]}"
+
+    # when
+    cfn_client.create_stack(StackName=stack_name, TemplateBody=rule_with_targets)
+    cfn_client.get_waiter("stack_create_complete").wait(StackName=stack_name)
+    try:
+        # then
+        events_client = boto3.client("events", region_name="eu-central-1")
+        rule = events_client.list_rules(EventBusName="TestEventBusName")["Rules"][0]
+
+        targets = events_client.list_targets_by_rule(
+            Rule=rule["Name"], EventBusName="TestEventBusName"
+        )["Targets"]
+        assert len(targets) == 1
+        assert targets[0]["Id"] == "meh"
+        assert targets[0]["InputTransformer"]["InputPathsMap"]["account"] == "$.account"
+
+        resources = cfn_client.list_stack_resources(StackName=stack_name)[
+            "StackResourceSummaries"
+        ]
+        queue = next((r for r in resources if r["LogicalResourceId"] == "DestQueue"))
+        q_url = queue["PhysicalResourceId"]
+
+        entry = dict(
+            Detail='{"a": "b"}',
+            DetailType="Malicious",
+            EventBusName="TestEventBusName",
+            Resources=["path/to/file"],
+            Source="my.source",
+        )
+        entry_id = events_client.put_events(Entries=[entry])["Entries"][0]["EventId"]
+
+        messages = sqs_client.receive_message(QueueUrl=q_url, WaitTimeSeconds=20)[
+            "Messages"
+        ]
+        msg_body = json.loads(messages[0]["Body"])
+
+        msg_body.pop("time")
+        assert msg_body == {
+            "id": entry_id,
+            "detail-type": "Malicious",
+            "region": "eu-central-1",
+            "account": account_id,
+            "resources": ["path/to/file"],
+            "http_method": "POST",
+            "http_endpoint": "/test/endpoint",
+            "detail": {"a": "b"},
+        }
+
+    finally:
+        cfn_client.delete_stack(StackName=stack_name)
+        cfn_client.get_waiter("stack_delete_complete").wait(StackName=stack_name)
+
+        with pytest.raises(ClientError) as exc:
+            events_client.list_rules(EventBusName="TestEventBusName")
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ResourceNotFoundException"

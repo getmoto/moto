@@ -61,6 +61,7 @@ amp
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_logging_configuration
+- [ ] update_scraper
 - [X] update_workspace_alias
   
         The ClientToken-parameter is not yet implemented

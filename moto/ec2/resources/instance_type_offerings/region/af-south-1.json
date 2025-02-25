@@ -428,6 +428,10 @@
   "Location": "af-south-1"
  },
  {
+  "InstanceType": "inf1.xlarge",
+  "Location": "af-south-1"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "af-south-1"
  },
@@ -885,6 +889,18 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "u-6tb1.112xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "u-6tb1.56xlarge",
   "Location": "af-south-1"
  },
  {

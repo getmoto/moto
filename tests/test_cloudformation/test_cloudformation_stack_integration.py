@@ -1045,7 +1045,7 @@ def test_stack_dynamodb_resources_integration():
 
 @mock_aws
 def test_create_log_group_using_fntransform():
-    s3_resource = boto3.resource("s3")
+    s3_resource = boto3.resource("s3", "us-west-2")
     s3_resource.create_bucket(
         Bucket="owi-common-cf",
         CreateBucketConfiguration={"LocationConstraint": "us-west-2"},

@@ -90,4 +90,5 @@ personalize
 - [ ] update_dataset
 - [ ] update_metric_attribution
 - [ ] update_recommender
+- [ ] update_solution
 

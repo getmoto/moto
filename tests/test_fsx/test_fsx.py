@@ -1,5 +1,6 @@
 """Unit tests for fsx-supported APIs."""
 
+import re
 import time
 
 import boto3
@@ -32,7 +33,7 @@ def test_create_filesystem(client):
 
     file_system = resp["FileSystem"]
 
-    assert file_system["FileSystemId"].startswith("fs-moto")
+    assert re.match(r"^fs-[0-9a-f]{8,}$", file_system["FileSystemId"])
     assert file_system["FileSystemType"] == "LUSTRE"
 
 
@@ -90,7 +91,6 @@ def test_delete_file_system():
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
-    assert fs["FileSystem"]["FileSystemId"].startswith("fs-moto")
     file_system_id = fs["FileSystem"]["FileSystemId"]
     resp = client.delete_file_system(FileSystemId=file_system_id)
     assert resp["FileSystemId"] == file_system_id

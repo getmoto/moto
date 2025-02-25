@@ -1,3 +1,4 @@
+import json
 from typing import Any, Tuple
 from uuid import uuid4
 
@@ -34,8 +35,21 @@ def _setup(ec2_client: Any, iam_client: Any) -> Tuple[str, str, str, str]:
     sg_id = resp["GroupId"]
 
     role_name = f"{str(uuid4())[0:6]}"
+    assume_role_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "batch.amazonaws.com"},
+                    "Action": "sts:AssumeRole",
+                }
+            ],
+        }
+    )
+
     resp = iam_client.create_role(
-        RoleName=role_name, AssumeRolePolicyDocument="some_policy"
+        RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy
     )
     iam_arn = resp["Role"]["Arn"]
     iam_client.create_instance_profile(InstanceProfileName=role_name)

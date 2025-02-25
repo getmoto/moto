@@ -15,8 +15,8 @@ class InstanceMetadataResponse(BaseResponse):
     def backends(self) -> None:
         pass
 
-    def metadata_response(
-        self,
+    @staticmethod
+    def metadata_response(  # type: ignore
         request: Any,  # pylint: disable=unused-argument
         full_url: str,
         headers: Any,
@@ -55,4 +55,12 @@ class InstanceMetadataResponse(BaseResponse):
             raise NotImplementedError(
                 f"The {path} metadata path has not been implemented"
             )
+        try:
+            from werkzeug.datastructures.headers import EnvironHeaders
+
+            if isinstance(headers, EnvironHeaders):
+                # We should be returning a generic dict here, not werkzeug-specific classes
+                headers = {key: value for key, value in headers}
+        except ImportError:
+            pass
         return 200, headers, result

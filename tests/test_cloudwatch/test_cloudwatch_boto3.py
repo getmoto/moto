@@ -1527,8 +1527,8 @@ def test_cloudwatch_return_s3_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-3")
 
     # given
-    s3 = boto3.resource("s3")
-    s3_client = boto3.client("s3")
+    s3 = boto3.resource("s3", "eu-west-3")
+    s3_client = boto3.client("s3", "eu-west-3")
     bucket = s3.Bucket(bucket_name)
     bucket.create(CreateBucketConfiguration={"LocationConstraint": "eu-west-3"})
     bucket.put_object(Body=b"ABCD", Key="file.txt")

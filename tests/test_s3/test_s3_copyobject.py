@@ -7,6 +7,7 @@ from botocore.client import ClientError
 
 from moto import mock_aws
 from moto.s3.responses import DEFAULT_REGION_NAME
+from tests.test_s3 import generate_content_md5
 from tests.test_s3.test_s3 import enable_versioning
 
 from . import s3_aws_verified
@@ -392,12 +393,8 @@ def test_copy_object_with_versioning(bucket_name=None):
 def test_copy_object_from_unversioned_to_versioned_bucket():
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
-    client.create_bucket(
-        Bucket="src", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
-    client.create_bucket(
-        Bucket="dest", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
+    client.create_bucket(Bucket="src")
+    client.create_bucket(Bucket="dest")
     client.put_bucket_versioning(
         Bucket="dest", VersioningConfiguration={"Status": "Enabled"}
     )
@@ -459,9 +456,7 @@ def test_copy_object_with_kms_encryption():
     kms_client = boto3.client("kms", region_name=DEFAULT_REGION_NAME)
     kms_key = kms_client.create_key()["KeyMetadata"]["KeyId"]
 
-    client.create_bucket(
-        Bucket="blah", CreateBucketConfiguration={"LocationConstraint": "eu-west-1"}
-    )
+    client.create_bucket(Bucket="blah")
 
     client.put_object(Bucket="blah", Key="test1", Body=b"test1")
 
@@ -662,6 +657,7 @@ def test_copy_objet_legal_hold():
         Key=source_key,
         Body=b"somedata",
         ObjectLockLegalHoldStatus="ON",
+        ContentMD5=generate_content_md5(b"somedata"),
     )
 
     head_object = client.head_object(Bucket=bucket_name, Key=source_key)
@@ -698,9 +694,10 @@ def test_s3_copy_object_lock():
     client.put_object(
         Bucket=bucket_name,
         Key=source_key,
-        Body="test",
+        Body=b"test",
         ObjectLockMode="GOVERNANCE",
         ObjectLockRetainUntilDate=retain_until,
+        ContentMD5=generate_content_md5(b"test"),
     )
 
     head_object = client.head_object(Bucket=bucket_name, Key=source_key)
@@ -915,12 +912,11 @@ def test_copy_object_calculates_checksum(algorithm, checksum):
 
     checksum_key = f"Checksum{algorithm}"
 
-    resp = client.put_object(
+    client.put_object(
         Bucket=bucket,
         Key=source_key,
         Body=body,
     )
-    assert checksum_key not in resp
 
     resp = client.copy_object(
         Bucket=bucket,

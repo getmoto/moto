@@ -10,7 +10,12 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import BadRequestException, GraphqlAPINotFound, GraphQLSchemaException
+from .exceptions import (
+    BadRequestException,
+    GraphqlAPICacheNotFound,
+    GraphqlAPINotFound,
+    GraphQLSchemaException,
+)
 
 # AWS custom scalars and directives
 # https://github.com/dotansimha/graphql-code-generator/discussions/4311#discussioncomment-2921796
@@ -132,6 +137,49 @@ class GraphqlAPIKey(BaseModel):
         }
 
 
+class APICache(BaseModel):
+    def __init__(
+        self,
+        ttl: int,
+        api_caching_behavior: str,
+        type_: str,
+        transit_encryption_enabled: Optional[bool] = None,
+        at_rest_encryption_enabled: Optional[bool] = None,
+        health_metrics_config: Optional[str] = None,
+    ):
+        self.ttl = ttl
+        self.api_caching_behavior = api_caching_behavior
+        self.type = type_
+        self.transit_encryption_enabled = transit_encryption_enabled or False
+        self.at_rest_encryption_enabled = at_rest_encryption_enabled or False
+        self.health_metrics_config = health_metrics_config or "DISABLED"
+        self.status = "AVAILABLE"
+
+    def update(
+        self,
+        ttl: int,
+        api_caching_behavior: str,
+        type: str,
+        health_metrics_config: Optional[str] = None,
+    ) -> None:
+        self.ttl = ttl
+        self.api_caching_behavior = api_caching_behavior
+        self.type = type
+        if health_metrics_config is not None:
+            self.health_metrics_config = health_metrics_config
+
+    def to_json(self) -> Dict[str, Any]:
+        return {
+            "ttl": self.ttl,
+            "transitEncryptionEnabled": self.transit_encryption_enabled,
+            "atRestEncryptionEnabled": self.at_rest_encryption_enabled,
+            "apiCachingBehavior": self.api_caching_behavior,
+            "type": self.type,
+            "healthMetricsConfig": self.health_metrics_config,
+            "status": self.status,
+        }
+
+
 class GraphqlAPI(BaseModel):
     def __init__(
         self,
@@ -145,6 +193,7 @@ class GraphqlAPI(BaseModel):
         user_pool_config: str,
         open_id_connect_config: str,
         lambda_authorizer_config: str,
+        visibility: str,
     ):
         self.region = region
         self.name = name
@@ -156,11 +205,14 @@ class GraphqlAPI(BaseModel):
         self.open_id_connect_config = open_id_connect_config
         self.user_pool_config = user_pool_config
         self.xray_enabled = xray_enabled
+        self.visibility = visibility or "GLOBAL"  # Default to Global if not provided
 
         self.arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
         self.graphql_schema: Optional[GraphqlSchema] = None
 
         self.api_keys: Dict[str, GraphqlAPIKey] = dict()
+
+        self.api_cache: Optional[APICache] = None
 
     def update(
         self,
@@ -223,6 +275,38 @@ class GraphqlAPI(BaseModel):
         graphql_type["format"] = type_format  # type: ignore[index]
         return graphql_type
 
+    def create_api_cache(
+        self,
+        ttl: int,
+        api_caching_behavior: str,
+        type: str,
+        transit_encryption_enabled: Optional[bool] = None,
+        at_rest_encryption_enabled: Optional[bool] = None,
+        health_metrics_config: Optional[str] = None,
+    ) -> APICache:
+        self.api_cache = APICache(
+            ttl,
+            api_caching_behavior,
+            type,
+            transit_encryption_enabled,
+            at_rest_encryption_enabled,
+            health_metrics_config,
+        )
+        return self.api_cache
+
+    def update_api_cache(
+        self,
+        ttl: int,
+        api_caching_behavior: str,
+        type: str,
+        health_metrics_config: Optional[str] = None,
+    ) -> APICache:
+        self.api_cache.update(ttl, api_caching_behavior, type, health_metrics_config)  # type: ignore[union-attr]
+        return self.api_cache  # type: ignore[return-value]
+
+    def delete_api_cache(self) -> None:
+        self.api_cache = None
+
     def to_json(self) -> Dict[str, Any]:
         return {
             "name": self.name,
@@ -236,6 +320,7 @@ class GraphqlAPI(BaseModel):
             "openIDConnectConfig": self.open_id_connect_config,
             "userPoolConfig": self.user_pool_config,
             "xrayEnabled": self.xray_enabled,
+            "visibility": self.visibility,
         }
 
 
@@ -258,6 +343,7 @@ class AppSyncBackend(BaseBackend):
         xray_enabled: str,
         lambda_authorizer_config: str,
         tags: Dict[str, str],
+        visibility: str,
     ) -> GraphqlAPI:
         graphql_api = GraphqlAPI(
             account_id=self.account_id,
@@ -270,6 +356,7 @@ class AppSyncBackend(BaseBackend):
             user_pool_config=user_pool_config,
             open_id_connect_config=open_id_connect_config,
             lambda_authorizer_config=lambda_authorizer_config,
+            visibility=visibility,
         )
         self.graphql_apis[graphql_api.api_id] = graphql_api
         self.tagger.tag_resource(
@@ -373,6 +460,72 @@ class AppSyncBackend(BaseBackend):
 
     def get_type(self, api_id: str, type_name: str, type_format: str) -> Any:
         return self.graphql_apis[api_id].get_type(type_name, type_format)
+
+    def get_api_cache(self, api_id: str) -> APICache:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        api_cache = self.graphql_apis[api_id].api_cache
+        if api_cache is None:
+            raise GraphqlAPICacheNotFound("get")
+        return api_cache
+
+    def delete_api_cache(self, api_id: str) -> None:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        if self.graphql_apis[api_id].api_cache is None:
+            raise GraphqlAPICacheNotFound("delete")
+        self.graphql_apis[api_id].delete_api_cache()
+        return
+
+    def create_api_cache(
+        self,
+        api_id: str,
+        ttl: int,
+        api_caching_behavior: str,
+        type: str,
+        transit_encryption_enabled: Optional[bool] = None,
+        at_rest_encryption_enabled: Optional[bool] = None,
+        health_metrics_config: Optional[str] = None,
+    ) -> APICache:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        graphql_api = self.graphql_apis[api_id]
+        if graphql_api.api_cache is not None:
+            raise BadRequestException(message="The API has already enabled caching.")
+        api_cache = graphql_api.create_api_cache(
+            ttl,
+            api_caching_behavior,
+            type,
+            transit_encryption_enabled,
+            at_rest_encryption_enabled,
+            health_metrics_config,
+        )
+        return api_cache
+
+    def update_api_cache(
+        self,
+        api_id: str,
+        ttl: int,
+        api_caching_behavior: str,
+        type: str,
+        health_metrics_config: Optional[str] = None,
+    ) -> APICache:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        graphql_api = self.graphql_apis[api_id]
+        if graphql_api.api_cache is None:
+            raise GraphqlAPICacheNotFound("update")
+        api_cache = graphql_api.update_api_cache(
+            ttl, api_caching_behavior, type, health_metrics_config
+        )
+        return api_cache
+
+    def flush_api_cache(self, api_id: str) -> None:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        if self.graphql_apis[api_id].api_cache is None:
+            raise GraphqlAPICacheNotFound("flush")
+        return
 
 
 appsync_backends = BackendDict(AppSyncBackend, "appsync")

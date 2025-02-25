@@ -32,6 +32,9 @@ class LaunchTemplateVersion:
         self.data = data
         self.description = description
         self.create_time = utc_date_and_time()
+        self.instance_tags = convert_tag_spec(data.get("TagSpecification", [])).get(
+            "instance", {}
+        )
 
     @property
     def image_id(self) -> str:

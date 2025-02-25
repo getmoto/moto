@@ -266,10 +266,14 @@ class NetworkManagerBackend(BaseBackend):
                     for inner_dict in resources.values()
                     for k, v in inner_dict.items()
                 }
-            resource = resources.get(target_name)  # type: ignore
+            return resources[target_name]
         except (KeyError, ValueError, AttributeError):
             raise ResourceNotFound(arn)
-        return resource
+
+    def update_resource_state(self, resource_arn: str, state: str) -> None:
+        # Acceptable states: PENDING, AVAILABLE, DELETING, UPDATING
+        resource = self._get_resource_from_arn(resource_arn)
+        resource.state = state
 
     def create_global_network(
         self,

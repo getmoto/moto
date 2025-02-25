@@ -33,7 +33,7 @@ emr
 - [X] describe_step
 - [ ] describe_studio
 - [ ] get_auto_termination_policy
-- [ ] get_block_public_access_configuration
+- [X] get_block_public_access_configuration
 - [ ] get_cluster_session_credentials
 - [ ] get_managed_scaling_policy
 - [ ] get_studio_session_mapping
@@ -54,7 +54,7 @@ emr
 - [X] modify_instance_groups
 - [X] put_auto_scaling_policy
 - [ ] put_auto_termination_policy
-- [ ] put_block_public_access_configuration
+- [X] put_block_public_access_configuration
 - [ ] put_managed_scaling_policy
 - [X] remove_auto_scaling_policy
 - [ ] remove_auto_termination_policy

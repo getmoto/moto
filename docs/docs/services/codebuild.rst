@@ -18,7 +18,7 @@ codebuild
 - [ ] batch_get_build_batches
 - [X] batch_get_builds
 - [ ] batch_get_fleets
-- [ ] batch_get_projects
+- [X] batch_get_projects
 - [ ] batch_get_report_groups
 - [ ] batch_get_reports
 - [ ] create_fleet

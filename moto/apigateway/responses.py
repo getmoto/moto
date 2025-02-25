@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -28,7 +28,7 @@ class APIGatewayResponse(BaseResponse):
     def backend(self) -> APIGatewayBackend:
         return apigateway_backends[self.current_account][self.region]
 
-    def __validate_api_key_source(self, api_key_source: str) -> TYPE_RESPONSE:  # type: ignore[return]
+    def __validate_api_key_source(self, api_key_source: str) -> Optional[TYPE_RESPONSE]:
         if api_key_source and api_key_source not in API_KEY_SOURCES:
             return self.error(
                 "ValidationException",
@@ -39,10 +39,11 @@ class APIGatewayResponse(BaseResponse):
                     "[AUTHORIZER, HEADER]"
                 ).format(api_key_source=api_key_source),
             )
+        return None
 
-    def __validate_endpoint_configuration(  # type: ignore[return]
+    def __validate_endpoint_configuration(
         self, endpoint_configuration: Dict[str, str]
-    ) -> TYPE_RESPONSE:
+    ) -> Optional[TYPE_RESPONSE]:
         if endpoint_configuration and "types" in endpoint_configuration:
             invalid_types = list(
                 set(endpoint_configuration["types"]) - set(ENDPOINT_CONFIGURATION_TYPES)
@@ -57,6 +58,7 @@ class APIGatewayResponse(BaseResponse):
                         "[PRIVATE, EDGE, REGIONAL]"
                     ).format(endpoint_type=invalid_types[0]),
                 )
+        return None
 
     def create_rest_api(self) -> TYPE_RESPONSE:
         api_doc = deserialize_body(self.body)
@@ -102,14 +104,15 @@ class APIGatewayResponse(BaseResponse):
         apis = self.backend.list_apis()
         return json.dumps({"item": [api.to_dict() for api in apis]})
 
-    def __validte_rest_patch_operations(  # type: ignore[return]
+    def __validte_rest_patch_operations(
         self, patch_operations: List[Dict[str, str]]
-    ) -> TYPE_RESPONSE:
+    ) -> Optional[TYPE_RESPONSE]:
         for op in patch_operations:
             path = op["path"]
             if "apiKeySource" in path:
                 value = op["value"]
                 return self.__validate_api_key_source(value)
+        return None
 
     def delete_rest_api(self) -> TYPE_RESPONSE:
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
@@ -121,7 +124,8 @@ class APIGatewayResponse(BaseResponse):
         rest_api = self.backend.get_rest_api(function_id)
         return 200, {}, json.dumps(rest_api.to_dict())
 
-    def get_rest_api_without_id(self, *args: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    @staticmethod
+    def get_rest_api_without_id(*args: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         """
         AWS is returning an empty response when restApiId is an empty string. This is slightly odd and it seems an
         outlier, therefore it was decided we could have a custom handler for this particular use case instead of
@@ -612,7 +616,8 @@ class APIGatewayResponse(BaseResponse):
 
     def get_api_keys(self) -> str:
         include_values = self._get_bool_param("includeValues") or False
-        apikeys_response = self.backend.get_api_keys()
+        name = self._get_param("name")
+        apikeys_response = self.backend.get_api_keys(name=name)
         resp = [a.to_json() for a in apikeys_response]
         if not include_values:
             for key in resp:
@@ -676,8 +681,9 @@ class APIGatewayResponse(BaseResponse):
 
     def get_usage_plan_keys(self) -> str:
         usage_plan_id = self.path.split("/")[2]
-        usage_plans_response = self.backend.get_usage_plan_keys(usage_plan_id)
-        return json.dumps({"item": [u.to_json() for u in usage_plans_response]})
+        name = self._get_param("name")
+        usage_plans = self.backend.get_usage_plan_keys(usage_plan_id, name=name)
+        return json.dumps({"item": [u.to_json() for u in usage_plans]})
 
     def create_domain_name(self) -> TYPE_RESPONSE:
         domain_name = self._get_param("domainName")
@@ -847,3 +853,12 @@ class APIGatewayResponse(BaseResponse):
             rest_api_id=rest_api_id, response_type=response_type
         )
         return 202, {}, json.dumps(dict())
+
+    def update_account(self) -> str:
+        patch_operations = self._get_param("patchOperations")
+        account = self.backend.update_account(patch_operations)
+        return json.dumps(account.to_json())
+
+    def get_account(self) -> str:
+        account = self.backend.get_account()
+        return json.dumps(account.to_json())

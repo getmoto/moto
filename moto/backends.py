@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from moto.apigatewayv2.models import ApiGatewayV2Backend
     from moto.appconfig.models import AppConfigBackend
     from moto.applicationautoscaling.models import ApplicationAutoscalingBackend
+    from moto.appmesh.models import AppMeshBackend
     from moto.appsync.models import AppSyncBackend
     from moto.athena.models import AthenaBackend
     from moto.autoscaling.models import AutoScalingBackend
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
     from moto.directconnect.models import DirectConnectBackend
     from moto.dms.models import DatabaseMigrationServiceBackend
     from moto.ds.models import DirectoryServiceBackend
+    from moto.dsql.models import AuroraDSQLBackend
     from moto.dynamodb.models import DynamoDBBackend
     from moto.dynamodb_v20111205.models import (
         DynamoDBBackend as DynamoDBBackend_v20111205,
@@ -79,11 +81,13 @@ if TYPE_CHECKING:
     from moto.iot.models import IoTBackend
     from moto.iotdata.models import IoTDataPlaneBackend
     from moto.ivs.models import IVSBackend
+    from moto.kafka.models import KafkaBackend
     from moto.kinesis.models import KinesisBackend
     from moto.kinesisvideo.models import KinesisVideoBackend
     from moto.kinesisvideoarchivedmedia.models import KinesisVideoArchivedMediaBackend
     from moto.kms.models import KmsBackend
     from moto.lakeformation.models import LakeFormationBackend
+    from moto.lexv2models.models import LexModelsV2Backend
     from moto.logs.models import LogsBackend
     from moto.managedblockchain.models import ManagedBlockchainBackend
     from moto.mediaconnect.models import MediaConnectBackend
@@ -91,6 +95,7 @@ if TYPE_CHECKING:
     from moto.mediapackage.models import MediaPackageBackend
     from moto.mediastore.models import MediaStoreBackend
     from moto.mediastoredata.models import MediaStoreDataBackend
+    from moto.memorydb.models import MemoryDBBackend
     from moto.meteringmarketplace.models import MeteringMarketplaceBackend
     from moto.moto_api._internal.models import MotoAPIBackend
     from moto.mq.models import MQBackend
@@ -99,9 +104,11 @@ if TYPE_CHECKING:
     from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
     from moto.opsworks.models import OpsWorksBackend
     from moto.organizations.models import OrganizationsBackend
+    from moto.osis.models import OpenSearchIngestionBackend
     from moto.personalize.models import PersonalizeBackend
     from moto.pinpoint.models import PinpointBackend
     from moto.polly.models import PollyBackend
+    from moto.qldb.models import QLDBBackend
     from moto.quicksight.models import QuickSightBackend
     from moto.ram.models import ResourceAccessManagerBackend
     from moto.rds.models import RDSBackend
@@ -118,6 +125,7 @@ if TYPE_CHECKING:
     from moto.route53resolver.models import Route53ResolverBackend
     from moto.s3.models import S3Backend
     from moto.s3control.models import S3ControlBackend
+    from moto.s3tables.models import S3TablesBackend
     from moto.sagemaker.models import SageMakerModelBackend
     from moto.sagemakermetrics.models import SageMakerMetricsBackend
     from moto.sagemakerruntime.models import SageMakerRuntimeBackend
@@ -139,11 +147,14 @@ if TYPE_CHECKING:
     from moto.support.models import SupportBackend
     from moto.swf.models import SWFBackend
     from moto.textract.models import TextractBackend
+    from moto.timestreaminfluxdb.models import TimestreamInfluxDBBackend
+    from moto.timestreamquery.models import TimestreamQueryBackend
     from moto.timestreamwrite.models import TimestreamWriteBackend
     from moto.transcribe.models import TranscribeBackend
     from moto.transfer.models import TransferBackend
     from moto.wafv2.models import WAFV2Backend
     from moto.workspaces.models import WorkSpacesBackend
+    from moto.workspacesweb.models import WorkSpacesWebBackend
     from moto.xray.models import XRayBackend
 
 
@@ -191,6 +202,7 @@ SERVICE_NAMES = Union[
     "Literal['apigatewayv2']",
     "Literal['appconfig']",
     "Literal['applicationautoscaling']",
+    "Literal['appmesh']",
     "Literal['appsync']",
     "Literal['athena']",
     "Literal['autoscaling']",
@@ -217,6 +229,7 @@ SERVICE_NAMES = Union[
     "Literal['directconnect']",
     "Literal['dms']",
     "Literal['ds']",
+    "Literal['dsql']",
     "Literal['dynamodb']",
     "Literal['dynamodb_v20111205']",
     "Literal['dynamodbstreams']",
@@ -251,18 +264,21 @@ SERVICE_NAMES = Union[
     "Literal['iot']",
     "Literal['iot-data']",
     "Literal['ivs']",
+    "Literal['kafka']",
     "Literal['kinesis']",
     "Literal['kinesisvideo']",
     "Literal['kinesis-video-archived-media']",
     "Literal['kms']",
     "Literal['lakeformation']",
     "Literal['lambda']",
+    "Literal['lexv2models']",
     "Literal['logs']",
     "Literal['managedblockchain']",
     "Literal['mediaconnect']",
     "Literal['medialive']",
     "Literal['mediapackage']",
     "Literal['mediastore']",
+    "Literal['memorydb']",
     "Literal['mediastore-data']",
     "Literal['meteringmarketplace']",
     "Literal['moto_api']",
@@ -273,9 +289,11 @@ SERVICE_NAMES = Union[
     "Literal['opensearchserverless']",
     "Literal['opsworks']",
     "Literal['organizations']",
+    "Literal['osis']",
     "Literal['personalize']",
     "Literal['pinpoint']",
     "Literal['polly']",
+    "Literal['qldb']",
     "Literal['quicksight']",
     "Literal['ram']",
     "Literal['rds']",
@@ -293,6 +311,7 @@ SERVICE_NAMES = Union[
     "Literal['s3']",
     "Literal['s3bucket_path']",
     "Literal['s3control']",
+    "Literal['s3tables']",
     "Literal['sagemaker']",
     "Literal['sagemaker-metrics']",
     "Literal['sagemaker-runtime']",
@@ -314,11 +333,14 @@ SERVICE_NAMES = Union[
     "Literal['support']",
     "Literal['swf']",
     "Literal['textract']",
+    "Literal['timestream-influxdb']",
+    "Literal['timestream-query']",
     "Literal['timestream-write']",
     "Literal['transcribe']",
     "Literal['transfer']",
     "Literal['wafv2']",
     "Literal['workspaces']",
+    "Literal['workspaces-web']",
     "Literal['xray']",
 ]
 
@@ -355,6 +377,8 @@ def get_backend(name: "Literal['appconfig']") -> "BackendDict[AppConfigBackend]"
 def get_backend(
     name: "Literal['applicationautoscaling']",
 ) -> "BackendDict[ApplicationAutoscalingBackend]": ...
+@overload
+def get_backend(name: "Literal['appmesh']") -> "BackendDict[AppMeshBackend]": ...
 @overload
 def get_backend(name: "Literal['appsync']") -> "BackendDict[AppSyncBackend]": ...
 @overload
@@ -423,6 +447,8 @@ def get_backend(
 ) -> "BackendDict[DirectConnectBackend]": ...
 @overload
 def get_backend(name: "Literal['ds']") -> "BackendDict[DirectoryServiceBackend]": ...
+@overload
+def get_backend(name: "Literal['dsql']") -> "BackendDict[AuroraDSQLBackend]": ...
 @overload
 def get_backend(name: "Literal['dynamodb']") -> "BackendDict[DynamoDBBackend]": ...
 @overload
@@ -514,6 +540,8 @@ def get_backend(name: "Literal['iot-data']") -> "BackendDict[IoTDataPlaneBackend
 @overload
 def get_backend(name: "Literal['ivs']") -> "BackendDict[IVSBackend]": ...
 @overload
+def get_backend(name: "Literal['kafka']") -> "BackendDict[KafkaBackend]": ...
+@overload
 def get_backend(name: "Literal['kinesis']") -> "BackendDict[KinesisBackend]": ...
 @overload
 def get_backend(
@@ -531,6 +559,10 @@ def get_backend(
 ) -> "BackendDict[LakeFormationBackend]": ...
 @overload
 def get_backend(name: "Literal['lambda']") -> "BackendDict[LambdaBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['lexv2models']",
+) -> "BackendDict[LexModelsV2Backend]": ...
 @overload
 def get_backend(name: "Literal['logs']") -> "BackendDict[LogsBackend]": ...
 @overload
@@ -553,6 +585,8 @@ def get_backend(name: "Literal['mediastore']") -> "BackendDict[MediaStoreBackend
 def get_backend(
     name: "Literal['mediastore-data']",
 ) -> "BackendDict[MediaStoreDataBackend]": ...
+@overload
+def get_backend(name: "Literal['memorydb']") -> "BackendDict[MemoryDBBackend]": ...
 @overload
 def get_backend(
     name: "Literal['meteringmarketplace']",
@@ -579,6 +613,10 @@ def get_backend(
 def get_backend(name: "Literal['opsworks']") -> "BackendDict[OpsWorksBackend]": ...
 @overload
 def get_backend(
+    name: "Literal['osis']",
+) -> "BackendDict[OpenSearchIngestionBackend]": ...
+@overload
+def get_backend(
     name: "Literal['organizations']",
 ) -> "BackendDict[OrganizationsBackend]": ...
 @overload
@@ -589,6 +627,8 @@ def get_backend(
 def get_backend(name: "Literal['pinpoint']") -> "BackendDict[PinpointBackend]": ...
 @overload
 def get_backend(name: "Literal['polly']") -> "BackendDict[PollyBackend]": ...
+@overload
+def get_backend(name: "Literal['qldb']") -> "BackendDict[QLDBBackend]": ...
 @overload
 def get_backend(name: "Literal['quicksight']") -> "BackendDict[QuickSightBackend]": ...
 @overload
@@ -703,6 +743,14 @@ def get_backend(name: "Literal['swf']") -> "BackendDict[SWFBackend]": ...
 def get_backend(name: "Literal['textract']") -> "BackendDict[TextractBackend]": ...
 @overload
 def get_backend(
+    name: "Literal['timestream-influxdb']",
+) -> "BackendDict[TimestreamInfluxDBBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['timestream-query']",
+) -> "BackendDict[TimestreamQueryBackend]": ...
+@overload
+def get_backend(
     name: "Literal['timestream-write']",
 ) -> "BackendDict[TimestreamWriteBackend]": ...
 @overload
@@ -714,7 +762,13 @@ def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
 @overload
 def get_backend(name: "Literal['workspaces']") -> "BackendDict[WorkSpacesBackend]": ...
 @overload
+def get_backend(
+    name: "Literal['workspaces-web']",
+) -> "BackendDict[WorkSpacesWebBackend]": ...
+@overload
 def get_backend(name: "Literal['xray']") -> "BackendDict[XRayBackend]": ...
+@overload
+def get_backend(name: "Literal['s3tables']") -> "BackendDict[S3TablesBackend]": ...
 
 
 def get_backend(name: SERVICE_NAMES) -> "BackendDict[SERVICE_BACKEND]":

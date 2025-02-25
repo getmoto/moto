@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import copy
 import datetime
 import re
 from collections import OrderedDict, namedtuple
 from enum import Enum
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
+from botocore.loaders import create_loader
+from botocore.model import ServiceModel
 from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
@@ -385,3 +390,11 @@ def decode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
         ORDERABLE_DB_INSTANCE_DECODING.get(key, key): value
         for key, value in decoded.items()
     }
+
+
+@lru_cache()
+def get_service_model(service_name: str) -> ServiceModel:
+    loader = create_loader()
+    model = loader.load_service_model(service_name, "service-2")
+    service_model = ServiceModel(model, service_name)
+    return service_model

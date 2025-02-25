@@ -21,6 +21,7 @@ class GuardDutyBackend(BaseBackend):
         finding_publishing_frequency: str,
         data_sources: Dict[str, Any],
         tags: Dict[str, str],
+        features: List[Dict[str, Any]],
     ) -> str:
         if finding_publishing_frequency not in [
             "FIFTEEN_MINUTES",
@@ -37,6 +38,7 @@ class GuardDutyBackend(BaseBackend):
             enabled=enable,
             datasources=data_sources,
             tags=tags,
+            features=features,
         )
         self.detectors[detector.id] = detector
         return detector.id
@@ -94,9 +96,10 @@ class GuardDutyBackend(BaseBackend):
         enable: bool,
         finding_publishing_frequency: str,
         data_sources: Dict[str, Any],
+        features: List[Dict[str, Any]],
     ) -> None:
         detector = self.get_detector(detector_id)
-        detector.update(enable, finding_publishing_frequency, data_sources)
+        detector.update(enable, finding_publishing_frequency, data_sources, features)
 
     def update_filter(
         self,
@@ -168,6 +171,7 @@ class Detector(BaseModel):
         enabled: bool,
         datasources: Dict[str, Any],
         tags: Dict[str, str],
+        features: List[Dict[str, Any]],
     ):
         self.id = mock_random.get_random_hex(length=32)
         self.created_at = created_at
@@ -177,6 +181,9 @@ class Detector(BaseModel):
         self.updated_at = created_at
         self.datasources = datasources or {}
         self.tags = tags or {}
+        # TODO: Implement feature configuration object and validation
+        # https://docs.aws.amazon.com/guardduty/latest/APIReference/API_DetectorFeatureConfiguration.html
+        self.features = features or []
 
         self.filters: Dict[str, Filter] = dict()
 
@@ -212,6 +219,7 @@ class Detector(BaseModel):
         enable: bool,
         finding_publishing_frequency: str,
         data_sources: Dict[str, Any],
+        features: List[Dict[str, Any]],
     ) -> None:
         if enable is not None:
             self.enabled = enable
@@ -219,6 +227,8 @@ class Detector(BaseModel):
             self.finding_publish_freq = finding_publishing_frequency
         if data_sources is not None:
             self.datasources = data_sources
+        if features is not None:
+            self.features = features
 
     def to_json(self) -> Dict[str, Any]:
         data_sources = {
@@ -248,6 +258,7 @@ class Detector(BaseModel):
             "updatedAt": self.updated_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "dataSources": data_sources,
             "tags": self.tags,
+            "features": self.features,
         }
 
 

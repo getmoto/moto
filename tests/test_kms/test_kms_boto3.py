@@ -118,6 +118,10 @@ def test_create_key():
     assert "EncryptionAlgorithms" not in key["KeyMetadata"]
     assert key["KeyMetadata"]["SigningAlgorithms"] == ["ECDSA_SHA_512"]
 
+    key = conn.create_key(Origin="EXTERNAL")
+
+    assert key["KeyMetadata"]["Origin"] == "EXTERNAL"
+
 
 @mock_aws
 def test_create_multi_region_key():
@@ -132,6 +136,86 @@ def test_create_multi_region_key():
 
     assert key["KeyMetadata"]["KeyId"].startswith("mrk-")
     assert key["KeyMetadata"]["MultiRegion"] is True
+
+
+@mock_aws
+def test_create_multi_region_configuration_key():
+    region_to_replicate_from = "us-east-1"
+    region_to_replicate_to = "us-west-1"
+    region_to_replicate_to_second_region = "us-west-2"
+
+    from_region_client = boto3.client("kms", region_name=region_to_replicate_from)
+    to_region_client_us_west_1 = boto3.client("kms", region_name=region_to_replicate_to)
+    to_region_client_us_west_2 = boto3.client(
+        "kms", region_name=region_to_replicate_to_second_region
+    )
+
+    response = from_region_client.create_key(
+        Policy="my policy",
+        Description="my key",
+        KeyUsage="ENCRYPT_DECRYPT",
+        MultiRegion=True,
+        Tags=[{"TagKey": "project", "TagValue": "moto"}],
+    )
+    key_id = response["KeyMetadata"]["KeyId"]
+
+    first_replica_response = from_region_client.replicate_key(
+        KeyId=key_id, ReplicaRegion=region_to_replicate_to
+    )
+
+    second_replica_response = from_region_client.replicate_key(
+        KeyId=key_id, ReplicaRegion=region_to_replicate_to_second_region
+    )
+
+    third_replica_response = from_region_client.replicate_key(
+        KeyId=key_id, ReplicaRegion=region_to_replicate_to_second_region
+    )
+
+    replica_key_id = first_replica_response["ReplicaKeyMetadata"]["KeyId"]
+    replica_key_second_id = second_replica_response["ReplicaKeyMetadata"]["KeyId"]
+    replica_key_third_id = third_replica_response["ReplicaKeyMetadata"]["KeyId"]
+
+    from_region_describe_key = from_region_client.describe_key(KeyId=key_id)
+    to_region_describe_key = to_region_client_us_west_1.describe_key(
+        KeyId=replica_key_id
+    )
+    to_region_describe_key_second_replica = to_region_client_us_west_2.describe_key(
+        KeyId=replica_key_second_id
+    )
+    to_region_describe_key_third_replica = to_region_client_us_west_2.describe_key(
+        KeyId=replica_key_third_id
+    )
+
+    assert from_region_describe_key["KeyMetadata"]["MultiRegion"] is True
+    assert to_region_describe_key["KeyMetadata"]["MultiRegion"] is True
+    assert to_region_describe_key_second_replica["KeyMetadata"]["MultiRegion"] is True
+    assert (
+        from_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"][
+            "MultiRegionKeyType"
+        ]
+        == "PRIMARY"
+    )
+    assert (
+        to_region_describe_key["KeyMetadata"]["MultiRegionConfiguration"][
+            "MultiRegionKeyType"
+        ]
+        == "REPLICA"
+    )
+    assert (
+        to_region_describe_key_second_replica["KeyMetadata"][
+            "MultiRegionConfiguration"
+        ]["MultiRegionKeyType"]
+        == "REPLICA"
+    )
+    # This test below tests the expected failure of making a replica in an already existing region.
+    assert (
+        len(
+            to_region_describe_key_third_replica["KeyMetadata"][
+                "MultiRegionConfiguration"
+            ]["ReplicaKeys"]
+        )
+        == 2
+    )
 
 
 @mock_aws
@@ -1113,6 +1197,30 @@ def test_sign_happy(plaintext):
 
 
 @mock_aws
+def test_sign_using_alias():
+    client = boto3.client("kms", region_name="us-west-2")
+
+    key = client.create_key(
+        Description="sk", KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048"
+    )
+    key_id = key["KeyMetadata"]["KeyId"]
+    client.create_alias(AliasName="alias/my-alias", TargetKeyId=key_id)
+    client.sign(
+        KeyId=key_id, Message="plaintext", SigningAlgorithm="RSASSA_PSS_SHA_256"
+    )
+
+    key_id = "alias/my-alias"
+    client.sign(
+        KeyId=key_id, Message="plaintext", SigningAlgorithm="RSASSA_PSS_SHA_256"
+    )
+
+    key_id = f"arn:aws:kms:us-west-2:{ACCOUNT_ID}:alias/my-alias"
+    client.sign(
+        KeyId=key_id, Message="plaintext", SigningAlgorithm="RSASSA_PSS_SHA_256"
+    )
+
+
+@mock_aws
 def test_sign_invalid_signing_algorithm():
     client = boto3.client("kms", region_name="us-west-2")
 
@@ -1586,6 +1694,34 @@ def test_get_public_key():
         == key["KeyMetadata"]["SigningAlgorithms"]
     )
     assert "EncryptionAlgorithms" not in public_key_response
+
+
+@mock_aws
+def test_get_public_key_with_alias():
+    client = boto3.client("kms", region_name="eu-west-1")
+    key = client.create_key(KeyUsage="SIGN_VERIFY", KeySpec="RSA_2048")
+    key_id = key["KeyMetadata"]["KeyId"]
+    client.create_alias(
+        AliasName="alias/foo",
+        TargetKeyId=key_id,
+    )
+    alias_arn = client.list_aliases()["Aliases"][0]["AliasArn"]
+
+    public_key_response_with_name = client.get_public_key(KeyId="alias/foo")
+    public_key_response_with_arn = client.get_public_key(KeyId=alias_arn)
+
+    assert "PublicKey" in public_key_response_with_name
+    assert "PublicKey" in public_key_response_with_arn
+    assert (
+        public_key_response_with_name["SigningAlgorithms"]
+        == key["KeyMetadata"]["SigningAlgorithms"]
+    )
+    assert (
+        public_key_response_with_arn["SigningAlgorithms"]
+        == key["KeyMetadata"]["SigningAlgorithms"]
+    )
+    assert "EncryptionAlgorithms" not in public_key_response_with_name
+    assert "EncryptionAlgorithms" not in public_key_response_with_arn
 
 
 def create_simple_key(client, id_or_arn="KeyId", description=None, policy=None):

@@ -155,6 +155,10 @@ class IoTResponse(BaseResponse):
             target_selection=self._get_param("targetSelection"),
             job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
             document_parameters=self._get_param("documentParameters"),
+            abort_config=self._get_param("abortConfig"),
+            job_execution_retry_config=self._get_param("jobExecutionsRetryConfig"),
+            scheduling_config=self._get_param("schedulingConfig"),
+            timeout_config=self._get_param("timeoutConfig"),
         )
 
         return json.dumps(dict(jobArn=job_arn, jobId=job_id, description=description))
@@ -174,6 +178,10 @@ class IoTResponse(BaseResponse):
                     reasonCode=job.reason_code,
                     jobArn=job.job_arn,
                     jobExecutionsRolloutConfig=job.job_executions_rollout_config,
+                    jobExecutionsRetryConfig=job.job_execution_retry_config,
+                    schedulingConfig=job.scheduling_config,
+                    timeoutConfig=job.timeout_config,
+                    abortConfig=job.abort_config,
                     jobId=job.job_id,
                     jobProcessDetails=job.job_process_details,
                     lastUpdatedAt=job.last_updated_at,
@@ -220,10 +228,12 @@ class IoTResponse(BaseResponse):
         max_results = self._get_int_param("maxResults", 50)
         previous_next_token = self._get_param("nextToken")
         jobs, next_token = self.iot_backend.list_jobs(
-            max_results=max_results, token=previous_next_token
+            max_results=max_results, next_token=previous_next_token
         )
 
-        return json.dumps(dict(jobs=jobs, nextToken=next_token))
+        return json.dumps(
+            dict(jobs=[job.to_dict() for job in jobs], nextToken=next_token)
+        )
 
     def describe_job_execution(self) -> str:
         job_id = self._get_param("jobId")
@@ -272,7 +282,12 @@ class IoTResponse(BaseResponse):
             job_id=job_id, status=status, max_results=max_results, token=next_token
         )
 
-        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
+        return json.dumps(
+            dict(
+                executionSummaries=[je.to_dict() for je in job_executions],
+                nextToken=next_token,
+            )
+        )
 
     def list_job_executions_for_thing(self) -> str:
         thing_name = self._get_param("thingName")
@@ -288,7 +303,12 @@ class IoTResponse(BaseResponse):
             next_token=next_token,
         )
 
-        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
+        return json.dumps(
+            dict(
+                executionSummaries=[je.to_dict() for je in job_executions],
+                nextToken=next_token,
+            )
+        )
 
     def create_keys_and_certificate(self) -> str:
         set_as_active = self._get_bool_param("setAsActive")
@@ -477,18 +497,22 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
         return json.dumps(dict())
 
-    def dispatch_attached_policies(
-        self, request: Any, full_url: str, headers: Any
+    @staticmethod
+    def dispatch_attached_policies(  # type: ignore
+        request: Any, full_url: str, headers: Any
     ) -> TYPE_RESPONSE:
+        response = IoTResponse()
         # This endpoint requires specialized handling because it has
         # a uri parameter containing forward slashes that is not
         # correctly url encoded when we're running in server mode.
         # https://github.com/pallets/flask/issues/900
-        self.setup_class(request, full_url, headers)
-        self.querystring["Action"] = ["ListAttachedPolicies"]
-        target = self.path.partition("/attached-policies/")[-1]
-        self.querystring["target"] = [unquote(target)] if "%" in target else [target]
-        return self.call_action()
+        response.setup_class(request, full_url, headers)
+        response.querystring["Action"] = ["ListAttachedPolicies"]
+        target = response.path.partition("/attached-policies/")[-1]
+        response.querystring["target"] = (
+            [unquote(target)] if "%" in target else [target]
+        )
+        return response.call_action()
 
     def list_attached_policies(self) -> str:
         principal = self._get_param("target")
@@ -765,3 +789,126 @@ class IoTResponse(BaseResponse):
         query = self._get_param("queryString")
         things = self.iot_backend.search_index(query)
         return json.dumps({"things": things, "thingGroups": []})
+
+    def create_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        role_arn = self._get_param("roleArn")
+        credential_duration_seconds = self._get_int_param(
+            "credentialDurationSeconds", 3600
+        )
+        created_role_alias = self.iot_backend.create_role_alias(
+            role_alias_name=role_alias_name,
+            role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+        return json.dumps(
+            dict(
+                roleAlias=created_role_alias.role_alias,
+                roleAliasArn=created_role_alias.arn,
+            )
+        )
+
+    def list_role_aliases(self) -> str:
+        # page_size = self._get_int_param("pageSize")
+        # marker = self._get_param("marker")
+        # ascending_order = self._get_param("ascendingOrder")
+        return json.dumps(
+            dict(
+                roleAliases=[_.role_alias for _ in self.iot_backend.list_role_aliases()]
+            )
+        )
+
+    def describe_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        role_alias = self.iot_backend.describe_role_alias(
+            role_alias_name=role_alias_name
+        )
+        return json.dumps({"roleAliasDescription": role_alias.to_dict()})
+
+    def update_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        role_arn = self._get_param("roleArn", None)
+        credential_duration_seconds = self._get_int_param(
+            "credentialDurationSeconds", 0
+        )
+
+        role_alias = self.iot_backend.update_role_alias(
+            role_alias_name=role_alias_name,
+            role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+
+        return json.dumps(
+            dict(roleAlias=role_alias.role_alias, roleAliasArn=role_alias.arn)
+        )
+
+    def delete_role_alias(self) -> str:
+        role_alias_name = self._get_param("roleAlias")
+        self.iot_backend.delete_role_alias(role_alias_name=role_alias_name)
+        return json.dumps({})
+
+    def get_indexing_configuration(self) -> str:
+        return json.dumps(self.iot_backend.get_indexing_configuration())
+
+    def update_indexing_configuration(self) -> str:
+        self.iot_backend.update_indexing_configuration(
+            self._get_param("thingIndexingConfiguration", {}),
+            self._get_param("thingGroupIndexingConfiguration", {}),
+        )
+        return json.dumps({})
+
+    def create_job_template(self) -> str:
+        job_template = self.iot_backend.create_job_template(
+            job_template_id=self._get_param("jobTemplateId"),
+            description=self._get_param("description"),
+            document_source=self._get_param("documentSource"),
+            document=self._get_param("document"),
+            presigned_url_config=self._get_param("presignedUrlConfig"),
+            job_executions_rollout_config=self._get_param("jobExecutionsRolloutConfig"),
+            abort_config=self._get_param("abortConfig"),
+            job_execution_retry_config=self._get_param("jobExecutionsRetryConfig"),
+            timeout_config=self._get_param("timeoutConfig"),
+        )
+
+        return json.dumps(
+            dict(
+                jobTemplateArn=job_template.job_template_arn,
+                jobTemplateId=job_template.job_template_id,
+            )
+        )
+
+    def list_job_templates(self) -> str:
+        max_results = self._get_int_param("maxResults", 50)
+        current_next_token = self._get_param("nextToken")
+        job_templates, future_next_token = self.iot_backend.list_job_templates(
+            max_results=max_results, next_token=current_next_token
+        )
+
+        return json.dumps(dict(jobTemplates=job_templates, nextToken=future_next_token))
+
+    def delete_job_template(self) -> str:
+        job_template_id = self._get_param("jobTemplateId")
+
+        self.iot_backend.delete_job_template(job_template_id=job_template_id)
+
+        return json.dumps(dict())
+
+    def describe_job_template(self) -> str:
+        job_template_id = self._get_param("jobTemplateId")
+        job_template = self.iot_backend.describe_job_template(job_template_id)
+
+        return json.dumps(
+            {
+                "jobTemplateArn": job_template.job_template_arn,
+                "jobTemplateId": job_template.job_template_id,
+                "description": job_template.description,
+                "documentSource": job_template.document_source,
+                "document": job_template.document,
+                "createdAt": job_template.created_at,
+                "presignedUrlConfig": job_template.presigned_url_config,
+                "jobExecutionsRolloutConfig": job_template.job_executions_rollout_config,
+                "abortConfig": job_template.abort_config,
+                "timeoutConfig": job_template.timeout_config,
+                "jobExecutionsRetryConfig": job_template.job_execution_retry_config,
+            }
+        )

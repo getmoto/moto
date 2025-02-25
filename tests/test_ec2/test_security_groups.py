@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2 import ec2_backends
+from tests import aws_verified
 
 REGION = "us-east-1"
 
@@ -84,6 +85,9 @@ def test_create_and_describe_vpc_security_group():
 
     assert group_with.group_name == name
     assert group_with.description == "test"
+    assert group_with.security_group_arn.startswith(
+        f"arn:aws:ec2:{REGION}:{DEFAULT_ACCOUNT_ID}:security-group/sg-"
+    )
 
     # Trying to create another group with the same name in the same VPC should
     # throw an error
@@ -132,17 +136,30 @@ def test_create_two_security_groups_with_same_name_in_different_vpc():
     assert name in group_names
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_create_two_security_groups_in_vpc_with_ipv6_enabled():
     ec2 = boto3.resource("ec2", region_name=REGION)
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16", AmazonProvidedIpv6CidrBlock=True)
+    security_group = None
 
-    security_group = ec2.create_security_group(
-        GroupName=str(uuid4()), Description="Test security group sg01", VpcId=vpc.id
-    )
+    try:
+        security_group = ec2.create_security_group(
+            GroupName=str(uuid4()), Description="Test", VpcId=vpc.id
+        )
 
-    # The security group must have two defaul egress rules (one for ipv4 and aonther for ipv6)
-    assert len(security_group.ip_permissions_egress) == 2
+        # The security group must have one egress rule with an IP range for ipv4 and ipv6
+        assert len(security_group.ip_permissions_egress) == 1
+        assert security_group.ip_permissions_egress[0]["IpRanges"] == [
+            {"CidrIp": "0.0.0.0/0"}
+        ]
+        assert security_group.ip_permissions_egress[0]["Ipv6Ranges"] == [
+            {"CidrIpv6": "::/0"}
+        ]
+    finally:
+        if security_group:
+            security_group.delete()
+        vpc.delete()
 
 
 @mock_aws
@@ -670,6 +687,7 @@ def test_create_and_describe_security_grp_rule():
         Description="Test SG", GroupName=sg_name, VpcId=vpc.id
     )
 
+    # check that the default rule is present using filters
     response = client.describe_security_group_rules(
         Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
     )
@@ -678,11 +696,21 @@ def test_create_and_describe_security_grp_rule():
     # Only the default rule is present
     assert len(rules) == 1
 
+    def _verify_egress_rule(rule):
+        assert rule["IsEgress"] is True
+        assert rule["IpProtocol"] == "-1"
+        assert rule["CidrIpv4"] == "0.0.0.0/0"
+        assert "GroupId" in rule
+
     # Test default egress rule content
-    assert rules[0]["IsEgress"] is True
-    assert rules[0]["IpProtocol"] == "-1"
-    assert rules[0]["CidrIpv4"] == "0.0.0.0/0"
-    assert "GroupId" in rules[0]
+    _verify_egress_rule(rules[0])
+
+    # check that the default rule is present using security group rule ids
+    response = client.describe_security_group_rules(
+        SecurityGroupRuleIds=[rules[0]["SecurityGroupRuleId"]]
+    )
+    rules = response["SecurityGroupRules"]
+    _verify_egress_rule(rules[0])
 
 
 @mock_aws
@@ -868,7 +896,6 @@ def test_description_in_ip_permissions():
     assert result["SecurityGroupRules"][1]["FromPort"] == 27017
     assert result["SecurityGroupRules"][1]["ToPort"] == 27018
 
-    assert result["SecurityGroupRules"][2]["Description"] == ""
     assert result["SecurityGroupRules"][2]["IsEgress"] is True
     assert result["SecurityGroupRules"][2]["FromPort"] == -1
     assert result["SecurityGroupRules"][2]["ToPort"] == -1
@@ -2025,3 +2052,285 @@ def test_invalid_security_group_id_in_rules_search():
         Filters=[{"Name": "group-id", "Values": [group_id]}]
     )
     assert len(response["SecurityGroupRules"]) == 1
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize("is_ingress", [True, False], ids=["ingress", "egress"])
+def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_ingress):
+    is_egress = not is_ingress
+    sts = boto3.client("sts", "us-east-1")
+    account_id = sts.get_caller_identity()["Account"]
+
+    ec2_client = boto3.client("ec2", "us-east-1")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/24")
+    vpc_id = vpc["Vpc"]["VpcId"]
+    sg_id = pl_id = None
+
+    try:
+        sg = ec2_client.create_security_group(
+            Description="test", GroupName=f"test_{str(uuid4())[0:6]}", VpcId=vpc_id
+        )
+        sg_id = sg["GroupId"]
+
+        prefix_list = ec2_client.create_managed_prefix_list(
+            PrefixListName=f"test{str(uuid4())[0:6]}",
+            AddressFamily="IPv4",
+            MaxEntries=1,
+        )
+        pl_id = prefix_list["PrefixList"]["PrefixListId"]
+
+        rules = [
+            # starting rule with tcp/22
+            (22, "tcp", {"IpRanges": [{"CidrIp": "10.0.0.0/24"}]}),
+            # keeping the port/protocol the same but changing the CIDR will NOT show up in describe_security_group_rules
+            (22, "tcp", {"IpRanges": [{"CidrIp": "10.0.1.0/24"}]}),
+            # changing just the port will show up in describe_security_group_rules
+            (80, "tcp", {"IpRanges": [{"CidrIp": "10.0.0.0/24"}]}),
+            # changing just the protocol will show up in describe_security_group_rules
+            (22, "udp", {"IpRanges": [{"CidrIp": "10.0.0.0/24"}]}),
+            # changing the port and protocol will show up in describe_security_group_rules
+            (-1, "-1", {"IpRanges": [{"CidrIp": "10.0.0.0/24"}]}),
+            #
+            # The same issues are present with IPv6 in that, with matching port/protocol to the original rule, it will be omitted from describe_security_group_rules
+            (22, "tcp", {"Ipv6Ranges": [{"CidrIpv6": "2001:db8::/32"}]}),
+            # changing the port to a new port will cause it to show up in describe_security_group_rules
+            # however, a the value cannot be seen. An empty `CidrIpv4` key is returned and the `CidrIpv6` key is not returned.
+            (443, "tcp", {"Ipv6Ranges": [{"CidrIpv6": "2001:db8::/64"}]}),
+            #
+            # The same issues are present with PrefixListIds in that, with matching port/protocol to the original rule, it will be omitted from describe_security_group_rules
+            (22, "tcp", {"PrefixListIds": [{"PrefixListId": pl_id}]}),
+            # changing the port to a new port will cause it to show up in describe_security_group_rules
+            # however there is no indication that the rule is for a prefix list.
+            (8080, "tcp", {"PrefixListIds": [{"PrefixListId": pl_id}]}),
+            #
+            # the same issues are present with security group references in that, with matching port/protocol to the original rule, it will be omitted from describe_security_group_rules
+            (22, "tcp", {"UserIdGroupPairs": [{"GroupId": sg_id}]}),
+            # changing the port to a new port will cause it to show up in describe_security_group_rules
+            # however there is no indication of this pointing to itself as a target.
+            (25, "tcp", {"UserIdGroupPairs": [{"GroupId": sg_id}]}),
+        ]
+        method = (
+            ec2_client.authorize_security_group_ingress
+            if is_ingress
+            else ec2_client.authorize_security_group_egress
+        )
+        for rule in rules:
+            method(
+                GroupId=sg_id,
+                IpPermissions=[
+                    {
+                        "FromPort": rule[0],
+                        "IpProtocol": rule[1],
+                        "ToPort": rule[0],
+                        **rule[2],
+                    }
+                ],
+            )
+        created_rules = ec2_client.describe_security_group_rules(
+            Filters=[{"Name": "group-id", "Values": [sg_id]}]
+        )["SecurityGroupRules"]
+        for rule in created_rules:
+            rule.pop("GroupOwnerId", None)
+            rule.pop("Tags", None)
+            rule.pop("SecurityGroupRuleArn", None)
+            rule.pop("SecurityGroupRuleId", None)
+            del rule["GroupId"]
+
+        assert {
+            "CidrIpv6": "2001:db8::/64",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ToPort": 443,
+        } in created_rules
+        assert {
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ReferencedGroupInfo": {"GroupId": sg_id, "UserId": account_id},
+            "ToPort": 22,
+        } in created_rules
+        assert {
+            "FromPort": 25,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ReferencedGroupInfo": {"GroupId": sg_id, "UserId": account_id},
+            "ToPort": 25,
+        } in created_rules
+        assert {
+            "CidrIpv4": "10.0.0.0/24",
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ToPort": 22,
+        } in created_rules
+        assert {
+            "CidrIpv4": "10.0.0.0/24",
+            "FromPort": -1,
+            "IpProtocol": "-1",
+            "IsEgress": is_egress,
+            "ToPort": -1,
+        } in created_rules
+        assert {
+            "FromPort": 8080,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "PrefixListId": pl_id,
+            "ToPort": 8080,
+        } in created_rules
+        assert {
+            "CidrIpv6": "2001:db8::/32",
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ToPort": 22,
+        } in created_rules
+        assert {
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "PrefixListId": pl_id,
+            "ToPort": 22,
+        } in created_rules
+        assert {
+            "CidrIpv4": "10.0.0.0/24",
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ToPort": 80,
+        } in created_rules
+        assert {
+            "CidrIpv4": "10.0.1.0/24",
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IsEgress": is_egress,
+            "ToPort": 22,
+        } in created_rules
+        assert {
+            "CidrIpv4": "0.0.0.0/0",
+            "FromPort": -1,
+            "IpProtocol": "-1",
+            "IsEgress": True,
+            "ToPort": -1,
+        } in created_rules
+        assert {
+            "CidrIpv4": "10.0.0.0/24",
+            "FromPort": 22,
+            "IpProtocol": "udp",
+            "IsEgress": is_egress,
+            "ToPort": 22,
+        } in created_rules
+
+        groups = ec2_client.describe_security_groups(GroupIds=[sg_id])[
+            "SecurityGroups"
+        ][0]
+        permissions = groups["IpPermissions"]
+        permissions_egress = groups["IpPermissionsEgress"]
+        # Drop empty fields
+        permissions = [{k: p[k] for k in p if p[k]} for p in permissions]
+        permissions_egress = [{k: p[k] for k in p if p[k]} for p in permissions_egress]
+
+        if is_ingress:
+            assert len(permissions) == 7
+            assert {
+                "FromPort": 80,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}],
+                "ToPort": 80,
+            } in permissions
+            assert {
+                "FromPort": 8080,
+                "IpProtocol": "tcp",
+                "PrefixListIds": [{"PrefixListId": pl_id}],
+                "ToPort": 8080,
+            } in permissions
+            assert {
+                "IpProtocol": "-1",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}],
+            } in permissions
+            assert {
+                "FromPort": 22,
+                "IpProtocol": "udp",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}],
+                "ToPort": 22,
+            } in permissions
+            assert {
+                "FromPort": 22,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}, {"CidrIp": "10.0.1.0/24"}],
+                "Ipv6Ranges": [{"CidrIpv6": "2001:db8::/32"}],
+                "PrefixListIds": [{"PrefixListId": pl_id}],
+                "ToPort": 22,
+                "UserIdGroupPairs": [{"GroupId": sg_id, "UserId": account_id}],
+            } in permissions
+            assert {
+                "FromPort": 25,
+                "IpProtocol": "tcp",
+                "ToPort": 25,
+                "UserIdGroupPairs": [{"GroupId": sg_id, "UserId": account_id}],
+            } in permissions
+            assert {
+                "FromPort": 443,
+                "IpProtocol": "tcp",
+                "Ipv6Ranges": [{"CidrIpv6": "2001:db8::/64"}],
+                "ToPort": 443,
+            } in permissions
+
+            assert permissions_egress == [
+                {"IpProtocol": "-1", "IpRanges": [{"CidrIp": "0.0.0.0/0"}]}
+            ]
+        if is_egress:
+            assert len(permissions) == 0
+            assert len(permissions_egress) == 7
+
+            assert {
+                "FromPort": 80,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}],
+                "ToPort": 80,
+            } in permissions_egress
+            assert {
+                "FromPort": 8080,
+                "IpProtocol": "tcp",
+                "PrefixListIds": [{"PrefixListId": pl_id}],
+                "ToPort": 8080,
+            } in permissions_egress
+            assert {
+                "IpProtocol": "-1",
+                "IpRanges": [{"CidrIp": "0.0.0.0/0"}, {"CidrIp": "10.0.0.0/24"}],
+            } in permissions_egress
+            assert {
+                "FromPort": 22,
+                "IpProtocol": "udp",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}],
+                "ToPort": 22,
+            } in permissions_egress
+            assert {
+                "FromPort": 22,
+                "IpProtocol": "tcp",
+                "IpRanges": [{"CidrIp": "10.0.0.0/24"}, {"CidrIp": "10.0.1.0/24"}],
+                "Ipv6Ranges": [{"CidrIpv6": "2001:db8::/32"}],
+                "PrefixListIds": [{"PrefixListId": pl_id}],
+                "ToPort": 22,
+                "UserIdGroupPairs": [{"GroupId": sg_id, "UserId": account_id}],
+            } in permissions_egress
+            assert {
+                "FromPort": 25,
+                "IpProtocol": "tcp",
+                "ToPort": 25,
+                "UserIdGroupPairs": [{"GroupId": sg_id, "UserId": account_id}],
+            } in permissions_egress
+            assert {
+                "FromPort": 443,
+                "IpProtocol": "tcp",
+                "Ipv6Ranges": [{"CidrIpv6": "2001:db8::/64"}],
+                "ToPort": 443,
+            } in permissions_egress
+
+    finally:
+        if pl_id:
+            ec2_client.delete_managed_prefix_list(PrefixListId=pl_id)
+        if sg_id:
+            ec2_client.delete_security_group(GroupId=sg_id)
+        ec2_client.delete_vpc(VpcId=vpc_id)

@@ -57,7 +57,7 @@ rds
 - [X] delete_db_instance
 - [ ] delete_db_instance_automated_backup
 - [X] delete_db_parameter_group
-- [ ] delete_db_proxy
+- [X] delete_db_proxy
 - [ ] delete_db_proxy_endpoint
 - [ ] delete_db_security_group
 - [ ] delete_db_shard_group
@@ -68,7 +68,7 @@ rds
 - [ ] delete_integration
 - [X] delete_option_group
 - [ ] delete_tenant_database
-- [ ] deregister_db_proxy_targets
+- [X] deregister_db_proxy_targets
 - [ ] describe_account_attributes
 - [ ] describe_blue_green_deployments
 - [ ] describe_certificates
@@ -81,9 +81,9 @@ rds
 - [X] describe_db_cluster_snapshots
 - [X] describe_db_clusters
 - [ ] describe_db_engine_versions
-- [ ] describe_db_instance_automated_backups
+- [X] describe_db_instance_automated_backups
 - [X] describe_db_instances
-- [ ] describe_db_log_files
+- [X] describe_db_log_files
 - [X] describe_db_parameter_groups
 - [ ] describe_db_parameters
 - [X] describe_db_proxies
@@ -92,8 +92,8 @@ rds
         
 
 - [ ] describe_db_proxy_endpoints
-- [ ] describe_db_proxy_target_groups
-- [ ] describe_db_proxy_targets
+- [X] describe_db_proxy_target_groups
+- [X] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
 - [ ] describe_db_shard_groups
@@ -105,7 +105,7 @@ rds
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
-- [ ] describe_events
+- [X] describe_events
 - [X] describe_export_tasks
 - [X] describe_global_clusters
 - [ ] describe_integrations
@@ -125,7 +125,7 @@ rds
 - [ ] disable_http_endpoint
 - [ ] download_db_log_file_portion
 - [ ] enable_http_endpoint
-- [ ] failover_db_cluster
+- [X] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
 - [ ] modify_activity_stream
@@ -140,7 +140,7 @@ rds
 - [X] modify_db_parameter_group
 - [ ] modify_db_proxy
 - [ ] modify_db_proxy_endpoint
-- [ ] modify_db_proxy_target_group
+- [X] modify_db_proxy_target_group
 - [ ] modify_db_recommendation
 - [ ] modify_db_shard_group
 - [ ] modify_db_snapshot
@@ -157,7 +157,7 @@ rds
 - [ ] reboot_db_cluster
 - [X] reboot_db_instance
 - [ ] reboot_db_shard_group
-- [ ] register_db_proxy_targets
+- [X] register_db_proxy_targets
 - [X] remove_from_global_cluster
 - [ ] remove_role_from_db_cluster
 - [ ] remove_role_from_db_instance
@@ -167,7 +167,7 @@ rds
 - [ ] reset_db_parameter_group
 - [ ] restore_db_cluster_from_s3
 - [X] restore_db_cluster_from_snapshot
-- [ ] restore_db_cluster_to_point_in_time
+- [X] restore_db_cluster_to_point_in_time
 - [X] restore_db_instance_from_db_snapshot
 - [ ] restore_db_instance_from_s3
 - [X] restore_db_instance_to_point_in_time

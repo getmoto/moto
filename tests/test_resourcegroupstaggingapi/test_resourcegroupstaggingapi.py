@@ -1,10 +1,12 @@
 import json
+import typing
 
 import boto3
 import pytest
 from botocore.client import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.test_ds.test_ds_simple_ad_directory import create_test_directory
 
@@ -332,20 +334,32 @@ def test_get_resources_ec2():
 def test_get_resources_ec2_vpc():
     ec2 = boto3.resource("ec2", region_name="us-west-2")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    ec2.create_tags(Resources=[vpc.id], Tags=[{"Key": "test", "Value": "test"}])
-
-    def assert_response(resp):
-        results = resp.get("ResourceTagMappingList", [])
-        assert len(results) == 1
-        assert vpc.id in results[0]["ResourceARN"]
+    ec2.create_tags(Resources=[vpc.id], Tags=[{"Key": "test", "Value": "test_vpc"}])
+    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.1.0/24")
+    ec2.create_tags(
+        Resources=[subnet.id], Tags=[{"Key": "test", "Value": "test_subnet"}]
+    )
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+    # Check that we have one entry for VPC, one for the subnet
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2"])
-    assert_response(resp)
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # 1 Entry for VPC
     resp = rtapi.get_resources(ResourceTypeFilters=["ec2:vpc"])
-    assert_response(resp)
-    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test"]}])
-    assert_response(resp)
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "vpc/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test_vpc"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "vpc/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+    # 1 Entry for Subnet
+    resp = rtapi.get_resources(ResourceTypeFilters=["ec2:subnet"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "subnet/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    resp = rtapi.get_resources(TagFilters=[{"Key": "test", "Values": ["test_subnet"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert "subnet/" in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
 @mock_aws
@@ -1163,3 +1177,122 @@ def test_get_resources_efs():
     assert fs_two["FileSystemArn"] in returned_arns
     assert ap_one["AccessPointArn"] not in returned_arns
     assert ap_two["AccessPointArn"] in returned_arns
+
+
+@mock_aws
+def test_get_resources_stepfunction():
+    simple_definition = (
+        '{"Comment": "An example of the Amazon States Language using a choice state.",'
+        '"StartAt": "DefaultState",'
+        '"States": '
+        '{"DefaultState": {"Type": "Fail","Error": "DefaultStateError","Cause": "No Matches!"}}}'
+    )
+    role_arn = "arn:aws:iam::" + ACCOUNT_ID + ":role/unknown_sf_role"
+
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+    client.create_state_machine(
+        name="name1",
+        definition=str(simple_definition),
+        roleArn=role_arn,
+        tags=[{"key": "Name", "value": "Alice"}],
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["states:stateMachine"])
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Name", "Value": "Alice"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
+def test_get_resources_workspacesweb():
+    ww_client = boto3.client("workspaces-web", region_name="ap-southeast-1")
+    arn = ww_client.create_portal(
+        additionalEncryptionContext={"Key1": "Encryption", "Key2": "Context"},
+        authenticationType="Standard",
+        clientToken="TestClient",
+        customerManagedKey="abcd1234-5678-90ab-cdef-FAKEKEY",
+        displayName="TestDisplayName",
+        instanceType="TestInstanceType",
+        maxConcurrentSessions=5,
+        tags=[
+            {"Key": "TestKey", "Value": "TestValue"},
+            {"Key": "TestKey2", "Value": "TestValue2"},
+        ],
+    )["portalArn"]
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="ap-southeast-1")
+    resp = rtapi.get_resources(ResourceTypeFilters=["workspaces-web"])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "TestKey", "Value": "TestValue"} in resp["ResourceTagMappingList"][
+        0
+    ]["Tags"]
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["workspaces-web"],
+        TagFilters=[{"Key": "TestKey3", "Values": ["TestValue3"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 0
+    ww_client.tag_resource(
+        resourceArn=arn, tags=[{"Key": "TestKey3", "Value": "TestValue3"}]
+    )
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["workspaces-web"],
+        TagFilters=[{"Key": "TestKey3", "Values": ["TestValue3"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+
+
+@pytest.mark.parametrize("resource_type", ["secretsmanager", "secretsmanager:secret"])
+@mock_aws
+def test_get_resources_secretsmanager(resource_type):
+    def assert_tagging_works(region_name: str, regional_response_keys: typing.Set[str]):
+        rtapi = boto3.client("resourcegroupstaggingapi", region_name=region_name)
+        resp = rtapi.get_resources(
+            ResourcesPerPage=2, ResourceTypeFilters=[resource_type]
+        )
+        for resource in resp["ResourceTagMappingList"]:
+            regional_response_keys.remove(resource["Tags"][0]["Key"])
+
+        assert len(regional_response_keys) == 2
+
+        resp = rtapi.get_resources(
+            ResourcesPerPage=2,
+            PaginationToken=resp["PaginationToken"],
+            ResourceTypeFilters=[resource_type],
+        )
+        for resource in resp["ResourceTagMappingList"]:
+            regional_response_keys.remove(resource["Tags"][0]["Key"])
+
+        assert len(regional_response_keys) == 0
+
+    # Tests pagination
+    secretsmanager_client = boto3.client("secretsmanager", region_name="eu-central-1")
+
+    # Will end up having key1,key2,key3,key4
+    response_keys = set()
+
+    # Create 4 tagged secrets
+    for i in range(1, 5):
+        i_str = str(i)
+        secretsmanager_client.create_secret(
+            Name="test_secret" + i_str,
+            SecretString="very_secret",
+            AddReplicaRegions=[{"Region": "eu-west-1"}],
+        )
+        secretsmanager_client.tag_resource(
+            SecretId="test_secret" + i_str,
+            Tags=[{"Key": "key" + i_str, "Value": "value" + i_str}],
+        )
+        response_keys.add("key" + i_str)
+
+    # add an untagged secret to cover this case as well
+    secretsmanager_client: secretsmanager_client.create_secret(
+        Name="untagged_secret",
+        SecretString="very_secret",
+        AddReplicaRegions=[{"Region": "eu-west-1"}],
+    )
+
+    # Make sure it works for normal and replicated secrets
+    assert_tagging_works("eu-central-1", set(response_keys))
+    assert_tagging_works("eu-west-1", set(response_keys))

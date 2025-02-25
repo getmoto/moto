@@ -154,23 +154,54 @@ class CloudFormationResponse(BaseResponse):
                 return True
         return False
 
+    def validate_template_and_stack_body(self) -> None:
+        if (
+            self._get_param("TemplateBody") or self._get_param("TemplateURL")
+        ) and self._get_param("UsePreviousTemplate", "false").lower() == "true":
+            raise ValidationError(
+                message="An error occurred (ValidationError) when calling the CreateChangeSet operation: You cannot specify both usePreviousTemplate and Template Body/Template URL."
+            )
+        elif (
+            not self._get_param("TemplateBody")
+            and not self._get_param("TemplateURL")
+            and self._get_param("UsePreviousTemplate", "false").lower() == "false"
+        ):
+            raise ValidationError(
+                message="An error occurred (ValidationError) when calling the CreateChangeSet operation: Either Template URL or Template Body must be specified."
+            )
+
     def create_change_set(self) -> str:
         stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
+        update_or_create = self._get_param("ChangeSetType", "CREATE")
+        use_previous_template = (
+            self._get_param("UsePreviousTemplate", "false").lower() == "true"
+        )
+        if update_or_create == "UPDATE":
+            stack = self.cloudformation_backend.get_stack(stack_name)
+            self.validate_template_and_stack_body()
+
+            if use_previous_template:
+                stack_body = stack.template
         description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
-        update_or_create = self._get_param("ChangeSetType", "CREATE")
         parameters_list = self._get_list_prefix("Parameters.member")
         tags = dict(
             (item["key"], item["value"])
             for item in self._get_list_prefix("Tags.member")
         )
         parameters = {
-            param["parameter_key"]: param["parameter_value"]
+            param["parameter_key"]: stack.parameters[param["parameter_key"]]
+            if param.get("use_previous_value", "").lower() == "true"
+            and use_previous_template
+            else param["parameter_value"]
             for param in parameters_list
         }
+        if update_or_create == "UPDATE":
+            self._validate_different_update(parameters_list, stack_body, stack)
+
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
         stack_notification_arns = self._get_multi_param("NotificationARNs.member")
@@ -825,6 +856,9 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
           <member>
             <OutputKey>{{ output.key }}</OutputKey>
             <OutputValue>{{ output.value }}</OutputValue>
+            {% for export in stack.exports if export.value == output.value %}
+                <ExportName>{{ export.name }}</ExportName>
+            {% endfor %}
             {% if output.description %}<Description>{{ output.description }}</Description>{% endif %}
           </member>
         {% endfor %}
@@ -853,7 +887,7 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
             </member>
           {% endfor %}
         </Tags>
-        <EnableTerminationProtection>{{ stack.enable_termination_protection }}</EnableTerminationProtection>
+        <EnableTerminationProtection>{{ 'true' if stack.enable_termination_protection else 'false' }}</EnableTerminationProtection>
         {% if stack.timeout_in_mins %}
         <TimeoutInMinutes>{{ stack.timeout_in_mins }}</TimeoutInMinutes>
         {% endif %}

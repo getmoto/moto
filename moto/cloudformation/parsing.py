@@ -1,3 +1,4 @@
+import base64
 import collections.abc as collections_abc
 import copy
 import functools
@@ -46,6 +47,7 @@ from moto.elbv2 import models as elbv2_models  # noqa  # pylint: disable=all
 from moto.emr import models as emr_models  # noqa  # pylint: disable=all
 from moto.events import models as events_models  # noqa  # pylint: disable=all
 from moto.iam import models as iam_models  # noqa  # pylint: disable=all
+from moto.iot import models as iot_models  # noqa  # pylint: disable=all
 from moto.kinesis import models as kinesis_models  # noqa  # pylint: disable=all
 from moto.kms import models as kms_models  # noqa  # pylint: disable=all
 from moto.rds import models as rds_models  # noqa  # pylint: disable=all
@@ -244,6 +246,10 @@ def clean_json(resource_json: Any, resources_map: "ResourceMap") -> Any:
             for az in ("a", "b", "c", "d"):
                 result.append(f"{region}{az}")
             return result
+
+        if "Fn::Base64" in resource_json:
+            value = clean_json(resource_json["Fn::Base64"], resources_map)
+            return base64.b64encode(value.encode("utf-8")).decode("utf-8")
 
         if "Fn::ToJsonString" in resource_json:
             return json.dumps(

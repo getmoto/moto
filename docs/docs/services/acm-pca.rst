@@ -39,7 +39,7 @@ acm-pca
 - [X] import_certificate_authority_certificate
 - [X] issue_certificate
   
-        The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, TemplateArn, Validity, ValidityNotBefore, IdempotencyToken
+        The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, Validity, ValidityNotBefore, IdempotencyToken
         Some fields of the resulting certificate will have default values, instead of using the CSR
         
 

@@ -197,3 +197,16 @@ def test_global_region_defaults_to_aws() -> None:
 
     assert "aws" in s3[DEFAULT_ACCOUNT_ID]
     assert "global" in s3[DEFAULT_ACCOUNT_ID]
+
+
+def test_iterate_backend_dict() -> None:
+    ec2 = BackendDict(EC2Backend, "ec2")
+    _ = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    _ = ec2[DEFAULT_ACCOUNT_ID]["us-east-2"]
+
+    regions = {"us-east-1", "us-east-2"}
+    for account, region, backend in ec2.iter_backends():
+        assert isinstance(backend, EC2Backend)
+        assert region in regions
+        regions.remove(region)
+        assert account == DEFAULT_ACCOUNT_ID

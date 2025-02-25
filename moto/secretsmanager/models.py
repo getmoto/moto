@@ -26,7 +26,11 @@ from .list_secrets.filters import (
     tag_key,
     tag_value,
 )
-from .utils import get_secret_name_from_partial_arn, random_password, secret_arn
+from .utils import (
+    SecretsManagerSecretIdentifier,
+    get_secret_name_from_partial_arn,
+    random_password,
+)
 
 MAX_RESULTS_DEFAULT = 100
 
@@ -94,7 +98,9 @@ class FakeSecret:
     ):
         self.secret_id = secret_id
         self.name = secret_id
-        self.arn = secret_arn(account_id, region_name, secret_id)
+        self.arn = SecretsManagerSecretIdentifier(
+            account_id, region_name, secret_id
+        ).generate(tags=tags)
         self.account_id = account_id
         self.region = region_name
         self.secret_string = secret_string
@@ -715,7 +721,7 @@ class SecretsManagerBackend(BaseBackend):
 
         if rotation_lambda_arn:
             if len(rotation_lambda_arn) > 2048:
-                msg = "RotationLambdaARN " "must <= 2048 characters long."
+                msg = "RotationLambdaARN must <= 2048 characters long."
                 raise InvalidParameterException(msg)
 
         if rotation_rules:
@@ -754,30 +760,27 @@ class SecretsManagerBackend(BaseBackend):
             pass
 
         if secret.versions:
-            old_secret_version = secret.versions[secret.default_version_id]  # type: ignore
-
             if client_request_token:
                 self._client_request_token_validator(client_request_token)
                 new_version_id = client_request_token
             else:
                 new_version_id = str(mock_random.uuid4())
 
-            # We add the new secret version as "pending". The previous version remains
-            # as "current" for now. Once we've passed the new secret through the lambda
-            # rotation function (if provided) we can then update the status to "current".
-            old_secret_version_secret_string = (
-                old_secret_version["secret_string"]
-                if "secret_string" in old_secret_version
-                else None
-            )
-            self._add_secret(
-                secret_id,
-                old_secret_version_secret_string,
-                description=secret.description,
-                tags=secret.tags,
-                version_id=new_version_id,
-                version_stages=["AWSPENDING"],
-            )
+            # We add a "pending" stage. The previous version remains as "current" for now.
+            # Caller is responsible for creating the new secret in the Lambda
+            secret_version = {
+                "createdate": int(time.time()),
+                "version_id": new_version_id,
+                "version_stages": ["AWSPENDING"],
+            }
+            if not rotate_immediately:
+                if secret.secret_string is not None:
+                    secret_version["secret_string"] = secret.secret_string
+                if secret.secret_binary is not None:
+                    secret_version["secret_binary"] = secret.secret_binary
+
+            secret.remove_version_stages_from_old_versions(["AWSPENDING"])
+            secret.versions[new_version_id] = secret_version
 
         secret.rotation_requested = True
         secret.rotation_lambda_arn = rotation_lambda_arn or ""
@@ -820,7 +823,10 @@ class SecretsManagerBackend(BaseBackend):
                     headers=request_headers,
                     response_headers=response_headers,
                 )
-            secret.set_default_version_id(new_version_id)
+            if rotate_immediately:
+                # If we don't rotate, we only invoke the testSecret step
+                # This should be done with the existing (old) version ID
+                secret.set_default_version_id(new_version_id)
 
         elif secret.versions:
             # AWS will always require a Lambda ARN
@@ -901,9 +907,13 @@ class SecretsManagerBackend(BaseBackend):
         filters: List[Dict[str, Any]],
         max_results: int = MAX_RESULTS_DEFAULT,
         next_token: Optional[str] = None,
+        include_planned_deletion: bool = False,
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         secret_list: List[Dict[str, Any]] = []
         for secret in self.secrets.values():
+            if hasattr(secret, "deleted_date"):
+                if secret.deleted_date and not include_planned_deletion:
+                    continue
             if _matches(secret, filters):
                 secret_list.append(secret.to_dict())
 
@@ -914,7 +924,7 @@ class SecretsManagerBackend(BaseBackend):
     def delete_secret(
         self,
         secret_id: str,
-        recovery_window_in_days: int,
+        recovery_window_in_days: Optional[int],
         force_delete_without_recovery: bool,
     ) -> Tuple[str, str, float]:
         if recovery_window_in_days is not None and (
@@ -935,7 +945,9 @@ class SecretsManagerBackend(BaseBackend):
             if not force_delete_without_recovery:
                 raise SecretNotFoundException()
             else:
-                arn = secret_arn(self.account_id, self.region_name, secret_id=secret_id)
+                arn = SecretsManagerSecretIdentifier(
+                    self.account_id, self.region_name, secret_id=secret_id
+                ).generate()
                 name = secret_id
                 deletion_date = utcnow()
                 return arn, name, self._unix_time_secs(deletion_date)
@@ -948,7 +960,7 @@ class SecretsManagerBackend(BaseBackend):
                 msg = f"You can't delete secret {secret_id} that still has replica regions [{replica_regions}]"
                 raise InvalidParameterException(msg)
 
-            if secret.is_deleted():
+            if secret.is_deleted() and not force_delete_without_recovery:
                 raise InvalidRequestException(
                     "An error occurred (InvalidRequestException) when calling the DeleteSecret operation: You tried to \
                     perform the operation on a secret that's currently marked deleted."

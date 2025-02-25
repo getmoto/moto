@@ -1,6 +1,15 @@
 from moto.core.exceptions import JsonRESTError
 
 
+class DoesNotExistException(JsonRESTError):
+    code = 400
+
+    def __init__(self, window_id: str):
+        super().__init__(
+            "DoesNotExistException", f"Maintenance window {window_id} does not exist"
+        )
+
+
 class InvalidFilterKey(JsonRESTError):
     code = 400
 

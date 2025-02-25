@@ -1,6 +1,10 @@
 """ShieldBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List
+import random
+import string
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -13,6 +17,126 @@ from moto.shield.exceptions import (
     ValidationException,
 )
 from moto.utilities.tagging_service import TaggingService
+
+
+@dataclass
+class Limit:
+    type: str
+    max: int
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {"Type": self.type, "Max": self.max}
+
+
+@dataclass
+class ArbitraryPatternLimits:
+    max_members: int
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {"MaxMembers": self.max_members}
+
+
+@dataclass
+class PatternTypeLimits:
+    arbitrary_pattern_limits: ArbitraryPatternLimits
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {"ArbitraryPatternLimits": self.arbitrary_pattern_limits.to_dict()}
+
+
+@dataclass
+class ProtectionGroupLimits:
+    max_protection_groups: int
+    pattern_type_limits: PatternTypeLimits
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {
+            "MaxProtectionGroups": self.max_protection_groups,
+            "PatternTypeLimits": self.pattern_type_limits.to_dict(),
+        }
+
+
+@dataclass
+class ProtectionLimits:
+    protected_resource_type_limits: List[Limit]
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {
+            "ProtectedResourceTypeLimits": [
+                limit.to_dict() for limit in self.protected_resource_type_limits
+            ]
+        }
+
+
+@dataclass
+class SubscriptionLimits:
+    protection_limits: ProtectionLimits
+    protection_group_limits: ProtectionGroupLimits
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {
+            "ProtectionLimits": self.protection_limits.to_dict(),
+            "ProtectionGroupLimits": self.protection_group_limits.to_dict(),
+        }
+
+
+def default_subscription_limits() -> SubscriptionLimits:
+    protection_limits = ProtectionLimits(
+        protected_resource_type_limits=[
+            Limit(type="ELASTIC_IP_ADDRESS", max=100),
+            Limit(type="APPLICATION_LOAD_BALANCER", max=50),
+        ]
+    )
+    protection_group_limits = ProtectionGroupLimits(
+        max_protection_groups=20,
+        pattern_type_limits=PatternTypeLimits(
+            arbitrary_pattern_limits=ArbitraryPatternLimits(max_members=100)
+        ),
+    )
+    return SubscriptionLimits(
+        protection_limits=protection_limits,
+        protection_group_limits=protection_group_limits,
+    )
+
+
+@dataclass
+class Subscription:
+    account_id: str
+    start_time: datetime = field(default_factory=datetime.now)
+    end_time: datetime = field(
+        default_factory=lambda: datetime.now() + timedelta(days=365)
+    )
+    auto_renew: str = field(default="ENABLED")
+    limits: List[Limit] = field(
+        default_factory=lambda: [Limit(type="MitigationCapacityUnits", max=10000)]
+    )
+    proactive_engagement_status: str = field(default="ENABLED")
+    subscription_limits: SubscriptionLimits = field(
+        default_factory=default_subscription_limits
+    )
+    subscription_arn: str = field(default="")
+    time_commitment_in_seconds: int = field(default=31536000)
+
+    def __post_init__(self) -> None:
+        if self.subscription_arn == "":
+            subscription_id = "".join(random.choices(string.hexdigits[:16], k=12))
+            subscription_id_formatted = "-".join(
+                [subscription_id[i : i + 4] for i in range(0, 12, 4)]
+            )
+            self.subscription_arn = f"arn:aws:shield::{self.account_id}:subscription/{subscription_id_formatted}"
+        return
+
+    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+        return {
+            "StartTime": self.start_time.strftime("%d/%m/%Y, %H:%M:%S"),
+            "EndTime": self.end_time.strftime("%d/%m/%Y, %H:%M:%S"),
+            "TimeCommitmentInSeconds": self.time_commitment_in_seconds,
+            "AutoRenew": self.auto_renew,
+            "Limits": [limit.to_dict() for limit in self.limits],
+            "ProactiveEngagementStatus": self.proactive_engagement_status,
+            "SubscriptionLimits": self.subscription_limits.to_dict(),
+            "SubscriptionArn": self.subscription_arn,
+        }
 
 
 class Protection(BaseModel):
@@ -64,6 +188,7 @@ class ShieldBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.protections: Dict[str, Protection] = dict()
+        self.subscription: Optional[Subscription] = None
         self.tagger = TaggingService()
 
     def validate_resource_arn(self, resource_arn: str) -> None:
@@ -196,6 +321,15 @@ class ShieldBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def create_subscription(self) -> None:
+        self.subscription = Subscription(account_id=self.account_id)
+        return
+
+    def describe_subscription(self) -> Subscription:
+        if self.subscription is None:
+            raise ResourceNotFoundException("The subscription does not exist.")
+        return self.subscription
 
 
 shield_backends = BackendDict(ShieldBackend, "ec2")

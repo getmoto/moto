@@ -1,4 +1,5 @@
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import botocore
@@ -7,8 +8,8 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
-
-from .. import dynamodb_aws_verified
+from tests import allow_aws_request
+from tests.test_dynamodb import dynamodb_aws_verified
 
 table_schema = {
     "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
@@ -28,6 +29,50 @@ table_schema = {
         {"AttributeName": "gsiK1SortKey", "AttributeType": "S"},
     ],
 }
+
+
+class BaseTest:
+    @classmethod
+    def setup_class(cls, add_range=False):
+        if not allow_aws_request():
+            cls.mock = mock_aws()
+            cls.mock.start()
+        cls.client = boto3.client("dynamodb", region_name="us-east-1")
+        cls.table_name = "T" + str(uuid4())[0:6]
+        cls.has_range_key = add_range
+
+        dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+
+        # Create the DynamoDB table.
+        schema = [{"AttributeName": "pk", "KeyType": "HASH"}]
+        defs = [{"AttributeName": "pk", "AttributeType": "S"}]
+        if add_range:
+            schema.append({"AttributeName": "rk", "KeyType": "RANGE"})
+            defs.append({"AttributeName": "rk", "AttributeType": "S"})
+        dynamodb.create_table(
+            TableName=cls.table_name,
+            KeySchema=schema,
+            AttributeDefinitions=defs,
+            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+        )
+        waiter = cls.client.get_waiter("table_exists")
+        waiter.wait(TableName=cls.table_name)
+        cls.table = dynamodb.Table(cls.table_name)
+
+    def setup_method(self):
+        # Empty table between runs
+        items = self.table.scan()["Items"]
+        for item in items:
+            if self.has_range_key:
+                self.table.delete_item(Key={"pk": item["pk"], "rk": item["rk"]})
+            else:
+                self.table.delete_item(Key={"pk": item["pk"]})
+
+    @classmethod
+    def teardown_class(cls):
+        cls.client.delete_table(TableName=cls.table_name)
+        if not allow_aws_request():
+            cls.mock.stop()
 
 
 @mock_aws
@@ -122,14 +167,14 @@ def test_query_table_with_wrong_key_attribute_names_throws_exception():
     assert err["Message"] == "Query condition missed key schema element: partitionKey"
 
 
-@mock_aws
-def test_empty_expressionattributenames():
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_empty_expressionattributenames(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
-    ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = ddb.Table("test-table")
+    table = ddb.Table(table_name)
     with pytest.raises(ClientError) as exc:
+        # Note: provided key is wrong
+        # Empty ExpressionAttributeName is verified earlier, so that's the error we get
         table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
@@ -171,27 +216,57 @@ def test_empty_expressionattributenames_with_projection():
     assert err["Message"] == "ExpressionAttributeNames must not be empty"
 
 
-@mock_aws
-def test_update_item_range_key_set():
-    ddb = boto3.resource("dynamodb", region_name="us-east-1")
-
-    # Create the DynamoDB table.
-    table = ddb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"partitionKey": "the-key"},
-            UpdateExpression="ADD x :one SET a = :a ADD y :one",
-            ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+@pytest.mark.aws_verified
+class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
+    def test_multiple_add_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="ADD x :one SET a = :a ADD y :one",
+                ExpressionAttributeValues={":one": 1, ":a": "lore ipsum"},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
         )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        err["Message"]
-        == 'Invalid UpdateExpression: The "ADD" section can only be used once in an update expression;'
-    )
+
+    def test_multiple_remove_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="REMOVE #ulist[0] SET current_user = :current_user REMOVE some_param",
+                ExpressionAttributeNames={"#ulist": "user_list"},
+                ExpressionAttributeValues={":current_user": {"name": "Jane"}},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "REMOVE" section can only be used once in an update expression;'
+        )
+
+    def test_delete_and_add_on_same_set(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="ADD #stringSet :addSet DELETE #stringSet :deleteSet",
+                ExpressionAttributeNames={"#stringSet": "string_set"},
+                ExpressionAttributeValues={":addSet": {"c"}, ":deleteSet": {"a"}},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_delete_and_add_on_different_set(self):
+        self.table.update_item(
+            Key={"pk": "the-key"},
+            UpdateExpression="ADD #stringSet1 :addSet DELETE #stringSet2 :deleteSet",
+            ExpressionAttributeNames={"#stringSet1": "ss1", "#stringSet2": "ss2"},
+            ExpressionAttributeValues={":addSet": {"c"}, ":deleteSet": {"a"}},
+        )
 
 
 @pytest.mark.aws_verified
@@ -664,6 +739,44 @@ def test_update_item_with_duplicate_expressions(expression):
     assert item == {"pk": "example_id", "example_column": "example"}
 
 
+@pytest.mark.aws_verified
+class TestDuplicateProjectionExpressions(BaseTest):
+    def test_query_item_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.query(
+                KeyConditionExpression=Key("pk").eq("the-key"),
+                ProjectionExpression="body, subject, body",  # duplicate body
+            )
+        self._validate(exc)
+
+    def test_get_item_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.get_item(
+                Key={"pk": "the-key"},
+                ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+                ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+            )
+        self._validate(exc)
+
+    def test_scan_with_duplicate_path_in_projection_expressions(self):
+        with pytest.raises(ClientError) as exc:
+            TestDuplicateProjectionExpressions.table.scan(
+                FilterExpression=Key("forum_name").eq("the-key"),
+                ProjectionExpression="#rl, #rt, subject, subject",  # duplicate subject
+                ExpressionAttributeNames={"#rl": "body", "#rt": "attachment"},
+            )
+        self._validate(exc)
+
+    def _validate(self, exc):
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert "Invalid ProjectionExpression: " in err["Message"]
+        assert (
+            "Two document paths overlap with each other; must remove or rewrite one of these paths"
+            in err["Message"]
+        )
+
+
 @mock_aws
 def test_put_item_wrong_datatype():
     if settings.TEST_SERVER_MODE:
@@ -694,19 +807,15 @@ def test_put_item_wrong_datatype():
     assert err["Message"] == "NUMBER_VALUE cannot be converted to String"
 
 
-@mock_aws
-def test_put_item_empty_set():
+@dynamodb_aws_verified()
+@pytest.mark.aws_verified
+def test_put_item_empty_set(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    client.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "Key", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "Key", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    table = dynamodb.Table("test-table")
+
+    table = dynamodb.Table(table_name)
     with pytest.raises(ClientError) as exc:
-        table.put_item(Item={"Key": "some-irrelevant_key", "attr2": {"SS": set([])}})
+        table.put_item(Item={"pk": "some-irrelevant_key", "attr2": {"SS": set([])}})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
@@ -714,47 +823,16 @@ def test_put_item_empty_set():
         == "One or more parameter values were invalid: An number set  may not be empty"
     )
 
-
-@mock_aws
-def test_put_item_returns_old_item():
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    table = dynamodb.create_table(
-        TableName="test-table",
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
+    with pytest.raises(ClientError) as exc:
+        client.put_item(
+            TableName=table_name, Item={"pk": {"S": "foo"}, "stringSet": {"SS": []}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "One or more parameter values were invalid: An string set  may not be empty"
     )
-
-    table.put_item(Item={"pk": "foo", "bar": "baz"})
-
-    with pytest.raises(ClientError) as exc:
-        table.put_item(
-            Item={"pk": "foo", "bar": "quuz"},
-            ConditionExpression="attribute_not_exists(pk)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
-
-    table.put_item(Item={"pk": "foo", "bar": "baz"})
-
-    with pytest.raises(ClientError) as exc:
-        table.put_item(
-            Item={"pk": "foo", "bar": "quuz"},
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(pk)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {"pk": {"S": "foo"}, "bar": {"S": "baz"}}
 
 
 @mock_aws
@@ -770,7 +848,7 @@ def test_update_expression_with_trailing_comma():
 
     with pytest.raises(ClientError) as exc:
         table.update_item(
-            Key={"pk": "key", "sk": "sk"},
+            Key={"pk": "key"},
             # Trailing comma should be invalid
             UpdateExpression="SET #attr1 = :val1, #attr2 = :val2,",
             ExpressionAttributeNames={"#attr1": "attr1", "#attr2": "attr2"},
@@ -1229,53 +1307,101 @@ def test_query_with_missing_expression_attribute():
 
 
 @pytest.mark.aws_verified
+class TestReturnValuesOnConditionCheckFailure(BaseTest):
+    def setup_method(self):
+        super().setup_method()
+        self.table.put_item(
+            Item={"pk": "the-key", "subject": "123", "body": "some test msg"}
+        )
+
+    def test_put_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.put_item(
+                Item={"pk": "the-key", "bar": "quuz"},
+                ConditionExpression="attribute_not_exists(body)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_put_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.put_item(
+                Item={"pk": "the-key", "bar": "quuz"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_not_exists(body)",
+            )
+        self._assert_with_return_values(exc)
+
+    def test_update_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="set #lock = :lock",
+                ExpressionAttributeNames={"#lock": "lock"},
+                ExpressionAttributeValues={":lock": "sth"},
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_update_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="set #lock = :lock",
+                ExpressionAttributeNames={"#lock": "lock"},
+                ExpressionAttributeValues={":lock": "sth"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_with_return_values(exc)
+
+    def test_delete_item_does_not_return_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.delete_item(
+                Key={"pk": "the-key"},
+                ExpressionAttributeNames={"#lock": "lock"},
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_without_return_values(exc)
+
+    def test_delete_item_returns_old_item(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.delete_item(
+                Key={"pk": "the-key"},
+                ExpressionAttributeNames={"#lock": "lock"},
+                ReturnValuesOnConditionCheckFailure="ALL_OLD",
+                ConditionExpression="attribute_exists(#lock)",
+            )
+        self._assert_with_return_values(exc)
+
+    def _assert_without_return_values(self, exc):
+        resp = exc.value.response
+        assert resp["Error"] == {
+            "Message": "The conditional request failed",
+            "Code": "ConditionalCheckFailedException",
+        }
+        assert resp["message"] == "The conditional request failed"
+        assert "Item" not in resp
+
+    def _assert_with_return_values(self, exc):
+        resp = exc.value.response
+        assert resp["Error"] == {
+            "Message": "The conditional request failed",
+            "Code": "ConditionalCheckFailedException",
+        }
+        assert "message" not in resp
+        assert resp["Item"] == {
+            "pk": {"S": "the-key"},
+            "body": {"S": "some test msg"},
+            "subject": {"S": "123"},
+        }
+
+
+@pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_update_item_returns_old_item(table_name=None):
+def test_delete_item_returns_old_item(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.Table(table_name)
     table.put_item(Item={"pk": "mark", "lock": {"acquired_at": 123}})
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "mark"},
-            UpdateExpression="set #lock = :lock",
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ExpressionAttributeValues={":lock": {"acquired_at": 124}},
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert resp["message"] == "The conditional request failed"
-    assert "Item" not in resp
-
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "mark"},
-            UpdateExpression="set #lock = :lock",
-            ExpressionAttributeNames={
-                "#lock": "lock",
-                "#acquired_at": "acquired_at",
-            },
-            ExpressionAttributeValues={":lock": {"acquired_at": 123}},
-            ReturnValuesOnConditionCheckFailure="ALL_OLD",
-            ConditionExpression="attribute_not_exists(#lock.#acquired_at)",
-        )
-    resp = exc.value.response
-    assert resp["Error"] == {
-        "Message": "The conditional request failed",
-        "Code": "ConditionalCheckFailedException",
-    }
-    assert "message" not in resp
-    assert resp["Item"] == {
-        "lock": {"M": {"acquired_at": {"N": "123"}}},
-        "pk": {"S": "mark"},
-    }
 
 
 @pytest.mark.aws_verified
@@ -1455,3 +1581,38 @@ def test_delete_table():
         err.value.response["Error"]["Message"]
         == "1 validation error detected: Table 'test1' can't be deleted while DeletionProtectionEnabled is set to True"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=False)
+def test_provide_range_key_against_table_without_range_key(table_name=None):
+    ddb_client = boto3.client("dynamodb", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        ddb_client.get_item(
+            TableName=table_name, Key={"pk": {"S": "pk"}, "sk": {"S": "sk"}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
+
+    with pytest.raises(ClientError) as exc:
+        ddb_client.delete_item(
+            TableName=table_name, Key={"pk": {"S": "pk"}, "sk": {"S": "sk"}}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"
+
+    with pytest.raises(ClientError) as exc:
+        ddb_client.update_item(
+            TableName=table_name,
+            Key={
+                "pk": {"S": "x"},
+                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
+            },
+            UpdateExpression="set body=:New",
+            ExpressionAttributeValues={":New": {"S": "hello"}},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The provided key element does not match the schema"

@@ -1,11 +1,20 @@
 import json
+from time import sleep
 from unittest import SkipTest
+from uuid import uuid4
 
+import boto3
 import pytest
 
-from moto import settings
+from moto import mock_aws, settings
 
-from . import aws_verified, verify_execution_result
+from . import (
+    allow_aws_request,
+    aws_verified,
+    sfn_allow_dynamodb,
+    sfn_role_policy,
+    verify_execution_result,
+)
 
 
 @aws_verified
@@ -82,3 +91,89 @@ def test_state_machine_with_json_regex():
         "json_regex",
         exec_input=json.dumps(_input),
     )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_version_is_only_available_when_published():
+    from tests.test_stepfunctions.test_stepfunctions import simple_definition
+
+    iam = boto3.client("iam", region_name="us-east-1")
+    role_name = f"sfn_role_{str(uuid4())[0:6]}"
+    sfn_role = iam.create_role(
+        RoleName=role_name,
+        AssumeRolePolicyDocument=json.dumps(sfn_role_policy),
+        Path="/",
+    )["Role"]["Arn"]
+    iam.put_role_policy(
+        PolicyDocument=json.dumps(sfn_allow_dynamodb),
+        PolicyName="allowLambdaInvoke",
+        RoleName=role_name,
+    )
+
+    kms = boto3.client("kms", region_name="us-east-1")
+    kms_key_id = kms.create_key()["KeyMetadata"]["KeyId"]
+    sleep(10 if allow_aws_request() else 0)
+
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+
+    try:
+        name1 = f"sfn_name_{str(uuid4())[0:6]}"
+        encryption_config = {
+            "kmsDataKeyReusePeriodSeconds": 60,
+            "kmsKeyId": kms_key_id,
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
+        }
+        response = client.create_state_machine(
+            name=name1,
+            definition=simple_definition,
+            roleArn=sfn_role,
+            tracingConfiguration={"enabled": False},
+            loggingConfiguration={"level": "OFF"},
+            encryptionConfiguration=encryption_config,
+        )
+        assert "stateMachineVersionArn" not in response
+        arn1 = response["stateMachineArn"]
+
+        resp = client.update_state_machine(
+            stateMachineArn=arn1, publish=True, tracingConfiguration={"enabled": True}
+        )
+        assert resp["stateMachineVersionArn"] == f"{arn1}:1"
+
+        resp = client.update_state_machine(
+            stateMachineArn=arn1, tracingConfiguration={"enabled": False}
+        )
+        assert "stateMachineVersionArn" not in resp
+
+        name2 = f"sfn_name_{str(uuid4())[0:6]}"
+        response = client.create_state_machine(
+            name=name2, definition=simple_definition, roleArn=sfn_role, publish=True
+        )
+        arn2 = response["stateMachineArn"]
+        assert response["stateMachineVersionArn"] == f"{arn2}:1"
+
+        resp = client.update_state_machine(
+            stateMachineArn=arn2,
+            publish=True,
+            tracingConfiguration={"enabled": True},
+            loggingConfiguration={"level": "OFF"},
+        )
+        assert resp["stateMachineVersionArn"] == f"{arn2}:2"
+    finally:
+        client.delete_state_machine(stateMachineArn=arn1)
+        client.delete_state_machine(stateMachineArn=arn2)
+        iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")
+        iam.delete_role(RoleName=role_name)
+        kms.schedule_key_deletion(KeyId=kms_key_id, PendingWindowInDays=7)
+
+
+@mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
+def test_verify_template_with_credentials():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Don't need to test this in ServerMode")
+
+    def _verify_result(client, execution, execution_arn):
+        output = json.loads(execution["output"])
+        assert output["TableNames"] == []
+
+    verify_execution_result(_verify_result, "SUCCEEDED", "credentials")

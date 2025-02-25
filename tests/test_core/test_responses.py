@@ -280,7 +280,7 @@ def test_compression_gzip_in_s3() -> None:
     response = S3Response()
     response.setup_class(request, request.url, request.headers)
 
-    assert body == response.body.encode("utf-8")
+    assert body == response.body
 
 
 def _gzip_compress_body(body: str) -> bytes:

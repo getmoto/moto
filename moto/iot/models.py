@@ -1,9 +1,22 @@
 import hashlib
+import json
 import re
 import time
 from collections import OrderedDict
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Pattern, Tuple
+from json import JSONDecodeError
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Pattern,
+    Tuple,
+    Union,
+)
 
 from cryptography import x509
 from cryptography.hazmat._oid import NameOID
@@ -12,7 +25,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.common_models import BaseModel
+from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.settings import iot_use_valid_cert
@@ -21,6 +34,7 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     CertificateStateException,
+    ConflictException,
     DeleteConflictException,
     InvalidRequestException,
     InvalidStateTransitionException,
@@ -30,13 +44,13 @@ from .exceptions import (
     VersionConflictException,
     VersionsLimitExceededException,
 )
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, decapitalize_dict
 
 if TYPE_CHECKING:
     from moto.iotdata.models import FakeShadow
 
 
-class FakeThing(BaseModel):
+class FakeThing(CloudFormationModel):
     def __init__(
         self,
         thing_name: str,
@@ -46,6 +60,7 @@ class FakeThing(BaseModel):
         region_name: str,
     ):
         self.region_name = region_name
+        self.account_id = account_id
         self.thing_id = str(random.uuid4())
         self.thing_name = thing_name
         self.thing_type = thing_type
@@ -78,6 +93,8 @@ class FakeThing(BaseModel):
         include_default_client_id: bool = False,
         include_connectivity: bool = False,
         include_thing_id: bool = False,
+        include_thing_group_names: bool = False,
+        include_shadows_as_json: bool = False,
     ) -> Dict[str, Any]:
         obj = {
             "thingName": self.thing_name,
@@ -96,10 +113,126 @@ class FakeThing(BaseModel):
             }
         if include_thing_id:
             obj["thingId"] = self.thing_id
+        if include_thing_group_names:
+            iot_backend = iot_backends[self.account_id][self.region_name]
+            obj["thingGroupNames"] = [
+                thing_group.thing_group_name
+                for thing_group in iot_backend.list_thing_groups(None, None, None)
+                if self.arn in thing_group.things
+            ]
+        if include_shadows_as_json:
+            named_shadows = {
+                shadow_name: shadow.to_dict()
+                for shadow_name, shadow in self.thing_shadows.items()
+                if shadow_name is not None
+            }
+            converted_response_format = {
+                shadow_name: {
+                    **shadow_data["state"],
+                    "metadata": shadow_data["metadata"],
+                    "version": shadow_data["version"],
+                    "hasDelta": "delta" in shadow_data["state"],
+                }
+                for shadow_name, shadow_data in named_shadows.items()
+            }
+            obj["shadow"] = json.dumps({"name": converted_response_format})
         return obj
 
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "Thing"
 
-class FakeThingType(BaseModel):
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::Thing"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+            "Id",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.thing_id
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeThing":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        thing_name = properties.get("ThingName", resource_name)
+        attribute_payload = properties.get("AttributePayload", "")
+        try:
+            attributes = json.loads(attribute_payload)
+        except JSONDecodeError:
+            attributes = None
+
+        return iot_backend.create_thing(
+            thing_name=thing_name, thing_type_name="", attribute_payload=attributes
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeThing",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeThing":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        thing_name = properties.get("ThingName", new_resource_name)
+        attribute_payload = properties.get("AttributePayload", "")
+        try:
+            attributes = json.loads(attribute_payload)
+        except JSONDecodeError:
+            attributes = None
+
+        if thing_name != original_resource.thing_name:
+            iot_backend.delete_thing(original_resource.thing_name)
+            return cls.create_from_cloudformation_json(
+                new_resource_name, cloudformation_json, account_id, region_name
+            )
+        else:
+            iot_backend.update_thing(
+                thing_name=thing_name,
+                thing_type_name="",
+                attribute_payload=attributes,
+                remove_thing_type=False,
+            )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        thing_name = properties.get("ThingName", resource_name)
+
+        iot_backend.delete_thing(thing_name=thing_name)
+
+
+class FakeThingType(CloudFormationModel):
     def __init__(
         self,
         thing_type_name: str,
@@ -124,6 +257,80 @@ class FakeThingType(BaseModel):
             "thingTypeMetadata": self.metadata,
             "thingTypeArn": self.arn,
         }
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "ThingType"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::ThingType"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+            "Id",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.thing_type_id
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeThingType":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        thing_type_name = properties.get("ThingTypeName", resource_name)
+        thing_type_properties = properties.get("ThingTypeProperties", {})
+
+        type_name, type_arn = iot_backend.create_thing_type(
+            thing_type_name=thing_type_name, thing_type_properties=thing_type_properties
+        )
+        return iot_backend.thing_types[type_arn]
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeThingType",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeThingType":
+        iot_backend = iot_backends[account_id][region_name]
+
+        iot_backend.delete_thing_type(thing_type_name=original_resource.thing_type_name)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        thing_type_name = properties.get("ThingTypeName", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_thing_type(thing_type_name=thing_type_name)
 
 
 class FakeThingGroup(BaseModel):
@@ -283,7 +490,7 @@ class FakeCaCertificate(FakeCertificate):
         self.registration_config = registration_config
 
 
-class FakePolicy(BaseModel):
+class FakePolicy(CloudFormationModel):
     def __init__(
         self,
         name: str,
@@ -319,6 +526,90 @@ class FakePolicy(BaseModel):
 
     def to_dict(self) -> Dict[str, str]:
         return {"policyName": self.name, "policyArn": self.arn}
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "Policy"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::Policy"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+            "Id",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.name + "_" + str(self._max_version_id)
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakePolicy":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        policy_name = properties.get("PolicyName", resource_name)
+        policy_document = properties.get("PolicyDocument", {})
+
+        return iot_backend.create_policy(
+            policy_name=policy_name, policy_document=policy_document
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakePolicy",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakePolicy":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+        new_policy_name = properties.get("PolicyName", new_resource_name)
+        policy_document = properties.get("PolicyDocument", {})
+
+        if original_resource.name != new_policy_name:
+            iot_backend.delete_policy(policy_name=original_resource.name)
+            return iot_backend.create_policy(
+                policy_name=new_policy_name, policy_document=policy_document
+            )
+        else:
+            iot_backend.create_policy_version(
+                policy_name=original_resource.name,
+                policy_document=policy_document,
+                set_as_default=True,
+            )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        policy_name = properties.get("PolicyName", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_policy(policy_name=policy_name)
 
 
 class FakePolicyVersion:
@@ -387,6 +678,10 @@ class FakeJob(BaseModel):
         target_selection: str,
         job_executions_rollout_config: Dict[str, Any],
         document_parameters: Dict[str, str],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        scheduling_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
         account_id: str,
         region_name: str,
     ):
@@ -405,6 +700,10 @@ class FakeJob(BaseModel):
         self.presigned_url_config = presigned_url_config
         self.target_selection = target_selection
         self.job_executions_rollout_config = job_executions_rollout_config
+        self.abort_config = abort_config
+        self.job_execution_retry_config = job_execution_retry_config
+        self.scheduling_config = scheduling_config
+        self.timeout_config = timeout_config
         self.status = "QUEUED"  # IN_PROGRESS | CANCELED | COMPLETED
         self.comment: Optional[str] = None
         self.reason_code: Optional[str] = None
@@ -431,7 +730,7 @@ class FakeJob(BaseModel):
             "description": self.description,
             "presignedUrlConfig": self.presigned_url_config,
             "targetSelection": self.target_selection,
-            "jobExecutionsRolloutConfig": self.job_executions_rollout_config,
+            "timeoutConfig": self.timeout_config,
             "status": self.status,
             "comment": self.comment,
             "forceCanceled": self.force,
@@ -501,6 +800,139 @@ class FakeJobExecution(BaseModel):
                 "executionNumber": self.execution_number,
             },
         }
+
+
+class FakeJobTemplate(CloudFormationModel):
+    JOB_TEMPLATE_ID_REGEX_PATTERN = "[a-zA-Z0-9_-]+"
+    JOB_TEMPLATE_ID_REGEX = re.compile(JOB_TEMPLATE_ID_REGEX_PATTERN)
+
+    def __init__(
+        self,
+        job_template_id: str,
+        document_source: str,
+        document: str,
+        description: str,
+        presigned_url_config: Dict[str, Any],
+        job_executions_rollout_config: Dict[str, Any],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ):
+        if not self._job_template_id_matcher(job_template_id):
+            raise InvalidRequestException()
+
+        self.account_id = account_id
+        self.region_name = region_name
+        self.job_template_id = job_template_id
+        self.job_template_arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:jobtemplate/{job_template_id}"
+        self.document_source = document_source
+        self.document = document
+        self.description = description
+        self.presigned_url_config = presigned_url_config
+        self.job_executions_rollout_config = job_executions_rollout_config
+        self.abort_config = abort_config
+        self.job_execution_retry_config = job_execution_retry_config
+        self.timeout_config = timeout_config
+        self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
+
+    def to_dict(self) -> Dict[str, Union[str, float]]:
+        return {
+            "jobTemplateArn": self.job_template_arn,
+            "jobTemplateId": self.job_template_id,
+            "description": self.description,
+            "createdAt": self.created_at,
+        }
+
+    def _job_template_id_matcher(self, argument: str) -> bool:
+        return (
+            self.JOB_TEMPLATE_ID_REGEX.fullmatch(argument) is not None
+            and len(argument) <= 64
+        )
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "JobTemplate"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::JobTemplate"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "Arn",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.job_template_arn
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeJobTemplate":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        return iot_backend.create_job_template(
+            job_template_id=properties.get("JobTemplateId", resource_name),
+            document_source=properties.get("DocumentSource", ""),
+            document=properties.get("Document"),
+            description=properties.get("Description"),
+            presigned_url_config=decapitalize_dict(
+                properties.get("PresignedUrlConfig", {})
+            ),
+            job_executions_rollout_config=decapitalize_dict(
+                properties.get("JobExecutionsRolloutConfig", {})
+            ),
+            abort_config=decapitalize_dict(properties.get("AbortConfig", {})),
+            job_execution_retry_config=decapitalize_dict(
+                properties.get("JobExecutionsRetryConfig", {})
+            ),
+            timeout_config=decapitalize_dict(properties.get("TimeoutConfig", {})),
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeJobTemplate",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeJobTemplate":
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_job_template(
+            job_template_id=original_resource.job_template_id
+        )
+
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        job_template_id = properties.get("JobTemplateId", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_job_template(job_template_id=job_template_id)
 
 
 class FakeEndpoint(BaseModel):
@@ -646,11 +1078,191 @@ class FakeDomainConfiguration(BaseModel):
         }
 
 
+class FakeRoleAlias(CloudFormationModel):
+    def __init__(
+        self,
+        role_alias: str,
+        role_arn: str,
+        account_id: str,
+        region_name: str,
+        credential_duration_seconds: int = 3600,
+    ):
+        self.role_alias = role_alias
+        self.role_arn = role_arn
+        self.credential_duration_seconds = credential_duration_seconds
+        self.account_id = account_id
+        self.region_name = region_name
+        self.creation_date = time.time()
+        self.last_modified_date = self.creation_date
+        self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:rolealias/{role_alias}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "roleAlias": self.role_alias,
+            "roleAliasArn": self.arn,
+            "roleArn": self.role_arn,
+            "owner": self.account_id,
+            "credentialDurationSeconds": self.credential_duration_seconds,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "RoleAlias"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::RoleAlias"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in [
+            "RoleAliasArn",
+        ]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "RoleAliasArn":
+            return self.arn
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeRoleAlias":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json["Properties"]
+
+        role_alias_name = properties.get("RoleAlias", resource_name)
+        role_arn = properties.get("RoleArn")
+        credential_duration_seconds = properties.get("CredentialDurationSeconds", 3600)
+
+        return iot_backend.create_role_alias(
+            role_alias_name=role_alias_name,
+            role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeRoleAlias",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeRoleAlias":
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_role_alias(role_alias_name=original_resource.role_alias)
+        return cls.create_from_cloudformation_json(
+            new_resource_name, cloudformation_json, account_id, region_name
+        )
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        properties = cloudformation_json["Properties"]
+        role_alias_name = properties.get("RoleAlias", resource_name)
+
+        iot_backend = iot_backends[account_id][region_name]
+        iot_backend.delete_role_alias(role_alias_name=role_alias_name)
+
+
+@dataclass(frozen=True)
+class FakeConfigField:
+    name: str
+    type: str
+
+
+@dataclass(frozen=True)
+class FakeThingGroupIndexingConfiguration:
+    customFields: List[FakeConfigField] = field(default_factory=list)
+    managedFields: List[FakeConfigField] = field(default_factory=list)
+    thingGroupIndexingMode: str = "OFF"
+
+
+@dataclass(frozen=True)
+class FakeThingIndexingConfigurationFilterGeoLocations:
+    name: str
+    order: str
+
+
+@dataclass(frozen=True)
+class FakeThingIndexingConfigurationFilter:
+    geoLocations: List[FakeThingIndexingConfigurationFilterGeoLocations] = field(
+        default_factory=list
+    )
+    namedShadowNames: List[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class FakeThingIndexingConfiguration:
+    customFields: List[FakeConfigField] = field(default_factory=list)
+    managedFields: List[FakeConfigField] = field(default_factory=list)
+    filter: FakeThingIndexingConfigurationFilter = field(
+        default_factory=FakeThingIndexingConfigurationFilter
+    )
+    deviceDefenderIndexingMode: str = "OFF"
+    namedShadowIndexingMode: str = "OFF"
+    thingConnectivityIndexingMode: str = "OFF"
+    thingIndexingMode: str = "OFF"
+
+
+@dataclass(frozen=True)
+class FakeIndexingConfigurationData:
+    thingGroupIndexingConfiguration: FakeThingGroupIndexingConfiguration = field(
+        default_factory=FakeThingGroupIndexingConfiguration
+    )
+    thingIndexingConfiguration: FakeThingIndexingConfiguration = field(
+        default_factory=FakeThingIndexingConfiguration
+    )
+
+
+class FakeIndexingConfiguration(BaseModel):
+    def __init__(self, region_name: str, account_id: str) -> None:
+        self.region_name = region_name
+        self.account_id = account_id
+        self.configuration = FakeIndexingConfigurationData()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self.configuration)
+
+    def update_configuration(
+        self,
+        thingIndexingConfiguration: Dict[str, Any],
+        thingGroupIndexingConfiguration: Dict[str, Any],
+    ) -> None:
+        self.configuration = replace(
+            self.configuration,
+            thingIndexingConfiguration=replace(
+                self.configuration.thingIndexingConfiguration,
+                **thingIndexingConfiguration,
+            ),
+            thingGroupIndexingConfiguration=replace(
+                self.configuration.thingGroupIndexingConfiguration,
+                **thingGroupIndexingConfiguration,
+            ),
+        )
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.things: Dict[str, FakeThing] = OrderedDict()
         self.jobs: Dict[str, FakeJob] = OrderedDict()
+        self.jobs_templates: Dict[str, FakeJobTemplate] = OrderedDict()
         self.job_executions: Dict[Tuple[str, str], FakeJobExecution] = OrderedDict()
         self.thing_types: Dict[str, FakeThingType] = OrderedDict()
         self.thing_groups: Dict[str, FakeThingGroup] = OrderedDict()
@@ -664,8 +1276,10 @@ class IoTBackend(BaseBackend):
             OrderedDict()
         )
         self.rules: Dict[str, FakeRule] = OrderedDict()
+        self.role_aliases: Dict[str, FakeRoleAlias] = OrderedDict()
         self.endpoint: Optional[FakeEndpoint] = None
         self.domain_configurations: Dict[str, FakeDomainConfiguration] = OrderedDict()
+        self.indexing_configuration = FakeIndexingConfiguration(region_name, account_id)
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1631,19 +2245,27 @@ class IoTBackend(BaseBackend):
         target_selection: str,
         job_executions_rollout_config: Dict[str, Any],
         document_parameters: Dict[str, str],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        scheduling_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
     ) -> Tuple[str, str, str]:
         job = FakeJob(
-            job_id,
-            targets,
-            document_source,
-            document,
-            description,
-            presigned_url_config,
-            target_selection,
-            job_executions_rollout_config,
-            document_parameters,
-            self.account_id,
-            self.region_name,
+            job_id=job_id,
+            targets=targets,
+            document_source=document_source,
+            document=document,
+            description=description,
+            presigned_url_config=presigned_url_config,
+            target_selection=target_selection,
+            job_executions_rollout_config=job_executions_rollout_config,
+            abort_config=abort_config,
+            job_execution_retry_config=job_execution_retry_config,
+            scheduling_config=scheduling_config,
+            timeout_config=timeout_config,
+            document_parameters=document_parameters,
+            account_id=self.account_id,
+            region_name=self.region_name,
         )
         self.jobs[job_id] = job
 
@@ -1691,28 +2313,12 @@ class IoTBackend(BaseBackend):
     def get_job_document(self, job_id: str) -> FakeJob:
         return self.jobs[job_id]
 
-    def list_jobs(
-        self, max_results: int, token: Optional[str]
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_jobs(self) -> List[FakeJob]:
         """
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
         """
-        all_jobs = [_.to_dict() for _ in self.jobs.values()]
-        filtered_jobs = all_jobs
-
-        if token is None:
-            jobs = filtered_jobs[0:max_results]
-            next_token = str(max_results) if len(filtered_jobs) > max_results else None
-        else:
-            int_token = int(token)
-            jobs = filtered_jobs[int_token : int_token + max_results]
-            next_token = (
-                str(int_token + max_results)
-                if len(filtered_jobs) > int_token + max_results
-                else None
-            )
-
-        return jobs, next_token
+        return [_ for _ in self.jobs.values()]
 
     def describe_job_execution(
         self, job_id: str, thing_name: str, execution_number: int
@@ -1768,56 +2374,25 @@ class IoTBackend(BaseBackend):
         else:
             raise InvalidStateTransitionException()
 
+    @paginate(PAGINATION_MODEL)
     def list_job_executions_for_job(
-        self, job_id: str, status: str, max_results: int, token: Optional[str]
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        job_executions = [
-            self.job_executions[je].to_dict()
-            for je in self.job_executions
-            if je[0] == job_id
+        self, job_id: str, status: str
+    ) -> List[FakeJobExecution]:
+        return [
+            job_exec
+            for (_id, _), job_exec in self.job_executions.items()
+            if _id == job_id and (not status or job_exec.status == status)
         ]
-
-        if status is not None:
-            job_executions = list(
-                filter(
-                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
-                    job_executions,
-                )
-            )
-
-        if token is None:
-            job_executions = job_executions[0:max_results]
-            next_token = str(max_results) if len(job_executions) > max_results else None
-        else:
-            int_token = int(token)
-            job_executions = job_executions[int_token : int_token + max_results]
-            next_token = (
-                str(int_token + max_results)
-                if len(job_executions) > int_token + max_results
-                else None
-            )
-
-        return job_executions, next_token
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_executions_for_thing(
         self, thing_name: str, status: Optional[str]
-    ) -> List[Dict[str, Any]]:
-        job_executions = [
-            self.job_executions[je].to_dict()
-            for je in self.job_executions
-            if je[1] == thing_name
+    ) -> List[FakeJobExecution]:
+        return [
+            job_exec
+            for (_, name), job_exec in self.job_executions.items()
+            if name == thing_name and (not status or job_exec.status == status)
         ]
-
-        if status is not None:
-            job_executions = list(
-                filter(
-                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
-                    job_executions,
-                )
-            )
-
-        return job_executions
 
     def list_topic_rules(self) -> List[Dict[str, Any]]:
         return [r.to_dict() for r in self.rules.values()]
@@ -1942,7 +2517,123 @@ class IoTBackend(BaseBackend):
         things = [
             thing for thing in self.things.values() if thing.matches(query_string)
         ]
-        return [t.to_dict(include_connectivity=True) for t in things]
+        return [
+            t.to_dict(
+                include_connectivity=True,
+                include_thing_id=True,
+                include_thing_group_names=True,
+                include_shadows_as_json=True,
+            )
+            for t in things
+        ]
+
+    def create_role_alias(
+        self,
+        role_alias_name: str,
+        role_arn: str,
+        credential_duration_seconds: int = 3600,
+    ) -> FakeRoleAlias:
+        if role_alias_name in self.role_aliases:
+            current_role_alias = self.role_aliases[role_alias_name]
+            raise ResourceAlreadyExistsException(
+                f"RoleAlias cannot be created - already exists (name={role_alias_name})",
+                current_role_alias.role_alias,
+                current_role_alias.arn,
+            )
+        new_role_alias = FakeRoleAlias(
+            role_alias=role_alias_name,
+            role_arn=role_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            credential_duration_seconds=credential_duration_seconds,
+        )
+        self.role_aliases[role_alias_name] = new_role_alias
+        return new_role_alias
+
+    def list_role_aliases(self) -> Iterable[FakeRoleAlias]:
+        return self.role_aliases.values()
+
+    def describe_role_alias(self, role_alias_name: str) -> FakeRoleAlias:
+        if role_alias_name not in self.role_aliases:
+            raise ResourceNotFoundException(
+                f"RoleAlias not found (name= {role_alias_name})",
+            )
+        return self.role_aliases[role_alias_name]
+
+    def update_role_alias(
+        self,
+        role_alias_name: str,
+        role_arn: Optional[str] = None,
+        credential_duration_seconds: Optional[int] = None,
+    ) -> FakeRoleAlias:
+        role_alias = self.describe_role_alias(role_alias_name=role_alias_name)
+        if role_arn:
+            role_alias.role_arn = role_arn
+        if credential_duration_seconds:
+            role_alias.credential_duration_seconds = credential_duration_seconds
+        return role_alias
+
+    def delete_role_alias(self, role_alias_name: str) -> None:
+        self.describe_role_alias(role_alias_name=role_alias_name)
+        del self.role_aliases[role_alias_name]
+
+    def get_indexing_configuration(self) -> Dict[str, Any]:
+        return self.indexing_configuration.to_dict()
+
+    def update_indexing_configuration(
+        self,
+        thingIndexingConfiguration: Dict[str, Any],
+        thingGroupIndexingConfiguration: Dict[str, Any],
+    ) -> None:
+        self.indexing_configuration.update_configuration(
+            thingIndexingConfiguration, thingGroupIndexingConfiguration
+        )
+
+    def create_job_template(
+        self,
+        job_template_id: str,
+        document_source: str,
+        document: str,
+        description: str,
+        presigned_url_config: Dict[str, Any],
+        job_executions_rollout_config: Dict[str, Any],
+        abort_config: Dict[str, List[Dict[str, Any]]],
+        job_execution_retry_config: Dict[str, Any],
+        timeout_config: Dict[str, Any],
+    ) -> "FakeJobTemplate":
+        if job_template_id in self.jobs_templates:
+            raise ConflictException(job_template_id)
+
+        job_template = FakeJobTemplate(
+            job_template_id=job_template_id,
+            document_source=document_source,
+            document=document,
+            description=description,
+            presigned_url_config=presigned_url_config,
+            job_executions_rollout_config=job_executions_rollout_config,
+            abort_config=abort_config,
+            job_execution_retry_config=job_execution_retry_config,
+            timeout_config=timeout_config,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+
+        self.jobs_templates[job_template_id] = job_template
+        return job_template
+
+    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    def list_job_templates(self) -> List[Dict[str, Union[str, float]]]:
+        return [_.to_dict() for _ in self.jobs_templates.values()]
+
+    def delete_job_template(self, job_template_id: str) -> None:
+        if job_template_id not in self.jobs_templates:
+            raise ResourceNotFoundException(f"Job template {job_template_id} not found")
+        del self.jobs_templates[job_template_id]
+
+    def describe_job_template(self, job_template_id: str) -> FakeJobTemplate:
+        if job_template_id not in self.jobs_templates:
+            raise ResourceNotFoundException(f"Job template {job_template_id} not found")
+        return self.jobs_templates[job_template_id]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

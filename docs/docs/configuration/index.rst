@@ -16,7 +16,7 @@ If you are using the decorators, some options are configurable within the decora
         "core": {
             "mock_credentials": True,
             "passthrough": {
-                "urls": ["s3.amazonaws.com/bucket*"],
+                "urls": [r"s3.amazonaws.com/bucket*"],
                 "services": ["dynamodb"]
             },
             "reset_boto3_session": True,
@@ -40,7 +40,7 @@ Passthrough Requests
 
 Configure `mock_credentials: False` and `passthrough` if you want to only mock some services, but allow other requests to connect to AWS.
 
-You can either passthrough all requests to a specific service, or all URL's that match a specific pattern.
+You can either passthrough all requests to a specific service, or all URL's that match a specific regex.
 
 Reset Boto Session
 ------------------
@@ -58,9 +58,10 @@ Whitelist Services
 The `mock_aws` decorator will allow requests to all supported services. If you want to restrict this to only specific services, you can configure a service whitelist.
 For example, if you only want your application to use DynamoDB and S3:
 
-```
-mock_aws(config={"core": {"service_whitelist": ["dynamodb", "s3"]}})
-```
+.. sourcecode:: python
+
+    @mock_aws(config={"core": {"service_whitelist": ["dynamodb", "s3"]}})
+
 
 If the application under test tries to access any other services, Moto will throw a `ServiceNotWhitelisted`-exception.
 

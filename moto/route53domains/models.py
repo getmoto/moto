@@ -151,7 +151,7 @@ class Route53DomainsBackend(BaseBackend):
 
         return self.__domains[domain_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_domains(
         self,
         filter_conditions: Optional[List[Dict[str, Any]]] = None,
@@ -197,7 +197,7 @@ class Route53DomainsBackend(BaseBackend):
 
         return domains_to_return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,

@@ -321,7 +321,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
             <attachment>
                 <attachTime>{{ eni.attach_time }}</attachTime>
                 <attachmentId>{{ eni.attachment_id }}</attachmentId>
-                <deleteOnTermination>{{ eni.delete_on_termination }}</deleteOnTermination>
+                <deleteOnTermination>{{ 'true' if eni.delete_on_termination else 'false' }}</deleteOnTermination>
                 <deviceIndex>{{ eni.device_index }}</deviceIndex>
                 <networkCardIndex>0</networkCardIndex>
                 <instanceId>{{ eni.instance.id }}</instanceId>
@@ -418,7 +418,7 @@ DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT = """
     <attachment>
         <attachTime>{{ eni.attach_time }}</attachTime>
         <attachmentId>{{ eni.attachment_id }}</attachmentId>
-        <deleteOnTermination>{{ eni.delete_on_termination }}</deleteOnTermination>
+        <deleteOnTermination>{{ 'true' if eni.delete_on_termination else 'false' }}</deleteOnTermination>
         <deviceIndex>{{ eni.device_index }}</deviceIndex>
         <networkCardIndex>0</networkCardIndex>
         <instanceId>{{ eni.instance.id }}</instanceId>

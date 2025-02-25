@@ -106,3 +106,12 @@ class ValidationException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
+
+
+class UnsupportedOperationException(JsonRESTError):
+    """Unsupported Operation"""
+
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("UnsupportedOperationException", message)

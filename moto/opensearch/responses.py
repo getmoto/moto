@@ -1,8 +1,12 @@
 """Handles incoming opensearch requests, invokes methods, returns responses."""
 
 import json
+import re
+from typing import Any
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.es.exceptions import InvalidDomainName
 
 from .models import OpenSearchServiceBackend, opensearch_backends
 
@@ -18,8 +22,51 @@ class OpenSearchServiceResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return opensearch_backends[self.current_account][self.region]
 
+    @classmethod
+    def list_domains(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return 200, {}, response.list_domain_names()
+        if request.method == "POST":
+            return 200, {}, response.describe_domains()
+
+    @classmethod
+    def domains(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return 200, {}, response.create_domain()
+
+    @classmethod
+    def domain(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "DELETE":
+            return 200, {}, response.delete_domain()
+        if request.method == "GET":
+            return 200, {}, response.describe_domain()
+
+    @classmethod
+    def tags(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "GET":
+            return 200, {}, response.list_tags()
+        if request.method == "POST":
+            return 200, {}, response.add_tags()
+
+    @classmethod
+    def tag_removal(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return 200, {}, response.remove_tags()
+
     def create_domain(self) -> str:
         domain_name = self._get_param("DomainName")
+        if not re.match(r"^[a-z][a-z0-9\-]+$", domain_name):
+            raise InvalidDomainName(domain_name)
         engine_version = self._get_param("EngineVersion")
         cluster_config = self._get_param("ClusterConfig")
         ebs_options = self._get_param("EBSOptions")
@@ -37,6 +84,10 @@ class OpenSearchServiceResponse(BaseResponse):
         auto_tune_options = self._get_param("AutoTuneOptions")
         off_peak_window_options = self._get_param("OffPeakWindowOptions")
         software_update_options = self._get_param("SoftwareUpdateOptions")
+        # ElasticSearch specific options
+        is_es = self.parsed_url.path.endswith("/es/domain")
+        elasticsearch_version = self._get_param("ElasticsearchVersion")
+        elasticsearch_cluster_config = self._get_param("ElasticsearchClusterConfig")
         domain = self.opensearch_backend.create_domain(
             domain_name=domain_name,
             engine_version=engine_version,
@@ -56,6 +107,9 @@ class OpenSearchServiceResponse(BaseResponse):
             auto_tune_options=auto_tune_options,
             off_peak_window_options=off_peak_window_options,
             software_update_options=software_update_options,
+            is_es=is_es,
+            elasticsearch_version=elasticsearch_version,
+            elasticsearch_cluster_config=elasticsearch_cluster_config,
         )
         return json.dumps(dict(DomainStatus=domain.to_dict()))
 
@@ -67,21 +121,23 @@ class OpenSearchServiceResponse(BaseResponse):
         return json.dumps(dict(CompatibleVersions=compatible_versions))
 
     def delete_domain(self) -> str:
-        domain_name = self._get_param("DomainName")
+        domain_name = self.path.split("/")[-1]
         domain = self.opensearch_backend.delete_domain(
             domain_name=domain_name,
         )
         return json.dumps(dict(DomainStatus=domain.to_dict()))
 
     def describe_domain(self) -> str:
-        domain_name = self._get_param("DomainName")
+        domain_name = self.path.split("/")[-1]
+        if not re.match(r"^[a-z][a-z0-9\-]+$", domain_name):
+            raise InvalidDomainName(domain_name)
         domain = self.opensearch_backend.describe_domain(
             domain_name=domain_name,
         )
         return json.dumps(dict(DomainStatus=domain.to_dict()))
 
     def describe_domain_config(self) -> str:
-        domain_name = self._get_param("DomainName")
+        domain_name = self.path.split("/")[-1]
         domain = self.opensearch_backend.describe_domain_config(
             domain_name=domain_name,
         )
@@ -147,3 +203,11 @@ class OpenSearchServiceResponse(BaseResponse):
             engine_type=engine_type,
         )
         return json.dumps(dict(DomainNames=domain_names))
+
+    def describe_domains(self) -> str:
+        domain_names = self._get_param("DomainNames")
+        domains = self.opensearch_backend.describe_domains(
+            domain_names=domain_names,
+        )
+        domain_list = [domain.to_dict() for domain in domains]
+        return json.dumps({"DomainStatusList": domain_list})

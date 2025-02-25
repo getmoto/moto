@@ -85,7 +85,6 @@ class FakeLoadBalancer(CloudFormationModel):
         vpc_id: Optional[str],
         subnets: Optional[List[str]],
         security_groups: Optional[List[str]],
-        elb_backend: "ELBBackend",
     ):
         self.name = name
         self.health_check: Optional[FakeHealthCheck] = None
@@ -115,13 +114,6 @@ class FakeLoadBalancer(CloudFormationModel):
                     "ssl_certificate_id", port.get("SSLCertificateId")
                 ),
             )
-            if listener.ssl_certificate_id and not re.search(
-                f"{ARN_PARTITION_REGEX}:iam:", listener.ssl_certificate_id
-            ):
-                elb_backend._register_certificate(
-                    listener.ssl_certificate_id, self.dns_name
-                )
-
             self.listeners.append(listener)
 
             # it is unclear per the AWS documentation as to when or how backend
@@ -345,8 +337,17 @@ class ELBBackend(BaseBackend):
             subnets=subnets,
             security_groups=security_groups,
             vpc_id=vpc_id,
-            elb_backend=self,
         )
+        for listener in new_load_balancer.listeners:
+            if listener.ssl_certificate_id and not re.search(
+                f"{ARN_PARTITION_REGEX}:iam:", listener.ssl_certificate_id
+            ):
+                register_certificate(
+                    self.account_id,
+                    self.region_name,
+                    listener.ssl_certificate_id,
+                    new_load_balancer.dns_name,
+                )
         self.load_balancers[name] = new_load_balancer
         return new_load_balancer
 
@@ -373,8 +374,11 @@ class ELBBackend(BaseBackend):
                     if ssl_certificate_id and not re.search(
                         f"{ARN_PARTITION_REGEX}:iam::", ssl_certificate_id
                     ):
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
+                        register_certificate(
+                            self.account_id,
+                            self.region_name,
+                            ssl_certificate_id,
+                            balancer.dns_name,
                         )
                     balancer.listeners.append(
                         FakeListener(
@@ -493,8 +497,11 @@ class ELBBackend(BaseBackend):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
                     if ssl_certificate_id:
-                        self._register_certificate(
-                            ssl_certificate_id, balancer.dns_name
+                        register_certificate(
+                            self.account_id,
+                            self.region_name,
+                            ssl_certificate_id,
+                            balancer.dns_name,
                         )
         return balancer
 
@@ -621,15 +628,6 @@ class ELBBackend(BaseBackend):
         load_balancer.listeners[listener_idx] = listener
         return load_balancer
 
-    def _register_certificate(self, ssl_certificate_id: str, dns_name: str) -> None:
-        from moto.acm.models import CertificateNotFound, acm_backends
-
-        acm_backend = acm_backends[self.account_id][self.region_name]
-        try:
-            acm_backend.set_certificate_in_use_by(ssl_certificate_id, dns_name)
-        except CertificateNotFound:
-            raise CertificateNotFoundException()
-
     def enable_availability_zones_for_load_balancer(
         self, load_balancer_name: str, availability_zones: List[str]
     ) -> List[str]:
@@ -663,6 +661,18 @@ class ELBBackend(BaseBackend):
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.subnets = [s for s in load_balancer.subnets if s not in subnets]
         return load_balancer.subnets
+
+
+def register_certificate(
+    account_id: str, region: str, arn_certificate: str, arn_user: str
+) -> None:
+    from moto.acm.models import CertificateNotFound, acm_backends
+
+    acm_backend = acm_backends[account_id][region]
+    try:
+        acm_backend.set_certificate_in_use_by(arn_certificate, arn_user)
+    except CertificateNotFound:
+        raise CertificateNotFoundException()
 
 
 elb_backends = BackendDict(ELBBackend, "elb")

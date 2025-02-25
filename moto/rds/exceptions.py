@@ -1,23 +1,7 @@
-from jinja2 import Template
-
-from moto.core.exceptions import RESTError
-
-
-class RDSClientError(RESTError):
+class RDSClientError(Exception):
     def __init__(self, code: str, message: str):
-        super().__init__(error_type=code, message=message)
-        template = Template(
-            """
-        <ErrorResponse>
-            <Error>
-              <Code>{{ code }}</Code>
-              <Message>{{ message }}</Message>
-              <Type>Sender</Type>
-            </Error>
-            <RequestId>6876f774-7273-11e4-85dc-39e55ca848d1</RequestId>
-        </ErrorResponse>"""
-        )
-        self.description = template.render(code=code, message=message)
+        super().__init__(message)
+        self.code = code
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -27,10 +11,15 @@ class DBInstanceNotFoundError(RDSClientError):
         )
 
 
-class DBSnapshotNotFoundError(RDSClientError):
+class DBInstanceAlreadyExists(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__("DBInstanceAlreadyExists", "DB instance already exists")
+
+
+class DBSnapshotNotFoundFault(RDSClientError):
     def __init__(self, snapshot_identifier: str):
         super().__init__(
-            "DBSnapshotNotFound", f"DBSnapshot {snapshot_identifier} not found."
+            "DBSnapshotNotFoundFault", f"DBSnapshot {snapshot_identifier} not found."
         )
 
 
@@ -43,8 +32,6 @@ class DBSecurityGroupNotFoundError(RDSClientError):
 
 
 class DBSubnetGroupNotFoundError(RDSClientError):
-    code = 404
-
     def __init__(self, subnet_group_name: str):
         super().__init__(
             "DBSubnetGroupNotFoundFault", f"Subnet Group {subnet_group_name} not found."
@@ -103,12 +90,36 @@ class InvalidDBInstanceStateError(RDSClientError):
         )
 
 
-class SnapshotQuotaExceededError(RDSClientError):
+class SnapshotQuotaExceededFault(RDSClientError):
+    # This is used for both DBSnapshots and DBClusterSnapshots
     def __init__(self) -> None:
         super().__init__(
             "SnapshotQuotaExceeded",
             "The request cannot be processed because it would exceed the maximum number of snapshots.",
         )
+
+
+class SharedSnapshotQuotaExceeded(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "SharedSnapshotQuotaExceeded",
+            "The request cannot be processed because it would exceed the maximum number of snapshots.",
+        )
+
+
+class KMSKeyNotAccessibleFault(RDSClientError):
+    fmt = "Specified KMS key [{key_id}] does not exist, is not enabled or you do not have permissions to access it."
+
+    def __init__(self, key_id: str) -> None:
+        super().__init__(
+            "KMSKeyNotAccessibleFault",
+            f"Specified KMS key [{key_id}] does not exist, is not enabled or you do not have permissions to access it.",
+        )
+
+
+class InvalidDBClusterSnapshotStateFault(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidDBClusterSnapshotStateFault", message)
 
 
 class DBSnapshotAlreadyExistsError(RDSClientError):
@@ -210,6 +221,23 @@ class InvalidDBInstanceIdentifier(InvalidParameterValue):
             "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
             "and must not end with a hyphen or contain two consecutive hyphens."
         )
+
+
+class InvalidDBSnapshotIdentifier(InvalidParameterValue):
+    def __init__(self, snapshot_identifier: str, parameter_name: str) -> None:
+        if snapshot_identifier == "":
+            exception_text = f"The parameter {parameter_name} must be provided and must not be blank."
+        elif not snapshot_identifier[0].isalpha():
+            # On AWS, this error message seems to be triggered when the first character is invalid.
+            # The two spaces before the snapshot_identifier are what AWS produces!
+            exception_text = f"Invalid snapshot identifier:  {snapshot_identifier}"
+        else:
+            exception_text = (
+                f"The parameter {parameter_name} is not a valid identifier. "
+                "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
+                "and must not end with a hyphen or contain two consecutive hyphens."
+            )
+        super().__init__(exception_text)
 
 
 class InvalidDBInstanceEngine(InvalidParameterCombination):

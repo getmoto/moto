@@ -20,6 +20,7 @@ import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
+from moto.settings import DISABLE_GLOBAL_CORS
 
 from .utilities import AWSTestHelper, RegexConverter
 
@@ -136,6 +137,8 @@ class DomainDispatcherApplication:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
             host = f"data.{service}.{region}.amazonaws.com"
+        elif service == "dsql":
+            host = f"{service}.{region}.api.aws"
         elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
@@ -163,6 +166,8 @@ class DomainDispatcherApplication:
             host = "s3control"
         elif service == "ses" and path.startswith("/v2/"):
             host = "sesv2"
+        elif service == "memorydb":
+            host = f"memory-db.{region}.amazonaws.com"
         else:
             host = f"{service}.{region}.amazonaws.com"
 
@@ -270,7 +275,9 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     backend_app = Flask("moto", template_folder=template_dir)
     backend_app.debug = True
     backend_app.service = service  # type: ignore[attr-defined]
-    CORS(backend_app)
+
+    if not DISABLE_GLOBAL_CORS:
+        CORS(backend_app)
 
     # Reset view functions to reset the app
     backend_app.view_functions = {}

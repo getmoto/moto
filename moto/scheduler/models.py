@@ -1,14 +1,20 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, Iterable, List, Optional
+import datetime
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcfromtimestamp, utcnow
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import ScheduleExists, ScheduleGroupNotFound, ScheduleNotFound
+from .exceptions import (
+    ScheduleExists,
+    ScheduleGroupNotFound,
+    ScheduleNotFound,
+    ValidationException,
+)
 
 
 class Schedule(BaseModel):
@@ -34,12 +40,12 @@ class Schedule(BaseModel):
         self.description = description
         self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule/{group_name}/{name}"
         self.schedule_expression = schedule_expression
-        self.schedule_expression_timezone = schedule_expression_timezone
+        self.schedule_expression_timezone = schedule_expression_timezone or "UTC"
         self.flexible_time_window = flexible_time_window
         self.target = Schedule.validate_target(target)
         self.state = state or "ENABLED"
         self.kms_key_arn = kms_key_arn
-        self.start_date = start_date
+        self.start_date = self._validate_start_date(start_date)
         self.end_date = end_date
         self.action_after_completion = action_after_completion
         self.creation_date = self.last_modified_date = unix_time()
@@ -52,6 +58,22 @@ class Schedule(BaseModel):
                 "MaximumRetryAttempts": 185,
             }
         return target
+
+    def _validate_start_date(self, start_date: Optional[str]) -> Optional[str]:
+        # `.count("*")` means a recurrence expression
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/scheduler/client/create_schedule.html (StartDate parameter)
+        if self.schedule_expression.count("*") and start_date is not None:
+            start_date_as_dt = utcfromtimestamp(cast(int, start_date))
+            now = utcnow()
+            if start_date_as_dt < now:
+                diff = now - start_date_as_dt
+                rule = datetime.timedelta(minutes=5)
+                within_rule = diff <= rule
+                if not within_rule:
+                    raise ValidationException(
+                        message="The StartDate you specify cannot be earlier than 5 minutes ago."
+                    )
+        return start_date
 
     def to_dict(self, short: bool = False) -> Dict[str, Any]:
         dct: Dict[str, Any] = {
@@ -88,7 +110,7 @@ class Schedule(BaseModel):
         target: Dict[str, Any],
     ) -> None:
         self.schedule_expression = schedule_expression
-        self.schedule_expression_timezone = schedule_expression_timezone
+        self.schedule_expression_timezone = schedule_expression_timezone or "UTC"
         self.flexible_time_window = flexible_time_window
         self.target = Schedule.validate_target(target)
         self.description = description
@@ -251,7 +273,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
 
     def get_schedule_group(self, group_name: Optional[str]) -> ScheduleGroup:
         if (group_name or "default") not in self.schedule_groups:
-            raise ScheduleGroupNotFound
+            raise ScheduleGroupNotFound(group_name or "default")
         return self.schedule_groups[group_name or "default"]
 
     def list_schedule_groups(self) -> Iterable[ScheduleGroup]:

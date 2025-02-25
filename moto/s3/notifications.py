@@ -41,7 +41,7 @@ class S3NotificationEvent(str, Enum):
     OBJECT_RESTORE_DELETE_EVENT = "s3:ObjectRestore:Delete"
     LIFECYCLE_TRANSITION_EVENT = "s3:LifecycleTransition"
     INTELLIGENT_TIERING_EVENT = "s3:IntelligentTiering"
-    OBJECT_ACL_EVENT = "s3:ObjectAcl:Put"
+    OBJECT_ACL_UPDATE_EVENT = "s3:ObjectAcl:Put"
     LIFECYCLE_EXPIRATION_EVENT = "s3:LifecycleExpiration:*"
     LIFECYCLEEXPIRATION_DELETE_EVENT = "s3:LifecycleExpiration:Delete"
     LIFECYCLE_EXPIRATION_DELETE_MARKER_CREATED_EVENT = (
@@ -203,7 +203,7 @@ def _send_event_bridge_message(
         events_backend = events_backends[account_id][bucket.region_name]
         for event_bus in events_backend.event_buses.values():
             for rule in event_bus.rules.values():
-                rule.send_to_targets(event)
+                rule.send_to_targets(event, transform_input=False)
 
     except:  # noqa
         # This is an async action in AWS.

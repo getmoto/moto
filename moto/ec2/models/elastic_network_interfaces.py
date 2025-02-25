@@ -34,6 +34,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         group_ids: Optional[List[str]] = None,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
+        delete_on_termination: Optional[bool] = False,
         **kwargs: Any,
     ):
         self.ec2_backend = ec2_backend
@@ -51,7 +52,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.instance: Optional[Instance] = None
         self.attachment_id: Optional[str] = None
         self.attach_time: Optional[str] = None
-        self.delete_on_termination = False
+        self.delete_on_termination = delete_on_termination
         self.description = description
         self.source_dest_check = True
 
@@ -132,9 +133,9 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                         group_id,
                         group_id,
                         group_id,
-                        vpc_id=subnet.vpc_id,
+                        vpc_id=self.subnet.vpc_id,
                     )
-                    self.ec2_backend.groups[subnet.vpc_id][group_id] = group
+                    self.ec2_backend.groups[self.subnet.vpc_id][group_id] = group
                 if group:
                     self._group_set.append(group)
         if not group_ids:
@@ -200,6 +201,11 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             description=description,
         )
         return network_interface
+
+    def delete(self) -> None:
+        self.ec2_backend.delete_network_interface(eni_id=self.id)
+        for priv_ip in self.private_ip_addresses:
+            self.subnet.del_subnet_ip(priv_ip["PrivateIpAddress"])
 
     def stop(self) -> None:
         if self.public_ip_auto_assign:
@@ -278,6 +284,7 @@ class NetworkInterfaceBackend:
         group_ids: Optional[List[str]] = None,
         description: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
+        delete_on_termination: Optional[bool] = False,
         **kwargs: Any,
     ) -> NetworkInterface:
         eni = NetworkInterface(
@@ -288,6 +295,7 @@ class NetworkInterfaceBackend:
             group_ids=group_ids,
             description=description,
             tags=tags,
+            delete_on_termination=delete_on_termination,
             **kwargs,
         )
         self.enis[eni.id] = eni

@@ -9,11 +9,13 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.ec2.models import ec2_backends
+from moto.ec2.models import EC2Backend, ec2_backends
 from moto.ec2.models.subnets import Subnet
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
+from ..elb.models import register_certificate
+from ..utilities.utils import ARN_PARTITION_REGEX
 from .exceptions import (
     ActionTargetGroupNotFoundError,
     DuplicateListenerError,
@@ -27,6 +29,8 @@ from .exceptions import (
     InvalidDescribeRulesRequest,
     InvalidLoadBalancerActionException,
     InvalidModifyRuleArgumentsError,
+    InvalidProtocol,
+    InvalidProtocolValue,
     InvalidStatusCodeActionTypeError,
     InvalidTargetError,
     InvalidTargetGroupNameError,
@@ -37,6 +41,7 @@ from .exceptions import (
     RuleNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
+    TargetNotRunning,
     TooManyCertificatesError,
     TooManyTagsError,
     ValidationError,
@@ -76,7 +81,8 @@ class FakeTargetGroup(CloudFormationModel):
     def __init__(
         self,
         name: str,
-        arn: str,
+        account_id: str,
+        region_name: str,
         vpc_id: str,
         protocol: str,
         port: str,
@@ -95,7 +101,11 @@ class FakeTargetGroup(CloudFormationModel):
     ):
         # TODO: default values differs when you add Network Load balancer
         self.name = name
-        self.arn = arn
+        self.account_id = account_id
+        self.region_name = region_name
+        self.arn = make_arn_for_target_group(
+            account_id=self.account_id, name=name, region_name=self.region_name
+        )
         self.vpc_id = vpc_id
         if target_type == "lambda":
             self.protocol = None
@@ -154,6 +164,10 @@ class FakeTargetGroup(CloudFormationModel):
 
     def register(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
+            if instance := self.ec2_backend.get_instance_by_id(target["id"]):
+                if instance.state != "running":
+                    raise TargetNotRunning(instance_id=target["id"])
+
             self.targets[target["id"]] = {
                 "id": target["id"],
                 "port": target.get("port", self.port),
@@ -173,7 +187,9 @@ class FakeTargetGroup(CloudFormationModel):
                 t = self.targets.pop(target_id)
                 self.terminated_targets[target_id] = t
 
-    def health_for(self, target: Dict[str, Any], ec2_backend: Any) -> FakeHealthStatus:
+    def health_for(
+        self, target: Dict[str, Any], ec2_backend: EC2Backend
+    ) -> FakeHealthStatus:
         t = self.targets.get(target["id"])
         if t is None:
             port = self.port
@@ -218,7 +234,7 @@ class FakeTargetGroup(CloudFormationModel):
             )
         if t["id"].startswith("i-"):  # EC2 instance ID
             instance = ec2_backend.get_instance_by_id(t["id"])
-            if instance.state == "stopped":
+            if instance and instance.state == "stopped":
                 return FakeHealthStatus(
                     t["id"],
                     t["port"],
@@ -281,6 +297,10 @@ class FakeTargetGroup(CloudFormationModel):
         )
         return target_group
 
+    @property
+    def ec2_backend(self) -> EC2Backend:
+        return ec2_backends[self.account_id][self.region_name]
+
 
 class FakeListener(CloudFormationModel):
     def __init__(
@@ -312,6 +332,8 @@ class FakeListener(CloudFormationModel):
             actions=default_actions,
             is_default=True,
         )
+
+        self.attributes = {"tcp.idle_timeout.seconds": "350"}
 
     @property
     def physical_resource_id(self) -> str:
@@ -359,8 +381,12 @@ class FakeListener(CloudFormationModel):
 
         default_actions = elbv2_backend.convert_and_validate_properties(properties)
         certificates = elbv2_backend.convert_and_validate_certificates(certificates)
+        if certificates:
+            certificate = certificates[0].get("certificate_arn")
+        else:
+            certificate = None
         listener = elbv2_backend.create_listener(
-            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
+            load_balancer_arn, protocol, port, ssl_policy, certificate, default_actions
         )
         return listener
 
@@ -629,6 +655,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "routing.http.xff_header_processing.mode",
         "routing.http2.enabled",
         "waf.fail_open.enabled",
+        "zonal_shift.config.enabled",
     }
 
     def __init__(
@@ -759,13 +786,7 @@ class ELBv2Backend(BaseBackend):
         self.tagging_service = TaggingService()
 
     @property
-    def ec2_backend(self) -> Any:  # type: ignore[misc]
-        """
-        EC2 backend
-
-        :return: EC2 Backend
-        :rtype: moto.ec2.models.EC2Backend
-        """
+    def ec2_backend(self) -> EC2Backend:
         return ec2_backends[self.account_id][self.region_name]
 
     def create_load_balancer(
@@ -789,8 +810,8 @@ class ELBv2Backend(BaseBackend):
             if subnet is None:
                 raise SubnetNotFoundError()
             subnets.append(subnet)
-        for subnet in subnet_mappings or []:
-            subnet_id = subnet["SubnetId"]
+        for subnet_mapping in subnet_mappings or []:
+            subnet_id = subnet_mapping["SubnetId"]
             subnet = self.ec2_backend.get_subnet(subnet_id)
             if subnet is None:
                 raise SubnetNotFoundError()
@@ -1058,6 +1079,42 @@ class ELBv2Backend(BaseBackend):
             else:
                 raise InvalidActionTypeError(action_type, index)
 
+    def _validate_port_and_protocol(
+        self, loadbalancer_type: str, port: Optional[str], protocol: Optional[str]
+    ) -> None:
+        if loadbalancer_type in {"application", "network"}:
+            if port is None:
+                raise ValidationError("A listener port must be specified")
+            if protocol is None:
+                raise ValidationError("A listener protocol must be specified")
+
+            valid_application_protocols = ["HTTP", "HTTPS"]
+            valid_network_protocols = ["UDP", "TCP", "TLS", "TCP_UDP"]
+            all_valid_protocols = (
+                valid_application_protocols + valid_network_protocols + ["GENEVE"]
+            )
+
+            if protocol not in all_valid_protocols:
+                raise InvalidProtocolValue(
+                    protocol, valid_application_protocols + valid_network_protocols
+                )
+
+            if loadbalancer_type == "application":
+                if protocol not in valid_application_protocols:
+                    raise InvalidProtocol(protocol, valid_application_protocols)
+            else:
+                if protocol not in valid_network_protocols:
+                    raise InvalidProtocol(protocol, valid_network_protocols)
+        else:
+            if port is not None:
+                raise ValidationError(
+                    "A port cannot be specified for gateway listeners"
+                )
+            if protocol is not None:
+                raise ValidationError(
+                    "A protocol cannot be specified for gateway listeners"
+                )
+
     def _validate_fixed_response_action(
         self, action: FakeAction, i: int, index: int
     ) -> None:
@@ -1157,7 +1214,7 @@ Member must satisfy regular expression pattern: {expression}"
             from moto.ec2.exceptions import InvalidVPCIdError
 
             try:
-                self.ec2_backend.get_vpc(kwargs.get("vpc_id"))
+                self.ec2_backend.get_vpc(kwargs.get("vpc_id") or "")
             except InvalidVPCIdError:
                 raise ValidationError(
                     f"The VPC ID '{kwargs.get('vpc_id')}' is not found"
@@ -1274,11 +1331,13 @@ Member must satisfy regular expression pattern: {expression}"
                     f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than the interval '{healthcheck_interval_seconds}'"
                 )
 
-        arn = make_arn_for_target_group(
-            account_id=self.account_id, name=name, region_name=self.region_name
-        )
         tags = kwargs.pop("tags", None)
-        target_group = FakeTargetGroup(name, arn, **kwargs)
+        target_group = FakeTargetGroup(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            **kwargs,
+        )
         self.target_groups[target_group.arn] = target_group
         if tags:
             self.add_tags(resource_arns=[target_group.arn], tags=tags)
@@ -1404,6 +1463,7 @@ Member must satisfy regular expression pattern: {expression}"
         if port in balancer.listeners:
             raise DuplicateListenerError()
 
+        self._validate_port_and_protocol(balancer.loadbalancer_type, port, protocol)
         self._validate_actions(default_actions)
 
         arn = (
@@ -1420,6 +1480,14 @@ Member must satisfy regular expression pattern: {expression}"
             default_actions,
             alpn_policy,
         )
+        if certificate and not re.search(f"{ARN_PARTITION_REGEX}:iam:", certificate):
+            register_certificate(
+                account_id=self.account_id,
+                region=self.region_name,
+                arn_certificate=certificate,
+                arn_user=arn,
+            )
+
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
@@ -1976,6 +2044,7 @@ Member must satisfy regular expression pattern: {expression}"
 
     def remove_tags(self, resource_arns: List[str], tag_keys: List[str]) -> None:
         for arn in resource_arns:
+            self._get_resource_by_arn(arn)
             self.tagging_service.untag_resource_using_names(arn, tag_keys)
 
     def describe_tags(self, resource_arns: List[str]) -> Dict[str, Dict[str, str]]:
@@ -1983,6 +2052,21 @@ Member must satisfy regular expression pattern: {expression}"
             arn: self.tagging_service.get_tag_dict_for_resource(arn)
             for arn in resource_arns
         }
+
+    def describe_listener_attributes(self, listener_arn: str) -> Dict[str, str]:
+        listener = self.describe_listeners(
+            load_balancer_arn=None, listener_arns=[listener_arn]
+        )[0]
+        return listener.attributes
+
+    def modify_listener_attributes(
+        self, listener_arn: str, attrs: List[Dict[str, str]]
+    ) -> Dict[str, str]:
+        listener = self.describe_listeners(
+            load_balancer_arn=None, listener_arns=[listener_arn]
+        )[0]
+        listener.attributes.update({a["Key"]: a["Value"] for a in attrs})
+        return listener.attributes
 
     def _get_resource_by_arn(self, arn: str) -> Any:
         if ":targetgroup" in arn:

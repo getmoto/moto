@@ -25,7 +25,7 @@ def lambda_aws_verified(func):
     """
 
     @wraps(func)
-    def pagination_wrapper():
+    def pagination_wrapper(**kwargs):
         role_name = "moto_test_role_" + str(uuid4())[0:6]
 
         allow_aws_request = (
@@ -33,12 +33,12 @@ def lambda_aws_verified(func):
         )
 
         if allow_aws_request:
-            return create_role_and_test(role_name)
+            return create_role_and_test(kwargs, role_name)
         else:
             with mock_aws():
-                return create_role_and_test(role_name)
+                return create_role_and_test(kwargs, role_name)
 
-    def create_role_and_test(role_name):
+    def create_role_and_test(kwargs, role_name):
         from .test_lambda import _lambda_region
 
         policy_doc = {
@@ -63,8 +63,16 @@ def lambda_aws_verified(func):
             # Role is not immediately available
             check_iam_role_is_ready_to_use(iam_role_arn, role_name, _lambda_region)
 
-            resp = func(iam_role_arn)
+            kwargs["iam_role_arn"] = iam_role_arn
+            resp = func(**kwargs)
         finally:
+            for policy in iam.list_attached_role_policies(RoleName=role_name)[
+                "AttachedPolicies"
+            ]:
+                iam.detach_role_policy(
+                    RoleName=role_name,
+                    PolicyArn=policy["PolicyArn"],
+                )
             iam.delete_role(RoleName=role_name)
 
         return resp

@@ -480,6 +480,14 @@
   "Location": "us-west-1a"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "us-west-1a"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "us-west-1a"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "us-west-1a"
  },
@@ -557,18 +565,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "us-west-1a"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "us-west-1a"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "us-west-1a"
- },
- {
-  "InstanceType": "g3.8xlarge",
   "Location": "us-west-1a"
  },
  {
@@ -1272,6 +1268,14 @@
   "Location": "us-west-1a"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "us-west-1a"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "us-west-1a"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "us-west-1a"
  },
@@ -1333,6 +1337,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "us-west-1a"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "us-west-1a"
  },
  {
@@ -2496,6 +2504,14 @@
   "Location": "us-west-1b"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "us-west-1b"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "us-west-1b"
  },
@@ -2573,18 +2589,6 @@
  },
  {
   "InstanceType": "d2.xlarge",
-  "Location": "us-west-1b"
- },
- {
-  "InstanceType": "g3.16xlarge",
-  "Location": "us-west-1b"
- },
- {
-  "InstanceType": "g3.4xlarge",
-  "Location": "us-west-1b"
- },
- {
-  "InstanceType": "g3.8xlarge",
   "Location": "us-west-1b"
  },
  {
@@ -3288,6 +3292,14 @@
   "Location": "us-west-1b"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "us-west-1b"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "us-west-1b"
  },
@@ -3349,6 +3361,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "us-west-1b"
+ },
+ {
+  "InstanceType": "p5.48xlarge",
   "Location": "us-west-1b"
  },
  {

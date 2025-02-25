@@ -131,3 +131,8 @@ Things get interesting when assuming a role within a different account.
 
 Because we've assumed a role in a different account, no buckets were found. The `foobar`-bucket only exists in the default account, not in `111111111111`.
 
+.. note::
+
+    Be aware, however, that roles assumed in different accounts through this approach will still have full access to actions
+    on all buckets created, in addition to other AWS permissions. To learn more about simulating access controls, see
+    `IAM-like Access Control <./iam.rst>`_.

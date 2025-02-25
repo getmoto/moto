@@ -1,4 +1,5 @@
 import datetime
+import pickle
 
 import boto3
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -7,7 +8,7 @@ import pytest
 from botocore.exceptions import ClientError
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.x509 import NameOID
+from cryptography.x509 import DNSName, NameOID
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
@@ -121,10 +122,15 @@ def test_get_certificate_authority_certificate():
         IdempotencyToken="terraform-20221125230308947400000001",
     )["CertificateAuthorityArn"]
 
-    resp = client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
-
-    # Certificate is empty for now,  until we call import_certificate_authority_certificate
-    assert resp["Certificate"] == ""
+    # CA is not usable yet
+    with pytest.raises(ClientError) as exc:
+        client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidStateException"
+    assert (
+        err["Message"]
+        == f"The certificate authority {ca_arn} is not in the correct state to have a certificate signing request."
+    )
 
 
 @mock_aws
@@ -134,15 +140,52 @@ def test_get_certificate_authority_csr():
         CertificateAuthorityConfiguration={
             "KeyAlgorithm": "RSA_4096",
             "SigningAlgorithm": "SHA512WITHRSA",
-            "Subject": {"CommonName": "yscb41lw.test"},
+            "Subject": {
+                "CommonName": "evilcorp.com",
+                "Country": "US",
+                "State": "MA",
+                "Organization": "Evil Corp",
+                "OrganizationalUnit": "Finance",
+            },
         },
-        CertificateAuthorityType="SUBORDINATE",
+        CertificateAuthorityType="ROOT",
         IdempotencyToken="terraform-20221125230308947400000001",
     )["CertificateAuthorityArn"]
 
     resp = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)
 
     assert "Csr" in resp
+    csr = cryptography.x509.load_pem_x509_csr(resp["Csr"].encode("utf-8"))
+    assert (
+        csr.subject.get_attributes_for_oid(cryptography.x509.NameOID.COMMON_NAME)[
+            0
+        ].value
+        == "evilcorp.com"
+    )
+    assert (
+        csr.subject.get_attributes_for_oid(cryptography.x509.NameOID.COUNTRY_NAME)[
+            0
+        ].value
+        == "US"
+    )
+    assert (
+        csr.subject.get_attributes_for_oid(
+            cryptography.x509.NameOID.STATE_OR_PROVINCE_NAME
+        )[0].value
+        == "MA"
+    )
+    assert (
+        csr.subject.get_attributes_for_oid(cryptography.x509.NameOID.ORGANIZATION_NAME)[
+            0
+        ].value
+        == "Evil Corp"
+    )
+    assert (
+        csr.subject.get_attributes_for_oid(
+            cryptography.x509.NameOID.ORGANIZATIONAL_UNIT_NAME
+        )[0].value
+        == "Finance"
+    )
 
 
 @mock_aws
@@ -346,8 +389,16 @@ def test_import_certificate_authority_certificate():
         CertificateAuthorityType="SUBORDINATE",
     )["CertificateAuthorityArn"]
 
-    cert = create_cert()
+    with pytest.raises(ClientError) as exc:
+        client.import_certificate_authority_certificate(
+            CertificateAuthorityArn=ca_arn,
+            Certificate="invalid certificate pem",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MalformedCertificateAuthorityException"
+    assert err["Message"] == "Malformed certificate."
 
+    cert = create_cert()
     client.import_certificate_authority_certificate(
         CertificateAuthorityArn=ca_arn,
         Certificate=cert,
@@ -362,6 +413,67 @@ def test_import_certificate_authority_certificate():
 
     resp = client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
     assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
+
+
+@mock_aws
+def test_end_entity_certificate_issuance():
+    client = boto3.client("acm-pca", region_name="us-east-2")
+
+    # Create a CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "evilcorp.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Create CA certificate
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    certificate_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
+    )
+    ca_cert = resp["Certificate"]
+
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=ca_cert,
+    )
+
+    # Create a end-entity certificate and sign it by the CA
+    private_key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
+        public_exponent=65537, key_size=2048
+    )
+    ee_csr = create_csr(private_key, "US", "WA", "BezosCorp", "bezoscorp.com")
+    ee_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=ee_csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        Validity={"Type": "YEARS", "Value": 1},
+    )["CertificateArn"]
+    ee_cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ee_cert_arn
+    )["Certificate"]
+
+    # Ensure that this is a valid single-hierarchy CA and all certificates are valid
+    store = cryptography.x509.verification.Store(
+        [cryptography.x509.load_pem_x509_certificate(ca_cert.encode("utf-8"))]
+    )
+    builder = cryptography.x509.verification.PolicyBuilder().store(store)
+    verifier = builder.build_server_verifier(DNSName("bezoscorp.com"))
+    chain = verifier.verify(
+        cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8")), []
+    )
+    assert len(chain) == 2
 
 
 @mock_aws
@@ -408,6 +520,76 @@ def test_untag_certificate_authority():
 
     resp = client.list_tags(CertificateAuthorityArn=ca_arn)
     assert resp["Tags"] == [{"Key": "t2", "Value": "v2"}]
+
+
+@mock_aws
+def test_acmpca_backend_is_serialisable():
+    # This test ensures that the backend does not store any non-picklable objects (e.g. native OpenSSL objects)
+    # This is important for downstream projects like LocalStack
+
+    client = boto3.client("acm-pca", region_name="eu-west-1")
+
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "yscb41lw.test"},
+        },
+        CertificateAuthorityType="SUBORDINATE",
+    )["CertificateAuthorityArn"]
+
+    cert = create_cert()
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=cert,
+    )
+    client.update_certificate_authority(
+        CertificateAuthorityArn=ca_arn,
+        Status="DISABLED",
+    )
+
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA512WITHRSA",
+        Validity={"Type": "YEARS", "Value": 10},
+    )
+    client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)
+
+    from moto.acmpca import acmpca_backends
+
+    assert pickle.dumps(acmpca_backends)
+
+
+def create_csr(private_key, country, state, org, cn):
+    csr = (
+        cryptography.x509.CertificateSigningRequestBuilder()
+        .subject_name(
+            cryptography.x509.Name(
+                [
+                    cryptography.x509.NameAttribute(
+                        cryptography.x509.NameOID.COUNTRY_NAME, country
+                    ),
+                    cryptography.x509.NameAttribute(
+                        cryptography.x509.NameOID.STATE_OR_PROVINCE_NAME, state
+                    ),
+                    cryptography.x509.NameAttribute(
+                        cryptography.x509.NameOID.ORGANIZATION_NAME, org
+                    ),
+                    cryptography.x509.NameAttribute(
+                        cryptography.x509.NameOID.COMMON_NAME, cn
+                    ),
+                ]
+            )
+        )
+        .add_extension(
+            cryptography.x509.BasicConstraints(ca=False, path_length=None),
+            critical=True,
+        )
+        .sign(private_key, hashes.SHA256())
+    )
+    return csr.public_bytes(serialization.Encoding.PEM)
 
 
 def create_cert():

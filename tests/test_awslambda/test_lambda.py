@@ -8,13 +8,14 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
 from tests.test_ecr.test_ecr_helpers import _create_image_manifest
+from tests.test_s3 import s3_aws_verified
 
 from . import lambda_aws_verified
 from .utilities import (
@@ -23,7 +24,6 @@ from .utilities import (
     get_role_name,
     get_test_zip_file1,
     get_test_zip_file2,
-    get_test_zip_file3,
 )
 
 PYTHON_VERSION = "python3.11"
@@ -245,7 +245,6 @@ def test_create_function_from_zipfile():
             "utf-8"
         ),
         "Version": "1",
-        "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
         "ResponseMetadata": {"HTTPStatusCode": 201},
         "State": "Active",
         "Layers": [],
@@ -371,28 +370,6 @@ def test_create_function_error_ephemeral_too_big():
         "failed to satisfy constraint: "
         "Member must have value less than or equal to 10240"
     )
-
-
-@mock_aws
-def test_create_function_error_ephemeral_too_small():
-    conn = boto3.client("lambda", _lambda_region)
-    function_name = str(uuid4())[0:6]
-    image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
-
-    with pytest.raises(ParamValidationError) as exc:
-        conn.create_function(
-            FunctionName=function_name,
-            Role=get_role_name(),
-            Code={"ImageUri": image_uri},
-            Description="test lambda function",
-            Timeout=3,
-            MemorySize=128,
-            Publish=True,
-            EphemeralStorage={"Size": 200},
-        )
-
-    # this one is handled by botocore, not moto
-    assert exc.typename == "ParamValidationError"
 
 
 @mock_aws
@@ -582,25 +559,26 @@ def test_create_function_from_mocked_ecr_missing_image(
     )
 
 
-@mock_aws
-@freeze_time("2015-01-01 00:00:00")
-def test_get_function():
-    bucket_name = str(uuid4())
-    s3_conn = boto3.client("s3", _lambda_region)
-    s3_conn.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
-    )
+@pytest.mark.aws_verified
+@lambda_aws_verified
+@s3_aws_verified
+def test_get_function(iam_role_arn=None, bucket_name=None):
+    region = "us-east-1"
+
+    sts = boto3.client("sts", region)
+    account_id = sts.get_caller_identity()["Account"]
+
+    s3_conn = boto3.client("s3", region)
 
     zip_content = get_test_zip_file1()
     s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
-    conn = boto3.client("lambda", _lambda_region)
+    conn = boto3.client("lambda", region)
     function_name = str(uuid4())[0:6]
 
     conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
+        Role=iam_role_arn,
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
         Description="test lambda function",
@@ -611,16 +589,7 @@ def test_get_function():
     )
 
     result = conn.get_function(FunctionName=function_name)
-    # this is hard to match against, so remove it
-    result["ResponseMetadata"].pop("HTTPHeaders", None)
-    # Botocore inserts retry attempts not seen in Python27
-    result["ResponseMetadata"].pop("RetryAttempts", None)
-    result["Configuration"].pop("LastModified")
 
-    assert (
-        result["Code"]["Location"]
-        == f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com/test.zip"
-    )
     assert result["Code"]["RepositoryType"] == "S3"
 
     assert result["Configuration"]["CodeSha256"] == base64.b64encode(
@@ -632,13 +601,11 @@ def test_get_function():
     assert result["Configuration"]["FunctionName"] == function_name
     assert result["Configuration"]["Handler"] == "lambda_function.lambda_handler"
     assert result["Configuration"]["MemorySize"] == 128
-    assert result["Configuration"]["Role"] == get_role_name()
+    assert result["Configuration"]["Role"] == iam_role_arn
     assert result["Configuration"]["Runtime"] == PYTHON_VERSION
     assert result["Configuration"]["Timeout"] == 3
     assert result["Configuration"]["Version"] == "$LATEST"
-    assert "VpcConfig" in result["Configuration"]
-    assert "Environment" in result["Configuration"]
-    assert "Variables" in result["Configuration"]["Environment"]
+    assert "VpcConfig" not in result["Configuration"]
     assert result["Configuration"]["Environment"]["Variables"] == {
         "test_variable": "test_value"
     }
@@ -648,7 +615,7 @@ def test_get_function():
     assert result["Configuration"]["Version"] == "$LATEST"
     assert (
         result["Configuration"]["FunctionArn"]
-        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:$LATEST"
+        == f"arn:aws:lambda:{region}:{account_id}:function:{function_name}:$LATEST"
     )
 
     # Test get function with version
@@ -656,7 +623,7 @@ def test_get_function():
     assert result["Configuration"]["Version"] == "1"
     assert (
         result["Configuration"]["FunctionArn"]
-        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+        == f"arn:aws:lambda:{region}:{account_id}:function:{function_name}:1"
     )
 
     # Test get function with version inside of name
@@ -664,8 +631,15 @@ def test_get_function():
     assert result["Configuration"]["Version"] == "1"
     assert (
         result["Configuration"]["FunctionArn"]
-        == f"arn:aws:lambda:us-west-2:{ACCOUNT_ID}:function:{function_name}:1"
+        == f"arn:aws:lambda:{region}:{account_id}:function:{function_name}:1"
     )
+
+    conn.delete_function(FunctionName=function_name)
+
+
+@mock_aws
+def test_get_unknown_function():
+    conn = boto3.client("lambda", _lambda_region)
 
     # Test get function when can't find function name
     with pytest.raises(conn.exceptions.ResourceNotFoundException):
@@ -717,9 +691,6 @@ def test_get_function_configuration(key):
     assert result["Runtime"] == PYTHON_VERSION
     assert result["Timeout"] == 3
     assert result["Version"] == "$LATEST"
-    assert "VpcConfig" in result
-    assert "Environment" in result
-    assert "Variables" in result["Environment"]
     assert result["Environment"]["Variables"] == {"test_variable": "test_value"}
 
     # Test get function with qualifier
@@ -774,10 +745,7 @@ def test_get_function_code_signing_config(key):
 def test_get_function_by_arn():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", "us-east-1")
-    s3_conn.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
-    )
+    s3_conn.create_bucket(Bucket=bucket_name)
 
     zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
@@ -860,10 +828,7 @@ def test_delete_function():
 def test_delete_function_by_arn():
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", "us-east-1")
-    s3_conn.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
-    )
+    s3_conn.create_bucket(Bucket=bucket_name)
 
     zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
@@ -1008,7 +973,7 @@ def test_list_create_list_get_delete_list():
     )
     expected_function_result = {
         "Code": {
-            "Location": f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com/test.zip",
+            "Location": f"https://awslambda-{_lambda_region}-tasks.s3.{_lambda_region}.amazonaws.com/test.zip",
             "RepositoryType": "S3",
         },
         "Configuration": {
@@ -1025,7 +990,6 @@ def test_list_create_list_get_delete_list():
             "Runtime": PYTHON_VERSION,
             "Timeout": 3,
             "Version": "$LATEST",
-            "VpcConfig": {"SecurityGroupIds": [], "SubnetIds": []},
             "State": "Active",
             "Layers": [],
             "LastUpdateStatus": "Successful",
@@ -1111,7 +1075,7 @@ def test_get_function_created_with_zipfile():
     assert len(response["Code"]) == 2
     assert response["Code"]["RepositoryType"] == "S3"
     assert response["Code"]["Location"].startswith(
-        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com"
+        f"https://awslambda-{_lambda_region}-tasks.s3.{_lambda_region}.amazonaws.com"
     )
     assert "Configuration" in response
     config = response["Configuration"]
@@ -1350,25 +1314,23 @@ def test_list_versions_by_function_for_nonexistent_function():
     assert len(versions["Versions"]) == 0
 
 
+@pytest.mark.aws_verified
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_aws
-def test_update_configuration(key):
-    bucket_name = str(uuid4())
+@lambda_aws_verified
+@s3_aws_verified
+def test_update_configuration(key, bucket_name=None, iam_role_arn=None):
+    region = "us-east-1"
     function_name = str(uuid4())[0:6]
-    s3_conn = boto3.client("s3", _lambda_region)
-    s3_conn.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
-    )
+    s3_conn = boto3.client("s3", region)
 
     zip_content = get_test_zip_file2()
     s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
-    conn = boto3.client("lambda", _lambda_region)
+    conn = boto3.client("lambda", region)
 
     fxn = conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
+        Role=iam_role_arn,
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
         Description="test lambda function",
@@ -1378,6 +1340,9 @@ def test_update_configuration(key):
         Environment={"Variables": {"test_old_environment": "test_old_value"}},
     )
     name_or_arn = fxn[key]
+
+    wait_for_func = conn.get_waiter("function_active")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
 
     assert fxn["Description"] == "test lambda function"
     assert fxn["Handler"] == "lambda_function.lambda_handler"
@@ -1389,31 +1354,37 @@ def test_update_configuration(key):
         FunctionName=name_or_arn,
         Description="updated test lambda function",
         Handler="lambda_function.new_lambda_handler",
-        Runtime="python3.6",
+        Runtime="python3.12",
         Timeout=7,
-        VpcConfig={"SecurityGroupIds": ["sg-123abc"], "SubnetIds": ["subnet-123abc"]},
         Environment={"Variables": {"test_environment": "test_value"}},
     )
+
+    wait_for_func = conn.get_waiter("function_updated")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
 
     assert updated_config["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert updated_config["Description"] == "updated test lambda function"
     assert updated_config["Handler"] == "lambda_function.new_lambda_handler"
     assert updated_config["MemorySize"] == 128
-    assert updated_config["Runtime"] == "python3.6"
+    assert updated_config["Runtime"] == "python3.12"
     assert updated_config["Timeout"] == 7
     assert updated_config["Environment"]["Variables"] == {
         "test_environment": "test_value"
     }
-    assert updated_config["VpcConfig"] == {
-        "SecurityGroupIds": ["sg-123abc"],
-        "SubnetIds": ["subnet-123abc"],
-        "VpcId": "vpc-123abc",
-    }
+
+    # publish - results in a new version because the config is updated
+    assert conn.publish_version(FunctionName=name_or_arn)["Version"] == "2"
+
+    # publish again - no changes
+    assert conn.publish_version(FunctionName=name_or_arn)["Version"] == "2"
+
+    conn.delete_function(FunctionName=function_name)
 
 
+@pytest.mark.aws_verified
 @pytest.mark.parametrize("key", ["FunctionName", "FunctionArn"])
-@mock_aws
-def test_update_function_zip(key):
+@lambda_aws_verified
+def test_update_function_zip(key, iam_role_arn=None):
     conn = boto3.client("lambda", _lambda_region)
 
     zip_content_one = get_test_zip_file1()
@@ -1422,7 +1393,7 @@ def test_update_function_zip(key):
     fxn = conn.create_function(
         FunctionName=function_name,
         Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
+        Role=iam_role_arn,
         Handler="lambda_function.lambda_handler",
         Code={"ZipFile": zip_content_one},
         Description="test lambda function",
@@ -1431,6 +1402,10 @@ def test_update_function_zip(key):
         Publish=True,
     )
     name_or_arn = fxn[key]
+
+    wait_for_func = conn.get_waiter("function_active")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
+
     first_sha = fxn["CodeSha256"]
 
     zip_content_two = get_test_zip_file2()
@@ -1440,49 +1415,61 @@ def test_update_function_zip(key):
     )
     assert update1["CodeSha256"] != first_sha
 
+    wait_for_func = conn.get_waiter("function_updated")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
+
     response = conn.get_function(FunctionName=function_name, Qualifier="2")
 
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    assert len(response["Code"]) == 2
     assert response["Code"]["RepositoryType"] == "S3"
     assert response["Code"]["Location"].startswith(
-        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com"
+        f"https://awslambda-{_lambda_region}-tasks.s3.{_lambda_region}.amazonaws.com"
     )
 
     config = response["Configuration"]
     assert config["CodeSize"] == len(zip_content_two)
-    assert config["Description"] == "test lambda function"
-    assert (
-        config["FunctionArn"]
-        == f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:function:{function_name}:2"
-    )
+    assert config["FunctionArn"].endswith(f"{function_name}:2")
     assert config["FunctionName"] == function_name
     assert config["Version"] == "2"
-    assert config["LastUpdateStatus"] == "Successful"
     assert config["CodeSha256"] == update1["CodeSha256"]
 
     most_recent_config = conn.get_function(FunctionName=function_name)
     assert most_recent_config["Configuration"]["CodeSha256"] == update1["CodeSha256"]
 
-    # Publishing this again, with the same code, gives us the same version
+    # Update the same code, and manually publish
+    conn.update_function_code(FunctionName=name_or_arn, ZipFile=zip_content_two)
+    wait_for_func = conn.get_waiter("function_updated")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
+
+    resp = conn.publish_version(FunctionName=name_or_arn)
+    # The code is the same, but the version is still updated
+    assert resp["CodeSha256"] == update1["CodeSha256"]
+    assert resp["Version"] == "3"
+
+    # Calling publish again
+    resp = conn.publish_version(FunctionName=name_or_arn)
+    # Code is the same, as is the version - just because we didn't call 'update_function_code'
+    assert resp["CodeSha256"] == update1["CodeSha256"]
+    assert resp["Version"] == "3"
+
+    # Explicitly publishing this again, with the same code, gives us a new version
     same_update = conn.update_function_code(
         FunctionName=name_or_arn, ZipFile=zip_content_two, Publish=True
     )
-    assert (
-        same_update["FunctionArn"]
-        == most_recent_config["Configuration"]["FunctionArn"] + ":2"
-    )
-    assert same_update["Version"] == "2"
+    assert same_update["FunctionArn"].endswith(f":{function_name}:4")
+    assert same_update["Version"] == "4"
 
-    # Only when updating the code should we have a new version
-    new_update = conn.update_function_code(
-        FunctionName=name_or_arn, ZipFile=get_test_zip_file3(), Publish=True
-    )
-    assert (
-        new_update["FunctionArn"]
-        == most_recent_config["Configuration"]["FunctionArn"] + ":3"
-    )
-    assert new_update["Version"] == "3"
+    wait_for_func = conn.get_waiter("function_updated")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
+
+    resp = conn.publish_version(FunctionName=name_or_arn)
+    # The code is the same, so is the version, as the previous update was already published
+    assert resp["CodeSha256"] == update1["CodeSha256"]
+    assert resp["Version"] == "4"
+
+    wait_for_func = conn.get_waiter("function_updated")
+    wait_for_func.wait(FunctionName=function_name, WaiterConfig={"Delay": 1})
+
+    conn.delete_function(FunctionName=function_name)
 
 
 @mock_aws
@@ -1528,7 +1515,7 @@ def test_update_function_s3():
     assert len(response["Code"]) == 2
     assert response["Code"]["RepositoryType"] == "S3"
     assert response["Code"]["Location"].startswith(
-        f"s3://awslambda-{_lambda_region}-tasks.s3-{_lambda_region}.amazonaws.com"
+        f"https://awslambda-{_lambda_region}-tasks.s3.{_lambda_region}.amazonaws.com"
     )
 
     config = response["Configuration"]

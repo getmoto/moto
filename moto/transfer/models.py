@@ -1,9 +1,9 @@
 """TransferBackend class with methods for supported APIs."""
 
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.utils import unix_time
 from moto.transfer.exceptions import PublicKeyNotFound, ServerNotFound, UserNotFound
 
 from .types import (
@@ -131,7 +131,7 @@ class TransferBackend(BaseBackend):
         self,
         home_directory: Optional[str],
         home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: List[Dict[str, Optional[str]]],
+        home_directory_mappings: Optional[List[Dict[str, Optional[str]]]],
         policy: Optional[str],
         posix_profile: Optional[Dict[str, Any]],
         role: str,
@@ -150,7 +150,7 @@ class TransferBackend(BaseBackend):
             tags=(tags or []),
             user_name=user_name,
         )
-        if len(home_directory_mappings) > 0:
+        if home_directory_mappings:
             for mapping in home_directory_mappings:
                 user.home_directory_mappings.append(
                     {
@@ -167,10 +167,10 @@ class TransferBackend(BaseBackend):
             }
             user.posix_profile = posix_profile
         if ssh_public_key_body is not None:
-            now = datetime.now().strftime("%Y%m%d%H%M%S")
+            now = unix_time()
             ssh_public_keys = [
                 {
-                    "date_imported": now,
+                    "date_imported": str(now),
                     "ssh_public_key_body": ssh_public_key_body,
                     "ssh_public_key_id": "mock_ssh_public_key_id_{ssh_public_key_body}_{now}",
                 }
@@ -205,14 +205,14 @@ class TransferBackend(BaseBackend):
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:
             if user.user_name == user_name:
-                date_imported = datetime.now().strftime("%Y%m%d%H%M%S")
+                date_imported = unix_time()
                 ssh_public_key_id = (
                     f"{server_id}:{user_name}:public_key:{date_imported}"
                 )
                 key = {
                     "ssh_public_key_id": ssh_public_key_id,
                     "ssh_public_key_body": ssh_public_key_body,
-                    "date_imported": date_imported,
+                    "date_imported": str(date_imported),
                 }
                 user.ssh_public_keys.append(key)
                 return server_id, ssh_public_key_id, user_name

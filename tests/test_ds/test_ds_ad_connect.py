@@ -287,3 +287,34 @@ def test_ds_get_connect_directory_limits():
     assert limits["ConnectedDirectoriesLimitReached"]
     assert not limits["CloudOnlyDirectoriesCurrentCount"]
     assert not limits["CloudOnlyMicrosoftADCurrentCount"]
+
+
+@mock_aws
+def test_enable_describe_disable_ldaps():
+    """Test good and bad invocations of describe_directories()."""
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    directory_id = create_test_ad_connector(client, ec2_client)
+
+    # Describe LDAPS settings for AD Connector without LDAPS enabled
+    ldaps = client.describe_ldaps_settings(DirectoryId=directory_id)[
+        "LDAPSSettingsInfo"
+    ]
+    assert ldaps == []
+
+    # Enable LDAPS for AD Connector and verify it is enabled
+    client.enable_ldaps(DirectoryId=directory_id, Type="Client")
+    ldaps = client.describe_ldaps_settings(DirectoryId=directory_id)[
+        "LDAPSSettingsInfo"
+    ]
+    assert len(ldaps) == 1
+    assert ldaps[0]["LDAPSStatus"] == "Enabled"
+
+    # Disable LDAPS for AD Connector and verify it is disabled
+    client.disable_ldaps(DirectoryId=directory_id, Type="Client")
+    ldaps = client.describe_ldaps_settings(DirectoryId=directory_id)[
+        "LDAPSSettingsInfo"
+    ]
+    assert len(ldaps) == 1
+    assert ldaps[0]["LDAPSStatus"] == "Disabled"

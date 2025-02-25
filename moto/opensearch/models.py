@@ -1,7 +1,9 @@
+import datetime
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -42,6 +44,25 @@ default_advanced_options = {
 }
 
 
+class EngineVersion(BaseModel):
+    def __init__(self, options: str, create_time: datetime.datetime) -> None:
+        self.options = options or "OpenSearch_2.5"
+        self.create_time = unix_time(create_time)
+        self.update_time = self.create_time
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Options": self.options,
+            "Status": {
+                "CreationDate": self.create_time,
+                "PendingDeletion": False,
+                "State": "Active",
+                "UpdateDate": self.update_time,
+                "UpdateVersion": 28,
+            },
+        }
+
+
 class OpenSearchDomain(BaseModel):
     def __init__(
         self,
@@ -64,13 +85,16 @@ class OpenSearchDomain(BaseModel):
         auto_tune_options: Dict[str, Any],
         off_peak_window_options: Dict[str, Any],
         software_update_options: Dict[str, bool],
+        is_es: bool,
+        elasticsearch_version: Optional[str],
+        elasticsearch_cluster_config: Optional[str],
     ):
         self.domain_id = f"{account_id}/{domain_name}"
         self.domain_name = domain_name
         self.arn = (
             f"arn:{get_partition(region)}:es:{region}:{account_id}:domain/{domain_name}"
         )
-        self.engine_version = engine_version or "OpenSearch 2.5"
+        self.engine_version = EngineVersion(engine_version, datetime.datetime.now())
         self.cluster_config = cluster_config or {}
         self.ebs_options = ebs_options or {"EBSEnabled": False}
         self.access_policies = access_policies or ""
@@ -92,10 +116,16 @@ class OpenSearchDomain(BaseModel):
             advanced_security_options or default_advanced_security_options
         )
         self.auto_tune_options = auto_tune_options or {"State": "ENABLE_IN_PROGRESS"}
+        if not self.auto_tune_options.get("State"):
+            self.auto_tune_options["State"] = "ENABLED"
         self.off_peak_windows_options = off_peak_window_options
         self.software_update_options = (
             software_update_options or default_software_update_options
         )
+        self.engine_type = "Elasticsearch" if is_es else "OpenSearch"
+        self.is_es = is_es
+        self.elasticsearch_version = elasticsearch_version
+        self.elasticsearch_cluster_config = elasticsearch_cluster_config
 
         self.deleted = False
         self.processing = False
@@ -120,7 +150,7 @@ class OpenSearchDomain(BaseModel):
         return {
             "Endpoint": self.endpoint,
             "Endpoints": self.endpoints,
-            "EngineVersion": self.engine_version,
+            "EngineVersion": self.engine_version.to_dict(),
             "ClusterConfig": self.cluster_config,
             "EBSOptions": self.ebs_options,
             "AccessPolicies": self.access_policies,
@@ -136,6 +166,8 @@ class OpenSearchDomain(BaseModel):
             "AutoTuneOptions": self.auto_tune_options,
             "OffPeakWindowsOptions": self.off_peak_windows_options,
             "SoftwareUpdateOptions": self.software_update_options,
+            "ElasticsearchVersion": self.elasticsearch_version,
+            "ElasticsearchClusterConfig": self.elasticsearch_cluster_config,
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -207,6 +239,7 @@ class OpenSearchDomain(BaseModel):
         self.software_update_options = (
             software_update_options or self.software_update_options
         )
+        self.engine_version.update_time = unix_time(datetime.datetime.now())
 
 
 class OpenSearchServiceBackend(BaseBackend):
@@ -237,6 +270,9 @@ class OpenSearchServiceBackend(BaseBackend):
         auto_tune_options: Dict[str, Any],
         off_peak_window_options: Dict[str, Any],
         software_update_options: Dict[str, Any],
+        is_es: bool,
+        elasticsearch_version: Optional[str],
+        elasticsearch_cluster_config: Optional[str],
     ) -> OpenSearchDomain:
         domain = OpenSearchDomain(
             account_id=self.account_id,
@@ -258,6 +294,9 @@ class OpenSearchServiceBackend(BaseBackend):
             auto_tune_options=auto_tune_options,
             off_peak_window_options=off_peak_window_options,
             software_update_options=software_update_options,
+            is_es=is_es,
+            elasticsearch_version=elasticsearch_version,
+            elasticsearch_cluster_config=elasticsearch_cluster_config,
         )
         self.domains[domain_name] = domain
         if tag_list:
@@ -333,25 +372,26 @@ class OpenSearchServiceBackend(BaseBackend):
 
     def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
         domains = []
+        if engine_type and engine_type not in ["Elasticsearch", "OpenSearch"]:
+            raise EngineTypeNotFoundException(engine_type)
         for domain in self.domains.values():
             if engine_type:
-                if engine_type in domain.engine_version:
+                if engine_type == domain.engine_type:
                     domains.append(
-                        {
-                            "DomainName": domain.domain_name,
-                            "EngineType": engine_type.split("_")[0],
-                        }
+                        {"DomainName": domain.domain_name, "EngineType": engine_type}
                     )
-                else:
-                    raise EngineTypeNotFoundException(domain.domain_name)
             else:
                 domains.append(
-                    {
-                        "DomainName": domain.domain_name,
-                        "EngineType": domain.engine_version.split("_")[0],
-                    }
+                    {"DomainName": domain.domain_name, "EngineType": domain.engine_type}
                 )
         return domains
+
+    def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
+        queried_domains = []
+        for domain_name in domain_names:
+            if domain_name in self.domains:
+                queried_domains.append(self.domains[domain_name])
+        return queried_domains
 
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")

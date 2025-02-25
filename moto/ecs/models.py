@@ -14,6 +14,7 @@ from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
+from ..ec2.exceptions import InvalidSecurityGroupNotFoundError, InvalidSubnetIdError
 from ..ec2.utils import random_private_ip
 from .exceptions import (
     ClusterNotFoundException,
@@ -255,9 +256,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
     @property
     def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         response_object = self.gen_response_object()
-        response_object["taskDefinitionArn"] = response_object["arn"]
-        del response_object["arn"]
-        del response_object["tags"]
+        response_object["taskDefinitionArn"] = response_object.pop("arn")
 
         if not response_object["requiresCompatibilities"]:
             del response_object["requiresCompatibilities"]
@@ -266,7 +265,10 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         if not response_object["memory"]:
             del response_object["memory"]
 
-        return response_object
+        return {
+            "taskDefinition": response_object,
+            "tags": response_object.get("tags", []),
+        }
 
     @property
     def physical_resource_id(self) -> str:
@@ -299,10 +301,14 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             properties.get("ContainerDefinitions", []), pascal_to_camelcase
         )
         volumes = remap_nested_keys(properties.get("Volumes", []), pascal_to_camelcase)
+        memory = properties.get("Memory")
 
         ecs_backend = ecs_backends[account_id][region_name]
         return ecs_backend.register_task_definition(
-            family=family, container_definitions=container_definitions, volumes=volumes
+            family=family,
+            container_definitions=container_definitions,
+            volumes=volumes,
+            memory=memory,
         )
 
     @classmethod
@@ -320,6 +326,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         )
         container_definitions = properties["ContainerDefinitions"]
         volumes = properties.get("Volumes")
+        memory = properties.get("Memory")
         if (
             original_resource.family != family
             or original_resource.container_definitions != container_definitions
@@ -333,6 +340,7 @@ class TaskDefinition(BaseObject, CloudFormationModel):
                 family=family,
                 container_definitions=container_definitions,
                 volumes=volumes,
+                memory=memory,
             )
         else:
             # no-op when nothing changed between old and new resources
@@ -378,7 +386,7 @@ class Task(BaseObject, ManagedState):
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
         self.overrides = overrides or {}
-        self.containers: List[Dict[str, Any]] = []
+        self.containers = [Container(task_definition)]
         self.started_by = started_by
         self.tags = tags or []
         self.launch_type = launch_type
@@ -443,6 +451,7 @@ class Task(BaseObject, ManagedState):
             response_object.pop("tags", None)
         response_object["taskArn"] = self.task_arn
         response_object["lastStatus"] = self.last_status
+        response_object["containers"] = [self.containers[0].response_object]
         return response_object
 
 
@@ -519,14 +528,6 @@ class CapacityProviderFailure(BaseObject):
 
 
 class Service(BaseObject, CloudFormationModel):
-    """Set the environment variable MOTO_ECS_SERVICE_RUNNING to a number of running tasks you want
-    the service to transition to, ie if set to 2:
-
-    MOTO_ECS_SERVICE_RUNNING=2
-
-    then describe_services call to return runningCount of the service AND deployment to 2
-    """
-
     def __init__(
         self,
         cluster: Cluster,
@@ -541,6 +542,8 @@ class Service(BaseObject, CloudFormationModel):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
+        network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
+        propagate_tags: str = "NONE",
     ):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
@@ -588,6 +591,38 @@ class Service(BaseObject, CloudFormationModel):
             ]
         else:
             self.deployments = []
+        self.propagate_tags = propagate_tags
+
+        if network_configuration is not None:
+            self.network_configuration = self._validate_network(network_configuration)
+        else:
+            self.network_configuration = {}
+
+    def _validate_network(
+        self, nc: Dict[str, Dict[str, List[str]]]
+    ) -> Dict[str, Dict[str, List[str]]]:
+        c = nc["awsvpcConfiguration"]
+        if len(c["subnets"]) == 0:
+            raise InvalidParameterException("subnets can not be empty.")
+
+        ec2_backend = ec2_backends[self._account_id][self.region_name]
+        try:
+            ec2_backend.describe_subnets(subnet_ids=c["subnets"])
+        except InvalidSubnetIdError as exc:
+            subnet_id = exc.message.split("'")[1]
+            raise InvalidParameterException(
+                f"Error retrieving subnet information for [{subnet_id}]: {exc.message} (ErrorCode: {exc.error_type})"
+            )
+
+        try:
+            ec2_backend.describe_security_groups(group_ids=c["securityGroups"])
+        except InvalidSecurityGroupNotFoundError as exc:
+            sg = exc.message.split("'{'")[1].split("'}'")[0]
+            raise InvalidParameterException(
+                f"Error retrieving security group information for [{sg}]: "
+                f"The security group '{sg}' does not exist (ErrorCode: InvalidGroup.NotFound)"
+            )
+        return nc
 
     @property
     def arn(self) -> str:
@@ -624,6 +659,7 @@ class Service(BaseObject, CloudFormationModel):
                 deployment["updatedAt"] = unix_time(
                     deployment["updatedAt"].replace(tzinfo=None)
                 )
+        response_object["networkConfiguration"] = self.network_configuration
 
         return response_object
 
@@ -720,6 +756,29 @@ class Service(BaseObject, CloudFormationModel):
         if attribute_name == "Name":
             return self.name
         raise UnformattedGetAttTemplateException()
+
+
+class Container(BaseObject, CloudFormationModel):
+    def __init__(
+        self,
+        task_def: TaskDefinition,
+    ):
+        self.container_arn = f"{task_def.arn}/{str(mock_random.uuid4())}"
+        self.task_arn = task_def.arn
+
+        container_def = task_def.container_definitions[0]
+        self.image = container_def.get("image")
+        self.last_status = "PENDING"
+        self.exitCode = 0
+
+        self.network_interfaces: List[Dict[str, Any]] = []
+        self.health_status = "HEALTHY"
+
+        self.cpu = container_def.get("cpu")
+        self.memory = container_def.get("memory")
+        self.environment = container_def.get("environment")
+        self.name = container_def.get("name")
+        self.command = container_def.get("command")
 
 
 class ContainerInstance(BaseObject):
@@ -954,6 +1013,12 @@ class EC2ContainerServiceBackend(BaseBackend):
     `MOTO_ECS_NEW_ARN=false`
 
     AWS reference: https://aws.amazon.com/blogs/compute/migrating-your-amazon-ecs-deployment-to-the-new-arn-and-resource-id-format-2/
+
+    Set the environment variable MOTO_ECS_SERVICE_RUNNING to a number of running tasks you want. For example:
+
+    MOTO_ECS_SERVICE_RUNNING=2
+
+    Every describe_services() will return runningCount AND deployment of 2
     """
 
     def __init__(self, region_name: str, account_id: str):
@@ -1603,6 +1668,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         launch_type: Optional[str] = None,
         service_registries: Optional[List[Dict[str, Any]]] = None,
         platform_version: Optional[str] = None,
+        propagate_tags: str = "NONE",
+        network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
@@ -1629,6 +1696,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             backend=self,
             service_registries=service_registries,
             platform_version=platform_version,
+            propagate_tags=propagate_tags,
+            network_configuration=network_configuration,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service
@@ -1686,6 +1755,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         task_definition_str = service_properties.pop("task_definition", None)
         cluster = self._get_cluster(cluster_str)
         service_name = service_properties.pop("service").split("/")[-1]
+        force_new_deployment = service_properties.pop("force_new_deployment", False)
         cluster_service_pair = f"{cluster.name}:{service_name}"
 
         if cluster_service_pair in self.services:
@@ -1699,6 +1769,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             if task_definition_str:
                 self.describe_task_definition(task_definition_str)
                 current_service.task_definition = task_definition_str
+            if force_new_deployment and current_service.deployments:
+                deployment = current_service.deployments[0]
+                deployment["id"] = f"ecs-svc/{mock_random.randint(0, 32**12)}"
+                now = datetime.now(timezone.utc)
+                deployment["createdAt"] = now
+                deployment["updatedAt"] = now
             return current_service
         else:
             raise ServiceNotFoundException
@@ -2168,12 +2244,34 @@ class EC2ContainerServiceBackend(BaseBackend):
         if not service_obj:
             raise ServiceNotFoundException
 
-        task_set.task_definition = self.describe_task_definition(task_definition).arn
+        task_def_obj = self.describe_task_definition(task_definition)
+        task_set.task_definition = task_def_obj.arn
         task_set.service_arn = service_obj.arn
         task_set.cluster_arn = cluster_obj.arn
 
         service_obj.task_sets.append(task_set)
         # TODO: validate load balancers
+
+        if scale:
+            if scale.get("unit") == "PERCENT":
+                desired_count = service_obj.desired_count
+                nr_of_tasks = int(desired_count * (scale["value"] / 100))
+                all_tags = {}
+                if service_obj.propagate_tags == "TASK_DEFINITION":
+                    all_tags.update({t["key"]: t["value"] for t in task_def_obj.tags})
+                if service_obj.propagate_tags == "SERVICE":
+                    all_tags.update({t["key"]: t["value"] for t in service_obj.tags})
+                all_tags.update({t["key"]: t["value"] for t in (tags or [])})
+                self.run_task(
+                    cluster_str=cluster_str,
+                    task_definition_str=task_definition,
+                    count=nr_of_tasks,
+                    overrides=None,
+                    started_by=self.account_id,
+                    tags=[{"key": k, "value": v} for k, v in all_tags.items()],
+                    launch_type=launch_type,
+                    networking_configuration=network_configuration,
+                )
 
         return task_set
 

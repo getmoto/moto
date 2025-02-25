@@ -1,5 +1,4 @@
 import json
-import os
 from functools import wraps
 from time import sleep
 from typing import TYPE_CHECKING, Callable, TypeVar
@@ -10,6 +9,7 @@ import requests
 
 from moto import mock_aws, settings
 from tests import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests import allow_aws_request
 from tests.test_stepfunctions.parser.templates.templates import load_template
 
 if TYPE_CHECKING:
@@ -31,11 +31,7 @@ def aws_verified(func):
 
     @wraps(func)
     def pagination_wrapper():
-        allow_aws_request = (
-            os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
-        )
-
-        if allow_aws_request:
+        if allow_aws_request():
             return func()
         else:
             with mock_aws():
@@ -74,7 +70,7 @@ def verify_execution_result(
     execution_arn, state_machine_arn = _start_execution(
         client, load_template(tmpl_name), exec_input, sfn_role
     )
-    for _ in range(10):
+    for _ in range(30):
         execution = client.describe_execution(executionArn=execution_arn)
         if expected_status is None or execution["status"] == expected_status:
             result = _verify_result(client, execution, execution_arn)
@@ -85,7 +81,7 @@ def verify_execution_result(
                 )
                 iam.delete_role(RoleName=role_name)
                 break
-        sleep(0.1)
+        sleep(10 if allow_aws_request() else 0.1)
     else:
         client.delete_state_machine(stateMachineArn=state_machine_arn)
         iam.delete_role_policy(RoleName=role_name, PolicyName="allowLambdaInvoke")

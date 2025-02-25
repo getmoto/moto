@@ -77,3 +77,31 @@ def test_batch_write_item_to_multiple_tables():
             except Exception as e:
                 print(f"Failed to delete table {name}")  # noqa
                 print(e)  # noqa
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_batch_write_using_arn(table_name=None):
+    ddb_client = boto3.client("dynamodb", region_name="us-east-1")
+    table_arn = ddb_client.describe_table(TableName=table_name)["Table"]["TableArn"]
+
+    ddb_client.transact_write_items(
+        TransactItems=[
+            {
+                "Update": {
+                    "TableName": table_arn,
+                    "Key": {"pk": {"S": "test"}},
+                    "UpdateExpression": "SET xxx = :xxx",
+                    "ExpressionAttributeValues": {":xxx": {"S": "123"}},
+                }
+            }
+        ]
+    )
+
+    results = ddb_client.scan(TableName=table_arn)["Items"]
+    assert results == [{"pk": {"S": "test"}, "xxx": {"S": "123"}}]
+
+    items = ddb_client.batch_get_item(
+        RequestItems={table_arn: {"Keys": [{"pk": {"S": "test"}}]}}
+    )["Responses"]
+    assert items == {table_arn: [{"pk": {"S": "test"}, "xxx": {"S": "123"}}]}

@@ -1,25 +1,32 @@
 import json
 import os
+import typing
 from collections import defaultdict
 from copy import copy
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .exceptions import ValidationException
+from .exceptions import (
+    InvalidKeyUsageException,
+    KMSInvalidMacException,
+    ValidationException,
+)
 from .utils import (
     RESERVED_ALIASES,
     KeySpec,
     SigningAlgorithm,
     decrypt,
     encrypt,
+    generate_hmac,
     generate_key_id,
     generate_master_key,
     generate_private_key,
@@ -67,6 +74,7 @@ class Key(CloudFormationModel):
         account_id: str,
         region: str,
         multi_region: bool = False,
+        origin: str = "AWS_KMS",
     ):
         self.id = generate_key_id(multi_region)
         self.creation_date = unix_time()
@@ -78,18 +86,28 @@ class Key(CloudFormationModel):
         self.description = description or ""
         self.enabled = True
         self.multi_region = multi_region
+        if self.multi_region:
+            self.multi_region_configuration: typing.Dict[str, Any] = {
+                "MultiRegionKeyType": "PRIMARY",
+                "PrimaryKey": {
+                    "Arn": f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}",
+                    "Region": self.region,
+                },
+                "ReplicaKeys": [],
+            }
         self.key_rotation_status = False
         self.deletion_date: Optional[datetime] = None
         self.key_material = generate_master_key()
-        self.origin = "AWS_KMS"
+        self.origin = origin
         self.key_manager = "CUSTOMER"
         self.key_spec = key_spec or "SYMMETRIC_DEFAULT"
         self.private_key = generate_private_key(self.key_spec)
         self.arn = (
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
         )
-
         self.grants: Dict[str, Grant] = dict()
+
+        self.rotations: List[Dict[str, Any]] = []
 
     def add_grant(
         self,
@@ -206,6 +224,10 @@ class Key(CloudFormationModel):
                 "SigningAlgorithms": self.signing_algorithms,
             }
         }
+        if key_dict["KeyMetadata"]["MultiRegion"]:
+            key_dict["KeyMetadata"]["MultiRegionConfiguration"] = (
+                self.multi_region_configuration
+            )
         if self.key_state == "PendingDeletion":
             key_dict["KeyMetadata"]["DeletionDate"] = unix_time(self.deletion_date)
         return key_dict
@@ -259,6 +281,15 @@ class Key(CloudFormationModel):
 
 
 class KmsBackend(BaseBackend):
+    PAGINATION_MODEL = {
+        "list_key_rotations": {
+            "input_token": "next_marker",
+            "limit_key": "limit",
+            "limit_default": 1000,
+            "unique_attribute": "RotationDate",
+        }
+    }
+
     def __init__(self, region_name: str, account_id: Optional[str] = None):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
         self.keys: Dict[str, Key] = {}
@@ -275,7 +306,7 @@ class KmsBackend(BaseBackend):
                 "Default key",
                 None,
             )
-            self.add_alias(key.id, alias_name)
+            self.create_alias(key.id, alias_name)
             return key.id
         return None
 
@@ -287,6 +318,7 @@ class KmsBackend(BaseBackend):
         description: str,
         tags: Optional[List[Dict[str, str]]],
         multi_region: bool = False,
+        origin: str = "AWS_KMS",
     ) -> Key:
         """
         The provided Policy currently does not need to be valid. If it is valid, Moto will perform authorization checks on key-related operations, just like AWS does.
@@ -306,6 +338,7 @@ class KmsBackend(BaseBackend):
             self.account_id,
             self.region_name,
             multi_region,
+            origin,
         )
         self.keys[key.id] = key
         if tags is not None and len(tags) > 0:
@@ -326,8 +359,24 @@ class KmsBackend(BaseBackend):
         replica_key = copy(self.keys[key_id])
         replica_key.region = replica_region
         replica_key.arn = replica_key.arn.replace(self.region_name, replica_region)
+
+        if replica_key.multi_region:
+            existing_replica = any(
+                replica["Region"] == replica_region
+                for replica in replica_key.multi_region_configuration["ReplicaKeys"]
+            )
+
+            if not existing_replica:
+                replica_payload = {"Arn": replica_key.arn, "Region": replica_region}
+                replica_key.multi_region_configuration["ReplicaKeys"].append(
+                    replica_payload
+                )
+
         to_region_backend = kms_backends[self.account_id][replica_region]
         to_region_backend.keys[replica_key.id] = replica_key
+
+        self.multi_region_configuration = copy(replica_key.multi_region_configuration)
+
         return replica_key
 
     def update_key_description(self, key_id: str, description: str) -> None:
@@ -343,12 +392,13 @@ class KmsBackend(BaseBackend):
             self.keys.pop(key_id)
 
     def describe_key(self, key_id: str) -> Key:
-        # allow the different methods (alias, ARN :key/, keyId, ARN alias) to
-        # describe key not just KeyId
-        key_id = self.get_key_id(key_id)
-        if r"alias/" in str(key_id).lower():
-            key_id = self.get_key_id_from_alias(key_id)  # type: ignore[assignment]
-        return self.keys[self.get_key_id(key_id)]
+        key = self.keys[self.any_id_to_key_id(key_id)]
+
+        if key.multi_region:
+            if key.arn != key.multi_region_configuration["PrimaryKey"]["Arn"]:
+                key.multi_region_configuration["MultiRegionKeyType"] = "REPLICA"
+
+        return key
 
     def list_keys(self) -> Iterable[Key]:
         return self.keys.values()
@@ -391,9 +441,12 @@ class KmsBackend(BaseBackend):
 
         return False
 
-    def add_alias(self, target_key_id: str, alias_name: str) -> None:
+    def create_alias(self, target_key_id: str, alias_name: str) -> None:
         raw_key_id = self.get_key_id(target_key_id)
         self.key_to_aliases[raw_key_id].add(alias_name)
+
+    def update_alias(self, target_key_id: str, alias_name: str) -> None:
+        self.create_alias(target_key_id, alias_name)
 
     def delete_alias(self, alias_name: str) -> None:
         """Delete the alias."""
@@ -401,7 +454,7 @@ class KmsBackend(BaseBackend):
             if alias_name in aliases:
                 aliases.remove(alias_name)
 
-    def get_all_aliases(self) -> Dict[str, Set[str]]:
+    def list_aliases(self) -> Dict[str, Set[str]]:
         return self.key_to_aliases
 
     def get_key_id_from_alias(self, alias_name: str) -> Optional[str]:
@@ -426,6 +479,11 @@ class KmsBackend(BaseBackend):
 
     def get_key_policy(self, key_id: str) -> str:
         return self.keys[self.get_key_id(key_id)].policy
+
+    def list_key_policies(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'describe_key'
+        pass
 
     def disable_key(self, key_id: str) -> None:
         self.keys[key_id].enabled = False
@@ -493,6 +551,11 @@ class KmsBackend(BaseBackend):
         )
         return new_ciphertext_blob, decrypting_arn, encrypting_arn
 
+    def generate_random(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'os.urandom'
+        pass
+
     def generate_data_key(
         self,
         key_id: str,
@@ -518,6 +581,11 @@ class KmsBackend(BaseBackend):
         )
 
         return plaintext, ciphertext_blob, arn
+
+    def generate_data_key_without_plaintext(self) -> None:
+        # Marker to indicate this is implemented
+        # Responses uses 'generate_data_key'
+        pass
 
     def list_resource_tags(self, key_id_or_arn: str) -> Dict[str, List[Dict[str, str]]]:
         key_id = self.get_key_id(key_id_or_arn)
@@ -675,6 +743,69 @@ class KmsBackend(BaseBackend):
     def get_public_key(self, key_id: str) -> Tuple[Key, bytes]:
         key = self.describe_key(key_id)
         return key, key.private_key.public_key()
+
+    def rotate_key_on_demand(self, key_id: str) -> str:
+        key: Key = self.keys[self.get_key_id(key_id)]
+
+        rotation = {
+            "KeyId": key_id,
+            "RotationDate": datetime.now().timestamp(),
+            "RotationType": "ON_DEMAND",
+        }
+
+        # Add to key rotations
+        key.rotations.append(rotation)
+
+        return key_id
+
+    @paginate(PAGINATION_MODEL)
+    def list_key_rotations(
+        self, key_id: str, limit: int, next_marker: str
+    ) -> List[Dict[str, Union[str, float]]]:
+        key: Key = self.keys[self.get_key_id(key_id)]
+
+        return key.rotations
+
+    def generate_mac(
+        self,
+        message: bytes,
+        key_id: str,
+        mac_algorithm: str,
+        grant_tokens: List[str],
+        dry_run: bool,
+    ) -> Tuple[str, str, str]:
+        key = self.keys[key_id]
+
+        if (
+            key.key_usage != "GENERATE_VERIFY_MAC"
+            or key.key_spec not in KeySpec.hmac_key_specs()
+        ):
+            raise InvalidKeyUsageException()
+
+        mac = generate_hmac(
+            key=key.key_material, message=message, mac_algorithm=mac_algorithm
+        )
+        return mac, mac_algorithm, key_id
+
+    def verify_mac(
+        self,
+        message: bytes,
+        key_id: str,
+        mac_algorithm: str,
+        mac: str,
+        grant_tokens: List[str],
+        dry_run: bool,
+    ) -> None:
+        regenerated_mac, _, _ = self.generate_mac(
+            message=message,
+            key_id=key_id,
+            mac_algorithm=mac_algorithm,
+            grant_tokens=grant_tokens,
+            dry_run=dry_run,
+        )
+
+        if mac != regenerated_mac:
+            raise KMSInvalidMacException()
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

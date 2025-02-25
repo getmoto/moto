@@ -9,6 +9,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests.test_elbv2.test_elbv2 import create_load_balancer
 
 RESOURCE_FOLDER = os.path.join(os.path.dirname(__file__), "resources")
 
@@ -710,7 +711,7 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
 
 
 @mock_aws
-def test_request_certificate_with_mutiple_times():
+def test_request_certificate_with_multiple_times():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Cant manipulate time in server mode")
 
@@ -789,3 +790,44 @@ def test_elb_acm_in_use_by():
     assert response["Certificate"]["InUseBy"] == [
         create_load_balancer_request["DNSName"]
     ]
+
+    certificates = acm_client.list_certificates()["CertificateSummaryList"]
+    cert = [
+        _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
+    ][0]
+    assert cert["InUse"]
+
+
+@mock_aws
+def test_elbv2_acm_in_use_by():
+    acm_client = boto3.client("acm", region_name="us-east-1")
+
+    certificate_arn = acm_client.request_certificate(
+        DomainName="fake.domain.com",
+        DomainValidationOptions=[
+            {"DomainName": "fake.domain.com", "ValidationDomain": "domain.com"}
+        ],
+    )["CertificateArn"]
+
+    response, _, _, _, _, elbv2_client = create_load_balancer()
+    load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    create_listener_resp = elbv2_client.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTP",
+        Port=443,
+        DefaultActions=[],
+        Certificates=[{"CertificateArn": certificate_arn}],
+        AlpnPolicy=["pol1", "pol2"],
+    )
+
+    response = acm_client.describe_certificate(CertificateArn=certificate_arn)
+    assert response["Certificate"]["InUseBy"] == [
+        create_listener_resp["Listeners"][0]["ListenerArn"]
+    ]
+
+    certificates = acm_client.list_certificates()["CertificateSummaryList"]
+    cert = [
+        _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
+    ][0]
+    assert cert["InUse"]

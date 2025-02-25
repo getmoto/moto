@@ -1,4 +1,5 @@
 import copy
+import datetime
 import json
 from typing import Any, Dict, List, Optional
 
@@ -6,6 +7,7 @@ from moto.core.common_models import BackendDict
 from moto.stepfunctions.models import StateMachine, StepFunctionBackend
 from moto.stepfunctions.parser.api import (
     Definition,
+    EncryptionConfiguration,
     ExecutionStatus,
     GetExecutionHistoryOutput,
     InvalidDefinition,
@@ -14,7 +16,6 @@ from moto.stepfunctions.parser.api import (
     LoggingConfiguration,
     MissingRequiredParameter,
     Name,
-    Publish,
     ResourceNotFound,
     SendTaskFailureOutput,
     SendTaskHeartbeatOutput,
@@ -27,7 +28,6 @@ from moto.stepfunctions.parser.api import (
     TaskToken,
     TraceHeader,
     TracingConfiguration,
-    VersionDescription,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.map_run_record import (
     MapRunRecord,
@@ -81,11 +81,24 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         definition: str,
         roleArn: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        publish: Optional[bool] = None,
+        loggingConfiguration: Optional[LoggingConfiguration] = None,
+        tracingConfiguration: Optional[TracingConfiguration] = None,
+        encryptionConfiguration: Optional[EncryptionConfiguration] = None,
+        version_description: Optional[str] = None,
     ) -> StateMachine:
         StepFunctionsParserBackend._validate_definition(definition=definition)
 
         return super().create_state_machine(
-            name=name, definition=definition, roleArn=roleArn, tags=tags
+            name=name,
+            definition=definition,
+            roleArn=roleArn,
+            tags=tags,
+            publish=publish,
+            loggingConfiguration=loggingConfiguration,
+            tracingConfiguration=tracingConfiguration,
+            encryptionConfiguration=encryptionConfiguration,
+            version_description=version_description,
         )
 
     def send_task_heartbeat(self, task_token: TaskToken) -> SendTaskHeartbeatOutput:
@@ -167,14 +180,28 @@ class StepFunctionsParserBackend(StepFunctionBackend):
 
         exec_name = name  # TODO: validate name format
 
+        execution_arn = "arn:{}:states:{}:{}:execution:{}:{}"
+        execution_arn = execution_arn.format(
+            self.partition,
+            self.region_name,
+            self.account_id,
+            state_machine.name,
+            name,
+        )
+
         execution = Execution(
             name=exec_name,
+            sm_type=state_machine_clone.sm_type,
             role_arn=state_machine_clone.roleArn,
+            exec_arn=execution_arn,
             account_id=self.account_id,
             region_name=self.region_name,
             state_machine=state_machine_clone,
+            start_date=datetime.datetime.now(tz=datetime.timezone.utc),
+            cloud_watch_logging_session=None,
             input_data=input_data,
             trace_header=trace_header,
+            activity_store={},
         )
         state_machine.executions.append(execution)
 
@@ -188,20 +215,36 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         role_arn: str = None,
         logging_configuration: LoggingConfiguration = None,
         tracing_configuration: TracingConfiguration = None,
-        publish: Publish = None,
-        version_description: VersionDescription = None,
+        encryption_configuration: EncryptionConfiguration = None,
+        publish: Optional[bool] = None,
+        version_description: str = None,
     ) -> StateMachine:
         if not any(
-            [definition, role_arn, logging_configuration, tracing_configuration]
+            [
+                definition,
+                role_arn,
+                logging_configuration,
+                tracing_configuration,
+                encryption_configuration,
+            ]
         ):
             raise MissingRequiredParameter(
-                "Either the definition, the role ARN, the LoggingConfiguration, or the TracingConfiguration must be specified"
+                "Either the definition, the role ARN, the LoggingConfiguration, the EncryptionConfiguration or the TracingConfiguration must be specified"
             )
 
         if definition is not None:
             self._validate_definition(definition=definition)
 
-        return super().update_state_machine(arn, definition, role_arn)
+        return super().update_state_machine(
+            arn,
+            definition,
+            role_arn,
+            logging_configuration=logging_configuration,
+            tracing_configuration=tracing_configuration,
+            encryption_configuration=encryption_configuration,
+            publish=publish,
+            version_description=version_description,
+        )
 
     def describe_map_run(self, map_run_arn: str) -> Dict[str, Any]:
         for execution in self._get_executions():
@@ -221,7 +264,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
             execution.exec_worker.env.map_run_record_pool_manager.get_all()
         )
         return dict(
-            mapRuns=[map_run_record.to_json() for map_run_record in map_run_records]
+            mapRuns=[map_run_record.list_item() for map_run_record in map_run_records]
         )
 
     def update_map_run(

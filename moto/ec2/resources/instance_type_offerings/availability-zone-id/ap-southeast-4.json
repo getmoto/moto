@@ -388,6 +388,42 @@
   "Location": "apse4-az1"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "apse4-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "apse4-az1"
  },
@@ -549,6 +585,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
   "Location": "apse4-az1"
  },
  {
@@ -940,6 +980,42 @@
   "Location": "apse4-az2"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "apse4-az2"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "apse4-az2"
  },
@@ -1489,6 +1565,42 @@
  },
  {
   "InstanceType": "m6gd.xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
   "Location": "apse4-az3"
  },
  {

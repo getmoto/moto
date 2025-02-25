@@ -26,7 +26,7 @@ TEST_REGION_NAME = "us-west-1"
 
 @contextmanager
 def setup_s3_pipeline_definition(bucket_name, object_key, pipeline_definition):
-    client = boto3.client("s3")
+    client = boto3.client("s3", TEST_REGION_NAME)
     client.create_bucket(
         Bucket=bucket_name,
         CreateBucketConfiguration={"LocationConstraint": TEST_REGION_NAME},
@@ -606,22 +606,6 @@ def test_delete_pipeline_not_exists(sagemaker_client):
 def test_update_pipeline_not_exists(sagemaker_client):
     with pytest.raises(botocore.exceptions.ClientError):
         _ = sagemaker_client.update_pipeline(PipelineName="some-pipeline-name")
-
-
-def test_update_pipeline_invalid_kwargs(sagemaker_client):
-    pipeline_name = "APipelineName"
-    pipeline = {
-        "PipelineName": pipeline_name,
-        "RoleArn": FAKE_ROLE_ARN,
-        "PipelineDefinition": " ",
-    }
-    _ = create_sagemaker_pipelines(sagemaker_client, [pipeline])
-
-    with pytest.raises(botocore.exceptions.ParamValidationError):
-        sagemaker_client.update_pipeline(
-            PipelineName=pipeline_name,
-            **{"InvalidKwarg": "some-value"},
-        )
 
 
 def test_update_pipeline_no_update(sagemaker_client):

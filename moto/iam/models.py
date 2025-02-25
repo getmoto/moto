@@ -3,7 +3,7 @@ import json
 import os
 import re
 import string
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 from urllib import parse
 
@@ -99,6 +99,12 @@ def mark_account_as_visited(
     else:
         # User provided access credentials unknown to us
         pass
+
+
+def _serialize_version_datetime(value: Any) -> str:
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
+    raise TypeError("Unable to serialize value.")
 
 
 LIMIT_KEYS_PER_USER = 2
@@ -223,6 +229,7 @@ class SAMLProvider(BaseModel):
         saml_metadata_document: Optional[str] = None,
     ):
         self.account_id = account_id
+        self.create_date = utcnow()
         self.region_name = region_name
         self.name = name
         self.saml_metadata_document = saml_metadata_document
@@ -230,6 +237,10 @@ class SAMLProvider(BaseModel):
     @property
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:saml-provider/{self.name}"
+
+    @property
+    def created_iso_8601(self) -> str:
+        return iso_8601_datetime_without_milliseconds(self.create_date)
 
 
 class OpenIDConnectProvider(BaseModel):
@@ -740,10 +751,16 @@ class Role(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
+        assume_role_policy_document = properties["AssumeRolePolicyDocument"]
+        if not isinstance(assume_role_policy_document, str):
+            assume_role_policy_document = json.dumps(
+                assume_role_policy_document, default=_serialize_version_datetime
+            )
+
         iam_backend = iam_backends[account_id][get_partition(region_name)]
         role = iam_backend.create_role(
             role_name=role_name,
-            assume_role_policy_document=properties["AssumeRolePolicyDocument"],
+            assume_role_policy_document=assume_role_policy_document,
             path=properties.get("Path", "/"),
             permissions_boundary=properties.get("PermissionsBoundary", ""),
             description=properties.get("Description", ""),
@@ -758,6 +775,24 @@ class Role(CloudFormationModel):
             role.put_policy(policy_name, policy_json)
 
         return role
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "Role",
+        new_resource_name: str,
+        cloudformation_json: Dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ) -> "Role":
+        iam_backend = iam_backends[account_id][get_partition(region_name)]
+        properties = cloudformation_json["Properties"]
+        role_name = properties.get("RoleName", original_resource.name)
+        role_description = properties.get("Description", "")
+        max_session_duration = properties.get("RoleDescription", 3600)
+        return iam_backend.update_role(
+            role_name, role_description, max_session_duration
+        )
 
     @classmethod
     def delete_from_cloudformation_json(  # type: ignore[misc]
@@ -893,7 +928,7 @@ class Role(CloudFormationModel):
       <Path>{{ role.path }}</Path>
       <Arn>{{ role.arn }}</Arn>
       <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document }}</AssumeRolePolicyDocument>
+      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
       {% if role.description is not none %}
       <Description>{{ role.description_escaped }}</Description>
       {% endif %}
@@ -1519,6 +1554,13 @@ class User(CloudFormationModel):
                 else self.access_keys[1].last_used.strftime(date_format)
             )
 
+        cert1_active = cert2_active = False
+        if len(self.signing_certificates) > 0:
+            cert1 = list(self.signing_certificates.values())[0]
+            cert1_active = cert1.status == "Active"
+        if len(self.signing_certificates) > 1:
+            cert2 = list(self.signing_certificates.values())[1]
+            cert2_active = cert2.status == "Active"
         fields = [
             self.name,
             self.arn,
@@ -1538,9 +1580,9 @@ class User(CloudFormationModel):
             access_key_2_last_used,
             "not_supported",
             "not_supported",
-            "false",
+            "true" if cert1_active else "false",
             "N/A",
-            "false",
+            "true" if cert2_active else "false",
             "N/A",
         ]
         return ",".join(fields) + "\n"
@@ -2719,6 +2761,13 @@ class IAMBackend(BaseBackend):
         except Exception:
             raise MalformedCertificate(body)
 
+        if (
+            len(user.signing_certificates)
+            >= self.account_summary._signing_certificates_per_user_quota
+        ):
+            raise IAMLimitExceededException(
+                "Cannot exceed quota for CertificatesPerUser: 2"
+            )
         user.signing_certificates[cert_id] = SigningCertificate(
             cert_id, user_name, body
         )

@@ -14,7 +14,9 @@ class TestLogsTagging(unittest.TestCase):
         self.resources_untagged = []
         for i in range(3):
             self.logs.create_log_group(logGroupName=f"test{i}", tags={"key1": "val1"})
-        self.arns = [lg["arn"] for lg in self.logs.describe_log_groups()["logGroups"]]
+        self.arns = [
+            lg["logGroupArn"] for lg in self.logs.describe_log_groups()["logGroups"]
+        ]
 
     def test_get_resources_logs(self):
         resp = self.rtapi.get_resources(ResourceTypeFilters=["logs"])

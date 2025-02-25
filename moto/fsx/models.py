@@ -1,7 +1,7 @@
 """FSxBackend class with methods for supported APIs."""
 
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -36,7 +36,7 @@ class FileSystem(BaseModel):
         ontap_configuration: Optional[Dict[str, Any]],
         open_zfs_configuration: Optional[Dict[str, Any]],
     ) -> None:
-        self.file_system_id = f"fs-moto{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        self.file_system_id = f"fs-{uuid4().hex[:8]}"
         self.file_system_type = file_system_type
         if self.file_system_type not in FileSystemType.list_values():
             raise ValueError(f"Invalid FileSystemType: {self.file_system_type}")
@@ -174,14 +174,13 @@ class FSxBackend(BaseBackend):
         resource = self._get_resource_from_arn(resource_arn)
         resource.tags.extend(tags)
 
-    def _get_resource_from_arn(self, arn: str) -> Any:
+    def _get_resource_from_arn(self, arn: str) -> FileSystem:
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
-            resource = self.file_systems.get(target_name)  # type: ignore
+            return self.file_systems[target_name]
         except KeyError:
             message = f"Could not find {target_resource} with name {target_name}"
             raise ValueError(message)
-        return resource
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         resource = self._get_resource_from_arn(resource_arn)

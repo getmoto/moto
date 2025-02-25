@@ -41,7 +41,8 @@ url_paths = {
     "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/(?P<response_type>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/vpclinks$": APIGatewayResponse.dispatch,
     "{0}/vpclinks/(?P<vpclink_id>[^/]+)": APIGatewayResponse.dispatch,
+    "{0}/account$": APIGatewayResponse.dispatch,
 }
 
 # Also manages the APIGatewayV2
-url_paths.update(url_paths_v2)  # type: ignore[arg-type]
+url_paths.update(url_paths_v2)

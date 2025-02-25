@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.utils import random_private_ip
-from tests import EXAMPLE_AMI_ID
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 
 @mock_aws
@@ -967,6 +967,88 @@ def test_eni_detachment():
         ex.value.response["Error"]["Message"]
         == "The network interface at device index 0 and networkCard index 0 cannot be detached."
     )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "delete_eni", [True, False], ids=["DeleteOnTermination", "KeepOnTermination"]
+)
+def test_create_instance__termination_deletes_eni(delete_eni):
+    ssm = boto3.client("ssm", "us-east-1")
+    kernel_61 = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+    ami_id = ssm.get_parameter(Name=kernel_61)["Parameter"]["Value"]
+
+    ec2_client = boto3.client("ec2", "us-east-1")
+    existing_subnet_id = ec2_client.describe_subnets()["Subnets"][0]["SubnetId"]
+
+    instance = ec2_client.run_instances(
+        MaxCount=1,
+        MinCount=1,
+        ImageId=ami_id,
+        InstanceType="t3a.small",
+        NetworkInterfaces=[
+            {
+                "DeleteOnTermination": delete_eni,
+                "DeviceIndex": 0,
+                "SubnetId": existing_subnet_id,
+            }
+        ],
+    )["Instances"][0]
+    instance_id = instance["InstanceId"]
+    ec2_client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
+
+    eni_id = instance["NetworkInterfaces"][0]["NetworkInterfaceId"]
+    eni = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
+    assert eni["Attachment"]["DeleteOnTermination"] is delete_eni
+
+    ec2_client.terminate_instances(InstanceIds=[instance_id])
+    ec2_client.get_waiter("instance_terminated").wait(InstanceIds=[instance_id])
+
+    if delete_eni:
+        with pytest.raises(ClientError) as exc:
+            ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidNetworkInterfaceID.NotFound"
+        assert err["Message"] == f"The networkInterface ID '{eni_id}' does not exist"
+    else:
+        # Still exists - let's manually delete
+        ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])
+
+        ec2_client.delete_network_interface(NetworkInterfaceId=eni_id)
+
+
+@mock_aws
+def test_recreate_instance_with_same_ip_address():
+    ssm = boto3.client("ssm", "us-east-1")
+    kernel_61 = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
+    ami_id = ssm.get_parameter(Name=kernel_61)["Parameter"]["Value"]
+
+    ec2_client = boto3.client("ec2", "us-east-1")
+    existing_subnet_id = ec2_client.describe_subnets()["Subnets"][0]["SubnetId"]
+
+    for _ in range(2):
+        # Second attempt must not throw an exception about a used IP
+        instance_id = ec2_client.run_instances(
+            MaxCount=1,
+            MinCount=1,
+            ImageId=ami_id,
+            InstanceType="t3a.small",
+            NetworkInterfaces=[
+                {
+                    "PrivateIpAddress": "172.31.0.5",
+                    "DeleteOnTermination": True,
+                    "DeviceIndex": 0,
+                    "SubnetId": existing_subnet_id,
+                }
+            ],
+        )["Instances"][0]["InstanceId"]
+        ec2_client.get_waiter("instance_running").wait(InstanceIds=[instance_id])
+
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+        ec2_client.get_waiter("instance_terminated").wait(InstanceIds=[instance_id])
 
 
 def setup_vpc(boto3):  # pylint: disable=W0621

@@ -1,9 +1,8 @@
 import json
-import os
-import re
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
+from moto.utilities.utils import load_resource
 
 from .exceptions import InvalidParameterException
 from .models import (
@@ -371,52 +370,8 @@ class CognitoIdpResponse(BaseResponse):
         filt = self._get_param("Filter")
         attributes_to_get = self._get_param("AttributesToGet")
         users, token = self.backend.list_users(
-            user_pool_id, limit=limit, pagination_token=token
+            user_pool_id, filt, limit=limit, pagination_token=token
         )
-        if filt:
-            inherent_attributes: Dict[str, Any] = {
-                "cognito:user_status": lambda u: u.status,
-                "status": lambda u: "Enabled" if u.enabled else "Disabled",
-                "username": lambda u: u.username,
-            }
-            comparisons: Dict[str, Any] = {
-                "=": lambda x, y: x == y,
-                "^=": lambda x, y: x.startswith(y),
-            }
-            allowed_attributes = [
-                "username",
-                "email",
-                "phone_number",
-                "name",
-                "given_name",
-                "family_name",
-                "preferred_username",
-                "cognito:user_status",
-                "status",
-                "sub",
-            ]
-
-            match = re.match(r"([\w:]+)\s*(=|\^=)\s*\"(.*)\"", filt)
-            if match:
-                name, op, value = match.groups()
-            else:
-                raise InvalidParameterException("Error while parsing filter")
-            if name not in allowed_attributes:
-                raise InvalidParameterException(f"Invalid search attribute: {name}")
-            compare = comparisons[op]
-            users = [
-                user
-                for user in users
-                if [
-                    attr
-                    for attr in user.attributes
-                    if attr["Name"] == name and compare(attr["Value"], value)
-                ]
-                or (
-                    name in inherent_attributes
-                    and compare(inherent_attributes[name](user), value)
-                )
-            ]
         response: Dict[str, Any] = {
             "Users": [
                 user.to_json(extended=True, attributes_to_get=attributes_to_get)
@@ -588,18 +543,19 @@ class CognitoIdpResponse(BaseResponse):
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")
         password = self._get_param("Password")
-        user = self._get_region_agnostic_backend().sign_up(
+        user, code_delivery_details = self._get_region_agnostic_backend().sign_up(
             client_id=client_id,
             username=username,
             password=password,
             attributes=self._get_param("UserAttributes", []),
         )
-        return json.dumps(
-            {
-                "UserConfirmed": user.status == UserStatus["CONFIRMED"],
-                "UserSub": user.id,
-            }
-        )
+        response = {
+            "UserConfirmed": user.status == UserStatus["CONFIRMED"],
+            "UserSub": user.id,
+        }
+        if code_delivery_details:
+            response["CodeDeliveryDetails"] = code_delivery_details
+        return json.dumps(response)
 
     def confirm_sign_up(self) -> str:
         client_id = self._get_param("ClientId")
@@ -622,19 +578,25 @@ class CognitoIdpResponse(BaseResponse):
 
     def associate_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
-        result = self.backend.associate_software_token(access_token)
+        session = self._get_param("Session")
+        result = self._get_region_agnostic_backend().associate_software_token(
+            access_token, session
+        )
         return json.dumps(result)
 
     def verify_software_token(self) -> str:
         access_token = self._get_param("AccessToken")
-        result = self.backend.verify_software_token(access_token)
+        session = self._get_param("Session")
+        result = self._get_region_agnostic_backend().verify_software_token(
+            access_token, session
+        )
         return json.dumps(result)
 
     def set_user_mfa_preference(self) -> str:
         access_token = self._get_param("AccessToken")
         software_token_mfa_settings = self._get_param("SoftwareTokenMfaSettings")
         sms_mfa_settings = self._get_param("SMSMfaSettings")
-        self.backend.set_user_mfa_preference(
+        self._get_region_agnostic_backend().set_user_mfa_preference(
             access_token, software_token_mfa_settings, sms_mfa_settings
         )
         return ""
@@ -668,21 +630,24 @@ class CognitoIdpResponse(BaseResponse):
     def update_user_attributes(self) -> str:
         access_token = self._get_param("AccessToken")
         attributes = self._get_param("UserAttributes")
-        self.backend.update_user_attributes(access_token, attributes)
+        self._get_region_agnostic_backend().update_user_attributes(
+            access_token, attributes
+        )
         return json.dumps({})
 
 
 class CognitoIdpJsonWebKeyResponse(BaseResponse):
-    def __init__(self) -> None:
-        with open(
-            os.path.join(os.path.dirname(__file__), "resources/jwks-public.json")
-        ) as f:
-            self.json_web_key = f.read()
+    json_web_key = json.dumps(
+        load_resource(__name__, "resources/jwks-public.json")
+    ).encode("utf-8")
 
-    def serve_json_web_key(
-        self,
-        request: Any,  # pylint: disable=unused-argument
-        full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
-    ) -> Tuple[int, Dict[str, str], str]:
-        return 200, {"Content-Type": "application/json"}, self.json_web_key
+    def __init__(self) -> None:
+        super().__init__(service_name="cognito-idp")
+
+    @staticmethod
+    def serve_json_web_key(*args) -> TYPE_RESPONSE:  # type: ignore
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            CognitoIdpJsonWebKeyResponse.json_web_key,
+        )

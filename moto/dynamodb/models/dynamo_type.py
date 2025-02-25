@@ -1,7 +1,7 @@
 import base64
 import copy
 from decimal import Decimal
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 from botocore.utils import merge_dicts
@@ -12,6 +12,7 @@ from moto.dynamodb.exceptions import (
     IncorrectDataType,
     ItemSizeTooLarge,
 )
+from moto.utilities.utils import md5_hash
 
 from .utilities import bytesize, find_nested_key
 
@@ -147,6 +148,11 @@ class DynamoType(object):
                 self.value[key] = value
         else:
             raise NotImplementedError(f"No set_item for {type(key)}")
+
+    def __delitem__(self, item: str) -> "DynamoType":
+        if isinstance(item, str) and self.type == DDBType.MAP:
+            del self.value[item]
+        return self
 
     @property
     def cast_value(self) -> Any:  # type: ignore[misc]
@@ -450,3 +456,31 @@ class Item(BaseModel):
             # We need to convert that into DynamoDB dictionary ({'M': {'key': {'S': 'value'}}})
             attrs=serializer.serialize(result)["M"],
         )
+
+    def is_within_segment(
+        self, segments: Union[Tuple[None, None], Tuple[int, int]]
+    ) -> bool:
+        """
+        Segments can be either (x, y) or (None, None)
+        None, None => the user requested the entire table, so the item always falls within that
+        x, y       => the user requested segment x out of y
+
+        Segment membership is computed based on the value of the hash key
+        """
+        if segments == (None, None):
+            return True
+
+        segment, total_segments = segments
+        # Creates a reproducible hash number for this item (between 0 and 256)
+        # Note that we can't use the builtin hash() method, as that is not deterministic between executions
+        #
+        # Using a hash based on the hash key ensures parity with how AWS seems to behave:
+        #  - Items are not divided equally between segment
+        #  - Items always fall in the same segment, regardless of how often you call `scan()`
+        #  - Items with the same hash key but different range keys always fall in the same segment
+        #  - Items with different hash keys may be part of different segments
+        #
+        item_hash = md5_hash(self.hash_key.value.encode("utf8")).digest()[0]
+        # Modulo ensures that we always get a number between 0 and (total_segments)
+        item_segment = item_hash % total_segments
+        return segment == item_segment

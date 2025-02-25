@@ -83,6 +83,7 @@ s3control
 - [ ] list_access_grants_locations
 - [ ] list_access_points
 - [ ] list_access_points_for_object_lambda
+- [ ] list_caller_access_grants
 - [ ] list_jobs
 - [ ] list_multi_region_access_points
 - [ ] list_regional_buckets

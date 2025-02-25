@@ -17,6 +17,7 @@ sagemaker
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
 - [ ] create_action
 - [ ] create_algorithm
@@ -26,10 +27,12 @@ sagemaker
 - [ ] create_auto_ml_job
 - [X] create_auto_ml_job_v2
 - [X] create_cluster
+- [ ] create_cluster_scheduler_config
 - [ ] create_code_repository
 - [X] create_compilation_job
+- [ ] create_compute_quota
 - [ ] create_context
-- [ ] create_data_quality_job_definition
+- [X] create_data_quality_job_definition
 - [ ] create_device_fleet
 - [X] create_domain
 - [ ] create_edge_deployment_plan
@@ -52,8 +55,8 @@ sagemaker
 - [ ] create_labeling_job
 - [ ] create_mlflow_tracking_server
 - [X] create_model
-- [ ] create_model_bias_job_definition
-- [ ] create_model_card
+- [X] create_model_bias_job_definition
+- [X] create_model_card
 - [ ] create_model_card_export_job
 - [X] create_model_explainability_job_definition
 - [X] create_model_package
@@ -63,6 +66,8 @@ sagemaker
 - [X] create_notebook_instance
 - [X] create_notebook_instance_lifecycle_config
 - [ ] create_optimization_job
+- [ ] create_partner_app
+- [ ] create_partner_app_presigned_url
 - [X] create_pipeline
 - [ ] create_presigned_domain_url
 - [ ] create_presigned_mlflow_tracking_server_url
@@ -72,6 +77,7 @@ sagemaker
 - [ ] create_space
 - [ ] create_studio_lifecycle_config
 - [X] create_training_job
+- [ ] create_training_plan
 - [X] create_transform_job
 - [X] create_trial
 - [X] create_trial_component
@@ -85,10 +91,12 @@ sagemaker
 - [ ] delete_artifact
 - [ ] delete_association
 - [X] delete_cluster
+- [ ] delete_cluster_scheduler_config
 - [ ] delete_code_repository
 - [X] delete_compilation_job
+- [ ] delete_compute_quota
 - [ ] delete_context
-- [ ] delete_data_quality_job_definition
+- [X] delete_data_quality_job_definition
 - [ ] delete_device_fleet
 - [X] delete_domain
 - [ ] delete_edge_deployment_plan
@@ -109,8 +117,8 @@ sagemaker
 - [ ] delete_inference_experiment
 - [ ] delete_mlflow_tracking_server
 - [X] delete_model
-- [ ] delete_model_bias_job_definition
-- [ ] delete_model_card
+- [X] delete_model_bias_job_definition
+- [X] delete_model_card
 - [X] delete_model_explainability_job_definition
 - [ ] delete_model_package
 - [ ] delete_model_package_group
@@ -120,6 +128,7 @@ sagemaker
 - [X] delete_notebook_instance
 - [X] delete_notebook_instance_lifecycle_config
 - [ ] delete_optimization_job
+- [ ] delete_partner_app
 - [X] delete_pipeline
 - [ ] delete_project
 - [ ] delete_space
@@ -140,10 +149,12 @@ sagemaker
 - [X] describe_auto_ml_job_v2
 - [X] describe_cluster
 - [X] describe_cluster_node
+- [ ] describe_cluster_scheduler_config
 - [ ] describe_code_repository
 - [X] describe_compilation_job
+- [ ] describe_compute_quota
 - [ ] describe_context
-- [ ] describe_data_quality_job_definition
+- [X] describe_data_quality_job_definition
 - [ ] describe_device
 - [ ] describe_device_fleet
 - [X] describe_domain
@@ -168,8 +179,8 @@ sagemaker
 - [ ] describe_lineage_group
 - [ ] describe_mlflow_tracking_server
 - [X] describe_model
-- [ ] describe_model_bias_job_definition
-- [ ] describe_model_card
+- [X] describe_model_bias_job_definition
+- [X] describe_model_card
 - [ ] describe_model_card_export_job
 - [X] describe_model_explainability_job_definition
 - [X] describe_model_package
@@ -179,6 +190,7 @@ sagemaker
 - [ ] describe_notebook_instance
 - [X] describe_notebook_instance_lifecycle_config
 - [ ] describe_optimization_job
+- [ ] describe_partner_app
 - [X] describe_pipeline
 - [X] describe_pipeline_definition_for_execution
 - [X] describe_pipeline_execution
@@ -188,6 +200,7 @@ sagemaker
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
 - [X] describe_training_job
+- [ ] describe_training_plan
 - [X] describe_transform_job
 - [X] describe_trial
 - [X] describe_trial_component
@@ -214,11 +227,13 @@ sagemaker
 - [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
 - [X] list_cluster_nodes
+- [ ] list_cluster_scheduler_configs
 - [X] list_clusters
 - [ ] list_code_repositories
 - [X] list_compilation_jobs
+- [ ] list_compute_quotas
 - [ ] list_contexts
-- [ ] list_data_quality_job_definitions
+- [X] list_data_quality_job_definitions
 - [ ] list_device_fleets
 - [ ] list_devices
 - [X] list_domains
@@ -244,10 +259,10 @@ sagemaker
 - [ ] list_labeling_jobs_for_workteam
 - [ ] list_lineage_groups
 - [ ] list_mlflow_tracking_servers
-- [ ] list_model_bias_job_definitions
+- [X] list_model_bias_job_definitions
 - [ ] list_model_card_export_jobs
-- [ ] list_model_card_versions
-- [ ] list_model_cards
+- [X] list_model_card_versions
+- [X] list_model_cards
 - [X] list_model_explainability_job_definitions
 - [ ] list_model_metadata
 - [X] list_model_package_groups
@@ -266,6 +281,7 @@ sagemaker
         
 
 - [ ] list_optimization_jobs
+- [ ] list_partner_apps
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
@@ -280,6 +296,7 @@ sagemaker
 - [X] list_tags
 - [X] list_training_jobs
 - [ ] list_training_jobs_for_hyper_parameter_tuning_job
+- [ ] list_training_plans
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
@@ -292,6 +309,11 @@ sagemaker
 - [ ] render_ui_template
 - [ ] retry_pipeline_execution
 - [X] search
+  
+        Only a few SearchExpressions are implemented. Please open a bug report if you find any issues.
+        
+
+- [ ] search_training_plan_offerings
 - [ ] send_pipeline_execution_step_failure
 - [ ] send_pipeline_execution_step_success
 - [ ] start_edge_deployment_stage
@@ -320,8 +342,10 @@ sagemaker
 - [ ] update_app_image_config
 - [ ] update_artifact
 - [ ] update_cluster
+- [ ] update_cluster_scheduler_config
 - [ ] update_cluster_software
 - [ ] update_code_repository
+- [ ] update_compute_quota
 - [ ] update_context
 - [ ] update_device_fleet
 - [ ] update_devices
@@ -338,12 +362,13 @@ sagemaker
 - [ ] update_inference_component_runtime_config
 - [ ] update_inference_experiment
 - [ ] update_mlflow_tracking_server
-- [ ] update_model_card
+- [X] update_model_card
 - [X] update_model_package
 - [ ] update_monitoring_alert
 - [ ] update_monitoring_schedule
 - [ ] update_notebook_instance
 - [ ] update_notebook_instance_lifecycle_config
+- [ ] update_partner_app
 - [X] update_pipeline
 - [ ] update_pipeline_execution
 - [ ] update_project

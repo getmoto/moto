@@ -10,10 +10,9 @@ from moto.emr.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.utilities.utils import get_partition
+from moto.utilities.utils import CamelToUnderscoresWalker, get_partition
 
 from .utils import (
-    CamelToUnderscoresWalker,
     EmrSecurityGroupManager,
     random_cluster_id,
     random_instance_group_id,
@@ -556,6 +555,7 @@ class ElasticMapReduceBackend(BaseBackend):
         self.clusters: Dict[str, FakeCluster] = {}
         self.instance_groups: Dict[str, FakeInstanceGroup] = {}
         self.security_configurations: Dict[str, FakeSecurityConfiguration] = {}
+        self.block_public_access_configuration: Dict[str, Any] = {}
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
@@ -884,6 +884,40 @@ class ElasticMapReduceBackend(BaseBackend):
                 message=f"Security configuration with name '{name}' does not exist."
             )
         del self.security_configurations[name]
+
+    def get_block_public_access_configuration(
+        self,
+    ) -> Dict[str, Any]:  # type ignore[misc]
+        return self.block_public_access_configuration
+
+    def put_block_public_access_configuration(
+        self,
+        block_public_security_group_rules: bool,
+        rule_ranges: Optional[List[Dict[str, int]]],
+    ) -> None:
+        from moto.sts import sts_backends
+
+        sts_backend = sts_backends[self.account_id]["global"]
+        _, user_arn, _ = sts_backend.get_caller_identity(
+            self.account_id, region=self.region_name
+        )
+        self.block_public_access_configuration = {
+            "block_public_access_configuration": {
+                "block_public_security_group_rules": block_public_security_group_rules,
+                "permitted_public_security_group_rule_ranges": [
+                    {
+                        "min_range": rule_range.get("MinRange"),
+                        "max_range": rule_range.get("MaxRange"),
+                    }
+                    for rule_range in rule_ranges or []
+                ],
+            },
+            "block_public_access_configuration_metadata": {
+                "creation_date_time": datetime.now(),
+                "created_by_arn": user_arn,
+            },
+        }
+        return
 
 
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

@@ -152,9 +152,7 @@ class Repository(BaseObject, CloudFormationModel):
         response_object["repositoryArn"] = self.arn
         response_object["repositoryName"] = self.name
         response_object["repositoryUri"] = self.uri
-        response_object["createdAt"] = iso_8601_datetime_without_milliseconds(
-            self.created_at
-        )
+        response_object["createdAt"] = self.created_at.timestamp()
         del response_object["arn"], response_object["name"], response_object["images"]
         return response_object
 
@@ -333,15 +331,6 @@ class Image(BaseObject):
         response_object["imageManifestMediaType"] = self.image_manifest_mediatype
         response_object["repositoryName"] = self.repository
         response_object["registryId"] = self.registry_id
-        return {
-            k: v for k, v in response_object.items() if v is not None and v != [None]
-        }
-
-    @property
-    def response_list_object(self) -> Dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["imageTag"] = self.image_tag
-        response_object["imageDigest"] = self.get_image_digest()
         return {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }

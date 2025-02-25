@@ -297,7 +297,7 @@ def test_condition_expression__attr_doesnt_exist():
         # Test nonexistent top-level attribute.
         client.update_item(
             TableName="test",
-            Key={"forum_name": {"S": "the-key"}, "subject": {"S": "the-subject"}},
+            Key={"forum_name": {"S": "the-key"}},
             UpdateExpression="set #new_state=:new_state, #ttl=:ttl",
             ConditionExpression="attribute_not_exists(#new_state)",
             ExpressionAttributeNames={"#new_state": "foobar", "#ttl": "ttl"},

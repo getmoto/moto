@@ -216,9 +216,9 @@ class EmailResponse(BaseResponse):
 
     def describe_configuration_set(self) -> str:
         configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
-        self.backend.describe_configuration_set(configuration_set_name)
+        config_set = self.backend.describe_configuration_set(configuration_set_name)
         template = self.response_template(DESCRIBE_CONFIGURATION_SET)
-        return template.render(name=configuration_set_name)
+        return template.render(name=config_set.configuration_set_name)
 
     def create_configuration_set_event_destination(self) -> str:
         configuration_set_name = self._get_param("ConfigurationSetName")
@@ -377,6 +377,29 @@ class EmailResponse(BaseResponse):
 
         template = self.response_template(GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE)
         return template.render(verification_attributes=verification_attributes)
+
+    def delete_configuration_set(self) -> str:
+        params = self._get_params()
+        configuration_set_name = params.get("ConfigurationSetName")
+        if configuration_set_name:
+            self.backend.delete_configuration_set(
+                configuration_set_name=str(configuration_set_name),
+            )
+            template = self.response_template(DELETE_CONFIGURATION_SET_TEMPLATE)
+        return template.render()
+
+    def list_configuration_sets(self) -> str:
+        params = self._get_params()
+        next_token = params.get("NextToken")
+        max_items = params.get("MaxItems")
+        configuration_sets = self.backend.list_configuration_sets(
+            next_token=next_token,
+            max_items=max_items,
+        )
+        template = self.response_template(LIST_CONFIGURATION_SETS_TEMPLATE)
+        return template.render(
+            configuration_sets=configuration_sets, next_token=next_token
+        )
 
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
@@ -814,3 +837,26 @@ GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE = """<GetIdentityVerificationAttri
     <RequestId>d435c1b8-a225-4b89-acff-81fcf7ef9236</RequestId>
   </ResponseMetadata>
 </GetIdentityVerificationAttributesResponse>"""
+
+DELETE_CONFIGURATION_SET_TEMPLATE = """<DeleteConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DeleteConfigurationSetResult/>
+</DeleteConfigurationSetResponse>"""
+
+LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <ListConfigurationSetsResult>
+    <ConfigurationSets>
+{% for configurationset in configuration_sets %}
+      <member>
+        <Name>{{ configurationset }}</Name>
+      </member>
+{% endfor %}
+    </ConfigurationSets>
+    <NextToken>{{ next_token }}</NextToken>
+  </ListConfigurationSetsResult>
+</ListConfigurationSetsResponse>"""

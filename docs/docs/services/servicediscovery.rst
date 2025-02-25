@@ -22,6 +22,7 @@ servicediscovery
 - [X] create_service
 - [X] delete_namespace
 - [X] delete_service
+- [ ] delete_service_attributes
 - [X] deregister_instance
 - [X] discover_instances
 - [X] discover_instances_revision
@@ -30,6 +31,7 @@ servicediscovery
 - [X] get_namespace
 - [X] get_operation
 - [X] get_service
+- [ ] get_service_attributes
 - [X] list_instances
 - [X] list_namespaces
   
@@ -55,4 +57,5 @@ servicediscovery
 - [X] update_private_dns_namespace
 - [X] update_public_dns_namespace
 - [X] update_service
+- [ ] update_service_attributes
 

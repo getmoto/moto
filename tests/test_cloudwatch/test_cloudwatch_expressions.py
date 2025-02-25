@@ -7,6 +7,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core.utils import utcnow
 from tests.test_cloudwatch import cloudwatch_aws_verified
 
 
@@ -88,7 +89,7 @@ def test_get_metric_data_with_expressive_expression():
                     {"Name": "Path", "Value": "/my/path"},
                     {"Name": "Audience", "Value": "my audience"},
                 ],
-                "Timestamp": datetime.utcnow(),
+                "Timestamp": utcnow(),
                 "StatisticValues": {
                     "Maximum": 10,
                     "Minimum": 0,
@@ -100,8 +101,8 @@ def test_get_metric_data_with_expressive_expression():
     )
 
     expression = f"SELECT SUM(ApiResponse) FROM \"{my_namespace}\" WHERE Path = '/my/path' GROUP BY Audience"
-    start_time = datetime.utcnow() - timedelta(hours=1)
-    end_time = datetime.utcnow() + timedelta(hours=1)
+    start_time = utcnow() - timedelta(hours=1)
+    end_time = utcnow() + timedelta(hours=1)
 
     for _ in range(60):
         result = cloudwatch.get_metric_data(

@@ -571,8 +571,7 @@ class SourceDetail(ConfigEmptyDictable):
         # A more specific message will be used here instead.
         if not event_source:
             raise MissingRequiredConfigRuleParameterException(
-                "Missing required parameter in ConfigRule.SourceDetails: "
-                "'EventSource'"
+                "Missing required parameter in ConfigRule.SourceDetails: 'EventSource'"
             )
         if event_source not in SourceDetail.EVENT_SOURCES:
             raise ValidationException(
@@ -2037,7 +2036,7 @@ class ConfigBackend(BaseBackend):
                 if rule_arn and config_rule_obj.config_rule_arn == rule_arn:
                     rule_name = config_rule_obj.config_rule_name
                     break
-            else:
+            if not rule_name:
                 raise InvalidParameterValueException(
                     "One or more identifiers needs to be provided. Provide "
                     "Name or Id or Arn"

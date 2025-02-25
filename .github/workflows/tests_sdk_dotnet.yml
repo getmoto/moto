@@ -9,10 +9,10 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Set up Python 3.8
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: "3.8"
+        python-version: "3.12"
     - name: Start MotoServer
       run: |
         pip install build
@@ -28,8 +28,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget
     - name: Install dependencies
-      run: cd other_langs/tests_dotnet && dotnet restore ExampleTestProject/ && dotnet restore ebs
+      run: cd other_langs/tests_dotnet && dotnet restore s3 && dotnet restore sqs
     - name: Run tests
       run: |
         mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
-        cd other_langs/tests_dotnet && dotnet test ExampleTestProject/ && dotnet restore ebs
+        cd other_langs/tests_dotnet
+        dotnet test s3 -v n
+        dotnet test sqs -v n

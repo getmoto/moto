@@ -16,5 +16,6 @@ sagemaker-metrics
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] batch_get_metrics
 - [X] batch_put_metrics
 

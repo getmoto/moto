@@ -34,8 +34,11 @@ codepipeline
 - [ ] list_action_types
 - [ ] list_pipeline_executions
 - [X] list_pipelines
+- [ ] list_rule_executions
+- [ ] list_rule_types
 - [X] list_tags_for_resource
 - [ ] list_webhooks
+- [ ] override_stage_condition
 - [ ] poll_for_jobs
 - [ ] poll_for_third_party_jobs
 - [ ] put_action_revision

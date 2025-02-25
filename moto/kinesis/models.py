@@ -585,6 +585,7 @@ class KinesisBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.streams: Dict[str, Stream] = OrderedDict()
+        self.resource_policies: Dict[str, str] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -807,13 +808,12 @@ class KinesisBackend(BaseBackend):
 
         return current_shard_count
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(
         self, stream_arn: Optional[str], stream_name: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Shard]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
-        shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
-        return [shard.to_json() for shard in shards]
+        return sorted(stream.shards.values(), key=lambda x: x.shard_id)
 
     def increase_stream_retention_period(
         self,
@@ -1024,6 +1024,36 @@ class KinesisBackend(BaseBackend):
             data=gzipped_payload,
             explicit_hash_key="",
         )
+
+    def put_resource_policy(self, resource_arn: str, policy_doc: str) -> None:
+        """
+        Creates/updates resource policy and return policy object
+        """
+        self.resource_policies[resource_arn] = policy_doc
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        """
+        Remove resource policy with a matching given resource arn.
+        """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundError(
+                message=f"No resource policy found for resource ARN {resource_arn}."
+            )
+        del self.resource_policies[resource_arn]
+
+    def get_resource_policy(self, resource_arn: str) -> str:
+        """
+        Get resource policy with a matching given resource arn.
+        """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
+        if resource_arn not in self.resource_policies:
+            return "{}"
+        return self.resource_policies[resource_arn]
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

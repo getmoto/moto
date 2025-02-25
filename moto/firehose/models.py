@@ -47,6 +47,7 @@ DESTINATION_TYPES_TO_NAMES = {
     "http_endpoint": "HttpEndpoint",
     "elasticsearch": "Elasticsearch",
     "redshift": "Redshift",
+    "snowflake": "Snowflake",
     "splunk": "Splunk",  # Unimplemented
 }
 
@@ -200,6 +201,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_configuration: Dict[str, Any],
         splunk_destination_configuration: Dict[str, Any],
         http_endpoint_destination_configuration: Dict[str, Any],
+        snowflake_destination_configuration: Dict[str, Any],
         tags: List[Dict[str, str]],
     ) -> str:
         """Create a Kinesis Data Firehose delivery stream."""
@@ -515,8 +517,8 @@ class FirehoseBackend(BaseBackend):
                 request_responses = self.put_http_records(
                     destination["HttpEndpoint"], records
                 )
-            elif "Elasticsearch" in destination or "Redshift" in destination:
-                # This isn't implmented as these services aren't implemented,
+            elif {"Elasticsearch", "Redshift", "Snowflake"} & set(destination):
+                # This isn't implemented as these services aren't implemented,
                 # so ignore the data, but return a "proper" response.
                 request_responses = [
                     {"RecordId": str(mock_random.uuid4())} for _ in range(len(records))
@@ -600,6 +602,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_update: Dict[str, Any],
         splunk_destination_update: Dict[str, Any],
         http_endpoint_destination_update: Dict[str, Any],
+        snowflake_destination_configuration: Dict[str, Any],
     ) -> None:
         (dest_name, dest_config) = find_destination_config_in_args(locals())
 

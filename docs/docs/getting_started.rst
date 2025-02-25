@@ -231,7 +231,7 @@ You need to ensure that the mocks are actually in place.
 
 .. note:: By default, the region must be one supported by AWS, see :ref:`Can I mock the default AWS region?` for how to change this.
 
-Example on usage
+Pytest Fixtures Example Usage
 ~~~~~~~~~~~~~~~~
 If you are a user of `pytest`_, you can leverage `pytest fixtures`_ to help set up your mocks and other AWS resources that you would need.
 
@@ -249,35 +249,51 @@ Here is an example:
         os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
     @pytest.fixture(scope="function")
-    def aws(aws_credentials):
+    def s3(aws_credentials):
+        """
+        Return a mocked S3 client
+        """
         with mock_aws():
             yield boto3.client("s3", region_name="us-east-1")
 
-    @pytest.fixture
-    def create_bucket1(aws):
-        boto3.client("s3").create_bucket(Bucket="bb1")
+    @pytest.fixture(scope="function")
+    def mocked_aws(aws_credentials):
+        """
+        Mock all AWS interactions
+        Requires you to create your own boto3 clients
+        """
+        with mock_aws():
+            yield
 
     @pytest.fixture
-    def create_bucket2(aws):
-        boto3.client("s3").create_bucket(Bucket="bb2")
+    def create_bucket1(s3):
+        s3.create_bucket(Bucket="bb1")
 
-    def test_s3_directly(aws):
+    @pytest.fixture
+    def create_bucket2(s3):
+        s3.create_bucket(Bucket="bb2")
+
+    def test_s3_bucket_creation(s3):
         s3.create_bucket(Bucket="somebucket")
 
         result = s3.list_buckets()
         assert len(result["Buckets"]) == 1
 
-    def test_bucket_creation(create_bucket1, create_bucket2):
+    def test_s3_bucket_creation_through_fixtures(create_bucket1, create_bucket2):
         result = boto3.client("s3").list_buckets()
         assert len(result["Buckets"]) == 2
 
+    def test_generic_aws_fixture(mocked_aws):
+        s3_client = boto3.client("s3")
+        s3_client.create_bucket(Bucket="somebucket")
 
-In the code sample above, all of the AWS/mocked fixtures take in a parameter of `aws_credentials`,
-which sets the proper fake environment variables. The fake environment variables are used so that `botocore` doesn't try to locate real
-credentials on your system.
+
+In the code sample above, all of the AWS/mocked fixtures (indirectly) use `aws_credentials`,
+which sets the proper fake environment variables. This is recommended to ensure that `botocore` doesn't try to use any real
+credentials.
 
 With Moto activated within the fixture, we can pass it to a test-method to ensure that any other AWS-calls are also mocked inside that test method.
-We can also combine multiple fixtures that use the same Moto-fixture.
+We can also combine multiple fixtures.
 
 Moto will delete any data after the mock ends, so the state is not shared across methods.
 

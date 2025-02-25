@@ -569,6 +569,8 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
         list(client._service_model._service_description["operations"].keys()),
     )
     uri = client._service_model.operation_model(aws_operation_name).http["requestUri"]
+    if "?" in uri:
+        uri = uri.split("?")[0]
 
     path = os.path.join(
         os.path.dirname(__file__), "..", "moto", get_escaped_service(service), "urls.py"
@@ -578,6 +580,7 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
 
     if any(_ for _ in lines if re.match(uri, _)):
         return
+    uri = BaseResponse.uri_to_regexp(uri)[1:-1]
 
     url_paths_found = False
     last_elem_line_index = -1
@@ -593,7 +596,7 @@ def insert_url(service, operation, api_protocol):  # pylint: disable=too-many-lo
 
     # generate url pattern
     if api_protocol == "rest-json":
-        new_line = f'    "{0}/.*$": {service_class}Response.dispatch,'
+        new_line = f'    "{{0}}{uri}$": {service_class}Response.dispatch,'
     elif api_protocol == "rest-xml":
         new_line = f'    "{{0}}{uri}$": {service_class}Response.{operation},'
     else:

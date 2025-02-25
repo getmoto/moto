@@ -100,6 +100,90 @@ def test_search_trial_component_with_experiment_name(sagemaker_client):
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
 
 
+def test_search_experiments_with_filter(sagemaker_client):
+    experiment_name = "experiment_name"
+    trial_component_name = "trial_component_name"
+    _set_up_trial_component(
+        sagemaker_client,
+        experiment_name=experiment_name,
+        trial_component_name=trial_component_name,
+    )
+
+    _verify_search_results(
+        {"Name": "ExperimentName", "Operator": "Contains", "Value": "_DEV"}, 0
+    )
+    _verify_search_results(
+        {"Name": "ExperimentName", "Operator": "Contains", "Value": "_name"}, 1
+    )
+    _verify_search_results(
+        {"Name": "ExperimentName", "Operator": "Equals", "Value": "_name"}, 0
+    )
+    _verify_search_results(
+        {"Name": "ExperimentName", "Operator": "Equals", "Value": experiment_name}, 1
+    )
+    _verify_search_results(
+        {"Name": "ExperimentName", "Operator": "NotEquals", "Value": experiment_name}, 0
+    )
+    _verify_search_results(
+        {"Name": "ExperimentName", "Operator": "NotEquals", "Value": "else"}, 1
+    )
+
+
+def test_search_model_packages(sagemaker_client):
+    group_name = "mpg_DEV"
+    sagemaker_client.create_model_package_group(
+        ModelPackageGroupName=group_name,
+        ModelPackageGroupDescription="test-model-package-group-description",
+    )
+    sagemaker_client.create_model_package(ModelPackageGroupName=group_name)
+    sagemaker_client.create_model_package(ModelPackageName="test")
+    sagemaker_client.create_model_package(ModelPackageName="prod")
+
+    _verify_search_results(
+        {"Name": "ModelPackageName", "Operator": "Contains", "Value": "test"},
+        1,
+        resource="ModelPackage",
+    )
+
+    _verify_search_results(
+        {"Name": "ModelPackageName", "Operator": "Contains", "Value": "prod"},
+        1,
+        resource="ModelPackage",
+    )
+
+    _verify_search_results(
+        {"Name": "ModelPackageName", "Operator": "Contains", "Value": "staging"},
+        0,
+        resource="ModelPackage",
+    )
+
+
+def test_search_model_package_groups_with_filter(sagemaker_client):
+    sagemaker_client.create_model_package_group(
+        ModelPackageGroupName="mpg_DEV",
+        ModelPackageGroupDescription="test-model-package-group-description",
+    )
+
+    _verify_search_results(
+        {"Name": "ModelPackageGroupName", "Operator": "Contains", "Value": "_DEV"},
+        1,
+        resource="ModelPackageGroup",
+    )
+    _verify_search_results(
+        {"Name": "ModelPackageGroupName", "Operator": "Contains", "Value": "_PROD"},
+        0,
+        resource="ModelPackageGroup",
+    )
+
+
+def _verify_search_results(_filter, nr_of_results, resource="Experiment"):
+    sagemaker_client = boto3.client("sagemaker", region_name=TEST_REGION_NAME)
+    results = sagemaker_client.search(
+        Resource=resource, SearchExpression={"Filters": [_filter]}
+    )["Results"]
+    assert len(results) == nr_of_results
+
+
 def _set_up_trial_component(
     sagemaker_client,
     experiment_name="some-experiment-name",

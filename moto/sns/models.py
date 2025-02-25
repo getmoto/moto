@@ -1,16 +1,26 @@
+import base64
 import contextlib
 import json
 import re
 from collections import OrderedDict
+from datetime import timedelta
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
+import cryptography
 import requests
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.x509 import Name, NameAttribute
+from cryptography.x509.oid import NameOID
 
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
+    utcnow,
 )
 from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
@@ -75,6 +85,7 @@ class Topic(CloudFormationModel):
         message_attributes: Optional[Dict[str, Any]] = None,
         group_id: Optional[str] = None,
         deduplication_id: Optional[str] = None,
+        message_structure: Optional[str] = None,
     ) -> str:
         message_id = str(mock_random.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions_by_topic(
@@ -88,7 +99,9 @@ class Topic(CloudFormationModel):
                 message_attributes=message_attributes,
                 group_id=group_id,
                 deduplication_id=deduplication_id,
+                message_structure=message_structure,
             )
+
         self.sent_notifications.append(
             (message_id, message, subject, message_attributes, group_id)
         )
@@ -212,14 +225,19 @@ class Subscription(BaseModel):
         message_attributes: Optional[Dict[str, Any]] = None,
         group_id: Optional[str] = None,
         deduplication_id: Optional[str] = None,
+        message_structure: Optional[str] = None,
     ) -> None:
         if self._filter_policy_matcher is not None:
             if not self._filter_policy_matcher.matches(message_attributes, message):
                 return
 
+        if message_structure == "json":
+            message = self._parse_message_structure(message, self.protocol)
+
         if self.protocol == "sqs":
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
+
             if self.attributes.get("RawMessageDelivery") != "true":
                 sqs_backends[self.account_id][region].send_message(
                     queue_name,
@@ -295,22 +313,96 @@ class Subscription(BaseModel):
         subject: Optional[str],
         message_attributes: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        key = self.private_key()
+        cert_subject = [NameAttribute(NameOID.COMMON_NAME, "sns.amazonaws.com")]
+        issuer = [
+            NameAttribute(NameOID.COUNTRY_NAME, "US"),
+            NameAttribute(NameOID.ORGANIZATION_NAME, "Amazon"),
+            NameAttribute(NameOID.COMMON_NAME, "Amazon RSA 2048 M01"),
+        ]
+        # SNS supports two signing algorithms
+        # User can choose which algorithm they want by updating the topic attribute 'SignatureVersion'
+        # Signature Version "1" == SHA1, "2" == SHA256
+        #
+        # Because cryptography doesn't support SHA1 anymore for certificates, we always use SignatureVersion="2"
+        signature_version = "2"
+        algo = hashes.SHA256() if signature_version == "2" else hashes.SHA1()
+        cert = (
+            cryptography.x509.CertificateBuilder()
+            .subject_name(Name(cert_subject))
+            .issuer_name(Name(issuer))
+            .public_key(key.public_key())
+            .serial_number(cryptography.x509.random_serial_number())
+            .not_valid_before(utcnow())
+            .not_valid_after(utcnow() + timedelta(days=365))
+            .sign(key, algo)  # type: ignore
+        )
+        key_name = (
+            f"SimpleNotificationService-{str(mock_random.uuid4()).replace('-', '')}.pem"
+        )
+
+        timestamp = iso_8601_datetime_with_milliseconds()
+        string_to_sign = f"""Message
+{message}
+MessageId
+{message_id}
+Timestamp
+{timestamp}
+TopicArn
+{self.topic.arn}
+Type
+Notification
+"""
+        signature = key.sign(
+            string_to_sign.encode("UTF-8"), padding.PKCS1v15(), hashes.SHA256()
+        )
+
+        # Retrieving the PEM is done via an unauthorized request
+        # We don't know in what account this was done - so just store in the default account
+        # We do know what region it is in, as the URL is `sns.{region}.amazonaws.com/name.pem`
+        region = self.topic.sns_backend.region_name
+        default_sns_backend = sns_backends[DEFAULT_ACCOUNT_ID][region]
+        default_sns_backend._message_public_keys[key_name] = cert.public_bytes(
+            serialization.Encoding.PEM
+        )
+
         post_data: Dict[str, Any] = {
             "Type": "Notification",
             "MessageId": message_id,
             "TopicArn": self.topic.arn,
             "Message": message,
-            "Timestamp": iso_8601_datetime_with_milliseconds(),
-            "SignatureVersion": "1",
-            "Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVSw7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIKRnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",
-            "SigningCertURL": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
-            "UnsubscribeURL": f"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{self.account_id}:some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
+            "Timestamp": timestamp,
+            "SignatureVersion": signature_version,
+            "Signature": base64.b64encode(signature).decode("utf-8"),
+            "SigningCertURL": f"https://sns.{region}.amazonaws.com/{key_name}",
+            "UnsubscribeURL": f"https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:{self.account_id}:{self.topic.name}:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55",
         }
         if subject:
             post_data["Subject"] = subject
         if message_attributes:
             post_data["MessageAttributes"] = message_attributes
         return post_data
+
+    @lru_cache()
+    def private_key(self) -> rsa.RSAPrivateKey:
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    def _parse_message_structure(self, message: str, protocol: str) -> str:
+        try:
+            structured_message = json.loads(message)
+            message = (
+                structured_message.get(self.protocol) or structured_message["default"]
+            )
+
+            return message
+        except json.JSONDecodeError:
+            raise InvalidParameterValue(
+                "Message is not valid JSON.",
+            )
+        except KeyError:
+            raise InvalidParameterValue(
+                f"Message does not contain {protocol} or default keys.",
+            )
 
 
 class PlatformApplication(BaseModel):
@@ -378,6 +470,8 @@ class SNSBackend(BaseBackend):
     """
     Responsible for mocking calls to SNS. Integration with SQS/HTTP/etc is supported.
 
+    If you're using the decorators, you can verify the message signature send to an HTTP endpoint.
+
     Messages published to a topic are persisted in the backend. If you need to verify that a message was published successfully, you can use the internal API to check the message was published successfully:
 
     .. sourcecode:: python
@@ -409,6 +503,8 @@ class SNSBackend(BaseBackend):
             "+447700900545",
             "+447700900907",
         ]
+
+        self._message_public_keys: Dict[str, bytes] = {}
 
     def get_sms_attributes(self, filter_list: Set[str]) -> Dict[str, str]:
         if len(filter_list) > 0:
@@ -586,6 +682,7 @@ class SNSBackend(BaseBackend):
         message_attributes: Optional[Dict[str, Any]] = None,
         group_id: Optional[str] = None,
         deduplication_id: Optional[str] = None,
+        message_structure: Optional[str] = None,
     ) -> str:
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/getmoto/moto/issues/1503
@@ -604,6 +701,9 @@ class SNSBackend(BaseBackend):
             raise InvalidParameterValue(
                 "An error occurred (InvalidParameter) when calling the Publish operation: Invalid parameter: Message too long"
             )
+
+        if message_structure is not None and message_structure != "json":
+            raise InvalidParameterValue("MessageStructure must be 'json' if provided")
 
         try:
             topic = self.get_topic(arn)  # type: ignore
@@ -632,6 +732,7 @@ class SNSBackend(BaseBackend):
                 message_attributes=message_attributes,
                 group_id=group_id,
                 deduplication_id=deduplication_id,
+                message_structure=message_structure,
             )
         except SNSNotFoundError:
             endpoint = self.get_endpoint(arn)  # type: ignore
@@ -1036,7 +1137,7 @@ class SNSBackend(BaseBackend):
         self, topic_arn: str, publish_batch_request_entries: List[Dict[str, Any]]
     ) -> Tuple[List[Dict[str, str]], List[Dict[str, Any]]]:
         """
-        The MessageStructure and MessageDeduplicationId-parameters have not yet been implemented.
+        The MessageDeduplicationId-parameter has not yet been implemented.
         """
         topic = self.get_topic(topic_arn)
 
@@ -1068,6 +1169,7 @@ class SNSBackend(BaseBackend):
                     message_attributes=entry.get("MessageAttributes", {}),
                     group_id=entry.get("MessageGroupId"),
                     deduplication_id=entry.get("MessageDeduplicationId"),
+                    message_structure=entry.get("MessageStructure"),
                 )
                 successful.append({"MessageId": message_id, "Id": entry["Id"]})
             except Exception as e:

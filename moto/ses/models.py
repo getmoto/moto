@@ -13,16 +13,15 @@ from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
 
 from .exceptions import (
+    AlreadyExists,
     ConfigurationSetAlreadyExists,
     ConfigurationSetDoesNotExist,
     EventDestinationAlreadyExists,
     InvalidParameterValue,
     InvalidRenderingParameterException,
     MessageRejectedError,
-    RuleAlreadyExists,
     RuleDoesNotExist,
     RuleSetDoesNotExist,
-    RuleSetNameAlreadyExists,
     TemplateDoesNotExist,
     TemplateNameAlreadyExists,
     ValidationError,
@@ -32,6 +31,15 @@ from .template import parse_template
 from .utils import get_random_message_id, is_valid_address
 
 RECIPIENT_LIMIT = 50
+
+PAGINATION_MODEL = {
+    "list_configuration_sets": {
+        "input_token": "next_token",
+        "limit_key": "max_items",
+        "limit_default": 100,
+        "unique_attribute": ["configuration_set_name"],
+    },
+}
 
 
 class SESFeedback(BaseModel):
@@ -130,6 +138,42 @@ class SESQuota(BaseModel):
         return self.sent
 
 
+class ConfigurationSet(BaseModel):
+    def __init__(
+        self,
+        configuration_set_name: str,
+        tracking_options: Optional[Dict[str, str]] = {},
+        delivery_options: Optional[Dict[str, Any]] = {},
+        reputation_options: Optional[Dict[str, Any]] = {},
+        sending_options: Optional[Dict[str, bool]] = {},
+        tags: Optional[List[Dict[str, str]]] = [],
+        suppression_options: Optional[Dict[str, List[str]]] = {},
+        vdm_options: Optional[Dict[str, Dict[str, str]]] = {},
+    ) -> None:
+        # Shared between SES and SESv2
+        self.configuration_set_name = configuration_set_name
+        self.tracking_options = tracking_options
+        self.delivery_options = delivery_options
+        self.reputation_options = reputation_options
+        self.enabled = sending_options  # Enabled in v1, SendingOptions in v2
+        # SESv2 specific fields
+        self.tags = tags
+        self.suppression_options = suppression_options
+        self.vdm_options = vdm_options
+
+    def to_dict_v2(self) -> Dict[str, Any]:
+        return {
+            "ConfigurationSetName": self.configuration_set_name,
+            "TrackingOptions": self.tracking_options,
+            "DeliveryOptions": self.delivery_options,
+            "ReputationOptions": self.reputation_options,
+            "SendingOptions": {"SendingEnabled": self.enabled},
+            "Tags": self.tags,
+            "SuppressionOptions": self.suppression_options,
+            "VdmOptions": self.vdm_options,
+        }
+
+
 class SESBackend(BaseBackend):
     """
     Responsible for mocking calls to SES.
@@ -155,7 +199,7 @@ class SESBackend(BaseBackend):
         self.sent_message_count = 0
         self.rejected_messages_count = 0
         self.sns_topics: Dict[str, Dict[str, Any]] = {}
-        self.config_set: Dict[str, int] = {}
+        self.config_sets: Dict[str, ConfigurationSet] = {}
         self.config_set_event_destination: Dict[str, Dict[str, Any]] = {}
         self.event_destinations: Dict[str, int] = {}
         self.identity_mail_from_domains: Dict[str, Dict[str, Any]] = {}
@@ -358,7 +402,9 @@ class SESBackend(BaseBackend):
                     f"Did not have authority to send from email {source}"
                 )
 
-        fieldvalues = [message.get(header, "") for header in ["TO", "CC", "BCC"]]
+        fieldvalues = [
+            message[header] for header in ["TO", "CC", "BCC"] if header in message
+        ]
         destinations += [
             formataddr((realname, email_address))
             for realname, email_address in getaddresses(fieldvalues)
@@ -409,22 +455,61 @@ class SESBackend(BaseBackend):
         self.sns_topics[identity] = identity_sns_topics
 
     def create_configuration_set(self, configuration_set_name: str) -> None:
-        if configuration_set_name in self.config_set:
+        if configuration_set_name in self.config_sets:
             raise ConfigurationSetAlreadyExists(
                 f"Configuration set <{configuration_set_name}> already exists"
             )
-        self.config_set[configuration_set_name] = 1
+        config_set = ConfigurationSet(configuration_set_name=configuration_set_name)
+        self.config_sets[configuration_set_name] = config_set
 
-    def describe_configuration_set(self, configuration_set_name: str) -> None:
-        if configuration_set_name not in self.config_set:
+    def create_configuration_set_v2(
+        self,
+        configuration_set_name: str,
+        tracking_options: Dict[str, str],
+        delivery_options: Dict[str, Any],
+        reputation_options: Dict[str, Any],
+        sending_options: Dict[str, bool],
+        tags: List[Dict[str, str]],
+        suppression_options: Dict[str, List[str]],
+        vdm_options: Dict[str, Dict[str, str]],
+    ) -> None:
+        if configuration_set_name in self.config_sets:
+            raise ConfigurationSetAlreadyExists(
+                f"Configuration set <{configuration_set_name}> already exists"
+            )
+        new_config_set = ConfigurationSet(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+        self.config_sets[configuration_set_name] = new_config_set
+
+    def describe_configuration_set(
+        self, configuration_set_name: str
+    ) -> ConfigurationSet:
+        if configuration_set_name not in self.config_sets:
             raise ConfigurationSetDoesNotExist(
                 f"Configuration set <{configuration_set_name}> does not exist"
             )
+        return self.config_sets[configuration_set_name]
+
+    def delete_configuration_set(self, configuration_set_name: str) -> None:
+        self.config_sets.pop(configuration_set_name)
+
+    def list_configuration_sets(
+        self, next_token: Optional[str], max_items: Optional[int]
+    ) -> List[str]:
+        return list(self.config_sets.keys())
 
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
     ) -> None:
-        if self.config_set.get(configuration_set_name) is None:
+        if self.config_sets.get(configuration_set_name) is None:
             raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")
 
         if self.event_destinations.get(event_destination["Name"]):
@@ -530,15 +615,15 @@ class SESBackend(BaseBackend):
 
     def create_receipt_rule_set(self, rule_set_name: str) -> None:
         if self.receipt_rule_set.get(rule_set_name) is not None:
-            raise RuleSetNameAlreadyExists("Duplicate Receipt Rule Set Name.")
+            raise AlreadyExists(f"Rule set already exists: {rule_set_name}")
         self.receipt_rule_set[rule_set_name] = []
 
     def create_receipt_rule(self, rule_set_name: str, rule: Dict[str, Any]) -> None:
         rule_set = self.receipt_rule_set.get(rule_set_name)
         if rule_set is None:
-            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
         if rule in rule_set:
-            raise RuleAlreadyExists("Duplicate Rule Name.")
+            raise AlreadyExists(f"Rule already exists: {rule['name']}")
         rule_set.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
 
@@ -556,13 +641,13 @@ class SESBackend(BaseBackend):
         rule_set = self.receipt_rule_set.get(rule_set_name)
 
         if rule_set is None:
-            raise RuleSetDoesNotExist("Invalid Rule Set Name.")
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
 
         for receipt_rule in rule_set:
             if receipt_rule["name"] == rule_name:
                 return receipt_rule
 
-        raise RuleDoesNotExist("Invalid Rule Name.")
+        raise RuleDoesNotExist(f"Rule does not exist: {rule_name}")
 
     def update_receipt_rule(self, rule_set_name: str, rule: Dict[str, Any]) -> None:
         rule_set = self.receipt_rule_set.get(rule_set_name)

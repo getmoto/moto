@@ -25,10 +25,13 @@ elbv2
 - [X] delete_listener
 - [X] delete_load_balancer
 - [X] delete_rule
+- [ ] delete_shared_trust_store_association
 - [X] delete_target_group
 - [ ] delete_trust_store
 - [X] deregister_targets
 - [ ] describe_account_limits
+- [ ] describe_capacity_reservation
+- [X] describe_listener_attributes
 - [X] describe_listener_certificates
 - [X] describe_listeners
 - [X] describe_load_balancer_attributes
@@ -42,9 +45,12 @@ elbv2
 - [ ] describe_trust_store_associations
 - [ ] describe_trust_store_revocations
 - [ ] describe_trust_stores
+- [ ] get_resource_policy
 - [ ] get_trust_store_ca_certificates_bundle
 - [ ] get_trust_store_revocation_content
+- [ ] modify_capacity_reservation
 - [X] modify_listener
+- [X] modify_listener_attributes
 - [X] modify_load_balancer_attributes
 - [X] modify_rule
 - [X] modify_target_group

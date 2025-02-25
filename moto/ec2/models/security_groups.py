@@ -155,6 +155,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.owner_id = ec2_backend.account_id
         self.add_tags(tags or {})
         self.is_default = is_default or False
+        self.arn = f"arn:aws:ec2:{ec2_backend.region_name}:{ec2_backend.account_id}:security-group/{group_id}"
 
         # Append default IPv6 egress rule for VPCs with IPv6 support
         if vpc_id:
@@ -517,6 +518,49 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             len(rule.ip_ranges) + len(rule.source_groups) for rule in self.egress_rules
         )
 
+    @property
+    def flattened_ingress_rules(self) -> List[SecurityRule]:
+        return self._flattened_rules(copy.copy(self.ingress_rules))
+
+    @property
+    def flattened_egress_rules(self) -> List[SecurityRule]:
+        return self._flattened_rules(copy.copy(self.egress_rules))
+
+    def _flattened_rules(self, rules: List[SecurityRule]) -> List[SecurityRule]:
+        rules_to_return: List[SecurityRule] = []
+        for rule in rules:
+            for already_added in rules_to_return:
+                if (
+                    already_added.from_port == rule.from_port
+                    and already_added.to_port == rule.to_port
+                    and already_added.ip_protocol == rule.ip_protocol
+                ):
+                    already_added.ip_ranges.extend(
+                        [
+                            item
+                            for item in rule.ip_ranges
+                            if item not in already_added.ip_ranges
+                        ]
+                    )
+                    already_added.source_groups.extend(
+                        [
+                            item
+                            for item in rule.source_groups
+                            if item not in already_added.source_groups
+                        ]
+                    )
+                    already_added.prefix_list_ids.extend(
+                        [
+                            item
+                            for item in rule.prefix_list_ids
+                            if item not in already_added.prefix_list_ids
+                        ]
+                    )
+                    break
+            else:
+                rules_to_return.append(rule)
+        return rules_to_return
+
 
 class SecurityGroupBackend:
     def __init__(self) -> None:
@@ -591,12 +635,17 @@ class SecurityGroupBackend:
         results = []
 
         if sg_rule_ids:
+            rules_sources = [
+                self.sg_old_ingress_ruls.items(),
+                self.sg_old_egress_ruls.items(),
+            ]
             # go thru all the rules in the backend to find a match
             for sg_rule_id in sg_rule_ids:
-                for sg in self.sg_old_ingress_ruls:
-                    for rule in self.sg_old_ingress_ruls[sg]:
-                        if rule.id == sg_rule_id:
-                            results.append(rule)
+                for rules in rules_sources:
+                    for sg, rules_list in rules:
+                        for rule in rules_list:
+                            if rule.id == sg_rule_id:
+                                results.append(rule)
 
             return results
 
@@ -767,6 +816,8 @@ class SecurityGroupBackend:
                 security_rule.from_port == rule.from_port
                 and security_rule.to_port == rule.to_port
                 and security_rule.ip_protocol == rule.ip_protocol
+                and security_rule.ip_ranges == rule.ip_ranges
+                and security_rule.prefix_list_ids == rule.prefix_list_ids
             ):
                 rule.ip_ranges.extend(
                     [
@@ -941,6 +992,8 @@ class SecurityGroupBackend:
                 security_rule.from_port == rule.from_port
                 and security_rule.to_port == rule.to_port
                 and security_rule.ip_protocol == rule.ip_protocol
+                and security_rule.ip_ranges == rule.ip_ranges
+                and security_rule.prefix_list_ids == rule.prefix_list_ids
             ):
                 rule.ip_ranges.extend(
                     [

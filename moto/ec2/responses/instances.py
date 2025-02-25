@@ -74,6 +74,7 @@ class InstanceResponse(EC2BaseResponse):
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification(),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
+            "disable_api_stop": self._get_param("DisableApiStop") or False,
             "instance_market_options": self._get_param(
                 "InstanceMarketOptions.MarketType"
             )
@@ -90,6 +91,7 @@ class InstanceResponse(EC2BaseResponse):
             "monitoring_state": "enabled"
             if self._get_param("Monitoring.Enabled") == "true"
             else "disabled",
+            "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -467,7 +469,7 @@ INSTANCE_TEMPLATE = """<item>
           {% if instance.key_name is not none %}
              <keyName>{{ instance.key_name }}</keyName>
           {% endif %}
-          <ebsOptimized>{{ instance.ebs_optimized }}</ebsOptimized>
+          <ebsOptimized>{{ instance.ebs_optimized | lower }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
           {% if instance.iam_instance_profile %}
@@ -536,7 +538,7 @@ INSTANCE_TEMPLATE = """<item>
                      <volumeId>{{ deviceobject.volume_id }}</volumeId>
                      <status>{{ deviceobject.status }}</status>
                      <attachTime>{{ deviceobject.attach_time }}</attachTime>
-                     <deleteOnTermination>{{ deviceobject.delete_on_termination }}</deleteOnTermination>
+                     <deleteOnTermination>{{ 'true' if deviceobject.delete_on_termination else 'false' }}</deleteOnTermination>
                      <size>{{deviceobject.size}}</size>
                 </ebs>
               </item>
@@ -599,6 +601,16 @@ INSTANCE_TEMPLATE = """<item>
                     <publicIp>{{ nic.public_ip }}</publicIp>
                     <ipOwnerId>{{ account_id }}</ipOwnerId>
                   </association>
+                {% endif %}
+                {% if nic.ipv6_addresses %}
+                <ipv6AddressesSet>
+                  {% for ipv6 in nic.ipv6_addresses %}
+                  <item>
+                    <ipv6Address>{{ ipv6 }}</ipv6Address>
+                    <isPrimaryIpv6>false</isPrimaryIpv6>
+                  </item>
+                  {% endfor %}
+                </ipv6AddressesSet>
                 {% endif %}
                 <privateIpAddressesSet>
                   <item>

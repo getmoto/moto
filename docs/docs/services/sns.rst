@@ -51,7 +51,7 @@ sns
 - [X] publish
 - [X] publish_batch
   
-        The MessageStructure and MessageDeduplicationId-parameters have not yet been implemented.
+        The MessageDeduplicationId-parameter has not yet been implemented.
         
 
 - [ ] put_data_protection_policy

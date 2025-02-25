@@ -54,7 +54,7 @@ def test_provision_device() -> None:
         resp["Arn"] == "arn:aws:panorama:eu-west-1:123456789012:device/test-device-name"
     )
     assert resp["Certificates"] == b"certificate"
-    assert resp["DeviceId"] == "device-RsozEWjZpeNe3SXHidX3mg=="
+    assert resp["DeviceId"] == "device-RsozEWjZpeNe3SXHidX3mg"
     assert resp["IotThingName"] == ""
     assert resp["Status"] == "AWAITING_PROVISIONING"
 
@@ -129,7 +129,7 @@ def test_describe_device() -> None:
     assert resp["Description"] == "test device description"
     assert resp["DeviceAggregatedStatus"] == "ONLINE"
     assert resp["DeviceConnectionStatus"] == "ONLINE"
-    assert resp["DeviceId"] == "device-RsozEWjZpeNe3SXHidX3mg=="
+    assert resp["DeviceId"] == "device-RsozEWjZpeNe3SXHidX3mg"
     assert resp["LatestDeviceJob"] == {"JobType": "REBOOT", "Status": "COMPLETED"}
     assert resp["LatestSoftware"] == "6.2.1"
     assert resp["LeaseExpirationTime"] == datetime(2020, 1, 6, 12, 0, tzinfo=tzutc())

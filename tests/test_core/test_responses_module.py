@@ -2,6 +2,9 @@
 Ensure that the responses module plays nice with our mocks
 """
 
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Event, Thread
+from typing import Optional, Tuple
 from unittest import SkipTest, TestCase
 
 import boto3
@@ -67,6 +70,45 @@ class TestResponsesModule(TestCase):
             assert r.json() == {"a": "4"}
 
 
+class WebRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"real response")
+
+
+class SimpleServer:
+    def __init__(self) -> None:
+        self._port = 0
+
+        self._thread: Optional[Thread] = None
+        self._ip_address = "0.0.0.0"
+        self._server: Optional[HTTPServer] = None
+        self._server_ready_event = Event()
+
+    def _server_entry(self) -> None:
+        self._server = HTTPServer(("0.0.0.0", 0), WebRequestHandler)
+        self._server_ready_event.set()
+        self._server.serve_forever()
+
+    def start(self) -> None:
+        self._thread = Thread(target=self._server_entry, daemon=True)
+        self._thread.start()
+        self._server_ready_event.wait()
+
+    def get_host_and_port(self) -> Tuple[str, int]:
+        assert self._server
+        host, port = self._server.server_address
+        return (str(host), port)
+
+    def stop(self) -> None:
+        if self._server:
+            self._server.shutdown()
+        if self._thread:
+            self._thread.join()
+
+
 @mock_aws
 class TestResponsesMockWithPassThru(TestCase):
     """
@@ -77,22 +119,29 @@ class TestResponsesMockWithPassThru(TestCase):
         if RESPONSES_VERSION < LooseVersion("0.24.0"):
             raise SkipTest("Can only test this with responses >= 0.24.0")
 
+        self.server = SimpleServer()
+        self.server.start()
+        host, port = self.server.get_host_and_port()
+        self.server_url = f"http://{host}:{port}"
+
         self.r_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         override_responses_real_send(self.r_mock)
         self.r_mock.start()
-        self.r_mock.add_passthru("http://ip.jsontest.com")
+        self.r_mock.add_passthru(self.server_url)
 
     def tearDown(self) -> None:
-        self.r_mock.stop()
-        self.r_mock.reset()
+        self.r_mock.stop()  # type: ignore
+        self.r_mock.reset()  # type: ignore
         override_responses_real_send(None)
+
+        self.server.stop()
 
     def http_requests(self) -> str:
         # Mock this website
         requests.post("https://example.org")
 
         # Passthrough this website
-        assert requests.get("http://ip.jsontest.com").status_code == 200
+        assert requests.get(self.server_url).content == b"real response"
 
         return "OK"
 
@@ -103,9 +152,9 @@ class TestResponsesMockWithPassThru(TestCase):
         return "OK"
 
     def test_http_requests(self) -> None:
-        self.r_mock.add(responses.POST, "https://example.org", status=200)
+        self.r_mock.add(responses.POST, "https://example.org", status=200)  # type: ignore
         self.assertEqual("OK", self.http_requests())
 
     def test_aws_and_http_requests(self) -> None:
-        self.r_mock.add(responses.POST, "https://example.org", status=200)
+        self.r_mock.add(responses.POST, "https://example.org", status=200)  # type: ignore
         self.assertEqual("OK", self.aws_and_http_requests())
