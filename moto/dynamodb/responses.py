@@ -1251,6 +1251,24 @@ class DynamoHandler(BaseResponse):
         transact_items = self.body["TransactItems"]
         # Validate first - we should error before we start the transaction
         for item in transact_items:
+            # This logic is common among all types of write items
+            item_values = list(item.values())[0] # Each item only has one of Put, Update, Delete, ConditionCheck
+            condition_expression = item_values.get("ConditionExpression")
+            expression_attribute_names = item_values.get(
+                "ExpressionAttributeNames", {}
+            )
+            expression_attribute_values = item_values.get(
+                "ExpressionAttributeValues", {}
+            )
+
+            parser = create_condition_expression_parser(
+                condition_expression,
+                expression_attribute_names,
+                expression_attribute_values,
+            )
+            parser.parse()
+            expression_attribute_names_used = parser.expr_attr_names_found
+
             if "Put" in item:
                 if item["Put"].get("ExpressionAttributeValues") == {}:
                     raise ExpressionAttributeValuesEmpty
@@ -1258,24 +1276,6 @@ class DynamoHandler(BaseResponse):
                 item_attrs = item["Put"]["Item"]
                 table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
                 validate_put_has_empty_keys(item_attrs, table)
-
-                condition_expression = item["Put"].get("ConditionExpression")
-                expression_attribute_names = item["Put"].get(
-                    "ExpressionAttributeNames", {}
-                )
-                expression_attribute_values = item["Put"].get(
-                    "ExpressionAttributeValues", {}
-                )
-
-                parser = create_condition_expression_parser(
-                    condition_expression,
-                    expression_attribute_names,
-                    expression_attribute_values,
-                )
-                parser.parse()
-                validate_attribute_names_used(
-                    expression_attribute_names, parser.expr_attr_names_found
-                )
 
             if "Update" in item:
                 if item["Update"].get("ExpressionAttributeValues") == {}:
@@ -1298,64 +1298,11 @@ class DynamoHandler(BaseResponse):
                 attr_name_clauses = update_expression_ast.find_clauses(
                     [ExpressionAttributeName]
                 )
-                expression_attribute_names_used = [
+                expression_attribute_names_used += [
                     attr.get_attribute_name_placeholder() for attr in attr_name_clauses
                 ]
 
-                condition_expression = item["Update"].get("ConditionExpression")
-                expression_attribute_names = item["Update"].get(
-                    "ExpressionAttributeNames", {}
-                )
-                expression_attribute_values = item["Update"].get(
-                    "ExpressionAttributeValues", {}
-                )
-                parser = create_condition_expression_parser(
-                    condition_expression,
-                    expression_attribute_names,
-                    expression_attribute_values,
-                )
-                parser.parse()
-                expression_attribute_names_used += parser.expr_attr_names_found
-
-                validate_attribute_names_used(
-                    expression_attribute_names, expression_attribute_names_used
-                )
-            if "Delete" in item:
-                condition_expression = item["Delete"].get("ConditionExpression")
-                expression_attribute_names = item["Delete"].get(
-                    "ExpressionAttributeNames", {}
-                )
-                expression_attribute_values = item["Delete"].get(
-                    "ExpressionAttributeValues", {}
-                )
-
-                parser = create_condition_expression_parser(
-                    condition_expression,
-                    expression_attribute_names,
-                    expression_attribute_values,
-                )
-                parser.parse()
-                validate_attribute_names_used(
-                    expression_attribute_names, parser.expr_attr_names_found
-                )
-            if "ConditionCheck" in item:
-                condition_expression = item["ConditionCheck"].get("ConditionExpression")
-                expression_attribute_names = item["ConditionCheck"].get(
-                    "ExpressionAttributeNames", {}
-                )
-                expression_attribute_values = item["ConditionCheck"].get(
-                    "ExpressionAttributeValues", {}
-                )
-
-                parser = create_condition_expression_parser(
-                    condition_expression,
-                    expression_attribute_names,
-                    expression_attribute_values,
-                )
-                parser.parse()
-                validate_attribute_names_used(
-                    expression_attribute_names, parser.expr_attr_names_found
-                )
+            validate_attribute_names_used(expression_attribute_names, expression_attribute_names_used)
 
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
