@@ -85,7 +85,7 @@ class CognitoIdentityResponse(BaseResponse):
     def list_identity_pools(self) -> str:
         return self.backend.list_identity_pools()
 
-    def delete_identity_pool(self):
+    def delete_identity_pool(self) -> str:
         identity_pool_id = self._get_param("IdentityPoolId")
         self.backend.delete_identity_pool(
             identity_pool_id=identity_pool_id,
