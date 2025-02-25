@@ -16,7 +16,7 @@ cognito-identity
 
 - [X] create_identity_pool
 - [ ] delete_identities
-- [ ] delete_identity_pool
+- [X] delete_identity_pool
 - [ ] describe_identity
 - [X] describe_identity_pool
 - [X] get_credentials_for_identity

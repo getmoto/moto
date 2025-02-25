@@ -187,5 +187,10 @@ class CognitoIdentityBackend(BaseBackend):
             }
         )
 
+    def delete_identity_pool(self, identity_pool_id):
+        self.describe_identity_pool(identity_pool_id)
+
+        del self.identity_pools[identity_pool_id]
+
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")
