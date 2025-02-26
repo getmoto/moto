@@ -1,6 +1,20 @@
 Moto Changelog
 ==============
 
+5.1.1
+-----
+Docker Digest for 5.1.1: <autopopulateddigest>
+
+    * General:
+        * Compatible with the new Account-based endpoint for DynamoDB (see https://github.com/boto/boto3/issues/4449)
+
+    * New Services:
+        * CognitoIDP:
+            * delete_identity_pool()
+
+        * GuardDuty:
+            * get_administrator_account()
+
 5.1.0
 -----
 Docker Digest for 5.1.0: _sha256:aaf5f4a72412b753b2115417e26360612564d3a29b1831f9316708e15138d699_
