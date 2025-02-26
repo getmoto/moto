@@ -826,12 +826,12 @@ class GlueResponse(BaseResponse):
         hide_password = self._get_param("HidePassword")
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
-        connection_list, next_token = self.glue_backend.get_connections(
+        connections, next_token = self.glue_backend.get_connections(
             catalog_id=catalog_id,
             filter=filter,
             hide_password=hide_password,
             next_token=next_token,
             max_results=max_results,
         )
-        connection_list = [connection.as_dict() for connection in connection_list]
+        connection_list = [connection.as_dict() for connection in connections]
         return json.dumps(dict(ConnectionList=connection_list, NextToken=next_token))

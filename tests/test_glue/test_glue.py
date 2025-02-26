@@ -943,6 +943,10 @@ def test_create_connection():
     resp = client.create_connection(ConnectionInput=connection_input)
     assert resp["CreateConnectionStatus"] == "READY"
 
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)
+
 
 @mock_aws
 def test_get_connection():

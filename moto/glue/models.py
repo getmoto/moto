@@ -1189,8 +1189,11 @@ class GlueBackend(BaseBackend):
     def create_connection(
         self, catalog_id: str, connection_input: Dict[str, Any], tags: Dict[str, str]
     ) -> str:
+        name = connection_input.get("Name", "")
+        if name in self.connections:
+            raise AlreadyExistsException(f"Connection {name} already exists")
         connection = FakeConnection(self, catalog_id, connection_input, tags)
-        self.connections[connection.name] = connection
+        self.connections[name] = connection
         return connection.status
 
     def get_connection(
@@ -1910,7 +1913,7 @@ class FakeConnection(BaseModel):
         catalog_id: str,
         connection_input: Dict[str, Any],
         tags: Dict[str, str],
-    ):
+    ) -> None:
         self.catalog_id = catalog_id
         self.connection_input = connection_input
         self.created_time = utcnow()
