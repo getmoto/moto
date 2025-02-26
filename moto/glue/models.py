@@ -104,16 +104,25 @@ class FakeDevEndpoint(BaseModel):
         self.last_modified_timestamp = self.created_timestamp
         self.status = "READY"
         self.availability_zone = "us-east-1a"
-        self.vpc_id = "vpc-12345678"
-        self.yarn_endpoint_address = f"yarn-{endpoint_name}.glue.amazonaws.com"
         self.private_address = "10.0.0.1"
-        self.public_address = f"{endpoint_name}.glue.amazonaws.com"
+        # TODO: Get the vpc id from the subnet using the subnet_id
+        self.vpc_id = "vpc-12345678" if subnet_id != "subnet-default" else None
+        self.yarn_endpoint_address = (
+            f"yarn-{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
+        self.public_address = (
+            f"{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
         self.zeppelin_remote_spark_interpreter_port = 9007
         self.public_key = pubkey
         self.public_keys = [self.public_key]
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
+        response = {
             "EndpointName": self.endpoint_name,
             "RoleArn": self.role_arn,
             "SecurityGroupIds": self.security_group_ids,
@@ -121,7 +130,6 @@ class FakeDevEndpoint(BaseModel):
             "YarnEndpointAddress": self.yarn_endpoint_address,
             "PrivateAddress": self.private_address,
             "ZeppelinRemoteSparkInterpreterPort": self.zeppelin_remote_spark_interpreter_port,
-            "PublicAddress": self.public_address,
             "Status": self.status,
             "WorkerType": self.worker_type,
             "GlueVersion": self.glue_version,
@@ -138,6 +146,9 @@ class FakeDevEndpoint(BaseModel):
             "SecurityConfiguration": self.security_configuration,
             "Arguments": self.arguments,
         }
+        if self.public_address:
+            response["PublicAddress"] = self.public_address
+        return response
 
 
 class GlueBackend(BaseBackend):

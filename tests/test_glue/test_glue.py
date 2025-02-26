@@ -920,9 +920,20 @@ def test_get_dev_endpoint():
     response = client.get_dev_endpoint(EndpointName="test-endpoint")
     assert response["DevEndpoint"]["EndpointName"] == "test-endpoint"
     assert response["DevEndpoint"]["Status"] == "READY"
+    assert "PublicAddress" in response["DevEndpoint"]
 
     with pytest.raises(client.exceptions.EntityNotFoundException):
         client.get_dev_endpoint(EndpointName="nonexistent")
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint-private",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+        SubnetId="subnet-1234567890abcdef0",
+    )
+
+    response = client.get_dev_endpoint(EndpointName="test-endpoint-private")
+    assert response["DevEndpoint"]["EndpointName"] == "test-endpoint-private"
+    assert "PublicAddress" not in response["DevEndpoint"]
 
 
 @mock_aws
