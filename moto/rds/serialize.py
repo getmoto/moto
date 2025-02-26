@@ -5,7 +5,16 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from functools import lru_cache
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any, 
+    Dict, 
+    List, 
+    Mapping, 
+    MutableMapping, 
+    Optional, 
+    Tuple, 
+    Union
 
 import xmltodict
 from botocore import xform_name
