@@ -49,6 +49,7 @@ backend_url_patterns = [
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
     ("dsql", re.compile("https?://dsql\\.(.+)\\.api\\.aws")),
     ("dynamodb", re.compile("https?://dynamodb\\.(.+)\\.amazonaws\\.com")),
+    ("dynamodb", re.compile("https?://(.+).ddb\\.(.+)\\.amazonaws\\.com")),
     (
         "dynamodbstreams",
         re.compile("https?://streams\\.dynamodb\\.(.+)\\.amazonaws.com"),
