@@ -7,13 +7,13 @@ from datetime import datetime
 from functools import lru_cache
 from typing import (
     TYPE_CHECKING,
-    Any, 
-    Dict, 
-    List, 
-    Mapping, 
-    MutableMapping, 
-    Optional, 
-    Tuple, 
+    Any,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
     Union,
 )
 
