@@ -9733,7 +9733,6 @@
 - ds-data
 - ecr-public
 - eks-auth
-- elastic-inference
 - entityresolution
 - evidently
 - finspace
