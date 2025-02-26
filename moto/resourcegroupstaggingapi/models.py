@@ -12,6 +12,7 @@ from moto.efs.models import EFSBackend, efs_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
+from moto.events.models import EventsBackend, events_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
@@ -69,6 +70,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def elbv2_backend(self) -> ELBv2Backend:
         return elbv2_backends[self.account_id][self.region_name]
+
+    @property
+    def events_backend(self) -> EventsBackend:
+        return events_backends[self.account_id][self.region_name]
 
     @property
     def glue_backend(self) -> GlueBackend:
@@ -422,6 +427,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{target_group.arn}", "Tags": tags}
 
         # EMR Cluster
+
+        # Events
+        if (
+            not resource_type_filters
+            or "events" in resource_type_filters
+            or "events:event-bus" in resource_type_filters
+        ):
+            for bus in self.events_backend.event_buses.values():
+                tags = self.events_backend.tagger.list_tags_for_resource(bus.arn)[
+                    "Tags"
+                ]
+                if (
+                    not tag_filter(tags) or len(tags) == 0
+                ):  # Skip if no tags, or invalid filter
+                    continue
+                yield {"ResourceARN": f"{bus.arn}", "Tags": tags}
 
         # Glacier Vault
 
