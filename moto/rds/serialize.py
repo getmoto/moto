@@ -14,7 +14,7 @@ from typing import (
     MutableMapping, 
     Optional, 
     Tuple, 
-    Union
+    Union,
 )
 
 import xmltodict
