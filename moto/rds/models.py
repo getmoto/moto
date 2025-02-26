@@ -69,8 +69,9 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
-    from moto.ec2.models.subnets import Subnet
     from typing_extensions import Literal, Protocol, Type
+    
+    from moto.ec2.models.subnets import Subnet
 
 
 def find_cluster(cluster_arn: str) -> DBCluster:
