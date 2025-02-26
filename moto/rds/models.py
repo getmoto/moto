@@ -11,8 +11,6 @@ from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple, Union
 
-from typing_extensions import Literal, Protocol, Type
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time, utcnow
@@ -72,6 +70,7 @@ from .utils import (
 
 if TYPE_CHECKING:
     from moto.ec2.models.subnets import Subnet
+    from typing_extensions import Literal, Protocol, Type
 
 
 def find_cluster(cluster_arn: str) -> DBCluster:
