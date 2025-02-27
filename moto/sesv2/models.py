@@ -128,7 +128,7 @@ class EmailIdentity(BaseModel):
             "signingEnabled": False,
             "tokens": [],
         }
-        self.policies = {}
+        self.policies: Dict[str, Any] = {}
 
     @property
     def get_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -176,7 +176,7 @@ class SESV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
-        self.email_identities: Dict[str, Dict[str, Any]] = {}
+        self.email_identities: Dict[str, EmailIdentity] = {}
         self.v1_backend = ses_backends[self.account_id][self.region_name]
         self.dedicated_ip_pools: Dict[str, DedicatedIpPool] = {}
 
@@ -260,7 +260,7 @@ class SESV2Backend(BaseBackend):
         return identity
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_email_identities(self, next_token) -> List[EmailIdentity]:
+    def list_email_identities(self) -> List[EmailIdentity]:
         identities = [identity for identity in self.email_identities.values()]
         return identities
 

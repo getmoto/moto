@@ -127,9 +127,16 @@ class SESV2Response(BaseResponse):
             next_token=next_token,
             page_size=page_size,
         )
-        list_email_identities = [emi.list_response_object for emi in email_identities]
+        if isinstance(email_identities, list):
+            response = [e.list_response_object for e in email_identities]
+        else:
+            response = []
+
         return json.dumps(
-            dict(EmailIdentities=list_email_identities, NextToken=next_token)
+            dict(
+                EmailIdentities=response,
+                NextToken=next_token,
+            )
         )
 
     def create_configuration_set(self) -> str:
