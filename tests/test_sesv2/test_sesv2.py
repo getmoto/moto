@@ -463,17 +463,35 @@ def test_create_email_identity():
     # Setup
     client = boto3.client("sesv2", region_name="us-east-1")
     test_email_domain = "example.com"
+
+    # Execute
     resp = client.create_email_identity(EmailIdentity=test_email_domain)
 
-    raise Exception("NotYetImplemented")
+    # Verify
+    assert resp["IdentityType"] == "DOMAIN"
+    assert resp["VerifiedForSendingStatus"] is False
 
 
 @mock_aws
 def test_list_email_identities():
+    # Setup
     client = boto3.client("sesv2", region_name="ap-southeast-1")
+    email_identities = ["example.com", "moto@example.com", "example2.com"]
+    for e in email_identities:
+        client.create_email_identity(EmailIdentity=e)
+
+    # Execute
     resp = client.list_email_identities()
 
-    raise Exception("NotYetImplemented")
+    # Verify
+    assert len(resp["EmailIdentities"]) == 3
+    for ei in resp["EmailIdentities"]:
+        assert ei["IdentityName"] in email_identities
+        if "@" in ei["IdentityName"]:
+            assert ei["IdentityType"] == "EMAIL_ADDRESS"
+        else:
+            assert ei["IdentityType"] == "DOMAIN"
+
 
 @mock_aws
 def test_create_configuration_set():

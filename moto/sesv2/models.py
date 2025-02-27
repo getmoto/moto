@@ -17,6 +17,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": ["pool_name"],
     },
+    "list_email_identities": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 100,
+        "unique_attribute": "IdentityName",
+    },
 }
 
 
@@ -105,7 +111,7 @@ class EmailIdentity(BaseModel):
     def __init__(
         self,
         email_identity: str,
-        tags: Optional[Dict[str,str]],
+        tags: Optional[Dict[str, str]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> None:
@@ -113,22 +119,37 @@ class EmailIdentity(BaseModel):
         self.tags = tags
         self.dkim_signing_attributes = dkim_signing_attributes
         self.configuration_set_name = configuration_set_name
-        self.identity_type = "EMAIL_ADDRESS"
-        self.verified_for_sending_status = "PENDING"
+        self.identity_type = "EMAIL_ADDRESS" if "@" in email_identity else "DOMAIN"
+        self.verified_for_sending_status = False
+        self.feedback_forwarding_status = False
+        self.verification_status = "SUCCESS"
+        self.sending_enabled = True
         self.dkim_attributes = {
             "signingEnabled": False,
             "tokens": [],
         }
+        self.policies = {}
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def get_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "IdentityType": self.identity_type,
+            "FeedbackForwardingStatus": self.feedback_forwarding_status,
+            "VerifiedForSendingStatus": self.verified_for_sending_status,
+            "DkimAttributes": self.dkim_attributes,
+            "Policies": self.policies,
+            "Tags": self.tags,
+            "ConfigurationSetName": self.configuration_set_name,
+            "VerificationStatus": self.verification_status,
+        }
+
+    @property
+    def list_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
         return {
             "IdentityType": self.identity_type,
             "IdentityName": self.email_identity,
-            "VerifiedForSendingStatus": self.verified_for_sending_status,
-            "DkimAttributes": self.dkim_attributes,
-            "Tags": self.tags,
-            "ConfigurationSetName": self.configuration_set_name,
+            "SendingEnabled": self.sending_enabled,
+            "VerificationStatus": self.verification_status,
         }
 
 
@@ -222,12 +243,26 @@ class SESV2Backend(BaseBackend):
         )
         return message
 
-    def create_email_identity(self, email_identity: str, tags: Optional[Dict[str,str]], dkim_signing_attributes: Optional[object], configuration_set_name: Optional[str]) :
-        # implement here
-        return identity_type, verified_for_sending_status, dkim_attributes
-    
-    def list_email_identities(self, next_token) -> List[Dict[str, Any]]:
-        return self.email_identities.values()
+    def create_email_identity(
+        self,
+        email_identity: str,
+        tags: Optional[Dict[str, str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
+    ) -> EmailIdentity:
+        identity = EmailIdentity(
+            email_identity=email_identity,
+            tags=tags,
+            dkim_signing_attributes=dkim_signing_attributes,
+            configuration_set_name=configuration_set_name,
+        )
+        self.email_identities[email_identity] = identity
+        return identity
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_email_identities(self, next_token) -> List[EmailIdentity]:
+        identities = [identity for identity in self.email_identities.values()]
+        return identities
 
     def create_configuration_set(
         self,
