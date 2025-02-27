@@ -197,6 +197,7 @@ def test_create_multiple_tables():
     }
     assert {t["TableStatus"] for t in tables} == {"ACTIVE"}
 
+
 @mock_aws
 def test_list_tables_without_database():
     ts = boto3.client("timestream-write", region_name="us-east-1")

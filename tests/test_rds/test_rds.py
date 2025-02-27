@@ -62,7 +62,6 @@ def test_create_database(client):
         VpcSecurityGroupIds=["sg-123456"],
         EnableCloudwatchLogsExports=["audit", "error"],
         AutoMinorVersionUpgrade=False,
-        PubliclyAccessible=True
     )
     db_instance = database["DBInstance"]
     assert db_instance["AllocatedStorage"] == 10
@@ -86,7 +85,6 @@ def test_create_database(client):
     assert db_instance["Endpoint"]["Port"] == 1234
     assert db_instance["DbInstancePort"] == 1234
     assert db_instance["AutoMinorVersionUpgrade"] is False
-    assert db_instance["PubliclyAccessible"] is True
 
 
 @mock_aws
