@@ -1,22 +1,126 @@
 {
   "name": "moto",
-  "image": "mcr.microsoft.com/devcontainers/python:0-3.11",
-  "remoteUser": "root",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
+  "portsAttributes": {
+    "5000": {
+      "onAutoForward": "silent",
+      "elevateIfNeeded": true,
+      "protocol": "http",
+      "requireLocalPort": false
+    }
+  },
+  "postCreateCommand": "python -m venv .venv",
+  "postStartCommand": ". .venv/bin/activate && make init",
   "customizations": {
     "vscode": {
-      "extensions": ["ms-vscode.makefile-tools", "ms-python.python", "ms-python.black-formatter"],
+      "extensions": [
+        "ms-vscode.makefile-tools",
+        "ms-python.python",
+        "ms-python.black-formatter"
+      ],
       "settings": {
+        "editor.formatOnSave": true,
         "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
         "python.formatting.provider": "none",
         "[python]": {
           "editor.defaultFormatter": "ms-python.black-formatter"
+        },
+        "tasks": {
+          "version": "2.0.0",
+          "tasks": [
+            {
+              "label": "Open Port 5000",
+              "type": "shell",
+              "command": "bash",
+              "args": [
+                "-c",
+                "until gh codespace ports visibility 5000:public --codespace ${CODESPACE_NAME} 2>/dev/null; do sleep 1; done"
+              ],
+              "presentation": {
+                "reveal": "silent",
+                "focus": false
+              }
+            },
+            {
+              "label": "Kill MotoServer",
+              "type": "shell",
+              "command": "pkill -f '${workspaceFolder}/moto/server.py'",
+              "problemMatcher": [],
+              "presentation": {
+                "reveal": "silent",
+                "focus": false
+              }
+            }
+          ]
+        },
+        "launch": {
+          "version": "0.2.0",
+          "configurations": [
+            {
+              "name": "Run MotoServer",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${workspaceFolder}/moto/server.py",
+              "args": [
+                "--reload"
+              ],
+              "console": "internalConsole",
+              "presentation": {
+                "order": 11
+              }
+            },
+            {
+              "name": "Run MotoServer Tests",
+              "type": "debugpy",
+              "request": "launch",
+              "module": "pytest",
+              "console": "integratedTerminal",
+              "preLaunchTask": "Open Port 5000",
+              "postDebugTask": "Kill MotoServer",
+              "env": {
+                "TEST_SERVER_MODE": "true",
+                "TEST_SERVER_MODE_ENDPOINT": "https://${env:CODESPACE_NAME}-5000.${env:GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+              },
+              "presentation": {
+                "order": 12
+              },
+              "args": [
+                "-sv",
+                "--cov=moto",
+                "--cov-report=xml",
+                "${workspaceFolder}/tests/",
+                "-k",
+                "${input:pytestFilter}"
+              ]
+            }
+          ],
+          "inputs": [
+            {
+              "id": "pytestFilter",
+              "type": "promptString",
+              "description": "pytest -k filter (leave empty to run all tests)",
+              "default": ""
+            }
+          ],
+          "compounds": [
+            {
+              "name": "MotoServer Tests",
+              "configurations": [
+                "Run MotoServer Tests",
+                "Run MotoServer"
+              ],
+              "presentation": {
+                "order": 1
+              },
+              "stopAll": true
+            }
+          ]
         }
       }
     }
-  },
-  "postCreateCommand": "python -m venv .venv",
-  "postStartCommand": ". .venv/bin/activate && make init"
+  }
 }

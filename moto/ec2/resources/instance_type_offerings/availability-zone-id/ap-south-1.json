@@ -4152,6 +4152,10 @@
   "Location": "aps1-az2"
  },
  {
+  "InstanceType": "trn1.32xlarge",
+  "Location": "aps1-az2"
+ },
+ {
   "InstanceType": "u-12tb1.112xlarge",
   "Location": "aps1-az2"
  },

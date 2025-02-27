@@ -17,11 +17,10 @@ from botocore.model import (
     StructureShape,
 )
 from botocore.utils import parse_to_aware_datetime
-from typing_extensions import TypeAlias
 
 from .utils import get_service_model
 
-Serialized: TypeAlias = MutableMapping[str, Any]
+Serialized = MutableMapping[str, Any]
 
 
 class ErrorShape(StructureShape):
@@ -410,6 +409,8 @@ class XFormedAttributeAccessMixin:
 
     """
 
+    BOTOCORE_MODEL: Optional[str] = None
+
     _model_attribute_aliases: Dict[str, List[str]] = {}
     _xform_cache: Dict[str, str] = {}
 
@@ -441,7 +442,7 @@ class XFormedAttributeAccessMixin:
     @lru_cache()
     def get_model_attributes_info(cls) -> Dict[str, List[str]]:
         service_name = cls.__module__.split(".")[1]
-        model_name = cls.__name__
+        model_name = cls.BOTOCORE_MODEL or cls.__name__
         service_model = get_service_model(service_name)
         model_shape = service_model.shape_for(model_name)
         valid_attributes: Dict[str, List[str]] = defaultdict(list)

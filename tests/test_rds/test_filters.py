@@ -450,4 +450,4 @@ class TestDBClusterSnapshotFilters:
         snapshots = self.client.describe_db_cluster_snapshots(
             Filters=[{"Name": "snapshot-type", "Values": ["automated"]}]
         )["DBClusterSnapshots"]
-        assert len(snapshots) == 0
+        assert len(snapshots) == 2

@@ -29,6 +29,8 @@ backend_url_patterns = [
     ("cloudformation", re.compile("https?://cloudformation\\.(.+)\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.(.+)\\.amazonaws\\.com")),
+    ("cloudhsmv2", re.compile("https?://cloudhsm\\.(.+)\\.amazonaws\\.com")),
+    ("cloudhsmv2", re.compile("https?://cloudhsmv2\\.(.+)\\.amazonaws\\.com")),
     ("cloudtrail", re.compile("https?://cloudtrail\\.(.+)\\.amazonaws\\.com")),
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
     ("codebuild", re.compile("https?://codebuild\\.(.+)\\.amazonaws\\.com")),
@@ -47,6 +49,7 @@ backend_url_patterns = [
     ("ds", re.compile("https?://ds\\.(.+)\\.amazonaws\\.com")),
     ("dsql", re.compile("https?://dsql\\.(.+)\\.api\\.aws")),
     ("dynamodb", re.compile("https?://dynamodb\\.(.+)\\.amazonaws\\.com")),
+    ("dynamodb", re.compile("https?://(.+).ddb\\.(.+)\\.amazonaws\\.com")),
     (
         "dynamodbstreams",
         re.compile("https?://streams\\.dynamodb\\.(.+)\\.amazonaws.com"),
@@ -108,6 +111,8 @@ backend_url_patterns = [
     ),
     ("kms", re.compile("https?://kms\\.(.+)\\.amazonaws\\.com")),
     ("lakeformation", re.compile("https?://lakeformation\\.(.+)\\.amazonaws\\.com")),
+    ("lexv2models", re.compile("https?://lex\\.(.+)\\.amazonaws\\.com")),
+    ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",
@@ -205,6 +210,10 @@ backend_url_patterns = [
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
+    (
+        "timestreaminfluxdb",
+        re.compile("https?://timestream-influxdb\\.(.+)\\.amazonaws\\.com"),
+    ),
     (
         "timestreamquery",
         re.compile("https?://query\\.timestream\\.(.+)\\.amazonaws\\.com"),
