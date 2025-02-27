@@ -1,9 +1,10 @@
 import json
+from typing import Iterable
 
 from moto.core.responses import BaseResponse
 from moto.timestreamquery.models import TimestreamQueryBackend, timestreamquery_backends
 
-from .models import TimestreamWriteBackend, timestreamwrite_backends
+from .models import TimestreamTable, TimestreamWriteBackend, timestreamwrite_backends
 
 
 class TimestreamWriteResponse(BaseResponse):
@@ -86,9 +87,9 @@ class TimestreamWriteResponse(BaseResponse):
     def list_tables(self) -> str:
         database_name = self._get_param("DatabaseName")
         if database_name is None:
-            tables = []
+            tables: Iterable[TimestreamTable] = []
             for db in self.timestreamwrite_backend.list_databases():
-                tables.extend(db.list_tables())
+                tables = list(tables) + list(db.list_tables())
         else:
             tables = self.timestreamwrite_backend.list_tables(database_name)
         return json.dumps(dict(Tables=[t.description() for t in tables]))
