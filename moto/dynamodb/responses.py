@@ -1252,11 +1252,11 @@ class DynamoHandler(BaseResponse):
         # Validate first - we should error before we start the transaction
         for item in transact_items:
             # This logic is common among all types of write items
-            item_values = list(item.values())[0] # Each item only has one of Put, Update, Delete, ConditionCheck
+            item_values = list(item.values())[
+                0
+            ]  # Each item only has one of Put, Update, Delete, ConditionCheck
             condition_expression = item_values.get("ConditionExpression")
-            expression_attribute_names = item_values.get(
-                "ExpressionAttributeNames", {}
-            )
+            expression_attribute_names = item_values.get("ExpressionAttributeNames", {})
             expression_attribute_values = item_values.get(
                 "ExpressionAttributeValues", {}
             )
@@ -1302,7 +1302,9 @@ class DynamoHandler(BaseResponse):
                     attr.get_attribute_name_placeholder() for attr in attr_name_clauses
                 ]
 
-            validate_attribute_names_used(expression_attribute_names, expression_attribute_names_used)
+            validate_attribute_names_used(
+                expression_attribute_names, expression_attribute_names_used
+            )
 
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
