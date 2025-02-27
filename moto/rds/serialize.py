@@ -17,11 +17,10 @@ from botocore.model import (
     StructureShape,
 )
 from botocore.utils import parse_to_aware_datetime
-from typing_extensions import TypeAlias
 
 from .utils import get_service_model
 
-Serialized: TypeAlias = MutableMapping[str, Any]
+Serialized = MutableMapping[str, Any]
 
 
 class ErrorShape(StructureShape):
