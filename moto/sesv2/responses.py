@@ -119,11 +119,17 @@ class SESV2Response(BaseResponse):
             )
         )
 
+    def get_email_identity(self) -> str:
+        email_identity_name = self._get_param("EmailIdentity")
+        email_identity = self.sesv2_backend.get_email_identity(
+            email_identity=email_identity_name,
+        )
+        return json.dumps(email_identity.get_response_object)
+
     def list_email_identities(self) -> str:
-        params = self._get_params()
-        next_token = params.get("NextToken")
-        page_size = params.get("PageSize")
-        email_identities = self.sesv2_backend.list_email_identities(
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        email_identities, next_token = self.sesv2_backend.list_email_identities(
             next_token=next_token,
             page_size=page_size,
         )

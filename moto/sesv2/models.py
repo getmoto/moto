@@ -124,10 +124,24 @@ class EmailIdentity(BaseModel):
         self.feedback_forwarding_status = False
         self.verification_status = "SUCCESS"
         self.sending_enabled = True
-        self.dkim_attributes = {
-            "signingEnabled": False,
-            "tokens": [],
-        }
+        self.dkim_attributes: Dict[str, Any] = {}
+        if not self.dkim_signing_attributes or not isinstance(
+            self.dkim_signing_attributes, dict
+        ):
+            self.dkim_attributes["SigningEnabled"] = False
+            self.dkim_attributes["Status"] = "NOT_STARTED"
+        else:
+            self.dkim_attributes["SigningEnabled"] = True
+            self.dkim_attributes["Status"] = "SUCCESS"
+            self.dkim_attributes["NextSigningKeyLength"] = (
+                self.dkim_signing_attributes.get("NextSigningKeyLength", "RSA_1024_BIT")
+            )
+            self.dkim_attributes["SigningAttributesOrigin"] = (
+                self.dkim_signing_attributes.get("SigningAttributesOrigin", "AWS_SES")
+            )
+            self.dkim_attributes["LastKeyGenerationTimestamp"] = (
+                iso_8601_datetime_with_milliseconds()
+            )
         self.policies: Dict[str, Any] = {}
 
     @property
@@ -320,6 +334,11 @@ class SESV2Backend(BaseBackend):
         if not self.dedicated_ip_pools.get(pool_name, None):
             raise NotFoundException(pool_name)
         return self.dedicated_ip_pools[pool_name]
+
+    def get_email_identity(self, email_identity: str) -> EmailIdentity:
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+        return self.email_identities[email_identity]
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

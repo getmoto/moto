@@ -473,6 +473,67 @@ def test_create_email_identity():
 
 
 @mock_aws
+def test_get_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-2")
+    test_email_domain = "example.com"
+    configuration_set_name = "test-config-set"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    client.create_email_identity(
+        EmailIdentity=test_email_domain,
+        ConfigurationSetName=configuration_set_name,
+        Tags=tags,
+    )
+
+    # Execute
+    resp = client.get_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    assert resp["IdentityType"] == "DOMAIN"
+    assert resp["ConfigurationSetName"] == configuration_set_name
+    assert resp["Tags"] == tags
+    assert "DkimAttributes" in resp
+    assert resp["DkimAttributes"]["Status"] == "NOT_STARTED"
+    assert not resp["DkimAttributes"]["SigningEnabled"]
+
+
+@mock_aws
+def test_get_email_identity_w_dkim():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-2")
+    test_email_domain = "example.com"
+    configuration_set_name = "test-config-set"
+    tags = [{"Key": "Owner", "Value": "Zach"}]
+    dkim_signing_attributes = {
+        "DomainSigningSelector": "test",
+        "DomainSigningPrivateKey": "test",
+        "NextSigningKeyLength": "2048",
+        "DomainSigningAttributesOrigin": "AWS_SES",
+    }
+    client.create_email_identity(
+        EmailIdentity=test_email_domain,
+        ConfigurationSetName=configuration_set_name,
+        Tags=tags,
+        DkimSigningAttributes=dkim_signing_attributes,
+    )
+
+    # Execute
+    resp = client.get_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    assert resp["IdentityType"] == "DOMAIN"
+    assert resp["ConfigurationSetName"] == configuration_set_name
+    assert resp["Tags"] == tags
+    assert "DkimAttributes" in resp
+    assert (
+        resp["DkimAttributes"]["SigningAttributesOrigin"]
+        == dkim_signing_attributes["DomainSigningAttributesOrigin"]
+    )
+    assert resp["DkimAttributes"]["Status"] == "SUCCESS"
+    assert resp["DkimAttributes"]["SigningEnabled"]
+
+
+@mock_aws
 def test_list_email_identities():
     # Setup
     client = boto3.client("sesv2", region_name="ap-southeast-1")
