@@ -197,6 +197,38 @@ def test_create_multiple_tables():
     }
     assert {t["TableStatus"] for t in tables} == {"ACTIVE"}
 
+@mock_aws
+def test_list_tables_without_database():
+    ts = boto3.client("timestream-write", region_name="us-east-1")
+    ts.create_database(DatabaseName="mydatabase")
+
+    for idx in range(0, 5):
+        ts.create_table(
+            DatabaseName="mydatabase",
+            TableName=f"mytable_{idx}",
+            RetentionProperties={
+                "MemoryStoreRetentionPeriodInHours": 7,
+                "MagneticStoreRetentionPeriodInDays": 42,
+            },
+        )
+
+    database = ts.describe_database(DatabaseName="mydatabase")["Database"]
+
+    assert database["TableCount"] == 5
+
+    # database_name is optional in api call
+    tables = ts.list_tables()["Tables"]
+    assert len(tables) == 5
+    assert {t["DatabaseName"] for t in tables} == {"mydatabase"}
+    assert {t["TableName"] for t in tables} == {
+        "mytable_0",
+        "mytable_1",
+        "mytable_2",
+        "mytable_3",
+        "mytable_4",
+    }
+    assert {t["TableStatus"] for t in tables} == {"ACTIVE"}
+
 
 @mock_aws
 def test_delete_table():

@@ -85,7 +85,12 @@ class TimestreamWriteResponse(BaseResponse):
 
     def list_tables(self) -> str:
         database_name = self._get_param("DatabaseName")
-        tables = self.timestreamwrite_backend.list_tables(database_name)
+        if database_name is None:
+            tables = []
+            for db in self.timestreamwrite_backend.list_databases():
+                tables.extend(db.list_tables())
+        else:
+            tables = self.timestreamwrite_backend.list_tables(database_name)
         return json.dumps(dict(Tables=[t.description() for t in tables]))
 
     def update_table(self) -> str:
