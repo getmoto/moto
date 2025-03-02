@@ -47,8 +47,11 @@ class MediaLiveResponse(BaseResponse):
         channels, next_token = self.medialive_backend.list_channels(
             max_results=max_results, next_token=next_token
         )
+        channel_dicts = [
+            c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
+        ]
 
-        return json.dumps(dict(channels=channels, nextToken=next_token))
+        return json.dumps(dict(channels=channel_dicts, nextToken=next_token))
 
     def describe_channel(self) -> str:
         channel_id = self._get_param("channelId")
@@ -128,7 +131,9 @@ class MediaLiveResponse(BaseResponse):
             max_results=max_results, next_token=next_token
         )
 
-        return json.dumps(dict(inputs=inputs, nextToken=next_token))
+        return json.dumps(
+            dict(inputs=[i.to_dict() for i in inputs], nextToken=next_token)
+        )
 
     def delete_input(self) -> str:
         input_id = self._get_param("inputId")

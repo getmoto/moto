@@ -1854,31 +1854,27 @@ def test_update_container_instances_state_by_arn():
 
 @mock_aws
 def test_run_task():
+    # Setup
+    test_cluster_name = "test_ecs_cluster"
+    image = "docker/hello-world:latest"
     client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
-
-    test_cluster_name = "test_ecs_cluster"
-
     client.create_cluster(clusterName=test_cluster_name)
-
     test_instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
-
     instance_id_document = json.dumps(
         ec2_utils.generate_instance_identity_document(test_instance)
     )
-
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
-
-    client.register_task_definition(
+    td = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
             {
                 "name": "hello_world",
-                "image": "docker/hello-world:latest",
+                "image": image,
                 "cpu": 1024,
                 "memory": 400,
                 "essential": True,
@@ -1889,12 +1885,16 @@ def test_run_task():
             }
         ],
     )
+
+    # Execute
     response = client.run_task(
         cluster="test_ecs_cluster",
         overrides={},
         taskDefinition="test_ecs_task",
         startedBy="moto",
     )
+
+    # Verify
     assert len(response["tasks"]) == 1
     response = client.run_task(
         cluster="test_ecs_cluster",
@@ -1928,6 +1928,13 @@ def test_run_task():
     assert task["startedBy"] == "moto"
     assert task["stoppedReason"] == ""
     assert task["tags"][0].get("value") == "tagValue0"
+    assert len(task["containers"]) == 1
+
+    con = task["containers"][0]
+    assert td["taskDefinition"]["taskDefinitionArn"] in con["containerArn"]
+    assert con["taskArn"] == td["taskDefinition"]["taskDefinitionArn"]
+    assert con["lastStatus"] == "PENDING"
+    assert con["image"] == image
 
 
 @mock_aws

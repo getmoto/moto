@@ -56,14 +56,9 @@ class TemplateDoesNotExist(SesError):
         super().__init__("TemplateDoesNotExist", message)
 
 
-class RuleSetNameAlreadyExists(SesError):
+class AlreadyExists(SesError):
     def __init__(self, message: str):
-        super().__init__("RuleSetNameAlreadyExists", message)
-
-
-class RuleAlreadyExists(SesError):
-    def __init__(self, message: str):
-        super().__init__("RuleAlreadyExists", message)
+        super().__init__("AlreadyExists", message)
 
 
 class RuleSetDoesNotExist(SesError):

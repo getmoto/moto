@@ -92,6 +92,11 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
         _method = op_model.http["method"]
         request_uri = op_model.http["requestUri"]
         if service_name == "route53" and request_uri.endswith("/rrset/"):
+            # Terraform 5.50 made a request to /rrset/
+            # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
+            request_uri += "?"
+        if service_name == "lambda" and request_uri.endswith("/functions/"):
+            # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
         method_urls[_method][uri_regexp] = op_model.name
@@ -303,7 +308,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
 
         @functools.wraps(to_call)  # type: ignore
-        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
             response = getattr(cls(), to_call.__name__)(request, full_url, headers)
             if isinstance(response, str):
                 status = 200

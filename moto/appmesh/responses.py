@@ -71,7 +71,7 @@ class AppMeshResponse(BaseResponse):
 
     def list_meshes(self) -> str:
         params = self._get_params()
-        limit = params.get("limit")
+        limit = self._get_int_param("limit")
         next_token = params.get("nextToken")
         meshes, next_token = self.appmesh_backend.list_meshes(
             limit=limit,
@@ -81,7 +81,7 @@ class AppMeshResponse(BaseResponse):
 
     def list_tags_for_resource(self) -> str:
         params = self._get_params()
-        limit = params.get("limit")
+        limit = self._get_int_param("limit")
         next_token = params.get("nextToken")
         resource_arn = params.get("resourceArn")
         tags, next_token = self.appmesh_backend.list_tags_for_resource(
@@ -158,7 +158,7 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(virtual_router.to_dict())
 
     def list_virtual_routers(self) -> str:
-        limit = self._get_param("limit")
+        limit = self._get_int_param("limit")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
         next_token = self._get_param("nextToken")
@@ -235,7 +235,7 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(route.to_dict())
 
     def list_routes(self) -> str:
-        limit = self._get_param("limit")
+        limit = self._get_int_param("limit")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
         next_token = self._get_param("nextToken")
@@ -247,7 +247,12 @@ class AppMeshResponse(BaseResponse):
             next_token=next_token,
             virtual_router_name=virtual_router_name,
         )
-        return json.dumps(dict(nextToken=next_token, routes=routes))
+        return json.dumps(
+            dict(
+                nextToken=next_token,
+                routes=[r.formatted_for_list_api() for r in routes],
+            )
+        )
 
     def describe_virtual_node(self) -> str:
         mesh_name = self._get_param("meshName")
@@ -306,7 +311,7 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(virtual_node.to_dict())
 
     def list_virtual_nodes(self) -> str:
-        limit = self._get_param("limit")
+        limit = self._get_int_param("limit")
         mesh_name = self._get_param("meshName")
         mesh_owner = self._get_param("meshOwner")
         next_token = self._get_param("nextToken")
@@ -316,4 +321,9 @@ class AppMeshResponse(BaseResponse):
             mesh_owner=mesh_owner,
             next_token=next_token,
         )
-        return json.dumps(dict(nextToken=next_token, virtualNodes=virtual_nodes))
+        return json.dumps(
+            dict(
+                nextToken=next_token,
+                virtualNodes=[n.formatted_for_list_api() for n in virtual_nodes],
+            )
+        )

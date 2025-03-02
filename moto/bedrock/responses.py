@@ -133,7 +133,19 @@ class BedrockResponse(BaseResponse):
             sort_by=sort_by,
             sort_order=sort_order,
         )
-        return json.dumps(dict(nextToken=next_token, modelSummaries=model_summaries))
+        summaries = [
+            {
+                "modelArn": model.model_arn,
+                "modelName": model.model_name,
+                "creationTime": model.creation_time,
+                "baseModelArn": model.base_model_arn,
+                "baseModelName": model.base_model_name,
+                "jobArn": model.job_arn,
+                "customizationType": model.customization_type,
+            }
+            for model in model_summaries
+        ]
+        return json.dumps(dict(nextToken=next_token, modelSummaries=summaries))
 
     def list_model_customization_jobs(self) -> str:
         params = self._get_params()
@@ -141,16 +153,12 @@ class BedrockResponse(BaseResponse):
         creation_time_before = params.get("creationTimeBefore")
         status_equals = params.get("statusEquals")
         name_contains = params.get("nameContains")
-        max_results = params.get("maxResults")
+        max_results = self._get_int_param("maxResults")
         next_token = params.get("nextToken")
         sort_by = params.get("sortBy")
         sort_order = params.get("sortOrder")
 
-        max_results = int(max_results) if max_results else None
-        (
-            model_customization_job_summaries,
-            next_token,
-        ) = self.bedrock_backend.list_model_customization_jobs(
+        jobs, next_token = self.bedrock_backend.list_model_customization_jobs(
             creation_time_after=creation_time_after,
             creation_time_before=creation_time_before,
             status_equals=status_equals,
@@ -160,10 +168,25 @@ class BedrockResponse(BaseResponse):
             sort_by=sort_by,
             sort_order=sort_order,
         )
+        job_summaries = [
+            {
+                "jobArn": job.job_arn,
+                "baseModelArn": job.base_model_arn,
+                "jobName": job.job_name,
+                "status": job.status,
+                "lastModifiedTime": job.last_modified_time,
+                "creationTime": job.creation_time,
+                "endTime": job.end_time,
+                "customModelArn": job.output_model_arn,
+                "customModelName": job.custom_model_name,
+                "customizationType": job.customization_type,
+            }
+            for job in jobs
+        ]
         return json.dumps(
             dict(
                 nextToken=next_token,
-                modelCustomizationJobSummaries=model_customization_job_summaries,
+                modelCustomizationJobSummaries=job_summaries,
             )
         )
 

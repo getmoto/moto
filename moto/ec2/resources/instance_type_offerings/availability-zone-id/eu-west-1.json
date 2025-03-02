@@ -7312,6 +7312,22 @@
   "Location": "euw1-az3"
  },
  {
+  "InstanceType": "inf2.24xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "inf2.48xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "inf2.8xlarge",
+  "Location": "euw1-az3"
+ },
+ {
+  "InstanceType": "inf2.xlarge",
+  "Location": "euw1-az3"
+ },
+ {
   "InstanceType": "is4gen.2xlarge",
   "Location": "euw1-az3"
  },

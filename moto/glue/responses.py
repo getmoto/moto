@@ -793,3 +793,45 @@ class GlueResponse(BaseResponse):
         endpoint_name = self._get_param("EndpointName")
         dev_endpoint = self.glue_backend.get_dev_endpoint(endpoint_name)
         return json.dumps({"DevEndpoint": dev_endpoint.as_dict()})
+
+    def create_connection(self) -> str:
+        catalog_id = self._get_param("CatalogId")
+        connection_input = self._get_param("ConnectionInput")
+        tags = self._get_param("Tags")
+        create_connection_status = self.glue_backend.create_connection(
+            catalog_id=catalog_id,
+            connection_input=connection_input,
+            tags=tags,
+        )
+        return json.dumps(dict(CreateConnectionStatus=create_connection_status))
+
+    def get_connection(self) -> str:
+        catalog_id = self._get_param("CatalogId")
+        name = self._get_param("Name")
+        hide_password = self._get_param("HidePassword")
+        apply_override_for_compute_environment = self._get_param(
+            "ApplyOverrideForComputeEnvironment"
+        )
+        connection = self.glue_backend.get_connection(
+            catalog_id=catalog_id,
+            name=name,
+            hide_password=hide_password,
+            apply_override_for_compute_environment=apply_override_for_compute_environment,
+        )
+        return json.dumps(dict(Connection=connection.as_dict()))
+
+    def get_connections(self) -> str:
+        catalog_id = self._get_param("CatalogId")
+        filter = self._get_param("Filter")
+        hide_password = self._get_param("HidePassword")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        connections, next_token = self.glue_backend.get_connections(
+            catalog_id=catalog_id,
+            filter=filter,
+            hide_password=hide_password,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        connection_list = [connection.as_dict() for connection in connections]
+        return json.dumps(dict(ConnectionList=connection_list, NextToken=next_token))

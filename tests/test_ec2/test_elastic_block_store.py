@@ -1198,3 +1198,17 @@ def test_modify_ebs_default_kms_key_id():
         KmsKeyId=new_default_key["Arn"]
     )["KmsKeyId"]
     assert new_default_ebs_key_arn != original_default_ebs_key_arn
+
+
+@mock_aws
+def test_create_volume_without_size():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_volume(AvailabilityZone="us-east-1a")
+
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request must contain the parameter size/snapshot"
+    )

@@ -915,7 +915,7 @@ class Route53Backend(BaseBackend):
 
         log_groups = logs_backends[self.account_id][region].describe_log_groups()
         for entry in log_groups[0] if log_groups else []:
-            if log_group_arn == entry["arn"]:
+            if log_group_arn == f"{entry.arn}:*":
                 break
         else:
             # There is no CloudWatch Logs log group with the specified ARN.

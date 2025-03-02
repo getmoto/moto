@@ -716,6 +716,18 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "g4dn.12xlarge",
   "Location": "ap-southeast-2"
  },
@@ -2553,6 +2565,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
   "Location": "ap-southeast-2"
  },
  {

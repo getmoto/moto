@@ -114,3 +114,9 @@ class GuardDutyResponse(BaseResponse):
             rank=rank,
         )
         return json.dumps({"name": filter_name})
+
+    def get_administrator_account(self) -> str:
+        """Get administrator account details."""
+        detector_id = self.path.split("/")[-2]
+        result = self.guardduty_backend.get_administrator_account(detector_id)
+        return json.dumps(result)

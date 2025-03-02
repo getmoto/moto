@@ -1220,6 +1220,10 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-northeast-2"
  },
@@ -1873,6 +1877,10 @@
  },
  {
   "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "ap-northeast-2"
  },
  {

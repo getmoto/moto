@@ -388,6 +388,42 @@
   "Location": "ap-southeast-4a"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "ap-southeast-4a"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "ap-southeast-4a"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "ap-southeast-4a"
  },
@@ -944,6 +980,42 @@
   "Location": "ap-southeast-4b"
  },
  {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "ap-southeast-4b"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
+  "Location": "ap-southeast-4b"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "ap-southeast-4b"
  },
@@ -1493,6 +1565,42 @@
  },
  {
   "InstanceType": "m6gd.xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.12xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.16xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.2xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.4xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.8xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.large",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.medium",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.metal",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "m7g.xlarge",
   "Location": "ap-southeast-4c"
  },
  {

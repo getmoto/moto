@@ -98,6 +98,10 @@ def filter_resources(
                 ):
                     result.remove(resource)
                     break
+            elif attrs[0] in filters:
+                # In case the filter exists but the value of the filter is empty, the filter shouldn't match
+                result.remove(resource)
+                break
     return result
 
 
@@ -107,11 +111,7 @@ def md5_hash(data: Any = None) -> Any:
     Required for Moto to work in FIPS-enabled systems
     """
     args = (data,) if data else ()
-    try:
-        return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
-    except TypeError:
-        # The usedforsecurity-parameter is only available as of Python 3.9
-        return hashlib.md5(*args)
+    return hashlib.md5(*args, usedforsecurity=False)  # type: ignore
 
 
 class LowercaseDict(MutableMapping[str, Any]):

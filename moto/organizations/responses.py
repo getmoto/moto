@@ -72,7 +72,11 @@ class OrganizationsResponse(BaseResponse):
         ) = self.organizations_backend.list_organizational_units_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"OrganizationalUnits": ous}
+        response = {
+            "OrganizationalUnits": [
+                {"Id": ou.id, "Arn": ou.arn, "Name": ou.name} for ou in ous
+            ]
+        }
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)
@@ -126,7 +130,7 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"Accounts": accounts}
+        response = {"Accounts": [a.describe() for a in accounts]}
         if next_token:
             response["NextToken"] = next_token
         return json.dumps(response)

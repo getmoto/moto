@@ -1756,7 +1756,8 @@ def test_head_object(size, bucket_name=None):
         client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=2)
     err = exc.value.response["Error"]
     assert err["Code"] == "416"
-    assert err["Message"] == "Requested Range Not Satisfiable"
+    # Exact message depends on the werkzeug version - AWS returns 'Requested Range Not Satisfiable'
+    assert "Range Not Satisfiable" in err["Message"]
 
     with pytest.raises(ClientError) as exc:
         client.head_object(Bucket=bucket_name, Key="hello_bad.txt")
@@ -1791,7 +1792,8 @@ def test_get_object(size, bucket_name=None):
         client.head_object(Bucket=bucket_name, Key="hello.txt", PartNumber=2)
     err = exc.value.response["Error"]
     assert err["Code"] == "416"
-    assert err["Message"] == "Requested Range Not Satisfiable"
+    # Exact message depends on the werkzeug version - AWS returns 'Requested Range Not Satisfiable'
+    assert "Range Not Satisfiable" in err["Message"]
 
     with pytest.raises(ClientError) as exc:
         s3_resource.Object(bucket_name, "hello2.txt").get()

@@ -102,7 +102,10 @@ class WAFV2Response(BaseResponse):
         web_acls, next_marker = self.wafv2_backend.list_web_acls(
             limit=limit, next_marker=next_marker
         )
-        response = {"NextMarker": next_marker, "WebACLs": web_acls}
+        response = {
+            "NextMarker": next_marker,
+            "WebACLs": [web.to_short_dict() for web in web_acls],
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 

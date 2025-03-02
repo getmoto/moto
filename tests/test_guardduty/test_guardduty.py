@@ -175,3 +175,35 @@ def test_delete_detector():
     )
 
     assert client.list_detectors()["DetectorIds"] == []
+
+
+@mock_aws
+def test_get_administrator_account():
+    guardduty_client = boto3.client("guardduty", region_name="us-east-1")
+
+    detector_response = guardduty_client.create_detector(Enable=True)
+    detector_id = detector_response["DetectorId"]
+
+    guardduty_client.enable_organization_admin_account(AdminAccountId="someaccount")
+
+    list_resp = guardduty_client.list_organization_admin_accounts()
+
+    assert list_resp["AdminAccounts"][0]["AdminAccountId"] == "someaccount"
+    assert list_resp["AdminAccounts"][0]["AdminStatus"] == "ENABLED"
+
+    resp = guardduty_client.get_administrator_account(DetectorId=detector_id)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_no_administrator_account():
+    guardduty_client = boto3.client("guardduty", region_name="us-east-1")
+
+    detector_response = guardduty_client.create_detector(Enable=True)
+    detector_id = detector_response["DetectorId"]
+    list_resp = guardduty_client.list_organization_admin_accounts()
+
+    resp = guardduty_client.get_administrator_account(DetectorId=detector_id)
+
+    assert "AdminAccountId" not in list_resp
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200

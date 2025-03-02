@@ -61,7 +61,7 @@ class AgentsforBedrockResponse(BaseResponse):
         )
         return json.dumps(
             {
-                "agentSummaries": agents,
+                "agentSummaries": [a.dict_summary() for a in agents],
                 "nextToken": next_token,
             }
         )
@@ -106,7 +106,7 @@ class AgentsforBedrockResponse(BaseResponse):
         )
         return json.dumps(
             {
-                "knowledgeBaseSummaries": knowledge_bases,
+                "knowledgeBaseSummaries": [kb.dict_summary() for kb in knowledge_bases],
                 "nextToken": next_token,
             }
         )

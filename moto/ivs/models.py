@@ -63,7 +63,7 @@ class IVSBackend(BaseBackend):
         return channel, stream_key
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_channels(
+    def list_channels(  # type: ignore[misc]
         self,
         filter_by_name: Optional[str],
         filter_by_recording_configuration_arn: Optional[str],

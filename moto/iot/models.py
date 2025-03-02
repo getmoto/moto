@@ -6,7 +6,17 @@ from collections import OrderedDict
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta
 from json import JSONDecodeError
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Pattern, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Pattern,
+    Tuple,
+    Union,
+)
 
 from cryptography import x509
 from cryptography.hazmat._oid import NameOID
@@ -827,7 +837,7 @@ class FakeJobTemplate(CloudFormationModel):
         self.timeout_config = timeout_config
         self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> Dict[str, Union[str, float]]:
         return {
             "jobTemplateArn": self.job_template_arn,
             "jobTemplateId": self.job_template_id,
@@ -2304,11 +2314,11 @@ class IoTBackend(BaseBackend):
         return self.jobs[job_id]
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_jobs(self) -> List[Dict[str, Any]]:
+    def list_jobs(self) -> List[FakeJob]:
         """
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
         """
-        return [_.to_dict() for _ in self.jobs.values()]
+        return [_ for _ in self.jobs.values()]
 
     def describe_job_execution(
         self, job_id: str, thing_name: str, execution_number: int
@@ -2364,56 +2374,25 @@ class IoTBackend(BaseBackend):
         else:
             raise InvalidStateTransitionException()
 
+    @paginate(PAGINATION_MODEL)
     def list_job_executions_for_job(
-        self, job_id: str, status: str, max_results: int, token: Optional[str]
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        job_executions = [
-            self.job_executions[je].to_dict()
-            for je in self.job_executions
-            if je[0] == job_id
+        self, job_id: str, status: str
+    ) -> List[FakeJobExecution]:
+        return [
+            job_exec
+            for (_id, _), job_exec in self.job_executions.items()
+            if _id == job_id and (not status or job_exec.status == status)
         ]
-
-        if status is not None:
-            job_executions = list(
-                filter(
-                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
-                    job_executions,
-                )
-            )
-
-        if token is None:
-            job_executions = job_executions[0:max_results]
-            next_token = str(max_results) if len(job_executions) > max_results else None
-        else:
-            int_token = int(token)
-            job_executions = job_executions[int_token : int_token + max_results]
-            next_token = (
-                str(int_token + max_results)
-                if len(job_executions) > int_token + max_results
-                else None
-            )
-
-        return job_executions, next_token
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_executions_for_thing(
         self, thing_name: str, status: Optional[str]
-    ) -> List[Dict[str, Any]]:
-        job_executions = [
-            self.job_executions[je].to_dict()
-            for je in self.job_executions
-            if je[1] == thing_name
+    ) -> List[FakeJobExecution]:
+        return [
+            job_exec
+            for (_, name), job_exec in self.job_executions.items()
+            if name == thing_name and (not status or job_exec.status == status)
         ]
-
-        if status is not None:
-            job_executions = list(
-                filter(
-                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
-                    job_executions,
-                )
-            )
-
-        return job_executions
 
     def list_topic_rules(self) -> List[Dict[str, Any]]:
         return [r.to_dict() for r in self.rules.values()]
@@ -2643,7 +2622,7 @@ class IoTBackend(BaseBackend):
         return job_template
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_job_templates(self) -> List[Dict[str, Any]]:
+    def list_job_templates(self) -> List[Dict[str, Union[str, float]]]:
         return [_.to_dict() for _ in self.jobs_templates.values()]
 
     def delete_job_template(self, job_template_id: str) -> None:

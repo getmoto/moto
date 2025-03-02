@@ -2540,6 +2540,10 @@
   "Location": "eu-south-2b"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eu-south-2b"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eu-south-2b"
  },

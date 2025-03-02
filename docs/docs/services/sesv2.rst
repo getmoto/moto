@@ -84,6 +84,7 @@ sesv2
 - [ ] put_account_sending_attributes
 - [ ] put_account_suppression_attributes
 - [ ] put_account_vdm_attributes
+- [ ] put_configuration_set_archiving_options
 - [ ] put_configuration_set_delivery_options
 - [ ] put_configuration_set_reputation_options
 - [ ] put_configuration_set_sending_options

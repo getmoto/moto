@@ -330,6 +330,16 @@ def test_get_subnets_filtering():
         with pytest.raises(NotImplementedError):
             client.describe_subnets(Filters=filters)
 
+    # Filter without a Value.
+    subnets_with_invalid_filter = client.describe_subnets(Filters=[{"Name": "vpc-id"}])[
+        "Subnets"
+    ]
+    assert len(subnets_with_invalid_filter) == 0
+    subnets_with_invalid_filter = client.describe_subnets(
+        Filters=[{"Name": "vpc-id", "Values": []}]
+    )["Subnets"]
+    assert len(subnets_with_invalid_filter) == 0
+
 
 @mock_aws
 def test_create_subnet_response_fields():

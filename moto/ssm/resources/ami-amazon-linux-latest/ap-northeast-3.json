@@ -2,47 +2,47 @@
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64",
     "DataType": "text",
-    "LastModifiedDate": 1738105749.59,
+    "LastModifiedDate": 1740179925.381,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-arm64",
     "Type": "String",
-    "Value": "ami-05b15a4fbb42cecfc",
-    "Version": 108
+    "Value": "ami-0be01d0f9896e9858",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64",
     "DataType": "text",
-    "LastModifiedDate": 1738105750.028,
+    "LastModifiedDate": 1740179925.813,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64",
     "Type": "String",
-    "Value": "ami-036c694af8914eb01",
-    "Version": 108
+    "Value": "ami-0439cd8bc5628c9e8",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-6.1-arm64",
     "DataType": "text",
-    "LastModifiedDate": 1738105750.562,
+    "LastModifiedDate": 1740179926.231,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-6.1-arm64",
     "Type": "String",
-    "Value": "ami-028bae4323065290e",
-    "Version": 108
+    "Value": "ami-0a4510db241b7aaf2",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-6.1-x86_64",
     "DataType": "text",
-    "LastModifiedDate": 1738105750.984,
+    "LastModifiedDate": 1740179926.658,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-6.1-x86_64",
     "Type": "String",
-    "Value": "ami-014e25b8eea863333",
-    "Version": 108
+    "Value": "ami-02c822a6a6841f0bd",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64",
     "DataType": "text",
-    "LastModifiedDate": 1738105752.212,
+    "LastModifiedDate": 1740179927.889,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-arm64",
     "Type": "String",
-    "Value": "ami-028bae4323065290e",
-    "Version": 108
+    "Value": "ami-0a4510db241b7aaf2",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-gp2",
@@ -65,56 +65,56 @@
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-ebs",
     "DataType": "text",
-    "LastModifiedDate": 1737754173.49,
+    "LastModifiedDate": 1740531810.61,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-ebs",
     "Type": "String",
-    "Value": "ami-0557f03cd3e67eca8",
-    "Version": 106
+    "Value": "ami-06aff7b1cdd338568",
+    "Version": 108
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
     "DataType": "text",
-    "LastModifiedDate": 1737754173.929,
+    "LastModifiedDate": 1740531811.03,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
     "Type": "String",
-    "Value": "ami-00d6888a92f69a5a2",
-    "Version": 106
+    "Value": "ami-0316e0efae0ce53d2",
+    "Version": 108
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-ebs",
     "DataType": "text",
-    "LastModifiedDate": 1737754174.923,
+    "LastModifiedDate": 1740531811.832,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-ebs",
     "Type": "String",
-    "Value": "ami-014a9fb8389a37561",
-    "Version": 92
+    "Value": "ami-09a79bb80d6bc57cf",
+    "Version": 94
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
     "DataType": "text",
-    "LastModifiedDate": 1738105751.4,
+    "LastModifiedDate": 1740179927.077,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64",
     "Type": "String",
-    "Value": "ami-05b15a4fbb42cecfc",
-    "Version": 108
+    "Value": "ami-0be01d0f9896e9858",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64",
     "DataType": "text",
-    "LastModifiedDate": 1738105751.807,
+    "LastModifiedDate": 1740179927.485,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64",
     "Type": "String",
-    "Value": "ami-036c694af8914eb01",
-    "Version": 108
+    "Value": "ami-0439cd8bc5628c9e8",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-x86_64",
     "DataType": "text",
-    "LastModifiedDate": 1738105752.658,
+    "LastModifiedDate": 1740179928.305,
     "Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-minimal-kernel-default-x86_64",
     "Type": "String",
-    "Value": "ami-014e25b8eea863333",
-    "Version": 108
+    "Value": "ami-02c822a6a6841f0bd",
+    "Version": 112
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn-ami-hvm-x86_64-ebs",
@@ -146,46 +146,46 @@
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2",
     "DataType": "text",
-    "LastModifiedDate": 1737754173.061,
+    "LastModifiedDate": 1740531810.184,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2",
     "Type": "String",
-    "Value": "ami-078588408fafc66b7",
-    "Version": 106
+    "Value": "ami-02d5dce2857c6e275",
+    "Version": 108
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2",
     "DataType": "text",
-    "LastModifiedDate": 1737754174.509,
+    "LastModifiedDate": 1740531811.415,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2",
     "Type": "String",
-    "Value": "ami-0686e688ab9e6d3a8",
-    "Version": 92
+    "Value": "ami-0ce116ba5b5e740c0",
+    "Version": 94
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2",
     "DataType": "text",
-    "LastModifiedDate": 1737754175.327,
+    "LastModifiedDate": 1740531812.255,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2",
     "Type": "String",
-    "Value": "ami-0957d21eb5fac55d6",
-    "Version": 92
+    "Value": "ami-0002c62a734685afc",
+    "Version": 94
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs",
     "DataType": "text",
-    "LastModifiedDate": 1737754175.76,
+    "LastModifiedDate": 1740531812.675,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-arm64-ebs",
     "Type": "String",
-    "Value": "ami-09da61898b614578f",
-    "Version": 106
+    "Value": "ami-084ca76f93fe39302",
+    "Version": 108
   },
   {
     "ARN": "arn:aws:ssm:ap-northeast-3::parameter/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-x86_64-ebs",
     "DataType": "text",
-    "LastModifiedDate": 1737754176.167,
+    "LastModifiedDate": 1740531813.104,
     "Name": "/aws/service/ami-amazon-linux-latest/amzn2-ami-minimal-hvm-x86_64-ebs",
     "Type": "String",
-    "Value": "ami-0f335224df73af6d6",
-    "Version": 106
+    "Value": "ami-038a2d56064efe960",
+    "Version": 108
   }
 ]

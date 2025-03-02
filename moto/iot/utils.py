@@ -1,11 +1,17 @@
 from typing import Any
 
 PAGINATION_MODEL = {
+    "list_job_executions_for_job": {
+        "input_token": "token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": ["job_id", "thing_arn"],
+    },
     "list_job_executions_for_thing": {
         "input_token": "next_token",
         "limit_key": "max_results",
         "limit_default": 100,
-        "unique_attribute": "jobId",
+        "unique_attribute": "job_id",
     },
     "list_job_templates": {
         "input_token": "next_token",

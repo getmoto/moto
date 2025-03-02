@@ -15,18 +15,16 @@ def test_list_databases():
 def test_create_db_instance():
     backend = server.create_backend_app("rds")
     test_client = backend.test_client()
-
     params = {
         "Action": "CreateDBInstance",
         "DBInstanceIdentifier": "hi",
         "DBInstanceClass": "db.m4.large",
-        "Engine": "aurora-mysql",
+        "Engine": "postgres",
         "StorageType": "standard",
-        "Port": 3306,
+        "Port": 5432,
     }
     qs = urlencode(params)
     resp = test_client.post(f"/?{qs}")
-
     response = resp.data.decode("utf-8")
     assert "<DBClusterIdentifier>" not in response
     assert "<DBInstanceIdentifier>hi</DBInstanceIdentifier" in response

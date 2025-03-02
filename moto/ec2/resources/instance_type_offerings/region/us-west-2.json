@@ -856,6 +856,18 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "us-west-2"
  },
@@ -2213,6 +2225,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "p5e.48xlarge",
   "Location": "us-west-2"
  },
  {

@@ -246,10 +246,10 @@ class SSOAdminBackend(BaseBackend):
             f"Policy does not exist with ARN: {managed_policy_arn}"
         )
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(PAGINATION_MODEL)
     def list_account_assignments(
         self, instance_arn: str, account_id: str, permission_set_arn: str
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, str]]:
         account_assignments = []
         for assignment in self.account_assignments:
             if (
@@ -267,14 +267,14 @@ class SSOAdminBackend(BaseBackend):
                 )
         return account_assignments
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(PAGINATION_MODEL)
     def list_account_assignments_for_principal(
         self,
         filter_: Dict[str, Any],
         instance_arn: str,
         principal_id: str,
         principal_type: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, str]]:
         return [
             {
                 "AccountId": account_assignment.target_id,

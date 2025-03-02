@@ -537,16 +537,12 @@ class OrganizationsBackend(BaseBackend):
         ou = self.get_organizational_unit_by_id(kwargs["OrganizationalUnitId"])
         return ou.describe()
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_organizational_units_for_parent(
-        self, **kwargs: Any
-    ) -> List[Dict[str, Any]]:
-        parent_id = self.validate_parent_id(kwargs["parent_id"])
-        return [
-            {"Id": ou.id, "Arn": ou.arn, "Name": ou.name}
-            for ou in self.ou
-            if ou.parent_id == parent_id
-        ]
+        self, parent_id: str
+    ) -> List[FakeOrganizationalUnit]:
+        parent_id = self.validate_parent_id(parent_id)
+        return [ou for ou in self.ou if ou.parent_id == parent_id]
 
     def create_account(self, **kwargs: Any) -> Dict[str, Any]:
         if self.org is None:
@@ -629,15 +625,13 @@ class OrganizationsBackend(BaseBackend):
         accounts = [account.describe() for account in self.accounts]
         return sorted(accounts, key=lambda x: x["JoinedTimestamp"])  # type: ignore
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_accounts_for_parent(self, **kwargs: Any) -> Any:
-        parent_id = self.validate_parent_id(kwargs["parent_id"])
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_accounts_for_parent(self, parent_id: str) -> List[FakeAccount]:
+        parent_id = self.validate_parent_id(parent_id)
         accounts = [
-            account.describe()
-            for account in self.accounts
-            if account.parent_id == parent_id
+            account for account in self.accounts if account.parent_id == parent_id
         ]
-        return sorted(accounts, key=lambda x: x["JoinedTimestamp"])
+        return sorted(accounts, key=lambda x: x.create_time)
 
     def move_account(self, **kwargs: Any) -> None:
         new_parent_id = self.validate_parent_id(kwargs["DestinationParentId"])

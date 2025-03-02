@@ -256,3 +256,15 @@ def test_list_identity_pools():
     identity_data = conn.list_identity_pools(MaxResults=10)
     assert identity_pool_id == identity_data["IdentityPools"][0]["IdentityPoolId"]
     assert "test_identity_pool" == identity_data["IdentityPools"][0]["IdentityPoolName"]
+
+
+@mock_aws
+def test_delete_identity_pool():
+    conn = boto3.client("cognito-identity", region_name="ap-southeast-1")
+    identity_pool_id = conn.create_identity_pool(
+        IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True
+    )["IdentityPoolId"]
+
+    assert len(conn.list_identity_pools(MaxResults=10)["IdentityPools"]) == 1
+    conn.delete_identity_pool(IdentityPoolId=identity_pool_id)
+    assert len(conn.list_identity_pools(MaxResults=10)["IdentityPools"]) == 0

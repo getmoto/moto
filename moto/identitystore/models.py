@@ -260,7 +260,7 @@ class IdentityStoreBackend(BaseBackend):
         return membership_id, identity_store_id
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_group_memberships(
+    def list_group_memberships(  # type: ignore[misc]
         self, identity_store_id: str, group_id: str
     ) -> List[Any]:
         identity_store = self.__get_identity_store(identity_store_id)
@@ -271,8 +271,8 @@ class IdentityStoreBackend(BaseBackend):
             if m["GroupId"] == group_id
         ]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_group_memberships_for_member(
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_group_memberships_for_member(  # type: ignore[misc]
         self, identity_store_id: str, member_id: Dict[str, str]
     ) -> List[Any]:
         identity_store = self.__get_identity_store(identity_store_id)
@@ -284,22 +284,22 @@ class IdentityStoreBackend(BaseBackend):
             if m["MemberId"]["UserId"] == user_id
         ]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_groups(
         self, identity_store_id: str, filters: List[Dict[str, str]]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Group]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         if filters:
             if filters[0].get("AttributePath") == "DisplayName":
                 displayname = filters[0].get("AttributeValue")
                 return [
-                    m._asdict()
+                    m
                     for m in identity_store.groups.values()
                     if m.DisplayName == displayname
                 ]
 
-        return [m._asdict() for m in identity_store.groups.values()]
+        return [m for m in identity_store.groups.values()]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(

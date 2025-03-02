@@ -77,6 +77,17 @@ def test_availability_zones__parameters():
     assert len(zones) == 1
     assert zones[0]["ZoneId"] == "use1-az1"
 
+    # This shouldn't raise an unhandled exception
+    zones = us_east.describe_availability_zones(Filters=[{"Name": "state"}])[
+        "AvailabilityZones"
+    ]
+    assert len(zones) == 0
+
+    zones = us_east.describe_availability_zones(
+        Filters=[{"Name": "state", "Values": []}]
+    )["AvailabilityZones"]
+    assert len(zones) == 0
+
 
 @mock_aws
 def test_describe_availability_zones_dryrun():

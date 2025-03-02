@@ -920,6 +920,92 @@ def test_get_dev_endpoint():
     response = client.get_dev_endpoint(EndpointName="test-endpoint")
     assert response["DevEndpoint"]["EndpointName"] == "test-endpoint"
     assert response["DevEndpoint"]["Status"] == "READY"
+    assert "PublicAddress" in response["DevEndpoint"]
 
     with pytest.raises(client.exceptions.EntityNotFoundException):
         client.get_dev_endpoint(EndpointName="nonexistent")
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint-private",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+        SubnetId="subnet-1234567890abcdef0",
+    )
+
+    response = client.get_dev_endpoint(EndpointName="test-endpoint-private")
+    assert response["DevEndpoint"]["EndpointName"] == "test-endpoint-private"
+    assert "PublicAddress" not in response["DevEndpoint"]
+
+
+@mock_aws
+def test_create_connection():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection",
+        "Description": "Test Connection",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {"key": "value"},
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    resp = client.create_connection(ConnectionInput=connection_input)
+    assert resp["CreateConnectionStatus"] == "READY"
+
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)
+
+
+@mock_aws
+def test_get_connection():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection",
+        "Description": "Test Connection",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {"key": "value"},
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    client.create_connection(ConnectionInput=connection_input)
+    connection = client.get_connection(Name="test-connection")["Connection"]
+    assert connection["Name"] == "test-connection"
+    assert connection["Status"] == "READY"
+    assert "PhysicalConnectionRequirements" in connection_input
+    assert connection["PhysicalConnectionRequirements"]["SubnetId"] == subnet_id
+
+    # Test not found
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.get_connection(Name="nonexistent")
+
+
+@mock_aws
+def test_get_connections():
+    client = boto3.client("glue", region_name="ap-southeast-1")
+    for i in range(3):
+        subnet_id = f"subnet-1234567890abcdef{i}"
+        connection_input = {
+            "Name": f"test-connection-{i}",
+            "Description": "Test Connection",
+            "ConnectionType": "JDBC",
+            "ConnectionProperties": {"key": "value"},
+            "PhysicalConnectionRequirements": {
+                "SubnetId": subnet_id,
+                "SecurityGroupIdList": [],
+                "AvailabilityZone": "us-east-1a",
+            },
+        }
+        client.create_connection(ConnectionInput=connection_input)
+
+    connections = client.get_connections()["ConnectionList"]
+    assert len(connections) == 3
+    assert connections[0]["Name"] == "test-connection-0"
+    assert connections[1]["Name"] == "test-connection-1"
+    assert connections[2]["Name"] == "test-connection-2"

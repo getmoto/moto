@@ -118,6 +118,10 @@ def test_create_key():
     assert "EncryptionAlgorithms" not in key["KeyMetadata"]
     assert key["KeyMetadata"]["SigningAlgorithms"] == ["ECDSA_SHA_512"]
 
+    key = conn.create_key(Origin="EXTERNAL")
+
+    assert key["KeyMetadata"]["Origin"] == "EXTERNAL"
+
 
 @mock_aws
 def test_create_multi_region_key():

@@ -191,13 +191,13 @@ class BedrockBackend(BaseBackend):
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "jobArn",
+            "unique_attribute": "job_arn",
         },
         "list_custom_models": {
             "input_token": "next_token",
             "limit_key": "max_results",
             "limit_default": 100,
-            "unique_attribute": "modelArn",
+            "unique_attribute": "model_arn",
         },
     }
 
@@ -301,18 +301,16 @@ class BedrockBackend(BaseBackend):
             )
         return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_customization_jobs(
         self,
         creation_time_after: Optional[datetime],
         creation_time_before: Optional[datetime],
         status_equals: Optional[str],
         name_contains: Optional[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[Any]:
+    ) -> List[ModelCustomizationJob]:
         customization_jobs_fetched = list(self.model_customization_jobs.values())
 
         if name_contains is not None:
@@ -363,23 +361,7 @@ class BedrockBackend(BaseBackend):
             else:
                 raise ValidationException(f"Invalid sort by field: {sort_by}")
 
-        model_customization_job_summaries = []
-        for model in customization_jobs_fetched:
-            model_customization_job_summaries.append(
-                {
-                    "jobArn": model.job_arn,
-                    "baseModelArn": model.base_model_arn,
-                    "jobName": model.job_name,
-                    "status": model.status,
-                    "lastModifiedTime": model.last_modified_time,
-                    "creationTime": model.creation_time,
-                    "endTime": model.end_time,
-                    "customModelArn": model.output_model_arn,
-                    "customModelName": model.custom_model_name,
-                    "customizationType": model.customization_type,
-                }
-            )
-        return model_customization_job_summaries
+        return customization_jobs_fetched
 
     def get_model_invocation_logging_configuration(self) -> Optional[Dict[str, Any]]:
         if self.model_invocation_logging_configuration:
@@ -418,7 +400,7 @@ class BedrockBackend(BaseBackend):
             )
         return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_custom_models(
         self,
         creation_time_before: Optional[datetime],
@@ -426,11 +408,9 @@ class BedrockBackend(BaseBackend):
         name_contains: Optional[str],
         base_model_arn_equals: Optional[str],
         foundation_model_arn_equals: Optional[str],
-        max_results: Optional[int],
-        next_token: Optional[str],
         sort_by: Optional[str],
         sort_order: Optional[str],
-    ) -> List[Any]:
+    ) -> List[CustomModel]:
         """
         The foundation_model_arn_equals-argument is not yet supported
         """
@@ -483,20 +463,7 @@ class BedrockBackend(BaseBackend):
                     raise ValidationException(f"Invalid sort order: {sort_order}")
             else:
                 raise ValidationException(f"Invalid sort by field: {sort_by}")
-        model_summaries = []
-        for model in custom_models_fetched:
-            model_summaries.append(
-                {
-                    "modelArn": model.model_arn,
-                    "modelName": model.model_name,
-                    "creationTime": model.creation_time,
-                    "baseModelArn": model.base_model_arn,
-                    "baseModelName": model.base_model_name,
-                    "jobArn": model.job_arn,
-                    "customizationType": model.customization_type,
-                }
-            )
-        return model_summaries
+        return custom_models_fetched
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         if resource_arn not in self._list_arns():

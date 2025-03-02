@@ -173,12 +173,9 @@ class MediaLiveBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_channels(self) -> List[Dict[str, Any]]:
-        channels = list(self._channels.values())
-        return [
-            c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
-        ]
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_channels(self) -> List[Channel]:
+        return [c for c in self._channels.values()]
 
     def describe_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
@@ -267,10 +264,9 @@ class MediaLiveBackend(BaseBackend):
         a_input._resolve_transient_states()
         return a_input
 
-    @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_inputs(self) -> List[Dict[str, Any]]:
-        inputs = list(self._inputs.values())
-        return [i.to_dict() for i in inputs]
+    @paginate(PAGINATION_MODEL)
+    def list_inputs(self) -> List[Input]:
+        return [i for i in self._inputs.values()]
 
     def delete_input(self, input_id: str) -> None:
         a_input = self._inputs[input_id]

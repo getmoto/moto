@@ -1456,6 +1456,10 @@
   "Location": "ap-south-1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "ap-south-1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-south-1"
  },
@@ -2141,6 +2145,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ap-south-1"
+ },
+ {
+  "InstanceType": "trn1.32xlarge",
   "Location": "ap-south-1"
  },
  {

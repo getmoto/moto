@@ -39,13 +39,83 @@ def test_create_event_source_mapping():
         Publish=True,
     )
 
+    destination_config = {
+        "OnSuccess": {"Destination": "s3"},
+        "OnFailure": {"Destination": "s4"},
+    }
+    doc_db_config = {
+        "DatabaseName": "db",
+        "CollectionName": "cn",
+        "FullDocument": "UpdateLookup",
+    }
     response = conn.create_event_source_mapping(
-        EventSourceArn=queue.attributes["QueueArn"], FunctionName=func["FunctionArn"]
+        EventSourceArn=queue.attributes["QueueArn"],
+        FunctionName=func["FunctionArn"],
+        BatchSize=1,
+        FilterCriteria={
+            "Filters": [{"Pattern": r"asdf"}],
+        },
+        MaximumBatchingWindowInSeconds=5,
+        ParallelizationFactor=4,
+        StartingPosition="AT_TIMESTAMP",
+        DestinationConfig=destination_config,
+        MaximumRecordAgeInSeconds=59,
+        BisectBatchOnFunctionError=True,
+        MaximumRetryAttempts=9000,
+        Tags={"k1": "v1"},
+        TumblingWindowInSeconds=100,
+        Topics=["t1", "T2"],
+        Queues=["q1", "q2"],
+        SourceAccessConfigurations=[
+            {"Type": "BASIC_AUTH", "URI": "http://auth.endpoint"},
+        ],
+        SelfManagedEventSource={
+            "Endpoints": {
+                "key": ["v1"],
+            },
+        },
+        FunctionResponseTypes=["ReportBatchItemFailures"],
+        AmazonManagedKafkaEventSourceConfig={"ConsumerGroupId": "cgid"},
+        SelfManagedKafkaEventSourceConfig={"ConsumerGroupId": "cgid2"},
+        ScalingConfig={"MaximumConcurrency": 100},
+        DocumentDBEventSourceConfig=doc_db_config,
+        KMSKeyArn="arn:kms:key",
+        MetricsConfig={"Metrics": ["EventCount"]},
+        ProvisionedPollerConfig={"MinimumPollers": 12, "MaximumPollers": 13},
     )
 
     assert response["EventSourceArn"] == queue.attributes["QueueArn"]
     assert response["FunctionArn"] == func["FunctionArn"]
     assert response["State"] == "Enabled"
+    assert response["BatchSize"] == 1
+    assert response["StartingPosition"] == "AT_TIMESTAMP"
+    assert response["MaximumBatchingWindowInSeconds"] == 5
+    assert response["ParallelizationFactor"] == 4
+    assert response["FilterCriteria"] == {"Filters": [{"Pattern": "asdf"}]}
+    assert response["DestinationConfig"] == destination_config
+    assert response["Topics"] == ["t1", "T2"]
+    assert response["Queues"] == ["q1", "q2"]
+    assert response["SourceAccessConfigurations"] == [
+        {"Type": "BASIC_AUTH", "URI": "http://auth.endpoint"}
+    ]
+    assert response["SelfManagedEventSource"] == {"Endpoints": {"key": ["v1"]}}
+    assert response["MaximumRecordAgeInSeconds"] == 59
+    assert response["BisectBatchOnFunctionError"] is True
+    assert response["MaximumRetryAttempts"] == 9000
+    assert response["TumblingWindowInSeconds"] == 100
+    assert response["FunctionResponseTypes"] == ["ReportBatchItemFailures"]
+    assert response["AmazonManagedKafkaEventSourceConfig"] == {
+        "ConsumerGroupId": "cgid"
+    }
+    assert response["SelfManagedKafkaEventSourceConfig"] == {"ConsumerGroupId": "cgid2"}
+    assert response["ScalingConfig"] == {"MaximumConcurrency": 100}
+    assert response["DocumentDBEventSourceConfig"] == doc_db_config
+    assert response["KMSKeyArn"] == "arn:kms:key"
+    assert response["MetricsConfig"] == {"Metrics": ["EventCount"]}
+    assert response["ProvisionedPollerConfig"] == {
+        "MinimumPollers": 12,
+        "MaximumPollers": 13,
+    }
 
 
 @pytest.mark.network
@@ -482,13 +552,66 @@ def test_update_event_source_mapping():
     assert response["BatchSize"] == 10
     assert response["State"] == "Enabled"
 
+    destination_config = {
+        "OnSuccess": {"Destination": "s3"},
+        "OnFailure": {"Destination": "s4"},
+    }
+    doc_db_config = {
+        "DatabaseName": "db",
+        "CollectionName": "cn",
+        "FullDocument": "UpdateLookup",
+    }
+
     mapping = conn.update_event_source_mapping(
-        UUID=response["UUID"], Enabled=False, BatchSize=2, FunctionName="testFunction2"
+        UUID=response["UUID"],
+        Enabled=False,
+        BatchSize=2,
+        FunctionName="testFunction2",
+        FilterCriteria={
+            "Filters": [{"Pattern": r"asdf"}],
+        },
+        MaximumBatchingWindowInSeconds=5,
+        ParallelizationFactor=4,
+        DestinationConfig=destination_config,
+        MaximumRecordAgeInSeconds=59,
+        BisectBatchOnFunctionError=True,
+        MaximumRetryAttempts=9000,
+        TumblingWindowInSeconds=100,
+        SourceAccessConfigurations=[
+            {"Type": "BASIC_AUTH", "URI": "http://auth.endpoint"},
+        ],
+        FunctionResponseTypes=["ReportBatchItemFailures"],
+        ScalingConfig={"MaximumConcurrency": 100},
+        DocumentDBEventSourceConfig=doc_db_config,
+        KMSKeyArn="arn:kms:key",
+        MetricsConfig={"Metrics": ["EventCount"]},
+        ProvisionedPollerConfig={"MinimumPollers": 12, "MaximumPollers": 13},
     )
     assert mapping["UUID"] == response["UUID"]
     assert mapping["FunctionArn"] == func2["FunctionArn"]
     assert mapping["State"] == "Disabled"
     assert mapping["BatchSize"] == 2
+
+    assert mapping["MaximumBatchingWindowInSeconds"] == 5
+    assert mapping["ParallelizationFactor"] == 4
+    assert mapping["FilterCriteria"] == {"Filters": [{"Pattern": "asdf"}]}
+    assert mapping["DestinationConfig"] == destination_config
+    assert mapping["SourceAccessConfigurations"] == [
+        {"Type": "BASIC_AUTH", "URI": "http://auth.endpoint"}
+    ]
+    assert mapping["MaximumRecordAgeInSeconds"] == 59
+    assert mapping["BisectBatchOnFunctionError"] is True
+    assert mapping["MaximumRetryAttempts"] == 9000
+    assert mapping["TumblingWindowInSeconds"] == 100
+    assert mapping["FunctionResponseTypes"] == ["ReportBatchItemFailures"]
+    assert mapping["ScalingConfig"] == {"MaximumConcurrency": 100}
+    assert mapping["DocumentDBEventSourceConfig"] == doc_db_config
+    assert mapping["KMSKeyArn"] == "arn:kms:key"
+    assert mapping["MetricsConfig"] == {"Metrics": ["EventCount"]}
+    assert mapping["ProvisionedPollerConfig"] == {
+        "MinimumPollers": 12,
+        "MaximumPollers": 13,
+    }
 
 
 @mock_aws

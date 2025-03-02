@@ -231,7 +231,9 @@ class IoTResponse(BaseResponse):
             max_results=max_results, next_token=previous_next_token
         )
 
-        return json.dumps(dict(jobs=jobs, nextToken=next_token))
+        return json.dumps(
+            dict(jobs=[job.to_dict() for job in jobs], nextToken=next_token)
+        )
 
     def describe_job_execution(self) -> str:
         job_id = self._get_param("jobId")
@@ -280,7 +282,12 @@ class IoTResponse(BaseResponse):
             job_id=job_id, status=status, max_results=max_results, token=next_token
         )
 
-        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
+        return json.dumps(
+            dict(
+                executionSummaries=[je.to_dict() for je in job_executions],
+                nextToken=next_token,
+            )
+        )
 
     def list_job_executions_for_thing(self) -> str:
         thing_name = self._get_param("thingName")
@@ -296,7 +303,12 @@ class IoTResponse(BaseResponse):
             next_token=next_token,
         )
 
-        return json.dumps(dict(executionSummaries=job_executions, nextToken=next_token))
+        return json.dumps(
+            dict(
+                executionSummaries=[je.to_dict() for je in job_executions],
+                nextToken=next_token,
+            )
+        )
 
     def create_keys_and_certificate(self) -> str:
         set_as_active = self._get_bool_param("setAsActive")

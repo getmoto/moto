@@ -54,7 +54,7 @@ neptune
 - [ ] describe_engine_default_parameters
 - [ ] describe_event_categories
 - [X] describe_event_subscriptions
-- [ ] describe_events
+- [X] describe_events
 - [X] describe_global_clusters
 - [X] describe_orderable_db_instance_options
   
@@ -63,7 +63,7 @@ neptune
 
 - [ ] describe_pending_maintenance_actions
 - [ ] describe_valid_db_instance_modifications
-- [ ] failover_db_cluster
+- [X] failover_db_cluster
 - [ ] failover_global_cluster
 - [X] list_tags_for_resource
 - [X] modify_db_cluster
@@ -84,7 +84,7 @@ neptune
 - [ ] reset_db_cluster_parameter_group
 - [ ] reset_db_parameter_group
 - [X] restore_db_cluster_from_snapshot
-- [ ] restore_db_cluster_to_point_in_time
+- [X] restore_db_cluster_to_point_in_time
 - [X] start_db_cluster
 - [X] stop_db_cluster
 
