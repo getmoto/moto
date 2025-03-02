@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.1
 -----
-Docker Digest for 5.1.1: <autopopulateddigest>
+Docker Digest for 5.1.1: _sha256:a4c04c53a892ad81741a2e006b85d0f98eab42ad988efb360429cb4ba6818323_
 
     * General:
         * Compatible with the new Account-based endpoint for DynamoDB (see https://github.com/boto/boto3/issues/4449)
