@@ -677,10 +677,10 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_values=expression_attribute_values,
                     )
                 errors.append((None, None, None))
-            except MultipleTransactionsException:
+            except (MultipleTransactionsException, MockValidationException):
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
-                raise MultipleTransactionsException()
+                raise
             except ConditionalCheckFailed as e:
                 errors.append(("ConditionalCheckFailed", str(e.message), original_item))  # type: ignore
             except Exception as e:  # noqa: E722 Do not use bare except

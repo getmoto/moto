@@ -26,7 +26,7 @@ from .exceptions import (
     ResourceNotFoundException,
     UnknownKeyType,
 )
-from .utils import extract_duplicates
+from .utils import find_path_overlaps
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -1290,11 +1290,7 @@ class DynamoHandler(BaseResponse):
                 )
 
                 update_expression = item["Update"]["UpdateExpression"]
-                UpdateExpressionParser.make(update_expression).validate(
-                    limit_set_actions=True
-                )
                 update_expression_ast = UpdateExpressionParser.make(update_expression)
-                update_expression_ast.validate(limit_set_actions=True)
                 attr_name_clauses = update_expression_ast.find_clauses(
                     [ExpressionAttributeName]
                 )

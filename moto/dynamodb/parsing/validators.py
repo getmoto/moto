@@ -44,10 +44,11 @@ from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
     UpdateExpressionRemoveAction,
     UpdateExpressionRemoveClause,
     UpdateExpressionSetAction,
+    UpdateExpressionSetClause,
     UpdateExpressionValue,
 )
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
-from moto.dynamodb.utils import extract_duplicates
+from moto.dynamodb.utils import find_duplicates, find_path_overlaps
 
 
 class ExpressionAttributeValueProcessor(DepthFirstTraverser):  # type: ignore[misc]
@@ -472,23 +473,30 @@ class OverlappingPathsValidator(DepthFirstTraverser):  # type: ignore[misc]
                 UpdateExpressionDeleteAction,
             ]
         )
-        substituted_paths = []
+        expression_attribute_name_paths = []
+        plaintext_paths = []
         for action in actions:
             path = action.children[0]
             path_name = path.children[0]
             if isinstance(path_name, ExpressionAttributeName):
-                substituted_paths.append(
+                expression_attribute_name_paths.append(
                     self.expression_attribute_names[
                         path_name.get_attribute_name_placeholder()
                     ]
                 )
             else:
-                substituted_paths.append(path.to_str())
+                plaintext_paths.append(path.to_str())
 
-        duplicates = extract_duplicates(substituted_paths)
-        if duplicates:
+        # for some reason, AWS only checks expression attribute names for
+        # direct matches, not path overlaps
+        overlapping_paths = find_path_overlaps(plaintext_paths)
+        if overlapping_paths:
             # There might be more than one attribute duplicated:
             # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
+            raise DuplicateUpdateExpression(*overlapping_paths)
+
+        duplicates = find_duplicates(plaintext_paths + expression_attribute_name_paths)
+        if duplicates:
             raise DuplicateUpdateExpression(*duplicates)
         return node
 
@@ -505,12 +513,15 @@ class ActionCountValidator(DepthFirstTraverser):  # type: ignore[misc]
     def verify_action_counts(self, node: UpdateExpression) -> UpdateExpression:
         add_clauses = node.find_clauses([UpdateExpressionAddClause])
         remove_clauses = node.find_clauses([UpdateExpressionRemoveClause])
+        set_clauses = node.find_clauses([UpdateExpressionSetClause])
 
         # Only allow single ADD/REMOVE clauses
         if len(add_clauses) > 1:
             raise TooManyClauses("ADD")
         if len(remove_clauses) > 1:
             raise TooManyClauses("REMOVE")
+        if len(set_clauses) > 1:
+            raise TooManyClauses("SET")
         return node
 
 

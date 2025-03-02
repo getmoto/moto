@@ -247,6 +247,20 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             == 'Invalid UpdateExpression: The "REMOVE" section can only be used once in an update expression;'
         )
 
+    def test_multiple_set_clauses(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "the-key"},
+                UpdateExpression="SET current_user = :current_user SET some_param = :current_user",
+                ExpressionAttributeValues={":current_user": {"name": "Jane"}},
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "ValidationException"
+        assert (
+            err["Message"]
+            == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+        )
+
     def test_delete_and_add_on_same_set(self):
         with pytest.raises(ClientError) as exc:
             self.table.update_item(
@@ -265,7 +279,7 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             self.table.update_item(
                 Key={"pk": "foo"},
                 UpdateExpression="ADD #stringSet :addSet REMOVE #stringSet",
-                ExpressionAttributeNames={"#stringSet": "string_set"},
+                ExpressionAttributeNames={"#stringSet": "string_set.nested"},
                 ExpressionAttributeValues={":addSet": {"c"}},
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
@@ -273,26 +287,84 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             "Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
-    def test_set_path_overlap(self):
-        record = {
-            "pk": "foo",
-            "string_set": {"nested": "h"},
-        }
-        self.table.put_item(Item=record)
+    def test_set_and_remove_on_overlapping_paths(self):
         with pytest.raises(ClientError) as exc:
             self.table.update_item(
                 Key={"pk": "foo"},
-                UpdateExpression="set #stringSet = :h, #nestedStringSet = :w",
-                ExpressionAttributeNames={
-                    "#stringSet": "string_set",
-                    "#nestedStringSet": "string_set.nested",
-                },
-                ExpressionAttributeValues={":h": "H", ":w": "W"},
+                UpdateExpression="REMOVE string_set SET string_set.nested = :h",
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_set_path_overlap(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET string_set = :h, string_set.nested = :h",
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
+        )
+
+    def test_path_overlap_error_uses_expression_attribute_name(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET #stringSet = :h, #stringSet = :h",
+                ExpressionAttributeNames={"#stringSet": "string_set"},
+                ExpressionAttributeValues={":h": "H"},
             )
         assert exc.value.response["Error"]["Code"] == "ValidationException"
         assert (
             exc.value.response["Error"]["Message"]
-            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set, nested]"
+            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set], path two: [string_set]"
+        )
+
+    def test_path_overlap_error_splits_paths(self):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET string_set.nested = :h, string_set.nested = :h",
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [string_set, nested], path two: [string_set, nested]"
+        )
+
+    # pretty weird AWS behavior with the next two tests, seems like a bug
+    def test_no_overlapping_paths_error_if_one_of_the_overlapping_paths_is_an_expression_attribute_name(
+        self,
+    ):
+        self.table.update_item(
+            Key={"pk": "foo"},
+            UpdateExpression="SET string_set = :h, #nested = :h",
+            ExpressionAttributeNames={"#nested": "string_set.nested"},
+            ExpressionAttributeValues={":h": "H"},
+        )
+
+    def test_overlapping_paths_error_if_identical_paths_are_expression_attribute_names(
+        self,
+    ):
+        with pytest.raises(ClientError) as exc:
+            self.table.update_item(
+                Key={"pk": "foo"},
+                UpdateExpression="SET #stringSet = :h, #nested = :h",
+                ExpressionAttributeNames={
+                    "#stringSet": "string_set",
+                    "#nested": "string_set",
+                },
+                ExpressionAttributeValues={":h": "H"},
+            )
+        assert exc.value.response["Error"]["Code"] == "ValidationException"
+        assert exc.value.response["Error"]["Message"].startswith(
+            "Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
     def test_delete_and_add_on_different_set(self):
@@ -998,7 +1070,6 @@ def test_update_item_non_existent_table():
     "expression",
     [
         "set example_column = :example_column, example_column = :example_column",
-        "set example_column = :example_column ADD x :y set example_column = :example_column",
     ],
 )
 def test_update_item_with_duplicate_expressions(expression):
