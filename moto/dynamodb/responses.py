@@ -8,7 +8,6 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.utilities import dynamo_json_dump
-from moto.dynamodb.parsing.ast_nodes import UpdateExpressionSetClause  # type: ignore
 from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
@@ -23,7 +22,7 @@ from .exceptions import (
     ResourceNotFoundException,
     UnknownKeyType,
 )
-from .utils import extract_duplicates
+from .utils import find_path_overlaps
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -798,7 +797,7 @@ class DynamoHandler(BaseResponse):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
-            duplicates = extract_duplicates(expressions)
+            duplicates = find_path_overlaps(expressions)
             if duplicates:
                 raise InvalidProjectionExpression(duplicates[0], duplicates[1])
             for expression in expressions:
@@ -1155,16 +1154,8 @@ class DynamoHandler(BaseResponse):
                     custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
                 )
 
-                # set counts in update expressions are only limited inside transactions
                 update_expression = item["Update"]["UpdateExpression"]
-                update_expression_ast = UpdateExpressionParser.make(update_expression)
-                set_clauses = update_expression_ast.find_clauses(
-                    [UpdateExpressionSetClause]
-                )
-                if len(set_clauses) > 1:
-                    raise MockValidationException(
-                        'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
-                    )
+                UpdateExpressionParser.make(update_expression)
 
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
