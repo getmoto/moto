@@ -1509,6 +1509,11 @@ class DBInstanceClustered(DBInstance):
         self, db_cluster_identifier: str, promotion_tier: int = 1, **kwargs: Any
     ) -> None:
         super().__init__(db_cluster_identifier=db_cluster_identifier, **kwargs)
+        if db_cluster_identifier not in self.backend.clusters:
+            raise DBClusterNotFoundError(
+                db_cluster_identifier,
+                f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
+            )
         self.cluster = self.backend.clusters[db_cluster_identifier]
         self.db_cluster_identifier: str = db_cluster_identifier
         self.is_cluster_writer = True if not self.cluster.members else False
