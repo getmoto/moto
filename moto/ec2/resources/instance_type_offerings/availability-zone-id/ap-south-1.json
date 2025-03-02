@@ -1432,6 +1432,10 @@
   "Location": "aps1-az1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "aps1-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "aps1-az1"
  },
@@ -5617,6 +5621,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "aps1-az3"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "aps1-az3"
  },
  {
