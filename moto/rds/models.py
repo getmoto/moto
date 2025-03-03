@@ -389,6 +389,7 @@ class DBCluster(RDSBaseModel):
         db_cluster_identifier: str,
         engine: str,
         allocated_storage: Optional[int] = None,
+        auto_minor_version_upgrade: bool = True,
         engine_version: Optional[str] = None,
         master_username: Optional[str] = None,
         master_user_password: Optional[str] = None,
@@ -413,6 +414,7 @@ class DBCluster(RDSBaseModel):
         self.database_name = database_name
         self.db_cluster_identifier = db_cluster_identifier
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
+        self.auto_minor_version_upgrade = auto_minor_version_upgrade
         self.deletion_protection = deletion_protection
         self.engine = engine
         if self.engine not in ClusterEngine.list_cluster_engines():
