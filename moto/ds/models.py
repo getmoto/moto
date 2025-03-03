@@ -272,12 +272,31 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         return attributes
 
 
+class LogSubscription(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        log_group_name: str,
+    ):
+        self.directory_id = directory_id
+        self.log_group_name = log_group_name
+        self.subscription_created_date_time = unix_time()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "DirectoryId": self.directory_id,
+            "LogGroupName": self.log_group_name,
+            "SubscriptionCreatedDateTime": self.subscription_created_date_time,
+        }
+
+
 class DirectoryServiceBackend(BaseBackend):
     """Implementation of DirectoryService APIs."""
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
+        self.log_subscriptions: Dict[str, LogSubscription] = {}
         self.tagger = TaggingService()
 
     def _verify_subnets(self, region: str, vpc_settings: Dict[str, Any]) -> None:
@@ -739,6 +758,36 @@ class DirectoryServiceBackend(BaseBackend):
                     setting["AppliedValue"] = s["Value"]
 
         return directory_id
+
+    def create_log_subscription(self, directory_id: str, log_group_name: str) -> None:
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                message="Log subscriptions are only supported for Microsoft AD."
+            )
+        log_subscription = LogSubscription(directory_id, log_group_name)
+        self.log_subscriptions[directory_id] = log_subscription
+        return
+
+    def delete_log_subscription(self, directory_id: str) -> None:
+        self._validate_directory_id(directory_id)
+        self.log_subscriptions.pop(directory_id)
+        return
+
+    def list_log_subscriptions(
+        self, directory_id: Optional[str]
+    ) -> List[LogSubscription]:
+        """
+        Pagination is not yet implemented
+        """
+        if directory_id:
+            self._validate_directory_id(directory_id)
+            log_subscriptions = [self.log_subscriptions[directory_id]]
+        else:
+            log_subscriptions = list(self.log_subscriptions.values())
+
+        return log_subscriptions
 
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")
