@@ -3903,3 +3903,82 @@ def test_service_exceptions(net_config, error_message):
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
     assert ex.response["Error"]["Message"] == error_message
+
+
+@mock_aws
+def test_create_service_with_role_arn():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster_name = "test_ecs_cluster"
+    service_name = "test_ecs_service"
+    task_definition_family = "test_ecs_task"
+    role_arn = "arn:aws:iam::123456789012:role/test-role"
+
+    client.create_cluster(clusterName=cluster_name)
+
+    client.register_task_definition(
+        family=task_definition_family,
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+            }
+        ],
+    )
+
+    response = client.create_service(
+        cluster=cluster_name,
+        serviceName=service_name,
+        taskDefinition=task_definition_family,
+        desiredCount=2,
+        role=role_arn,
+    )
+
+    assert response["service"]["roleArn"] == role_arn
+
+    describe_response = client.describe_services(
+        cluster=cluster_name, services=[service_name]
+    )
+    assert describe_response["services"][0]["roleArn"] == role_arn
+
+
+@mock_aws
+def test_task_definition_with_role_arns():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    task_definition_family = "test_ecs_task"
+    task_role_arn = "arn:aws:iam::123456789012:role/test-task-role"
+    execution_role_arn = "arn:aws:iam::123456789012:role/test-execution-role"
+
+    response = client.register_task_definition(
+        family=task_definition_family,
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+            }
+        ],
+        taskRoleArn=task_role_arn,
+        executionRoleArn=execution_role_arn,
+    )
+
+    assert response["taskDefinition"]["taskRoleArn"] == task_role_arn
+    assert response["taskDefinition"]["executionRoleArn"] == execution_role_arn
+
+    describe_response = client.describe_task_definition(
+        taskDefinition=task_definition_family
+    )
+    assert describe_response["taskDefinition"]["taskRoleArn"] == task_role_arn
+    assert describe_response["taskDefinition"]["executionRoleArn"] == execution_role_arn
+
+    list_response = client.list_task_definitions(familyPrefix=task_definition_family)
+    task_def_arn = list_response["taskDefinitionArns"][0]
+    describe_from_list = client.describe_task_definition(taskDefinition=task_def_arn)
+    assert describe_from_list["taskDefinition"]["taskRoleArn"] == task_role_arn
+    assert (
+        describe_from_list["taskDefinition"]["executionRoleArn"] == execution_role_arn
+    )
