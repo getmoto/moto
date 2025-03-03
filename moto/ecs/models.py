@@ -544,6 +544,7 @@ class Service(BaseObject, CloudFormationModel):
         platform_version: Optional[str] = None,
         network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
         propagate_tags: str = "NONE",
+        role_arn: Optional[str] = None,
     ):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
@@ -565,6 +566,7 @@ class Service(BaseObject, CloudFormationModel):
         self.region_name = cluster.region_name
         self._account_id = backend.account_id
         self._backend = backend
+        self.role_arn = role_arn
 
         try:
             # negative running count not allowed, set to 0 if so
@@ -660,6 +662,8 @@ class Service(BaseObject, CloudFormationModel):
                     deployment["updatedAt"].replace(tzinfo=None)
                 )
         response_object["networkConfiguration"] = self.network_configuration
+        if self.role_arn:
+            response_object["roleArn"] = self.role_arn
 
         return response_object
 
@@ -1670,6 +1674,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         platform_version: Optional[str] = None,
         propagate_tags: str = "NONE",
         network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
+        role_arn: Optional[str] = None,
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
@@ -1698,6 +1703,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             platform_version=platform_version,
             propagate_tags=propagate_tags,
             network_configuration=network_configuration,
+            role_arn=role_arn,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service
