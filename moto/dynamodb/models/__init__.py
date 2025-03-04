@@ -44,10 +44,7 @@ from moto.dynamodb.models.table_export import TableExport
 from moto.dynamodb.models.table_import import TableImport
 from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
-from moto.dynamodb.parsing.expressions import (  # type: ignore
-    ExpressionAttributeName,
-    UpdateExpressionParser,
-)
+from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 
 
@@ -530,23 +527,6 @@ class DynamoDBBackend(BaseBackend):
             except ItemSizeTooLarge:
                 raise ItemSizeToUpdateTooLarge()
 
-            # Ensure all ExpressionAttributeNames are requested
-            # Either in the Condition, or in the UpdateExpression
-            attr_name_clauses = update_expression_ast.find_clauses(
-                [ExpressionAttributeName]
-            )
-            attr_names_in_expression = [
-                attr.get_attribute_name_placeholder() for attr in attr_name_clauses
-            ]
-            attr_names_in_condition = condition_expression_parser.expr_attr_names_found
-            for attr_name in expression_attribute_names or []:
-                if (
-                    attr_name not in attr_names_in_expression
-                    and attr_name not in attr_names_in_condition
-                ):
-                    raise MockValidationException(
-                        f"Value provided in ExpressionAttributeNames unused in expressions: keys: {{{attr_name}}}"
-                    )
         else:
             item.update_with_attribute_updates(attribute_updates)  # type: ignore
         if table.stream_shard is not None:
