@@ -265,11 +265,6 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         if not response_object["memory"]:
             del response_object["memory"]
 
-        if hasattr(self, "task_role_arn"):
-            response_object["taskRoleArn"] = self.task_role_arn
-        if hasattr(self, "execution_role_arn"):
-            response_object["executionRoleArn"] = self.execution_role_arn
-
         return {
             "taskDefinition": response_object,
             "tags": response_object.get("tags", []),

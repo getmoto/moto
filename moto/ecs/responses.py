@@ -250,35 +250,34 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps({"task": task.response_object()})
 
     def create_service(self) -> str:
-        cluster = self._get_param("cluster", "default")
+        cluster_str = self._get_param("cluster", "default")
         service_name = self._get_param("serviceName")
-        task_definition = self._get_param("taskDefinition")
-        desired_count = self._get_int_param("desiredCount", 1)
+        task_definition_str = self._get_param("taskDefinition")
+        desired_count = self._get_int_param("desiredCount")
         load_balancers = self._get_param("loadBalancers")
         scheduling_strategy = self._get_param("schedulingStrategy")
+        service_registries = self._get_param("serviceRegistries")
         tags = self._get_param("tags")
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
-        service_registries = self._get_param("serviceRegistries")
         platform_version = self._get_param("platformVersion")
-        propagate_tags = self._get_param("propagateTags")
+        propagate_tags = self._get_param("propagateTags") or "NONE"
         network_configuration = self._get_param("networkConfiguration")
         role = self._get_param("role")
-
         service = self.ecs_backend.create_service(
-            cluster,
+            cluster_str,
             service_name,
             desired_count,
-            task_definition_str=task_definition,
-            load_balancers=load_balancers,
-            scheduling_strategy=scheduling_strategy,
-            tags=tags,
-            deployment_controller=deployment_controller,
-            launch_type=launch_type,
+            task_definition_str,
+            load_balancers,
+            scheduling_strategy,
+            tags,
+            deployment_controller,
+            launch_type,
+            network_configuration=network_configuration,
             service_registries=service_registries,
             platform_version=platform_version,
             propagate_tags=propagate_tags,
-            network_configuration=network_configuration,
             role_arn=role,
         )
         return json.dumps({"service": service.response_object})
