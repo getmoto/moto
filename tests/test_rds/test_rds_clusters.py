@@ -337,10 +337,13 @@ def test_create_db_cluster_additional_parameters(client):
         },
         VpcSecurityGroupIds=["sg1", "sg2"],
         EnableIAMDatabaseAuthentication=True,
+        AutoMinorVersionUpgrade=False,
     )
 
     cluster = resp["DBCluster"]
 
+    assert cluster["AutoMinorVersionUpgrade"] is False
+    assert cluster["DBClusterIdentifier"] == "cluster-id"
     assert cluster["AvailabilityZones"] == ["eu-north-1b"]
     assert cluster["DatabaseName"] == "users"
     assert cluster["Engine"] == "aurora-postgresql"
