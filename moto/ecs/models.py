@@ -1683,7 +1683,6 @@ class EC2ContainerServiceBackend(BaseBackend):
         else:
             task_definition = None
         desired_count = desired_count if desired_count is not None else 0
-
         launch_type = launch_type if launch_type is not None else "EC2"
         if launch_type not in ["EC2", "FARGATE"]:
             raise EcsClientException("launch type should be one of [EC2,FARGATE]")
