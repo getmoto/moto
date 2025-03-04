@@ -1682,7 +1682,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             task_definition = self.describe_task_definition(task_definition_str)
         else:
             task_definition = None
-            
+
         desired_count = desired_count if desired_count is not None else 0
         launch_type = launch_type if launch_type is not None else "EC2"
         if launch_type not in ["EC2", "FARGATE"]:
