@@ -995,7 +995,7 @@
 
 ## cloudformation
 <details>
-<summary>37% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] activate_organizations_access
 - [ ] activate_type
@@ -1006,7 +1006,6 @@
 - [ ] create_generated_template
 - [X] create_stack
 - [X] create_stack_instances
-- [ ] create_stack_refactor
 - [X] create_stack_set
 - [ ] deactivate_organizations_access
 - [ ] deactivate_type
@@ -1026,7 +1025,6 @@
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
 - [X] describe_stack_instance
-- [ ] describe_stack_refactor
 - [X] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [X] describe_stack_resources
@@ -1040,7 +1038,6 @@
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
-- [ ] execute_stack_refactor
 - [ ] get_generated_template
 - [X] get_stack_policy
 - [X] get_template
@@ -1056,8 +1053,6 @@
 - [ ] list_resource_scans
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
-- [ ] list_stack_refactor_actions
-- [ ] list_stack_refactors
 - [X] list_stack_resources
 - [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results
@@ -3968,7 +3963,7 @@
 
 ## glue
 <details>
-<summary>27% implemented</summary>
+<summary>29% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -3997,7 +3992,7 @@
 - [ ] create_catalog
 - [ ] create_classifier
 - [ ] create_column_statistics_task_settings
-- [ ] create_connection
+- [X] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
 - [ ] create_data_quality_ruleset
@@ -4069,13 +4064,13 @@
 - [ ] get_column_statistics_task_run
 - [ ] get_column_statistics_task_runs
 - [ ] get_column_statistics_task_settings
-- [ ] get_connection
-- [ ] get_connections
+- [X] get_connection
+- [X] get_connections
 - [X] get_crawler
 - [ ] get_crawler_metrics
 - [X] get_crawlers
 - [ ] get_custom_entity_type
-- [ ] get_data_catalog_encryption_settings
+- [X] get_data_catalog_encryption_settings
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
@@ -4160,7 +4155,7 @@
 - [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] modify_integration
-- [ ] put_data_catalog_encryption_settings
+- [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
 - [ ] put_resource_policy
 - [X] put_schema_version_metadata
@@ -4325,7 +4320,7 @@
 
 ## guardduty
 <details>
-<summary>14% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -4355,7 +4350,7 @@
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [X] enable_organization_admin_account
-- [ ] get_administrator_account
+- [X] get_administrator_account
 - [ ] get_coverage_statistics
 - [X] get_detector
 - [X] get_filter
@@ -8664,7 +8659,6 @@
 - [ ] put_account_sending_attributes
 - [ ] put_account_suppression_attributes
 - [ ] put_account_vdm_attributes
-- [ ] put_configuration_set_archiving_options
 - [ ] put_configuration_set_delivery_options
 - [ ] put_configuration_set_reputation_options
 - [ ] put_configuration_set_sending_options
@@ -9226,24 +9220,18 @@
 
 ## timestream-influxdb
 <details>
-<summary>41% implemented</summary>
+<summary>63% implemented</summary>
 
-- [ ] create_db_cluster
 - [X] create_db_instance
 - [ ] create_db_parameter_group
-- [ ] delete_db_cluster
 - [X] delete_db_instance
-- [ ] get_db_cluster
 - [X] get_db_instance
 - [ ] get_db_parameter_group
-- [ ] list_db_clusters
 - [X] list_db_instances
-- [ ] list_db_instances_for_cluster
 - [ ] list_db_parameter_groups
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_db_cluster
 - [ ] update_db_instance
 </details>
 
@@ -9733,6 +9721,7 @@
 - ds-data
 - ecr-public
 - eks-auth
+- elastic-inference
 - entityresolution
 - evidently
 - finspace
