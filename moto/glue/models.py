@@ -1244,29 +1244,25 @@ class GlueBackend(BaseBackend):
     def get_data_catalog_encryption_settings(
         self, catalog_id: Optional[str]
     ) -> Dict[str, Any]:
-        if catalog_id is None:
+        if catalog_id is None or catalog_id == "":
             catalog_id = self.account_id
 
-        settings = self.data_catalog_encryption_settings[catalog_id]
-        response: Dict[str, Any] = {"DataCatalogEncryptionSettings": {}}
+        settings = self.data_catalog_encryption_settings.get(catalog_id, {})
 
-        if isinstance(settings, dict) and "EncryptionAtRest" in settings:
-            response["DataCatalogEncryptionSettings"]["EncryptionAtRest"] = settings[
-                "EncryptionAtRest"
-            ]
-        else:
-            response["DataCatalogEncryptionSettings"]["EncryptionAtRest"] = {
-                "CatalogEncryptionMode": "DISABLED"
+        if not isinstance(settings, dict):
+            settings = {}
+
+        response: Dict[str, Any] = {
+            "DataCatalogEncryptionSettings": {
+                "EncryptionAtRest": settings.get(
+                    "EncryptionAtRest", {"CatalogEncryptionMode": "DISABLED"}
+                ),
+                "ConnectionPasswordEncryption": settings.get(
+                    "ConnectionPasswordEncryption",
+                    {"ReturnConnectionPasswordEncrypted": False},
+                ),
             }
-
-        if isinstance(settings, dict) and "ConnectionPasswordEncryption" in settings:
-            response["DataCatalogEncryptionSettings"][
-                "ConnectionPasswordEncryption"
-            ] = settings["ConnectionPasswordEncryption"]
-        else:
-            response["DataCatalogEncryptionSettings"][
-                "ConnectionPasswordEncryption"
-            ] = {"ReturnConnectionPasswordEncrypted": False}
+        }
 
         return response
 
