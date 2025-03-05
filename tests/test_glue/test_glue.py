@@ -1036,30 +1036,6 @@ def test_put_data_catalog_encryption_settings():
 
     get_response = client.get_data_catalog_encryption_settings()
     assert get_response["DataCatalogEncryptionSettings"] == encryption_settings
-    assert (
-        get_response["DataCatalogEncryptionSettings"]["EncryptionAtRest"][
-            "CatalogEncryptionMode"
-        ]
-        == "SSE-KMS"
-    )
-    assert (
-        get_response["DataCatalogEncryptionSettings"]["EncryptionAtRest"][
-            "SseAwsKmsKeyId"
-        ]
-        == "test-key-id"
-    )
-    assert (
-        get_response["DataCatalogEncryptionSettings"]["EncryptionAtRest"][
-            "CatalogEncryptionServiceRole"
-        ]
-        == "arn:aws:iam::123456789012:role/GlueServiceRole"
-    )
-    assert (
-        get_response["DataCatalogEncryptionSettings"]["ConnectionPasswordEncryption"][
-            "AwsKmsKeyId"
-        ]
-        == "test-password-key-id"
-    )
 
     # Testing a Specific Catalog ID
     catalog_id = "123456789012"
@@ -1086,27 +1062,4 @@ def test_put_data_catalog_encryption_settings():
         CatalogId=catalog_id
     )
 
-    assert (
-        catalog_get_response["DataCatalogEncryptionSettings"]["EncryptionAtRest"][
-            "CatalogEncryptionMode"
-        ]
-        == "SSE-KMS-WITH-SERVICE-ROLE"
-    )
-    assert (
-        catalog_get_response["DataCatalogEncryptionSettings"]["EncryptionAtRest"][
-            "SseAwsKmsKeyId"
-        ]
-        == "catalog-specific-key-id"
-    )
-    assert (
-        catalog_get_response["DataCatalogEncryptionSettings"]["EncryptionAtRest"][
-            "CatalogEncryptionServiceRole"
-        ]
-        == "arn:aws:iam::123456789012:role/GlueServiceRole"
-    )
-    assert (
-        catalog_get_response["DataCatalogEncryptionSettings"][
-            "ConnectionPasswordEncryption"
-        ]["AwsKmsKeyId"]
-        == "catalog-specific-password-key-id"
-    )
+    assert catalog_get_response["DataCatalogEncryptionSettings"] == catalog_settings
