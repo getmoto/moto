@@ -1229,8 +1229,10 @@ class GlueBackend(BaseBackend):
         return [connection for connection in self.connections.values()]
 
     def put_data_catalog_encryption_settings(
-        self, catalog_id, data_catalog_encryption_settings
-    ):
+        self,
+        catalog_id: Optional[str],
+        data_catalog_encryption_settings: Dict[str, Any],
+    ) -> Dict[str, Any]:
         if catalog_id is None or catalog_id == "":
             catalog_id = self.account_id
 
@@ -1239,12 +1241,14 @@ class GlueBackend(BaseBackend):
         )
         return {}
 
-    def get_data_catalog_encryption_settings(self, catalog_id):
+    def get_data_catalog_encryption_settings(
+        self, catalog_id: Optional[str]
+    ) -> Dict[str, Any]:
         if catalog_id is None or catalog_id == "":
             catalog_id = self.account_id
 
         settings = self.data_catalog_encryption_settings[catalog_id]
-        response = {"DataCatalogEncryptionSettings": {}}
+        response: Dict[str, Any] = {"DataCatalogEncryptionSettings": {}}
 
         if isinstance(settings, dict) and "EncryptionAtRest" in settings:
             response["DataCatalogEncryptionSettings"]["EncryptionAtRest"] = settings[
