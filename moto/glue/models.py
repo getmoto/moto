@@ -217,6 +217,7 @@ class GlueBackend(BaseBackend):
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
+        self.data_catalog_encryption_settings: Dict[str, Dict[str, Any]] = {}
 
     def create_database(
         self,
@@ -1226,6 +1227,44 @@ class GlueBackend(BaseBackend):
     ) -> List["FakeConnection"]:
         # TODO: Implement filtering
         return [connection for connection in self.connections.values()]
+
+    def put_data_catalog_encryption_settings(
+        self, catalog_id, data_catalog_encryption_settings
+    ):
+        if catalog_id is None or catalog_id == "":
+            catalog_id = self.account_id
+
+        self.data_catalog_encryption_settings[catalog_id] = (
+            data_catalog_encryption_settings
+        )
+        return {}
+
+    def get_data_catalog_encryption_settings(self, catalog_id):
+        if catalog_id is None or catalog_id == "":
+            catalog_id = self.account_id
+
+        settings = self.data_catalog_encryption_settings[catalog_id]
+        response = {"DataCatalogEncryptionSettings": {}}
+
+        if isinstance(settings, dict) and "EncryptionAtRest" in settings:
+            response["DataCatalogEncryptionSettings"]["EncryptionAtRest"] = settings[
+                "EncryptionAtRest"
+            ]
+        else:
+            response["DataCatalogEncryptionSettings"]["EncryptionAtRest"] = {
+                "CatalogEncryptionMode": "DISABLED"
+            }
+
+        if isinstance(settings, dict) and "ConnectionPasswordEncryption" in settings:
+            response["DataCatalogEncryptionSettings"][
+                "ConnectionPasswordEncryption"
+            ] = settings["ConnectionPasswordEncryption"]
+        else:
+            response["DataCatalogEncryptionSettings"][
+                "ConnectionPasswordEncryption"
+            ] = {"ReturnConnectionPasswordEncrypted": False}
+
+        return response
 
 
 class FakeDatabase(BaseModel):
