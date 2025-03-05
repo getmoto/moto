@@ -838,14 +838,10 @@ class GlueResponse(BaseResponse):
 
     def put_data_catalog_encryption_settings(self) -> str:
         params = self.parameters
-        catalog_id = params.get("CatalogId")
+        catalog_id = params.get("CatalogId", None)
         data_catalog_encryption_settings = params.get(
             "DataCatalogEncryptionSettings", {}
         )
-
-        # Ensure data_catalog_encryption_settings is not None
-        if data_catalog_encryption_settings is None:
-            data_catalog_encryption_settings = {}
 
         self.glue_backend.put_data_catalog_encryption_settings(
             catalog_id=catalog_id,
@@ -856,7 +852,7 @@ class GlueResponse(BaseResponse):
 
     def get_data_catalog_encryption_settings(self) -> str:
         params = self.parameters
-        catalog_id = params.get("CatalogId")
+        catalog_id = params.get("CatalogId", None)
 
         response = self.glue_backend.get_data_catalog_encryption_settings(
             catalog_id=catalog_id,

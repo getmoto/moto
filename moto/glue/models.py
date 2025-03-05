@@ -1233,7 +1233,7 @@ class GlueBackend(BaseBackend):
         catalog_id: Optional[str],
         data_catalog_encryption_settings: Dict[str, Any],
     ) -> Dict[str, Any]:
-        if catalog_id is None or catalog_id == "":
+        if catalog_id is None:
             catalog_id = self.account_id
 
         self.data_catalog_encryption_settings[catalog_id] = (
@@ -1244,7 +1244,7 @@ class GlueBackend(BaseBackend):
     def get_data_catalog_encryption_settings(
         self, catalog_id: Optional[str]
     ) -> Dict[str, Any]:
-        if catalog_id is None or catalog_id == "":
+        if catalog_id is None:
             catalog_id = self.account_id
 
         settings = self.data_catalog_encryption_settings[catalog_id]
