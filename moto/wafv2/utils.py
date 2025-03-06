@@ -1,6 +1,6 @@
 from functools import partial
 
-from moto.utilities.utils import PARTITION_NAMES, get_partition
+from moto.utilities.utils import get_partition
 
 
 def make_arn(
@@ -15,11 +15,7 @@ def make_arn(
         # Therefore needs to be overriden here to correctly form the ARN
         region_name = "us-east-1"
 
-    if region_name in PARTITION_NAMES:
-        region_name = "global"
-    partition = (
-        region_name if region_name in PARTITION_NAMES else get_partition(region_name)
-    )
+    partition = get_partition(region_name)
 
     return f"arn:{partition}:wafv2:{region_name}:{account_id}:{scope}/{resource}/{name}/{_id}"
 
