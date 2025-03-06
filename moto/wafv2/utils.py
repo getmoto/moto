@@ -10,6 +10,10 @@ def make_arn(
         scope = "regional"
     elif scope == "CLOUDFRONT":
         scope = "global"
+        # cloudfront global scope is managed from us-east-1 region: https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateIPSet.html#WAF-CreateIPSet-request-Scope
+        # base_backend stores global region as "aws": https://github.com/getmoto/moto/blob/d00aa025b6c3d37977508b5d5e81ecad4ca15159/moto/core/base_backend.py#L272
+        # Therefore needs to be overriden here to correctly form the ARN
+        region_name = "us-east-1"
 
     if region_name in PARTITION_NAMES:
         region_name = "global"
