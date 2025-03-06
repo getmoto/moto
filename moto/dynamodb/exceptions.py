@@ -304,21 +304,17 @@ class InvalidAttributeTypeError(MockValidationException):
 
 
 class DuplicateUpdateExpression(InvalidUpdateExpression):
-    def __init__(self, names: List[str]):
+    def __init__(self, name_1: str, name_2: str):
         super().__init__(
-            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{names[0]}], path two: [{names[1]}]"
+            f"Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(name_1.split('.'))}], path two: [{', '.join(name_2.split('.'))}]"
         )
 
 
 class InvalidProjectionExpression(MockValidationException):
-    msg = (
-        "Invalid ProjectionExpression: "
-        "Two document paths overlap with each other; must remove or rewrite one of these paths; "
-        "path one: [{paths[0]}], path two: [{paths[1]}]"
-    )
-
-    def __init__(self, paths: List[str]):
-        super().__init__(self.msg.format(paths=paths))
+    def __init__(self, path_1: str, path_2: str):
+        super().__init__(
+            f"Invalid ProjectionExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [{', '.join(path_1.split('.'))}], path two: [{', '.join(path_2.split('.'))}]"
+        )
 
 
 class TooManyClauses(InvalidUpdateExpression):
