@@ -1,6 +1,30 @@
 Moto Changelog
 ==============
 
+5.1.1
+-----
+Docker Digest for 5.1.1: _sha256:a4c04c53a892ad81741a2e006b85d0f98eab42ad988efb360429cb4ba6818323_
+
+    * General:
+        * Compatible with the new Account-based endpoint for DynamoDB (see https://github.com/boto/boto3/issues/4449)
+        * Removed dependency on typing_extensions (introduced in 5.1.0)
+
+    * New Methods:
+        * CognitoIDP:
+            * delete_identity_pool()
+
+        * Glue:
+            * create_connection()
+            * get_connection()
+            * get_connections()
+
+        * GuardDuty:
+            * get_administrator_account()
+
+    * Miscellaneous:
+        * ResourceGroupsTaggingAPI: get_resources() now supports EventBusses
+        * RDS: create_db_instance() now throws an error when referencing a non-existent DBCluster
+
 5.1.0
 -----
 Docker Digest for 5.1.0: _sha256:aaf5f4a72412b753b2115417e26360612564d3a29b1831f9316708e15138d699_
