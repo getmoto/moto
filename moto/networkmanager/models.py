@@ -84,6 +84,7 @@ class CoreNetwork(BaseModel):
         policy_document: str,
         client_token: str,
     ):
+        self.owner_account_id = account_id
         self.global_network_id = global_network_id
         self.description = description
         self.tags = tags or []
@@ -100,6 +101,7 @@ class CoreNetwork(BaseModel):
             "CoreNetworkId": self.core_network_id,
             "CoreNetworkArn": self.core_network_arn,
             "GlobalNetworkId": self.global_network_id,
+            "OwnerAccountId": self.owner_account_id,
             "Description": self.description,
             "Tags": self.tags,
             "PolicyDocument": self.policy_document,
