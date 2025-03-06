@@ -616,6 +616,28 @@ class BaseXMLSerializer(ResponseSerializer):
         )
         return body_encoded
 
+    #
+    # https://smithy.io/2.0/aws/protocols/aws-query-protocol.html#xml-shape-serialization
+    #
+    def _serialize_type_boolean(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        # We're slightly more permissive here than we should be because the
+        # moto backends are not consistent in how they store boolean values.
+        # TODO: This should eventually be turned into a strict `is True` check.
+        boolean_conditions = [
+            (value is True),
+            (str(value).lower() == "true"),
+        ]
+        boolean_value = "true" if any(boolean_conditions) else "false"
+        self._default_serialize(serialized, boolean_value, shape, key)
+
+    def _serialize_type_integer(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        integer_value = int(value)
+        self._default_serialize(serialized, integer_value, shape, key)
+
     def _serialize_type_list(
         self, serialized: Serialized, value: Any, shape: ListShape, key: str
     ) -> None:
@@ -633,6 +655,14 @@ class BaseXMLSerializer(ResponseSerializer):
             list_obj.append(wrapper["__current__"])
         if not list_obj:
             serialized[key] = ""
+
+    _serialize_type_long = _serialize_type_integer
+
+    def _serialize_type_string(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        string_value = str(value)
+        self._default_serialize(serialized, string_value, shape, key)
 
 
 class BaseRestSerializer(ResponseSerializer):
