@@ -468,6 +468,8 @@ def test_create_redis_cache_cluster():
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
         NumCacheNodes=cache_cluster_num_cache_nodes,
+        AutoMinorVersionUpgrade=True,
+        TransitEncryptionEnabled=True,
     )
     cache_cluster = resp["CacheCluster"]
 
@@ -477,6 +479,8 @@ def test_create_redis_cache_cluster():
                 test_redis_cache_cluster_exist = True
 
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp["CacheCluster"]["AutoMinorVersionUpgrade"] is True
+    assert resp["CacheCluster"]["TransitEncryptionEnabled"] is True
     assert test_redis_cache_cluster_exist
 
 
