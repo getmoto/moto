@@ -165,6 +165,18 @@ def test_list_core_networks():
 
     resp = client.list_core_networks()
     assert len(resp["CoreNetworks"]) == NUM_CORE_NETWORKS
+    network = resp["CoreNetworks"][0]
+    expected_fields = [
+        "CoreNetworkId",
+        "CoreNetworkArn",
+        "GlobalNetworkId",
+        "State",
+        "Tags",
+        "OwnerAccountId",
+    ]
+    for field in expected_fields:
+        assert field in network
+    assert network["OwnerAccountId"] == DEFAULT_ACCOUNT_ID
 
 
 @mock_aws
