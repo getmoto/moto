@@ -1,4 +1,5 @@
 from typing import Any, List, Optional, Tuple
+from uuid import uuid4
 
 from botocore.awsrequest import AWSPreparedRequest
 from werkzeug.wrappers import Request
@@ -6,13 +7,13 @@ from werkzeug.wrappers import Request
 from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.core.serialize import QuerySerializer, SerializationContext
+from moto.core.utils import get_service_model
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError, RDSClientError
 from .models import RDSBackend, rds_backends
 from .parser import QueryParser, XFormedDict
-from .serialize import QuerySerializer
-from .utils import get_service_model
 
 
 def normalize_request(request: AWSPreparedRequest) -> Request:
@@ -62,7 +63,7 @@ class RDSResponse(BaseResponse):
 
         self.serializer = QuerySerializer(
             self.operation_model,
-            {"request_id": "request-id"},
+            SerializationContext(request_id=str(uuid4())),
             pretty_print=settings.PRETTIFY_RESPONSES,
         )
         try:
@@ -72,8 +73,8 @@ class RDSResponse(BaseResponse):
         return response
 
     def serialize(self, result: Any) -> TYPE_RESPONSE:
-        serialized = self.serializer.serialize_to_response(result)
-        return serialized["status_code"], serialized["headers"], serialized["body"]
+        serialized = self.serializer.serialize(result)
+        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
 
     def create_db_instance(self) -> TYPE_RESPONSE:
         db_kwargs = self.parameters
