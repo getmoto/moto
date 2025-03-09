@@ -217,8 +217,14 @@ class TimestreamWriteBackend(BaseBackend):
         return database.describe_table(table_name)
 
     def list_tables(self, database_name: str) -> Iterable[TimestreamTable]:
-        database = self.describe_database(database_name)
-        return database.list_tables()
+        if database_name is None:
+            tables = (
+                table for db in self.list_databases() for table in db.list_tables()
+            )
+        else:
+            database = self.describe_database(database_name)
+            tables = database.list_tables()
+        return tables
 
     def update_table(
         self,
