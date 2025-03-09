@@ -13098,7 +13098,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": true,
+  "HibernationSupported": false,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.32xlarge",
@@ -17301,7 +17301,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -17990,7 +17990,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -28576,12 +28576,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 183105
+      "SizeInMiB": 45776
      },
      "Name": "L40S"
     }
    ],
-   "TotalGpuMemoryInMiB": 732420
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -28842,12 +28842,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 183105
+      "SizeInMiB": 45776
      },
      "Name": "L40S"
     }
    ],
-   "TotalGpuMemoryInMiB": 732420
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -29108,12 +29108,12 @@
      "Count": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 366211
+      "SizeInMiB": 45776
      },
      "Name": "L40S"
     }
    ],
-   "TotalGpuMemoryInMiB": 2929688
+   "TotalGpuMemoryInMiB": 366208
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -65328,7 +65328,7 @@
     "MaximumEfaInterfaces": 16
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -92862,7 +92862,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
@@ -93008,7 +93011,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
