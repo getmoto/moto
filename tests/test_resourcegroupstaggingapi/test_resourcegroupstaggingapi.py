@@ -448,7 +448,7 @@ def test_get_tag_values_ec2():
 
 @mock_aws
 def test_get_tag_values_event_bus():
-    client = boto3.client("events")
+    client = boto3.client("events", "us-east-1")
     client.create_event_bus(Name="test-bus1")
     event_bus_2 = client.create_event_bus(
         Name="test-bus2", Tags=[{"Key": "Test", "Value": "Test2"}]
@@ -458,7 +458,7 @@ def test_get_tag_values_event_bus():
         ResourceARN=event_bus_3["EventBusArn"], Tags=[{"Key": "Test", "Value": "Added"}]
     )
 
-    rtapi = boto3.client("resourcegroupstaggingapi")
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
     resp = rtapi.get_resources(ResourceTypeFilters=["events:event-bus"])
     assert len(resp["ResourceTagMappingList"]) == 2
     assert event_bus_2["EventBusArn"] in [

@@ -1,7 +1,11 @@
+from typing import Optional
+
+
 class RDSClientError(Exception):
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
+        self.message = message
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -146,10 +150,10 @@ class InvalidDBClusterStateFault(RDSClientError):
 
 
 class DBClusterNotFoundError(RDSClientError):
-    def __init__(self, cluster_identifier: str):
-        super().__init__(
-            "DBClusterNotFoundFault", f"DBCluster {cluster_identifier} not found."
-        )
+    def __init__(self, cluster_identifier: str, message: Optional[str] = None):
+        if message is None:
+            message = f"DBCluster {cluster_identifier} not found."
+        super().__init__("DBClusterNotFoundFault", message)
 
 
 class DBClusterSnapshotNotFoundError(RDSClientError):

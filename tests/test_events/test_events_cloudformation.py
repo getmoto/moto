@@ -247,6 +247,7 @@ def test_delete_rule():
 
 @aws_verified
 @pytest.mark.aws_verified
+@pytest.mark.filterwarnings("ignore:Tried to parse")
 def test_create_rule_with_targets():
     # given
     cfn_client = boto3.client("cloudformation", region_name="eu-central-1")

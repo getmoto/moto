@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import copy
-import datetime
 import math
 import os
 import re
 import string
 from collections import OrderedDict, defaultdict
+from datetime import datetime
 from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import (
@@ -24,7 +24,7 @@ from typing import (
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, unix_time, utcnow
+from moto.core.utils import unix_time, utcnow
 from moto.ec2.models import ec2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
@@ -195,7 +195,7 @@ class RDSBaseModel(TaggingMixin, XFormedAttributeAccessMixin, BaseModel):
     def __init__(self, backend: RDSBackend, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.backend = backend
-        self.created = iso_8601_datetime_with_milliseconds()
+        self.created = utcnow()
 
     @property
     def resource_id(self) -> str:
@@ -272,8 +272,8 @@ class DBProxyTargetGroup(RDSBaseModel):
         self.borrow_timeout = 120
         self.session_pinning_filters: List[str] = []
 
-        self.created_date = iso_8601_datetime_with_milliseconds()
-        self.updated_date = iso_8601_datetime_with_milliseconds()
+        self.created_date = utcnow()
+        self.updated_date = utcnow()
 
         self.status = "available"
         self.is_default = True
@@ -508,7 +508,7 @@ class DBCluster(RDSBaseModel):
             kwargs.get("enable_cloudwatch_logs_exports") or []
         )
         self.enable_http_endpoint = kwargs.get("enable_http_endpoint")  # type: ignore
-        self.earliest_restorable_time = iso_8601_datetime_with_milliseconds()
+        self.earliest_restorable_time = utcnow()
         self.scaling_configuration = kwargs.get("scaling_configuration")
         if not self.scaling_configuration and self.engine_mode == "serverless":
             # In AWS, this default configuration only shows up when the Cluster is in a ready state, so a few minutes after creation
@@ -588,8 +588,8 @@ class DBCluster(RDSBaseModel):
         return self.arn
 
     @property
-    def latest_restorable_time(self) -> str:
-        return iso_8601_datetime_with_milliseconds(utcnow())
+    def latest_restorable_time(self) -> datetime:
+        return utcnow()
 
     @property
     def master_user_password(self) -> str:
@@ -884,7 +884,7 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         return self.arn
 
     @property
-    def snapshot_create_time(self) -> str:
+    def snapshot_create_time(self) -> datetime:
         return self.created
 
 
@@ -907,7 +907,7 @@ class DBLogFile(XFormedAttributeAccessMixin):
 
     def __init__(self, name: str) -> None:
         self.log_file_name = name
-        self.last_written = int(unix_time())
+        self.last_written = unix_time()
         self.size = 123
 
 
@@ -1224,8 +1224,8 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         return self.db_instance_identifier
 
     @property
-    def latest_restorable_time(self) -> str:
-        return iso_8601_datetime_with_milliseconds(utcnow())
+    def latest_restorable_time(self) -> datetime:
+        return utcnow()
 
     def db_parameter_groups(self) -> List[DBParameterGroup]:
         if not self.db_parameter_group_name or self.is_default_parameter_group(
@@ -1511,6 +1511,11 @@ class DBInstanceClustered(DBInstance):
         self, db_cluster_identifier: str, promotion_tier: int = 1, **kwargs: Any
     ) -> None:
         super().__init__(db_cluster_identifier=db_cluster_identifier, **kwargs)
+        if db_cluster_identifier not in self.backend.clusters:
+            raise DBClusterNotFoundError(
+                db_cluster_identifier,
+                f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
+            )
         self.cluster = self.backend.clusters[db_cluster_identifier]
         self.db_cluster_identifier: str = db_cluster_identifier
         self.is_cluster_writer = True if not self.cluster.members else False
@@ -1660,7 +1665,7 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         snapshot_id: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
-        original_created_at: Optional[str] = None,
+        original_created_at: Optional[datetime] = None,
         kms_key_id: Optional[str] = None,
         **kwargs: Any,
     ):
@@ -1705,7 +1710,7 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         return self.arn
 
     @property
-    def snapshot_create_time(self) -> str:
+    def snapshot_create_time(self) -> datetime:
         return self.created
 
 
@@ -1728,7 +1733,7 @@ class ExportTask(RDSBaseModel):
         self.export_only = kwargs.get("export_only", [])
 
         self.status = "complete"
-        self.created_at = iso_8601_datetime_with_milliseconds()
+        self.created_at = utcnow()
         self.source_type = "SNAPSHOT" if type(snapshot) is DBSnapshot else "CLUSTER"
 
 
@@ -1745,7 +1750,7 @@ class EventSubscription(RDSBaseModel):
         self.enabled = kwargs.get("enabled", False)
         self.tags = kwargs.get("tags", [])
         self.status = "active"
-        self.created_at = iso_8601_datetime_with_milliseconds()
+        self.created_at = utcnow()
 
     @property
     def resource_id(self) -> str:
@@ -1988,8 +1993,8 @@ class DBProxy(RDSBaseModel):
         self.debug_logging = debug_logging
         if self.debug_logging is None:
             self.debug_logging = False
-        self.created_date = iso_8601_datetime_with_milliseconds()
-        self.updated_date = iso_8601_datetime_with_milliseconds()
+        self.created_date = utcnow()
+        self.updated_date = utcnow()
         if tags is None:
             self.tags = []
         else:
@@ -2229,7 +2234,7 @@ class RDSBackend(BaseBackend):
         db_snapshot_identifier: str,
         snapshot_type: str = "manual",
         tags: Optional[List[Dict[str, str]]] = None,
-        original_created_at: Optional[str] = None,
+        original_created_at: Optional[datetime] = None,
         kms_key_id: Optional[str] = None,
     ) -> DBSnapshot:
         database = self.databases.get(db_instance_identifier)
@@ -2512,7 +2517,7 @@ class RDSBackend(BaseBackend):
         db_cluster_identifier: str,
         source_db_cluster_identifier: str,
         restore_type: str = "full-copy",
-        restore_to_time: Optional[datetime.datetime] = None,
+        restore_to_time: Optional[datetime] = None,
         use_latest_restorable_time: bool = False,
         **overrides: Dict[str, Any],
     ) -> DBCluster:

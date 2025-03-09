@@ -1220,6 +1220,10 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "ap-northeast-2"
  },
