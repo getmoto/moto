@@ -277,6 +277,7 @@ def test_eks_describe_existing_cluster(test_client, create_cluster):
     assert response.status_code == StatusCodes.OK
     assert result_data[ClusterAttributes.NAME] == TestCluster.cluster_name
     assert result_data[ClusterAttributes.ENCRYPTION_CONFIG] == []
+    assert ClusterAttributes.REMOTE_NETWORK_CONFIG not in result_data
     all_arn_values_should_be_valid(
         expected_arn_values=TestCluster.expected_arn_values,
         pattern=RegExTemplates.CLUSTER_ARN,
