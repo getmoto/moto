@@ -2,7 +2,6 @@ import base64
 import datetime
 import hashlib
 import hmac
-import json
 import os
 import random
 import re
@@ -3424,9 +3423,8 @@ def test_user_authentication_flow_mfa_optional(user_pool=None, user_pool_client=
 def test_token_legitimacy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
-    path = "../../moto/cognitoidp/resources/jwks-public.json"
-    with open(os.path.join(os.path.dirname(__file__), path)) as f:
-        json_web_key = jwk.RSAKey.import_key(json.loads(f.read())["keys"][0])
+    public_key = load_resource(cognitoidp.__name__, "resources/jwks-public.json")
+    json_web_key = jwk.RSAKey.import_key(public_key["keys"][0])
 
     for auth_flow in ["ADMIN_NO_SRP_AUTH", "ADMIN_USER_PASSWORD_AUTH"]:
         outputs = authentication_flow(conn, auth_flow)
