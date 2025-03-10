@@ -136,3 +136,54 @@ def test_send_event_bridge_message():
     assert event_detail["bucket"] == {"name": mocked_bucket.name}
     assert event_detail["object"]["key"] == mocked_key.name
     assert event_detail["reason"] == "ObjectCreated"
+
+
+@mock_aws
+def test_send_event_bridge_message_storage_class_changed():
+    # setup mocks
+    events_client = boto3.client("events", region_name=REGION_NAME)
+    logs_client = boto3.client("logs", region_name=REGION_NAME)
+    bucket_name = str(uuid4())
+    key_name = "test-key"
+    mocked_key = FakeKey(
+        key_name,
+        bytes("test content", encoding="utf-8"),
+        ACCOUNT_ID,
+        region_name=REGION_NAME,
+        bucket_name=bucket_name,
+    )
+    rule_name = "test-rule-storage-class"
+    events_client.put_rule(
+        Name=rule_name,
+        EventPattern=json.dumps({"account": [ACCOUNT_ID]}),
+    )
+    log_group_name = "/test-group-storage-class"
+    logs_client.create_log_group(logGroupName=log_group_name)
+    events_client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": f"arn:aws:logs:{REGION_NAME}:{ACCOUNT_ID}:log-group:{log_group_name}",
+            }
+        ],
+    )
+
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
+
+    # Change the storage class
+    mocked_key.storage_class = "GLACIER"
+
+    # Verify that an event is sent to the log group
+    events = logs_client.filter_log_events(logGroupName=log_group_name)["events"]
+    assert len(events) == 1
+    event_msg = json.loads(events[0]["message"])
+    assert event_msg["detail-type"] == "Object Storage Class Changed"
+    assert event_msg["source"] == "aws.s3"
+    assert event_msg["region"] == REGION_NAME
+    assert event_msg["resources"] == [f"arn:aws:s3:::{bucket_name}"]
+    event_detail = event_msg["detail"]
+    assert event_detail["bucket"] == {"name": bucket_name}
+    assert event_detail["object"] == {"key": key_name}
+    assert event_detail["reason"] == "StorageClassChanged"
