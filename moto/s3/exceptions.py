@@ -558,11 +558,11 @@ class AccessDeniedByLock(S3ClientError):
         super().__init__("AccessDenied", "Access Denied")
 
 
-class InvalidContentMD5(S3ClientError):
+class MissingUploadObjectWithObjectLockHeaders(S3ClientError):
     code = 400
 
     def __init__(self) -> None:
-        super().__init__("InvalidContentMD5", "Content MD5 header is invalid")
+        super().__init__("MissingUploadObjectWithObjectLockHeaders", "Content-MD5 or x-amz-sdk-checksum-algorithm header required to upload an object with a retention period configured using Object Lock")
 
 
 class BucketNeedsToBeNew(S3ClientError):
