@@ -1677,13 +1677,17 @@ class S3Response(BaseResponse):
         legal_hold = self.headers.get("x-amz-object-lock-legal-hold")
 
         if lock_mode or lock_until or legal_hold == "ON":
-            if not self.headers.get("Content-Md5") and not self.headers.get("x-amz-sdk-checksum-algorithm"):
+            if not self.headers.get("Content-Md5") and not self.headers.get(
+                "x-amz-sdk-checksum-algorithm"
+            ):
                 raise MissingUploadObjectWithObjectLockHeaders
             if not lock_enabled:
                 raise LockNotEnabled
 
         elif lock_enabled and bucket.has_default_lock:
-            if not self.headers.get("Content-Md5") and not self.headers.get("x-amz-sdk-checksum-algorithm"):
+            if not self.headers.get("Content-Md5") and not self.headers.get(
+                "x-amz-sdk-checksum-algorithm"
+            ):
                 raise MissingUploadObjectWithObjectLockHeaders
 
         if "retention" in query:
