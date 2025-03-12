@@ -846,6 +846,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
             interfaces = self.launch_template.versions[-1].data.get("NetworkInterface")
             if interfaces and isinstance(interfaces[0], dict):
                 associate_public_ip = interfaces[0].get("AssociatePublicIpAddress")
+        if self.launch_template.id:
+            launch_template = {"LaunchTemplateId": self.launch_template.id}
+        elif self.launch_template.name:
+            launch_template = {"LaunchTemplateName": self.launch_template.name}
+        else:
+            launch_template = None
 
         reservation = self.autoscaling_backend.ec2_backend.run_instances(
             self.image_id,
@@ -856,6 +862,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
             launch_config=self.launch_config,
+            launch_template=launch_template,
             is_instance_type_default=False,
             associate_public_ip=associate_public_ip,
             subnet_id=subnet_id,
