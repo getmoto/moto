@@ -34,7 +34,7 @@ def test_create_web_acl(region, partition):
     res = conn.create_web_acl(**CREATE_WEB_ACL_BODY("Carl", "CLOUDFRONT"))
     web_acl = res["Summary"]
     assert web_acl.get("ARN").startswith(
-        f"arn:aws:wafv2:global:{ACCOUNT_ID}:global/webacl/Carl/"
+        f"arn:aws:wafv2:us-east-1:{ACCOUNT_ID}:global/webacl/Carl/"
     )
 
 
