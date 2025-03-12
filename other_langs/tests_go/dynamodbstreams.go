@@ -63,16 +63,16 @@ func DescribeStream() *dynamodbstreams.DescribeStreamOutput {
 		panic(err)
 	}
 
-	StreamArn := *result.TableDescription.LatestStreamArn
+	streamArn := *result.TableDescription.LatestStreamArn
 	ddbsClient := dynamodbstreams.NewFromConfig(cfg, func(o *dynamodbstreams.Options) {
 		o.BaseEndpoint = aws.String(Endpoint)
 		o.Region = Region
 	})
-	StreamInfo, err := ddbsClient.DescribeStream(context.TODO(), &dynamodbstreams.DescribeStreamInput{
-		StreamArn: aws.String(StreamArn),
+	streamInfo, err := ddbsClient.DescribeStream(context.TODO(), &dynamodbstreams.DescribeStreamInput{
+		StreamArn: aws.String(streamArn),
 	})
 	if err != nil {
 		panic(err)
 	}
-	return StreamInfo
+	return streamInfo
 }
