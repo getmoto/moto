@@ -59,6 +59,7 @@ from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Optional, TypedDict, Union
 
 import xmltodict
+from botocore import xform_name
 from botocore.compat import formatdate
 from botocore.model import (
     ListShape,
@@ -872,3 +873,45 @@ SERIALIZERS = {
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
+
+
+class XFormedAttributePicker:
+    """Can be injected into a ResponseSerializer to aid in plucking AWS model
+    attributes specified in `camelCase` or `PascalCase` from Python objects
+    with standard `snake_case` attribute names.
+
+    For a model attribute named `DBInstanceIdentifier`, this class will check
+    for the following attributes on the provided object:
+       * `DBInstanceIdentifier`
+       * `db_instance_identifier`
+    If the provided object is a class named `DBInstance`, this class will also
+    check for the following attribute on the provided object:
+       * `identifier`
+
+    Uses ``botocore.xform_name`` to translate the attribute name.
+    """
+
+    def __init__(self) -> None:
+        self._xform_cache = {}
+
+    def __call__(self, value: Any, key: str, shape: Shape) -> Any:
+        return self._get_value(value, key, shape)
+
+    def xform_name(self, name: str) -> str:
+        return xform_name(name, _xform_cache=self._xform_cache)
+
+    def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
+        new_value = None
+        possible_keys = [key, self.xform_name(key)]
+        # If a class `Role` has an attribute named `arn`, that will work for a `RoleArn` key.
+        if hasattr(value, "__class__"):
+            class_name = value.__class__.__name__
+            if key.lower().startswith(class_name.lower()):
+                short_key = key[len(class_name) :]
+                if short_key:  # Will be empty string if class name same as key
+                    possible_keys.append(self.xform_name(short_key))
+        for key in possible_keys:
+            new_value = ResponseSerializer._default_value_picker(value, key, shape)
+            if new_value is not None:
+                break
+        return new_value
