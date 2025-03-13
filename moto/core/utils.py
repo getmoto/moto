@@ -1,11 +1,14 @@
 import datetime
 import inspect
 import re
+from functools import cache
 from gzip import compress, decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
+from botocore.loaders import create_loader
+from botocore.model import ServiceModel
 
 from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
@@ -451,3 +454,11 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
             fragment=parsed.fragment,
         )
         return (result, True)
+
+
+@cache
+def get_service_model(service_name: str) -> ServiceModel:
+    loader = create_loader()
+    model = loader.load_service_model(service_name, "service-2")
+    service_model = ServiceModel(model, service_name)
+    return service_model
