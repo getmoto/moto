@@ -1,17 +1,14 @@
 from typing import Any, List, Optional, Tuple
-from uuid import uuid4
 
 from botocore.awsrequest import AWSPreparedRequest
 from werkzeug.wrappers import Request
 
-from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
-from moto.core.serialize import QuerySerializer, SerializationContext
+from moto.core.responses import ActionResult, BaseResponse
 from moto.core.utils import get_service_model
 from moto.ec2.models import ec2_backends
 
-from .exceptions import DBParameterGroupNotFoundError, RDSClientError
+from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
 from .parser import QueryParser, XFormedDict
 
@@ -60,35 +57,21 @@ class RDSResponse(BaseResponse):
             {"query_params": request.values},
             self.operation_model,  # type: ignore[no-untyped-call]
         )
+        return self.call_action()
 
-        self.serializer = QuerySerializer(
-            self.operation_model,
-            SerializationContext(request_id=str(uuid4())),
-            pretty_print=settings.PRETTIFY_RESPONSES,
-        )
-        try:
-            response = self.call_action()
-        except RDSClientError as e:
-            response = self.serialize(e)
-        return response
-
-    def serialize(self, result: Any) -> TYPE_RESPONSE:
-        serialized = self.serializer.serialize(result)
-        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
-
-    def create_db_instance(self) -> TYPE_RESPONSE:
+    def create_db_instance(self) -> ActionResult:
         db_kwargs = self.parameters
         database = self.backend.create_db_instance(db_kwargs)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_instance_read_replica(self) -> TYPE_RESPONSE:
+    def create_db_instance_read_replica(self) -> ActionResult:
         db_kwargs = self.parameters
         database = self.backend.create_db_instance_read_replica(db_kwargs)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_instances(self) -> TYPE_RESPONSE:
+    def describe_db_instances(self) -> ActionResult:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
@@ -102,9 +85,9 @@ class RDSResponse(BaseResponse):
             "DBInstances": instances_resp,
             "Marker": next_marker,
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_instance(self) -> TYPE_RESPONSE:
+    def modify_db_instance(self) -> ActionResult:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_kwargs = self.parameters
         # This is a hack because the backend code expects the parameter to be
@@ -119,9 +102,9 @@ class RDSResponse(BaseResponse):
             db_kwargs["new_db_instance_identifier"] = new_db_instance_identifier
         database = self.backend.modify_db_instance(db_instance_identifier, db_kwargs)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_instance(self) -> TYPE_RESPONSE:
+    def delete_db_instance(self) -> ActionResult:
         db_snapshot_name = self.parameters.get("FinalDBSnapshotIdentifier")
         if db_snapshot_name is not None:
             self.backend.validate_db_snapshot_identifier(
@@ -129,33 +112,33 @@ class RDSResponse(BaseResponse):
             )
         database = self.backend.delete_db_instance(**self.parameters)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def reboot_db_instance(self) -> TYPE_RESPONSE:
+    def reboot_db_instance(self) -> ActionResult:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         database = self.backend.reboot_db_instance(db_instance_identifier)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_snapshot(self) -> TYPE_RESPONSE:
+    def create_db_snapshot(self) -> ActionResult:
         self.backend.validate_db_snapshot_identifier(
             self.parameters["DBSnapshotIdentifier"],
             parameter_name="DBSnapshotIdentifier",
         )
         snapshot = self.backend.create_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def copy_db_snapshot(self) -> TYPE_RESPONSE:
+    def copy_db_snapshot(self) -> ActionResult:
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
         self.backend.validate_db_snapshot_identifier(
             target_snapshot_identifier, parameter_name="TargetDBSnapshotIdentifier"
         )
         snapshot = self.backend.copy_db_snapshot(**self.parameters)
         result = {"DBSnapshot": snapshot}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_snapshots(self) -> TYPE_RESPONSE:
+    def describe_db_snapshots(self) -> ActionResult:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
         snapshot_type = self.parameters.get("SnapshotType")
@@ -165,30 +148,30 @@ class RDSResponse(BaseResponse):
             db_instance_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         result = {"DBSnapshots": snapshots}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def promote_read_replica(self) -> TYPE_RESPONSE:
+    def promote_read_replica(self) -> ActionResult:
         db_kwargs = self.parameters
         database = self.backend.promote_read_replica(db_kwargs)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_snapshot(self) -> TYPE_RESPONSE:
+    def delete_db_snapshot(self) -> ActionResult:
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
         snapshot = self.backend.delete_db_snapshot(db_snapshot_identifier)
         result = {"DBSnapshot": snapshot}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def restore_db_instance_from_db_snapshot(self) -> TYPE_RESPONSE:
+    def restore_db_instance_from_db_snapshot(self) -> ActionResult:
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
         db_kwargs = self.parameters
         new_instance = self.backend.restore_db_instance_from_db_snapshot(
             db_snapshot_identifier, db_kwargs
         )
         result = {"DBInstance": new_instance}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def restore_db_instance_to_point_in_time(self) -> TYPE_RESPONSE:
+    def restore_db_instance_to_point_in_time(self) -> ActionResult:
         source_db_identifier = self.parameters.get("SourceDBInstanceIdentifier")
         target_db_identifier = self.parameters.get("TargetDBInstanceIdentifier")
 
@@ -197,37 +180,37 @@ class RDSResponse(BaseResponse):
             source_db_identifier, target_db_identifier, db_kwargs
         )
         result = {"DBInstance": new_instance}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def restore_db_cluster_to_point_in_time(self) -> TYPE_RESPONSE:
+    def restore_db_cluster_to_point_in_time(self) -> ActionResult:
         cluster = self.backend.restore_db_cluster_to_point_in_time(**self.parameters)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def failover_db_cluster(self) -> TYPE_RESPONSE:
+    def failover_db_cluster(self) -> ActionResult:
         cluster = self.backend.failover_db_cluster(**self.parameters)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+    def list_tags_for_resource(self) -> ActionResult:
         arn = self.parameters.get("ResourceName")
         tags = self.backend.list_tags_for_resource(arn)
         result = {"TagList": tags}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def add_tags_to_resource(self) -> TYPE_RESPONSE:
+    def add_tags_to_resource(self) -> ActionResult:
         arn = self.parameters.get("ResourceName")
         tags = self.parameters.get("Tags", [])
         self.backend.add_tags_to_resource(arn, tags)
-        return self.serialize({})
+        return ActionResult({})
 
-    def remove_tags_from_resource(self) -> TYPE_RESPONSE:
+    def remove_tags_from_resource(self) -> ActionResult:
         arn = self.parameters.get("ResourceName")
         tag_keys = self.parameters.get("TagKeys")
         self.backend.remove_tags_from_resource(arn, tag_keys)
-        return self.serialize({})
+        return ActionResult({})
 
-    def stop_db_instance(self) -> TYPE_RESPONSE:
+    def stop_db_instance(self) -> ActionResult:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         db_snapshot_identifier = self.parameters.get("DBSnapshotIdentifier")
         if db_snapshot_identifier is not None:
@@ -239,15 +222,15 @@ class RDSResponse(BaseResponse):
             db_instance_identifier, db_snapshot_identifier
         )
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def start_db_instance(self) -> TYPE_RESPONSE:
+    def start_db_instance(self) -> ActionResult:
         db_instance_identifier = self.parameters.get("DBInstanceIdentifier")
         database = self.backend.start_db_instance(db_instance_identifier)
         result = {"DBInstance": database}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_security_group(self) -> TYPE_RESPONSE:
+    def create_db_security_group(self) -> ActionResult:
         group_name = self.parameters.get("DBSecurityGroupName")
         description = self.parameters.get("DBSecurityGroupDescription")
         tags = self.parameters.get("Tags", [])
@@ -255,30 +238,30 @@ class RDSResponse(BaseResponse):
             group_name, description, tags
         )
         result = {"DBSecurityGroup": security_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_security_groups(self) -> TYPE_RESPONSE:
+    def describe_db_security_groups(self) -> ActionResult:
         security_group_name = self.parameters.get("DBSecurityGroupName")
         security_groups = self.backend.describe_security_groups(security_group_name)
         result = {"DBSecurityGroups": security_groups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_security_group(self) -> TYPE_RESPONSE:
+    def delete_db_security_group(self) -> ActionResult:
         security_group_name = self.parameters.get("DBSecurityGroupName")
         security_group = self.backend.delete_security_group(security_group_name)
         result = {"DBSecurityGroup": security_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def authorize_db_security_group_ingress(self) -> TYPE_RESPONSE:
+    def authorize_db_security_group_ingress(self) -> ActionResult:
         security_group_name = self.parameters.get("DBSecurityGroupName")
         cidr_ip = self.parameters.get("CIDRIP")
         security_group = self.backend.authorize_security_group(
             security_group_name, cidr_ip
         )
         result = {"DBSecurityGroup": security_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_subnet_group(self) -> TYPE_RESPONSE:
+    def create_db_subnet_group(self) -> ActionResult:
         subnet_name = self.parameters.get("DBSubnetGroupName")
         description = self.parameters.get("DBSubnetGroupDescription")
         subnet_ids = self.parameters.get("SubnetIds", [])
@@ -291,15 +274,15 @@ class RDSResponse(BaseResponse):
             subnet_name, description, subnets, tags
         )
         result = {"DBSubnetGroup": subnet_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_subnet_groups(self) -> TYPE_RESPONSE:
+    def describe_db_subnet_groups(self) -> ActionResult:
         subnet_name = self.parameters.get("DBSubnetGroupName")
         subnet_groups = self.backend.describe_db_subnet_groups(subnet_name)
         result = {"DBSubnetGroups": subnet_groups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_subnet_group(self) -> TYPE_RESPONSE:
+    def modify_db_subnet_group(self) -> ActionResult:
         subnet_name = self.parameters.get("DBSubnetGroupName")
         description = self.parameters.get("DBSubnetGroupDescription")
         subnet_ids = self.parameters.get("SubnetIds", [])
@@ -311,27 +294,27 @@ class RDSResponse(BaseResponse):
             subnet_name, description, subnets
         )
         result = {"DBSubnetGroup": subnet_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_subnet_group(self) -> TYPE_RESPONSE:
+    def delete_db_subnet_group(self) -> ActionResult:
         subnet_name = self.parameters.get("DBSubnetGroupName")
         subnet_group = self.backend.delete_subnet_group(subnet_name)
         result = {"DBSubnetGroup": subnet_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_option_group(self) -> TYPE_RESPONSE:
+    def create_option_group(self) -> ActionResult:
         kwargs = self.parameters
         option_group = self.backend.create_option_group(kwargs)
         result = {"OptionGroup": option_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_option_group(self) -> TYPE_RESPONSE:
+    def delete_option_group(self) -> ActionResult:
         name = self.parameters["OptionGroupName"]
         option_group = self.backend.delete_option_group(name)
         result = {"OptionGroup": option_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_option_groups(self) -> TYPE_RESPONSE:
+    def describe_option_groups(self) -> ActionResult:
         kwargs = self.parameters
         option_groups = self.backend.describe_option_groups(kwargs)
         option_groups, marker = self._paginate(option_groups)
@@ -339,7 +322,7 @@ class RDSResponse(BaseResponse):
             "OptionGroupsList": option_groups,
             "Marker": marker,
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
     def describe_option_group_options(self) -> str:
         engine_name = self.parameters.get("EngineName")
@@ -348,7 +331,7 @@ class RDSResponse(BaseResponse):
             engine_name, major_engine_version
         )
 
-    def modify_option_group(self) -> TYPE_RESPONSE:
+    def modify_option_group(self) -> ActionResult:
         option_group_name = self.parameters.get("OptionGroupName")
         options_to_include = self.parameters.get("OptionsToInclude", [])
         options_to_remove = self.parameters.get("OptionsToRemove", [])
@@ -356,22 +339,22 @@ class RDSResponse(BaseResponse):
             option_group_name, options_to_include, options_to_remove
         )
         result = {"OptionGroup": option_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_parameter_group(self) -> TYPE_RESPONSE:
+    def create_db_parameter_group(self) -> ActionResult:
         kwargs = self.parameters
         db_parameter_group = self.backend.create_db_parameter_group(kwargs)
         result = {"DBParameterGroup": db_parameter_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_parameter_groups(self) -> TYPE_RESPONSE:
+    def describe_db_parameter_groups(self) -> ActionResult:
         kwargs = self.parameters
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
         db_parameter_groups, _ = self._paginate(db_parameter_groups)
         result = {"DBParameterGroups": db_parameter_groups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_parameter_group(self) -> TYPE_RESPONSE:
+    def modify_db_parameter_group(self) -> ActionResult:
         db_parameter_group_name = self.parameters.get("DBParameterGroupName")
         param_list = self.parameters.get("Parameters", [])
         # Raw dict is stored on the backend, so we need the original PascalCase items.
@@ -382,9 +365,9 @@ class RDSResponse(BaseResponse):
             db_parameter_group_name, db_parameter_group_parameters
         )
         result = {"DBParameterGroupName": db_parameter_group.name}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_parameters(self) -> TYPE_RESPONSE:
+    def describe_db_parameters(self) -> ActionResult:
         db_parameter_group_name = self.parameters.get("DBParameterGroupName")
         db_parameter_groups = self.backend.describe_db_parameter_groups(
             {"name": db_parameter_group_name}
@@ -393,35 +376,35 @@ class RDSResponse(BaseResponse):
             raise DBParameterGroupNotFoundError(db_parameter_group_name)
         parameters = db_parameter_groups[0].parameters.values()
         result = {"Parameters": parameters}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_parameter_group(self) -> TYPE_RESPONSE:
+    def delete_db_parameter_group(self) -> ActionResult:
         name = self.parameters["DBParameterGroupName"]
         db_parameter_group = self.backend.delete_db_parameter_group(name)
-        return self.serialize(db_parameter_group)
+        return ActionResult(db_parameter_group)
 
-    def describe_db_cluster_parameters(self) -> TYPE_RESPONSE:
+    def describe_db_cluster_parameters(self) -> ActionResult:
         # TODO: This never worked at all...
         db_parameter_group_name = self.parameters.get("DBParameterGroupName")
         db_parameter_groups = self.backend.describe_db_cluster_parameters()
         if db_parameter_groups is None:
             raise DBParameterGroupNotFoundError(db_parameter_group_name)
         result = {"Parameters": db_parameter_groups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_cluster(self) -> TYPE_RESPONSE:
+    def create_db_cluster(self) -> ActionResult:
         kwargs = self.parameters
         cluster = self.backend.create_db_cluster(kwargs)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_cluster(self) -> TYPE_RESPONSE:
+    def modify_db_cluster(self) -> ActionResult:
         kwargs = self.parameters
         cluster = self.backend.modify_db_cluster(kwargs)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_clusters(self) -> TYPE_RESPONSE:
+    def describe_db_clusters(self) -> ActionResult:
         _id = self.parameters.get("DBClusterIdentifier")
         filters = self.parameters.get("Filters", [])
         filter_dict = {f["Name"]: f["Values"] for f in filters}
@@ -429,40 +412,40 @@ class RDSResponse(BaseResponse):
             db_cluster_identifier=_id, filters=filter_dict
         )
         result = {"DBClusters": clusters}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_cluster(self) -> TYPE_RESPONSE:
+    def delete_db_cluster(self) -> ActionResult:
         _id = self.parameters.get("DBClusterIdentifier")
         snapshot_name = self.parameters.get("FinalDBSnapshotIdentifier")
         cluster = self.backend.delete_db_cluster(
             cluster_identifier=_id, snapshot_name=snapshot_name
         )
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def start_db_cluster(self) -> TYPE_RESPONSE:
+    def start_db_cluster(self) -> ActionResult:
         _id = self.parameters.get("DBClusterIdentifier")
         cluster = self.backend.start_db_cluster(cluster_identifier=_id)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def stop_db_cluster(self) -> TYPE_RESPONSE:
+    def stop_db_cluster(self) -> ActionResult:
         _id = self.parameters.get("DBClusterIdentifier")
         cluster = self.backend.stop_db_cluster(cluster_identifier=_id)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_cluster_snapshot(self) -> TYPE_RESPONSE:
+    def create_db_cluster_snapshot(self) -> ActionResult:
         snapshot = self.backend.create_db_cluster_snapshot(**self.parameters)
         result = {"DBClusterSnapshot": snapshot}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def copy_db_cluster_snapshot(self) -> TYPE_RESPONSE:
+    def copy_db_cluster_snapshot(self) -> ActionResult:
         snapshot = self.backend.copy_db_cluster_snapshot(**self.parameters)
         result = {"DBClusterSnapshot": snapshot}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_cluster_snapshots(self) -> TYPE_RESPONSE:
+    def describe_db_cluster_snapshots(self) -> ActionResult:
         db_cluster_identifier = self.parameters.get("DBClusterIdentifier")
         db_snapshot_identifier = self.parameters.get("DBClusterSnapshotIdentifier")
         snapshot_type = self.parameters.get("SnapshotType")
@@ -472,72 +455,72 @@ class RDSResponse(BaseResponse):
             db_cluster_identifier, db_snapshot_identifier, snapshot_type, filter_dict
         )
         results = {"DBClusterSnapshots": snapshots}
-        return self.serialize(results)
+        return ActionResult(results)
 
-    def delete_db_cluster_snapshot(self) -> TYPE_RESPONSE:
+    def delete_db_cluster_snapshot(self) -> ActionResult:
         db_snapshot_identifier = self.parameters["DBClusterSnapshotIdentifier"]
         snapshot = self.backend.delete_db_cluster_snapshot(db_snapshot_identifier)
         result = {"DBClusterSnapshot": snapshot}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def restore_db_cluster_from_snapshot(self) -> TYPE_RESPONSE:
+    def restore_db_cluster_from_snapshot(self) -> ActionResult:
         db_snapshot_identifier = self.parameters.get("SnapshotIdentifier")
         db_kwargs = self.parameters
         new_cluster = self.backend.restore_db_cluster_from_snapshot(
             db_snapshot_identifier, db_kwargs
         )
         result = {"DBCluster": new_cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def start_export_task(self) -> TYPE_RESPONSE:
+    def start_export_task(self) -> ActionResult:
         kwargs = self.parameters
         export_task = self.backend.start_export_task(kwargs)
-        return self.serialize(export_task)
+        return ActionResult(export_task)
 
-    def cancel_export_task(self) -> TYPE_RESPONSE:
+    def cancel_export_task(self) -> ActionResult:
         export_task_identifier = self.parameters.get("ExportTaskIdentifier")
         export_task = self.backend.cancel_export_task(export_task_identifier)
-        return self.serialize(export_task)
+        return ActionResult(export_task)
 
-    def describe_export_tasks(self) -> TYPE_RESPONSE:
+    def describe_export_tasks(self) -> ActionResult:
         export_task_identifier = self.parameters.get("ExportTaskIdentifier")
         tasks = self.backend.describe_export_tasks(export_task_identifier)
         result = {"ExportTasks": tasks}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_event_subscription(self) -> TYPE_RESPONSE:
+    def create_event_subscription(self) -> ActionResult:
         kwargs = self.parameters
         subscription = self.backend.create_event_subscription(kwargs)
         result = {"EventSubscription": subscription}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_event_subscription(self) -> TYPE_RESPONSE:
+    def delete_event_subscription(self) -> ActionResult:
         subscription_name = self.parameters.get("SubscriptionName")
         subscription = self.backend.delete_event_subscription(subscription_name)
         result = {"EventSubscription": subscription}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_event_subscriptions(self) -> TYPE_RESPONSE:
+    def describe_event_subscriptions(self) -> ActionResult:
         subscription_name = self.parameters.get("SubscriptionName")
         subscriptions = self.backend.describe_event_subscriptions(subscription_name)
         result = {"EventSubscriptionsList": subscriptions}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_orderable_db_instance_options(self) -> TYPE_RESPONSE:
+    def describe_orderable_db_instance_options(self) -> ActionResult:
         engine = self.parameters.get("Engine")
         engine_version = self.parameters.get("EngineVersion")
         options = self.backend.describe_orderable_db_instance_options(
             engine, engine_version
         )
         result = {"OrderableDBInstanceOptions": options}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_global_clusters(self) -> TYPE_RESPONSE:
+    def describe_global_clusters(self) -> ActionResult:
         clusters = self.global_backend.describe_global_clusters()
         result = {"GlobalClusters": clusters}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_global_cluster(self) -> TYPE_RESPONSE:
+    def create_global_cluster(self) -> ActionResult:
         params = self.parameters
         cluster = self.global_backend.create_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
@@ -548,26 +531,26 @@ class RDSResponse(BaseResponse):
             deletion_protection=params.get("DeletionProtection"),
         )
         result = {"GlobalCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_global_cluster(self) -> TYPE_RESPONSE:
+    def delete_global_cluster(self) -> ActionResult:
         params = self.parameters
         cluster = self.global_backend.delete_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
         )
         result = {"GlobalCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def remove_from_global_cluster(self) -> TYPE_RESPONSE:
+    def remove_from_global_cluster(self) -> ActionResult:
         params = self.parameters
         global_cluster = self.backend.remove_from_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
             db_cluster_identifier=params["DbClusterIdentifier"],
         )
         result = {"GlobalCluster": global_cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_cluster_parameter_group(self) -> TYPE_RESPONSE:
+    def create_db_cluster_parameter_group(self) -> ActionResult:
         group_name = self.parameters.get("DBClusterParameterGroupName")
         family = self.parameters.get("DBParameterGroupFamily")
         desc = self.parameters.get("Description")
@@ -577,30 +560,30 @@ class RDSResponse(BaseResponse):
             description=desc,
         )
         result = {"DBClusterParameterGroup": db_cluster_parameter_group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_cluster_parameter_groups(self) -> TYPE_RESPONSE:
+    def describe_db_cluster_parameter_groups(self) -> ActionResult:
         group_name = self.parameters.get("DBClusterParameterGroupName")
         db_parameter_groups = self.backend.describe_db_cluster_parameter_groups(
             group_name=group_name,
         )
         result = {"DBClusterParameterGroups": db_parameter_groups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_cluster_parameter_group(self) -> TYPE_RESPONSE:
+    def delete_db_cluster_parameter_group(self) -> ActionResult:
         group_name = self.parameters.get("DBClusterParameterGroupName")
         self.backend.delete_db_cluster_parameter_group(
             group_name=group_name,
         )
-        return self.serialize({})
+        return ActionResult({})
 
-    def promote_read_replica_db_cluster(self) -> TYPE_RESPONSE:
+    def promote_read_replica_db_cluster(self) -> ActionResult:
         db_cluster_identifier = self.parameters.get("DBClusterIdentifier")
         cluster = self.backend.promote_read_replica_db_cluster(db_cluster_identifier)
         result = {"DBCluster": cluster}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_snapshot_attributes(self) -> TYPE_RESPONSE:
+    def describe_db_snapshot_attributes(self) -> ActionResult:
         params = self.parameters
         db_snapshot_identifier = params["DBSnapshotIdentifier"]
         db_snapshot_attributes_result = self.backend.describe_db_snapshot_attributes(
@@ -615,9 +598,9 @@ class RDSResponse(BaseResponse):
                 ],
             }
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_snapshot_attribute(self) -> TYPE_RESPONSE:
+    def modify_db_snapshot_attribute(self) -> ActionResult:
         params = self.parameters
         db_snapshot_identifier = params["DBSnapshotIdentifier"]
         db_snapshot_attributes_result = self.backend.modify_db_snapshot_attribute(
@@ -635,9 +618,9 @@ class RDSResponse(BaseResponse):
                 ],
             }
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_cluster_snapshot_attributes(self) -> TYPE_RESPONSE:
+    def describe_db_cluster_snapshot_attributes(self) -> ActionResult:
         params = self.parameters
         db_cluster_snapshot_identifier = params["DBClusterSnapshotIdentifier"]
         db_cluster_snapshot_attributes_result = (
@@ -654,9 +637,9 @@ class RDSResponse(BaseResponse):
                 ],
             }
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_cluster_snapshot_attribute(self) -> TYPE_RESPONSE:
+    def modify_db_cluster_snapshot_attribute(self) -> ActionResult:
         params = self.parameters
         db_cluster_snapshot_identifier = params["DBClusterSnapshotIdentifier"]
         db_cluster_snapshot_attributes_result = (
@@ -676,9 +659,9 @@ class RDSResponse(BaseResponse):
                 ],
             }
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_proxies(self) -> TYPE_RESPONSE:
+    def describe_db_proxies(self) -> ActionResult:
         params = self.parameters
         db_proxy_name = params.get("DBProxyName")
         # filters = params.get("Filters")
@@ -691,9 +674,9 @@ class RDSResponse(BaseResponse):
             "DBProxies": db_proxies,
             "Marker": marker,
         }
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def create_db_proxy(self) -> TYPE_RESPONSE:
+    def create_db_proxy(self) -> ActionResult:
         params = self.parameters
         db_proxy_name = params["DBProxyName"]
         engine_family = params["EngineFamily"]
@@ -718,9 +701,9 @@ class RDSResponse(BaseResponse):
             tags=tags,
         )
         result = {"DBProxy": db_proxy}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def register_db_proxy_targets(self) -> TYPE_RESPONSE:
+    def register_db_proxy_targets(self) -> ActionResult:
         db_proxy_name = self.parameters.get("DBProxyName")
         target_group_name = self.parameters.get("TargetGroupName")
         db_cluster_identifiers = self.parameters.get("DBClusterIdentifiers", [])
@@ -732,9 +715,9 @@ class RDSResponse(BaseResponse):
             db_instance_identifiers=db_instance_identifiers,
         )
         result = {"DBProxyTargets": targets}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def deregister_db_proxy_targets(self) -> TYPE_RESPONSE:
+    def deregister_db_proxy_targets(self) -> ActionResult:
         db_proxy_name = self.parameters.get("DBProxyName")
         target_group_name = self.parameters.get("TargetGroupName")
         db_cluster_identifiers = self.parameters.get("DBClusterIdentifiers", [])
@@ -745,51 +728,51 @@ class RDSResponse(BaseResponse):
             db_cluster_identifiers=db_cluster_identifiers,
             db_instance_identifiers=db_instance_identifiers,
         )
-        return self.serialize({})
+        return ActionResult({})
 
-    def describe_db_proxy_targets(self) -> TYPE_RESPONSE:
+    def describe_db_proxy_targets(self) -> ActionResult:
         proxy_name = self.parameters.get("DBProxyName")
         targets = self.backend.describe_db_proxy_targets(proxy_name=proxy_name)
         result = {"Targets": targets}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def delete_db_proxy(self) -> TYPE_RESPONSE:
+    def delete_db_proxy(self) -> ActionResult:
         proxy_name = self.parameters.get("DBProxyName")
         proxy = self.backend.delete_db_proxy(proxy_name=proxy_name)
         result = {"DBProxy": proxy}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_proxy_target_groups(self) -> TYPE_RESPONSE:
+    def describe_db_proxy_target_groups(self) -> ActionResult:
         proxy_name = self.parameters.get("DBProxyName")
         groups = self.backend.describe_db_proxy_target_groups(proxy_name=proxy_name)
         result = {"TargetGroups": groups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def modify_db_proxy_target_group(self) -> TYPE_RESPONSE:
+    def modify_db_proxy_target_group(self) -> ActionResult:
         proxy_name = self.parameters.get("DBProxyName")
         config = self.parameters.get("ConnectionPoolConfig", {})
         group = self.backend.modify_db_proxy_target_group(
             proxy_name=proxy_name, config=config
         )
         result = {"DBProxyTargetGroup": group}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_instance_automated_backups(self) -> TYPE_RESPONSE:
+    def describe_db_instance_automated_backups(self) -> ActionResult:
         automated_backups = self.backend.describe_db_instance_automated_backups(
             **self.parameters
         )
         result = {"DBInstanceAutomatedBackups": automated_backups}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_events(self) -> TYPE_RESPONSE:
+    def describe_events(self) -> ActionResult:
         events = self.backend.describe_events(**self.parameters)
         result = {"Events": events}
-        return self.serialize(result)
+        return ActionResult(result)
 
-    def describe_db_log_files(self) -> TYPE_RESPONSE:
+    def describe_db_log_files(self) -> ActionResult:
         log_files = self.backend.describe_db_log_files(**self.parameters)
         result = {"DescribeDBLogFiles": log_files}
-        return self.serialize(result)
+        return ActionResult(result)
 
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
