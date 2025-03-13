@@ -461,6 +461,7 @@ class BaseJSONSerializer(ResponseSerializer):
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         resp["body"] = self._serialize_body(serialized_result)
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialized_error_to_response(
@@ -477,6 +478,7 @@ class BaseJSONSerializer(ResponseSerializer):
         resp["status_code"] = status_code
         error_code = self._get_protocol_specific_error_code(shape.error_code)
         resp["headers"]["X-Amzn-Errortype"] = error_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _get_protocol_specific_error_code(
@@ -750,6 +752,7 @@ class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
 
 
 class RestJSONSerializer(BaseRestSerializer, BaseJSONSerializer):
+    CONTENT_TYPE = "application/json"
     REQUIRES_EMPTY_BODY = True
 
 

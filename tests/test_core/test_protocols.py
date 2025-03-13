@@ -73,6 +73,8 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
     headers_expected = case["response"]["headers"]
     # TODO: Get rid of this once we get the headers sorted for all responses
     if headers_expected:
+        if "Content-Type" in resp["headers"]:
+            del resp["headers"]["Content-Type"]
         assert resp["headers"] == headers_expected
     assert resp["status_code"] == case["response"]["status_code"]
 
