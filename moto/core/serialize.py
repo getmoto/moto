@@ -699,13 +699,14 @@ class BaseRestSerializer(ResponseSerializer):
             "body": {},
             "headers": {},
         }
-        assert isinstance(output_shape, StructureShape)
-        self._serialize(serialized_result, result, output_shape, "")
-        payload_member = output_shape.serialization.get("payload")
-        if payload_member is not None:
-            payload_shape = output_shape.members[payload_member]
-            payload_value = self._get_value(result, payload_member, payload_shape)
-            self._serialize_payload(serialized_result, payload_value, payload_shape)
+        if output_shape is not None:
+            assert isinstance(output_shape, StructureShape)
+            self._serialize(serialized_result, result, output_shape, "")
+            payload_member = output_shape.serialization.get("payload")
+            if payload_member is not None:
+                payload_shape = output_shape.members[payload_member]
+                payload_value = self._get_value(result, payload_member, payload_shape)
+                self._serialize_payload(serialized_result, payload_value, payload_shape)
 
         return self._serialized_result_to_response(
             resp, result, output_shape, serialized_result
