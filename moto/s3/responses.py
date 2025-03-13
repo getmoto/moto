@@ -1328,6 +1328,11 @@ class S3Response(BaseResponse):
             # Treat as non-range request if after the logic is applied, the start of the range is greater than the end
             return 200, response_headers, response_content
 
+        if begin or end < last:
+            # range requests do not return the checksum
+            for key in [h for h in response_headers if h.startswith("x-amz-checksum-")]:
+                del response_headers[key]
+
         response_headers["content-range"] = f"bytes {begin}-{end}/{length}"
         content = response_content[begin : end + 1]
         if request.method == "HEAD":
@@ -1514,6 +1519,15 @@ class S3Response(BaseResponse):
                 if header.startswith("content-"):
                     response_headers.pop(header)
             return 304, response_headers, "Not Modified"
+
+        # set the checksum after not_modified has been checked
+        if (
+            self.headers.get("x-amz-checksum-mode") == "ENABLED"
+            and key.checksum_algorithm
+        ):
+            response_headers[f"x-amz-checksum-{key.checksum_algorithm.lower()}"] = (
+                key.checksum_value
+            )
 
         response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
@@ -2044,6 +2058,7 @@ class S3Response(BaseResponse):
         if part_number:
             part_number = int(part_number)
 
+        checksum_mode = headers.get("x-amz-checksum-mode") == "ENABLED"
         if_modified_since = headers.get("If-Modified-Since", None)
         if_match = headers.get("If-Match", None)
         if_none_match = headers.get("If-None-Match", None)
@@ -2083,6 +2098,11 @@ class S3Response(BaseResponse):
                     return 304, response_headers, "Not Modified"
             if if_none_match and key.etag == if_none_match:
                 return 304, response_headers, "Not Modified"
+
+            if checksum_mode and key.checksum_algorithm:
+                response_headers[f"x-amz-checksum-{key.checksum_algorithm.lower()}"] = (
+                    key.checksum_value
+                )
 
             if part_number:
                 full_key = self.backend.head_object(bucket_name, key_name, version_id)
