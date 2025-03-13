@@ -270,6 +270,17 @@ class ActionAuthenticatorMixin(object):
         return decorator
 
 
+class ActionResult:
+    """Wrapper class for serializable results returned from `responses.py` methods."""
+
+    def __init__(self, result: object) -> None:
+        self._result = result
+
+    @property
+    def result(self) -> object:
+        return self._result
+
+
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     default_region = "us-east-1"
     # to extract region, use [^.]
