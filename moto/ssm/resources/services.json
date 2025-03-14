@@ -3,53 +3,6 @@
     "service": {
       "global-infrastructure": {
         "services": {
-          "AmazonGameLiftStreams": {
-            "Value": "AmazonGameLiftStreams",
-            "longName": {
-              "Value": "Amazon GameLift Streams"
-            },
-            "marketingHomeURL": {
-              "Value": "https://aws.amazon.com/gamelift/streams/"
-            },
-            "regions": {
-              "ap-northeast-1": {
-                "Value": "ap-northeast-1",
-                "endpoint": {
-                  "Value": "gameliftstreams.ap-northeast-1.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-central-1": {
-                "Value": "eu-central-1",
-                "endpoint": {
-                  "Value": "gameliftstreams.eu-central-1.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-2": {
-                "Value": "us-east-2",
-                "endpoint": {
-                  "Value": "gameliftstreams.us-east-2.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-west-2": {
-                "Value": "us-west-2",
-                "endpoint": {
-                  "Value": "gameliftstreams.us-west-2.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              }
-            }
-          },
           "accessanalyzer": {
             "Value": "accessanalyzer",
             "longName": {
@@ -14811,15 +14764,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "ap-southeast-5": {
-                "Value": "ap-southeast-5",
-                "endpoint": {
-                  "Value": "cognito-identity.ap-southeast-5.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -14973,15 +14917,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "us-gov-east-1": {
-                "Value": "us-gov-east-1",
-                "endpoint": {
-                  "Value": "cognito-identity.us-gov-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "us-gov-west-1": {
                 "Value": "us-gov-west-1",
                 "endpoint": {
@@ -15111,15 +15046,6 @@
                 "Value": "ap-southeast-4",
                 "endpoint": {
                   "Value": "cognito-idp.ap-southeast-4.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "ap-southeast-5": {
-                "Value": "ap-southeast-5",
-                "endpoint": {
-                  "Value": "cognito-idp.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15264,15 +15190,6 @@
                 "Value": "us-east-2",
                 "endpoint": {
                   "Value": "cognito-idp.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-gov-east-1": {
-                "Value": "us-gov-east-1",
-                "endpoint": {
-                  "Value": "cognito-idp.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30138,10 +30055,10 @@
           "gamelift": {
             "Value": "gamelift",
             "longName": {
-              "Value": "Amazon GameLift Servers"
+              "Value": "Amazon GameLift"
             },
             "marketingHomeURL": {
-              "Value": "https://aws.amazon.com/gamelift/servers/"
+              "Value": "https://aws.amazon.com/gamelift/"
             },
             "regions": {
               "af-south-1": {
@@ -45725,15 +45642,6 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
-              "ap-southeast-5": {
-                "Value": "ap-southeast-5",
-                "endpoint": {
-                  "Value": "rds.ap-southeast-5.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
-                }
-              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -47789,10 +47697,55 @@
               "Value": "https://aws.amazon.com/opsworks/stacks/"
             },
             "regions": {
+              "ap-northeast-1": {
+                "Value": "ap-northeast-1",
+                "endpoint": {
+                  "Value": "opsworks.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-northeast-2": {
+                "Value": "ap-northeast-2",
+                "endpoint": {
+                  "Value": "opsworks.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-south-1": {
+                "Value": "ap-south-1",
+                "endpoint": {
+                  "Value": "opsworks.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
                   "Value": "opsworks.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-2": {
+                "Value": "ap-southeast-2",
+                "endpoint": {
+                  "Value": "opsworks.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ca-central-1": {
+                "Value": "ca-central-1",
+                "endpoint": {
+                  "Value": "opsworks.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47816,10 +47769,55 @@
                   "Value": "HTTPS"
                 }
               },
+              "eu-west-2": {
+                "Value": "eu-west-2",
+                "endpoint": {
+                  "Value": "opsworks.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-west-3": {
+                "Value": "eu-west-3",
+                "endpoint": {
+                  "Value": "opsworks.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sa-east-1": {
+                "Value": "sa-east-1",
+                "endpoint": {
+                  "Value": "opsworks.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "us-east-1": {
                 "Value": "us-east-1",
                 "endpoint": {
                   "Value": "opsworks.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-east-2": {
+                "Value": "us-east-2",
+                "endpoint": {
+                  "Value": "opsworks.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-west-1": {
+                "Value": "us-west-1",
+                "endpoint": {
+                  "Value": "opsworks.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -71201,15 +71199,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "ap-southeast-7": {
-                "Value": "ap-southeast-7",
-                "endpoint": {
-                  "Value": "wafv2.ap-southeast-7.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -71340,15 +71329,6 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "wafv2.me-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "mx-central-1": {
-                "Value": "mx-central-1",
-                "endpoint": {
-                  "Value": "wafv2.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
