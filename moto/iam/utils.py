@@ -1,10 +1,13 @@
 import base64
 import string
+from typing import Any, Dict, Optional
 
 from moto.moto_api._internal import mock_random as random
 
 AWS_ROLE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 ACCOUNT_OFFSET = 549755813888  # int.from_bytes(base64.b32decode(b"QAAAAAAA"), byteorder="big"), start value
+
+REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK = ["sts:AssumeRole"]
 
 
 def _random_uppercase_or_digit_sequence(length: int) -> str:
@@ -58,3 +61,10 @@ def random_access_key() -> str:
 
 def random_policy_id() -> str:
     return "A" + "".join(random.choices(string.ascii_uppercase + string.digits, k=20))
+
+
+def format_conditions(data: Dict[str, str]) -> Optional[Dict[str, Dict[str, str]]]:
+    if "ExternalId" in data:
+        return {"StringEquals": {"sts:ExternalId": data["ExternalId"][0]}}
+
+    return None
