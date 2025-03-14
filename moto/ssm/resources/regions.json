@@ -3566,15 +3566,6 @@
               "Value": "aws"
             },
             "services": {
-              "AmazonGameLiftStreams": {
-                "Value": "AmazonGameLiftStreams",
-                "endpoint": {
-                  "Value": "gameliftstreams.ap-northeast-1.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -5448,6 +5439,15 @@
                 "Value": "opensearchserverless",
                 "endpoint": {
                   "Value": "aoss.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8040,6 +8040,15 @@
                 "Value": "opensearchserverless",
                 "endpoint": {
                   "Value": "aoss.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12132,6 +12141,15 @@
                 "Value": "opensearchserverless",
                 "endpoint": {
                   "Value": "aoss.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19002,6 +19020,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
                 "endpoint": {
@@ -22992,24 +23019,6 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
-              "cognito-identity": {
-                "Value": "cognito-identity",
-                "endpoint": {
-                  "Value": "cognito-identity.ap-southeast-5.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "cognito-idp": {
-                "Value": "cognito-idp",
-                "endpoint": {
-                  "Value": "cognito-idp.ap-southeast-5.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "config": {
                 "Value": "config",
                 "endpoint": {
@@ -23425,15 +23434,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "neptune": {
-                "Value": "neptune",
-                "endpoint": {
-                  "Value": "rds.ap-southeast-5.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS, HTTP"
                 }
               },
               "network-firewall": {
@@ -24512,15 +24512,6 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.ap-southeast-7.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "waf": {
-                "Value": "waf",
-                "endpoint": {
-                  "Value": "wafv2.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26145,6 +26136,15 @@
                 "Value": "opensearchserverless",
                 "endpoint": {
                   "Value": "aoss.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30997,15 +30997,6 @@
               "Value": "aws"
             },
             "services": {
-              "AmazonGameLiftStreams": {
-                "Value": "AmazonGameLiftStreams",
-                "endpoint": {
-                  "Value": "gameliftstreams.eu-central-1.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -45273,6 +45264,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -47485,6 +47485,15 @@
                 "Value": "opensearchserverless",
                 "endpoint": {
                   "Value": "aoss.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53547,15 +53556,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "waf": {
-                "Value": "waf",
-                "endpoint": {
-                  "Value": "wafv2.mx-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -54968,6 +54968,15 @@
                 "Value": "opensearchserverless",
                 "endpoint": {
                   "Value": "aoss.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.sa-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59128,15 +59137,6 @@
               "Value": "aws"
             },
             "services": {
-              "AmazonGameLiftStreams": {
-                "Value": "AmazonGameLiftStreams",
-                "endpoint": {
-                  "Value": "gameliftstreams.us-east-2.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
@@ -60844,6 +60844,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
                 "endpoint": {
@@ -62037,24 +62046,6 @@
                 "Value": "codestar-connections",
                 "endpoint": {
                   "Value": "codestar-connections.us-gov-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "cognito-identity": {
-                "Value": "cognito-identity",
-                "endpoint": {
-                  "Value": "cognito-identity.us-gov-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "cognito-idp": {
-                "Value": "cognito-idp",
-                "endpoint": {
-                  "Value": "cognito-idp.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66439,6 +66430,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opsworks": {
+                "Value": "opsworks",
+                "endpoint": {
+                  "Value": "opsworks.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "opsworkschefautomate": {
                 "Value": "opsworkschefautomate",
                 "endpoint": {
@@ -67234,15 +67234,6 @@
               "Value": "aws"
             },
             "services": {
-              "AmazonGameLiftStreams": {
-                "Value": "AmazonGameLiftStreams",
-                "endpoint": {
-                  "Value": "gameliftstreams.us-west-2.api.aws"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "accessanalyzer": {
                 "Value": "accessanalyzer",
                 "endpoint": {
