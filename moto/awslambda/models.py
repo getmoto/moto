@@ -2088,12 +2088,12 @@ class LambdaBackend(BaseBackend):
 
         ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
         ddb_backend = dynamodb_backends[self.account_id][self.region_name]
-        for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
-            if stream["StreamArn"] == spec["EventSourceArn"]:
+        for ddbstream in ddbstream_backend.list_streams():
+            if ddbstream["StreamArn"] == spec["EventSourceArn"]:
                 spec.update({"FunctionArn": func.function_arn})
                 esm = EventSourceMapping(spec)
                 self._event_source_mappings[esm.uuid] = esm
-                table_name = stream["TableName"]
+                table_name = ddbstream["TableName"]
                 table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
