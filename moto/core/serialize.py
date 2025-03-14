@@ -926,6 +926,10 @@ class XFormedAttributePicker:
                 short_key = key[len(class_name) :]
                 if short_key:  # Will be empty string if class name same as key
                     possible_keys.append(self.xform_name(short_key))
+        if shape is not None:
+            serialization_key = shape.serialization.get("name", key)
+            if serialization_key != key:
+                possible_keys.append(serialization_key)
         for key in possible_keys:
             new_value = ResponseSerializer._default_value_picker(value, key, shape)
             if new_value is not None:
