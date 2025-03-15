@@ -409,6 +409,56 @@ def test_describe_autoscaling_groups_launch_template():
 
 
 @mock_aws
+def test_describe_autoscaling_groups_launch_template_with_block_device_mappings():
+    mocked_networking = setup_networking()
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    ec2_client.create_launch_template(
+        LaunchTemplateName="test_launch_template",
+        LaunchTemplateData={
+            "ImageId": EXAMPLE_AMI_ID,
+            "InstanceType": "t2.micro",
+            "BlockDeviceMappings": [
+                {
+                    "DeviceName": "/dev/sda1",
+                    "Ebs": {
+                        "VolumeSize": 20,
+                        "DeleteOnTermination": True,
+                        "VolumeType": "gp3",
+                        "Encrypted": True,
+                    },
+                }
+            ],
+        },
+    )
+    client = boto3.client("autoscaling", region_name="us-east-1")
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchTemplate={"LaunchTemplateName": "test_launch_template", "Version": "1"},
+        MinSize=0,
+        MaxSize=20,
+        DesiredCapacity=5,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+        NewInstancesProtectedFromScaleIn=True,
+    )
+
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    group = response["AutoScalingGroups"][0]
+    for instance in group["Instances"]:
+        volumes = ec2_client.describe_volumes(
+            Filters=[
+                {"Name": "attachment.instance-id", "Values": [instance["InstanceId"]]}
+            ]
+        )["Volumes"]
+        # The standard root volume
+        assert volumes[0]["VolumeType"] == "gp2"
+        assert volumes[0]["Size"] == 8
+        # Our Ebs-volume
+        assert volumes[1]["VolumeType"] == "gp3"
+        assert volumes[1]["Size"] == 20
+
+
+@mock_aws
 def test_describe_autoscaling_instances_launch_config():
     mocked_networking = setup_networking()
     client = boto3.client("autoscaling", region_name="us-east-1")
