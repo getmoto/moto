@@ -263,6 +263,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         platform_version = self._get_param("platformVersion")
         propagate_tags = self._get_param("propagateTags") or "NONE"
         network_configuration = self._get_param("networkConfiguration")
+        role = self._get_param("role")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -277,6 +278,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             service_registries=service_registries,
             platform_version=platform_version,
             propagate_tags=propagate_tags,
+            role_arn=role,
         )
         return json.dumps({"service": service.response_object})
 
