@@ -92,6 +92,10 @@ jobs:
     needs: lint
     uses: ./.github/workflows/tests_sdk_ruby.yml
 
+  gotest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_go.yml
+
   terraformexamplestest:
     needs: lint
     uses: ./.github/workflows/tests_terraform_examples.yml
