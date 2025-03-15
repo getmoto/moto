@@ -34,6 +34,57 @@ ecr
 - [X] delete_repository_policy
 - [ ] describe_image_replication_status
 - [X] describe_image_scan_findings
+  
+        This operation will return a static result by default. It is possible to configure a custom result using the Moto API.
+
+        Here is some example code showing how this can be configured:
+
+        .. sourcecode:: python
+
+            # Dict with the exact response that you want to Moto to return
+            example_response = {
+                "imageScanFindings": {
+                    "enhancedFindings": [
+                    ],
+                    "findingSeverityCounts": {
+                        "MEDIUM": 1,
+                        "UNTRIAGED": 1
+                    }
+                },
+                "registryId": 000000000000,
+                "repositoryName": "reponame",
+                "imageId": {
+                    "imageTag": "latest"
+                },
+                "imageScanStatus": {
+                    "status": "COMPLETE",
+                    "description": "The scan was completed successfully."
+                }
+            }
+            findings = {
+                "results": [example_response],
+                # Specify a region - us-east-1 by default
+                "region": "us-west-1",
+            }
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/ecr/scan-finding-results",
+                json=findings,
+            )
+
+            ecr = boto3.client("ecr", region_name="us-west-1")
+            # Create an image and start a scan
+            # ...
+            # Return the findings for reponame:latest
+            findings = ecr.describe_image_scan_findings(
+                repositoryName="reponame", imageId={"imageTag": "latest"}
+            )
+            findings.pop("ResponseMetadata")
+            assert findings == example_response
+
+        Note that the repository-name and imageTag/imageDigest should be an exact match. If you call `describe_image_scan_findings` with a repository/imageTag that is not part of any of the custom results, Moto will return a static default response.
+
+        
+
 - [X] describe_images
 - [ ] describe_pull_through_cache_rules
 - [X] describe_registry
