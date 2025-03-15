@@ -29,6 +29,7 @@ class EKSResponse(BaseResponse):
         client_request_token = self._get_param("clientRequestToken")
         tags = self._get_param("tags")
         encryption_config = self._get_param("encryptionConfig")
+        remote_network_config = self._get_param("remoteNetworkConfig")
 
         cluster = self.eks_backend.create_cluster(
             name=name,
@@ -40,6 +41,7 @@ class EKSResponse(BaseResponse):
             client_request_token=client_request_token,
             tags=tags,
             encryption_config=encryption_config,
+            remote_network_config=remote_network_config,
         )
 
         return 200, {}, json.dumps({"cluster": dict(cluster)})
