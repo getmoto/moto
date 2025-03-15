@@ -21,7 +21,7 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         "DnsSupport": "enable",
         "MulticastSupport": "disable",
         "PropagationDefaultRouteTableId": "tgw-rtb-0d571391e50cf8514",
-        "TransitGatewayCidrBlocks": None,
+        "TransitGatewayCidrBlocks": [],
         "VpnEcmpSupport": "enable",
     }
 
@@ -39,11 +39,15 @@ class TransitGateway(TaggedEC2Resource, CloudFormationModel):
         self._created_at = utcnow()
 
     @property
+    def tags(self) -> List[Dict[str, str]]:
+        return self.get_tags()
+
+    @property
     def physical_resource_id(self) -> str:
         return self.id
 
     @property
-    def create_time(self) -> str:
+    def creation_time(self) -> str:
         return iso_8601_datetime_with_milliseconds(self._created_at)
 
     @property

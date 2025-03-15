@@ -1,47 +1,43 @@
-import json
-
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class MQError(JsonRESTError):
-    pass
+class NotFoundException(ServiceException):
+    code = "NotFoundException"
 
 
-class UnknownBroker(MQError):
+class UnknownBroker(NotFoundException):
+    error_attribute = "broker-id"
+
     def __init__(self, broker_id: str):
-        super().__init__("NotFoundException", "Can't find requested broker")
-        body = {
-            "errorAttribute": "broker-id",
-            "message": f"Can't find requested broker [{broker_id}]. Make sure your broker exists.",
-        }
-        self.description = json.dumps(body)
+        message = (
+            f"Can't find requested broker [{broker_id}]. Make sure your broker exists."
+        )
+        super().__init__(message)
 
 
-class UnknownConfiguration(MQError):
+class UnknownConfiguration(NotFoundException):
+    error_attribute = "configuration_id"
+
     def __init__(self, config_id: str):
-        super().__init__("NotFoundException", "Can't find requested configuration")
-        body = {
-            "errorAttribute": "configuration_id",
-            "message": f"Can't find requested configuration [{config_id}]. Make sure your configuration exists.",
-        }
-        self.description = json.dumps(body)
+        message = f"Can't find requested configuration [{config_id}]. Make sure your configuration exists."
+        super().__init__(message)
 
 
-class UnknownUser(MQError):
+class UnknownUser(NotFoundException):
+    error_attribute = "username"
+
     def __init__(self, username: str):
-        super().__init__("NotFoundException", "Can't find requested user")
-        body = {
-            "errorAttribute": "username",
-            "message": f"Can't find requested user [{username}]. Make sure your user exists.",
-        }
-        self.description = json.dumps(body)
+        message = f"Can't find requested user [{username}]. Make sure your user exists."
+        super().__init__(message)
 
 
-class UnknownEngineType(MQError):
+class BadRequestException(ServiceException):
+    code = "BadRequestException"
+
+
+class UnknownEngineType(BadRequestException):
+    error_attribute = "engineType"
+
     def __init__(self, engine_type: str):
-        super().__init__("BadRequestException", "")
-        body = {
-            "errorAttribute": "engineType",
-            "message": f"Broker engine type [{engine_type}] is invalid. Valid values are: [ACTIVEMQ]",
-        }
-        self.description = json.dumps(body)
+        message = f"Broker engine type [{engine_type}] is invalid. Valid values are: [ACTIVEMQ]"
+        super().__init__(message)

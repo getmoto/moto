@@ -70,8 +70,7 @@ def test_validate_error_parse(policy):
 
     # then
     ex = e.value
-    assert ex.code == 400
-    assert ex.error_type == "InvalidParameterException"
+    assert ex.code == "InvalidParameterException"
     assert (
         ex.message
         == "Invalid parameter at 'LifecyclePolicyText' failed to satisfy constraint: 'Lifecycle policy validation failure: Could not map policyString into LifecyclePolicy.'"
@@ -107,8 +106,7 @@ def test_validate_error_extract_rules(policy):
 
     # then
     ex = e.value
-    assert ex.code == 400
-    assert ex.error_type == "InvalidParameterException"
+    assert ex.code == "InvalidParameterException"
     assert (
         ex.message
         == "Invalid parameter at 'LifecyclePolicyText' failed to satisfy constraint: 'Lifecycle policy validation failure: object has missing required properties ([\"rules\"])'"
@@ -126,8 +124,7 @@ def test_validate_error_rule_type(rule):
 
     # then
     ex = e.value
-    assert ex.code == 400
-    assert ex.error_type == "InvalidParameterException"
+    assert ex.code == "InvalidParameterException"
     assert ex.message == (
         "Invalid parameter at 'LifecyclePolicyText' failed to satisfy constraint: "
         "'Lifecycle policy validation failure: "
@@ -196,8 +193,7 @@ def test_validate_error_rule_properties(rule, error_msg):
 
     # then
     ex = e.value
-    assert ex.code == 400
-    assert ex.error_type == "InvalidParameterException"
+    assert ex.code == "InvalidParameterException"
     assert (
         ex.message
         == f"Invalid parameter at 'LifecyclePolicyText' failed to satisfy constraint: 'Lifecycle policy validation failure: {error_msg}"
@@ -251,8 +247,7 @@ def test_validate_error_action_properties(action, error_msg):
 
     # then
     ex = e.value
-    assert ex.code == 400
-    assert ex.error_type == "InvalidParameterException"
+    assert ex.code == "InvalidParameterException"
     assert (
         ex.message
         == f"Invalid parameter at 'LifecyclePolicyText' failed to satisfy constraint: 'Lifecycle policy validation failure: {error_msg}"
@@ -370,8 +365,7 @@ def test_validate_error_selection_properties(selection, error_msg):
 
     # then
     ex = e.value
-    assert ex.code == 400
-    assert ex.error_type == "InvalidParameterException"
+    assert ex.code == "InvalidParameterException"
     assert (
         ex.message
         == f"Invalid parameter at 'LifecyclePolicyText' failed to satisfy constraint: 'Lifecycle policy validation failure: {error_msg}"

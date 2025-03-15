@@ -62,8 +62,6 @@ def test_create_transit_gateway():
         gateways[0]["Options"]["AssociationDefaultRouteTableId"]
         == gateways[0]["Options"]["PropagationDefaultRouteTableId"]
     )
-    del gateways[0]["CreationTime"]
-    del gateways[0]["Options"]["AssociationDefaultRouteTableId"]
     assert gateway == gateways[0]
 
 
