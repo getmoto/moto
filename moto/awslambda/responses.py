@@ -447,3 +447,34 @@ class LambdaResponse(BaseResponse):
         return json.dumps(
             self.backend.list_function_event_invoke_configs(function_name)
         )
+
+    def add_layer_version_permission(self) -> str:
+        statement = self.body
+        layer_name = self._get_param("LayerName")
+        version_number = self._get_param("VersionNumber")
+        statement, revision_id = self.backend.add_layer_version_permission(
+            layer_name=layer_name,
+            version_number=version_number,
+            statement=statement,
+        )
+        return json.dumps(dict(Statement=json.dumps(statement), RevisionId=revision_id))
+
+    def get_layer_version_policy(self) -> str:
+        layer_name = self._get_param("LayerName")
+        version_number = self._get_param("VersionNumber")
+        return self.backend.get_layer_version_policy(
+            layer_name=layer_name, version_number=version_number
+        )
+
+    def remove_layer_version_permission(self) -> TYPE_RESPONSE:
+        layer_name = self._get_param("LayerName")
+        version_number = self._get_param("VersionNumber")
+        statement_id = self.path.split("/")[-1].split("?")[0]
+        revision = self.querystring.get("RevisionId", "")
+        if self.backend.get_layer_version(layer_name, version_number):
+            self.backend.remove_layer_version_permission(
+                layer_name, version_number, statement_id, revision
+            )
+            return 204, {"status": 204}, "{}"
+        else:
+            return 404, {"status": 404}, "{}"

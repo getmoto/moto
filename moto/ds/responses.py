@@ -268,3 +268,28 @@ class DirectoryServiceResponse(BaseResponse):
             settings=settings,
         )
         return json.dumps(dict(DirectoryId=directory_id))
+
+    def create_log_subscription(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        log_group_name = self._get_param("LogGroupName")
+        self.ds_backend.create_log_subscription(
+            directory_id=directory_id,
+            log_group_name=log_group_name,
+        )
+        return json.dumps(dict())
+
+    def delete_log_subscription(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.delete_log_subscription(
+            directory_id=directory_id,
+        )
+        return json.dumps(dict())
+
+    def list_log_subscriptions(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        log_subscriptions = self.ds_backend.list_log_subscriptions(
+            directory_id=directory_id,
+        )
+        return json.dumps(
+            dict(LogSubscriptions=[ls.to_dict() for ls in log_subscriptions])
+        )

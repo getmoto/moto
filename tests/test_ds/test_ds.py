@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.moto_api._internal import mock_random
 
+from .test_ds_microsoft_ad import create_test_microsoft_ad
 from .test_ds_simple_ad_directory import TEST_REGION, create_test_directory
 
 
@@ -474,3 +475,64 @@ def test_settings_exception_non_microsoftad():
         client.describe_settings(DirectoryId=directory_id)
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
+
+
+@mock_aws
+def test_create_log_subscription():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    random_directory_id = f"d-{mock_random.get_random_hex(10)}"
+    with pytest.raises(ClientError) as exc:
+        client.create_log_subscription(
+            DirectoryId=random_directory_id, LogGroupName="test-log-group"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+    assert f"Directory {random_directory_id} does not exist" in err["Message"]
+
+    directory_id = create_test_microsoft_ad(client, ec2_client)
+    client.create_log_subscription(
+        DirectoryId=directory_id, LogGroupName="test-log-group"
+    )
+
+    resp = client.list_log_subscriptions()
+    assert len(resp["LogSubscriptions"]) == 1
+
+
+@mock_aws
+def test_delete_log_subscription():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    random_directory_id = f"d-{mock_random.get_random_hex(10)}"
+    with pytest.raises(ClientError) as exc:
+        client.delete_log_subscription(DirectoryId=random_directory_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityDoesNotExistException"
+    assert f"Directory {random_directory_id} does not exist" in err["Message"]
+
+    directory_id = create_test_microsoft_ad(client, ec2_client)
+    client.create_log_subscription(
+        DirectoryId=directory_id, LogGroupName="test-log-group"
+    )
+
+    resp = client.list_log_subscriptions()
+    assert len(resp["LogSubscriptions"]) == 1
+    client.delete_log_subscription(DirectoryId=directory_id)
+    resp = client.list_log_subscriptions()
+    assert len(resp["LogSubscriptions"]) == 0
+
+
+@mock_aws
+def test_list_log_subscriptions():
+    client = boto3.client("ds", region_name=TEST_REGION)
+    ec2_client = boto3.client("ec2", region_name=TEST_REGION)
+
+    for i in range(1, 3):
+        directory_id = create_test_microsoft_ad(client, ec2_client)
+        client.create_log_subscription(
+            DirectoryId=directory_id, LogGroupName=f"test-log-group-{i}"
+        )
+    resp = client.list_log_subscriptions()
+    assert len(resp["LogSubscriptions"]) == 2
