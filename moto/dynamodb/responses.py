@@ -22,7 +22,7 @@ from .exceptions import (
     ResourceNotFoundException,
     UnknownKeyType,
 )
-from .utils import extract_duplicates
+from .utils import find_path_overlaps
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -797,9 +797,9 @@ class DynamoHandler(BaseResponse):
 
         if projection_expression:
             expressions = [x.strip() for x in projection_expression.split(",")]
-            duplicates = extract_duplicates(expressions)
+            duplicates = find_path_overlaps(expressions)
             if duplicates:
-                raise InvalidProjectionExpression(duplicates)
+                raise InvalidProjectionExpression(duplicates[0], duplicates[1])
             for expression in expressions:
                 check_projection_expression(expression)
             return [
@@ -1153,10 +1153,10 @@ class DynamoHandler(BaseResponse):
                     table,
                     custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
                 )
+
                 update_expression = item["Update"]["UpdateExpression"]
-                UpdateExpressionParser.make(update_expression).validate(
-                    limit_set_actions=True
-                )
+                UpdateExpressionParser.make(update_expression)
+
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
