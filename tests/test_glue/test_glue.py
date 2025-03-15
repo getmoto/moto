@@ -1009,3 +1009,57 @@ def test_get_connections():
     assert connections[0]["Name"] == "test-connection-0"
     assert connections[1]["Name"] == "test-connection-1"
     assert connections[2]["Name"] == "test-connection-2"
+
+
+@mock_aws
+def test_put_data_catalog_encryption_settings():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    encryption_settings = {
+        "EncryptionAtRest": {
+            "CatalogEncryptionMode": "SSE-KMS",
+            "SseAwsKmsKeyId": "test-key-id",
+            "CatalogEncryptionServiceRole": "arn:aws:iam::123456789012:role/GlueServiceRole",
+        },
+        "ConnectionPasswordEncryption": {
+            "ReturnConnectionPasswordEncrypted": True,
+            "AwsKmsKeyId": "test-password-key-id",
+        },
+    }
+
+    response = client.put_data_catalog_encryption_settings(
+        DataCatalogEncryptionSettings=encryption_settings
+    )
+
+    assert "ResponseMetadata" in response
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    get_response = client.get_data_catalog_encryption_settings()
+    assert get_response["DataCatalogEncryptionSettings"] == encryption_settings
+
+    # Testing a Specific Catalog ID
+    catalog_id = "123456789012"
+    catalog_settings = {
+        "EncryptionAtRest": {
+            "CatalogEncryptionMode": "SSE-KMS-WITH-SERVICE-ROLE",
+            "SseAwsKmsKeyId": "catalog-specific-key-id",
+            "CatalogEncryptionServiceRole": "arn:aws:iam::123456789012:role/GlueServiceRole",
+        },
+        "ConnectionPasswordEncryption": {
+            "ReturnConnectionPasswordEncrypted": True,
+            "AwsKmsKeyId": "catalog-specific-password-key-id",
+        },
+    }
+
+    catalog_response = client.put_data_catalog_encryption_settings(
+        CatalogId=catalog_id, DataCatalogEncryptionSettings=catalog_settings
+    )
+
+    assert "ResponseMetadata" in catalog_response
+    assert catalog_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    catalog_get_response = client.get_data_catalog_encryption_settings(
+        CatalogId=catalog_id
+    )
+
+    assert catalog_get_response["DataCatalogEncryptionSettings"] == catalog_settings
