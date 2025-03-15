@@ -16,6 +16,7 @@ url_paths = {
     "{0}/moto-api/config": response_instance.config,
     "{0}/moto-api/static/athena/query-results": response_instance.set_athena_result,
     "{0}/moto-api/static/ce/cost-and-usage-results": response_instance.set_ce_cost_usage_result,
+    "{0}/moto-api/static/ecr/scan-finding-results": response_instance.set_ecr_scan_finding_results,
     "{0}/moto-api/static/inspector2/findings-results": response_instance.set_inspector2_findings_result,
     "{0}/moto-api/static/lambda-simple/response": response_instance.set_lambda_simple_result,
     "{0}/moto-api/static/resilience-hub-assessments/response": response_instance.set_resilience_result,
