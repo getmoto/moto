@@ -2312,6 +2312,34 @@ def test_create_db_parameter_group_duplicate(client):
             Description="test parameter group",
         )
 
+@pytest.mark.parametrize(
+    "source_db_parameter_group_identifier",
+    ("source-parameter-group", f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:source-parameter-group"),
+    ids=("by_name", "by_arn"),
+)
+@mock_aws
+def test_copy_db_parameter_group(
+    source_db_parameter_group_identifier: str,
+    client
+):
+    source_db_parameter_group = client.create_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test source parameter group",
+    )
+
+    target_db_parameter_group = client.copy_db_parameter_group(
+        SourceDBParameterGroupIdentifier=source_db_parameter_group_identifier,
+        TargetDBParameterGroupIdentifier="target-parameter-group",
+        TargetDBParameterGroupDescription="test target parameter group",
+    )
+
+    assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupName"] == "target-parameter-group"
+    assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupFamily"] == "mysql5.6"
+    assert target_db_parameter_group["DBParameterGroup"]["Description"] == "test target parameter group"
+    assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"] == (
+        f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:target-parameter-group"
+    )
 
 @mock_aws
 def test_describe_db_parameter_group(client):

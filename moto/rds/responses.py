@@ -347,6 +347,11 @@ class RDSResponse(BaseResponse):
         result = {"DBParameterGroup": db_parameter_group}
         return ActionResult(result)
 
+    def copy_db_parameter_group(self) -> ActionResult:
+        target_db_parameter_group = self.backend.copy_db_parameter_group(**self.parameters)
+        result = {"DBParameterGroup": target_db_parameter_group}
+        return ActionResult(result)
+
     def describe_db_parameter_groups(self) -> ActionResult:
         kwargs = self.parameters
         db_parameter_groups = self.backend.describe_db_parameter_groups(kwargs)
