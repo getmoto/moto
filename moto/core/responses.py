@@ -29,9 +29,11 @@ from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
-from moto.core.exceptions import DryRunClientError
+from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.serialize import SERIALIZERS, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
+    get_service_model,
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
@@ -268,6 +270,17 @@ class ActionAuthenticatorMixin(object):
             return wrapper
 
         return decorator
+
+
+class ActionResult:
+    """Wrapper class for serializable results returned from `responses.py` methods."""
+
+    def __init__(self, result: object) -> None:
+        self._result = result
+
+    @property
+    def result(self) -> object:
+        return self._result
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
@@ -571,6 +584,18 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
 
+    def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
+        service_model = get_service_model(self.service_name)
+        operation_model = service_model.operation_model(self._get_action())
+        serializer_cls = SERIALIZERS[service_model.protocol]
+        serializer = serializer_cls(
+            operation_model=operation_model,
+            pretty_print=settings.PRETTIFY_RESPONSES,
+            value_picker=XFormedAttributePicker(),
+        )
+        serialized = serializer.serialize(action_result.result)
+        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
         if hasattr(self, "_determine_resource"):
@@ -594,6 +619,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             method = getattr(self, action)
             try:
                 response = method()
+            except ServiceException as e:
+                response = ActionResult(e)  # type: ignore[assignment]
             except HTTPException as http_error:
                 response_headers: Dict[str, Union[str, int]] = dict(
                     http_error.get_headers() or []
@@ -601,7 +628,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response_headers["status"] = http_error.code  # type: ignore[assignment]
                 response = http_error.description, response_headers  # type: ignore[assignment]
 
-            if isinstance(response, str):
+            if isinstance(response, ActionResult):
+                status, headers, body = self.serialized(response)
+            elif isinstance(response, str):
                 status = 200
                 body = response
             else:

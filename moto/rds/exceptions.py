@@ -1,10 +1,13 @@
 from typing import Optional
 
+from moto.core.exceptions import ServiceException
 
-class RDSClientError(Exception):
+
+class RDSClientError(ServiceException):
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
+        self.message = message
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -44,7 +47,7 @@ class DBSubnetGroupNotFoundError(RDSClientError):
 class DBParameterGroupNotFoundError(RDSClientError):
     def __init__(self, db_parameter_group_name: str):
         super().__init__(
-            "DBParameterGroupNotFound",
+            "DBParameterGroupNotFoundFault",
             f"DB Parameter Group {db_parameter_group_name} not found.",
         )
 

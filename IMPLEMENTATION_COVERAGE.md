@@ -3963,7 +3963,7 @@
 
 ## glue
 <details>
-<summary>28% implemented</summary>
+<summary>29% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -4070,7 +4070,7 @@
 - [ ] get_crawler_metrics
 - [X] get_crawlers
 - [ ] get_custom_entity_type
-- [ ] get_data_catalog_encryption_settings
+- [X] get_data_catalog_encryption_settings
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
@@ -4155,7 +4155,7 @@
 - [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] modify_integration
-- [ ] put_data_catalog_encryption_settings
+- [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
 - [ ] put_resource_policy
 - [X] put_schema_version_metadata

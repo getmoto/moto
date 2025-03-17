@@ -20,3 +20,14 @@ class TestMockBucketStartingWithServiceName:
                 Bucket=bucket_name,
                 CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
             )
+
+
+@mock_aws
+def test_dynamodb_account_based_endpoint() -> None:
+    dynamodb_account_based_endpoint_service_name = "ddb"
+    s3_client = boto3.client("s3", "us-east-1")
+    bucket_name = (
+        f"bucket-name-ends-with-{dynamodb_account_based_endpoint_service_name}"
+    )
+    resp = s3_client.create_bucket(Bucket=bucket_name)
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200

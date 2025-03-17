@@ -59,6 +59,7 @@ from datetime import datetime
 from typing import Any, Mapping, MutableMapping, Optional, TypedDict, Union
 
 import xmltodict
+from botocore import xform_name
 from botocore.compat import formatdate
 from botocore.model import (
     ListShape,
@@ -451,6 +452,7 @@ class ResponseSerializer(ShapeHelpersMixin):
 
 
 class BaseJSONSerializer(ResponseSerializer):
+    APPLICATION_AMZ_JSON = "application/x-amz-json-{version}"
     DEFAULT_TIMESTAMP_FORMAT = "unixtimestamp"
 
     def _serialized_result_to_response(
@@ -461,6 +463,7 @@ class BaseJSONSerializer(ResponseSerializer):
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         resp["body"] = self._serialize_body(serialized_result)
+        resp["headers"]["Content-Type"] = self._get_protocol_specific_content_type()
         return resp
 
     def _serialized_error_to_response(
@@ -477,7 +480,17 @@ class BaseJSONSerializer(ResponseSerializer):
         resp["status_code"] = status_code
         error_code = self._get_protocol_specific_error_code(shape.error_code)
         resp["headers"]["X-Amzn-Errortype"] = error_code
+        resp["headers"]["Content-Type"] = self._get_protocol_specific_content_type()
         return resp
+
+    def _get_protocol_specific_content_type(self) -> str:
+        content_type = self.CONTENT_TYPE
+        service_model = self.operation_model.service_model
+        protocol = service_model.protocol
+        if protocol == "json":
+            json_version = service_model.metadata.get("jsonVersion", "1.0")
+            content_type = self.APPLICATION_AMZ_JSON.format(version=json_version)
+        return content_type
 
     def _get_protocol_specific_error_code(
         self,
@@ -575,6 +588,7 @@ class BaseXMLSerializer(ResponseSerializer):
             "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
         )
         resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialized_result_to_response(
@@ -590,6 +604,7 @@ class BaseXMLSerializer(ResponseSerializer):
         }
         self._serialize_namespace_attribute(result_wrapper[result_key])
         resp["body"] = self._serialize_body(result_wrapper)
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialize_error_metadata(
@@ -616,6 +631,28 @@ class BaseXMLSerializer(ResponseSerializer):
         )
         return body_encoded
 
+    #
+    # https://smithy.io/2.0/aws/protocols/aws-query-protocol.html#xml-shape-serialization
+    #
+    def _serialize_type_boolean(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        # We're slightly more permissive here than we should be because the
+        # moto backends are not consistent in how they store boolean values.
+        # TODO: This should eventually be turned into a strict `is True` check.
+        boolean_conditions = [
+            (value is True),
+            (str(value).lower() == "true"),
+        ]
+        boolean_value = "true" if any(boolean_conditions) else "false"
+        self._default_serialize(serialized, boolean_value, shape, key)
+
+    def _serialize_type_integer(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        integer_value = int(value)
+        self._default_serialize(serialized, integer_value, shape, key)
+
     def _serialize_type_list(
         self, serialized: Serialized, value: Any, shape: ListShape, key: str
     ) -> None:
@@ -633,6 +670,14 @@ class BaseXMLSerializer(ResponseSerializer):
             list_obj.append(wrapper["__current__"])
         if not list_obj:
             serialized[key] = ""
+
+    _serialize_type_long = _serialize_type_integer
+
+    def _serialize_type_string(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        string_value = str(value)
+        self._default_serialize(serialized, string_value, shape, key)
 
 
 class BaseRestSerializer(ResponseSerializer):
@@ -659,6 +704,7 @@ class BaseRestSerializer(ResponseSerializer):
                 )
         if "headers" in serialized_result:
             resp["headers"].update(serialized_result["headers"])
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialize_result(self, resp: ResponseDict, result: Any) -> ResponseDict:
@@ -667,13 +713,14 @@ class BaseRestSerializer(ResponseSerializer):
             "body": {},
             "headers": {},
         }
-        assert isinstance(output_shape, StructureShape)
-        self._serialize(serialized_result, result, output_shape, "")
-        payload_member = output_shape.serialization.get("payload")
-        if payload_member is not None:
-            payload_shape = output_shape.members[payload_member]
-            payload_value = self._get_value(result, payload_member, payload_shape)
-            self._serialize_payload(serialized_result, payload_value, payload_shape)
+        if output_shape is not None:
+            assert isinstance(output_shape, StructureShape)
+            self._serialize(serialized_result, result, output_shape, "")
+            payload_member = output_shape.serialization.get("payload")
+            if payload_member is not None:
+                payload_shape = output_shape.members[payload_member]
+                payload_value = self._get_value(result, payload_member, payload_shape)
+                self._serialize_payload(serialized_result, payload_value, payload_shape)
 
         return self._serialized_result_to_response(
             resp, result, output_shape, serialized_result
@@ -720,6 +767,7 @@ class RestXMLSerializer(BaseRestSerializer, BaseXMLSerializer):
 
 
 class RestJSONSerializer(BaseRestSerializer, BaseJSONSerializer):
+    CONTENT_TYPE = "application/json"
     REQUIRES_EMPTY_BODY = True
 
 
@@ -747,6 +795,7 @@ class QuerySerializer(BaseXMLSerializer):
             "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
         )
         resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialized_result_to_response(
@@ -812,6 +861,7 @@ class EC2Serializer(QuerySerializer):
             "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
         )
         resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
     def _serialized_result_to_response(
@@ -828,6 +878,7 @@ class EC2Serializer(QuerySerializer):
         result_wrapper[response_key]["requestId"] = self.context.request_id
         self._serialize_namespace_attribute(result_wrapper[response_key])
         resp["body"] = self._serialize_body(result_wrapper)
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
 
 
@@ -838,3 +889,49 @@ SERIALIZERS = {
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
+
+
+class XFormedAttributePicker:
+    """Can be injected into a ResponseSerializer to aid in plucking AWS model
+    attributes specified in `camelCase` or `PascalCase` from Python objects
+    with standard `snake_case` attribute names.
+
+    For a model attribute named `DBInstanceIdentifier`, this class will check
+    for the following attributes on the provided object:
+       * `DBInstanceIdentifier`
+       * `db_instance_identifier`
+    If the provided object is a class named `DBInstance`, this class will also
+    check for the following attribute on the provided object:
+       * `identifier`
+
+    Uses ``botocore.xform_name`` to translate the attribute name.
+    """
+
+    def __init__(self) -> None:
+        self._xform_cache = {}
+
+    def __call__(self, value: Any, key: str, shape: Shape) -> Any:
+        return self._get_value(value, key, shape)
+
+    def xform_name(self, name: str) -> str:
+        return xform_name(name, _xform_cache=self._xform_cache)
+
+    def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
+        new_value = None
+        possible_keys = [key, self.xform_name(key)]
+        # If a class `Role` has an attribute named `arn`, that will work for a `RoleArn` key.
+        if hasattr(value, "__class__"):
+            class_name = value.__class__.__name__
+            if key.lower().startswith(class_name.lower()):
+                short_key = key[len(class_name) :]
+                if short_key:  # Will be empty string if class name same as key
+                    possible_keys.append(self.xform_name(short_key))
+        if shape is not None:
+            serialization_key = shape.serialization.get("name", key)
+            if serialization_key != key:
+                possible_keys.append(serialization_key)
+        for key in possible_keys:
+            new_value = ResponseSerializer._default_value_picker(value, key, shape)
+            if new_value is not None:
+                break
+        return new_value
