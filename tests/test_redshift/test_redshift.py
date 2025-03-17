@@ -2020,9 +2020,6 @@ def test_disable_logging():
     assert resp["LoggingEnabled"] is True
     resp = client.disable_logging(ClusterIdentifier="test")
     assert resp["LoggingEnabled"] is False
-    import pytest
-
-    pytest.set_trace()
 
 
 @mock_aws
