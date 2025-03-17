@@ -8476,7 +8476,7 @@
 
 ## servicecatalog
 <details>
-<summary>3% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] accept_portfolio_share
 - [ ] associate_budget_with_resource
@@ -8488,8 +8488,8 @@
 - [ ] batch_disassociate_service_action_from_provisioning_artifact
 - [ ] copy_product
 - [ ] create_constraint
-- [ ] create_portfolio
-- [ ] create_portfolio_share
+- [X] create_portfolio
+- [X] create_portfolio_share
 - [ ] create_product
 - [ ] create_provisioned_product_plan
 - [ ] create_provisioning_artifact
@@ -8537,7 +8537,7 @@
 - [ ] list_launch_paths
 - [ ] list_organization_portfolio_access
 - [X] list_portfolio_access
-- [ ] list_portfolios
+- [X] list_portfolios
 - [ ] list_portfolios_for_product
 - [ ] list_principals_for_portfolio
 - [ ] list_provisioned_product_plans

@@ -1,1 +1,1 @@
-from .models import servicecatalog_backends  #noqa: F401
+from .models import servicecatalog_backends  # noqa: F401

@@ -1,4 +1,5 @@
 """servicecatalog base URL and path."""
+
 from .responses import ServiceCatalogResponse
 
 url_bases = [
