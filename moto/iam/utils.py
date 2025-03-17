@@ -1,6 +1,6 @@
 import base64
 import string
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
 from moto.moto_api._internal import mock_random as random
 
