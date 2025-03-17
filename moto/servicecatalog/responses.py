@@ -4,17 +4,17 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import servicecatalog_backends
+from .models import ServiceCatalogBackend, servicecatalog_backends
 
 
 class ServiceCatalogResponse(BaseResponse):
     """Handler for ServiceCatalog requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="servicecatalog")
 
     @property
-    def servicecatalog_backend(self):
+    def servicecatalog_backend(self) -> ServiceCatalogBackend:
         """Return backend instance specific for this region."""
         # TODO
         # servicecatalog_backends is not yet typed
@@ -23,7 +23,7 @@ class ServiceCatalogResponse(BaseResponse):
 
     # add methods from here
 
-    def list_portfolio_access(self):
+    def list_portfolio_access(self) -> str:
         params = json.loads(self.body)
         accept_language = params.get("AcceptLanguage")
         portfolio_id = params.get("PortfolioId")
@@ -46,7 +46,7 @@ class ServiceCatalogResponse(BaseResponse):
 
         return json.dumps({"AccountIds": account_ids, "NextPageToken": next_page_token})
 
-    def delete_portfolio(self):
+    def delete_portfolio(self) -> str:
         params = json.loads(self.body)
         accept_language = params.get("AcceptLanguage")
         id = params.get("Id")
@@ -61,7 +61,7 @@ class ServiceCatalogResponse(BaseResponse):
 
     # add templates from here
 
-    def delete_portfolio_share(self):
+    def delete_portfolio_share(self) -> str:
         params = json.loads(self.body)
         accept_language = params.get("AcceptLanguage")
         portfolio_id = params.get("PortfolioId")
@@ -81,7 +81,7 @@ class ServiceCatalogResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def create_portfolio(self):
+    def create_portfolio(self) -> str:
         params = json.loads(self.body)
 
         accept_language = params.get("AcceptLanguage")
@@ -102,7 +102,7 @@ class ServiceCatalogResponse(BaseResponse):
 
         return json.dumps({"PortfolioDetail": portfolio_detail, "Tags": tags})
 
-    def create_portfolio_share(self):
+    def create_portfolio_share(self) -> str:
         params = json.loads(self.body)
         accept_language = params.get("AcceptLanguage")
         portfolio_id = params.get("PortfolioId")
@@ -126,7 +126,7 @@ class ServiceCatalogResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def list_portfolios(self):
+    def list_portfolios(self) -> str:
         params = self._get_params()
         accept_language = params.get("AcceptLanguage")
         page_token = params.get("PageToken")

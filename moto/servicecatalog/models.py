@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -29,14 +30,14 @@ class Portfolio(BaseModel):
 
     def __init__(
         self,
-        portfolio_id,
-        display_name,
-        description,
-        provider_name,
-        tags,
-        region_name,
-        account_id,
-    ):
+        portfolio_id: str,
+        display_name: str,
+        description: str,
+        provider_name: str,
+        tags: List[Dict[str, str]],
+        region_name: str,
+        account_id: str,
+    ) -> None:
         self.id = portfolio_id
         self.display_name = display_name
         self.description = description
@@ -47,10 +48,10 @@ class Portfolio(BaseModel):
         self.account_id = account_id
 
     @property
-    def arn(self):
+    def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:portfolio/{self.id}"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str]:
         return {
             "Id": self.id,
             "ARN": self.arn,
@@ -64,25 +65,25 @@ class Portfolio(BaseModel):
 class ServiceCatalogBackend(BaseBackend):
     """Implementation of ServiceCatalog APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.portfolio_access = {}
-        self.portfolios = {}
-        self.idempotency_tokens = {}
+        self.portfolio_access: Dict[str, List[str]] = {}
+        self.portfolios: Dict[str, Portfolio] = {}
+        self.idempotency_tokens: Dict[str, str] = {}
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_portfolio_access(
         self,
-        accept_language,
-        portfolio_id,
-        organization_parent_id,
-        page_token,
-        page_size=None,
-    ):
+        accept_language: Optional[str],
+        portfolio_id: str,
+        organization_parent_id: Optional[str],
+        page_token: Optional[str],
+        page_size: Optional[int] = None,
+    ) -> List[Dict[str, str]]:
         account_ids = self.portfolio_access.get(portfolio_id, [])
         return [{"account_id": account_id} for account_id in account_ids]
 
-    def delete_portfolio(self, accept_language, id):
+    def delete_portfolio(self, accept_language: Optional[str], id: str) -> None:
         # Remove any portfolio access entries for this portfolio
         if id in self.portfolio_access:
             del self.portfolio_access[id]
@@ -94,8 +95,12 @@ class ServiceCatalogBackend(BaseBackend):
         return None
 
     def delete_portfolio_share(
-        self, accept_language, portfolio_id, account_id, organization_node
-    ):
+        self,
+        accept_language: Optional[str],
+        portfolio_id: str,
+        account_id: Optional[str],
+        organization_node: Optional[Dict[str, str]],
+    ) -> Optional[str]:
         # If we have an account_id, remove it from the portfolio's access list
         if account_id and portfolio_id in self.portfolio_access:
             if account_id in self.portfolio_access[portfolio_id]:
@@ -110,13 +115,13 @@ class ServiceCatalogBackend(BaseBackend):
 
     def create_portfolio(
         self,
-        accept_language,
-        display_name,
-        description,
-        provider_name,
-        tags,
-        idempotency_token,
-    ):
+        accept_language: Optional[str],
+        display_name: str,
+        description: Optional[str],
+        provider_name: str,
+        tags: Optional[List[Dict[str, str]]],
+        idempotency_token: Optional[str],
+    ) -> Tuple[Dict[str, str], List[Dict[str, str]]]:
         if idempotency_token and idempotency_token in self.idempotency_tokens:
             portfolio_id = self.idempotency_tokens[idempotency_token]
             portfolio = self.portfolios[portfolio_id]
@@ -145,13 +150,13 @@ class ServiceCatalogBackend(BaseBackend):
 
     def create_portfolio_share(
         self,
-        accept_language,
-        portfolio_id,
-        account_id,
-        organization_node,
-        share_tag_options,
-        share_principals,
-    ):
+        accept_language: Optional[str],
+        portfolio_id: str,
+        account_id: Optional[str],
+        organization_node: Optional[Dict[str, str]],
+        share_tag_options: bool,
+        share_principals: bool,
+    ) -> Optional[str]:
         if portfolio_id not in self.portfolios:
             return None
 
@@ -179,7 +184,12 @@ class ServiceCatalogBackend(BaseBackend):
 
         return portfolio_share_token
 
-    def list_portfolios(self, accept_language=None, page_token=None, page_size=None):
+    def list_portfolios(
+        self,
+        accept_language: Optional[str] = None,
+        page_token: Optional[str] = None,
+        page_size: Optional[int] = None,
+    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
         # TODO: Implement proper pagination for this method
         portfolio_details = [
             portfolio.to_dict() for portfolio in self.portfolios.values()
