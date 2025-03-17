@@ -523,9 +523,12 @@ class IAMPolicyStatement:
         if not expected_principals:
             return True
 
-        return principal == expected_principals.get(
-            "AWS"
-        ) or principal in expected_principals.get("AWS")
+        aws_expected_principals = expected_principals.get("AWS")
+        return (
+            aws_expected_principals == "*"
+            or principal == aws_expected_principals
+            or principal in aws_expected_principals
+        )
 
     def _check_conditions(self, conditions: Dict[str, Dict[str, str]]) -> bool:
         expected_conditions = self._statement.get("Condition")
