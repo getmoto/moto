@@ -3903,3 +3903,42 @@ def test_service_exceptions(net_config, error_message):
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
     assert ex.response["Error"]["Message"] == error_message
+
+
+@mock_aws
+def test_create_service_with_role_arn():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster_name = "test_ecs_cluster"
+    service_name = "test_ecs_service"
+    task_definition_family = "test_ecs_task"
+    role_arn = "arn:aws:iam::123456789012:role/test-role"
+
+    client.create_cluster(clusterName=cluster_name)
+
+    client.register_task_definition(
+        family=task_definition_family,
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+            }
+        ],
+    )
+
+    response = client.create_service(
+        cluster=cluster_name,
+        serviceName=service_name,
+        taskDefinition=task_definition_family,
+        desiredCount=2,
+        role=role_arn,
+    )
+
+    assert response["service"]["roleArn"] == role_arn
+
+    describe_response = client.describe_services(
+        cluster=cluster_name, services=[service_name]
+    )
+    assert describe_response["services"][0]["roleArn"] == role_arn

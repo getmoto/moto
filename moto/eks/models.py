@@ -105,6 +105,7 @@ class Cluster:
         client_request_token: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         encryption_config: Optional[List[Dict[str, Any]]] = None,
+        remote_network_config: Optional[Dict[str, List[Dict[str, List[str]]]]] = None,
     ):
         if encryption_config is None:
             encryption_config = []
@@ -142,6 +143,7 @@ class Cluster:
         self.resources_vpc_config = resources_vpc_config
         self.role_arn = role_arn
         self.tags = tags
+        self.remote_network_config = remote_network_config
 
     def __iter__(self) -> Iterator[Tuple[str, Any]]:
         yield "name", self.name
@@ -160,6 +162,8 @@ class Cluster:
         yield "platformVersion", self.platformVersion
         yield "tags", self.tags
         yield "encryptionConfig", self.encryption_config
+        if self.remote_network_config is not None:
+            yield "remoteNetworkConfig", self.remote_network_config
 
     def isActive(self) -> bool:
         return self.status == "ACTIVE"
@@ -348,6 +352,7 @@ class EKSBackend(BaseBackend):
         client_request_token: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         encryption_config: Optional[List[Dict[str, Any]]] = None,
+        remote_network_config: Optional[Dict[str, List[Dict[str, List[str]]]]] = None,
     ) -> Cluster:
         if name in self.clusters:
             # Cluster exists.
@@ -369,6 +374,7 @@ class EKSBackend(BaseBackend):
             client_request_token=client_request_token,
             tags=tags,
             encryption_config=encryption_config,
+            remote_network_config=remote_network_config,
             account_id=self.account_id,
             region_name=self.region_name,
             aws_partition=self.partition,
