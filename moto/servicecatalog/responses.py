@@ -21,8 +21,6 @@ class ServiceCatalogResponse(BaseResponse):
         # Please modify moto/backends.py to add the appropriate type annotations for this service
         return servicecatalog_backends[self.current_account][self.region]
 
-    # add methods from here
-
     def list_portfolio_access(self) -> str:
         params = json.loads(self.body)
         accept_language = params.get("AcceptLanguage")
@@ -41,7 +39,6 @@ class ServiceCatalogResponse(BaseResponse):
             )
         )
 
-        # Extract account_ids from the objects returned by the paginator
         account_ids = [obj["account_id"] for obj in account_id_objects]
 
         return json.dumps({"AccountIds": account_ids, "NextPageToken": next_page_token})
@@ -56,10 +53,7 @@ class ServiceCatalogResponse(BaseResponse):
             id=id,
         )
 
-        # Return an empty JSON object as per the API specification
         return json.dumps({})
-
-    # add templates from here
 
     def delete_portfolio_share(self) -> str:
         params = json.loads(self.body)

@@ -170,7 +170,7 @@ class ServiceCatalogBackend(BaseBackend):
 
             return None
 
-        # If we have an organization_node, generate a portfolio share token
+        # With an organization_node, create the portfolio share token
         portfolio_share_token = None
         if organization_node:
             org_type = organization_node.get("Type", "")
