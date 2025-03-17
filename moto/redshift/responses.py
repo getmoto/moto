@@ -807,8 +807,7 @@ class RedshiftResponse(BaseResponse):
         )
 
     def describe_logging_status(self) -> str:
-        params = self._get_params()
-        cluster_identifier = params.get("ClusterIdentifier")
+        cluster_identifier = self._get_param("ClusterIdentifier")
         config = self.redshift_backend.describe_logging_status(
             cluster_identifier=cluster_identifier,
         )
