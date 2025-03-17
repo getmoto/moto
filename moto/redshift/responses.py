@@ -763,3 +763,124 @@ class RedshiftResponse(BaseResponse):
                 }
             }
         )
+
+    def enable_logging(self) -> str:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        bucket_name = self._get_param("BucketName")
+        s3_key_prefix = self._get_param("S3KeyPrefix")
+        log_destination_type = self._get_param("LogDestinationType")
+        log_exports = self._get_param("LogExports")
+        config = self.redshift_backend.enable_logging(
+            cluster_identifier=cluster_identifier,
+            bucket_name=bucket_name,
+            s3_key_prefix=s3_key_prefix,
+            log_destination_type=log_destination_type,
+            log_exports=log_exports,
+        )
+        template = self.response_template(ENABLE_LOGGING_TEMPLATE)
+        return template.render(
+            logging_enabled=config["LoggingEnabled"],
+            bucket_name=config["BucketName"],
+            s3_key_prefix=config["S3KeyPrefix"],
+            last_successful_delivery_time=config["LastSuccessfulDeliveryTime"],
+            last_failure_time=config["LastFailureTime"],
+            last_failure_message=config["LastFailureMessage"],
+            log_destination_type=config["LogDestinationType"],
+            log_exports=config["LogExports"],
+        )
+
+    def disable_logging(self) -> str:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        config = self.redshift_backend.disable_logging(
+            cluster_identifier=cluster_identifier,
+        )
+        template = self.response_template(DISABLE_LOGGING_TEMPLATE)
+        return template.render(
+            logging_enabled=config["LoggingEnabled"],
+            bucket_name=config["BucketName"],
+            s3_key_prefix=config["S3KeyPrefix"],
+            last_successful_delivery_time=config["LastSuccessfulDeliveryTime"],
+            last_failure_time=config["LastFailureTime"],
+            last_failure_message=config["LastFailureMessage"],
+            log_destination_type=config["LogDestinationType"],
+            log_exports=config["LogExports"],
+        )
+
+    def describe_logging_status(self) -> str:
+        params = self._get_params()
+        cluster_identifier = params.get("ClusterIdentifier")
+        config = self.redshift_backend.describe_logging_status(
+            cluster_identifier=cluster_identifier,
+        )
+        template = self.response_template(DESCRIBE_LOGGING_STATUS_TEMPLATE)
+        return template.render(
+            logging_enabled=config["LoggingEnabled"],
+            bucket_name=config["BucketName"],
+            s3_key_prefix=config["S3KeyPrefix"],
+            last_successful_delivery_time=config["LastSuccessfulDeliveryTime"],
+            last_failure_time=config["LastFailureTime"],
+            last_failure_message=config["LastFailureMessage"],
+            log_destination_type=config["LogDestinationType"],
+            log_exports=config["LogExports"],
+        )
+
+
+ENABLE_LOGGING_TEMPLATE = """<EnableLoggingResponse xmlns="http://redshift.amazonaws.com/doc/2012-12-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <EnableLoggingResult>
+    <LoggingEnabled>{{ logging_enabled }}</LoggingEnabled>
+    <BucketName>{{ bucket_name }}</BucketName>
+    <S3KeyPrefix>{{ s3_key_prefix }}</S3KeyPrefix>
+    <LastSuccessfulDeliveryTime>{{ last_successful_delivery_time }}</LastSuccessfulDeliveryTime>
+    <LastFailureTime>{{ last_failure_time }}</LastFailureTime>
+    <LastFailureMessage>{{ last_failure_message }}</LastFailureMessage>
+    <LogDestinationType>{{ log_destination_type }}</LogDestinationType>
+    <LogExports>
+{% for logexport in logexports %}
+      <member/>
+{% endfor %}
+    </LogExports>
+  </EnableLoggingResult>
+</EnableLoggingResponse>"""
+
+DISABLE_LOGGING_TEMPLATE = """<DisableLoggingResponse xmlns="http://redshift.amazonaws.com/doc/2012-12-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DisableLoggingResult>
+    <LoggingEnabled>{{ logging_enabled }}</LoggingEnabled>
+    <BucketName>{{ bucket_name }}</BucketName>
+    <S3KeyPrefix>{{ s3_key_prefix }}</S3KeyPrefix>
+    <LastSuccessfulDeliveryTime>{{ last_successful_delivery_time }}</LastSuccessfulDeliveryTime>
+    <LastFailureTime>{{ last_failure_time }}</LastFailureTime>
+    <LastFailureMessage>{{ last_failure_message }}</LastFailureMessage>
+    <LogDestinationType>{{ log_destination_type }}</LogDestinationType>
+    <LogExports>
+{% for logexport in logexports %}
+      <member/>
+{% endfor %}
+    </LogExports>
+  </DisableLoggingResult>
+</DisableLoggingResponse>"""
+
+DESCRIBE_LOGGING_STATUS_TEMPLATE = """<DescribeLoggingStatusResponse xmlns="http://redshift.amazonaws.com/doc/2012-12-01/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeLoggingStatusResult>
+    <LoggingEnabled>{{ logging_enabled }}</LoggingEnabled>
+    <BucketName>{{ bucket_name }}</BucketName>
+    <S3KeyPrefix>{{ s3_key_prefix }}</S3KeyPrefix>
+    <LastSuccessfulDeliveryTime>{{ last_successful_delivery_time }}</LastSuccessfulDeliveryTime>
+    <LastFailureTime>{{ last_failure_time }}</LastFailureTime>
+    <LastFailureMessage>{{ last_failure_message }}</LastFailureMessage>
+    <LogDestinationType>{{ log_destination_type }}</LogDestinationType>
+    <LogExports>
+{% for logexport in logexports %}
+      <member/>
+{% endfor %}
+    </LogExports>
+  </DescribeLoggingStatusResult>
+</DescribeLoggingStatusResponse>"""
