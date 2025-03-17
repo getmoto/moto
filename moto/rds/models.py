@@ -2183,7 +2183,9 @@ class RDSBackend(BaseBackend):
         return self._db_cluster_options
 
     def create_db_instance(self, db_kwargs: Dict[str, Any]) -> DBInstance:
-        database_id = db_kwargs["db_instance_identifier"]
+        database_id = db_kwargs["db_instance_identifier"] = db_kwargs[
+            "db_instance_identifier"
+        ].lower()
         if database_id in self.databases:
             raise DBInstanceAlreadyExists()
         self._validate_db_identifier(database_id)
@@ -2299,7 +2301,9 @@ class RDSBackend(BaseBackend):
         return self.database_snapshots.pop(db_snapshot_identifier)
 
     def promote_read_replica(self, db_kwargs: Dict[str, Any]) -> DBInstance:
-        database_id = db_kwargs["db_instance_identifier"]
+        database_id = db_kwargs["db_instance_identifier"] = db_kwargs[
+            "db_instance_identifier"
+        ].lower()
         database = self.databases[database_id]
         if database.is_replica:
             database.is_replica = False
@@ -2308,7 +2312,9 @@ class RDSBackend(BaseBackend):
         return database
 
     def create_db_instance_read_replica(self, db_kwargs: Dict[str, Any]) -> DBInstance:
-        database_id = db_kwargs["db_instance_identifier"]
+        database_id = db_kwargs["db_instance_identifier"] = db_kwargs[
+            "db_instance_identifier"
+        ].lower()
         source_database_id = db_kwargs["source_db_instance_identifier"]
         primary = self.find_db_from_id(source_database_id)
         if self.arn_regex.match(source_database_id):
@@ -2328,7 +2334,7 @@ class RDSBackend(BaseBackend):
         databases = self.databases
         if db_instance_identifier:
             filters = merge_filters(
-                filters, {"db-instance-id": [db_instance_identifier]}
+                filters, {"db-instance-id": [db_instance_identifier.lower()]}
             )
         if filters:
             databases = self._filter_resources(databases, filters, DBInstance)
@@ -2375,11 +2381,12 @@ class RDSBackend(BaseBackend):
     def modify_db_instance(
         self, db_instance_identifier: str, db_kwargs: Dict[str, Any]
     ) -> DBInstance:
+        db_instance_identifier = db_instance_identifier.lower()
         database = self.describe_db_instances(db_instance_identifier)[0]
         if "new_db_instance_identifier" in db_kwargs:
             del self.databases[db_instance_identifier]
             db_instance_identifier = db_kwargs["db_instance_identifier"] = (
-                db_kwargs.pop("new_db_instance_identifier")
+                db_kwargs.pop("new_db_instance_identifier").lower()
             )
             self.databases[db_instance_identifier] = database
         if "db_parameter_group_name" in db_kwargs:
@@ -2594,6 +2601,7 @@ class RDSBackend(BaseBackend):
         skip_final_snapshot: Optional[bool] = False,
         delete_automated_backups: Optional[bool] = True,
     ) -> DBInstance:
+        db_instance_identifier = db_instance_identifier.lower()
         self._validate_db_identifier(db_instance_identifier)
         if db_instance_identifier in self.databases:
             if self.databases[db_instance_identifier].deletion_protection:
