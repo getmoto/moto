@@ -14,6 +14,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 def test_create_application():
     region="us-east-2"
     client = boto3.client("kinesisanalyticsv2", region_name=region)
+    log_stream = f"arn:aws:logs:{region}:{ACCOUNT_ID}:log-group:/aws/kinesis-analytics/log-stream:test-log-stream"
 
     resp = client.create_application(
         ApplicationName="test_application",
@@ -28,6 +29,11 @@ def test_create_application():
             {
                 "Key": "key2",
                 "Value": "value2"
+            }
+        ],
+        CloudWatchLoggingOptions=[
+            {
+                "LogStreamARN": log_stream
             }
         ]
     )
@@ -48,18 +54,23 @@ def test_create_application():
     )
 
     tags_resp = client.list_tags_for_resource(ResourceARN=app_arn)
-    assert len(tags_resp["Tags"]) == 2
+    assert len(tags_resp.get("Tags")) == 2
+    assert tags_resp.get("Tags") == [
+            {
+                "Key": "key1",
+                "Value": "value1"
+            },
+            {
+                "Key": "key2",
+                "Value": "value2"
+            }
+        ]
 
     # import pytest; pytest.set_trace()
 
-    # assert app.get("CloudWatchLoggingOptions") == [
-    #     {
+    assert len(app.get('CloudWatchLoggingOptionDescriptions')[0]) == 2
 
-    #     }
-    # ]
-
-
-
+    # import pytest; pytest.set_trace()
 
 
     # raise Exception("NotYetImplemented")

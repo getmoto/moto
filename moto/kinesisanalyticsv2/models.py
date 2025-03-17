@@ -20,7 +20,7 @@ class Application(BaseModel):
         application_description: Optional[str],
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[Dict[str, Any]],
+        # application_configuration: Optional[Dict[str, Any]],
         cloud_watch_logging_options: Optional[List[Dict[str, str]]],
         application_mode: Optional[str],
     ):
@@ -33,11 +33,11 @@ class Application(BaseModel):
         self.application_mode = application_mode
 
         # TO-DO: Do a conditional for application_configuration
-        self.application_configuration = application_configuration
-        # self.cloud_watch_logging_options = self._generate_logging_options(
-        #     cloud_watch_logging_options
-        # )
-        self.cloud_watch_logging_options = cloud_watch_logging_options
+        # self.application_configuration = application_configuration
+        self.cloud_watch_logging_options = self._generate_logging_options(
+            cloud_watch_logging_options
+        )
+        # self.cloud_watch_logging_options = cloud_watch_logging_options
 
         self.application_arn = self._generate_arn()
         self.application_status = "STARTING"
@@ -129,16 +129,16 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             application_description=application_description,
             runtime_environment=runtime_environment,
             service_execution_role=service_execution_role,
-            application_configuration=application_configuration,
+            # application_configuration=application_configuration,
             cloud_watch_logging_options=cloud_watch_logging_options,
             application_mode=application_mode
         )
         # take out tagging
-        # if tags:
-        #     self.tag_resource(
-        #         resource_arn=app.application_arn, tags=tags
-        #     )
-        self.tag_resource(app.application_arn, tags)
+        if tags:
+            self.tag_resource(
+                resource_arn=app.application_arn, tags=tags
+            )
+        # self.tag_resource(app.application_arn, tags)
         return {
             "ApplicationARN": app.application_arn,
             "ApplicationDescription": app.application_description,
@@ -148,7 +148,7 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             "ApplicationVersionId": app.application_version_id,
             "CreateTimestamp": app.creation_date_time,
             "LastUpdateTimestamp": app.last_updated_date_time,
-            "ApplicationConfigurationDescription": app.application_configuration,
+            # "ApplicationConfigurationDescription": app.application_configuration,
             "CloudWatchLoggingOptionDescriptions": app.cloud_watch_logging_options,
             "ApplicationMaintenanceConfigurationDescription": {
                 "ApplicationMaintenanceWindowStartTime": "06:00",
