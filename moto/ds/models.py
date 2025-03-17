@@ -52,6 +52,7 @@ class LogSubscription(BaseModel):
             "LogGroupName": self.log_group_name,
         }
 
+
 class Trust(BaseModel):
     def __init__(
         self,
@@ -761,10 +762,13 @@ class DirectoryServiceBackend(BaseBackend):
             self.log_subscriptions[directory_id] = log_subscription
         else:
             raise EntityAlreadyExistsException("Log subscription already exists")
-        return 
+        return
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_log_subscriptions(self, directory_id: str,) -> List[LogSubscription]:
+    def list_log_subscriptions(
+        self,
+        directory_id: str,
+    ) -> List[LogSubscription]:
         if directory_id:
             self._validate_directory_id(directory_id)
             log_subscription = self.log_subscriptions.get(directory_id, None)
@@ -774,18 +778,19 @@ class DirectoryServiceBackend(BaseBackend):
                 log_subscriptions = []
         else:
             log_subscriptions = [
-                log_subscription
-                for log_subscription in self.log_subscriptions.values()
+                log_subscription for log_subscription in self.log_subscriptions.values()
             ]
         return log_subscriptions
-    
+
     def delete_log_subscription(self, directory_id: str) -> None:
         self._validate_directory_id(directory_id)
         if directory_id in self.log_subscriptions:
             self.log_subscriptions.pop(directory_id)
         else:
-            raise EntityDoesNotExistException(f"Log subscription for {directory_id} does not exist")
-        return 
-    
+            raise EntityDoesNotExistException(
+                f"Log subscription for {directory_id} does not exist"
+            )
+        return
+
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")

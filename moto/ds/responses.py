@@ -268,7 +268,7 @@ class DirectoryServiceResponse(BaseResponse):
             settings=settings,
         )
         return json.dumps(dict(DirectoryId=directory_id))
-    
+
     def create_log_subscription(self) -> str:
         directory_id = self._get_param("DirectoryId")
         log_group_name = self._get_param("LogGroupName")
@@ -277,7 +277,7 @@ class DirectoryServiceResponse(BaseResponse):
             log_group_name=log_group_name,
         )
         return json.dumps(dict())
-    
+
     def list_log_subscriptions(self) -> str:
         directory_id = self._get_param("DirectoryId")
         next_token = self._get_param("NextToken")
@@ -288,8 +288,10 @@ class DirectoryServiceResponse(BaseResponse):
             limit=limit,
         )
         list_subscriptions = [sub.to_dict() for sub in log_subscriptions]
-        return json.dumps(dict(LogSubscriptions=list_subscriptions, NextToken=next_token))
-    
+        return json.dumps(
+            dict(LogSubscriptions=list_subscriptions, NextToken=next_token)
+        )
+
     def delete_log_subscription(self) -> str:
         directory_id = self._get_param("DirectoryId")
         self.ds_backend.delete_log_subscription(

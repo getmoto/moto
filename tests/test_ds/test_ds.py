@@ -483,17 +483,23 @@ def test_create_log_subscription():
     log_group_name = "my-test-log-group"
 
     directory_id = create_test_directory(client, ec2_client)
-    client.create_log_subscription(DirectoryId=directory_id, LogGroupName=log_group_name)
+    client.create_log_subscription(
+        DirectoryId=directory_id, LogGroupName=log_group_name
+    )
 
     # Test creating log subscription invalid directory
     with pytest.raises(ClientError) as exc:
-        client.create_log_subscription(DirectoryId="d-1234567890", LogGroupName=log_group_name)
+        client.create_log_subscription(
+            DirectoryId="d-1234567890", LogGroupName=log_group_name
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "EntityDoesNotExistException"
 
     # Test creating another log subscription directory
     with pytest.raises(ClientError) as exc:
-        client.create_log_subscription(DirectoryId=directory_id, LogGroupName="another_log-group")
+        client.create_log_subscription(
+            DirectoryId=directory_id, LogGroupName="another_log-group"
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "EntityAlreadyExistsException"
 
@@ -538,7 +544,7 @@ def test_delete_log_subscription():
     client.delete_log_subscription(DirectoryId=directory_id)
     result = client.list_log_subscriptions(DirectoryId=directory_id)
     assert len(result["LogSubscriptions"]) == 0
-    
+
     result = client.list_log_subscriptions()
     assert len(result["LogSubscriptions"]) == 1
     assert result["LogSubscriptions"][0]["LogGroupName"] == "test-2"
