@@ -2312,20 +2312,33 @@ def test_create_db_parameter_group_duplicate(client):
             Description="test parameter group",
         )
 
+
 @pytest.mark.parametrize(
     "source_db_parameter_group_identifier",
-    ("source-parameter-group", f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:source-parameter-group"),
+    (
+        "source-parameter-group",
+        f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:source-parameter-group",
+    ),
     ids=("by_name", "by_arn"),
 )
 @mock_aws
-def test_copy_db_parameter_group(
-    source_db_parameter_group_identifier: str,
-    client
-):
-    source_db_parameter_group = client.create_db_parameter_group(
+def test_copy_db_parameter_group(source_db_parameter_group_identifier: str, client):
+    client.create_db_parameter_group(
         DBParameterGroupName="source-parameter-group",
         DBParameterGroupFamily="mysql5.6",
         Description="test source parameter group",
+    )
+
+    client.modify_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        Parameters=[
+            {
+                "ParameterName": "foo",
+                "ParameterValue": "foo_val_1",
+                "Description": "test param",
+                "ApplyMethod": "immediate",
+            }
+        ],
     )
 
     target_db_parameter_group = client.copy_db_parameter_group(
@@ -2334,12 +2347,45 @@ def test_copy_db_parameter_group(
         TargetDBParameterGroupDescription="test target parameter group",
     )
 
-    assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupName"] == "target-parameter-group"
-    assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupFamily"] == "mysql5.6"
-    assert target_db_parameter_group["DBParameterGroup"]["Description"] == "test target parameter group"
+    assert (
+        target_db_parameter_group["DBParameterGroup"]["DBParameterGroupName"]
+        == "target-parameter-group"
+    )
+    assert (
+        target_db_parameter_group["DBParameterGroup"]["DBParameterGroupFamily"]
+        == "mysql5.6"
+    )
+    assert (
+        target_db_parameter_group["DBParameterGroup"]["Description"]
+        == "test target parameter group"
+    )
     assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"] == (
         f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:target-parameter-group"
     )
+
+    client.modify_db_parameter_group(
+        DBParameterGroupName="target-parameter-group",
+        Parameters=[
+            {
+                "ParameterName": "foo",
+                "ParameterValue": "foo_val_2",
+            }
+        ],
+    )
+
+    source_db_parameters = client.describe_db_parameters(
+        DBParameterGroupName="source-parameter-group"
+    )
+    assert source_db_parameters["Parameters"][0]["ParameterValue"] == "foo_val_1"
+
+    target_db_parameters = client.describe_db_parameters(
+        DBParameterGroupName="target-parameter-group"
+    )
+    assert target_db_parameters["Parameters"][0]["ParameterName"] == "foo"
+    assert target_db_parameters["Parameters"][0]["ParameterValue"] == "foo_val_2"
+    assert target_db_parameters["Parameters"][0]["Description"] == "test param"
+    assert target_db_parameters["Parameters"][0]["ApplyMethod"] == "immediate"
+
 
 @mock_aws
 def test_describe_db_parameter_group(client):

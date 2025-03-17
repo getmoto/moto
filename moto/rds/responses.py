@@ -348,7 +348,9 @@ class RDSResponse(BaseResponse):
         return ActionResult(result)
 
     def copy_db_parameter_group(self) -> ActionResult:
-        target_db_parameter_group = self.backend.copy_db_parameter_group(**self.parameters)
+        target_db_parameter_group = self.backend.copy_db_parameter_group(
+            **self.parameters
+        )
         result = {"DBParameterGroup": target_db_parameter_group}
         return ActionResult(result)
 
@@ -375,7 +377,7 @@ class RDSResponse(BaseResponse):
     def describe_db_parameters(self) -> ActionResult:
         db_parameter_group_name = self.parameters.get("DBParameterGroupName")
         db_parameter_groups = self.backend.describe_db_parameter_groups(
-            {"name": db_parameter_group_name}
+            {"db_parameter_group_name": db_parameter_group_name}
         )
         if not db_parameter_groups:
             raise DBParameterGroupNotFoundError(db_parameter_group_name)
