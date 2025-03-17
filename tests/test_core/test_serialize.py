@@ -14,7 +14,7 @@ that go above and beyond the specification(s) for a number of reasons:
 
 import time
 
-from botocore.model import ServiceModel
+from botocore.model import ServiceModel, ShapeResolver
 from xmltodict import parse
 
 from moto.core.serialize import QuerySerializer, XFormedAttributePicker
@@ -152,6 +152,25 @@ class TestXFormedAttributePicker:
         obj = dict()
         value = self.picker(obj, "Attribute", None)
         assert value is None
+
+    def test_serialization_key(self):
+        shape_map = {
+            "Foo": {
+                "type": "structure",
+                "members": {
+                    "Baz": {"shape": "StringType", "locationName": "other"},
+                },
+            },
+            "StringType": {"type": "string"},
+        }
+        resolver = ShapeResolver(shape_map)
+        shape = resolver.resolve_shape_ref(
+            {"shape": "StringType", "locationName": "other"}
+        )
+        assert shape
+        obj = {"other": "found me"}
+        value = self.picker(obj, "StringType", shape)
+        assert value == "found me"
 
     def test_short_key(self):
         class Role:
