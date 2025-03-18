@@ -109,7 +109,9 @@ class ServiceCatalogBackend(BaseBackend):
         # If we have an organization_node, generate a portfolio share token
         portfolio_share_token = None
         if organization_node:
-            portfolio_share_token = f"share-{portfolio_id}-{organization_node.get('Type', '')}-{organization_node.get('Value', '')}"
+            org_type = organization_node.get("Type", "")
+            org_value = organization_node.get("Value", "")
+            portfolio_share_token = f"share-{portfolio_id}-{org_type}-{org_value}"
 
         return portfolio_share_token
 
@@ -190,7 +192,7 @@ class ServiceCatalogBackend(BaseBackend):
         page_token: Optional[str] = None,
         page_size: Optional[int] = None,
     ) -> Tuple[List[Dict[str, str]], Optional[str]]:
-        # TODO: Implement proper pagination for this method
+        # TODO: Implement pagination for this method
         portfolio_details = [
             portfolio.to_dict() for portfolio in self.portfolios.values()
         ]

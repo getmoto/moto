@@ -241,7 +241,7 @@ def test_list_portfolio_access():
 @mock_aws
 def test_list_portfolios():
     """Test list_portfolios API."""
-    client = boto3.client("servicecatalog", region_name="eu-west-1")
+    client = boto3.client("servicecatalog", region_name="us-east-1")
 
     client.create_portfolio(
         DisplayName="Test Portfolio 1",
