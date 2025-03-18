@@ -84,11 +84,9 @@ class ServiceCatalogBackend(BaseBackend):
         return [{"account_id": account_id} for account_id in account_ids]
 
     def delete_portfolio(self, accept_language: Optional[str], id: str) -> None:
-        # Remove any portfolio access entries for this portfolio
         if id in self.portfolio_access:
             del self.portfolio_access[id]
 
-        # Remove the portfolio if it exists
         if id in self.portfolios:
             del self.portfolios[id]
 
@@ -101,12 +99,10 @@ class ServiceCatalogBackend(BaseBackend):
         account_id: Optional[str],
         organization_node: Optional[Dict[str, str]],
     ) -> Optional[str]:
-        # If we have an account_id, remove it from the portfolio's access list
         if account_id and portfolio_id in self.portfolio_access:
             if account_id in self.portfolio_access[portfolio_id]:
                 self.portfolio_access[portfolio_id].remove(account_id)
 
-        # If we have an organization_node, generate a portfolio share token
         portfolio_share_token = None
         if organization_node:
             org_type = organization_node.get("Type", "")
@@ -162,7 +158,6 @@ class ServiceCatalogBackend(BaseBackend):
         if portfolio_id not in self.portfolios:
             return None
 
-        # If we have an account_id, add it to the portfolio's access list
         if account_id:
             if portfolio_id not in self.portfolio_access:
                 self.portfolio_access[portfolio_id] = []
@@ -172,7 +167,6 @@ class ServiceCatalogBackend(BaseBackend):
 
             return None
 
-        # With an organization_node, create the portfolio share token
         portfolio_share_token = None
         if organization_node:
             org_type = organization_node.get("Type", "")
