@@ -1985,3 +1985,70 @@ def test_resume_unknown_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "ClusterNotFound"
     assert err["Message"] == "Cluster test not found."
+
+
+@mock_aws
+def test_enable_logging():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    resp = client.enable_logging(ClusterIdentifier="test", BucketName="redshift-logs")
+    assert resp["LoggingEnabled"] is True
+    assert resp["BucketName"] == "redshift-logs"
+
+
+@mock_aws
+def test_disable_logging():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    resp = client.enable_logging(ClusterIdentifier="test", BucketName="redshift-logs")
+    assert resp["LoggingEnabled"] is True
+    resp = client.disable_logging(ClusterIdentifier="test")
+    assert resp["LoggingEnabled"] is False
+
+
+@mock_aws
+def test_describe_logging_status():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_id = "test"
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier=cluster_id,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    bucket_name = "redshift-logs"
+    s3_key_prefix = "logs/"
+    log_destination_type = "s3"
+    log_exports = ["connectionlog", "querylog", "auditinglog"]
+    client.enable_logging(
+        ClusterIdentifier=cluster_id,
+        BucketName=bucket_name,
+        S3KeyPrefix=s3_key_prefix,
+        LogDestinationType=log_destination_type,
+        LogExports=log_exports,
+    )
+
+    resp = client.describe_logging_status(ClusterIdentifier=cluster_id)
+    assert resp["LoggingEnabled"] is True
+    assert resp["BucketName"] == bucket_name
+    assert resp["S3KeyPrefix"] == s3_key_prefix
+    assert resp["LogDestinationType"] == log_destination_type
