@@ -2,12 +2,12 @@
 # This updates the cache used by the dispatcher to find backends.
 import importlib
 import os
-import pprint
 import re
-import subprocess
-from pathlib import Path
-
 from moto.backends import list_of_moto_modules
+from pathlib import Path
+import subprocess
+
+import pprint
 
 output_file = "moto/backend_index.py"
 

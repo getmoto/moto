@@ -1,8 +1,8 @@
 #!/bin/bash
 import json
-import re
 
 import boto3
+import re
 
 CAMEL_CASE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 

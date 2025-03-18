@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import boto3
 import json
 import os
 import subprocess
-from time import sleep
-
-import boto3
-
 from moto.rds.utils import encode_orderable_db_instance
+from time import sleep
 
 PATH = "moto/rds/resources/cluster_options"
 

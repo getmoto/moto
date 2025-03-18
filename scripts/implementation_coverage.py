@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+import moto
 import os
-
-import boto3
 from botocore import xform_name
 from botocore.session import Session
+import boto3
 
 from moto.backends import get_backend
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 

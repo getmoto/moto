@@ -1,9 +1,8 @@
+import boto3
 import json
 import os
 import subprocess
 import time
-
-import boto3
 
 from moto.ssm.utils import convert_to_tree
 

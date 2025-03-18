@@ -5,12 +5,11 @@
 # Credit goes to
 #   https://gist.github.com/gene1wood/55b358748be3c314f956
 
+from botocore.exceptions import NoCredentialsError
+from datetime import datetime
+import boto3
 import json
 import sys
-from datetime import datetime
-
-import boto3
-from botocore.exceptions import NoCredentialsError
 
 output_file = "./moto/iam/aws_managed_policies.py"
 
