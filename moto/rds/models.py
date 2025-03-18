@@ -2909,7 +2909,7 @@ class RDSBackend(BaseBackend):
         ]
 
         target_db_parameter_group = DBParameterGroup(
-            backend=source_db_parameter_group.backend,
+            backend=self,
             db_parameter_group_name=target_db_parameter_group_identifier,
             db_parameter_group_family=source_db_parameter_group.family,
             description=target_db_parameter_group_description,

@@ -2388,6 +2388,77 @@ def test_copy_db_parameter_group(source_db_parameter_group_identifier: str, clie
 
 
 @mock_aws
+def test_copy_db_parameter_group_with_tags(client):
+    client.create_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test source parameter group",
+        Tags=[{"Key": "foo1", "Value": "bar1"}],
+    )
+
+    target_db_parameter_group_no_tags = client.copy_db_parameter_group(
+        SourceDBParameterGroupIdentifier="source-parameter-group",
+        TargetDBParameterGroupIdentifier="target-parameter-group-no-tags",
+        TargetDBParameterGroupDescription="test target parameter group, no tags",
+    )
+    result_no_tags = client.list_tags_for_resource(
+        ResourceName=target_db_parameter_group_no_tags["DBParameterGroup"][
+            "DBParameterGroupArn"
+        ]
+    )
+    assert len(result_no_tags["TagList"]) == 0
+
+    target_db_parameter_group_new_tags = client.copy_db_parameter_group(
+        SourceDBParameterGroupIdentifier="source-parameter-group",
+        TargetDBParameterGroupIdentifier="target-parameter-group-new-tags",
+        TargetDBParameterGroupDescription="test target parameter group, new tags",
+        Tags=[{"Key": "foo2", "Value": "bar2"}],
+    )
+    result_new_tags = client.list_tags_for_resource(
+        ResourceName=target_db_parameter_group_new_tags["DBParameterGroup"][
+            "DBParameterGroupArn"
+        ]
+    )
+    assert result_new_tags["TagList"] == [{"Key": "foo2", "Value": "bar2"}]
+
+
+@mock_aws
+def test_copy_db_parameter_group_non_existent_source(client):
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_parameter_group(
+            SourceDBParameterGroupIdentifier="non-existent",
+            TargetDBParameterGroupIdentifier="target-parameter-group",
+            TargetDBParameterGroupDescription="test target parameter group",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBParameterGroupNotFound"
+
+
+@mock_aws
+def test_copy_db_parameter_group_target_already_exists(client):
+    client.create_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test source parameter group",
+    )
+
+    client.create_db_parameter_group(
+        DBParameterGroupName="target-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test target parameter group",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_parameter_group(
+            SourceDBParameterGroupIdentifier="source-parameter-group",
+            TargetDBParameterGroupIdentifier="target-parameter-group",
+            TargetDBParameterGroupDescription="test target parameter group",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBParameterGroupAlreadyExists"
+
+
+@mock_aws
 def test_describe_db_parameter_group(client):
     pg_name = "test"
     client.create_db_parameter_group(
