@@ -1,5 +1,6 @@
-import boto3
 import json
+
+import boto3
 
 from moto.ec2.utils import gen_moto_amis
 

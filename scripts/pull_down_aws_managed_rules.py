@@ -43,12 +43,11 @@ Summary:
 """
 
 import argparse
-
 import json
 import sys
 
-from lxml import html
 import requests
+from lxml import html
 
 MANAGED_RULES_OUTPUT_FILENAME = "../moto/config/resources/aws_managed_rules.json"
 

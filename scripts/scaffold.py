@@ -20,27 +20,26 @@ TODO:
     should happen, please create an issue for the problem.
 """
 
+import importlib
+import inspect
 import os
 import random
 import re
-import inspect
-import importlib
 import subprocess
-from lxml import etree
 
+import boto3
 import click
 import jinja2
+from botocore import xform_name
+from botocore.session import Session
+from implementation_coverage import get_moto_implementation
+from inflection import singularize
+from lxml import etree
 from prompt_toolkit import prompt
 from prompt_toolkit.completion import WordCompleter
 
-from botocore import xform_name
-from botocore.session import Session
-import boto3
-
-from moto.core.responses import BaseResponse
 from moto.core.base_backend import BaseBackend
-from inflection import singularize
-from implementation_coverage import get_moto_implementation
+from moto.core.responses import BaseResponse
 
 PRIMITIVE_SHAPES = [
     "string",
@@ -326,12 +325,12 @@ def get_func_in_tests(service, operation):
     escaped_service = get_escaped_service(service)
     random_region = random.choice(["us-east-2", "eu-west-1", "ap-southeast-1"])
     body = "\n\n"
-    body += f"@mock_aws\n"
+    body += "@mock_aws\n"
     body += f"def test_{operation}():\n"
     body += f'    client = boto3.client("{service}", region_name="{random_region}")\n'
     body += f"    resp = client.{operation}()\n"
-    body += f"\n"
-    body += f'    raise Exception("NotYetImplemented")'
+    body += "\n"
+    body += '    raise Exception("NotYetImplemented")'
     body += "\n"
     return body
 

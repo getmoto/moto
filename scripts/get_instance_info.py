@@ -3,7 +3,6 @@
 import json
 import os
 import subprocess
-
 from time import sleep
 
 import boto3

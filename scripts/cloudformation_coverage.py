@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-from unittest.mock import patch
-import requests
 import os
+from unittest.mock import patch
 
-import moto
+import requests
+
 from moto.backends import get_backend, list_of_moto_modules
-
 
 # Populate CloudFormationModel.__subclasses__()
 for service_name in list_of_moto_modules():
@@ -140,7 +139,7 @@ def write_documentation(supported):
 
     print("Writing to {}".format(docs_file))
     with open(docs_file, "w+") as file:
-        file.write(f".. _cloudformation_resources:\n")
+        file.write(".. _cloudformation_resources:\n")
         file.write("\n")
         file.write("==================================\n")
         file.write("Supported CloudFormation resources\n")

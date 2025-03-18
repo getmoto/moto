@@ -10,12 +10,13 @@ Note that you will get the following error if a region is not available to you:
   AWS was not able to validate the provided access credentials
 """
 
-import boto3
 import json
 import os
 import subprocess
-from boto3 import Session
 from time import sleep
+
+import boto3
+from boto3 import Session
 
 PATH = "moto/ec2/resources/instance_type_offerings"
 TYPES = ["region", "availability-zone", "availability-zone-id"]

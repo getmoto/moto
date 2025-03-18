@@ -1,9 +1,8 @@
 import os
+import socket
 import time
-
 import urllib.request as urllib
 from urllib.error import URLError
-import socket
 
 EXCEPTIONS = (URLError, socket.timeout, ConnectionResetError)
 

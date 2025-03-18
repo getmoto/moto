@@ -1,11 +1,11 @@
-import time
-
-import boto3
 import json
-import time
 import os
 import subprocess
+import time
 from datetime import timezone
+
+import boto3
+
 from moto.core.utils import unix_time
 from moto.ec2.utils import gen_moto_amis
 
