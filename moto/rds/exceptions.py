@@ -52,6 +52,14 @@ class DBParameterGroupNotFoundError(RDSClientError):
         )
 
 
+class DBParameterGroupAlreadyExistsError(RDSClientError):
+    def __init__(self, db_parameter_group_name: str):
+        super().__init__(
+            "DBParameterGroupAlreadyExistsFault",
+            f"DB Parameter Group {db_parameter_group_name} already exists.",
+        )
+
+
 class DBClusterParameterGroupNotFoundError(RDSClientError):
     def __init__(self, group_name: str):
         super().__init__(
