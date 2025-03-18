@@ -15,13 +15,7 @@ PAGINATION_MODEL = {
         "limit_key": "page_size",
         "limit_default": 20,
         "unique_attribute": "account_id",
-    },
-    "list_portfolios": {
-        "input_token": "page_token",
-        "limit_key": "page_size",
-        "limit_default": 20,
-        "unique_attribute": "id",
-    },
+    }
 }
 
 
