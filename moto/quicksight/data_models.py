@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, Dict, List, Union
 
 from moto.core.common_models import BaseModel
@@ -117,4 +118,72 @@ class QuicksightUser(BaseModel):
             "UserName": self.username,
             "Active": self.active,
             "PrincipalId": self.principal_id,
+        }
+
+
+class QuicksightDashboard(BaseModel):
+    # Matches model from https://docs.aws.amazon.com/quicksight/latest/APIReference/API_CreateDashboard.html#API_CreateDashboard_RequestSyntax
+    # Todo: Handle versions and all fields
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        dashboard_id: str,
+        dashboard_publish_options: Dict[str, Any],
+        name: str,
+        definition: Dict[str, Any],
+        folder_arns: List[str],
+        link_entities: List[str],
+        link_sharing_configuration: Dict[str, Any],
+        parameters: Dict[str, Any],
+        permissions: List[Dict[str, Any]],
+        source_entity: Dict[str, Any],
+        tags: List[Dict[str, Any]],
+        theme_arn: str,
+        version_description: str,
+        validation_strategy: Dict[str, str],
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:dashboard/{dashboard_id}"
+        self.dashboard_id = dashboard_id
+        self.name = name
+        self.region = region
+        self.account_id = account_id
+        self.dashboard_publish_options = dashboard_publish_options
+        self.definition = definition
+        self.folder_arns = folder_arns
+        self.link_entities = link_entities
+        self.link_sharing_configuration = link_sharing_configuration
+        self.parameters = parameters
+        self.permissions = permissions
+        self.source_entity = source_entity
+        self.tags = tags
+        self.theme_arn = theme_arn
+        self.version_description = version_description
+        self.validation_strategy = validation_strategy
+        # Not user provided
+        self.created_time = datetime.datetime.now()
+        self.version_number = 1
+        self.status = "CREATION_SUCCESSFUL"
+        self.last_updated_time = datetime.datetime.now()
+        self.last_published_time = datetime.datetime.now()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "DashboardId": self.dashboard_id,
+            "Name": self.name,
+            "Version": {
+                "CreatedTime": str(self.created_time),
+                "Errors": [],
+                "Status": self.status,
+                "VersionNumber": self.version_number,
+                "Arn": self.arn,
+                "SourceEntityArn": self.source_entity,
+                "ThemeArn": self.theme_arn,
+                "Description": self.version_description,
+                "SourceEntity": self.source_entity,
+            },
+            "CreatedTime": str(self.created_time),
+            "LastPublishedTime": str(self.last_published_time),
+            "LastUpdatedTime": str(self.last_updated_time),
         }

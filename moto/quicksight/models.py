@@ -1,9 +1,10 @@
-from typing import Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
 
 from .data_models import (
+    QuicksightDashboard,
     QuicksightDataSet,
     QuicksightGroup,
     QuicksightIngestion,
@@ -23,6 +24,7 @@ class QuickSightBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.dashboards: Dict[str, QuicksightDashboard] = dict()
         self.groups: Dict[str, QuicksightGroup] = dict()
         self.users: Dict[str, QuicksightUser] = dict()
 
@@ -186,6 +188,75 @@ class QuickSightBackend(BaseBackend):
         group = self.describe_group(aws_account_id, namespace, group_name)
         group.description = description
         return group
+
+    def create_dashboard(
+        self,
+        aws_account_id: str,
+        dashboard_id: str,
+        name: str,
+        parameters: Dict[str, Any],
+        permissions,
+        source_entity,
+        tags,
+        version_description,
+        dashboard_publish_options,
+        theme_arn,
+        definition,
+        validation_strategy,
+        folder_arns: Optional[List[str]] = [],
+        link_sharing_configuration: Optional[Dict[str, Any]] = {},
+        link_entities: Optional[List[str]] = [],
+    ) -> QuicksightDashboard:
+        dashboard = QuicksightDashboard(
+            account_id=aws_account_id,
+            region=self.region_name,
+            dashboard_id=dashboard_id,
+            dashboard_publish_options=dashboard_publish_options,
+            name=name,
+            definition=definition,
+            folder_arns=folder_arns,
+            link_entities=link_entities,
+            link_sharing_configuration=link_sharing_configuration,
+            parameters=parameters,
+            permissions=permissions,
+            source_entity=source_entity,
+            tags=tags,
+            theme_arn=theme_arn,
+            version_description=version_description,
+            validation_strategy=validation_strategy,
+        )
+        self.dashboards[dashboard_id] = dashboard
+        return dashboard
+
+    def describe_dashboard(
+        self,
+        aws_account_id: str,
+        dashboard_id: str,
+        version_number: int,
+        alias_name: str,
+    ):
+        dashboard = self.dashboards.get(dashboard_id)
+        if not dashboard:
+            raise ResourceNotFoundException(f"Dashboard {dashboard_id} not found")
+        return dashboard
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_dashboards(self, aws_account_id: str):
+        dashboards = self.dashboards.values()
+        dashboard_list: List[Dict[str, Any]] = []
+        for dashboard in dashboards:
+            d_dict = {
+                "Arn": dashboard.arn,
+                "DashboardId": dashboard.dashboard_id,
+                "Name": dashboard.name,
+                "CreatedTime": str(dashboard.created_time),
+                "LastUpdatedTime": str(dashboard.last_updated_time),
+                "PublishedVersionNumber": dashboard.version_number,
+                "LastPublishedTime": str(dashboard.last_published_time),
+            }
+            dashboard_list.append(d_dict)
+
+        return dashboard_list
 
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")

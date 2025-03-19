@@ -218,3 +218,78 @@ class QuickSightResponse(BaseResponse):
         return json.dumps(
             {"NextToken": next_token, "GroupList": [g.to_json() for g in groups]}
         )
+
+    def create_dashboard(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        dashboard_id = self._get_param("DashboardId")
+        dashboard_publish_options = self._get_param("DashboardPublishOptions")
+        definition = self._get_param("Definition")
+        folder_arns = self._get_param("FolderArns")
+        link_entities = self._get_param("LinkEntities")
+        link_sharing_configuration = self._get_param("LinkSharingConfiguration")
+        name = self._get_param("Name")
+        parameters = self._get_param("Parameters")
+        permissions = self._get_param("Permissions")
+        source_entity = self._get_param("SourceEntity")
+        tags = self._get_param("Tags")
+        theme_arn = self._get_param("ThemeArn")
+        validation_strategy = self._get_param("ValidationStrategy")
+        version_description = self._get_param("VersionDescription")
+
+        dashboard = self.quicksight_backend.create_dashboard(
+            aws_account_id=aws_account_id,
+            dashboard_id=dashboard_id,
+            name=name,
+            parameters=parameters,
+            permissions=permissions,
+            source_entity=source_entity,
+            tags=tags,
+            version_description=version_description,
+            dashboard_publish_options=dashboard_publish_options,
+            theme_arn=theme_arn,
+            definition=definition,
+            validation_strategy=validation_strategy,
+            folder_arns=folder_arns,
+            link_sharing_configuration=link_sharing_configuration,
+            link_entities=link_entities,
+        )
+        return json.dumps(
+            dict(
+                Arn=dashboard.arn,
+                VersionArn=dashboard.version_number,
+                DashboardId=dashboard.dashboard_id,
+                CreationStatus=dashboard.status,
+            )
+        )
+
+    def describe_dashboard(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        dashboard_id = self._get_param("DashboardId")
+        version_number = self._get_param("VersionNumber")
+        alias_name = self._get_param("AliasName")
+        dashboard = self.quicksight_backend.describe_dashboard(
+            aws_account_id=aws_account_id,
+            dashboard_id=dashboard_id,
+            version_number=version_number,
+            alias_name=alias_name,
+        )
+        return json.dumps(
+            dict(Dashboard=dashboard.to_dict(), status=200, requestId="request_id")
+        )
+
+    def list_dashboards(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        dashboard_summary_list, next_token = self.quicksight_backend.list_dashboards(
+            aws_account_id=aws_account_id,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(
+            dict(
+                DashboardSummaryList=dashboard_summary_list,
+                next_token=next_token,
+                status=200,
+            )
+        )
