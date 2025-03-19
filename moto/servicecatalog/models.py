@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -210,7 +210,7 @@ class ServiceCatalogBackend(BaseBackend):
         type: str,
         page_token: Optional[str] = None,
         page_size: Optional[int] = None,
-    ) -> Tuple[Optional[str], List[Dict[str, any]]]:
+    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
         """TODO: Implement pagination"""
 
         portfolio_share_details = []
