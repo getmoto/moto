@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random
@@ -187,3 +187,16 @@ class QuicksightDashboard(BaseModel):
             "LastPublishedTime": str(self.last_published_time),
             "LastUpdatedTime": str(self.last_updated_time),
         }
+
+
+class QuicksightAccountSettings(BaseModel):
+    def __init__(
+        self, account_id: str, account_name: Optional[str] = "default"
+    ) -> None:
+        self.account_name = account_name
+        self.account_id = account_id
+        self.default_namespace = "default"
+        self.notification_email = ""
+        self.termination_protection_enabled = False
+        self.public_sharing_enabled = False
+        self.edition = "STANDARD"

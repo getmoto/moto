@@ -274,7 +274,7 @@ class QuickSightResponse(BaseResponse):
             alias_name=alias_name,
         )
         return json.dumps(
-            dict(Dashboard=dashboard.to_dict(), status=200, requestId="request_id")
+            dict(Dashboard=dashboard.to_dict(), Status=200, RequestId="request_id")
         )
 
     def list_dashboards(self) -> str:
@@ -286,7 +286,23 @@ class QuickSightResponse(BaseResponse):
         return json.dumps(
             dict(
                 DashboardSummaryList=dashboard_summary_list,
-                next_token=next_token,
-                status=200,
+                Next_token=next_token,
+                Status=200,
             )
         )
+
+    def describe_account_settings(self):
+        aws_account_id = self._get_param("AwsAccountId")
+        settings = self.quicksight_backend.describe_account_settings(
+            aws_account_id=aws_account_id,
+        )
+        resp = {
+            "AccountName": settings.account_name,
+            "Edition": settings.edition,
+            "DefaultNamespace": settings.default_namespace,
+            "NotificationEmail": settings.notification_email,
+            "PublicSharingEnabled": settings.public_sharing_enabled,
+            "TerminationProtectionEnabled": settings.termination_protection_enabled,
+        }
+
+        return json.dumps(dict(AccountSettings=resp, Status=200))

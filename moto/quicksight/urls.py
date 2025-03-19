@@ -20,4 +20,5 @@ url_paths = {
     r"{0}/accounts/(?P<account_id>[\d]+)/namespaces/(?P<namespace>[a-zA-Z0-9._-]+)/groups-search$": QuickSightResponse.dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards$": QuickSightResponse.dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)$": QuickSightResponse.dispatch,
+    "{0}/accounts/(?P<AwsAccountId>[^/]+)/settings$": QuickSightResponse.dispatch,
 }

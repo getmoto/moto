@@ -4,6 +4,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
 
 from .data_models import (
+    QuicksightAccountSettings,
     QuicksightDashboard,
     QuicksightDataSet,
     QuicksightGroup,
@@ -27,6 +28,9 @@ class QuickSightBackend(BaseBackend):
         self.dashboards: Dict[str, QuicksightDashboard] = dict()
         self.groups: Dict[str, QuicksightGroup] = dict()
         self.users: Dict[str, QuicksightUser] = dict()
+        self.account_settings: QuicksightAccountSettings = QuicksightAccountSettings(
+            account_id=account_id
+        )
 
     def create_data_set(self, data_set_id: str, name: str) -> QuicksightDataSet:
         return QuicksightDataSet(
@@ -256,6 +260,11 @@ class QuickSightBackend(BaseBackend):
             dashboard_list.append(d_dict)
 
         return dashboard_list
+
+    def describe_account_settings(
+        self, aws_account_id: str
+    ) -> QuicksightAccountSettings:
+        return self.account_settings
 
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")

@@ -1,5 +1,3 @@
-"""Unit tests for quicksight-supported APIs."""
-
 import boto3
 
 from moto import mock_aws
