@@ -1252,6 +1252,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "i8g.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "i8g.4xlarge",
   "Location": "us-west-2"
  },

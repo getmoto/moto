@@ -6180,6 +6180,42 @@
   "Location": "apne2-az4"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "apne2-az4"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "apne2-az4"
  },
