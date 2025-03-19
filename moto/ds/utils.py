@@ -13,6 +13,11 @@ PAGINATION_MODEL = {
         "limit_default": 50,
         "unique_attribute": "Key",
     },
+    "list_log_subscriptions": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 50,
+    },
     "describe_ldaps_settings": {
         "input_token": "next_token",
         "limit_key": "limit",

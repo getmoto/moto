@@ -39,6 +39,20 @@ class LdapsSettingInfo(BaseModel):
         }
 
 
+class LogSubscription(BaseModel):
+    def __init__(self, directory_id: str, log_group_name: str) -> None:
+        self.directory_id = directory_id
+        self.log_group_name = log_group_name
+        self.created_date_time = unix_time()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "SubscriptionCreatedDateTime": self.created_date_time,
+            "DirectoryId": self.directory_id,
+            "LogGroupName": self.log_group_name,
+        }
+
+
 class Trust(BaseModel):
     def __init__(
         self,
@@ -278,6 +292,7 @@ class DirectoryServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
+        self.log_subscriptions: Dict[str, LogSubscription] = {}
         self.tagger = TaggingService()
 
     def _verify_subnets(self, region: str, vpc_settings: Dict[str, Any]) -> None:
@@ -739,6 +754,43 @@ class DirectoryServiceBackend(BaseBackend):
                     setting["AppliedValue"] = s["Value"]
 
         return directory_id
+
+    def create_log_subscription(self, directory_id: str, log_group_name: str) -> None:
+        self._validate_directory_id(directory_id)
+        log_subscription = LogSubscription(directory_id, log_group_name)
+        if directory_id not in self.log_subscriptions:
+            self.log_subscriptions[directory_id] = log_subscription
+        else:
+            raise EntityAlreadyExistsException("Log subscription already exists")
+        return
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_log_subscriptions(
+        self,
+        directory_id: str,
+    ) -> List[LogSubscription]:
+        if directory_id:
+            self._validate_directory_id(directory_id)
+            log_subscription = self.log_subscriptions.get(directory_id, None)
+            if log_subscription:
+                log_subscriptions = [log_subscription]
+            else:
+                log_subscriptions = []
+        else:
+            log_subscriptions = [
+                log_subscription for log_subscription in self.log_subscriptions.values()
+            ]
+        return log_subscriptions
+
+    def delete_log_subscription(self, directory_id: str) -> None:
+        self._validate_directory_id(directory_id)
+        if directory_id in self.log_subscriptions:
+            self.log_subscriptions.pop(directory_id)
+        else:
+            raise EntityDoesNotExistException(
+                f"Log subscription for {directory_id} does not exist"
+            )
+        return
 
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")
