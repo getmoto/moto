@@ -280,11 +280,8 @@ class QuickSightResponse(BaseResponse):
     def list_dashboards(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
         next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults")
-        dashboard_summary_list, next_token = self.quicksight_backend.list_dashboards(
+        dashboard_summary_list = self.quicksight_backend.list_dashboards(
             aws_account_id=aws_account_id,
-            next_token=next_token,
-            max_results=max_results,
         )
         return json.dumps(
             dict(

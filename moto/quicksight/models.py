@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -195,17 +195,17 @@ class QuickSightBackend(BaseBackend):
         dashboard_id: str,
         name: str,
         parameters: Dict[str, Any],
-        permissions,
-        source_entity,
-        tags,
-        version_description,
-        dashboard_publish_options,
-        theme_arn,
-        definition,
-        validation_strategy,
-        folder_arns: Optional[List[str]] = [],
-        link_sharing_configuration: Optional[Dict[str, Any]] = {},
-        link_entities: Optional[List[str]] = [],
+        permissions: List[Dict[str, Any]],
+        source_entity: Dict[str, Any],
+        tags: List[Dict[str, str]],
+        version_description: str,
+        dashboard_publish_options: Dict[str, Any],
+        theme_arn: str,
+        definition: Dict[str, Any],
+        validation_strategy: Dict[str, str],
+        folder_arns: List[str],
+        link_sharing_configuration: Dict[str, Any],
+        link_entities: List[str],
     ) -> QuicksightDashboard:
         dashboard = QuicksightDashboard(
             account_id=aws_account_id,
@@ -234,14 +234,13 @@ class QuickSightBackend(BaseBackend):
         dashboard_id: str,
         version_number: int,
         alias_name: str,
-    ):
+    ) -> QuicksightDashboard:
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             raise ResourceNotFoundException(f"Dashboard {dashboard_id} not found")
         return dashboard
 
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def list_dashboards(self, aws_account_id: str):
+    def list_dashboards(self, aws_account_id: str) -> List[Dict[str, Any]]:
         dashboards = self.dashboards.values()
         dashboard_list: List[Dict[str, Any]] = []
         for dashboard in dashboards:
