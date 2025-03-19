@@ -64,6 +64,7 @@ class ServiceCatalogBackend(BaseBackend):
         self.portfolio_access: Dict[str, List[str]] = {}
         self.portfolios: Dict[str, Portfolio] = {}
         self.idempotency_tokens: Dict[str, str] = {}
+        self.portfolio_share_tokens: Dict[str, List[str]] = {}
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_portfolio_access(
@@ -102,6 +103,17 @@ class ServiceCatalogBackend(BaseBackend):
             org_type = organization_node.get("Type", "")
             org_value = organization_node.get("Value", "")
             portfolio_share_token = f"share-{portfolio_id}-{org_type}-{org_value}"
+
+            if portfolio_id in self.portfolio_share_tokens:
+                tokens_to_remove = []
+
+                for token in self.portfolio_share_tokens[portfolio_id]:
+                    if org_type in token and org_value in token:
+                        tokens_to_remove.append(token)
+
+                for token in tokens_to_remove:
+                    if token in self.portfolio_share_tokens[portfolio_id]:
+                        self.portfolio_share_tokens[portfolio_id].remove(token)
 
         return portfolio_share_token
 
@@ -172,6 +184,12 @@ class ServiceCatalogBackend(BaseBackend):
             if share_principals:
                 portfolio_share_token += "-principals"
 
+            if portfolio_id not in self.portfolio_share_tokens:
+                self.portfolio_share_tokens[portfolio_id] = []
+
+            if portfolio_share_token not in self.portfolio_share_tokens[portfolio_id]:
+                self.portfolio_share_tokens[portfolio_id].append(portfolio_share_token)
+
         return portfolio_share_token
 
     def list_portfolios(
@@ -185,6 +203,61 @@ class ServiceCatalogBackend(BaseBackend):
             portfolio.to_dict() for portfolio in self.portfolios.values()
         ]
         return portfolio_details, None
+
+    def describe_portfolio_shares(
+        self,
+        portfolio_id: str,
+        type: str,
+        page_token: Optional[str] = None,
+        page_size: Optional[int] = None,
+    ) -> Tuple[Optional[str], List[Dict[str, any]]]:
+        """TODO: Implement pagination"""
+
+        portfolio_share_details = []
+
+        if portfolio_id not in self.portfolios:
+            return None, []
+
+        if type == "ACCOUNT":
+            account_ids = self.portfolio_access.get(portfolio_id, [])
+            for account_id in account_ids:
+                portfolio_share_details.append(
+                    {
+                        "PrincipalId": account_id,
+                        "Type": "ACCOUNT",
+                        "Accepted": True,
+                        "ShareTagOptions": False,
+                        "SharePrincipals": False,
+                    }
+                )
+
+        elif type == "ORGANIZATION":
+            tokens = self.portfolio_share_tokens.get(portfolio_id, [])
+
+            for token in tokens:
+                if "ORGANIZATION" in token and "-o-" in token:
+                    org_id_start = token.find("-ORGANIZATION-") + len("-ORGANIZATION-")
+
+                    if "-tags" in token:
+                        org_id_end = token.find("-tags", org_id_start)
+                    elif "-principals" in token:
+                        org_id_end = token.find("-principals", org_id_start)
+                    else:
+                        org_id_end = len(token)
+
+                    org_id = token[org_id_start:org_id_end]
+
+                    portfolio_share_details.append(
+                        {
+                            "PrincipalId": org_id,
+                            "Type": "ORGANIZATION",
+                            "Accepted": True,
+                            "ShareTagOptions": "tags" in token,
+                            "SharePrincipals": "principals" in token,
+                        }
+                    )
+
+        return None, portfolio_share_details
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

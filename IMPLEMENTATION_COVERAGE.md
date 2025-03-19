@@ -5899,7 +5899,7 @@
 
 ## neptune
 <details>
-<summary>62% implemented</summary>
+<summary>63% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
@@ -5907,7 +5907,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
@@ -6895,7 +6895,7 @@
 
 ## rds
 <details>
-<summary>45% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -6907,7 +6907,7 @@
 - [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_blue_green_deployment
@@ -8476,7 +8476,7 @@
 
 ## servicecatalog
 <details>
-<summary>6% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] accept_portfolio_share
 - [ ] associate_budget_with_resource
@@ -8507,7 +8507,7 @@
 - [ ] describe_copy_product_status
 - [ ] describe_portfolio
 - [ ] describe_portfolio_share_status
-- [ ] describe_portfolio_shares
+- [X] describe_portfolio_shares
 - [ ] describe_product
 - [ ] describe_product_as_admin
 - [ ] describe_product_view

@@ -139,3 +139,26 @@ class ServiceCatalogResponse(BaseResponse):
             "NextPageToken": next_page_token,
         }
         return json.dumps(response)
+
+    def describe_portfolio_shares(self) -> str:
+        params = json.loads(self.body)
+        portfolio_id = params.get("PortfolioId")
+        type = params.get("Type")
+        page_token = params.get("PageToken")
+        page_size = params.get("PageSize")
+
+        next_page_token, portfolio_share_details = (
+            self.servicecatalog_backend.describe_portfolio_shares(
+                portfolio_id=portfolio_id,
+                type=type,
+                page_token=page_token,
+                page_size=page_size,
+            )
+        )
+
+        response = {
+            "NextPageToken": next_page_token,
+            "PortfolioShareDetails": portfolio_share_details,
+        }
+
+        return json.dumps(response)

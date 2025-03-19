@@ -45,7 +45,9 @@ servicecatalog
 - [ ] describe_copy_product_status
 - [ ] describe_portfolio
 - [ ] describe_portfolio_share_status
-- [ ] describe_portfolio_shares
+- [X] describe_portfolio_shares
+  TODO: Implement pagination
+
 - [ ] describe_product
 - [ ] describe_product_as_admin
 - [ ] describe_product_view

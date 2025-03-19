@@ -276,3 +276,73 @@ def test_list_portfolios():
 
     paginated_response = client.list_portfolios(PageSize=1)
     assert len(paginated_response["PortfolioDetails"]) == 2
+
+
+@mock_aws
+def test_describe_portfolio_shares():
+    """Test describe_portfolio_shares API."""
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    # Create a portfolio
+    create_response = client.create_portfolio(
+        DisplayName="Test Portfolio",
+        Description="Test Portfolio Description",
+        ProviderName="Test Provider",
+        Tags=[],
+        IdempotencyToken="test-token",
+    )
+
+    portfolio_id = create_response["PortfolioDetail"]["Id"]
+
+    # Share portfolio with 3 accounts
+    client.create_portfolio_share(PortfolioId=portfolio_id, AccountId="111111111111")
+    client.create_portfolio_share(PortfolioId=portfolio_id, AccountId="222222222222")
+    client.create_portfolio_share(PortfolioId=portfolio_id, AccountId="333333333333")
+
+    # Share portfolio with an organization
+    client.create_portfolio_share(
+        PortfolioId=portfolio_id,
+        OrganizationNode={"Type": "ORGANIZATION", "Value": "o-exampleorgid"},
+        ShareTagOptions=True,
+        SharePrincipals=True,
+    )
+
+    # Test describe_portfolio_shares for ACCOUNT type
+    account_response = client.describe_portfolio_shares(
+        PortfolioId=portfolio_id, Type="ACCOUNT"
+    )
+
+    assert "PortfolioShareDetails" in account_response
+    assert len(account_response["PortfolioShareDetails"]) == 3
+
+    for share in account_response["PortfolioShareDetails"]:
+        assert share["Type"] == "ACCOUNT"
+        assert share["Accepted"] is True
+        assert share["PrincipalId"] in ["111111111111", "222222222222", "333333333333"]
+
+    # Test describe_portfolio_shares for ORGANIZATION type
+    org_response = client.describe_portfolio_shares(
+        PortfolioId=portfolio_id, Type="ORGANIZATION"
+    )
+
+    assert "PortfolioShareDetails" in org_response
+    assert len(org_response["PortfolioShareDetails"]) == 1
+
+    org_share = org_response["PortfolioShareDetails"][0]
+    assert org_share["Type"] == "ORGANIZATION"
+    assert org_share["PrincipalId"] == "o-exampleorgid"
+    assert org_share["Accepted"] is True
+    assert org_share["ShareTagOptions"] is True
+    assert org_share["SharePrincipals"] is True
+
+    # Test delete portfolio share for organization
+    client.delete_portfolio_share(
+        PortfolioId=portfolio_id,
+        OrganizationNode={"Type": "ORGANIZATION", "Value": "o-exampleorgid"},
+    )
+
+    org_response_after_delete = client.describe_portfolio_shares(
+        PortfolioId=portfolio_id, Type="ORGANIZATION"
+    )
+
+    assert len(org_response_after_delete["PortfolioShareDetails"]) == 0
