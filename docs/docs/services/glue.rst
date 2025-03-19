@@ -41,7 +41,7 @@ glue
 - [ ] create_catalog
 - [ ] create_classifier
 - [ ] create_column_statistics_task_settings
-- [ ] create_connection
+- [X] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
 - [ ] create_data_quality_ruleset
@@ -117,8 +117,8 @@ glue
 - [ ] get_column_statistics_task_run
 - [ ] get_column_statistics_task_runs
 - [ ] get_column_statistics_task_settings
-- [ ] get_connection
-- [ ] get_connections
+- [X] get_connection
+- [X] get_connections
 - [X] get_crawler
 - [ ] get_crawler_metrics
 - [X] get_crawlers
