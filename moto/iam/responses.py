@@ -13,6 +13,24 @@ class IamResponse(BaseResponse):
     def backend(self) -> IAMBackend:
         return iam_backends[self.current_account][self.partition]
 
+    def _determine_resource(self) -> str:
+        if self._is_role_resource():
+            return self._resolve_role_arn()
+
+        return "*"
+
+    def _is_role_resource(self) -> bool:
+        return "RoleName" in self.data
+
+    def _resolve_role_arn(self) -> str:
+        role_name = self.data["RoleName"][0]
+
+        if not self.backend.has_role_by_name(role_name):
+            return "*"
+
+        role_object = self.backend.get_role(role_name)
+        return role_object.arn
+
     def attach_role_policy(self) -> str:
         policy_arn = self._get_param("PolicyArn")
         role_name = self._get_param("RoleName")
