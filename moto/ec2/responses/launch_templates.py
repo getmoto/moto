@@ -264,6 +264,35 @@ class LaunchTemplates(EC2BaseResponse):
         template = self.response_template(GET_LAUNCH_TEMPLATE_DATA_RESPONSE)
         return template.render(i=instance)
 
+    def modify_launch_template(self) -> str:
+        template_name = self._get_param("LaunchTemplateName")
+        template_id = self._get_param("LaunchTemplateId")
+        default_version = self._get_param("SetDefaultVersion")
+
+        self.error_on_dryrun()
+
+        template = self.ec2_backend.modify_launch_template(
+            template_name=template_name,
+            template_id=template_id,
+            default_version=default_version,
+        )
+
+        tree = xml_root("ModifyLaunchTemplateVersion")
+        xml_serialize(
+            tree,
+            "LaunchTemplate",
+            {
+                "createTime": template.create_time,
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
+                "defaultVersionNumber": template.default_version_number,
+                "latestVersionNumber": template.latest_version_number,
+                "launchTemplateId": template.id,
+                "launchTemplateName": template.name,
+                "tags": template.tags,
+            },
+        )
+        return pretty_xml(tree)
+
 
 GET_LAUNCH_TEMPLATE_DATA_RESPONSE = """<GetLaunchTemplateDataResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>801986a5-0ee2-46bd-be02-abcde1234567</requestId>
