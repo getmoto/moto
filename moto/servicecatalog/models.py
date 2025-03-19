@@ -198,7 +198,7 @@ class ServiceCatalogBackend(BaseBackend):
         page_token: Optional[str] = None,
         page_size: Optional[int] = None,
     ) -> Tuple[List[Dict[str, str]], Optional[str]]:
-        # TODO: Implement pagination for this method
+        """TODO: Implement pagination"""
         portfolio_details = [
             portfolio.to_dict() for portfolio in self.portfolios.values()
         ]

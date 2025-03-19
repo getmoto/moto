@@ -283,7 +283,6 @@ def test_describe_portfolio_shares():
     """Test describe_portfolio_shares API."""
     client = boto3.client("servicecatalog", region_name="us-east-1")
 
-    # Create a portfolio
     create_response = client.create_portfolio(
         DisplayName="Test Portfolio",
         Description="Test Portfolio Description",
@@ -294,12 +293,10 @@ def test_describe_portfolio_shares():
 
     portfolio_id = create_response["PortfolioDetail"]["Id"]
 
-    # Share portfolio with 3 accounts
     client.create_portfolio_share(PortfolioId=portfolio_id, AccountId="111111111111")
     client.create_portfolio_share(PortfolioId=portfolio_id, AccountId="222222222222")
     client.create_portfolio_share(PortfolioId=portfolio_id, AccountId="333333333333")
 
-    # Share portfolio with an organization
     client.create_portfolio_share(
         PortfolioId=portfolio_id,
         OrganizationNode={"Type": "ORGANIZATION", "Value": "o-exampleorgid"},
@@ -307,7 +304,6 @@ def test_describe_portfolio_shares():
         SharePrincipals=True,
     )
 
-    # Test describe_portfolio_shares for ACCOUNT type
     account_response = client.describe_portfolio_shares(
         PortfolioId=portfolio_id, Type="ACCOUNT"
     )
@@ -320,7 +316,6 @@ def test_describe_portfolio_shares():
         assert share["Accepted"] is True
         assert share["PrincipalId"] in ["111111111111", "222222222222", "333333333333"]
 
-    # Test describe_portfolio_shares for ORGANIZATION type
     org_response = client.describe_portfolio_shares(
         PortfolioId=portfolio_id, Type="ORGANIZATION"
     )
@@ -335,7 +330,6 @@ def test_describe_portfolio_shares():
     assert org_share["ShareTagOptions"] is True
     assert org_share["SharePrincipals"] is True
 
-    # Test delete portfolio share for organization
     client.delete_portfolio_share(
         PortfolioId=portfolio_id,
         OrganizationNode={"Type": "ORGANIZATION", "Value": "o-exampleorgid"},
