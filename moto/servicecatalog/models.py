@@ -75,10 +75,14 @@ class ServiceCatalogBackend(BaseBackend):
         page_token: Optional[str],
         page_size: Optional[int] = None,
     ) -> List[Dict[str, str]]:
+        # TODO: Implement organization_parent_id and accept_language
+
         account_ids = self.portfolio_access.get(portfolio_id, [])
         return [{"account_id": account_id} for account_id in account_ids]
 
     def delete_portfolio(self, accept_language: Optional[str], id: str) -> None:
+        # TODO: Implement accept_language
+
         if id in self.portfolio_access:
             del self.portfolio_access[id]
 
@@ -94,14 +98,20 @@ class ServiceCatalogBackend(BaseBackend):
         account_id: Optional[str],
         organization_node: Optional[Dict[str, str]],
     ) -> Optional[str]:
-        if account_id and portfolio_id in self.portfolio_access:
-            if account_id in self.portfolio_access[portfolio_id]:
-                self.portfolio_access[portfolio_id].remove(account_id)
+        # TODO: Implement accept_language
+
+        if (
+            portfolio_id in self.portfolio_access
+            and account_id in self.portfolio_access[portfolio_id]
+        ):
+            self.portfolio_access[portfolio_id].remove(account_id)
 
         portfolio_share_token = None
         if organization_node:
             org_type = organization_node.get("Type", "")
             org_value = organization_node.get("Value", "")
+
+            # Arbitrary naming for the portfolio share token
             portfolio_share_token = f"share-{portfolio_id}-{org_type}-{org_value}"
 
             if portfolio_id in self.portfolio_share_tokens:
@@ -126,6 +136,8 @@ class ServiceCatalogBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         idempotency_token: Optional[str],
     ) -> Tuple[Dict[str, str], List[Dict[str, str]]]:
+        # TODO: Implement accept_language
+
         if idempotency_token and idempotency_token in self.idempotency_tokens:
             portfolio_id = self.idempotency_tokens[idempotency_token]
             portfolio = self.portfolios[portfolio_id]
@@ -161,6 +173,8 @@ class ServiceCatalogBackend(BaseBackend):
         share_tag_options: bool,
         share_principals: bool,
     ) -> Optional[str]:
+        # TODO: Implement accept_language
+
         if portfolio_id not in self.portfolios:
             return None
 
@@ -177,6 +191,8 @@ class ServiceCatalogBackend(BaseBackend):
         if organization_node:
             org_type = organization_node.get("Type", "")
             org_value = organization_node.get("Value", "")
+
+            # Arbitrary org for the portfolio share token
             portfolio_share_token = f"share-{portfolio_id}-{org_type}-{org_value}"
 
             if share_tag_options:
@@ -198,7 +214,7 @@ class ServiceCatalogBackend(BaseBackend):
         page_token: Optional[str] = None,
         page_size: Optional[int] = None,
     ) -> Tuple[List[Dict[str, str]], Optional[str]]:
-        """TODO: Implement pagination"""
+        """TODO: Implement pagination and accept_language"""
         portfolio_details = [
             portfolio.to_dict() for portfolio in self.portfolios.values()
         ]
