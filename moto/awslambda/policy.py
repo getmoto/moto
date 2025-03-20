@@ -1,5 +1,15 @@
 import json
-from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from moto.awslambda.exceptions import (
     GenericResourcNotFound,
@@ -8,11 +18,14 @@ from moto.awslambda.exceptions import (
 )
 from moto.moto_api._internal import mock_random
 
+if TYPE_CHECKING:
+    from .models import LambdaFunction, LayerVersion
+
 TYPE_IDENTITY = TypeVar("TYPE_IDENTITY")
 
 
 class Policy:
-    def __init__(self, parent):  # type: ignore[no-untyped-def]
+    def __init__(self, parent: Union["LambdaFunction", "LayerVersion"]):
         self.revision = str(mock_random.uuid4())
         self.statements: List[Dict[str, Any]] = []
         self.parent = parent
