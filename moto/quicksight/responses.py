@@ -320,7 +320,7 @@ class QuickSightResponse(BaseResponse):
         )
         return json.dumps(dict(Status=200))
 
-    def update_public_sharing_settings(self):
+    def update_public_sharing_settings(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
         public_sharing_enabled = self._get_param("PublicSharingEnabled")
         self.quicksight_backend.update_public_sharing_settings(
