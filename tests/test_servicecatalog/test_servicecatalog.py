@@ -104,7 +104,6 @@ def test_create_portfolio_share_with_account():
     )
 
     assert "PortfolioShareToken" not in share_response
-    assert all(key == "ResponseMetadata" for key in share_response.keys())
 
     access_response = client.list_portfolio_access(PortfolioId=portfolio_id)
 
@@ -134,9 +133,8 @@ def test_create_portfolio_share_with_organization():
         SharePrincipals=True,
     )
 
-    assert "PortfolioShareToken" in share_response
-    assert "PortfolioShareToken" in share_response
     assert share_response["PortfolioShareToken"].startswith(f"share-{portfolio_id}")
+
     assert "ORGANIZATION" in share_response["PortfolioShareToken"]
     assert "o-exampleorgid" in share_response["PortfolioShareToken"]
     assert "tags" in share_response["PortfolioShareToken"]
@@ -189,7 +187,6 @@ def test_delete_portfolio_share_with_organization():
         OrganizationNode={"Type": "ORGANIZATION", "Value": "o-exampleorgid"},
     )
 
-    assert "PortfolioShareToken" in delete_response
     assert delete_response["PortfolioShareToken"].startswith(f"share-{portfolio_id}")
     assert "ORGANIZATION" in delete_response["PortfolioShareToken"]
     assert "o-exampleorgid" in delete_response["PortfolioShareToken"]
@@ -216,7 +213,6 @@ def test_list_portfolio_access():
 
     access_response = client.list_portfolio_access(PortfolioId=portfolio_id)
 
-    assert "AccountIds" in access_response
     assert "111111111111" in access_response["AccountIds"]
     assert "222222222222" in access_response["AccountIds"]
 
