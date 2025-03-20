@@ -20,7 +20,7 @@ neptune
 - [ ] apply_pending_maintenance_action
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
