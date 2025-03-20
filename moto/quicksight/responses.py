@@ -218,3 +218,113 @@ class QuickSightResponse(BaseResponse):
         return json.dumps(
             {"NextToken": next_token, "GroupList": [g.to_json() for g in groups]}
         )
+
+    def create_dashboard(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        dashboard_id = self._get_param("DashboardId")
+        dashboard_publish_options = self._get_param("DashboardPublishOptions")
+        definition = self._get_param("Definition")
+        folder_arns = self._get_param("FolderArns")
+        link_entities = self._get_param("LinkEntities")
+        link_sharing_configuration = self._get_param("LinkSharingConfiguration")
+        name = self._get_param("Name")
+        parameters = self._get_param("Parameters")
+        permissions = self._get_param("Permissions")
+        source_entity = self._get_param("SourceEntity")
+        tags = self._get_param("Tags")
+        theme_arn = self._get_param("ThemeArn")
+        validation_strategy = self._get_param("ValidationStrategy")
+        version_description = self._get_param("VersionDescription")
+
+        dashboard = self.quicksight_backend.create_dashboard(
+            aws_account_id=aws_account_id,
+            dashboard_id=dashboard_id,
+            name=name,
+            parameters=parameters,
+            permissions=permissions,
+            source_entity=source_entity,
+            tags=tags,
+            version_description=version_description,
+            dashboard_publish_options=dashboard_publish_options,
+            theme_arn=theme_arn,
+            definition=definition,
+            validation_strategy=validation_strategy,
+            folder_arns=folder_arns,
+            link_sharing_configuration=link_sharing_configuration,
+            link_entities=link_entities,
+        )
+        return json.dumps(
+            dict(
+                Arn=dashboard.arn,
+                VersionArn=dashboard.version_number,
+                DashboardId=dashboard.dashboard_id,
+                CreationStatus=dashboard.status,
+            )
+        )
+
+    def describe_dashboard(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        dashboard_id = self._get_param("DashboardId")
+        version_number = self._get_param("VersionNumber")
+        alias_name = self._get_param("AliasName")
+        dashboard = self.quicksight_backend.describe_dashboard(
+            aws_account_id=aws_account_id,
+            dashboard_id=dashboard_id,
+            version_number=version_number,
+            alias_name=alias_name,
+        )
+        return json.dumps(
+            dict(Dashboard=dashboard.to_dict(), Status=200, RequestId="request_id")
+        )
+
+    def list_dashboards(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        next_token = self._get_param("NextToken")
+        dashboard_summary_list = self.quicksight_backend.list_dashboards(
+            aws_account_id=aws_account_id,
+        )
+        return json.dumps(
+            dict(
+                DashboardSummaryList=dashboard_summary_list,
+                Next_token=next_token,
+                Status=200,
+            )
+        )
+
+    def describe_account_settings(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        settings = self.quicksight_backend.describe_account_settings(
+            aws_account_id=aws_account_id,
+        )
+        resp = {
+            "AccountName": settings.account_name,
+            "Edition": settings.edition,
+            "DefaultNamespace": settings.default_namespace,
+            "NotificationEmail": settings.notification_email,
+            "PublicSharingEnabled": settings.public_sharing_enabled,
+            "TerminationProtectionEnabled": settings.termination_protection_enabled,
+        }
+
+        return json.dumps(dict(AccountSettings=resp, Status=200))
+
+    def update_account_settings(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        default_namespace = self._get_param("DefaultNamespace")
+        notification_email = self._get_param("NotificationEmail")
+        termination_protection_enabled = self._get_param("TerminationProtectionEnabled")
+        self.quicksight_backend.update_account_settings(
+            aws_account_id=aws_account_id,
+            default_namespace=default_namespace,
+            notification_email=notification_email,
+            termination_protection_enabled=termination_protection_enabled,
+        )
+        return json.dumps(dict(Status=200))
+
+    def update_public_sharing_settings(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        public_sharing_enabled = self._get_param("PublicSharingEnabled")
+        self.quicksight_backend.update_public_sharing_settings(
+            aws_account_id=aws_account_id,
+            public_sharing_enabled=public_sharing_enabled,
+        )
+        return json.dumps(dict(Status=200))

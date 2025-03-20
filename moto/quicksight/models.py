@@ -1,9 +1,11 @@
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
 
 from .data_models import (
+    QuicksightAccountSettings,
+    QuicksightDashboard,
     QuicksightDataSet,
     QuicksightGroup,
     QuicksightIngestion,
@@ -23,8 +25,12 @@ class QuickSightBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.dashboards: Dict[str, QuicksightDashboard] = dict()
         self.groups: Dict[str, QuicksightGroup] = dict()
         self.users: Dict[str, QuicksightUser] = dict()
+        self.account_settings: QuicksightAccountSettings = QuicksightAccountSettings(
+            account_id=account_id
+        )
 
     def create_data_set(self, data_set_id: str, name: str) -> QuicksightDataSet:
         return QuicksightDataSet(
@@ -186,6 +192,98 @@ class QuickSightBackend(BaseBackend):
         group = self.describe_group(aws_account_id, namespace, group_name)
         group.description = description
         return group
+
+    def create_dashboard(
+        self,
+        aws_account_id: str,
+        dashboard_id: str,
+        name: str,
+        parameters: Dict[str, Any],
+        permissions: List[Dict[str, Any]],
+        source_entity: Dict[str, Any],
+        tags: List[Dict[str, str]],
+        version_description: str,
+        dashboard_publish_options: Dict[str, Any],
+        theme_arn: str,
+        definition: Dict[str, Any],
+        validation_strategy: Dict[str, str],
+        folder_arns: List[str],
+        link_sharing_configuration: Dict[str, Any],
+        link_entities: List[str],
+    ) -> QuicksightDashboard:
+        dashboard = QuicksightDashboard(
+            account_id=aws_account_id,
+            region=self.region_name,
+            dashboard_id=dashboard_id,
+            dashboard_publish_options=dashboard_publish_options,
+            name=name,
+            definition=definition,
+            folder_arns=folder_arns,
+            link_entities=link_entities,
+            link_sharing_configuration=link_sharing_configuration,
+            parameters=parameters,
+            permissions=permissions,
+            source_entity=source_entity,
+            tags=tags,
+            theme_arn=theme_arn,
+            version_description=version_description,
+            validation_strategy=validation_strategy,
+        )
+        self.dashboards[dashboard_id] = dashboard
+        return dashboard
+
+    def describe_dashboard(
+        self,
+        aws_account_id: str,
+        dashboard_id: str,
+        version_number: int,
+        alias_name: str,
+    ) -> QuicksightDashboard:
+        dashboard = self.dashboards.get(dashboard_id)
+        if not dashboard:
+            raise ResourceNotFoundException(f"Dashboard {dashboard_id} not found")
+        return dashboard
+
+    def list_dashboards(self, aws_account_id: str) -> List[Dict[str, Any]]:
+        dashboards = self.dashboards.values()
+        dashboard_list: List[Dict[str, Any]] = []
+        for dashboard in dashboards:
+            d_dict = {
+                "Arn": dashboard.arn,
+                "DashboardId": dashboard.dashboard_id,
+                "Name": dashboard.name,
+                "CreatedTime": str(dashboard.created_time),
+                "LastUpdatedTime": str(dashboard.last_updated_time),
+                "PublishedVersionNumber": dashboard.version_number,
+                "LastPublishedTime": str(dashboard.last_published_time),
+            }
+            dashboard_list.append(d_dict)
+
+        return dashboard_list
+
+    def describe_account_settings(
+        self, aws_account_id: str
+    ) -> QuicksightAccountSettings:
+        return self.account_settings
+
+    def update_account_settings(
+        self,
+        aws_account_id: str,
+        default_namespace: str,
+        notification_email: str,
+        termination_protection_enabled: bool,
+    ) -> None:
+        if notification_email:
+            self.account_settings.notification_email = notification_email
+        if termination_protection_enabled:
+            self.account_settings.termination_protection_enabled = (
+                termination_protection_enabled
+            )
+
+    def update_public_sharing_settings(
+        self, aws_account_id: str, public_sharing_enabled: bool
+    ) -> None:
+        self.account_settings.public_sharing_enabled = public_sharing_enabled
 
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")

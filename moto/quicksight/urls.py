@@ -18,4 +18,8 @@ url_paths = {
     r"{0}/accounts/(?P<account_id>[\d]+)/namespaces/(?P<namespace>[a-zA-Z0-9._-]+)/users/(?P<username>[^/]+)$": QuickSightResponse.dispatch,
     r"{0}/accounts/(?P<account_id>[\d]+)/namespaces/(?P<namespace>[a-zA-Z0-9._-]+)/users/(?P<username>[^/]+)/groups$": QuickSightResponse.dispatch,
     r"{0}/accounts/(?P<account_id>[\d]+)/namespaces/(?P<namespace>[a-zA-Z0-9._-]+)/groups-search$": QuickSightResponse.dispatch,
+    r"{0}/accounts/(?P<account_id>[^/]+)/dashboards$": QuickSightResponse.dispatch,
+    r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)$": QuickSightResponse.dispatch,
+    r"{0}/accounts/(?P<account_id>[^/]+)/settings$": QuickSightResponse.dispatch,
+    r"{0}/accounts/(?P<account_id>[^/]+)/public-sharing-settings$": QuickSightResponse.dispatch,
 }
