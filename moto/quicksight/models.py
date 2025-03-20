@@ -266,5 +266,24 @@ class QuickSightBackend(BaseBackend):
     ) -> QuicksightAccountSettings:
         return self.account_settings
 
+    def update_account_settings(
+        self,
+        aws_account_id: str,
+        default_namespace: str,
+        notification_email: str,
+        termination_protection_enabled: bool,
+    ) -> None:
+        if notification_email:
+            self.account_settings.notification_email = notification_email
+        if termination_protection_enabled:
+            self.account_settings.termination_protection_enabled = (
+                termination_protection_enabled
+            )
+
+    def update_public_sharing_settings(
+        self, aws_account_id: str, public_sharing_enabled: bool
+    ) -> None:
+        self.account_settings.public_sharing_enabled = public_sharing_enabled
+
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")

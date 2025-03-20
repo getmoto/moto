@@ -291,7 +291,7 @@ class QuickSightResponse(BaseResponse):
             )
         )
 
-    def describe_account_settings(self):
+    def describe_account_settings(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
         settings = self.quicksight_backend.describe_account_settings(
             aws_account_id=aws_account_id,
@@ -306,3 +306,25 @@ class QuickSightResponse(BaseResponse):
         }
 
         return json.dumps(dict(AccountSettings=resp, Status=200))
+
+    def update_account_settings(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        default_namespace = self._get_param("DefaultNamespace")
+        notification_email = self._get_param("NotificationEmail")
+        termination_protection_enabled = self._get_param("TerminationProtectionEnabled")
+        self.quicksight_backend.update_account_settings(
+            aws_account_id=aws_account_id,
+            default_namespace=default_namespace,
+            notification_email=notification_email,
+            termination_protection_enabled=termination_protection_enabled,
+        )
+        return json.dumps(dict(Status=200))
+
+    def update_public_sharing_settings(self):
+        aws_account_id = self._get_param("AwsAccountId")
+        public_sharing_enabled = self._get_param("PublicSharingEnabled")
+        self.quicksight_backend.update_public_sharing_settings(
+            aws_account_id=aws_account_id,
+            public_sharing_enabled=public_sharing_enabled,
+        )
+        return json.dumps(dict(Status=200))
