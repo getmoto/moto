@@ -133,6 +133,7 @@ if TYPE_CHECKING:
     from moto.scheduler.models import EventBridgeSchedulerBackend
     from moto.sdb.models import SimpleDBBackend
     from moto.secretsmanager.models import SecretsManagerBackend
+    from moto.servicecatalogappregistry.models import AppRegistryBackend
     from moto.servicediscovery.models import ServiceDiscoveryBackend
     from moto.servicequotas.models import ServiceQuotasBackend
     from moto.ses.models import SESBackend
