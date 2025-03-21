@@ -304,7 +304,7 @@ def test_register_scalable_target_updates_existing_target():
         "ScheduledScalingSuspended": False,
     }
 
-    client.register_scalable_target(
+    response = client.register_scalable_target(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE,
         ResourceId=DEFAULT_RESOURCE_ID,
         ScalableDimension=DEFAULT_SCALABLE_DIMENSION,
@@ -312,12 +312,16 @@ def test_register_scalable_target_updates_existing_target():
         MaxCapacity=updated_max_capacity,
         SuspendedState=updated_suspended_state,
     )
+    expected_arn_prefix = f"arn:aws:application-autoscaling:{DEFAULT_REGION}:{ACCOUNT_ID}:scalable-target/"
+    assert response["ScalableTargetARN"].startswith(expected_arn_prefix)
+
     response = client.describe_scalable_targets(
         ServiceNamespace=DEFAULT_SERVICE_NAMESPACE
     )
 
     assert len(response["ScalableTargets"]) == 1
     t = response["ScalableTargets"][0]
+    assert t["ScalableTargetARN"].startswith(expected_arn_prefix)
     assert t["MinCapacity"] == updated_min_capacity
     assert t["MaxCapacity"] == updated_max_capacity
     assert (
