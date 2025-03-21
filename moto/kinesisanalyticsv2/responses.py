@@ -1,7 +1,6 @@
 """Handles incoming kinesisanalyticsv2 requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict, List, Optional
 
 from moto.core.responses import BaseResponse
 
@@ -19,7 +18,7 @@ class KinesisAnalyticsV2Response(BaseResponse):
         """Return backend instance specific for this region."""
         return kinesisanalyticsv2_backends[self.current_account][self.region]
 
-    def create_application(self):
+    def create_application(self) -> str:
         application_name = self._get_param("ApplicationName")
         application_description = self._get_param("ApplicationDescription")
         runtime_environment = self._get_param("RuntimeEnvironment")
@@ -48,13 +47,11 @@ class KinesisAnalyticsV2Response(BaseResponse):
         )
         return json.dumps(dict(Tags=tags))
 
-
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = params.get("Tags")
         self.kinesisanalyticsv2_backend.tag_resource(
-            resource_arn=resource_arn,
-            tags=tags
+            resource_arn=resource_arn, tags=tags
         )
         return json.dumps(dict())

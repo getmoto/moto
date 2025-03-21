@@ -1,7 +1,5 @@
 """Test different server responses."""
 
-import moto.server as server
-
 
 # def test_kinesisanalyticsv2_list():
 #     backend = server.create_backend_app("kinesisanalyticsv2")

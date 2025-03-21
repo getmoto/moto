@@ -1,7 +1,6 @@
 """Unit tests for kinesisanalyticsv2-supported APIs."""
 
 import boto3
-from typing import Any, Dict, List, Tuple
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -20,9 +19,10 @@ FAKE_BUCKET_ARN = "arn:aws:s3:::test"
 FAKE_FILE_KEY = "testfile.jar"
 # FAKE_KMS_KEY_ID = "abcd1234-5678-90ab-cdef-FAKEKEY"
 
+
 @mock_aws
 def test_create_application():
-    region="us-east-2"
+    region = "us-east-2"
     client = boto3.client("kinesisanalyticsv2", region_name=region)
     log_stream = f"arn:aws:logs:{region}:{ACCOUNT_ID}:log-group:/aws/kinesis-analytics/log-stream:test-log-stream"
 
@@ -32,26 +32,19 @@ def test_create_application():
         RuntimeEnvironment="FLINK-1_20",
         ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
         Tags=FAKE_TAGS,
-        CloudWatchLoggingOptions=[
-            {
-                "LogStreamARN": log_stream
-            }
-        ]
+        CloudWatchLoggingOptions=[{"LogStreamARN": log_stream}],
     )
 
     app = resp.get("ApplicationDetail")
     app_arn = app.get("ApplicationARN")
     # required parameters
     assert app_arn
-    assert (
-        app.get("ApplicationDescription")
-        == "test application description"
-    )
+    assert app.get("ApplicationDescription") == "test application description"
 
     assert app.get("RuntimeEnvironment") == "FLINK-1_20"
     assert (
-        app.get("ServiceExecutionRole") ==
-        f"arn:aws:iam::{ACCOUNT_ID}:role/application_role"
+        app.get("ServiceExecutionRole")
+        == f"arn:aws:iam::{ACCOUNT_ID}:role/application_role"
     )
 
     tags_resp = client.list_tags_for_resource(ResourceARN=app_arn)
@@ -62,11 +55,11 @@ def test_create_application():
 
     assert len(app.get("CloudWatchLoggingOptionDescriptions")[0]) == 2
 
+
 @mock_aws
 def test_create_application_with_appconfig():
-    region="us-east-2"
+    region = "us-east-2"
     client = boto3.client("kinesisanalyticsv2", region_name=region)
-    log_stream = f"arn:aws:logs:{region}:{ACCOUNT_ID}:log-group:/aws/kinesis-analytics/log-stream:test-log-stream"
 
     resp = client.create_application(
         ApplicationName="test_application",
@@ -74,15 +67,9 @@ def test_create_application_with_appconfig():
         ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
         ApplicationConfiguration={
             "FlinkApplicationConfiguration": {
-                "CheckpointConfiguration" : {
-                    "ConfigurationType": "DEFAULT"
-                },
-                "MonitoringConfiguration": {
-                    "ConfigurationType": "DEFAULT"
-                },
-                "ParallelismConfiguration": {
-                    "ConfigurationType": "DEFAULT"
-                }
+                "CheckpointConfiguration": {"ConfigurationType": "DEFAULT"},
+                "MonitoringConfiguration": {"ConfigurationType": "DEFAULT"},
+                "ParallelismConfiguration": {"ConfigurationType": "DEFAULT"},
             },
             "EnvironmentProperties": {
                 "PropertyGroups": [
@@ -90,14 +77,14 @@ def test_create_application_with_appconfig():
                         "PropertyGroupId": "TEST",
                         "PropertyMap": {
                             "aws.region": "us-east-2",
-                            "AggregationEnabled": "false"
-                        }
+                            "AggregationEnabled": "false",
+                        },
                     },
                     {
                         "PropertyGroupId": "TEST2",
                         "PropertyMap": {
                             "aws.region": "us-west-2",
-                        }
+                        },
                     },
                 ]
             },
@@ -106,27 +93,18 @@ def test_create_application_with_appconfig():
                     "S3ContentLocation": {
                         "BucketARN": FAKE_BUCKET_ARN,
                         "FileKey": FAKE_FILE_KEY,
-                        "ObjectVersion": "1"
+                        "ObjectVersion": "1",
                     }
                 },
-                "CodeContentType": "ZIPFILE"
+                "CodeContentType": "ZIPFILE",
             },
-            "ApplicationSnapshotConfiguration": {
-                "SnapshotsEnabled": False
-            },
-            "ApplicationSystemRollbackConfiguration": {
-                "RollbackEnabled": False
-            },
+            "ApplicationSnapshotConfiguration": {"SnapshotsEnabled": False},
+            "ApplicationSystemRollbackConfiguration": {"RollbackEnabled": False},
             "VpcConfigurations": [
-                {
-                    "SubnetIds": FAKE_SUBNET_IDS,
-                    "SecurityGroupIds": FAKE_SUBNET_IDS
-                }
+                {"SubnetIds": FAKE_SUBNET_IDS, "SecurityGroupIds": FAKE_SUBNET_IDS}
             ],
             "ZeppelinApplicationConfiguration": {
-                "MonitoringConfiguration": {
-                    "LogLevel": "INFO"
-                },
+                "MonitoringConfiguration": {"LogLevel": "INFO"},
                 "CatalogConfiguration": {
                     "GlueDataCatalogConfiguration": {
                         "DatabaseARN": f"arn:aws:glue:{region}:{ACCOUNT_ID}:database/test"
@@ -135,7 +113,7 @@ def test_create_application_with_appconfig():
                 "DeployAsApplicationConfiguration": {
                     "S3ContentLocation": {
                         "BucketARN": FAKE_BUCKET_ARN,
-                        "BasePath": "test/app"
+                        "BasePath": "test/app",
                     }
                 },
                 "CustomArtifactsConfiguration": [
@@ -144,42 +122,41 @@ def test_create_application_with_appconfig():
                         "S3ContentLocation": {
                             "BucketARN": FAKE_BUCKET_ARN,
                             "FileKey": FAKE_FILE_KEY,
-                            "ObjectVersion": "1.0"
+                            "ObjectVersion": "1.0",
                         },
                         "MavenReference": {
                             "GroupId": "org.apache.flink",
                             "ArtifactId": "flink-connector-kafka_2.12",
-                            "Version": "1.13.2"
-                        }
+                            "Version": "1.13.2",
+                        },
                     },
-                ]
-            }
-        }
+                ],
+            },
+        },
     )
     app = resp.get("ApplicationDetail")
-    app_arn = app.get("ApplicationARN")
     app_config = app.get("ApplicationConfigurationDescription")
     # import pytest; pytest.set_trace()
 
     assert app_config["FlinkApplicationConfigurationDescription"] == {
-        "CheckpointConfigurationDescription" : {
+        "CheckpointConfigurationDescription": {
             "ConfigurationType": "DEFAULT",
             "CheckpointingEnabled": True,
             "CheckpointInterval": 60000,
-            "MinPauseBetweenCheckpoints": 5000
+            "MinPauseBetweenCheckpoints": 5000,
         },
         "MonitoringConfigurationDescription": {
             "ConfigurationType": "DEFAULT",
             "MetricsLevel": "APPLICATION",
-            "LogLevel": "INFO"
+            "LogLevel": "INFO",
         },
         "ParallelismConfigurationDescription": {
             "ConfigurationType": "DEFAULT",
             "Parallelism": 1,
             "ParallelismPerKPU": 1,
             "AutoScalingEnabled": False,
-            "CurrentParallelism": 1
-        }
+            "CurrentParallelism": 1,
+        },
     }
 
     assert app_config["EnvironmentPropertyDescriptions"] == {
@@ -188,15 +165,15 @@ def test_create_application_with_appconfig():
                 "PropertyGroupId": "TEST",
                 "PropertyMap": {
                     "aws.region": "us-east-2",
-                    "AggregationEnabled": "false"
-                }
+                    "AggregationEnabled": "false",
+                },
             },
             {
                 "PropertyGroupId": "TEST2",
                 "PropertyMap": {
                     "aws.region": "us-west-2",
-                }
-            }
+                },
+            },
         ]
     }
 
@@ -213,24 +190,24 @@ def test_create_application_with_appconfig():
 
     assert app_config == {
         "FlinkApplicationConfigurationDescription": {
-            "CheckpointConfigurationDescription" : {
+            "CheckpointConfigurationDescription": {
                 "ConfigurationType": "DEFAULT",
                 "CheckpointingEnabled": True,
                 "CheckpointInterval": 60000,
-                "MinPauseBetweenCheckpoints": 5000
+                "MinPauseBetweenCheckpoints": 5000,
             },
             "MonitoringConfigurationDescription": {
                 "ConfigurationType": "DEFAULT",
                 "MetricsLevel": "APPLICATION",
-                "LogLevel": "INFO"
+                "LogLevel": "INFO",
             },
             "ParallelismConfigurationDescription": {
                 "ConfigurationType": "DEFAULT",
                 "Parallelism": 1,
                 "ParallelismPerKPU": 1,
                 "AutoScalingEnabled": False,
-                "CurrentParallelism": 1
-            }
+                "CurrentParallelism": 1,
+            },
         },
         "EnvironmentPropertyDescriptions": {
             "PropertyGroupDescriptions": [
@@ -238,15 +215,15 @@ def test_create_application_with_appconfig():
                     "PropertyGroupId": "TEST",
                     "PropertyMap": {
                         "aws.region": "us-east-2",
-                        "AggregationEnabled": "false"
-                    }
+                        "AggregationEnabled": "false",
+                    },
                 },
                 {
                     "PropertyGroupId": "TEST2",
                     "PropertyMap": {
                         "aws.region": "us-west-2",
-                    }
-                }
+                    },
+                },
             ]
         },
         "ApplicationCodeConfigurationDescription": {
@@ -256,29 +233,23 @@ def test_create_application_with_appconfig():
                 "S3ApplicationCodeLocationDescription": {
                     "BucketARN": FAKE_BUCKET_ARN,
                     "FileKey": FAKE_FILE_KEY,
-                    "ObjectVersion": "1"
-                }
+                    "ObjectVersion": "1",
+                },
             },
             "CodeContentType": "ZIPFILE",
         },
-        "ApplicationSnapshotConfigurationDescription": {
-            "SnapshotsEnabled": False
-        },
-        "ApplicationSystemRollbackConfigurationDescription": {
-            "RollbackEnabled": False
-        },
+        "ApplicationSnapshotConfigurationDescription": {"SnapshotsEnabled": False},
+        "ApplicationSystemRollbackConfigurationDescription": {"RollbackEnabled": False},
         "VpcConfigurationDescriptions": [
             {
                 "VpcConfigurationId": "1.1",
                 "VpcId": FAKE_VPC_ID,
                 "SubnetIds": FAKE_SUBNET_IDS,
-                "SecurityGroupIds": FAKE_SUBNET_IDS
+                "SecurityGroupIds": FAKE_SUBNET_IDS,
             }
         ],
         "ZeppelinApplicationConfigurationDescription": {
-            "MonitoringConfigurationDescription": {
-                "LogLevel": "INFO"
-            },
+            "MonitoringConfigurationDescription": {"LogLevel": "INFO"},
             "CatalogConfigurationDescription": {
                 "GlueDataCatalogConfigurationDescription": {
                     "DatabaseARN": f"arn:aws:glue:{region}:{ACCOUNT_ID}:database/test"
@@ -287,7 +258,7 @@ def test_create_application_with_appconfig():
             "DeployAsApplicationConfigurationDescription": {
                 "S3ContentLocationDescription": {
                     "BucketARN": FAKE_BUCKET_ARN,
-                    "BasePath": "test/app"
+                    "BasePath": "test/app",
                 }
             },
             "CustomArtifactsConfigurationDescription": [
@@ -296,28 +267,29 @@ def test_create_application_with_appconfig():
                     "S3ContentLocationDescription": {
                         "BucketARN": FAKE_BUCKET_ARN,
                         "FileKey": FAKE_FILE_KEY,
-                        "ObjectVersion": "1.0"
+                        "ObjectVersion": "1.0",
                     },
                     "MavenReferenceDescription": {
                         "GroupId": "org.apache.flink",
                         "ArtifactId": "flink-connector-kafka_2.12",
-                        "Version": "1.13.2"
-                    }
+                        "Version": "1.13.2",
+                    },
                 },
-            ]
-        }
+            ],
+        },
     }
     # import pytest; pytest.set_trace()
     # TO-DO: Test CUSTOM flink app configurations
 
+
 @mock_aws
 def test_tag_resource():
-    region="us-east-2"
+    region = "us-east-2"
     client = boto3.client("kinesisanalyticsv2", region_name=region)
     app_resp = client.create_application(
         ApplicationName="test_application",
         RuntimeEnvironment="FLINK-1_20",
-        ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role"
+        ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
     )
     app = app_resp.get("ApplicationDetail")
     app_arn = app.get("ApplicationARN")
@@ -325,11 +297,10 @@ def test_tag_resource():
         ResourceARN=app_arn,
         Tags=[
             {"Key": "key2", "Value": "value2"},
-        ]
+        ],
     )
 
     tags_resp = client.list_tags_for_resource(ResourceARN=app_arn)
     # import pytest; pytest.set_trace()
 
     assert tags_resp["Tags"] == [{"Key": "key2", "Value": "value2"}]
-
