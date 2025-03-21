@@ -614,12 +614,14 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 class InstanceBackend:
     def __init__(self) -> None:
         self.reservations: Dict[str, Reservation] = OrderedDict()
+        # Performance patch: reference instances by their id
+        self.id_to_instances: Dict[str, Instance] = {}
 
     def get_instance(self, instance_id: str) -> Instance:
-        for instance in self.all_instances():
-            if instance.id == instance_id:
-                return instance
-        raise InvalidInstanceIdError(instance_id)
+        try:
+            return self.id_to_instances[instance_id]
+        except KeyError:
+            raise InvalidInstanceIdError(instance_id)
 
     def _original_run_instances(
         self,
@@ -702,6 +704,7 @@ class InstanceBackend:
                 self, image_id, user_data, security_groups, **kwargs
             )
             new_reservation.instances.append(new_instance)
+            self.id_to_instances[new_instance.id] = new_instance
             new_instance.add_tags(instance_tags)
             block_device_mappings = None
             if "block_device_mappings" not in kwargs:
@@ -756,8 +759,6 @@ class InstanceBackend:
     # instances are never deleted (they are kept in "terminated" state)
     # so there is no clean-up to do
     def run_instances(self, *args, **kwargs):
-        if not hasattr(self, 'id_to_instances'):
-            self._build_instance_dict()
         result = self._original_run_instances(*args, **kwargs)
         result.id_to_instances = {}
         for instance in result.instances:
@@ -766,17 +767,9 @@ class InstanceBackend:
             instance.reservation_id = result.id
             # delete_on_termination is True in later version of moto
             # this fix a warning in bootstrapper when instance is undeployed
-            instance.block_device_mapping['/dev/sda1'].delete_on_termination = True
+            instance.block_device_mapping["/dev/sda1"].delete_on_termination = True
 
         return result
-    
-    def _build_instance_dict(self):
-        if not hasattr(self, 'id_to_instances'):
-            self.id_to_instances = {}
-            for reservation in self.reservations.values():
-                for instance in reservation.instances:
-                    self.id_to_instances[instance.id] = instance
-                    instance.reservation_id = reservation.id
 
     def start_instances(
         self, instance_ids: List[str]
@@ -893,11 +886,7 @@ class InstanceBackend:
 
     # PATCHED - REPLACED FORMER VERSION
     def get_instance_by_id(self, instance_id: str):
-        try:
-            return self.id_to_instances.get(instance_id)
-        except AttributeError:  # self.id_to_instances has not been defined yet
-            self._build_instance_dict()
-            return self.get_instance_by_id(instance_id)
+        return self.id_to_instances.get(instance_id)
 
     def get_reservations_by_instance_ids(
         self, instance_ids: List[str], filters: Any = None
@@ -906,41 +895,30 @@ class InstanceBackend:
         associated with the given instance_ids.
         """
         reservations = []
-        for reservation in self.all_reservations():
-            reservation_instance_ids = [
-                instance.id for instance in reservation.instances
-            ]
-            matching_reservation = any(
-                instance_id in reservation_instance_ids for instance_id in instance_ids
-            )
-            if matching_reservation:
-                reservation.instances = [
-                    instance
-                    for instance in reservation.instances
-                    if instance.id in instance_ids
-                ]
-                reservations.append(reservation)
-        found_instance_ids = [
-            instance.id
-            for reservation in reservations
-            for instance in reservation.instances
-        ]
-        if len(found_instance_ids) != len(instance_ids):
-            invalid_id = list(set(instance_ids).difference(set(found_instance_ids)))[0]
-            raise InvalidInstanceIdError(invalid_id)
+        reservations = {}
+        for id_ in instance_ids:
+            instance = self.get_instance(id_)
+            try:
+                reservations[instance.reservation_id].instances.append(instance)
+            except KeyError:
+                reservation = copy.copy(self.reservations[instance.reservation_id])
+                reservation.instances = [instance]
+                reservations[instance.reservation_id] = reservation
+
+        reservations = list(reservations.values())
         if filters is not None:
             reservations = filter_reservations(reservations, filters)
         return reservations
 
     # ORIGINAL FUNCTION - PATCHED BELOW
     # def describe_instances(self, filters: Any = None) -> List[Reservation]:
-        # return self.all_reservations(filters)
+    # return self.all_reservations(filters)
 
     # Perfomrance patch: describe_instances to avoid double iterations on reservations
     # This a mix of all_reservations() and filter_reservations() as used by describe_instances()
-    def describe_instances(self, filters=None):    
+    def describe_instances(self, filters=None):
         filters = filters or {}
-        instance_ids = filters.get('instance-id', set())
+        instance_ids = filters.pop("instance-id", set())
         if instance_ids:
             reservations = {}
             for id_ in instance_ids:
@@ -949,7 +927,9 @@ class InstanceBackend:
                     try:
                         reservations[instance.reservation_id].instances.append(instance)
                     except KeyError:
-                        reservation = copy.copy(self.reservations[instance.reservation_id])
+                        reservation = copy.copy(
+                            self.reservations[instance.reservation_id]
+                        )
                         reservation.instances = [instance]
                         reservations[instance.reservation_id] = reservation
             return list(reservations.values())
@@ -963,7 +943,7 @@ class InstanceBackend:
             if new_instances:
                 reservation = copy.copy(reservation)
                 reservation.instances = new_instances
-                result.append(reservation)            
+                result.append(reservation)
         return result
 
     def describe_instance_status(

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Set
 
 from moto.core.common_models import CloudFormationModel
@@ -267,7 +268,8 @@ class Snapshot(TaggedEC2Resource):
 class EBSBackend:
     def __init__(self) -> None:
         self.volumes: Dict[str, Volume] = {}
-        self.attachments: Dict[str, VolumeAttachment] = {}
+        # Performance patch: fill this dict with instance id -> volume attachments
+        self.attachments: Dict[str, List[VolumeAttachment]] = defaultdict(list)
         self.snapshots: Dict[str, Snapshot] = {}
         self.default_kms_key_id: str = ""
 
@@ -323,12 +325,27 @@ class EBSBackend:
     def describe_volumes(
         self, volume_ids: Optional[List[str]] = None, filters: Any = None
     ) -> List[Volume]:
-        matches = list(self.volumes.values())
+        filters = filters or {}
         if volume_ids:
-            matches = [vol for vol in matches if vol.id in volume_ids]
+            matches = [
+                vol
+                for vol_id in volume_ids
+                if (vol := self.volumes.get(vol_id)) is not None
+            ]
             if len(volume_ids) > len(matches):
                 unknown_ids = set(volume_ids) - set(matches)  # type: ignore[arg-type]
                 raise InvalidVolumeIdError(unknown_ids)
+        # performance patch: filter by attachment.instance-id using attachments dict
+        elif instance_ids := filters.pop("attachment.instance-id", []):
+            matches = []
+            for instance_id in instance_ids:
+                if instance_id in self.attachments:
+                    matches.extend(
+                        attachment.volume
+                        for attachment in self.attachments[instance_id]
+                    )
+        else:
+            matches = list(self.volumes.values())
         if filters:
             matches = generic_filter(filters, matches)
         return matches
@@ -391,6 +408,7 @@ class EBSBackend:
             delete_on_termination=delete_on_termination,
         )
         instance.block_device_mapping[device_path] = bdt
+        self.attachments[instance_id].append(volume.attachment)
         return volume.attachment
 
     def detach_volume(
@@ -406,6 +424,9 @@ class EBSBackend:
 
         try:
             del instance.block_device_mapping[device_path]
+            self.attachments[instance_id].remove(volume.attachment)
+            if not self.attachments[instance_id]:
+                del self.attachments[instance_id]
         except KeyError:
             raise InvalidVolumeDetachmentError(volume_id, instance_id, device_path)
 

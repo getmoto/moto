@@ -481,7 +481,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
         )
 
         self.suspended_processes: List[str] = []
-        self.instance_states: List[InstanceState] = []
+        # Performance patch: replace list with dict instance id -> instance state
+        self.instance_states: Dict[str, InstanceState] = {}
         self.tags: List[Dict[str, str]] = tags or []
         self.set_desired_capacity(desired_capacity)
 
@@ -507,7 +508,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
         return f"arn:{get_partition(self.region)}:autoscaling:{self.region}:{self.account_id}:autoScalingGroup:{self._id}:autoScalingGroupName/{self.name}"
 
     def active_instances(self) -> List[InstanceState]:
-        return [x for x in self.instance_states if x.lifecycle_state == "InService"]
+        return [
+            x for x in self.instance_states.values() if x.lifecycle_state == "InService"
+        ]
 
     def _set_azs_and_vpcs(
         self,
@@ -790,7 +793,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             count_to_remove = curr_instance_count - self.desired_capacity  # type: ignore[operator]
             instances_to_remove = [  # only remove unprotected
                 state
-                for state in self.instance_states
+                for state in self.instance_states.values()
                 if not state.protected_from_scale_in
             ][:count_to_remove]
             if instances_to_remove:  # just in case not instances to remove
@@ -800,9 +803,11 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 self.autoscaling_backend.ec2_backend.terminate_instances(
                     instance_ids_to_remove
                 )
-                self.instance_states = list(
-                    set(self.instance_states) - set(instances_to_remove)
-                )
+                self.instance_states = {
+                    state.instance.id: state
+                    for state in set(self.instance_states.values())
+                    - set(instances_to_remove)
+                }
         if self.name in self.autoscaling_backend.autoscaling_groups:
             self.autoscaling_backend.update_attached_elbs(self.name)
             self.autoscaling_backend.update_attached_target_groups(self.name)
@@ -869,11 +874,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
         )
         for instance in reservation.instances:
             instance.autoscaling_group = self
-            self.instance_states.append(
-                InstanceState(
-                    instance,
-                    protected_from_scale_in=self.new_instances_protected_from_scale_in,
-                )
+            self.instance_states[instance.id] = InstanceState(
+                instance,
+                protected_from_scale_in=self.new_instances_protected_from_scale_in,
             )
 
     def append_target_groups(self, target_group_arns: List[str]) -> None:
@@ -1219,7 +1222,14 @@ class AutoScalingBackend(BaseBackend):
     def describe_auto_scaling_groups(
         self, names: List[str], filters: Optional[List[Dict[str, str]]] = None
     ) -> List[FakeAutoScalingGroup]:
-        groups = list(self.autoscaling_groups.values())
+        if names:
+            groups = [
+                self.autoscaling_groups[name]
+                for name in names
+                if name in self.autoscaling_groups
+            ]
+        else:
+            groups = list(self.autoscaling_groups.values())
 
         if filters:
             for f in filters:
@@ -1246,9 +1256,6 @@ class AutoScalingBackend(BaseBackend):
                         )
                     ]
 
-        if names:
-            groups = [group for group in groups if group.name in names]
-
         return groups
 
     def delete_auto_scaling_group(self, group_name: str) -> None:
@@ -1260,13 +1267,16 @@ class AutoScalingBackend(BaseBackend):
     ) -> List[InstanceState]:
         instance_states = []
         for group in self.autoscaling_groups.values():
-            instance_states.extend(
-                [
-                    x
-                    for x in group.instance_states
-                    if not instance_ids or x.instance.id in instance_ids
-                ]
-            )
+            if not instance_ids:
+                instance_states.extend(group.instance_states.values())
+                continue
+            for instance_id in instance_ids:
+                try:
+                    instance_states.append(group.instance_states[instance_id])
+                except KeyError:
+                    pass
+            if len(instance_states) == len(instance_ids):
+                break
         return instance_states
 
     def attach_instances(self, group_name: str, instance_ids: List[str]) -> None:
@@ -1289,7 +1299,9 @@ class AutoScalingBackend(BaseBackend):
                 self.ec2_backend.create_tags(
                     [instance.instance.id], {ASG_NAME_TAG: group.name}
                 )
-            group.instance_states.extend(new_instances)
+            group.instance_states.update(
+                (instance.instance.id, instance) for instance in new_instances
+            )
             self.update_attached_elbs(group.name)
             self.update_attached_target_groups(group.name)
 
@@ -1297,12 +1309,10 @@ class AutoScalingBackend(BaseBackend):
         """
         The ShouldRespectGracePeriod-parameter is not yet implemented
         """
-        instance = self.ec2_backend.get_instance(instance_id)
         instance_state = next(
-            instance_state
+            group.instance_states[instance_id]
             for group in self.autoscaling_groups.values()
-            for instance_state in group.instance_states
-            if instance_state.instance.id == instance.id
+            if instance_id in group.instance_states
         )
         instance_state.health_status = health_status
 
@@ -1313,13 +1323,10 @@ class AutoScalingBackend(BaseBackend):
         original_size = group.desired_capacity
 
         detached_instances = [
-            x for x in group.instance_states if x.instance.id in instance_ids
+            group.instance_states.pop(x)
+            for x in instance_ids
+            if x in group.instance_states
         ]
-
-        new_instance_state = [
-            x for x in group.instance_states if x.instance.id not in instance_ids
-        ]
-        group.instance_states = new_instance_state
 
         if should_decrement:
             group.desired_capacity = original_size - len(instance_ids)  # type: ignore[operator]
@@ -1472,7 +1479,7 @@ class AutoScalingBackend(BaseBackend):
 
     def update_attached_target_groups(self, group_name: str) -> None:
         group = self.autoscaling_groups[group_name]
-        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        group_instance_ids = set(group.instance_states)
 
         # no action necessary if target_group_arns is empty
         if not group.target_group_arns:
@@ -1534,7 +1541,7 @@ class AutoScalingBackend(BaseBackend):
         self, group_name: str, load_balancer_names: List[str]
     ) -> None:
         group = self.autoscaling_groups[group_name]
-        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        group_instance_ids = set(group.instance_states)
         elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
         for elb in elbs:
             self.elb_backend.deregister_instances(
@@ -1562,7 +1569,7 @@ class AutoScalingBackend(BaseBackend):
             x for x in group.target_group_arns if x not in target_group_arns
         ]
         for target_group in target_group_arns:
-            asg_targets = [{"id": x.instance.id} for x in group.instance_states]
+            asg_targets = [{"id": x} for x in group.instance_states]
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
 
     def suspend_processes(self, group_name: str, scaling_processes: List[str]) -> None:
@@ -1600,7 +1607,7 @@ class AutoScalingBackend(BaseBackend):
     ) -> None:
         group = self.autoscaling_groups[group_name]
         protected_instances = [
-            x for x in group.instance_states if x.instance.id in instance_ids
+            i for x, i in group.instance_states.items() if x in instance_ids
         ]
         for instance in protected_instances:
             instance.protected_from_scale_in = protected_from_scale_in
@@ -1611,12 +1618,8 @@ class AutoScalingBackend(BaseBackend):
             autoscaling_group,
         ) in self.autoscaling_groups.items():
             original_active_instance_count = len(autoscaling_group.active_instances())
-            autoscaling_group.instance_states = list(
-                filter(
-                    lambda i_state: i_state.instance.id not in instance_ids,
-                    autoscaling_group.instance_states,
-                )
-            )
+            for instance_id in instance_ids:
+                autoscaling_group.instance_states.pop(instance_id, None)
             difference = original_active_instance_count - len(
                 autoscaling_group.active_instances()
             )
@@ -1632,7 +1635,7 @@ class AutoScalingBackend(BaseBackend):
         group = self.autoscaling_groups[group_name]
         original_size = group.desired_capacity
         standby_instances = []
-        for instance_state in group.instance_states:
+        for instance_state in group.instance_states.values():
             if instance_state.instance.id in instance_ids:
                 instance_state.lifecycle_state = "Standby"
                 standby_instances.append(instance_state)
@@ -1647,7 +1650,7 @@ class AutoScalingBackend(BaseBackend):
         group = self.autoscaling_groups[group_name]
         original_size = group.desired_capacity
         standby_instances = []
-        for instance_state in group.instance_states:
+        for instance_state in group.instance_states.values():
             if instance_state.instance.id in instance_ids:
                 instance_state.lifecycle_state = "InService"
                 standby_instances.append(instance_state)
@@ -1659,19 +1662,13 @@ class AutoScalingBackend(BaseBackend):
         self, instance_id: str, should_decrement: bool
     ) -> Tuple[InstanceState, Any, Any]:
         instance = self.ec2_backend.get_instance(instance_id)
+        group = instance.autoscaling_group  # type: ignore[attr-defined]
         try:
-            instance_state = next(
-                instance_state
-                for group in self.autoscaling_groups.values()
-                for instance_state in group.instance_states
-                if instance_state.instance.id == instance.id
-            )
-        except StopIteration:
+            instance_state = group.instance_states[instance_id]
+        except KeyError:
             # Maybe the VM has already been undeployed manually in EC2.
             # In such a case, AWS does not throw any error here.
             instance_state = InstanceState(instance, lifecycle_state="Terminated")
-            
-        group = instance.autoscaling_group  # type: ignore[attr-defined]
         original_size = group.desired_capacity
         self.detach_instances(group.name, [instance.id], should_decrement)
         self.ec2_backend.terminate_instances([instance.id])

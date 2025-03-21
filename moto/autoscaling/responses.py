@@ -892,7 +892,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         </LaunchTemplate>
         {% endif %}
         <Instances>
-          {% for instance_state in group.instance_states %}
+          {% for instance_state in group.instance_states.values() %}
           <member>
             <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
             <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
