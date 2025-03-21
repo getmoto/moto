@@ -26,6 +26,7 @@ backend_url_patterns = [
     ("bedrockagent", re.compile("https?://bedrock-agent\\.(.+)\\.amazonaws\\.com")),
     ("budgets", re.compile("https?://budgets\\.amazonaws\\.com")),
     ("ce", re.compile("https?://ce\\.(.+)\\.amazonaws\\.com")),
+    ("clouddirectory", re.compile("https?://clouddirectory\\.(.+)\\.amazonaws\\.com")),
     ("cloudformation", re.compile("https?://cloudformation\\.(.+)\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.(.+)\\.amazonaws\\.com")),
