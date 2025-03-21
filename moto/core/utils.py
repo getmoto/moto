@@ -3,12 +3,12 @@ import inspect
 import re
 import threading
 import time
-from flask import current_app
 from gzip import compress, decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
+from flask import current_app
 
 from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
@@ -93,7 +93,7 @@ def convert_regex_to_flask_path(url_path: str) -> str:
 
 class convert_to_flask_response(object):
     lock = threading.Lock()
-    
+
     def __init__(self, callback: Callable[..., Any]):
         self.callback = callback
 
@@ -128,12 +128,18 @@ class convert_to_flask_response(object):
         response = Response(response=content, status=status, headers=headers)
         if request.method == "HEAD" and "content-length" in headers:
             response.headers["Content-Length"] = headers["content-length"]
-        
+
         total_time = time.perf_counter() - start_time
         time_in_ms = int(total_time * 1000)
-        current_app.logger.info('%s ms %s %s %s', time_in_ms, request.method, request.path, dict(request.args))
-        
-        return response        
+        current_app.logger.info(
+            "%s ms %s %s %s",
+            time_in_ms,
+            request.method,
+            request.path,
+            dict(request.args),
+        )
+
+        return response
 
 
 class convert_flask_to_responses_response(object):

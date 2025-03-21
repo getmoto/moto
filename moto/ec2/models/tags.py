@@ -58,7 +58,11 @@ class TagBackend:
     # this method is called each time a resource is rendered in a response
     # That's the main optimisation!
     def describe_tags(self, filters):
-        if "resource-id" in filters and len(filters) == 1 and len(filters["resource-id"]) == 1:
+        if (
+            "resource-id" in filters
+            and len(filters) == 1
+            and len(filters["resource-id"]) == 1
+        ):
             results = []
             resource_id = filters["resource-id"][0]
             try:
@@ -70,9 +74,7 @@ class TagBackend:
                     "resource_id": resource_id,
                     "key": key,
                     "value": value,
-                    "resource_type": EC2_PREFIX_TO_RESOURCE[
-                        get_prefix(resource_id)
-                    ],
+                    "resource_type": EC2_PREFIX_TO_RESOURCE[get_prefix(resource_id)],
                 }
                 results.append(result)
             return results

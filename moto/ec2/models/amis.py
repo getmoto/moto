@@ -314,14 +314,14 @@ class AmiBackend:
     # in our usecases, only two AMIs are used
     _cache_images = {}
 
-    def describe_images(
-            self, ami_ids=(), filters=None, exec_users=None, owners=None
-    ):
+    def describe_images(self, ami_ids=(), filters=None, exec_users=None, owners=None):
         cache_key = (tuple(ami_ids), tuple(filters.items()))
         if cache_key in self._cache_images:
             return self._cache_images[cache_key]
         else:
-            images = self._original_describe_images(ami_ids, filters, exec_users, owners)
+            images = self._original_describe_images(
+                ami_ids, filters, exec_users, owners
+            )
             self._cache_images[cache_key] = images
             return images
 
