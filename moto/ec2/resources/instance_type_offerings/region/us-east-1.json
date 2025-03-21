@@ -1260,6 +1260,10 @@
   "Location": "us-east-1"
  },
  {
+  "InstanceType": "i8g.48xlarge",
+  "Location": "us-east-1"
+ },
+ {
   "InstanceType": "i8g.4xlarge",
   "Location": "us-east-1"
  },
