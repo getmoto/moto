@@ -2,6 +2,7 @@ import pkgutil
 from uuid import uuid4
 
 import boto3
+import pytest
 
 from moto import mock_aws
 from tests.markers import requires_docker
@@ -23,6 +24,7 @@ def lambda_handler(event, context):
 
 @requires_docker
 @mock_aws
+@pytest.mark.filterwarnings("ignore:Error extracting layer to Lambda")
 def test_invoke_local_lambda_layers():
     conn = boto3.client("lambda", _lambda_region)
     lambda_name = str(uuid4())[0:6]

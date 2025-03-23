@@ -5,12 +5,8 @@ import datetime
 import re
 from collections import OrderedDict, namedtuple
 from enum import Enum
-from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
-from botocore import xform_name
-from botocore.loaders import create_loader
-from botocore.model import ServiceModel, Shape
 from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
@@ -391,82 +387,3 @@ def decode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
         ORDERABLE_DB_INSTANCE_DECODING.get(key, key): value
         for key, value in decoded.items()
     }
-
-
-@lru_cache()
-def get_service_model(service_name: str) -> ServiceModel:
-    loader = create_loader()
-    model = loader.load_service_model(service_name, "service-2")
-    service_model = ServiceModel(model, service_name)
-    return service_model
-
-
-class _Missing:
-    def __repr__(self) -> str:
-        return "<moto.missing>"
-
-
-missing = _Missing()
-
-
-def get_value(obj: Any, key: int | str, default: Any = missing) -> Any:
-    if not hasattr(obj, "__getitem__"):
-        return getattr(obj, str(key), default)
-
-    try:
-        return obj[key]
-    except (KeyError, IndexError, TypeError, AttributeError):
-        return getattr(obj, str(key), default)
-
-
-class ValuePicker:
-    def __init__(self, alias_dict: Dict[str, List[str]]) -> None:
-        self.alias_dict = alias_dict
-
-    def __call__(self, value: Any, key: str, shape: Shape) -> Any:
-        return self._get_value(value, key, shape)
-
-    def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
-        new_value = None
-        possible_keys = self._get_possible_keys(key, value, shape)
-        for key in possible_keys:
-            new_value = get_value(value, key)
-            if new_value is not missing:
-                break
-        if new_value is missing:
-            return None
-        if callable(new_value):
-            new_value = new_value()
-        # Testing if DBInstance.engine was an Engine() instance with a __str__ method
-        if new_value and shape.type_name == "string" and not isinstance(new_value, str):
-            new_value = str(new_value)
-        return new_value
-
-    def _get_possible_keys(self, key: str, obj: Any, shape: Shape) -> List[str]:
-        possible_keys = []
-        # Sometimes the list or structure name differs from the attribute name
-        if shape.type_name in ["list", "structure"]:
-            possible_keys += [shape.name, xform_name(shape.name)]
-        # db_instance_identifier or DBInstanceIdentifier
-        possible_keys += [xform_name(key), key]
-        # Check our alias dict...
-        if key in self.alias_dict:
-            key_aliases = self.alias_dict[key]
-            possible_keys += key_aliases
-        # Translate e.g. DBInstanceIdentifier to identifier if class is DBInstance
-        from moto.rds.models import RDSBaseModel
-
-        obj_is_rds_model = isinstance(obj, RDSBaseModel)
-        obj_is_dto = isinstance(obj, object) and obj.__class__.__name__.endswith("DTO")
-        if obj_is_dto or obj_is_rds_model:  # isinstance(obj, object):
-            # Use alias_dict so DBInstanceDTO resolves to DBInstance
-            default_class_name = obj.__class__.__name__
-            class_name_aliases = self.alias_dict.get(
-                default_class_name, [default_class_name]
-            )
-            class_name = class_name_aliases[0]
-            if class_name in key:
-                short_key = key.replace(class_name, "")
-                possible_keys += [xform_name(short_key), short_key]
-
-        return possible_keys

@@ -835,6 +835,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if self.launch_config
             else None
         )
+        launch_template = None
+        if self.launch_template:
+            if self.launch_template.id:
+                launch_template = {"LaunchTemplateId": self.launch_template.id}
+            elif self.launch_template.name:
+                launch_template = {"LaunchTemplateName": self.launch_template.name}
         reservation = self.autoscaling_backend.ec2_backend.run_instances(
             self.image_id,
             count_needed,
@@ -844,6 +850,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             tags={"instance": propagated_tags},
             placement=random.choice(self.availability_zones),
             launch_config=self.launch_config,
+            launch_template=launch_template,
             is_instance_type_default=False,
             associate_public_ip=associate_public_ip,
             subnet_id=subnet_id,

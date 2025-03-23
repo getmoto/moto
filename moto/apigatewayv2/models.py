@@ -2,13 +2,14 @@
 
 import hashlib
 import string
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import unix_time
+from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
@@ -54,14 +55,14 @@ class Stage(BaseModel):
         self.route_settings = config.get("routeSettings", {})
         self.stage_variables = config.get("stageVariables", {})
         self.tags = config.get("tags", {})
-        self.created = self.updated = unix_time()
+        self.created = self.updated = datetime.now()
 
     def to_json(self) -> Dict[str, Any]:
         dct = {
             "stageName": self.name,
             "defaultRouteSettings": self.default_route_settings,
-            "createdDate": self.created,
-            "lastUpdatedDate": self.updated,
+            "createdDate": iso_8601_datetime_without_milliseconds(self.created),
+            "lastUpdatedDate": iso_8601_datetime_without_milliseconds(self.updated),
             "routeSettings": self.route_settings,
             "stageVariables": self.stage_variables,
             "tags": self.tags,
@@ -578,7 +579,7 @@ class Api(BaseModel):
         self.api_key_selection_expression = (
             api_key_selection_expression or "$request.header.x-api-key"
         )
-        self.created_date = unix_time()
+        self.created_date = datetime.now()
         self.cors_configuration = cors_configuration
         self.description = description
         self.disable_execute_api_endpoint = disable_execute_api_endpoint or False
@@ -1036,7 +1037,7 @@ class Api(BaseModel):
             "apiId": self.api_id,
             "apiEndpoint": self.api_endpoint,
             "apiKeySelectionExpression": self.api_key_selection_expression,
-            "createdDate": self.created_date,
+            "createdDate": iso_8601_datetime_without_milliseconds(self.created_date),
             "corsConfiguration": self.cors_configuration,
             "description": self.description,
             "disableExecuteApiEndpoint": self.disable_execute_api_endpoint,
@@ -1058,7 +1059,7 @@ class VpcLink(BaseModel):
         tags: Dict[str, str],
         backend: "ApiGatewayV2Backend",
     ):
-        self.created = unix_time()
+        self.created = datetime.now()
         self.id = "".join(random.choice(string.ascii_lowercase) for _ in range(8))
         self.name = name
         self.sg_ids = sg_ids
@@ -1073,7 +1074,7 @@ class VpcLink(BaseModel):
 
     def to_json(self) -> Dict[str, Any]:
         return {
-            "createdDate": self.created,
+            "createdDate": iso_8601_datetime_without_milliseconds(self.created),
             "name": self.name,
             "securityGroupIds": self.sg_ids,
             "subnetIds": self.subnet_ids,

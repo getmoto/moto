@@ -197,7 +197,7 @@ class FakeKey(BaseModel, ManagedState):
         return f"arn:{self.partition}:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
 
     @value.setter  # type: ignore
-    def value(self, new_value: bytes) -> None:
+    def value(self, new_value: bytes) -> None:  # type: ignore[misc]
         self._value_buffer.seek(0)
         self._value_buffer.truncate()
 

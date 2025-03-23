@@ -1854,31 +1854,27 @@ def test_update_container_instances_state_by_arn():
 
 @mock_aws
 def test_run_task():
+    # Setup
+    test_cluster_name = "test_ecs_cluster"
+    image = "docker/hello-world:latest"
     client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
-
-    test_cluster_name = "test_ecs_cluster"
-
     client.create_cluster(clusterName=test_cluster_name)
-
     test_instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
-
     instance_id_document = json.dumps(
         ec2_utils.generate_instance_identity_document(test_instance)
     )
-
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
-
-    client.register_task_definition(
+    td = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
             {
                 "name": "hello_world",
-                "image": "docker/hello-world:latest",
+                "image": image,
                 "cpu": 1024,
                 "memory": 400,
                 "essential": True,
@@ -1889,12 +1885,16 @@ def test_run_task():
             }
         ],
     )
+
+    # Execute
     response = client.run_task(
         cluster="test_ecs_cluster",
         overrides={},
         taskDefinition="test_ecs_task",
         startedBy="moto",
     )
+
+    # Verify
     assert len(response["tasks"]) == 1
     response = client.run_task(
         cluster="test_ecs_cluster",
@@ -1928,6 +1928,13 @@ def test_run_task():
     assert task["startedBy"] == "moto"
     assert task["stoppedReason"] == ""
     assert task["tags"][0].get("value") == "tagValue0"
+    assert len(task["containers"]) == 1
+
+    con = task["containers"][0]
+    assert td["taskDefinition"]["taskDefinitionArn"] in con["containerArn"]
+    assert con["taskArn"] == td["taskDefinition"]["taskDefinitionArn"]
+    assert con["lastStatus"] == "PENDING"
+    assert con["image"] == image
 
 
 @mock_aws
@@ -3896,3 +3903,42 @@ def test_service_exceptions(net_config, error_message):
     assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
     assert ex.response["Error"]["Message"] == error_message
+
+
+@mock_aws
+def test_create_service_with_role_arn():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster_name = "test_ecs_cluster"
+    service_name = "test_ecs_service"
+    task_definition_family = "test_ecs_task"
+    role_arn = "arn:aws:iam::123456789012:role/test-role"
+
+    client.create_cluster(clusterName=cluster_name)
+
+    client.register_task_definition(
+        family=task_definition_family,
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+            }
+        ],
+    )
+
+    response = client.create_service(
+        cluster=cluster_name,
+        serviceName=service_name,
+        taskDefinition=task_definition_family,
+        desiredCount=2,
+        role=role_arn,
+    )
+
+    assert response["service"]["roleArn"] == role_arn
+
+    describe_response = client.describe_services(
+        cluster=cluster_name, services=[service_name]
+    )
+    assert describe_response["services"][0]["roleArn"] == role_arn

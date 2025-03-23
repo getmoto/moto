@@ -689,6 +689,14 @@ class OperationNotPermitted4(EC2ClientError):
         )
 
 
+class OperationDisableApiStopNotPermitted(EC2ClientError):
+    def __init__(self, instance_id: str):
+        super().__init__(
+            "OperationNotPermitted",
+            f"The instance '{instance_id}' may not be terminated. Modify its 'disableApiStop' instance attribute and try again.",
+        )
+
+
 # Raised when attempting to accept or reject a VPC peering connection request for a VPC not belonging to self
 class OperationNotPermitted5(EC2ClientError):
     def __init__(self, account_id: str, pcx_id: str, operation: str):

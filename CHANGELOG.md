@@ -1,6 +1,108 @@
 Moto Changelog
 ==============
 
+5.1.1
+-----
+Docker Digest for 5.1.1: _sha256:a4c04c53a892ad81741a2e006b85d0f98eab42ad988efb360429cb4ba6818323_
+
+    * General:
+        * Compatible with the new Account-based endpoint for DynamoDB (see https://github.com/boto/boto3/issues/4449)
+        * Removed dependency on typing_extensions (introduced in 5.1.0)
+
+    * New Methods:
+        * CognitoIDP:
+            * delete_identity_pool()
+
+        * Glue:
+            * create_connection()
+            * get_connection()
+            * get_connections()
+
+        * GuardDuty:
+            * get_administrator_account()
+
+    * Miscellaneous:
+        * ResourceGroupsTaggingAPI: get_resources() now supports EventBusses
+        * RDS: create_db_instance() now throws an error when referencing a non-existent DBCluster
+
+5.1.0
+-----
+Docker Digest for 5.1.0: _sha256:aaf5f4a72412b753b2115417e26360612564d3a29b1831f9316708e15138d699_
+
+    * General:
+        * Dropped support for Python 3.8
+
+    * New Services:
+        * Lex V2 Models:
+            * create_bot()
+            * create_bot_alias()
+            * create_resource_policy()
+            * delete_bot()
+            * delete_bot_alias()
+            * delete_resource_policy()
+            * describe_bot()
+            * describe_bot_alias()
+            * describe_resource_policy()
+            * list_bots()
+            * list_bot_aliases()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_bot()
+            * update_bot_alias()
+            * update_resource_policy()
+            * untag_resource()
+
+        * CloudHSM V2:
+            * create_cluster()
+            * delete_cluster()
+            * describe_backups()
+            * describe_clusters()
+            * get_resource_policy()
+            * list_tags()
+            * put_resource_policy()
+            * tag_resource()
+            * untag_resource()
+
+    * New Methods:
+        * ElasticSearch:
+            * add_tags()
+            * list_tags()
+            * remove_tags()
+
+        * RDS:
+            * describe_events()
+            * describe_db_log_files()
+            * failover_db_cluster()
+            * restore_db_cluster_to_point_in_time()
+
+        * SecurityHub:
+            * batch_import_findings()
+            * get_findings()
+
+        * TimeStream InfluxDB:
+            * create_db_instance()
+            * delete_db_instance()
+            * get_db_instance()
+            * list_db_instances()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    * Miscellaneous:
+        * CognitoIDP: AccessTokens and IDTokens now contain the jti and origin_jti values
+        * DynamoDB: query()/scan() now handle pagination for GSI's correctly
+        * EC2: The DisableApiStop-attribute is now propagated properly and respected
+        * EC2: create_volume() now throws an error if the Size-parameter is not provided
+        * EC2: describe_subnets() now correctly handles a Filter without a Value
+        * ELBv2: create_listener() now validates the provided protocol against the LoadBalancer type
+        * ECS: run_task() now contains the Container-info in the response
+        * KMS: create_key() now supports the Origin-parameter
+        * Lambda: EventSourceMappings now support all parameters
+        * Lambda: list_functions() now works with the JS SDK
+        * Lambda: Choosing the image repository is now deterministic - first a custom source, then mlupin, lambci last
+        * RDS: Too many improvements to list, with many more supported features and bugfixes
+
+
 5.0.28
 -----
 Docker Digest for 5.0.28: _sha256:d3532929e4c498334949a014e9f0af6617ec1e89d92be690cd192fa3354ad7e6_

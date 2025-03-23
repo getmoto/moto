@@ -102,7 +102,10 @@ class WAFV2Response(BaseResponse):
         web_acls, next_marker = self.wafv2_backend.list_web_acls(
             limit=limit, next_marker=next_marker
         )
-        response = {"NextMarker": next_marker, "WebACLs": web_acls}
+        response = {
+            "NextMarker": next_marker,
+            "WebACLs": [web.to_short_dict() for web in web_acls],
+        }
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
@@ -124,7 +127,11 @@ class WAFV2Response(BaseResponse):
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         arn = self._get_param("ResourceARN")
-        self.region = arn.split(":")[3]
+
+        # select correct backend - ARN region is not indicative by itself in case of WAF for Cloudfront
+        scope = "CLOUDFRONT" if arn.split(":")[5].startswith("global") else "REGIONAL"
+        self.region = GLOBAL_REGION if scope == "CLOUDFRONT" else arn.split(":")[3]
+
         limit = self._get_int_param("Limit")
         next_marker = self._get_param("NextMarker")
         tags, next_marker = self.wafv2_backend.list_tags_for_resource(
@@ -140,7 +147,11 @@ class WAFV2Response(BaseResponse):
     def tag_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         arn = body.get("ResourceARN")
-        self.region = arn.split(":")[3]
+
+        # select correct backend - ARN region is not indicative by itself in case of WAF for Cloudfront
+        scope = "CLOUDFRONT" if arn.split(":")[5].startswith("global") else "REGIONAL"
+        self.region = GLOBAL_REGION if scope == "CLOUDFRONT" else arn.split(":")[3]
+
         tags = body.get("Tags")
         self.wafv2_backend.tag_resource(arn, tags)
         return 200, {}, "{}"
@@ -148,7 +159,11 @@ class WAFV2Response(BaseResponse):
     def untag_resource(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
         arn = body.get("ResourceARN")
-        self.region = arn.split(":")[3]
+
+        # select correct backend - ARN region is not indicative by itself in case of WAF for Cloudfront
+        scope = "CLOUDFRONT" if arn.split(":")[5].startswith("global") else "REGIONAL"
+        self.region = GLOBAL_REGION if scope == "CLOUDFRONT" else arn.split(":")[3]
+
         tag_keys = body.get("TagKeys")
         self.wafv2_backend.untag_resource(arn, tag_keys)
         return 200, {}, "{}"

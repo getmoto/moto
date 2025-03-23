@@ -3196,6 +3196,10 @@
   "Location": "sae1-az2"
  },
  {
+  "InstanceType": "p5e.48xlarge",
+  "Location": "sae1-az2"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "sae1-az2"
  },

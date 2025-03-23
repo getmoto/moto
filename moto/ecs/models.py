@@ -386,7 +386,7 @@ class Task(BaseObject, ManagedState):
         self.desired_status = "RUNNING"
         self.task_definition_arn = task_definition.arn
         self.overrides = overrides or {}
-        self.containers: List[Dict[str, Any]] = []
+        self.containers = [Container(task_definition)]
         self.started_by = started_by
         self.tags = tags or []
         self.launch_type = launch_type
@@ -451,6 +451,7 @@ class Task(BaseObject, ManagedState):
             response_object.pop("tags", None)
         response_object["taskArn"] = self.task_arn
         response_object["lastStatus"] = self.last_status
+        response_object["containers"] = [self.containers[0].response_object]
         return response_object
 
 
@@ -543,6 +544,7 @@ class Service(BaseObject, CloudFormationModel):
         platform_version: Optional[str] = None,
         network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
         propagate_tags: str = "NONE",
+        role_arn: Optional[str] = None,
     ):
         self.cluster_name = cluster.name
         self.cluster_arn = cluster.arn
@@ -564,6 +566,7 @@ class Service(BaseObject, CloudFormationModel):
         self.region_name = cluster.region_name
         self._account_id = backend.account_id
         self._backend = backend
+        self.role_arn = role_arn
 
         try:
             # negative running count not allowed, set to 0 if so
@@ -659,6 +662,8 @@ class Service(BaseObject, CloudFormationModel):
                     deployment["updatedAt"].replace(tzinfo=None)
                 )
         response_object["networkConfiguration"] = self.network_configuration
+        if self.role_arn:
+            response_object["roleArn"] = self.role_arn
 
         return response_object
 
@@ -755,6 +760,29 @@ class Service(BaseObject, CloudFormationModel):
         if attribute_name == "Name":
             return self.name
         raise UnformattedGetAttTemplateException()
+
+
+class Container(BaseObject, CloudFormationModel):
+    def __init__(
+        self,
+        task_def: TaskDefinition,
+    ):
+        self.container_arn = f"{task_def.arn}/{str(mock_random.uuid4())}"
+        self.task_arn = task_def.arn
+
+        container_def = task_def.container_definitions[0]
+        self.image = container_def.get("image")
+        self.last_status = "PENDING"
+        self.exitCode = 0
+
+        self.network_interfaces: List[Dict[str, Any]] = []
+        self.health_status = "HEALTHY"
+
+        self.cpu = container_def.get("cpu")
+        self.memory = container_def.get("memory")
+        self.environment = container_def.get("environment")
+        self.name = container_def.get("name")
+        self.command = container_def.get("command")
 
 
 class ContainerInstance(BaseObject):
@@ -1646,6 +1674,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         platform_version: Optional[str] = None,
         propagate_tags: str = "NONE",
         network_configuration: Optional[Dict[str, Dict[str, List[str]]]] = None,
+        role_arn: Optional[str] = None,
     ) -> Service:
         cluster = self._get_cluster(cluster_str)
 
@@ -1653,8 +1682,8 @@ class EC2ContainerServiceBackend(BaseBackend):
             task_definition = self.describe_task_definition(task_definition_str)
         else:
             task_definition = None
-        desired_count = desired_count if desired_count is not None else 0
 
+        desired_count = desired_count if desired_count is not None else 0
         launch_type = launch_type if launch_type is not None else "EC2"
         if launch_type not in ["EC2", "FARGATE"]:
             raise EcsClientException("launch type should be one of [EC2,FARGATE]")
@@ -1674,6 +1703,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             platform_version=platform_version,
             propagate_tags=propagate_tags,
             network_configuration=network_configuration,
+            role_arn=role_arn,
         )
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service

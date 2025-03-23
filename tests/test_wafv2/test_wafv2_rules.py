@@ -359,7 +359,7 @@ def test_list_rule_groups():
     cf_groups = client.list_rule_groups(Scope="CLOUDFRONT")["RuleGroups"]
     assert len(cf_groups) == 8
     assert cf_groups[0]["ARN"].startswith(
-        f"arn:aws:wafv2:global:{ACCOUNT_ID}:global/rulegroup/test-group-2/"
+        f"arn:aws:wafv2:us-east-1:{ACCOUNT_ID}:global/rulegroup/test-group-2/"
     )
 
     page1 = client.list_rule_groups(Scope="CLOUDFRONT", Limit=2)

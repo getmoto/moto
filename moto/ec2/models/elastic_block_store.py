@@ -12,6 +12,7 @@ from ..exceptions import (
     InvalidVolumeAttachmentError,
     InvalidVolumeDetachmentError,
     InvalidVolumeIdError,
+    MissingParameterError,
     VolumeInUseError,
 )
 from ..utils import (
@@ -305,6 +306,10 @@ class EBSBackend:
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
+
+        if size is None:
+            raise MissingParameterError("size/snapshot")
+
         volume = Volume(
             self,
             volume_id=volume_id,

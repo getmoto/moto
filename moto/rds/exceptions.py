@@ -1,7 +1,13 @@
-class RDSClientError(Exception):
+from typing import Optional
+
+from moto.core.exceptions import ServiceException
+
+
+class RDSClientError(ServiceException):
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
+        self.message = message
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -16,10 +22,10 @@ class DBInstanceAlreadyExists(RDSClientError):
         super().__init__("DBInstanceAlreadyExists", "DB instance already exists")
 
 
-class DBSnapshotNotFoundError(RDSClientError):
+class DBSnapshotNotFoundFault(RDSClientError):
     def __init__(self, snapshot_identifier: str):
         super().__init__(
-            "DBSnapshotNotFound", f"DBSnapshot {snapshot_identifier} not found."
+            "DBSnapshotNotFoundFault", f"DBSnapshot {snapshot_identifier} not found."
         )
 
 
@@ -41,8 +47,16 @@ class DBSubnetGroupNotFoundError(RDSClientError):
 class DBParameterGroupNotFoundError(RDSClientError):
     def __init__(self, db_parameter_group_name: str):
         super().__init__(
-            "DBParameterGroupNotFound",
+            "DBParameterGroupNotFoundFault",
             f"DB Parameter Group {db_parameter_group_name} not found.",
+        )
+
+
+class DBParameterGroupAlreadyExistsError(RDSClientError):
+    def __init__(self, db_parameter_group_name: str):
+        super().__init__(
+            "DBParameterGroupAlreadyExistsFault",
+            f"DB Parameter Group {db_parameter_group_name} already exists.",
         )
 
 
@@ -90,12 +104,36 @@ class InvalidDBInstanceStateError(RDSClientError):
         )
 
 
-class SnapshotQuotaExceededError(RDSClientError):
+class SnapshotQuotaExceededFault(RDSClientError):
+    # This is used for both DBSnapshots and DBClusterSnapshots
     def __init__(self) -> None:
         super().__init__(
             "SnapshotQuotaExceeded",
             "The request cannot be processed because it would exceed the maximum number of snapshots.",
         )
+
+
+class SharedSnapshotQuotaExceeded(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "SharedSnapshotQuotaExceeded",
+            "The request cannot be processed because it would exceed the maximum number of snapshots.",
+        )
+
+
+class KMSKeyNotAccessibleFault(RDSClientError):
+    fmt = "Specified KMS key [{key_id}] does not exist, is not enabled or you do not have permissions to access it."
+
+    def __init__(self, key_id: str) -> None:
+        super().__init__(
+            "KMSKeyNotAccessibleFault",
+            f"Specified KMS key [{key_id}] does not exist, is not enabled or you do not have permissions to access it.",
+        )
+
+
+class InvalidDBClusterSnapshotStateFault(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidDBClusterSnapshotStateFault", message)
 
 
 class DBSnapshotAlreadyExistsError(RDSClientError):
@@ -122,10 +160,10 @@ class InvalidDBClusterStateFault(RDSClientError):
 
 
 class DBClusterNotFoundError(RDSClientError):
-    def __init__(self, cluster_identifier: str):
-        super().__init__(
-            "DBClusterNotFoundFault", f"DBCluster {cluster_identifier} not found."
-        )
+    def __init__(self, cluster_identifier: str, message: Optional[str] = None):
+        if message is None:
+            message = f"DBCluster {cluster_identifier} not found."
+        super().__init__("DBClusterNotFoundFault", message)
 
 
 class DBClusterSnapshotNotFoundError(RDSClientError):

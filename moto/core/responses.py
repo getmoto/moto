@@ -29,9 +29,11 @@ from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
-from moto.core.exceptions import DryRunClientError
+from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.serialize import SERIALIZERS, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
+    get_service_model,
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
@@ -92,6 +94,11 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
         _method = op_model.http["method"]
         request_uri = op_model.http["requestUri"]
         if service_name == "route53" and request_uri.endswith("/rrset/"):
+            # Terraform 5.50 made a request to /rrset/
+            # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
+            request_uri += "?"
+        if service_name == "lambda" and request_uri.endswith("/functions/"):
+            # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
         method_urls[_method][uri_regexp] = op_model.name
@@ -265,6 +272,17 @@ class ActionAuthenticatorMixin(object):
         return decorator
 
 
+class ActionResult:
+    """Wrapper class for serializable results returned from `responses.py` methods."""
+
+    def __init__(self, result: object) -> None:
+        self._result = result
+
+    @property
+    def result(self) -> object:
+        return self._result
+
+
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     default_region = "us-east-1"
     # to extract region, use [^.]
@@ -303,7 +321,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
 
         @functools.wraps(to_call)  # type: ignore
-        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
+        def _inner(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
             response = getattr(cls(), to_call.__name__)(request, full_url, headers)
             if isinstance(response, str):
                 status = 200
@@ -566,6 +584,18 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
 
+    def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
+        service_model = get_service_model(self.service_name)
+        operation_model = service_model.operation_model(self._get_action())
+        serializer_cls = SERIALIZERS[service_model.protocol]
+        serializer = serializer_cls(
+            operation_model=operation_model,
+            pretty_print=settings.PRETTIFY_RESPONSES,
+            value_picker=XFormedAttributePicker(),
+        )
+        serialized = serializer.serialize(action_result.result)
+        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
         if hasattr(self, "_determine_resource"):
@@ -589,6 +619,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             method = getattr(self, action)
             try:
                 response = method()
+            except ServiceException as e:
+                response = ActionResult(e)  # type: ignore[assignment]
             except HTTPException as http_error:
                 response_headers: Dict[str, Union[str, int]] = dict(
                     http_error.get_headers() or []
@@ -596,7 +628,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 response_headers["status"] = http_error.code  # type: ignore[assignment]
                 response = http_error.description, response_headers  # type: ignore[assignment]
 
-            if isinstance(response, str):
+            if isinstance(response, ActionResult):
+                status, headers, body = self.serialized(response)
+            elif isinstance(response, str):
                 status = 200
                 body = response
             else:

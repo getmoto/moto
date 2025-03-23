@@ -16,17 +16,17 @@ logs
 
 - [ ] associate_kms_key
 - [X] cancel_export_task
-- [ ] create_delivery
+- [X] create_delivery
 - [X] create_export_task
 - [ ] create_log_anomaly_detector
 - [X] create_log_group
 - [X] create_log_stream
 - [ ] delete_account_policy
 - [ ] delete_data_protection_policy
-- [ ] delete_delivery
-- [ ] delete_delivery_destination
-- [ ] delete_delivery_destination_policy
-- [ ] delete_delivery_source
+- [X] delete_delivery
+- [X] delete_delivery_destination
+- [X] delete_delivery_destination_policy
+- [X] delete_delivery_source
 - [X] delete_destination
 - [ ] delete_index_policy
 - [ ] delete_integration
@@ -45,9 +45,9 @@ logs
 - [ ] delete_transformer
 - [ ] describe_account_policies
 - [ ] describe_configuration_templates
-- [ ] describe_deliveries
-- [ ] describe_delivery_destinations
-- [ ] describe_delivery_sources
+- [X] describe_deliveries
+- [X] describe_delivery_destinations
+- [X] describe_delivery_sources
 - [X] describe_destinations
 - [X] describe_export_tasks
   
@@ -83,10 +83,10 @@ logs
         
 
 - [ ] get_data_protection_policy
-- [ ] get_delivery
-- [ ] get_delivery_destination
-- [ ] get_delivery_destination_policy
-- [ ] get_delivery_source
+- [X] get_delivery
+- [X] get_delivery_destination
+- [X] get_delivery_destination_policy
+- [X] get_delivery_source
 - [ ] get_integration
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
@@ -106,9 +106,9 @@ logs
 - [X] list_tags_log_group
 - [ ] put_account_policy
 - [ ] put_data_protection_policy
-- [ ] put_delivery_destination
-- [ ] put_delivery_destination_policy
-- [ ] put_delivery_source
+- [X] put_delivery_destination
+- [X] put_delivery_destination_policy
+- [X] put_delivery_source
 - [X] put_destination
 - [X] put_destination_policy
 - [ ] put_index_policy
