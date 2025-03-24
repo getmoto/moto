@@ -476,7 +476,7 @@ def test_get_tag_values_cloudfront():
         caller_reference = f'distribution{i}'
         origin_id = f'origin{i}'
 
-        distribution = client.create_distribution_with_tags(
+        client.create_distribution_with_tags(
             DistributionConfigWithTags={
                 'DistributionConfig': {
                     'CallerReference': caller_reference,
