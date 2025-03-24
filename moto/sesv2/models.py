@@ -1,13 +1,29 @@
 """SESV2Backend class with methods for supported APIs."""
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.utilities.paginator import paginate
 
-from ..ses.models import Message, RawMessage, ses_backends
+from ..ses.models import ConfigurationSet, Message, RawMessage, ses_backends
 from .exceptions import NotFoundException
+
+PAGINATION_MODEL = {
+    "list_dedicated_ip_pools": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 100,
+        "unique_attribute": ["pool_name"],
+    },
+    "list_email_identities": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 100,
+        "unique_attribute": "IdentityName",
+    },
+}
 
 
 class Contact(BaseModel):
@@ -91,6 +107,82 @@ class ContactList(BaseModel):
         }
 
 
+class EmailIdentity(BaseModel):
+    def __init__(
+        self,
+        email_identity: str,
+        tags: Optional[Dict[str, str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
+    ) -> None:
+        self.email_identity = email_identity
+        self.tags = tags
+        self.dkim_signing_attributes = dkim_signing_attributes
+        self.configuration_set_name = configuration_set_name
+        self.identity_type = "EMAIL_ADDRESS" if "@" in email_identity else "DOMAIN"
+        self.verified_for_sending_status = False
+        self.feedback_forwarding_status = False
+        self.verification_status = "SUCCESS"
+        self.sending_enabled = True
+        self.dkim_attributes: Dict[str, Any] = {}
+        if not self.dkim_signing_attributes or not isinstance(
+            self.dkim_signing_attributes, dict
+        ):
+            self.dkim_attributes["SigningEnabled"] = False
+            self.dkim_attributes["Status"] = "NOT_STARTED"
+        else:
+            self.dkim_attributes["SigningEnabled"] = True
+            self.dkim_attributes["Status"] = "SUCCESS"
+            self.dkim_attributes["NextSigningKeyLength"] = (
+                self.dkim_signing_attributes.get("NextSigningKeyLength", "RSA_1024_BIT")
+            )
+            self.dkim_attributes["SigningAttributesOrigin"] = (
+                self.dkim_signing_attributes.get("SigningAttributesOrigin", "AWS_SES")
+            )
+            self.dkim_attributes["LastKeyGenerationTimestamp"] = (
+                iso_8601_datetime_with_milliseconds()
+            )
+        self.policies: Dict[str, Any] = {}
+
+    @property
+    def get_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "IdentityType": self.identity_type,
+            "FeedbackForwardingStatus": self.feedback_forwarding_status,
+            "VerifiedForSendingStatus": self.verified_for_sending_status,
+            "DkimAttributes": self.dkim_attributes,
+            "Policies": self.policies,
+            "Tags": self.tags,
+            "ConfigurationSetName": self.configuration_set_name,
+            "VerificationStatus": self.verification_status,
+        }
+
+    @property
+    def list_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "IdentityType": self.identity_type,
+            "IdentityName": self.email_identity,
+            "SendingEnabled": self.sending_enabled,
+            "VerificationStatus": self.verification_status,
+        }
+
+
+class DedicatedIpPool(BaseModel):
+    def __init__(
+        self, pool_name: str, scaling_mode: str, tags: List[Dict[str, str]]
+    ) -> None:
+        self.pool_name = pool_name
+        self.scaling_mode = scaling_mode
+        self.tags = tags
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "PoolName": self.pool_name,
+            "Tags": self.tags,
+            "ScalingMode": self.scaling_mode,
+        }
+
+
 class SESV2Backend(BaseBackend):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
 
@@ -98,6 +190,9 @@ class SESV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
+        self.email_identities: Dict[str, EmailIdentity] = {}
+        self.v1_backend = ses_backends[self.account_id][self.region_name]
+        self.dedicated_ip_pools: Dict[str, DedicatedIpPool] = {}
 
     def create_contact_list(self, params: Dict[str, Any]) -> None:
         name = params["ContactListName"]
@@ -146,8 +241,7 @@ class SESV2Backend(BaseBackend):
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
     ) -> Message:
-        v1_backend = ses_backends[self.account_id][self.region_name]
-        message = v1_backend.send_email(
+        message = self.v1_backend.send_email(
             source=source,
             destinations=destinations,
             subject=subject,
@@ -158,11 +252,93 @@ class SESV2Backend(BaseBackend):
     def send_raw_email(
         self, source: str, destinations: List[str], raw_data: str
     ) -> RawMessage:
-        v1_backend = ses_backends[self.account_id][self.region_name]
-        message = v1_backend.send_raw_email(
+        message = self.v1_backend.send_raw_email(
             source=source, destinations=destinations, raw_data=raw_data
         )
         return message
+
+    def create_email_identity(
+        self,
+        email_identity: str,
+        tags: Optional[Dict[str, str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
+    ) -> EmailIdentity:
+        identity = EmailIdentity(
+            email_identity=email_identity,
+            tags=tags,
+            dkim_signing_attributes=dkim_signing_attributes,
+            configuration_set_name=configuration_set_name,
+        )
+        self.email_identities[email_identity] = identity
+        return identity
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_email_identities(self) -> List[EmailIdentity]:
+        identities = [identity for identity in self.email_identities.values()]
+        return identities
+
+    def create_configuration_set(
+        self,
+        configuration_set_name: str,
+        tracking_options: Dict[str, str],
+        delivery_options: Dict[str, Any],
+        reputation_options: Dict[str, Any],
+        sending_options: Dict[str, bool],
+        tags: List[Dict[str, str]],
+        suppression_options: Dict[str, List[str]],
+        vdm_options: Dict[str, Dict[str, str]],
+    ) -> None:
+        self.v1_backend.create_configuration_set_v2(
+            configuration_set_name=configuration_set_name,
+            tracking_options=tracking_options,
+            delivery_options=delivery_options,
+            reputation_options=reputation_options,
+            sending_options=sending_options,
+            tags=tags,
+            suppression_options=suppression_options,
+            vdm_options=vdm_options,
+        )
+
+    def delete_configuration_set(self, configuration_set_name: str) -> None:
+        self.v1_backend.delete_configuration_set(configuration_set_name)
+
+    def get_configuration_set(self, configuration_set_name: str) -> ConfigurationSet:
+        config_set = self.v1_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
+        return config_set
+
+    def list_configuration_sets(self, next_token: str, page_size: int) -> List[str]:
+        return self.v1_backend.list_configuration_sets(
+            next_token=next_token, max_items=page_size
+        )
+
+    def create_dedicated_ip_pool(
+        self, pool_name: str, tags: List[Dict[str, str]], scaling_mode: str
+    ) -> None:
+        if pool_name not in self.dedicated_ip_pools:
+            new_pool = DedicatedIpPool(
+                pool_name=pool_name, tags=tags, scaling_mode=scaling_mode
+            )
+            self.dedicated_ip_pools[pool_name] = new_pool
+
+    def delete_dedicated_ip_pool(self, pool_name: str) -> None:
+        self.dedicated_ip_pools.pop(pool_name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_dedicated_ip_pools(self) -> List[str]:
+        return list(self.dedicated_ip_pools.keys())
+
+    def get_dedicated_ip_pool(self, pool_name: str) -> DedicatedIpPool:
+        if not self.dedicated_ip_pools.get(pool_name, None):
+            raise NotFoundException(pool_name)
+        return self.dedicated_ip_pools[pool_name]
+
+    def get_email_identity(self, email_identity: str) -> EmailIdentity:
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+        return self.email_identities[email_identity]
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

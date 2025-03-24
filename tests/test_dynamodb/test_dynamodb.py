@@ -1131,7 +1131,7 @@ def test_nested_projection_expression_using_scan_with_attr_expression_names():
     # Test a scan
     results = table.scan(
         FilterExpression=Key("forum_name").eq("key1"),
-        ProjectionExpression="nested.level1.id, nested.level2",
+        ProjectionExpression="#nst.level1.id, #nst.#lvl2",
         ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
     )["Items"]
     assert results == [
@@ -2603,9 +2603,7 @@ def test_update_supports_complex_expression_attribute_values():
     client.update_item(
         TableName="TestTable",
         Key={"SHA256": {"S": "sha-of-file"}},
-        UpdateExpression=(
-            "SET MD5 = :md5," "MyStringSet = :string_set," "MyMap = :map"
-        ),
+        UpdateExpression=("SET MD5 = :md5,MyStringSet = :string_set,MyMap = :map"),
         ExpressionAttributeValues={
             ":md5": {"S": "md5-of-file"},
             ":string_set": {"SS": ["string1", "string2"]},

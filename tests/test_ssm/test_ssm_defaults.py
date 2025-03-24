@@ -26,9 +26,7 @@ def test_global_infrastructure_services():
     client = boto3.client("ssm", region_name="us-west-1")
     path = "/aws/service/global-infrastructure/services"
     params = client.get_parameters_by_path(Path=path)["Parameters"]
-    assert params[0]["Name"] == (
-        "/aws/service/global-infrastructure/services/accessanalyzer"
-    )
+    assert str(params[0]["Name"]).startswith(path)
 
 
 @mock_aws

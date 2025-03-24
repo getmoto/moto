@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from tests import allow_aws_request
 
-DEFAULT_REGION = "us-east-1"
+from . import DEFAULT_REGION
 
 ASSUME_ROLE_POLICY = {
     "Version": "2012-10-17",
@@ -175,7 +175,7 @@ def test_default_proxy_targets(account_id, proxy_name):  # pylint: disable=redef
     groups[0].pop("UpdatedDate")
     target_group_arn = groups[0].pop("TargetGroupArn")
     assert target_group_arn.startswith(
-        f"arn:aws:rds:us-east-1:{account_id}:target-group:prx-tg-"
+        f"arn:aws:rds:{DEFAULT_REGION}:{account_id}:target-group:prx-tg-"
     )  # 17 more chars (lowercase + digits)
     assert groups[0] == {
         "DBProxyName": proxy_name,

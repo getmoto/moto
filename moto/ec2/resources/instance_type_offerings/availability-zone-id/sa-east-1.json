@@ -516,6 +516,14 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "sae1-az1"
  },
@@ -1296,6 +1304,14 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "sae1-az1"
  },
@@ -1357,6 +1373,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "sae1-az1"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "sae1-az1"
  },
  {
@@ -2460,6 +2480,14 @@
   "Location": "sae1-az2"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "sae1-az2"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "sae1-az2"
  },
@@ -3096,6 +3124,14 @@
   "Location": "sae1-az2"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "sae1-az2"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "sae1-az2"
  },
@@ -3157,6 +3193,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "sae1-az2"
+ },
+ {
+  "InstanceType": "p5e.48xlarge",
   "Location": "sae1-az2"
  },
  {
@@ -4100,6 +4140,14 @@
   "Location": "sae1-az3"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "sae1-az3"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "sae1-az3"
  },
@@ -4732,6 +4780,14 @@
   "Location": "sae1-az3"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "sae1-az3"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "sae1-az3"
  },
@@ -4793,6 +4849,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "sae1-az3"
  },
  {

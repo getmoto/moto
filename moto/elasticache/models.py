@@ -12,10 +12,12 @@ from .exceptions import (
     CacheClusterAlreadyExists,
     CacheClusterNotFound,
     InvalidARNFault,
+    InvalidParameterCombinationException,
+    InvalidParameterValueException,
     UserAlreadyExists,
     UserNotFound,
 )
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, AuthenticationTypes
 
 
 class User(BaseModel):
@@ -29,10 +31,12 @@ class User(BaseModel):
         engine: str,
         no_password_required: bool,
         passwords: Optional[List[str]] = None,
+        authentication_type: Optional[str] = None,
     ):
         self.id = user_id
         self.name = user_name
         self.engine = engine
+
         self.passwords = passwords or []
         self.access_string = access_string
         self.no_password_required = no_password_required
@@ -41,6 +45,7 @@ class User(BaseModel):
         self.usergroupids: List[str] = []
         self.region = region
         self.arn = f"arn:{get_partition(self.region)}:elasticache:{self.region}:{account_id}:user:{self.id}"
+        self.authentication_type = authentication_type
 
 
 class CacheCluster(BaseModel):
@@ -161,9 +166,34 @@ class ElastiCacheBackend(BaseBackend):
         passwords: List[str],
         access_string: str,
         no_password_required: bool,
+        authentication_type: str,  # contain it to the str in the enums TODO
     ) -> User:
         if user_id in self.users:
             raise UserAlreadyExists
+
+        if authentication_type not in AuthenticationTypes._value2member_map_:
+            raise InvalidParameterValueException(
+                f"Input Authentication type: {authentication_type} is not in the allowed list: [password,no-password-required,iam]"
+            )
+
+        if (
+            no_password_required
+            and authentication_type != AuthenticationTypes.NOPASSWORD
+        ):
+            raise InvalidParameterCombinationException(
+                f"No password required flag is true but provided authentication type is {authentication_type}"
+            )
+
+        if passwords and authentication_type != AuthenticationTypes.PASSWORD:
+            raise InvalidParameterCombinationException(
+                f"Password field is not allowed with authentication type: {authentication_type}"
+            )
+
+        if not passwords and authentication_type == AuthenticationTypes.PASSWORD:
+            raise InvalidParameterCombinationException(
+                "A user with Authentication Mode: password, must have at least one password"
+            )
+
         user = User(
             account_id=self.account_id,
             region=self.region_name,
@@ -173,6 +203,7 @@ class ElastiCacheBackend(BaseBackend):
             passwords=passwords,
             access_string=access_string,
             no_password_required=no_password_required,
+            authentication_type=authentication_type,
         )
         self.users[user_id] = user
         return user

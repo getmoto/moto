@@ -184,6 +184,12 @@ class S3Response(BaseResponse):
         self.bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.request = request
         if (
+            not self.body
+            and request.headers.get("Content-Encoding", "") == "aws-chunked"
+            and hasattr(request, "input_stream")
+        ):
+            self.body = request.input_stream
+        if (
             self.request.headers.get("x-amz-content-sha256")
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
         ):
@@ -1345,18 +1351,21 @@ class S3Response(BaseResponse):
             line = body_io.readline()
         return bytes(new_body)
 
-    def _handle_encoded_body(self, body: bytes) -> bytes:
+    def _handle_encoded_body(self, body: Union[io.BufferedIOBase, bytes]) -> bytes:
         decoded_body = b""
-        body_io = io.BytesIO(body)
+        if not body:
+            return decoded_body
+        if isinstance(body, bytes):
+            body = io.BytesIO(body)
         # first line should equal '{content_length}\r\n' while the content_length is a hex number
-        content_length = int(body_io.readline().strip(), 16)
+        content_length = int(body.readline().strip(), 16)
         while content_length > 0:
             # read the content_length of the actual data
-            decoded_body += body_io.read(content_length)
+            decoded_body += body.read(content_length)
             # next is line with just '\r\n' so we skip it
-            body_io.readline()
+            body.readline()
             # read another line with '{content_length}\r\n'
-            content_length = int(body_io.readline().strip(), 16)
+            content_length = int(body.readline().strip(), 16)
 
         return decoded_body
         # last line should equal
@@ -1493,14 +1502,20 @@ class S3Response(BaseResponse):
     def get_object(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
         response_headers = self._get_cors_headers_other()
-        if not_modified:
-            return 304, response_headers, "Not Modified"
 
         if key.version_id != "null":
             response_headers["x-amz-version-id"] = key.version_id
 
-        response_headers.update(key.metadata)
         response_headers.update(key.response_dict)
+
+        if not_modified:
+            # Real S3 omits any content-* headers for a 304
+            for header in list(response_headers.keys()):
+                if header.startswith("content-"):
+                    response_headers.pop(header)
+            return 304, response_headers, "Not Modified"
+
+        response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
 
         part_number = self._get_int_param("partNumber")
@@ -1769,6 +1784,8 @@ class S3Response(BaseResponse):
             checksum_value = compute_checksum(
                 self.raw_body, algorithm=checksum_algorithm
             )
+            if isinstance(checksum_value, bytes):
+                checksum_value = checksum_value.decode("utf-8")
             response_headers.update({checksum_header: checksum_value})
         return checksum_algorithm, checksum_value
 

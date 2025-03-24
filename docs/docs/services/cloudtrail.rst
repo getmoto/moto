@@ -64,6 +64,7 @@ cloudtrail
 - [ ] register_organization_delegated_admin
 - [X] remove_tags
 - [ ] restore_event_data_store
+- [ ] search_sample_queries
 - [ ] start_dashboard_refresh
 - [ ] start_event_data_store_ingestion
 - [ ] start_import

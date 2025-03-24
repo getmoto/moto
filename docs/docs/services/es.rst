@@ -12,12 +12,10 @@
 es
 ==
 
-.. autoclass:: moto.es.models.ElasticsearchServiceBackend
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_inbound_cross_cluster_search_connection
-- [ ] add_tags
+- [X] add_tags
 - [ ] associate_package
 - [ ] authorize_vpc_endpoint_access
 - [ ] cancel_domain_config_change
@@ -50,22 +48,17 @@ es
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
 - [X] list_domain_names
-  
-        The engine-type parameter is not yet supported.
-        Pagination is not yet implemented.
-        
-
 - [ ] list_domains_for_package
 - [ ] list_elasticsearch_instance_types
 - [ ] list_elasticsearch_versions
 - [ ] list_packages_for_domain
-- [ ] list_tags
+- [X] list_tags
 - [ ] list_vpc_endpoint_access
 - [ ] list_vpc_endpoints
 - [ ] list_vpc_endpoints_for_domain
 - [ ] purchase_reserved_elasticsearch_instance_offering
 - [ ] reject_inbound_cross_cluster_search_connection
-- [ ] remove_tags
+- [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
 - [ ] start_elasticsearch_service_software_update
 - [ ] update_elasticsearch_domain_config

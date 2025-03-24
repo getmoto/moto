@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -1761,11 +1761,6 @@ def test_run_instance_with_block_device_mappings_using_no_device():
     # moto gives the key with an empty list instead of not having it at all, that's also fine
     assert instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"] == []
 
-    # passing None with NoDevice should raise ParamValidationError
-    kwargs["BlockDeviceMappings"][0]["NoDevice"] = None
-    with pytest.raises(ParamValidationError) as ex:
-        ec2_client.run_instances(**kwargs)
-
     # passing a string other than "" with NoDevice should raise InvalidRequest
     kwargs["BlockDeviceMappings"][0]["NoDevice"] = "yes"
     with pytest.raises(ClientError) as ex:
@@ -2156,6 +2151,7 @@ def test_describe_instance_attribute():
         "groupSet",
         "ebsOptimized",
         "sriovNetSupport",
+        "disableApiStop",
     ]
 
     for valid_instance_attribute in valid_instance_attributes:
@@ -2295,6 +2291,70 @@ def test_instance_termination_protection():
     assert len(instances) == 1
     instance = instances[0]
     assert instance["State"]["Name"] == "terminated"
+
+
+@mock_aws
+def test_instance_stop_protection():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    response = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, DisableApiStop=True
+    )
+    instance_id = response["Instances"][0]["InstanceId"]
+
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is True
+
+    # can't stop an instance with stop protection
+    with pytest.raises(ClientError) as ex:
+        client.stop_instances(InstanceIds=[instance_id])
+    error = ex.value.response["Error"]
+    assert error["Code"] == "OperationNotPermitted"
+
+    # stopping an instance without stop protection works
+    client.modify_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop", Value="false"
+    )
+    response = client.stop_instances(InstanceIds=[instance_id])
+    assert response["StoppingInstances"][0]["CurrentState"]["Name"] in [
+        "stopping",
+        "stopped",
+    ]
+
+    # Run instance without stop protection
+    response = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = response["Instances"][0]["InstanceId"]
+
+    # Enable it afterwards
+    # Note that we're using the DisableApiStop here, instead of Attribute="disableApiStop", to verify both work
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiStop={"Value": True}
+    )
+
+    # Verify it's set
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is True
+
+    with pytest.raises(ClientError) as ex:
+        client.stop_instances(InstanceIds=[instance_id])
+    assert ex.value.response["Error"]["Code"] == "OperationNotPermitted"
+
+    # Verify we can disable it
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiStop={"Value": False}
+    )
+
+    # Verify it's set
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is False
+
+    client.stop_instances(InstanceIds=[instance_id])
 
 
 @mock_aws

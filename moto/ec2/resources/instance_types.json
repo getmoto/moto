@@ -1712,7 +1712,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 9500,
@@ -4398,7 +4398,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 9500,
@@ -4645,7 +4645,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": false,
+  "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 19000,
@@ -12627,7 +12627,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.12xlarge",
@@ -12748,7 +12748,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.16xlarge",
@@ -12997,7 +12997,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.2xlarge",
@@ -13236,7 +13236,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.4xlarge",
@@ -13341,7 +13341,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.8xlarge",
@@ -13454,7 +13454,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.large",
@@ -13646,7 +13646,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c6in.xlarge",
@@ -17145,7 +17145,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.12xlarge",
@@ -17288,7 +17288,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.16xlarge",
@@ -17301,7 +17301,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -17450,7 +17450,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.2xlarge",
@@ -17553,7 +17553,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.4xlarge",
@@ -17664,7 +17664,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.8xlarge",
@@ -17791,7 +17791,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.large",
@@ -17888,7 +17888,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.medium",
@@ -17990,7 +17990,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -18065,7 +18065,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "c7gn.xlarge",
@@ -18141,6 +18141,254 @@
    ],
    "ValidThreadsPerCore": [
     1
+   ]
+  }
+ },
+ "c7i-flex.12xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 7500,
+    "BaselineIops": 30000,
+    "BaselineThroughputInMBps": 937.5,
+    "MaximumBandwidthInMbps": 15000,
+    "MaximumIops": 60000,
+    "MaximumThroughputInMBps": 1875.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": true,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7i-flex.12xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 98304
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 9.375,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 18.75 Gigabit",
+     "PeakBandwidthInGbps": 18.75
+    }
+   ],
+   "NetworkPerformance": "Up to 18.75 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.2
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 24,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 48,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "c7i-flex.16xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 40000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 20000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": true,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "c7i-flex.16xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 131072
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 12.5,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 25 Gigabit",
+     "PeakBandwidthInGbps": 25.0
+    }
+   ],
+   "NetworkPerformance": "Up to 25 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.2
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 32,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 64,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
    ]
   }
  },
@@ -23944,6 +24192,134 @@
    ]
   }
  },
+ "f2.6xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 7500,
+    "BaselineIops": 30000,
+    "BaselineThroughputInMBps": 937.5,
+    "MaximumBandwidthInMbps": 7500,
+    "MaximumIops": 30000,
+    "MaximumThroughputInMBps": 937.5
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FpgaInfo": {
+   "Fpgas": [
+    {
+     "Count": 1,
+     "Manufacturer": "Xilinx",
+     "MemoryInfo": {
+      "SizeInMiB": 81920
+     },
+     "Name": "Virtex UltraScale+ (VU47P)"
+    }
+   ],
+   "TotalFpgaMemoryInMiB": 81920
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 940,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 940
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "f2.6xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 12.5,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "12.5 Gigabit",
+     "PeakBandwidthInGbps": 12.5
+    }
+   ],
+   "NetworkPerformance": "12.5 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AMD",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.4
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 12,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 24,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    6,
+    9,
+    12
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
  "g4ad.16xlarge": {
   "AutoRecoverySupported": false,
   "BareMetal": false,
@@ -27140,12 +27516,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 91553
+      "SizeInMiB": 22888
      },
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 366212
+   "TotalGpuMemoryInMiB": 91552
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -27411,12 +27787,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 91553
+      "SizeInMiB": 22888
      },
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 366212
+   "TotalGpuMemoryInMiB": 91552
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -27675,12 +28051,12 @@
      "Count": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 183105
+      "SizeInMiB": 22888
      },
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 1464840
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -28200,12 +28576,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 183105
+      "SizeInMiB": 45776
      },
      "Name": "L40S"
     }
    ],
-   "TotalGpuMemoryInMiB": 732420
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -28466,12 +28842,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 183105
+      "SizeInMiB": 45776
      },
      "Name": "L40S"
     }
    ],
-   "TotalGpuMemoryInMiB": 732420
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -28732,12 +29108,12 @@
      "Count": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 366211
+      "SizeInMiB": 45776
      },
      "Name": "L40S"
     }
    ],
-   "TotalGpuMemoryInMiB": 2929688
+   "TotalGpuMemoryInMiB": 366208
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -33147,7 +33523,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -33257,7 +33633,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -33509,7 +33885,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -33613,7 +33989,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -35364,7 +35740,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -35477,7 +35853,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -35872,7 +36248,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -35982,7 +36358,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36287,7 +36663,7 @@
      "PeakBandwidthInGbps": 37.5
     }
    ],
-   "NetworkPerformance": "37.5 Gigabit"
+   "NetworkPerformance": "Up to 37.5 Gigabit"
   },
   "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
@@ -36622,7 +36998,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36717,6 +37093,211 @@
    ]
   }
  },
+ "i8g.48xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 60000,
+    "BaselineIops": 240000,
+    "BaselineThroughputInMBps": 7500.0,
+    "MaximumBandwidthInMbps": 60000,
+    "MaximumIops": 240000,
+    "MaximumThroughputInMBps": 7500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 12,
+     "SizeInGB": 3750,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 45000
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "i8g.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 1572864
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 56.25,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    }
+   ],
+   "NetworkPerformance": "Up to 100 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AWS",
+   "SupportedArchitectures": [
+    "arm64"
+   ],
+   "SustainedClockSpeedInGhz": 2.8
+  },
+  "SupportedBootModes": [
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 192,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    68,
+    70,
+    72,
+    74,
+    76,
+    78,
+    80,
+    82,
+    84,
+    86,
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104,
+    106,
+    108,
+    110,
+    112,
+    114,
+    116,
+    118,
+    120,
+    122,
+    124,
+    126,
+    128,
+    130,
+    132,
+    134,
+    136,
+    138,
+    140,
+    142,
+    144,
+    146,
+    148,
+    150,
+    152,
+    154,
+    156,
+    158,
+    160,
+    162,
+    164,
+    166,
+    168,
+    170,
+    172,
+    174,
+    176,
+    178,
+    180,
+    182,
+    184,
+    186,
+    188,
+    190,
+    192
+   ],
+   "ValidThreadsPerCore": [
+    1
+   ]
+  }
+ },
  "i8g.4xlarge": {
   "AutoRecoverySupported": false,
   "BareMetal": false,
@@ -36737,7 +37318,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -36999,7 +37580,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37204,7 +37785,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37484,7 +38065,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37594,7 +38175,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37712,7 +38293,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37846,7 +38427,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -37950,7 +38531,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -39128,7 +39709,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -39238,7 +39819,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -39490,7 +40071,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -39594,7 +40175,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -39697,7 +40278,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -42902,7 +43483,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 4750,
@@ -43775,7 +44356,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 4750,
@@ -53515,7 +54096,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -53656,7 +54237,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -53766,7 +54347,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -54029,7 +54610,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -54146,7 +54727,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -54271,7 +54852,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -54487,7 +55068,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -54968,7 +55549,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6in.2xlarge",
@@ -55207,7 +55788,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6in.4xlarge",
@@ -55312,7 +55893,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6in.8xlarge",
@@ -55425,7 +56006,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6in.large",
@@ -55617,7 +56198,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "m6in.xlarge",
@@ -59093,6 +59674,254 @@
    ],
    "ValidThreadsPerCore": [
     1
+   ]
+  }
+ },
+ "m7i-flex.12xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 7500,
+    "BaselineIops": 30000,
+    "BaselineThroughputInMBps": 937.5,
+    "MaximumBandwidthInMbps": 15000,
+    "MaximumIops": 60000,
+    "MaximumThroughputInMBps": 1875.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": true,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "m7i-flex.12xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 196608
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 9.375,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 18.75 Gigabit",
+     "PeakBandwidthInGbps": 18.75
+    }
+   ],
+   "NetworkPerformance": "Up to 18.75 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.2
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 24,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 48,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "m7i-flex.16xlarge": {
+  "AutoRecoverySupported": true,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 40000,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 20000,
+    "MaximumIops": 80000,
+    "MaximumThroughputInMBps": 2500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": true,
+  "Hypervisor": "nitro",
+  "InstanceStorageSupported": false,
+  "InstanceType": "m7i-flex.16xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 15,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 12.5,
+     "MaximumNetworkInterfaces": 15,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "Up to 25 Gigabit",
+     "PeakBandwidthInGbps": 25.0
+    }
+   ],
+   "NetworkPerformance": "Up to 25 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.2
+  },
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 32,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 64,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
    ]
   }
  },
@@ -64674,7 +65503,7 @@
      "MemoryInfo": {
       "SizeInMiB": 144384
      },
-     "Name": "NVIDIA"
+     "Name": "H200"
     }
    ],
    "TotalGpuMemoryInMiB": 1155072
@@ -64704,7 +65533,7 @@
     "MaximumEfaInterfaces": 16
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -67484,7 +68313,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 4750,
@@ -68357,7 +69186,7 @@
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
   "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
+  "DedicatedHostsSupported": false,
   "EbsInfo": {
    "EbsOptimizedInfo": {
     "BaselineBandwidthInMbps": 4750,
@@ -78576,7 +79405,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -78839,7 +79668,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -79081,7 +79910,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -79297,7 +80126,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -79778,7 +80607,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6in.2xlarge",
@@ -80017,7 +80846,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6in.4xlarge",
@@ -80235,7 +81064,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6in.large",
@@ -80427,7 +81256,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
   "InstanceType": "r6in.xlarge",
@@ -92238,7 +93067,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
@@ -92384,7 +93216,10 @@
   },
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
    "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,

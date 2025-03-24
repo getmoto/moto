@@ -56,6 +56,7 @@ class Ami(TaggedEC2Resource):
         snapshot_description: Optional[str] = None,
         product_codes: Set[str] = set(),
         boot_mode: str = "uefi",
+        tags: Optional[Dict[str, Any]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
@@ -77,6 +78,9 @@ class Ami(TaggedEC2Resource):
         self.creation_date = creation_date or utc_date_and_time()
         self.product_codes = product_codes
         self.boot_mode = boot_mode
+
+        if tags is not None:
+            self.add_tags(tags)
 
         if instance:
             self.instance = instance

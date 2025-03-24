@@ -13,13 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Ruby ${{ matrix.ruby-version }}
-        uses: ruby/setup-ruby@4a9ddd6f338a97768b8006bf671dfbad383215f4
+        uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe
         with:
           ruby-version: ${{ matrix.ruby-version }}
-      - name: Set up Python 3.8
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.12"
       - name: Start MotoServer
         run: |
           pip install build

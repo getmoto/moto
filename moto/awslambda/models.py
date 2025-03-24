@@ -52,6 +52,7 @@ from .exceptions import (
     GenericResourcNotFound,
     InvalidParameterValueException,
     InvalidRoleFormat,
+    LambdaClientError,
     UnknownAliasException,
     UnknownEventConfig,
     UnknownFunctionException,
@@ -429,6 +430,7 @@ class LayerVersion(CloudFormationModel):
         self.compatible_architectures = spec.get("CompatibleArchitectures", [])
         self.compatible_runtimes = spec.get("CompatibleRuntimes", [])
         self.license_info = spec.get("LicenseInfo", "")
+        self.policy = Policy(self)  # type: ignore[no-untyped-call]
 
         # auto-generated
         self.created_date = utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -620,7 +622,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.policy = Policy(self)
+        self.policy = Policy(self)  # type: ignore[no-untyped-call]
         self.url_config: Optional[FunctionUrlConfig] = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
@@ -926,11 +928,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 )["images"]
 
                 if len(images) == 0:
-                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                    exc = ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                    raise LambdaClientError(exc.code, exc.message)
                 else:
-                    manifest = json.loads(images[0]["imageManifest"])
-                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
-                        "sha256:", ""
+                    manifest = json.loads(images[0].image_manifest)
+                    self.code_sha_256 = (
+                        images[0].image_id["imageDigest"].replace("sha256:", "")
                     )
                     self.code_size = manifest["config"]["size"]
             if from_update:
@@ -1023,13 +1026,11 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # - lambci/lambda (the repo with older/outdated AWSLambda images
                     #
                     # We'll cycle through all of them - when we find the repo that contains our image, we use it
-                    image_repos = set(
-                        [
-                            settings.moto_lambda_image(),
-                            "mlupin/docker-lambda",
-                            "lambci/lambda",
-                        ]
-                    )
+                    image_repos = {  # dict maintains insertion order
+                        settings.moto_lambda_image(): None,
+                        "mlupin/docker-lambda": None,
+                        "lambci/lambda": None,
+                    }
                     for image_repo in image_repos:
                         image_ref = (
                             image_repo
@@ -1277,7 +1278,30 @@ class EventSourceMapping(CloudFormationModel):
         self.batch_size = spec.get("BatchSize")  # type: ignore[assignment]
         self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
         self.enabled = spec.get("Enabled", True)
-        self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+        self.starting_position_timestamp = spec.get("StartingPositionTimestamp")
+        self.kafka_config = spec.get("AmazonManagedKafkaEventSourceConfig")
+        self.bisect_on_error = spec.get("BisectBatchOnFunctionError")
+        self.destination_config = spec.get("DestinationConfig")
+        self.document_db_config = spec.get("DocumentDBEventSourceConfig")
+        self.filter_criteria = spec.get("FilterCriteria")
+        self.function_response_types = spec.get("FunctionResponseTypes")
+        self.kms_key = spec.get("KMSKeyArn")
+        self.max_batch_window = spec.get("MaximumBatchingWindowInSeconds")
+        self.max_record_age = spec.get("MaximumRecordAgeInSeconds")
+        self.max_retry_attempts = spec.get("MaximumRetryAttempts")
+        self.metrics = spec.get("MetricsConfig")
+        self.parallelization_factor = spec.get("ParallelizationFactor")
+        self.poller_config = spec.get("ProvisionedPollerConfig")
+        self.queues = spec.get("Queues")
+        self.scaling_config = spec.get("ScalingConfig")
+        self.self_managed_event_source = spec.get("SelfManagedEventSource")
+        self.self_managed_kafka_event_source_config = spec.get(
+            "SelfManagedKafkaEventSourceConfig"
+        )
+        self.source_access_config = spec.get("SourceAccessConfigurations")
+        self.tags = spec.get("Tags")
+        self.topics = spec.get("Topics")
+        self.tumbling_window = spec.get("TumblingWindowInSeconds")
 
         self.function_arn: str = spec["FunctionArn"]
         self.uuid = str(random.uuid4())
@@ -1329,7 +1353,7 @@ class EventSourceMapping(CloudFormationModel):
             self._batch_size = int(batch_size)
 
     def get_configuration(self) -> Dict[str, Any]:
-        return {
+        response_dict = {
             "UUID": self.uuid,
             "BatchSize": self.batch_size,
             "EventSourceArn": self.event_source_arn,
@@ -1339,7 +1363,30 @@ class EventSourceMapping(CloudFormationModel):
             "State": "Enabled" if self.enabled else "Disabled",
             "StateTransitionReason": "User initiated",
             "StartingPosition": self.starting_position,
+            "AmazonManagedKafkaEventSourceConfig": self.kafka_config,
+            "BisectBatchOnFunctionError": self.bisect_on_error,
+            "DestinationConfig": self.destination_config,
+            "DocumentDBEventSourceConfig": self.document_db_config,
+            "FilterCriteria": self.filter_criteria,
+            "FunctionResponseTypes": self.function_response_types,
+            "KMSKeyArn": self.kms_key,
+            "MaximumBatchingWindowInSeconds": self.max_batch_window,
+            "MaximumRecordAgeInSeconds": self.max_record_age,
+            "MaximumRetryAttempts": self.max_retry_attempts,
+            "MetricsConfig": self.metrics,
+            "ParallelizationFactor": self.parallelization_factor,
+            "ProvisionedPollerConfig": self.poller_config,
+            "Queues": self.queues,
+            "ScalingConfig": self.scaling_config,
+            "SelfManagedEventSource": self.self_managed_event_source,
+            "SelfManagedKafkaEventSourceConfig": self.self_managed_kafka_event_source_config,
+            "SourceAccessConfigurations": self.source_access_config,
+            "Tags": self.tags,
+            "Topics": self.topics,
+            "TumblingWindowInSeconds": self.tumbling_window,
         }
+        # Only return fields with a value - we don't want to return None for a boolean/int field
+        return {k: v for k, v in response_dict.items() if v is not None}
 
     def delete(self, account_id: str, region_name: str) -> None:
         lambda_backend = lambda_backends[account_id][region_name]
@@ -2044,12 +2091,12 @@ class LambdaBackend(BaseBackend):
 
         ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
         ddb_backend = dynamodb_backends[self.account_id][self.region_name]
-        for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
-            if stream["StreamArn"] == spec["EventSourceArn"]:
+        for ddbstream in ddbstream_backend.list_streams():
+            if ddbstream["StreamArn"] == spec["EventSourceArn"]:
                 spec.update({"FunctionArn": func.function_arn})
                 esm = EventSourceMapping(spec)
                 self._event_source_mappings[esm.uuid] = esm
-                table_name = stream["TableName"]
+                table_name = ddbstream["TableName"]
                 table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
@@ -2134,6 +2181,36 @@ class LambdaBackend(BaseBackend):
                 esm.batch_size = spec[key]
             elif key == "Enabled":
                 esm.enabled = spec[key]
+            elif key == "FilterCriteria":
+                esm.filter_criteria = spec[key]
+            elif key == "MaximumBatchingWindowInSeconds":
+                esm.max_batch_window = spec[key]
+            elif key == "ParallelizationFactor":
+                esm.parallelization_factor = spec[key]
+            elif key == "DestinationConfig":
+                esm.destination_config = spec[key]
+            elif key == "MaximumRecordAgeInSeconds":
+                esm.max_record_age = spec[key]
+            elif key == "BisectBatchOnFunctionError":
+                esm.bisect_on_error = spec[key]
+            elif key == "MaximumRetryAttempts":
+                esm.max_retry_attempts = spec[key]
+            elif key == "TumblingWindowInSeconds":
+                esm.tumbling_window = spec[key]
+            elif key == "SourceAccessConfigurations":
+                esm.source_access_config = spec[key]
+            elif key == "FunctionResponseTypes":
+                esm.function_response_types = spec[key]
+            elif key == "ScalingConfig":
+                esm.scaling_config = spec[key]
+            elif key == "DocumentDBEventSourceConfig":
+                esm.document_db_config = spec[key]
+            elif key == "KMSKeyArn":
+                esm.kms_key = spec[key]
+            elif key == "MetricsConfig":
+                esm.metrics = spec[key]
+            elif key == "ProvisionedPollerConfig":
+                esm.poller_config = spec[key]
 
         esm.last_modified = time.mktime(utcnow().timetuple())
         return esm
@@ -2348,7 +2425,8 @@ class LambdaBackend(BaseBackend):
         self, function_name: str, qualifier: str, raw: str
     ) -> Dict[str, Any]:
         fn = self.get_function(function_name, qualifier)
-        return fn.policy.add_statement(raw, qualifier)
+        statement, revision = fn.policy.add_statement(raw, qualifier)
+        return statement
 
     def remove_permission(
         self, function_name: str, sid: str, revision: str = ""
@@ -2498,6 +2576,22 @@ class LambdaBackend(BaseBackend):
             return response
         except UnknownEventConfig:
             return response
+
+    def add_layer_version_permission(
+        self, layer_name: str, version_number: int, statement: str
+    ) -> Tuple[str, str]:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        return layer_version.policy.add_statement(statement)
+
+    def get_layer_version_policy(self, layer_name: str, version_number: int) -> str:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        return layer_version.policy.wire_format()
+
+    def remove_layer_version_permission(
+        self, layer_name: str, version_number: str, sid: str, revision: str = ""
+    ) -> None:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        layer_version.policy.del_statement(sid, revision)
 
 
 def do_validate_s3() -> bool:

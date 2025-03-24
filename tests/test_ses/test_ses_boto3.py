@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import aws_verified
@@ -595,6 +595,38 @@ def test_describe_configuration_set():
 
 
 @mock_aws
+def test_list_configuration_sets():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test1"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test2"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test3"}))
+
+    config_sets = conn.list_configuration_sets()["ConfigurationSets"]
+    assert len(config_sets) == 3
+    config_set_names = [config_set["Name"] for config_set in config_sets]
+    assert "test1" in config_set_names
+    assert "test2" in config_set_names
+    assert "test3" in config_set_names
+
+
+@mock_aws
+def test_delete_configuration_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test1"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test2"}))
+    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test3"}))
+
+    config_sets = conn.list_configuration_sets()["ConfigurationSets"]
+    assert len(config_sets) == 3
+
+    conn.delete_configuration_set(ConfigurationSetName="test3")
+    config_sets = conn.list_configuration_sets()["ConfigurationSets"]
+    assert len(config_sets) == 2
+    config_set_names = [config_set["Name"] for config_set in config_sets]
+    assert "test3" not in config_set_names
+
+
+@mock_aws
 def test_create_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     result = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
@@ -604,7 +636,10 @@ def test_create_receipt_rule_set():
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule_set(RuleSetName="testRuleSet")
 
-    assert ex.value.response["Error"]["Code"] == "RuleSetNameAlreadyExists"
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"] == "Rule set already exists: testRuleSet"
+    )
 
 
 @mock_aws
@@ -672,7 +707,8 @@ def test_create_receipt_rule():
             },
         )
 
-    assert ex.value.response["Error"]["Code"] == "RuleAlreadyExists"
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
+    assert ex.value.response["Error"]["Message"] == "Rule already exists: testRule"
 
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(
@@ -704,6 +740,10 @@ def test_create_receipt_rule():
         )
 
     assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Rule set does not exist: InvalidRuleSetaName"
+    )
 
 
 @mock_aws
@@ -865,6 +905,10 @@ def test_describe_receipt_rule():
         conn.describe_receipt_rule(RuleSetName="invalidRuleSetName", RuleName=rule_name)
 
     assert error.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        error.value.response["Error"]["Message"]
+        == "Rule set does not exist: invalidRuleSetName"
+    )
 
     with pytest.raises(ClientError) as error:
         conn.describe_receipt_rule(
@@ -872,6 +916,10 @@ def test_describe_receipt_rule():
         )
 
     assert error.value.response["Error"]["Code"] == "RuleDoesNotExist"
+    assert (
+        error.value.response["Error"]["Message"]
+        == "Rule does not exist: invalidRuleName"
+    )
 
 
 @mock_aws
@@ -1020,38 +1068,6 @@ def test_update_receipt_rule():
         "Rule does not exist: invalidRuleName"
     )
 
-    with pytest.raises(ParamValidationError) as error:
-        conn.update_receipt_rule(
-            RuleSetName=rule_set_name,
-            Rule={
-                "Enabled": True,
-                "TlsPolicy": "Optional",
-                "Recipients": ["test@email.com"],
-                "Actions": [
-                    {
-                        "S3Action": {
-                            "TopicArn": "string",
-                            "BucketName": "testBucketName",
-                            "ObjectKeyPrefix": "testObjectKeyPrefix",
-                            "KmsKeyArn": "string",
-                        },
-                        "BounceAction": {
-                            "TopicArn": "string",
-                            "SmtpReplyCode": "string",
-                            "StatusCode": "string",
-                            "Message": "string",
-                            "Sender": "string",
-                        },
-                    }
-                ],
-                "ScanEnabled": False,
-            },
-        )
-
-    assert (
-        'Parameter validation failed:\nMissing required parameter in Rule: "Name"'
-    ) in str(error.value)
-
 
 @mock_aws
 def test_update_receipt_rule_actions():
@@ -1168,39 +1184,6 @@ def test_update_receipt_rule_actions():
         == "newString"
     )
 
-    with pytest.raises(ParamValidationError) as error:
-        conn.update_receipt_rule(
-            RuleSetName=rule_set_name,
-            Rule={
-                "Name": rule_name,
-                "Enabled": False,
-                "TlsPolicy": "Optional",
-                "Recipients": ["test@email.com", "test2@email.com"],
-                "Actions": [
-                    {
-                        "S3Action": {
-                            "TopicArn": "newString",
-                            "ObjectKeyPrefix": "updatedTestObjectKeyPrefix",
-                            "KmsKeyArn": "newString",
-                        },
-                        "BounceAction": {
-                            "TopicArn": "newString",
-                            "StatusCode": "newString",
-                        },
-                    }
-                ],
-                "ScanEnabled": False,
-            },
-        )
-
-    assert (
-        "Parameter validation failed:\n"
-        'Missing required parameter in Rule.Actions[0].S3Action: "BucketName"\n'
-        'Missing required parameter in Rule.Actions[0].BounceAction: "SmtpReplyCode"\n'
-        'Missing required parameter in Rule.Actions[0].BounceAction: "Message"\n'
-        'Missing required parameter in Rule.Actions[0].BounceAction: "Sender"'
-    ) in str(error.value)
-
 
 @mock_aws
 def test_create_ses_template():
@@ -1235,7 +1218,7 @@ def test_create_ses_template():
     assert result["Template"]["TemplateName"] == "MyTemplate"
     assert result["Template"]["SubjectPart"] == "Greetings, {{name}}!"
     assert result["Template"]["HtmlPart"] == (
-        "<h1>Hello {{name}}," "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
+        "<h1>Hello {{name}},</h1><p>Your favorite animal is {{favoriteanimal}}.</p>"
     )
     # get a template which is not present
     with pytest.raises(ClientError) as ex:

@@ -59,3 +59,18 @@ def test_get_cluster():
         assert get_resp["creationTime"] == datetime(
             2024, 12, 22, 12, 34, tzinfo=tzutc()
         )
+
+
+@mock_aws()
+def test_generate_tokens():
+    client = boto3.client("dsql", TEST_REGION)
+
+    hostname = "dsql.amazonaws.com"
+
+    admin_url = client.generate_db_connect_admin_auth_token(Hostname=hostname)
+    assert admin_url.startswith(hostname)
+    assert "Action=DbConnectAdmin" in admin_url
+
+    url = client.generate_db_connect_auth_token(Hostname=hostname)
+    assert url.startswith(hostname)
+    assert "Action=DbConnect" in url

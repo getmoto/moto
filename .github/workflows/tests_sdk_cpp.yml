@@ -1,0 +1,39 @@
+name: C++ SDK test
+on: [workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Start MotoServer
+      run: |
+        pip install build
+        python -m build
+        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.10-slim /moto/scripts/ci_moto_server.sh &
+        python scripts/ci_wait_for_server.py
+
+    - name: Check build cache
+      id: build-cache
+      uses: actions/cache@v4
+      with:
+        path: other_langs/tests_cpp/build/hello_s3
+        key: cpp-build-${{ hashFiles('other_langs/tests_cpp/hello_s3.cpp') }}
+
+    - name: Build Project
+      if: steps.build-cache.outputs.cache-hit != 'true'
+      working-directory: other_langs/tests_cpp
+      run: |
+        make build
+
+    - name: Run tests
+      working-directory: other_langs/tests_cpp
+      run: |
+        make test

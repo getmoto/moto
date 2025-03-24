@@ -1,6 +1,5 @@
 import re
 import string
-import sys
 from functools import lru_cache
 from threading import RLock
 from typing import (
@@ -28,15 +27,6 @@ from .utils import ISO_REGION_DOMAINS, convert_regex_to_flask_path
 
 if TYPE_CHECKING:
     from moto.core.common_models import BaseModel
-
-    if sys.version_info >= (3, 9):
-        from builtins import type as Type
-    else:
-        # https://github.com/python/mypy/issues/10068
-        # Legacy generic type annotation classes
-        # Deprecated in Python 3.9
-        # Remove once we no longer support Python 3.8 or lower
-        from typing import Type
 
 
 class InstanceTrackerMeta(type):
@@ -67,7 +57,8 @@ class BaseBackend:
     @property
     def _url_module(self) -> Any:  # type: ignore[misc]
         backend_module = self.__class__.__module__
-        backend_urls_module_name = backend_module.replace("models", "urls")
+        # moto.service.models --> moto.service.urls
+        backend_urls_module_name = backend_module.rstrip("models") + "urls"
         backend_urls_module = __import__(
             backend_urls_module_name, fromlist=["url_bases", "url_paths"]
         )
@@ -338,7 +329,7 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
 
     def __init__(
         self,
-        backend: "Type[SERVICE_BACKEND]",
+        backend: type[SERVICE_BACKEND],
         service_name: str,
         use_boto3_regions: bool = True,
         additional_regions: Optional[List[str]] = None,

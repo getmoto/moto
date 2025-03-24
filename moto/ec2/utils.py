@@ -912,6 +912,7 @@ def gen_moto_amis(
                 "root_device_name": image["RootDeviceName"],
                 "root_device_type": image["RootDeviceType"],
                 "sriov": image.get("SriovNetSupport", "simple"),
+                "tags": {tag["Key"]: tag["Value"] for tag in image.get("Tags", [])},
             }
             result.append(tmp)
         except Exception as err:

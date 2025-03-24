@@ -433,7 +433,7 @@ class CognitoIdpUserPool(BaseModel):
         self.groups: Dict[str, CognitoIdpGroup] = OrderedDict()
         self.users: Dict[str, CognitoIdpUser] = OrderedDict()
         self.resource_servers: Dict[str, CognitoResourceServer] = OrderedDict()
-        self.refresh_tokens: Dict[str, Optional[Tuple[str, str]]] = {}
+        self.refresh_tokens: Dict[str, Optional[Tuple[str, str, str]]] = {}
         self.access_tokens: Dict[str, Tuple[str, str]] = {}
         self.id_tokens: Dict[str, Tuple[str, str]] = {}
 
@@ -534,6 +534,7 @@ class CognitoIdpUserPool(BaseModel):
             "token_use": token_use,
             "auth_time": now,
             "exp": now + expires_in,
+            "jti": str(random.uuid4()),
         }
         username_is_email = "email" in self.extended_config.get(
             "UsernameAttributes", []
@@ -574,8 +575,14 @@ class CognitoIdpUserPool(BaseModel):
         for attribute in attributes:
             self.schema_attributes[attribute.name] = attribute
 
-    def create_id_token(self, client_id: str, username: str) -> Tuple[str, int]:
+    def create_id_token(
+        self, client_id: str, username: str, origin_jti: str
+    ) -> Tuple[str, int]:
+        """
+        :returns: (id_token, expires_in)
+        """
         extra_data = self.get_user_extra_data_by_client_id(client_id, username)
+        extra_data["origin_jti"] = origin_jti
         user = self._get_user(username)
         for attr in user.attributes:
             if attr["Name"].startswith("custom:"):
@@ -588,13 +595,24 @@ class CognitoIdpUserPool(BaseModel):
         self.id_tokens[id_token] = (client_id, username)
         return id_token, expires_in
 
-    def create_refresh_token(self, client_id: str, username: str) -> str:
+    def create_refresh_token(self, client_id: str, username: str) -> Tuple[str, str]:
+        """
+        :returns: (refresh_token, origin_jti)
+        """
         refresh_token = str(random.uuid4())
-        self.refresh_tokens[refresh_token] = (client_id, username)
-        return refresh_token
+        origin_jti = str(random.uuid4())
+        self.refresh_tokens[refresh_token] = (client_id, username, origin_jti)
+        return refresh_token, origin_jti
 
-    def create_access_token(self, client_id: str, username: str) -> Tuple[str, int]:
-        extra_data = {}
+    def create_access_token(
+        self, client_id: str, username: str, origin_jti: str
+    ) -> Tuple[str, int]:
+        """
+        :returns: (access_token, expires_in)
+        """
+        extra_data: Dict[str, Any] = {
+            "origin_jti": origin_jti,
+        }
         user = self._get_user(username)
         if len(user.groups) > 0:
             extra_data["cognito:groups"] = [group.group_name for group in user.groups]
@@ -611,12 +629,14 @@ class CognitoIdpUserPool(BaseModel):
         res = self.refresh_tokens[refresh_token]
         if res is None:
             raise NotAuthorizedError(refresh_token)
-        client_id, username = res
+        client_id, username, origin_jti = res
         if not username:
             raise NotAuthorizedError(refresh_token)
 
-        access_token, expires_in = self.create_access_token(client_id, username)
-        id_token, _ = self.create_id_token(client_id, username)
+        access_token, expires_in = self.create_access_token(
+            client_id, username, origin_jti=origin_jti
+        )
+        id_token, _ = self.create_id_token(client_id, username, origin_jti=origin_jti)
         return access_token, id_token, expires_in
 
     def get_user_extra_data_by_client_id(
@@ -640,11 +660,10 @@ class CognitoIdpUserPool(BaseModel):
         for token, token_tuple in list(self.refresh_tokens.items()):
             if token_tuple is None:
                 continue
-            _, logged_in_user = token_tuple
+            _, logged_in_user, _ = token_tuple
             if username == logged_in_user:
                 self.refresh_tokens[token] = None
-        for access_token, token_tuple in list(self.access_tokens.items()):
-            _, logged_in_user = token_tuple
+        for access_token, (_, logged_in_user) in list(self.access_tokens.items()):
             if username == logged_in_user:
                 self.access_tokens.pop(access_token)
 
@@ -1427,7 +1446,7 @@ class CognitoIdpBackend(BaseBackend):
         client: CognitoIdpUserPoolClient,
         username: str,
     ) -> Dict[str, Dict[str, Any]]:
-        refresh_token = user_pool.create_refresh_token(client.id, username)
+        refresh_token, _ = user_pool.create_refresh_token(client.id, username)
         access_token, id_token, expires_in = user_pool.create_tokens_from_refresh_token(
             refresh_token
         )
@@ -2083,11 +2102,15 @@ class CognitoIdpBackend(BaseBackend):
                     "Session": session,
                 }
 
-            access_token, expires_in = user_pool.create_access_token(
+            new_refresh_token, origin_jti = user_pool.create_refresh_token(
                 client_id, username
             )
-            id_token, _ = user_pool.create_id_token(client_id, username)
-            new_refresh_token = user_pool.create_refresh_token(client_id, username)
+            access_token, expires_in = user_pool.create_access_token(
+                client_id, username, origin_jti=origin_jti
+            )
+            id_token, _ = user_pool.create_id_token(
+                client_id, username, origin_jti=origin_jti
+            )
 
             return {
                 "AuthenticationResult": {
@@ -2107,7 +2130,7 @@ class CognitoIdpBackend(BaseBackend):
             if res is None:
                 raise NotAuthorizedError("Refresh Token has been revoked")
 
-            client_id, username = res
+            client_id, username, _ = res
             if not username:
                 raise ResourceNotFoundError(username)
 

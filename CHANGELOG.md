@@ -1,6 +1,182 @@
 Moto Changelog
 ==============
 
+5.1.1
+-----
+Docker Digest for 5.1.1: _sha256:a4c04c53a892ad81741a2e006b85d0f98eab42ad988efb360429cb4ba6818323_
+
+    * General:
+        * Compatible with the new Account-based endpoint for DynamoDB (see https://github.com/boto/boto3/issues/4449)
+        * Removed dependency on typing_extensions (introduced in 5.1.0)
+
+    * New Methods:
+        * CognitoIDP:
+            * delete_identity_pool()
+
+        * Glue:
+            * create_connection()
+            * get_connection()
+            * get_connections()
+
+        * GuardDuty:
+            * get_administrator_account()
+
+    * Miscellaneous:
+        * ResourceGroupsTaggingAPI: get_resources() now supports EventBusses
+        * RDS: create_db_instance() now throws an error when referencing a non-existent DBCluster
+
+5.1.0
+-----
+Docker Digest for 5.1.0: _sha256:aaf5f4a72412b753b2115417e26360612564d3a29b1831f9316708e15138d699_
+
+    * General:
+        * Dropped support for Python 3.8
+
+    * New Services:
+        * Lex V2 Models:
+            * create_bot()
+            * create_bot_alias()
+            * create_resource_policy()
+            * delete_bot()
+            * delete_bot_alias()
+            * delete_resource_policy()
+            * describe_bot()
+            * describe_bot_alias()
+            * describe_resource_policy()
+            * list_bots()
+            * list_bot_aliases()
+            * list_tags_for_resource()
+            * tag_resource()
+            * update_bot()
+            * update_bot_alias()
+            * update_resource_policy()
+            * untag_resource()
+
+        * CloudHSM V2:
+            * create_cluster()
+            * delete_cluster()
+            * describe_backups()
+            * describe_clusters()
+            * get_resource_policy()
+            * list_tags()
+            * put_resource_policy()
+            * tag_resource()
+            * untag_resource()
+
+    * New Methods:
+        * ElasticSearch:
+            * add_tags()
+            * list_tags()
+            * remove_tags()
+
+        * RDS:
+            * describe_events()
+            * describe_db_log_files()
+            * failover_db_cluster()
+            * restore_db_cluster_to_point_in_time()
+
+        * SecurityHub:
+            * batch_import_findings()
+            * get_findings()
+
+        * TimeStream InfluxDB:
+            * create_db_instance()
+            * delete_db_instance()
+            * get_db_instance()
+            * list_db_instances()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    * Miscellaneous:
+        * CognitoIDP: AccessTokens and IDTokens now contain the jti and origin_jti values
+        * DynamoDB: query()/scan() now handle pagination for GSI's correctly
+        * EC2: The DisableApiStop-attribute is now propagated properly and respected
+        * EC2: create_volume() now throws an error if the Size-parameter is not provided
+        * EC2: describe_subnets() now correctly handles a Filter without a Value
+        * ELBv2: create_listener() now validates the provided protocol against the LoadBalancer type
+        * ECS: run_task() now contains the Container-info in the response
+        * KMS: create_key() now supports the Origin-parameter
+        * Lambda: EventSourceMappings now support all parameters
+        * Lambda: list_functions() now works with the JS SDK
+        * Lambda: Choosing the image repository is now deterministic - first a custom source, then mlupin, lambci last
+        * RDS: Too many improvements to list, with many more supported features and bugfixes
+
+
+5.0.28
+-----
+Docker Digest for 5.0.28: _sha256:d3532929e4c498334949a014e9f0af6617ec1e89d92be690cd192fa3354ad7e6_
+
+    * General:
+        * Bootstrapping a CDK project is now supported
+
+    * New Services:
+        * S3 Tables:
+            * create_namespace()
+            * create_table()
+            * create_table_bucket()
+            * delete_namespace()
+            * delete_table()
+            * delete_table_bucket()
+            * get_metadata_location()
+            * get_table()
+            * get_table_bucket()
+            * list_namespaces()
+            * list_table_buckets()
+            * list_tables()
+            * rename_table()
+            * update_metadata_location()
+
+    * Miscellaneous:
+        * DynamoDB: delete_item() now returns ConsumedCapacity
+        * DynamoDB: transact_write_items() now returns a ReturnValuesOnConditionCheckFailure for all operations
+        * ECR: Lifecycle Policies() now support the tagPatternList-parameter
+        * S3: get_object() now returns the ETag when returning a 304 (Not Modified)
+        * SecretsManager: get_secret_value() no longer throws an error after calling rotate_secret(RotateImmediately=False)
+        * SecretsManager: list_secrets() now filters values with special chars correctly
+        * Organizations: list_roots() now returns the roots of the parent organization, if called from within a child organization
+
+
+5.0.27
+-----
+Docker Digest for 5.0.27: _sha256:ac5312f68c6b748b667526025f9e7a8c2e4112837c258eee68f96fa36d9dbbef_
+
+    New Methods:
+        * Glue:
+            * create_dev_endpoint()
+            * get_dev_endpoint()
+            * get_dev_endpoints()
+
+        * KMS:
+            * generate_mac()
+            * list_key_rotations()
+            * rotate_key_on_demand()
+            * verify_mac()
+
+        * SES:
+            * delete_configuration_set()
+            * list_configuration_sets()
+
+        * SESv2:
+            * create_configuration_set()
+            * create_dedicated_ip_pool()
+            * delete_configuration_set()
+            * delete_dedicated_ip_pool()
+            * get_configuration_set()
+            * get_dedicated_ip_pool()
+            * list_configuration_sets()
+            * list_dedicated_ip_pools()
+
+    Miscellaneous:
+        * Introduced a new setting for ServerMode, `MOTO_DISABLE_GLOBAL_CORS`. Disabling the global CORS setting makes it possible to test the CORS-policies on S3 buckets
+        * ElastiCache: create_user() now supports the AuthenticationMode-parameter
+        * ElasticSearch/OpenSearch: list_domain_names() now returns domains from both services
+        * Kafka: list_clusters_v2() now returns all parameters
+        * Scheduler: The `schedule_expression_timezone` now defaults to UTC
+        * RDS: create_db_instance() now throws an exception if an instance with that ID already exists
+        * RDS: restore_db_instance_from_db_snapshot() now throws an exception if an instance with that ID already exists
+
+
 5.0.26
 -----
 Docker Digest for 5.0.26: _sha256:1cae28be97cc87151ecabb531d1507b8dd3d52d3636b86143a16cccf4b5fcf43_

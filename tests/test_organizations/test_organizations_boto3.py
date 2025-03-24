@@ -190,6 +190,42 @@ def test_list_roots():
 
 
 @mock_aws
+def test_list_roots_for_new_account_in_organization():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Involves changing account using env variable")
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization()["Organization"]
+    org_roots = client.list_roots()
+    new_account_id = client.create_account(
+        AccountName="test_account",
+        Email="test@test.xyz",
+        RoleName="CustomOrganizationRole",
+    )["CreateAccountStatus"]["AccountId"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": new_account_id}):
+        client_for_new_account = boto3.client("organizations", "us-east-1")
+        new_account_roots = client_for_new_account.list_roots()
+        validate_roots(org, new_account_roots)
+        assert len(new_account_roots["Roots"]) == 1
+        assert len(org_roots["Roots"]) == len(new_account_roots["Roots"])
+        assert org_roots["Roots"][0] == new_account_roots["Roots"][0]
+
+
+@mock_aws
+def test_list_roots_for_account_without_organization_exception():
+    client = boto3.client("organizations", region_name="us-east-1")
+    with pytest.raises(ClientError) as e:
+        client.list_roots()
+    ex = e.value
+    assert ex.operation_name == "ListRoots"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "AWSOrganizationsNotInUseException" in ex.response["Error"]["Code"]
+    assert ex.response["Error"]["Message"] == (
+        "Your account is not a member of an organization."
+    )
+
+
+@mock_aws
 def test_create_organizational_unit():
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization(FeatureSet="ALL")["Organization"]

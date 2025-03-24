@@ -12,11 +12,13 @@ from moto.efs.models import EFSBackend, efs_backends
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
+from moto.events.models import EventsBackend, events_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.kms.models import KmsBackend, kms_backends
+from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.rds.models import RDSBackend, rds_backends
@@ -68,6 +70,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def elbv2_backend(self) -> ELBv2Backend:
         return elbv2_backends[self.account_id][self.region_name]
+
+    @property
+    def events_backend(self) -> EventsBackend:
+        return events_backends[self.account_id][self.region_name]
 
     @property
     def glue_backend(self) -> GlueBackend:
@@ -162,6 +168,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sagemaker_backend(self) -> SageMakerModelBackend:
         return sagemaker_backends[self.account_id][self.region_name]
+
+    @property
+    def lexv2_backend(self) -> Optional[LexModelsV2Backend]:
+        if self.region_name in lexv2models_backends[self.account_id].regions:
+            return lexv2models_backends[self.account_id][self.region_name]
+        return None
 
     def _get_resources_generator(
         self,
@@ -416,6 +428,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # EMR Cluster
 
+        # Events
+        if (
+            not resource_type_filters
+            or "events" in resource_type_filters
+            or "events:event-bus" in resource_type_filters
+        ):
+            for bus in self.events_backend.event_buses.values():
+                tags = self.events_backend.tagger.list_tags_for_resource(bus.arn)[
+                    "Tags"
+                ]
+                if (
+                    not tag_filter(tags) or len(tags) == 0
+                ):  # Skip if no tags, or invalid filter
+                    continue
+                yield {"ResourceARN": f"{bus.arn}", "Tags": tags}
+
         # Glacier Vault
 
         # Glue
@@ -454,6 +482,27 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{kms_key.arn}", "Tags": tags}
+
+        # LexV2
+        if self.lexv2_backend:
+            lex_v2_resource_map: Dict[str, Dict[str, Any]] = {
+                "lexv2:bot": self.lexv2_backend.bots,
+                "lexv2:bot-alias": self.lexv2_backend.bot_aliases,
+            }
+            for resource_type, resource_source in lex_v2_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "lexv2" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        tags = format_tags(resource.tags)
+                        if not tags or not tag_filter(tags):
+                            continue
+                        yield {
+                            "ResourceARN": resource.arn,
+                            "Tags": tags,
+                        }
 
         # LOGS
         if (

@@ -41,12 +41,12 @@ glue
 - [ ] create_catalog
 - [ ] create_classifier
 - [ ] create_column_statistics_task_settings
-- [ ] create_connection
+- [X] create_connection
 - [X] create_crawler
 - [ ] create_custom_entity_type
 - [ ] create_data_quality_ruleset
 - [X] create_database
-- [ ] create_dev_endpoint
+- [X] create_dev_endpoint
 - [ ] create_integration
 - [ ] create_integration_resource_property
 - [ ] create_integration_table_properties
@@ -117,13 +117,13 @@ glue
 - [ ] get_column_statistics_task_run
 - [ ] get_column_statistics_task_runs
 - [ ] get_column_statistics_task_settings
-- [ ] get_connection
-- [ ] get_connections
+- [X] get_connection
+- [X] get_connections
 - [X] get_crawler
 - [ ] get_crawler_metrics
 - [X] get_crawlers
 - [ ] get_custom_entity_type
-- [ ] get_data_catalog_encryption_settings
+- [X] get_data_catalog_encryption_settings
 - [ ] get_data_quality_model
 - [ ] get_data_quality_model_result
 - [ ] get_data_quality_result
@@ -133,8 +133,8 @@ glue
 - [X] get_database
 - [X] get_databases
 - [ ] get_dataflow_graph
-- [ ] get_dev_endpoint
-- [ ] get_dev_endpoints
+- [X] get_dev_endpoint
+- [X] get_dev_endpoints
 - [ ] get_entity_records
 - [ ] get_integration_resource_property
 - [ ] get_integration_table_properties
@@ -220,7 +220,7 @@ glue
 - [ ] list_usage_profiles
 - [ ] list_workflows
 - [ ] modify_integration
-- [ ] put_data_catalog_encryption_settings
+- [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
 - [ ] put_resource_policy
 - [X] put_schema_version_metadata

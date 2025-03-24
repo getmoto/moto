@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.8, 3.9, "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ 3.9, "3.10", "3.11", "3.12", "3.13" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12", "3.13"]
+        python-version: [3.9, "3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -72,6 +72,10 @@ jobs:
         mkdir .mypy_cache
         make lint
 
+  cpptest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_cpp.yml
+
   javatest:
     needs: lint
     uses: ./.github/workflows/tests_sdk_java.yml
@@ -87,6 +91,10 @@ jobs:
   rubytest:
     needs: lint
     uses: ./.github/workflows/tests_sdk_ruby.yml
+
+  gotest:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_go.yml
 
   terraformexamplestest:
     needs: lint
@@ -108,3 +116,8 @@ jobs:
     needs: [lint]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_proxymode.yml
+
+  testcdk:
+    needs: [lint]
+    if: "!contains(github.event.pull_request.labels.*.name, 'java')"
+    uses: ./.github/workflows/tests_cdk.yml

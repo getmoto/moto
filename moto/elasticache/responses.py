@@ -1,7 +1,12 @@
 from moto.core.responses import BaseResponse
 
-from .exceptions import PasswordRequired, PasswordTooShort
+from .exceptions import (
+    InvalidParameterCombinationException,
+    InvalidParameterValueException,
+    PasswordTooShort,
+)
 from .models import ElastiCacheBackend, elasticache_backends
+from .utils import VALID_AUTH_MODE_KEYS, VALID_ENGINE_TYPES, AuthenticationTypes
 
 
 class ElastiCacheResponse(BaseResponse):
@@ -19,14 +24,48 @@ class ElastiCacheResponse(BaseResponse):
         params = self._get_params()
         user_id = params.get("UserId")
         user_name = params.get("UserName")
-        engine = params.get("Engine")
+        engine = params.get("Engine", "").lower()
         passwords = params.get("Passwords", [])
-        no_password_required = self._get_bool_param("NoPasswordRequired", False)
-        password_required = not no_password_required
-        if password_required and not passwords:
-            raise PasswordRequired
+        no_password_required = self._get_bool_param("NoPasswordRequired")
+        authentication_mode = params.get("AuthenticationMode")
+        authentication_type = "null"
+
+        if no_password_required is not None:
+            authentication_type = (
+                AuthenticationTypes.NOPASSWORD.value
+                if no_password_required
+                else AuthenticationTypes.PASSWORD.value
+            )
+
+        if passwords:
+            authentication_type = AuthenticationTypes.PASSWORD.value
+
+        if engine not in VALID_ENGINE_TYPES:
+            raise InvalidParameterValueException(
+                f'Unknown parameter for Engine: "{engine}", must be one of: {", ".join(VALID_ENGINE_TYPES)}'
+            )
+
+        if authentication_mode:
+            for key in authentication_mode.keys():
+                if key not in VALID_AUTH_MODE_KEYS:
+                    raise InvalidParameterValueException(
+                        f'Unknown parameter in AuthenticationMode: "{key}", must be one of: {", ".join(VALID_AUTH_MODE_KEYS)}'
+                    )
+
+            authentication_type = authentication_mode.get("Type")
+            authentication_passwords = authentication_mode.get("Passwords", [])
+
+            if passwords and authentication_passwords:
+                raise InvalidParameterCombinationException(
+                    "Passwords provided via multiple arguments. Use only one argument"
+                )
+
+            # if passwords is empty, then we can use the authentication_passwords
+            passwords = passwords if passwords else authentication_passwords
+
         if any([len(p) < 16 for p in passwords]):
             raise PasswordTooShort
+
         access_string = params.get("AccessString")
         user = self.elasticache_backend.create_user(
             user_id=user_id,  # type: ignore[arg-type]
@@ -35,6 +74,7 @@ class ElastiCacheResponse(BaseResponse):
             passwords=passwords,
             access_string=access_string,  # type: ignore[arg-type]
             no_password_required=no_password_required,
+            authentication_type=authentication_type,
         )
         template = self.response_template(CREATE_USER_TEMPLATE)
         return template.render(user=user)
@@ -167,7 +207,9 @@ USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
       {% if user.no_password_required %}
       <Type>no-password</Type>
       {% else %}
-      <Type>password</Type>
+      <Type>{{ user.authentication_type }}</Type>
+      {% endif %}
+      {% if user.passwords %}
       <PasswordCount>{{ user.passwords|length }}</PasswordCount>
       {% endif %}
     </Authentication>
@@ -264,7 +306,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
       <LogFormat>{{ log_delivery_configuration.LogFormat }}</LogFormat>
       {% endfor %}
     </LogDeliveryConfigurations>
-    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
     <TransitEncryptionMode>preferred</TransitEncryptionMode>
   </PendingModifiedValues>
   {% endif %}
@@ -301,7 +343,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
     <CustomerAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</CustomerAvailabilityZone>
     <CustomerOutpostArn>{{ cache_cluster.preferred_output_arn }}</CustomerOutpostArn>
   </CacheNodes>
-  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
   <SecurityGroups>
   {% for security_group_id in cache_cluster.security_group_ids %}
     <SecurityGroupId>{{ security_group_id }}</SecurityGroupId>
@@ -315,7 +357,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
   {% endif %}
   <AuthTokenEnabled>true</AuthTokenEnabled>
   <AuthTokenLastModifiedDate>{{ cache_cluster.cache_cluster_create_time }}</AuthTokenLastModifiedDate>
-  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
   <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
   <ARN>{{ cache_cluster.arn }}</ARN>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
@@ -390,7 +432,7 @@ DESCRIBE_CACHE_CLUSTERS_TEMPLATE = """<DescribeCacheClustersResponse xmlns="http
           </member>
 {% endfor %}
         </CacheNodes>
-        <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+        <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
         <SecurityGroups>
 {% for security_group in cache_cluster.security_groups %}
           <member>
@@ -404,7 +446,7 @@ DESCRIBE_CACHE_CLUSTERS_TEMPLATE = """<DescribeCacheClustersResponse xmlns="http
         <SnapshotWindow>{{ cache_cluster.snapshot_window }}</SnapshotWindow>
         <AuthTokenEnabled>{{ cache_cluster.auth_token_enabled }}</AuthTokenEnabled>
         <AuthTokenLastModifiedDate>{{ cache_cluster.auth_token_last_modified_date }}</AuthTokenLastModifiedDate>
-        <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+        <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
         <AtRestEncryptionEnabled>{{ cache_cluster.at_rest_encryption_enabled }}</AtRestEncryptionEnabled>
         <ARN>{{ cache_cluster.arn }}</ARN>
         <ReplicationGroupLogDeliveryEnabled>{{ cache_cluster.replication_group_log_delivery_enabled }}</ReplicationGroupLogDeliveryEnabled>
@@ -474,7 +516,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
       <LogFormat>{{ log_delivery_configuration.LogFormat }}</LogFormat>
       {% endfor %}
     </LogDeliveryConfigurations>
-    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
     <TransitEncryptionMode>preferred</TransitEncryptionMode>
   </PendingModifiedValues>
   {% endif %}
@@ -511,7 +553,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
     <CustomerAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</CustomerAvailabilityZone>
     <CustomerOutpostArn>{{ cache_cluster.preferred_output_arn }}</CustomerOutpostArn>
   </CacheNodes>
-  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
   <SecurityGroups>
   {% for security_group_id in cache_cluster.security_group_ids %}
     <SecurityGroupId>{{ security_group_id }}</SecurityGroupId>
@@ -525,7 +567,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
   {% endif %}
   <AuthTokenEnabled>true</AuthTokenEnabled>
   <AuthTokenLastModifiedDate>{{ cache_cluster.cache_cluster_create_time }}</AuthTokenLastModifiedDate>
-  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
   <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
   <ARN>{{ cache_cluster.arn }}</ARN>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>

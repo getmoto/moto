@@ -26,6 +26,7 @@ class ResourceShare(BaseModel):
     SHAREABLE_RESOURCES = [
         "cluster",  # Amazon Aurora cluster
         "component",  # Amazon EC2 Image Builder component
+        "core-network",  # Amazon Network Manager core network
         "group",  # AWS Resource Groups
         "image",  # Amazon EC2 Image Builder image
         "image-recipe",  # Amazon EC2 Image Builder image recipe
@@ -94,7 +95,7 @@ class ResourceShare(BaseModel):
                     ) = self.organizations_backend.list_organizational_units_for_parent(
                         parent_id=root_id
                     )
-                    if any(principal == ou["Arn"] for ou in ous):
+                    if any(principal == ou.arn for ou in ous):
                         continue
 
                 raise UnknownResourceException(

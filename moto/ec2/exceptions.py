@@ -547,7 +547,7 @@ class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "RulesPerSecurityGroupLimitExceeded",
-            "The maximum number of rules per security group " "has been reached.",
+            "The maximum number of rules per security group has been reached.",
         )
 
 
@@ -686,6 +686,14 @@ class OperationNotPermitted4(EC2ClientError):
         super().__init__(
             "OperationNotPermitted",
             f"The instance '{instance_id}' may not be terminated. Modify its 'disableApiTermination' instance attribute and try again.",
+        )
+
+
+class OperationDisableApiStopNotPermitted(EC2ClientError):
+    def __init__(self, instance_id: str):
+        super().__init__(
+            "OperationNotPermitted",
+            f"The instance '{instance_id}' may not be terminated. Modify its 'disableApiStop' instance attribute and try again.",
         )
 
 
