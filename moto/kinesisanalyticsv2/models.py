@@ -24,6 +24,7 @@ class Application(BaseModel):
         application_configuration: Optional[Dict[str, Any]],
         cloud_watch_logging_options: Optional[List[Dict[str, str]]],
         application_mode: Optional[str],
+        # run_config: Optional[Dict[str, Any]]
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -33,8 +34,10 @@ class Application(BaseModel):
         self.service_execution_role = service_execution_role
         self.application_mode = application_mode
 
-        self.app_config_description = self._generate_app_config_description(
-            application_configuration
+        self.app_config_description = (
+            self._generate_app_config_description(application_configuration)
+            if application_configuration
+            else None
         )
         self.cloud_watch_logging_description = self._generate_logging_options(
             cloud_watch_logging_options
@@ -46,6 +49,11 @@ class Application(BaseModel):
         self.creation_date_time = datetime.now().isoformat()
         self.last_updated_date_time = datetime.now().isoformat()
         self.conditional_token = str(mock_random.uuid4()).replace("-", "")
+        # self.run_config_description = (
+        #     self._generate_run_config(run_config)
+        #     if self.run_config
+        #     else None
+        # )
 
     def _generate_arn(self) -> str:
         return f"arn:aws:kinesisanalytics:{self.region_name}:{self.account_id}:application/{self.application_name}"
@@ -94,7 +102,7 @@ class Application(BaseModel):
     # - "SqlApplicationConfigurationDescription" (discontinued)
     # - "RunConfigurationDescription" (which requires start_application)
     def _generate_app_config_description(
-        self, app_config: Optional[Dict[str, Any]]
+        self, app_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         app_config_description = {}
         if app_config:
@@ -139,10 +147,9 @@ class Application(BaseModel):
                 for index, vpc_config in enumerate(
                     app_config_description["VpcConfigurationDescriptions"]
                 ):
-                    vpc_config_id = str(index + 1.1)
-                    vpc_config["VpcConfigurationId"] = vpc_config_id
+                    vpc_config["VpcConfigurationId"] = str(index + 1.1)  # type: ignore[index]
                     # FAKE_VPC_ID hardcoded, not a value from the parameters
-                    vpc_config["VpcId"] = FAKE_VPC_ID
+                    vpc_config["VpcId"] = FAKE_VPC_ID  # type: ignore[index]
 
         return app_config_description
 
@@ -150,10 +157,7 @@ class Application(BaseModel):
         self, app_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         flink_config_description = {}
-        if app_config is None:
-            return flink_config_description
         flink_config = app_config.get("FlinkApplicationConfiguration")
-        checkpoint_config = flink_config.get("CheckpointConfiguration")
         if flink_config and isinstance(flink_config, dict):
             checkpoint_config = flink_config.get("CheckpointConfiguration")
             if checkpoint_config and isinstance(checkpoint_config, dict):

@@ -17,7 +17,6 @@ FAKE_TAGS = [
 FAKE_VPC_ID = "vpc-0123456789abcdef0"
 FAKE_BUCKET_ARN = "arn:aws:s3:::test"
 FAKE_FILE_KEY = "testfile.jar"
-# FAKE_KMS_KEY_ID = "abcd1234-5678-90ab-cdef-FAKEKEY"
 
 
 @mock_aws
@@ -50,9 +49,6 @@ def test_create_application():
     tags_resp = client.list_tags_for_resource(ResourceARN=app_arn)
     assert len(tags_resp.get("Tags")) == 2
     assert tags_resp.get("Tags") == FAKE_TAGS
-
-    # import pytest; pytest.set_trace()
-
     assert len(app.get("CloudWatchLoggingOptionDescriptions")[0]) == 2
 
 
@@ -136,7 +132,6 @@ def test_create_application_with_appconfig():
     )
     app = resp.get("ApplicationDetail")
     app_config = app.get("ApplicationConfigurationDescription")
-    # import pytest; pytest.set_trace()
 
     assert app_config["FlinkApplicationConfigurationDescription"] == {
         "CheckpointConfigurationDescription": {
@@ -176,17 +171,6 @@ def test_create_application_with_appconfig():
             },
         ]
     }
-
-    # assert app_config["ApplicationCodeConfigurationDescription"] == {
-    #     "CodeContentDescription": {
-    #         "S3ApplicationCodeLocationDescription": {
-    #             "BucketARN": FAKE_BUCKET_ARN,
-    #             "FileKey": FAKE_FILE_KEY,
-    #             "ObjectVersion": "1"
-    #         }
-    #     },
-    #     "CodeContentType": "ZIPFILE"
-    # }
 
     assert app_config == {
         "FlinkApplicationConfigurationDescription": {
@@ -279,8 +263,18 @@ def test_create_application_with_appconfig():
         },
     }
     # import pytest; pytest.set_trace()
-    # TO-DO: Test CUSTOM flink app configurations
-
+    # Test CUSTOM flink app configurations
+    resp = client.create_application(
+        ApplicationName="test_application",
+        RuntimeEnvironment="FLINK-1_20",
+        ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
+        ApplicationConfiguration={
+            "FlinkApplicationConfiguration": {
+                "CheckpointConfiguration": {"ConfigurationType": "DEFAULT"},
+                "MonitoringConfiguration": {"ConfigurationType": "DEFAULT"},
+                "ParallelismConfiguration": {"ConfigurationType": "DEFAULT"},
+            }
+        }
 
 @mock_aws
 def test_tag_resource():
@@ -301,6 +295,4 @@ def test_tag_resource():
     )
 
     tags_resp = client.list_tags_for_resource(ResourceARN=app_arn)
-    # import pytest; pytest.set_trace()
-
     assert tags_resp["Tags"] == [{"Key": "key2", "Value": "value2"}]
