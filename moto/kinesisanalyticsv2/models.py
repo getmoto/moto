@@ -1,4 +1,4 @@
-"""KinesisAnalyticsV2Backend class with methods for supported APIs."""
+from __future__ import annotations
 
 import random
 from datetime import datetime
