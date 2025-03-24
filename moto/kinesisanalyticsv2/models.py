@@ -73,31 +73,31 @@ class Application(BaseModel):
         else:
             return None
 
-    # Keys that do not have extra values in the description besides renamed keys
-    UPDATABLE_APP_CONFIG_TOP_LEVEL_KEYS = {
-        "EnvironmentProperties": "EnvironmentPropertyDescriptions",
-        "ApplicationSnapshotConfiguration": "ApplicationSnapshotConfigurationDescription",
-        "ApplicationSystemRollbackConfiguration": "ApplicationSystemRollbackConfigurationDescription",
-        "ZeppelinApplicationConfiguration": "ZeppelinApplicationConfigurationDescription",
-    }
-
-    APP_CONFIG_SUBFIELD_KEYS = {
-        "PropertyGroups": "PropertyGroupDescriptions",
-        "MonitoringConfiguration": "MonitoringConfigurationDescription",
-        "CatalogConfiguration": "CatalogConfigurationDescription",
-        "DeployAsApplicationConfiguration": "DeployAsApplicationConfigurationDescription",
-        "S3ContentLocation": "S3ContentLocationDescription",
-        "CustomArtifactsConfiguration": "CustomArtifactsConfigurationDescription",
-        "GlueDataCatalogConfiguration": "GlueDataCatalogConfigurationDescription",
-        "MavenReference": "MavenReferenceDescription",
-    }
-
     # The app_config description does not include
     # - "SqlApplicationConfigurationDescription" (discontinued)
     # - "RunConfigurationDescription" (which requires start_application)
     def _generate_app_config_description(
         self, app_config: Dict[str, Any]
     ) -> Dict[str, Any]:
+        # Keys that do not have extra values in the description besides renamed keys
+        UPDATABLE_APP_CONFIG_TOP_LEVEL_KEYS = {
+            "EnvironmentProperties": "EnvironmentPropertyDescriptions",
+            "ApplicationSnapshotConfiguration": "ApplicationSnapshotConfigurationDescription",
+            "ApplicationSystemRollbackConfiguration": "ApplicationSystemRollbackConfigurationDescription",
+            "ZeppelinApplicationConfiguration": "ZeppelinApplicationConfigurationDescription",
+        }
+
+        APP_CONFIG_SUBFIELD_KEYS = {
+            "PropertyGroups": "PropertyGroupDescriptions",
+            "MonitoringConfiguration": "MonitoringConfigurationDescription",
+            "CatalogConfiguration": "CatalogConfigurationDescription",
+            "DeployAsApplicationConfiguration": "DeployAsApplicationConfigurationDescription",
+            "S3ContentLocation": "S3ContentLocationDescription",
+            "CustomArtifactsConfiguration": "CustomArtifactsConfigurationDescription",
+            "GlueDataCatalogConfiguration": "GlueDataCatalogConfigurationDescription",
+            "MavenReference": "MavenReferenceDescription",
+        }
+
         app_config_description = {}
         if app_config:
             if "FlinkApplicationConfiguration" in app_config:
@@ -105,10 +105,10 @@ class Application(BaseModel):
                     self.__generate_flink_app_description(app_config)
                 )
 
-            for old_key, new_key in self.UPDATABLE_APP_CONFIG_TOP_LEVEL_KEYS.items():
+            for old_key, new_key in UPDATABLE_APP_CONFIG_TOP_LEVEL_KEYS.items():
                 if old_key in app_config:
                     app_config_description[new_key] = self.__update_keys(
-                        app_config[old_key], self.APP_CONFIG_SUBFIELD_KEYS
+                        app_config[old_key], APP_CONFIG_SUBFIELD_KEYS
                     )
 
             app_code_config = app_config.get("ApplicationCodeConfiguration")
@@ -302,7 +302,6 @@ class KinesisAnalyticsV2Backend(BaseBackend):
     def describe_application(
         self,
         application_name: str,
-        # include_additional_details: Optional[str]
     ) -> Dict[str, Any]:
         app = self.applications[application_name]
         return {
@@ -324,6 +323,20 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             "ConditionalToken": app.conditional_token,
             "ApplicationMode": app.application_mode,
         }
+
+    def list_applications(self) -> List[Dict[str, Any]]:
+        application_summaries = [
+            {
+                "ApplicationName": app.application_name,
+                "ApplicationARN": app.application_arn,
+                "ApplicationStatus": app.application_status,
+                "ApplicationVersionId": app.application_version_id,
+                "RuntimeEnvironment": app.runtime_environment,
+                "ApplicationMode": app.application_mode,
+            }
+            for app in self.applications.values()
+        ]
+        return application_summaries
 
 
 kinesisanalyticsv2_backends = BackendDict(

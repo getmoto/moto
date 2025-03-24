@@ -36,7 +36,6 @@ def test_create_application():
 
     app = resp.get("ApplicationDetail")
     app_arn = app.get("ApplicationARN")
-    # required parameters
     assert app_arn
     assert app.get("ApplicationDescription") == "test application description"
 
@@ -262,9 +261,9 @@ def test_create_application_with_appconfig():
             ],
         },
     }
-    # import pytest; pytest.set_trace()
+
     # Test CUSTOM flink app configurations
-    resp = client.create_application(
+    flink_custom_resp = client.create_application(
         ApplicationName="test_application",
         RuntimeEnvironment="FLINK-1_20",
         ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
@@ -289,10 +288,10 @@ def test_create_application_with_appconfig():
         },
     )
 
-    app = resp.get("ApplicationDetail")
-    app_config = app.get("ApplicationConfigurationDescription")
+    flink_app = flink_custom_resp.get("ApplicationDetail")
+    flink_app_config = flink_app.get("ApplicationConfigurationDescription")
     # Custom should use default values if values are not provided
-    assert app_config.get("FlinkApplicationConfigurationDescription") == {
+    assert flink_app_config.get("FlinkApplicationConfigurationDescription") == {
         "CheckpointConfigurationDescription": {
             "ConfigurationType": "CUSTOM",
             "CheckpointingEnabled": True,
@@ -350,10 +349,35 @@ def test_describe_application():
     app = app_resp.get("ApplicationDetail")
     assert (
         app.get("ApplicationARN")
-        == "arn:aws:kinesisanalytics:{region}:{ACCOUNT_ID}:application/test_application"
+        == f"arn:aws:kinesisanalytics:{region}:{ACCOUNT_ID}:application/test_application"
     )
     assert app.get("RuntimeEnvironment") == "FLINK-1_20"
     assert (
         app.get("ServiceExecutionRole")
         == f"arn:aws:iam::{ACCOUNT_ID}:role/application_role"
     )
+
+
+@mock_aws
+def test_list_applications():
+    region = "us-east-2"
+    client = boto3.client("kinesisanalyticsv2", region_name=region)
+
+    client.create_application(
+        ApplicationName="test_application",
+        RuntimeEnvironment="FLINK-1_20",
+        ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
+    )
+
+    resp = client.list_applications()
+    app_summaries = resp.get("ApplicationSummaries")
+
+    assert len(app_summaries) == 1
+    assert app_summaries[0].get("ApplicationName") == "test_application"
+    assert (
+        app_summaries[0].get("ApplicationARN")
+        == f"arn:aws:kinesisanalytics:{region}:{ACCOUNT_ID}:application/test_application"
+    )
+    assert app_summaries[0].get("ApplicationStatus") == "STARTING"
+    assert app_summaries[0].get("ApplicationVersionId") == 1
+    assert app_summaries[0].get("RuntimeEnvironment") == "FLINK-1_20"

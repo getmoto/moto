@@ -58,9 +58,13 @@ class KinesisAnalyticsV2Response(BaseResponse):
 
     def describe_application(self) -> str:
         application_name = self._get_param("ApplicationName")
-        # include_additional_details = self._get_param("IncludeAdditionalDetails")
         application_detail = self.kinesisanalyticsv2_backend.describe_application(
             application_name=application_name,
-            # include_additional_details=include_additional_details,
         )
         return json.dumps(dict(ApplicationDetail=application_detail))
+
+    def list_applications(self) -> str:
+        application_summaries = self.kinesisanalyticsv2_backend.list_applications()
+        return json.dumps(
+            dict(ApplicationSummaries=application_summaries, nextToken=None)
+        )
