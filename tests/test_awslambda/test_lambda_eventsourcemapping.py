@@ -1,12 +1,15 @@
 import json
+import sys
 import time
 import uuid
+from unittest import SkipTest
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.utilities.distutils_version import LooseVersion
 
 from ..markers import requires_docker
 from .utilities import (
@@ -18,10 +21,14 @@ from .utilities import (
 
 PYTHON_VERSION = "python3.11"
 _lambda_region = "us-west-2"
+botocore_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
 def test_create_event_source_mapping():
+    if LooseVersion(botocore_version) < LooseVersion("1.23.12"):
+        raise SkipTest("Parameter FilterCriteria is not available in older versions")
+
     function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")
@@ -518,6 +525,9 @@ def test_get_event_source_mapping():
 
 @mock_aws
 def test_update_event_source_mapping():
+    if LooseVersion(botocore_version) < LooseVersion("1.23.12"):
+        raise SkipTest("Parameter FilterCriteria is not available in older versions")
+
     function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue = sqs.create_queue(QueueName=f"{function_name}_queue")

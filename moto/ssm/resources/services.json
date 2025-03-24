@@ -18188,6 +18188,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-south-1": {
+                "Value": "ap-south-1",
+                "endpoint": {
+                  "Value": "datazone.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
@@ -18246,6 +18255,15 @@
                 "Value": "eu-west-2",
                 "endpoint": {
                   "Value": "datazone.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-west-3": {
+                "Value": "eu-west-3",
+                "endpoint": {
+                  "Value": "datazone.eu-west-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20616,6 +20634,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "ds.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -20746,6 +20773,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "ds.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "ds.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51451,6 +51487,15 @@
               "Value": "https://aws.amazon.com/q/business/"
             },
             "regions": {
+              "eu-west-1": {
+                "Value": "eu-west-1",
+                "endpoint": {
+                  "Value": "qbusiness.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "us-east-1": {
                 "Value": "us-east-1",
                 "endpoint": {
@@ -53809,6 +53854,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -53912,6 +53966,15 @@
                 "Value": "me-central-1",
                 "endpoint": {
                   "Value": "redshift-serverless.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "redshift-serverless.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -65892,6 +65955,15 @@
                 "Value": "ap-southeast-4",
                 "endpoint": {
                   "Value": "oidc.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "oidc.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
