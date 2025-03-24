@@ -154,3 +154,62 @@ def test_get_findings_max_results():
     assert isinstance(get_response["Findings"], list)
     assert len(get_response["Findings"]) == 1
     assert "NextToken" in get_response
+
+
+@mock_aws
+def test_enable_organization_admin_account():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    # This is the Management Account ID
+    admin_account_id = "123456789012"
+
+    # Enable organization admin account
+    resp = client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+    assert "ResponseMetadata" in resp
+
+
+@mock_aws
+def test_update_organization_configuration():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    # Update organization configuration with auto-enable set to True
+    client.update_organization_configuration(
+        AutoEnable=True,
+        AutoEnableStandards="NONE",
+        OrganizationConfiguration={
+            "ConfigurationType": "CENTRAL",
+            "Status": "ENABLED",
+            "StatusMessage": "Configuration centralized",
+        },
+    )
+
+    describe_resp = client.describe_organization_configuration()
+    assert describe_resp["AutoEnable"] is True
+    assert describe_resp["AutoEnableStandards"] == "NONE"
+    assert describe_resp["OrganizationConfiguration"]["ConfigurationType"] == "CENTRAL"
+    assert describe_resp["OrganizationConfiguration"]["Status"] == "ENABLED"
+    assert (
+        describe_resp["OrganizationConfiguration"]["StatusMessage"]
+        == "Configuration centralized"
+    )
+
+
+# @mock_aws
+# def test_multiple_accounts_in_organization():
+
+
+@mock_aws
+def test_get_administrator_account():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    # Set an administrator account
+    admin_account_id = "123456789012"
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    resp = client.get_administrator_account()
+    print("responseis ", resp)
+    assert "Administrator" in resp
+    assert resp["Administrator"]["AccountId"] == admin_account_id
+    assert resp["Administrator"]["MemberStatus"] == "ENABLED"
+    assert "InvitationId" in resp["Administrator"]
+    assert "InvitedAt" in resp["Administrator"]

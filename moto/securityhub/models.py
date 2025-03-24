@@ -33,6 +33,17 @@ class SecurityHubBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.findings: List[Finding] = []
+        self.org_admin_account_id: Optional[str] = (
+            None  # Only one admin account can exist
+        )
+        # Default organization configuration
+        self.org_auto_enable: bool = False
+        self.org_auto_enable_standards: str = "DEFAULT"
+        self.org_configuration: Dict[str, Any] = {
+            "ConfigurationType": "LOCAL",
+            "Status": "ENABLED",
+            "StatusMessage": "",
+        }
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_findings(
@@ -117,6 +128,81 @@ class SecurityHubBackend(BaseBackend):
                 )
 
         return failed_count, success_count, failed_findings
+
+    def enable_organization_admin_account(self, admin_account_id: str) -> None:
+        """
+        Designates the Security Hub administrator account for an organization.
+        Can only be called by the organization management account.
+        Only one admin account can be designated at a time.
+
+        Args:
+            admin_account_id: The AWS account identifier of the account to designate as the Security Hub administrator account.
+        """
+        self.org_admin_account_id = admin_account_id
+
+    def update_organization_configuration(
+        self,
+        auto_enable: bool,
+        auto_enable_standards: Optional[str] = None,
+        organization_configuration: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Updates the configuration of the organization in Security Hub.
+        Only the Security Hub administrator account can invoke this operation.
+
+        Args:
+            auto_enable: Whether to automatically enable Security Hub in new member accounts
+                when they join the organization.
+            auto_enable_standards: Whether to automatically enable Security Hub default standards
+                in new member accounts. Values: "NONE" or "DEFAULT".
+            organization_configuration: Information about the way an organization is configured.
+        """
+        self.org_auto_enable = auto_enable
+
+        if auto_enable_standards is not None:
+            self.org_auto_enable_standards = auto_enable_standards
+
+        if organization_configuration is not None:
+            self.org_configuration.update(organization_configuration)
+
+    def get_administrator_account(self) -> Dict[str, Any]:
+        """
+        Provides the details for the Security Hub administrator account for the current member account.
+        Can be used by both member accounts that are managed using Organizations and accounts that were invited manually.
+
+        Returns:
+            A dictionary containing the administrator account details.
+        """
+        print("org_admin_account_id", self.org_admin_account_id)
+        if not self.org_admin_account_id:
+            # No administrator account has been set
+            return {}
+
+        return {
+            "Administrator": {
+                "AccountId": self.org_admin_account_id,
+                "MemberStatus": "ENABLED",
+                # For organization members, InvitationId and InvitedAt are not applicable
+                # but we include them with default values for consistency
+                "InvitationId": f"7327d78c-{self.org_admin_account_id}",
+                "InvitedAt": "2023-01-01T00:00:00.000Z",
+            }
+        }
+
+    def describe_organization_configuration(self) -> Dict[str, Any]:
+        """
+        Returns the organization configuration for Security Hub.
+
+        Returns:
+            A dictionary containing the organization configuration details.
+        """
+
+        return {
+            "AutoEnable": self.org_auto_enable,
+            "MemberAccountLimitReached": False,  # Always false in moto implementation
+            "AutoEnableStandards": self.org_auto_enable_standards,
+            "OrganizationConfiguration": self.org_configuration,
+        }
 
 
 securityhub_backends = BackendDict(SecurityHubBackend, "securityhub")

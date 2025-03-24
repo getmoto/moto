@@ -54,7 +54,14 @@ securityhub
 - [ ] delete_members
 - [ ] describe_action_targets
 - [ ] describe_hub
-- [ ] describe_organization_configuration
+- [X] describe_organization_configuration
+  
+        Returns the organization configuration for Security Hub.
+        
+        Returns:
+            A dictionary containing the organization configuration details.
+        
+
 - [ ] describe_products
 - [ ] describe_standards
 - [ ] describe_standards_controls
@@ -65,9 +72,26 @@ securityhub
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [ ] enable_import_findings_for_product
-- [ ] enable_organization_admin_account
+- [X] enable_organization_admin_account
+  
+        Designates the Security Hub administrator account for an organization.
+        Can only be called by the organization management account.
+        Only one admin account can be designated at a time.
+
+        Args:
+            admin_account_id: The AWS account identifier of the account to designate as the Security Hub administrator account.
+        
+
 - [ ] enable_security_hub
-- [ ] get_administrator_account
+- [X] get_administrator_account
+  
+        Provides the details for the Security Hub administrator account for the current member account.
+        Can be used by both member accounts that are managed using Organizations and accounts that were invited manually.
+
+        Returns:
+            A dictionary containing the administrator account details.
+        
+
 - [ ] get_configuration_policy
 - [ ] get_configuration_policy_association
 - [ ] get_enabled_standards
@@ -105,7 +129,19 @@ securityhub
 - [ ] update_finding_aggregator
 - [ ] update_findings
 - [ ] update_insight
-- [ ] update_organization_configuration
+- [X] update_organization_configuration
+  
+        Updates the configuration of the organization in Security Hub.
+        Only the Security Hub administrator account can invoke this operation.
+
+        Args:
+            auto_enable: Whether to automatically enable Security Hub in new member accounts
+                when they join the organization.
+            auto_enable_standards: Whether to automatically enable Security Hub default standards
+                in new member accounts. Values: "NONE" or "DEFAULT".
+            organization_configuration: Information about the way an organization is configured.
+        
+
 - [ ] update_security_control
 - [ ] update_security_hub_configuration
 - [ ] update_standards_control

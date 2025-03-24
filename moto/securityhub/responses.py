@@ -59,3 +59,33 @@ class SecurityHubResponse(BaseResponse):
                 "SuccessCount": success_count,
             }
         )
+
+    def enable_organization_admin_account(self):
+        params = json.loads(self.body)
+        admin_account_id = params.get("AdminAccountId")
+        self.securityhub_backend.enable_organization_admin_account(
+            admin_account_id=admin_account_id,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def update_organization_configuration(self):
+        params = json.loads(self.body)
+        auto_enable = params.get("AutoEnable")
+        auto_enable_standards = params.get("AutoEnableStandards")
+        organization_configuration = params.get("OrganizationConfiguration")
+        self.securityhub_backend.update_organization_configuration(
+            auto_enable=auto_enable,
+            auto_enable_standards=auto_enable_standards,
+            organization_configuration=organization_configuration,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def get_administrator_account(self):
+        administrator = self.securityhub_backend.get_administrator_account()
+        return json.dumps(dict(administrator))
+
+    def describe_organization_configuration(self):
+        response = self.securityhub_backend.describe_organization_configuration()
+        return json.dumps(dict(response))
