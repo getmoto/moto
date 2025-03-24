@@ -65,6 +65,4 @@ class KinesisAnalyticsV2Response(BaseResponse):
 
     def list_applications(self) -> str:
         application_summaries = self.kinesisanalyticsv2_backend.list_applications()
-        return json.dumps(
-            dict(ApplicationSummaries=application_summaries, nextToken=None)
-        )
+        return json.dumps(dict(ApplicationSummaries=application_summaries))
