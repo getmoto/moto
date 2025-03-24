@@ -24,7 +24,6 @@ class Application(BaseModel):
         application_configuration: Optional[Dict[str, Any]],
         cloud_watch_logging_options: Optional[List[Dict[str, str]]],
         application_mode: Optional[str],
-        # run_config: Optional[Dict[str, Any]]
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -49,11 +48,6 @@ class Application(BaseModel):
         self.creation_date_time = datetime.now().isoformat()
         self.last_updated_date_time = datetime.now().isoformat()
         self.conditional_token = str(mock_random.uuid4()).replace("-", "")
-        # self.run_config_description = (
-        #     self._generate_run_config(run_config)
-        #     if self.run_config
-        #     else None
-        # )
 
     def _generate_arn(self) -> str:
         return f"arn:aws:kinesisanalytics:{self.region_name}:{self.account_id}:application/{self.application_name}"
@@ -247,7 +241,7 @@ class KinesisAnalyticsV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.application: Dict[str, Application] = {}
+        self.applications: Dict[str, Application] = {}
         self.tagger = TaggingService(
             tag_name="Tags", key_name="Key", value_name="Value"
         )
@@ -274,6 +268,9 @@ class KinesisAnalyticsV2Backend(BaseBackend):
             cloud_watch_logging_options=cloud_watch_logging_options,
             application_mode=application_mode,
         )
+
+        self.applications[application_name] = app
+
         if tags:
             self.tag_resource(resource_arn=app.application_arn, tags=tags)
         return {
@@ -301,6 +298,32 @@ class KinesisAnalyticsV2Backend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
+
+    def describe_application(
+        self,
+        application_name: str,
+        # include_additional_details: Optional[str]
+    ) -> Dict[str, Any]:
+        app = self.applications[application_name]
+        return {
+            "ApplicationARN": app.application_arn,
+            "ApplicationDescription": app.application_description,
+            "RuntimeEnvironment": app.runtime_environment,
+            "ServiceExecutionRole": app.service_execution_role,
+            "ApplicationStatus": app.application_status,
+            "ApplicationVersionId": app.application_version_id,
+            "CreateTimestamp": app.creation_date_time,
+            "LastUpdateTimestamp": app.last_updated_date_time,
+            "ApplicationConfigurationDescription": app.app_config_description,
+            "CloudWatchLoggingOptionDescriptions": app.cloud_watch_logging_description,
+            "ApplicationMaintenanceConfigurationDescription": {
+                "ApplicationMaintenanceWindowStartTime": "06:00",
+                "ApplicationMaintenanceWindowEndTime": "14:00",
+            },
+            "ApplicationVersionCreateTimestamp": str(app.creation_date_time),
+            "ConditionalToken": app.conditional_token,
+            "ApplicationMode": app.application_mode,
+        }
 
 
 kinesisanalyticsv2_backends = BackendDict(

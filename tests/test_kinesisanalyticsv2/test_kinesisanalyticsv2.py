@@ -133,7 +133,7 @@ def test_create_application_with_appconfig():
     app = resp.get("ApplicationDetail")
     app_config = app.get("ApplicationConfigurationDescription")
 
-    assert app_config["FlinkApplicationConfigurationDescription"] == {
+    assert app_config.get("FlinkApplicationConfigurationDescription") == {
         "CheckpointConfigurationDescription": {
             "ConfigurationType": "DEFAULT",
             "CheckpointingEnabled": True,
@@ -154,7 +154,7 @@ def test_create_application_with_appconfig():
         },
     }
 
-    assert app_config["EnvironmentPropertyDescriptions"] == {
+    assert app_config.get("EnvironmentPropertyDescriptions") == {
         "PropertyGroupDescriptions": [
             {
                 "PropertyGroupId": "TEST",
@@ -270,11 +270,49 @@ def test_create_application_with_appconfig():
         ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
         ApplicationConfiguration={
             "FlinkApplicationConfiguration": {
-                "CheckpointConfiguration": {"ConfigurationType": "DEFAULT"},
-                "MonitoringConfiguration": {"ConfigurationType": "DEFAULT"},
-                "ParallelismConfiguration": {"ConfigurationType": "DEFAULT"},
+                "CheckpointConfiguration": {
+                    "ConfigurationType": "CUSTOM",
+                    "CheckpointingEnabled": True,
+                    "CheckpointInterval": 12345,
+                    "MinPauseBetweenCheckpoints": 1234,
+                },
+                "MonitoringConfiguration": {
+                    "ConfigurationType": "CUSTOM",
+                    "MetricsLevel": "OPERATOR",
+                    "LogLevel": "ERROR",
+                },
+                "ParallelismConfiguration": {
+                    "ConfigurationType": "CUSTOM",
+                    "AutoScalingEnabled": True,
+                },
             }
-        }
+        },
+    )
+
+    app = resp.get("ApplicationDetail")
+    app_config = app.get("ApplicationConfigurationDescription")
+    # Custom should use default values if values are not provided
+    assert app_config.get("FlinkApplicationConfigurationDescription") == {
+        "CheckpointConfigurationDescription": {
+            "ConfigurationType": "CUSTOM",
+            "CheckpointingEnabled": True,
+            "CheckpointInterval": 12345,
+            "MinPauseBetweenCheckpoints": 1234,
+        },
+        "MonitoringConfigurationDescription": {
+            "ConfigurationType": "CUSTOM",
+            "MetricsLevel": "OPERATOR",
+            "LogLevel": "ERROR",
+        },
+        "ParallelismConfigurationDescription": {
+            "ConfigurationType": "CUSTOM",
+            "Parallelism": 1,
+            "ParallelismPerKPU": 1,
+            "AutoScalingEnabled": True,
+            "CurrentParallelism": 1,
+        },
+    }
+
 
 @mock_aws
 def test_tag_resource():
@@ -295,4 +333,27 @@ def test_tag_resource():
     )
 
     tags_resp = client.list_tags_for_resource(ResourceARN=app_arn)
-    assert tags_resp["Tags"] == [{"Key": "key2", "Value": "value2"}]
+    assert tags_resp.get("Tags") == [{"Key": "key2", "Value": "value2"}]
+
+
+@mock_aws
+def test_describe_application():
+    region = "us-east-2"
+    client = boto3.client("kinesisanalyticsv2", region_name=region)
+    client.create_application(
+        ApplicationName="test_application",
+        RuntimeEnvironment="FLINK-1_20",
+        ServiceExecutionRole=f"arn:aws:iam::{ACCOUNT_ID}:role/application_role",
+    )
+    app_resp = client.describe_application(ApplicationName="test_application")
+
+    app = app_resp.get("ApplicationDetail")
+    assert (
+        app.get("ApplicationARN")
+        == "arn:aws:kinesisanalytics:{region}:{ACCOUNT_ID}:application/test_application"
+    )
+    assert app.get("RuntimeEnvironment") == "FLINK-1_20"
+    assert (
+        app.get("ServiceExecutionRole")
+        == f"arn:aws:iam::{ACCOUNT_ID}:role/application_role"
+    )
