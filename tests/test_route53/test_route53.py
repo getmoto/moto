@@ -1800,6 +1800,9 @@ def test_conflicting_domain_exists(domain1, domain2):
 
 
 @mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
+)
 @pytest.mark.parametrize("delegation_set_id", ["delegation_identifier", None])
 def test_create_hosted_zone_with_custom_id(
     delegation_set_id, set_custom_id, account_id
