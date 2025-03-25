@@ -3,6 +3,15 @@
 from moto.core.base_backend import BaseBackend, BackendDict
 from moto.core.common_models import BaseModel
 
+class Directory(BaseModel):
+    def __init__(self, name, schema_arn):
+        self.name = name
+        self.schema_arn = schema_arn
+        self.directory_arn = f"arn:aws:clouddirectory:us-east-1:123456789012:directory/{name}"
+        self.state = "ENABLED"
+        self.tags = {}
+        self.creation_date_time = datetime.now()
+
 
 class CloudDirectoryBackend(BaseBackend):
     """Implementation of CloudDirectory APIs."""
