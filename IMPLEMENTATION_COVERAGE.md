@@ -2236,7 +2236,7 @@
 
 ## ds
 <details>
-<summary>28% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -2248,13 +2248,13 @@
 - [ ] create_computer
 - [ ] create_conditional_forwarder
 - [X] create_directory
-- [ ] create_log_subscription
+- [X] create_log_subscription
 - [X] create_microsoft_ad
 - [ ] create_snapshot
 - [X] create_trust
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
-- [ ] delete_log_subscription
+- [X] delete_log_subscription
 - [ ] delete_snapshot
 - [X] delete_trust
 - [ ] deregister_certificate
@@ -2287,7 +2287,7 @@
 - [ ] get_snapshot_limits
 - [ ] list_certificates
 - [ ] list_ip_routes
-- [ ] list_log_subscriptions
+- [X] list_log_subscriptions
 - [ ] list_schema_extensions
 - [X] list_tags_for_resource
 - [ ] register_certificate
@@ -5259,9 +5259,9 @@
 
 ## lambda
 <details>
-<summary>63% implemented</summary>
+<summary>67% implemented</summary>
 
-- [ ] add_layer_version_permission
+- [X] add_layer_version_permission
 - [X] add_permission
 - [X] create_alias
 - [ ] create_code_signing_config
@@ -5291,7 +5291,7 @@
 - [X] get_function_url_config
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
-- [ ] get_layer_version_policy
+- [X] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [ ] get_runtime_management_config
@@ -5318,7 +5318,7 @@
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
-- [ ] remove_layer_version_permission
+- [X] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource
@@ -8589,7 +8589,7 @@
 
 ## sesv2
 <details>
-<summary>17% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -8600,7 +8600,7 @@
 - [ ] create_custom_verification_email_template
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
-- [ ] create_email_identity
+- [X] create_email_identity
 - [ ] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
@@ -8631,7 +8631,7 @@
 - [ ] get_deliverability_test_report
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
-- [ ] get_email_identity
+- [X] get_email_identity
 - [ ] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
@@ -8646,7 +8646,7 @@
 - [X] list_dedicated_ip_pools
 - [ ] list_deliverability_test_reports
 - [ ] list_domain_deliverability_campaigns
-- [ ] list_email_identities
+- [X] list_email_identities
 - [ ] list_email_templates
 - [ ] list_export_jobs
 - [ ] list_import_jobs
