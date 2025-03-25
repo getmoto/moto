@@ -1,23 +1,12 @@
 """SecurityHubBackend class with methods for supported APIs."""
 
+import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.securityhub.exceptions import InvalidInputException
 from moto.utilities.paginator import paginate
-
-# Add a global dict to share admin account info across account backends
-_GLOBAL_ORG_ADMIN_ACCOUNT = {
-    "admin_account_id": None,  # This is also the management account
-    "auto_enable": False,
-    "auto_enable_standards": "DEFAULT",
-    "organization_configuration": {
-        "ConfigurationType": "LOCAL",
-        "Status": "ENABLED",
-        "StatusMessage": "",
-    },
-}
 
 
 class Finding(BaseModel):
@@ -40,6 +29,17 @@ class SecurityHubBackend(BaseBackend):
             "unique_attribute": "Id",
             "fail_on_invalid_token": True,
         }
+    }
+
+    org_admin_account_details = {
+        "admin_account_id": None,
+        "auto_enable": False,
+        "auto_enable_standards": "DEFAULT",
+        "organization_configuration": {
+            "ConfigurationType": "LOCAL",
+            "Status": "ENABLED",
+            "StatusMessage": "",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -131,7 +131,9 @@ class SecurityHubBackend(BaseBackend):
         return failed_count, success_count, failed_findings
 
     def enable_organization_admin_account(self, admin_account_id: str) -> None:
-        _GLOBAL_ORG_ADMIN_ACCOUNT["admin_account_id"] = admin_account_id
+        SecurityHubBackend.org_admin_account_details["admin_account_id"] = (
+            admin_account_id
+        )
 
     def update_organization_configuration(
         self,
@@ -139,19 +141,23 @@ class SecurityHubBackend(BaseBackend):
         auto_enable_standards: Optional[str] = None,
         organization_configuration: Optional[Dict[str, Any]] = None,
     ) -> None:
-        _GLOBAL_ORG_ADMIN_ACCOUNT["auto_enable"] = auto_enable
+        SecurityHubBackend.org_admin_account_details["auto_enable"] = auto_enable
 
         if auto_enable_standards is not None:
-            _GLOBAL_ORG_ADMIN_ACCOUNT["auto_enable_standards"] = auto_enable_standards
-
-        if organization_configuration is not None:
-            _GLOBAL_ORG_ADMIN_ACCOUNT["organization_configuration"].update(
-                organization_configuration
+            SecurityHubBackend.org_admin_account_details["auto_enable_standards"] = (
+                auto_enable_standards
             )
 
+        if organization_configuration is not None:
+            SecurityHubBackend.org_admin_account_details[
+                "organization_configuration"
+            ] = organization_configuration
+
     def get_administrator_account(self) -> Dict[str, Any]:
-        admin_account_id = _GLOBAL_ORG_ADMIN_ACCOUNT["admin_account_id"]
-        auto_enable = _GLOBAL_ORG_ADMIN_ACCOUNT["auto_enable"]
+        admin_account_id = SecurityHubBackend.org_admin_account_details[
+            "admin_account_id"
+        ]
+        auto_enable = SecurityHubBackend.org_admin_account_details["auto_enable"]
 
         if not admin_account_id:
             return {}
@@ -165,19 +171,19 @@ class SecurityHubBackend(BaseBackend):
             "Administrator": {
                 "AccountId": admin_account_id,
                 "MemberStatus": "ENABLED",
-                # For organization members, InvitationId and InvitedAt are not applicable
-                # but we include them with default values for consistency
-                "InvitationId": f"7327d78c-{admin_account_id}",
-                "InvitedAt": "2023-01-01T00:00:00.000Z",
+                "InvitationId": f"invitation-{admin_account_id}",
+                "InvitedAt": datetime.datetime.now().isoformat(),
             }
         }
 
     def describe_organization_configuration(self) -> Dict[str, Any]:
         return {
-            "AutoEnable": _GLOBAL_ORG_ADMIN_ACCOUNT["auto_enable"],
+            "AutoEnable": SecurityHubBackend.org_admin_account_details["auto_enable"],
             "MemberAccountLimitReached": False,
-            "AutoEnableStandards": _GLOBAL_ORG_ADMIN_ACCOUNT["auto_enable_standards"],
-            "OrganizationConfiguration": _GLOBAL_ORG_ADMIN_ACCOUNT[
+            "AutoEnableStandards": SecurityHubBackend.org_admin_account_details[
+                "auto_enable_standards"
+            ],
+            "OrganizationConfiguration": SecurityHubBackend.org_admin_account_details[
                 "organization_configuration"
             ],
         }

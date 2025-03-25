@@ -165,8 +165,9 @@ def test_enable_organization_admin_account():
 
     admin_account_id = "123456789012"
 
-    resp = client.enable_organization_admin_account(AdminAccountId=admin_account_id)
-    assert "ResponseMetadata" in resp
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+    get_resp = client.get_administrator_account()
+    assert get_resp["Administrator"]["AccountId"] == admin_account_id
 
 
 @mock_aws
