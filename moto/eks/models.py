@@ -1,8 +1,7 @@
-from datetime import datetime
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import get_partition
 
@@ -112,7 +111,7 @@ class Cluster:
         if tags is None:
             tags = dict()
 
-        self.nodegroups: Dict[str, ManagedNodegroup] = dict()
+        self.nodegroups: Dict[str, Nodegroup] = dict()
         self.nodegroup_count = 0
 
         self.fargate_profiles: Dict[str, FargateProfile] = dict()
@@ -124,8 +123,8 @@ class Cluster:
             region=region_name,
             name=name,
         )
-        self.certificateAuthority = {"data": random.get_random_string(1400)}
-        self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.certificate_authority = {"data": random.get_random_string(1400)}
+        self.created_at = utcnow()
         self.identity = {"oidc": {"issuer": ISSUER_TEMPLATE.format(region=region_name)}}
         self.endpoint = ENDPOINT_TEMPLATE.format(region=region_name)
 
@@ -145,27 +144,8 @@ class Cluster:
         self.tags = tags
         self.remote_network_config = remote_network_config
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
-        yield "name", self.name
-        yield "arn", self.arn
-        yield "createdAt", self.creation_date
-        yield "version", self.version
-        yield "endpoint", self.endpoint
-        yield "roleArn", self.role_arn
-        yield "resourcesVpcConfig", self.resources_vpc_config
-        yield "kubernetesNetworkConfig", self.kubernetes_network_config
-        yield "logging", self.logging
-        yield "identity", self.identity
-        yield "status", self.status
-        yield "certificateAuthority", self.certificateAuthority
-        yield "clientRequestToken", self.client_request_token
-        yield "platformVersion", self.platformVersion
-        yield "tags", self.tags
-        yield "encryptionConfig", self.encryption_config
-        if self.remote_network_config is not None:
-            yield "remoteNetworkConfig", self.remote_network_config
-
-    def isActive(self) -> bool:
+    @property
+    def is_active(self) -> bool:
         return self.status == "ACTIVE"
 
 
@@ -188,7 +168,7 @@ class FargateProfile:
         if tags is None:
             tags = dict()
 
-        self.created_at = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.created_at = utcnow()
         self.uuid = str(random.uuid4())
         self.fargate_profile_arn = FARGATE_PROFILE_ARN_TEMPLATE.format(
             partition=aws_partition,
@@ -208,19 +188,8 @@ class FargateProfile:
         self.subnets = subnets
         self.tags = tags
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
-        yield "clusterName", self.cluster_name
-        yield "createdAt", self.created_at
-        yield "fargateProfileArn", self.fargate_profile_arn
-        yield "fargateProfileName", self.fargate_profile_name
-        yield "podExecutionRoleArn", self.pod_execution_role_arn
-        yield "selectors", self.selectors
-        yield "subnets", self.subnets
-        yield "status", self.status
-        yield "tags", self.tags
 
-
-class ManagedNodegroup:
+class Nodegroup:
     def __init__(
         self,
         cluster_name: str,
@@ -260,8 +229,8 @@ class ManagedNodegroup:
             nodegroup_name=nodegroup_name,
             uuid=self.uuid,
         )
-        self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
-        self.modified_date = iso_8601_datetime_without_milliseconds(datetime.now())
+        self.created_at = utcnow()
+        self.modified_at = utcnow()
         self.health = DEFAULT_NODEGROUP_HEALTH
         self.resources = {
             "autoScalingGroups": [{"name": "eks-" + self.uuid}],
@@ -308,30 +277,6 @@ class ManagedNodegroup:
             self.launch_template["name"] = template.name  # type: ignore
         except:  # noqa: E722 Do not use bare except
             pass
-
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
-        yield "nodegroupName", self.nodegroup_name
-        yield "nodegroupArn", self.arn
-        yield "clusterName", self.cluster_name
-        yield "version", self.version
-        yield "releaseVersion", self.release_version
-        yield "createdAt", self.creation_date
-        yield "modifiedAt", self.modified_date
-        yield "status", self.status
-        yield "capacityType", self.capacity_type
-        yield "scalingConfig", self.scaling_config
-        yield "instanceTypes", self.instance_types
-        yield "subnets", self.subnets
-        yield "remoteAccess", self.remote_access
-        yield "amiType", self.ami_type
-        yield "nodeRole", self.node_role
-        yield "labels", self.labels
-        yield "taints", self.taints
-        yield "resources", self.resources
-        yield "diskSize", self.disk_size
-        yield "health", self.health
-        yield "launchTemplate", self.launch_template
-        yield "tags", self.tags
 
 
 class EKSBackend(BaseBackend):
@@ -413,7 +358,7 @@ class EKSBackend(BaseBackend):
                 addonName=None,
                 message=FARGATE_PROFILE_EXISTS_MSG,
             )
-        if not cluster.isActive():
+        if not cluster.is_active:
             raise InvalidRequestException(
                 message=CLUSTER_NOT_READY_MSG.format(clusterName=cluster_name)
             )
@@ -456,7 +401,7 @@ class EKSBackend(BaseBackend):
         capacity_type: Optional[str] = None,
         version: Optional[str] = None,
         release_version: Optional[str] = None,
-    ) -> ManagedNodegroup:
+    ) -> Nodegroup:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -479,7 +424,7 @@ class EKSBackend(BaseBackend):
                     nodegroupName=nodegroup_name, clusterName=cluster_name
                 ),
             )
-        if not cluster.isActive():
+        if not cluster.is_active:
             raise InvalidRequestException(
                 message=CLUSTER_NOT_READY_MSG.format(clusterName=cluster_name)
             )
@@ -487,7 +432,7 @@ class EKSBackend(BaseBackend):
             validate_launch_template_combination(disk_size, remote_access)
         validate_role_arn(node_role)
 
-        nodegroup = ManagedNodegroup(
+        nodegroup = Nodegroup(
             cluster_name=cluster_name,
             node_role=node_role,
             nodegroup_name=nodegroup_name,
@@ -558,9 +503,7 @@ class EKSBackend(BaseBackend):
                 ),
             )
 
-    def describe_nodegroup(
-        self, cluster_name: str, nodegroup_name: str
-    ) -> ManagedNodegroup:
+    def describe_nodegroup(self, cluster_name: str, nodegroup_name: str) -> Nodegroup:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -637,9 +580,7 @@ class EKSBackend(BaseBackend):
         cluster.fargate_profile_count -= 1
         return deleted_fargate_profile
 
-    def delete_nodegroup(
-        self, cluster_name: str, nodegroup_name: str
-    ) -> ManagedNodegroup:
+    def delete_nodegroup(self, cluster_name: str, nodegroup_name: str) -> Nodegroup:
         try:
             # Cluster exists.
             cluster = self.clusters[cluster_name]
@@ -753,7 +694,7 @@ class EKSBackend(BaseBackend):
 
     def list_nodegroups(
         self, cluster_name: str, max_results: int, next_token: Optional[str]
-    ) -> Tuple[List[ManagedNodegroup], Optional[ManagedNodegroup]]:
+    ) -> Tuple[List[Nodegroup], Optional[Nodegroup]]:
         cluster = self.clusters[cluster_name]
         return paginated_list(list(cluster.nodegroups.keys()), max_results, next_token)
 

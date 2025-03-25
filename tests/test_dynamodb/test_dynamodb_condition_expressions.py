@@ -227,7 +227,7 @@ def test_condition_expressions():
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
             ConditionExpression="attribute_not_exists(#existing)",
             ExpressionAttributeValues={":match": {"S": "match"}},
-            ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
+            ExpressionAttributeNames={"#existing": "existing"},
         )
 
 
