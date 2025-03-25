@@ -15,37 +15,28 @@ class CloudDirectoryResponse(BaseResponse):
     def clouddirectory_backend(self):
         """Return backend instance specific for this region."""
         # TODO
-        # clouddirectory_backends is not yet typed
         # Please modify moto/backends.py to add the appropriate type annotations for this service
         return clouddirectory_backends[self.current_account][self.region]
-
-    # add methods from here
-
     
     def create_directory(self):
-        params = self._get_params()
-        name = params.get("Name")
-        schema_arn = params.get("SchemaArn")
-        directory_arn, name, object_identifier, applied_schema_arn = self.clouddirectory_backend.create_directory(
+        name = self._get_param("Name")
+        schema_arn = self._get_param("SchemaArn")
+        directory = self.clouddirectory_backend.create_directory(
             name=name,
             schema_arn=schema_arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(directoryArn=directory_arn, name=name, objectIdentifier=object_identifier, appliedSchemaArn=applied_schema_arn))
+
+        return json.dumps(dict(DirectoryArn=directory.directory_arn, Name=name, ObjectIdentifier=directory.object_identifier, AppliedSchemaArn=directory.schema_arn))
 
     
     def list_directories(self):
-        params = self._get_params()
-        next_token = params.get("NextToken")
-        max_results = params.get("MaxResults")
-        state = params.get("state")
-        directories, next_token = self.clouddirectory_backend.list_directories(
-            next_token=next_token,
-            max_results=max_results,
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        state = self._get_param("State")
+        directories = self.clouddirectory_backend.list_directories(
             state=state,
         )
-        # TODO: adjust response
-        return json.dumps(dict(directories=directories, nextToken=next_token))
+        return json.dumps(dict(Directories=directories, NextToken=next_token))
 # add templates from here
     
     def tag_resource(self):
