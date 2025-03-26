@@ -7,6 +7,7 @@ import requests
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
+from moto.route53.models import HostedZoneIdentifier
 
 
 @mock_aws
@@ -1796,3 +1797,31 @@ def test_conflicting_domain_exists(domain1, domain2):
         CallerReference=str(hash("bar")),
         DelegationSetId="2",
     )
+
+
+@mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
+)
+@pytest.mark.parametrize("delegation_set_id", ["delegation_identifier", None])
+def test_create_hosted_zone_with_custom_id(
+    delegation_set_id, set_custom_id, account_id
+):
+    static_hosted_zone_id = "JP7YCKDZ51I4XA8"
+    hosted_zone_name = f"{str(uuid.uuid4())[0:6]}.getmoto.com."
+    region_name = "us-east-1"
+    set_custom_id(
+        HostedZoneIdentifier(account_id, hosted_zone_name, delegation_set_id),
+        static_hosted_zone_id,
+    )
+
+    conn = boto3.client("route53", region_name)
+    payload = {
+        "Name": hosted_zone_name,
+        "CallerReference": str(hash("foo")),
+    }
+    if delegation_set_id:
+        payload["DelegationSetId"] = delegation_set_id
+    hosted_zone = conn.create_hosted_zone(**payload)
+
+    assert hosted_zone["HostedZone"]["Id"] == f"/hostedzone/{static_hosted_zone_id}"
