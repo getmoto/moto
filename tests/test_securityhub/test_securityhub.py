@@ -254,6 +254,7 @@ def test_multiple_accounts_in_organization():
         assert admin_response_1["Administrator"]["MemberStatus"] == "ENABLED"
 
 
+# Test passes here but fails on Github Actions CI
 # @mock_aws
 # def test_organization_auto_enable_disabled():
 #     admin_account_id = "111111111111"
