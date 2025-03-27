@@ -4,20 +4,18 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .models import clouddirectory_backends
+from .models import CloudDirectoryBackend, clouddirectory_backends
 
 
 class CloudDirectoryResponse(BaseResponse):
     """Handler for CloudDirectory requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="clouddirectory")
 
     @property
-    def clouddirectory_backend(self):
+    def clouddirectory_backend(self) -> "CloudDirectoryBackend":
         """Return backend instance specific for this region."""
-        # TODO
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return clouddirectory_backends[self.current_account][self.region]
 
     def create_directory(self) -> str:

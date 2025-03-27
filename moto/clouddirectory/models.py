@@ -20,17 +20,15 @@ class Directory(BaseModel):
             f"arn:aws:clouddirectory:{region}:{account_id}:directory/{name}"
         )
         self.state = "ENABLED"
-        self.tags = {}
         self.creation_date_time = datetime.datetime.now()
         self.object_identifier = f"directory-{name}"
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, str]:
         return {
             "Name": self.name,
             "SchemaArn": self.schema_arn,
             "DirectoryArn": self.directory_arn,
             "State": self.state,
-            "Tags": self.tags,
             "CreationDateTime": str(self.creation_date_time),
             "ObjectIdentifier": self.object_identifier,
         }
@@ -39,9 +37,9 @@ class Directory(BaseModel):
 class CloudDirectoryBackend(BaseBackend):
     """Implementation of CloudDirectory APIs."""
 
-    def __init__(self, region_name, account_id) -> None:
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.directories = {}
+        self.directories: Dict[str, Directory] = {}
         self.tagger = TaggingService()
 
     def create_directory(self, name: str, schema_arn: str) -> Directory:
@@ -49,15 +47,15 @@ class CloudDirectoryBackend(BaseBackend):
         self.directories[directory.directory_arn] = directory
         return directory
 
-    def list_directories(self, state) -> List[Directory]:
+    def list_directories(self, state: str) -> List[Directory]:
         directories = list(self.directories.values())
         return directories
 
-    def tag_resource(self, resource_arn, tags) -> None:
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
         return
 
-    def untag_resource(self, resource_arn, tag_keys) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         if not isinstance(tag_keys, list):
             tag_keys = [tag_keys]
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
@@ -67,14 +65,14 @@ class CloudDirectoryBackend(BaseBackend):
         directory = self.directories.pop(directory_arn)
         return directory.directory_arn
 
-    def get_directory(self, directory_arn: str):
+    def get_directory(self, directory_arn: str) -> Directory:
         directory = self.directories.get(directory_arn)
         if not directory:
             raise InvalidArnException(directory_arn)
         return directory
 
     def list_tags_for_resource(
-        self, resource_arn: str, next_token: str, max_results
+        self, resource_arn: str, next_token: str, max_results: int
     ) -> List[Dict[str, str]]:
         tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return tags
