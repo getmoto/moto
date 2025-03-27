@@ -269,9 +269,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Cloud Directory
         if not resource_type_filters or "clouddirectory" in resource_type_filters:
             try:
-                backend = clouddirectory_backends[self.account_id][self.region_name]
-                for directory in backend.directories.values():
-                    tags = backend.tagger.list_tags_for_resource(
+                clouddirectory_backend = clouddirectory_backends[self.account_id][
+                    self.region_name
+                ]
+                for directory in clouddirectory_backend.directories.values():
+                    tags = clouddirectory_backend.tagger.list_tags_for_resource(
                         directory.directory_arn
                     )["Tags"]
                     if not tags or not tag_filter(tags):
