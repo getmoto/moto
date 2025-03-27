@@ -52,6 +52,7 @@ from .exceptions import (
     GenericResourcNotFound,
     InvalidParameterValueException,
     InvalidRoleFormat,
+    LambdaClientError,
     UnknownAliasException,
     UnknownEventConfig,
     UnknownFunctionException,
@@ -429,6 +430,7 @@ class LayerVersion(CloudFormationModel):
         self.compatible_architectures = spec.get("CompatibleArchitectures", [])
         self.compatible_runtimes = spec.get("CompatibleRuntimes", [])
         self.license_info = spec.get("LicenseInfo", "")
+        self.policy = Policy(self)  # type: ignore[no-untyped-call]
 
         # auto-generated
         self.created_date = utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -620,7 +622,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.policy = Policy(self)
+        self.policy = Policy(self)  # type: ignore[no-untyped-call]
         self.url_config: Optional[FunctionUrlConfig] = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
@@ -926,11 +928,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 )["images"]
 
                 if len(images) == 0:
-                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                    exc = ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                    raise LambdaClientError(exc.code, exc.message)
                 else:
-                    manifest = json.loads(images[0]["imageManifest"])
-                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
-                        "sha256:", ""
+                    manifest = json.loads(images[0].image_manifest)
+                    self.code_sha_256 = (
+                        images[0].image_id["imageDigest"].replace("sha256:", "")
                     )
                     self.code_size = manifest["config"]["size"]
             if from_update:
@@ -2088,12 +2091,12 @@ class LambdaBackend(BaseBackend):
 
         ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
         ddb_backend = dynamodb_backends[self.account_id][self.region_name]
-        for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
-            if stream["StreamArn"] == spec["EventSourceArn"]:
+        for ddbstream in ddbstream_backend.list_streams():
+            if ddbstream["StreamArn"] == spec["EventSourceArn"]:
                 spec.update({"FunctionArn": func.function_arn})
                 esm = EventSourceMapping(spec)
                 self._event_source_mappings[esm.uuid] = esm
-                table_name = stream["TableName"]
+                table_name = ddbstream["TableName"]
                 table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
@@ -2422,7 +2425,8 @@ class LambdaBackend(BaseBackend):
         self, function_name: str, qualifier: str, raw: str
     ) -> Dict[str, Any]:
         fn = self.get_function(function_name, qualifier)
-        return fn.policy.add_statement(raw, qualifier)
+        statement, revision = fn.policy.add_statement(raw, qualifier)
+        return statement
 
     def remove_permission(
         self, function_name: str, sid: str, revision: str = ""
@@ -2572,6 +2576,22 @@ class LambdaBackend(BaseBackend):
             return response
         except UnknownEventConfig:
             return response
+
+    def add_layer_version_permission(
+        self, layer_name: str, version_number: int, statement: str
+    ) -> Tuple[str, str]:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        return layer_version.policy.add_statement(statement)
+
+    def get_layer_version_policy(self, layer_name: str, version_number: int) -> str:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        return layer_version.policy.wire_format()
+
+    def remove_layer_version_permission(
+        self, layer_name: str, version_number: str, sid: str, revision: str = ""
+    ) -> None:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        layer_version.policy.del_statement(sid, revision)
 
 
 def do_validate_s3() -> bool:

@@ -1384,6 +1384,54 @@
   "Location": "ap-southeast-2a"
  },
  {
+  "InstanceType": "m7a.12xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.16xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.24xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.2xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.32xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.48xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.4xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.8xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.large",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.medium",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.metal-48xl",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "m7a.xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
   "InstanceType": "m7g.12xlarge",
   "Location": "ap-southeast-2a"
  },
@@ -3969,6 +4017,54 @@
  },
  {
   "InstanceType": "m6in.xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.12xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.16xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.24xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.2xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.32xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.48xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.4xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.8xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.large",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.medium",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.metal-48xl",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "m7a.xlarge",
   "Location": "ap-southeast-2b"
  },
  {

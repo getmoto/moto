@@ -159,6 +159,16 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         self.kms_key_id = kms_key_id
         self.cluster_snapshot_copy_status: Optional[Dict[str, Any]] = None
         self.total_storage_capacity = 0
+        self.logging_details = {
+            "LoggingEnabled": "false",  # Lower case is required in response so we use string to simplify
+            "BucketName": "",
+            "S3KeyPrefix": "",
+            "LastSuccessfulDeliveryTime": datetime.datetime.now(),
+            "LastFailureTime": datetime.datetime.now(),
+            "LastFailureMessage": "",
+            "LogDestinationType": "",
+            "LogExports": [],
+        }
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -1083,6 +1093,37 @@ class RedshiftBackend(BaseBackend):
                 "Expiration": expiration,
             }
         raise ClusterNotFoundError(cluster_identifier)
+
+    def enable_logging(
+        self,
+        cluster_identifier: str,
+        bucket_name: str,
+        s3_key_prefix: str,
+        log_destination_type: str,
+        log_exports: List[str],
+    ) -> Dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster.logging_details["LoggingEnabled"] = "true"
+        cluster.logging_details["BucketName"] = bucket_name
+        cluster.logging_details["S3KeyPrefix"] = s3_key_prefix
+        cluster.logging_details["LogDestinationType"] = log_destination_type
+        cluster.logging_details["LogExports"] = log_exports
+        return cluster.logging_details
+
+    def disable_logging(self, cluster_identifier: str) -> Dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster.logging_details["LoggingEnabled"] = "false"
+        return cluster.logging_details
+
+    def describe_logging_status(self, cluster_identifier: str) -> Dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        return cluster.logging_details
 
 
 redshift_backends = BackendDict(RedshiftBackend, "redshift")
