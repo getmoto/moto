@@ -3,7 +3,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
-from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
+from moto.clouddirectory import clouddirectory_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
@@ -51,10 +51,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
         # there is really no point cleaning up
-
-    @property
-    def clouddirectory_backend(self) -> CloudDirectoryBackend:
-        return clouddirectory_backends[self.account_id][self.region_name]
 
     @property
     def s3_backend(self) -> S3Backend:
@@ -272,13 +268,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Cloud Directory
         if not resource_type_filters or "clouddirectory" in resource_type_filters:
-            for directory in self.clouddirectory_backend.directories.values():
-                tags = self.clouddirectory_backend.tagger.list_tags_for_resource(
-                    directory.directory_arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{directory.directory_arn}", "Tags": tags}
+            try:
+                backend = clouddirectory_backends[self.account_id][self.region_name]
+                for directory in backend.directories.values():
+                    tags = backend.tagger.list_tags_for_resource(
+                        directory.directory_arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{directory.directory_arn}", "Tags": tags}
+            except Exception:
+                pass
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
