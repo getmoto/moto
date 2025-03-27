@@ -418,6 +418,7 @@ class FakeScalableTarget(BaseModel):
         self.role_arn = role_arn
         self.suspended_state = suspended_state
         self.creation_time = time.time()
+        self.arn = f"arn:{get_partition(backend.region_name)}:application-autoscaling:{backend.region_name}:{backend.account_id}:scalable-target/{mock_random.get_random_string(length=36, lower_case=True)}"
 
     def update(
         self,

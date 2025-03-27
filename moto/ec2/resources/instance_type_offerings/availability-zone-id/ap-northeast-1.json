@@ -6624,6 +6624,42 @@
   "Location": "apne1-az4"
  },
  {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
+  "Location": "apne1-az4"
+ },
+ {
   "InstanceType": "im4gn.16xlarge",
   "Location": "apne1-az4"
  },
