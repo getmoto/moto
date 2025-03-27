@@ -18,7 +18,7 @@ class CloudDirectoryResponse(BaseResponse):
         # Please modify moto/backends.py to add the appropriate type annotations for this service
         return clouddirectory_backends[self.current_account][self.region]
     
-    def create_directory(self):
+    def create_directory(self) -> str:
         name = self._get_param("Name")
         schema_arn = self._get_param("SchemaArn")
         directory = self.clouddirectory_backend.create_directory(
@@ -29,17 +29,17 @@ class CloudDirectoryResponse(BaseResponse):
         return json.dumps(dict(DirectoryArn=directory.directory_arn, Name=name, ObjectIdentifier=directory.object_identifier, AppliedSchemaArn=directory.schema_arn))
 
     
-    def list_directories(self):
+    def list_directories(self) -> str:
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         state = self._get_param("State")
         directories = self.clouddirectory_backend.list_directories(
             state=state,
         )
-        return json.dumps(dict(Directories=directories, NextToken=next_token))
-# add templates from here
+        directory_list = [directory.to_dict() for directory in directories]
+        return json.dumps(dict(Directories=directory_list, NextToken=next_token))
     
-    def tag_resource(self):
+    def tag_resource(self) -> str:
         params = self._get_params()
         resource_arn = params.get("ResourceArn")
         tags = params.get("Tags")
@@ -47,10 +47,9 @@ class CloudDirectoryResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict())
     
-    def untag_resource(self):
+    def untag_resource(self) -> str:
         params = self._get_params()
         resource_arn = params.get("ResourceArn")
         tag_keys = params.get("TagKeys")
@@ -58,23 +57,22 @@ class CloudDirectoryResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        # TODO: adjust response
         return json.dumps(dict())
     
-    def delete_directory(self):
-        params = self._get_params()
-        directory_arn = params.get("DirectoryArn")
+    def delete_directory(self) -> str:
+        # Retrieve arn from headers
+        #https://docs.aws.amazon.com/clouddirectory/latest/APIReference/API_DeleteDirectory.html
+        arn = self.headers.get("x-amz-data-partition")
         directory_arn = self.clouddirectory_backend.delete_directory(
-            directory_arn=directory_arn,
+            directory_arn=arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(directoryArn=directory_arn))
+        return json.dumps(dict(DirectoryArn=directory_arn))
     
-    def get_directory(self):
-        params = self._get_params()
-        directory_arn = params.get("DirectoryArn")
+    def get_directory(self) -> str:
+        # Retrieve arn from headers
+        # https://docs.aws.amazon.com/clouddirectory/latest/APIReference/API_GetDirectory.html
+        arn = self.headers.get("x-amz-data-partition")
         directory = self.clouddirectory_backend.get_directory(
-            directory_arn=directory_arn,
+            directory_arn=arn,
         )
-        # TODO: adjust response
-        return json.dumps(dict(directory=directory))
+        return json.dumps(dict(Directory=directory.to_dict()))

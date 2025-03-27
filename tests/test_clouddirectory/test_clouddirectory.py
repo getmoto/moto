@@ -4,9 +4,6 @@ import boto3
 from moto import mock_aws
 from tests import DEFAULT_ACCOUNT_ID
 
-# See our Development Tips on writing tests for hints on how to write good tests:
-# http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
-
 @mock_aws
 def test_create_directory():
     region = "us-west-2"
@@ -40,10 +37,13 @@ def test_list_directories():
 
 @mock_aws
 def test_tag_resource():
-    client = boto3.client("clouddirectory", region_name="us-east-2")
-    resp = client.tag_resource()
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn = f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:directory/test-schema/1"
+    directory_arn = client.create_directory(SchemaArn=schema_arn, Name="test-directory")['DirectoryArn']
+    client.tag_resource(ResourceArn=directory_arn, Tags=[{"Key": "key1", "Value": "value1"}])
 
-    raise Exception("NotYetImplemented")
+    
 
 
 @mock_aws
@@ -56,15 +56,43 @@ def test_untag_resource():
 
 @mock_aws
 def test_delete_directory():
-    client = boto3.client("clouddirectory", region_name="eu-west-1")
-    resp = client.delete_directory()
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn = f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:directory/test-schema/1"
+    directory_arns = []
+    for i in range(3):
+        resp = client.create_directory(SchemaArn=schema_arn, Name=f"test-directory-{i}")
+        directory_arns.append(resp["DirectoryArn"])
+    
+    directories = client.list_directories()["Directories"]
+    assert len(directories) == 3
 
-    raise Exception("NotYetImplemented")
+    resp = client.delete_directory(DirectoryArn=directory_arns[1])
+    assert resp["DirectoryArn"] == directory_arns[1]
+
+    directories = client.list_directories()["Directories"]
+    assert len(directories) == 2
+    for directory in directories:
+        assert directory["DirectoryArn"] != directory_arns[1]
+
 
 
 @mock_aws
 def test_get_directory():
-    client = boto3.client("clouddirectory", region_name="ap-southeast-1")
-    resp = client.get_directory()
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn = f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:directory/test-schema/1"
+    directory_arns = []
+    for i in range(3):
+        resp = client.create_directory(SchemaArn=schema_arn, Name=f"test-directory-{i}")
+        directory_arns.append(resp["DirectoryArn"])
+    
 
-    raise Exception("NotYetImplemented")
+    directory = client.get_directory(DirectoryArn=directory_arns[0])['Directory']
+    assert "Name" in resp
+    assert directory["DirectoryArn"] == directory_arns[0]
+    assert directory["State"] == "ENABLED"
+    assert "CreationDateTime" in directory
+
+
+    
