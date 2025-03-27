@@ -3563,7 +3563,14 @@ def test_checksum_response(algorithm):
             Body=b"data",
             ChecksumAlgorithm=algorithm,
         )
-        assert f"Checksum{algorithm}" in response
+        checksum_key = f"Checksum{algorithm}"
+        assert checksum_key in response
+        checksum_value = response[checksum_key]
+        response = client.head_object(
+            Bucket=bucket_name, Key="test-key", ChecksumMode="ENABLED"
+        )
+        assert checksum_key in response
+        assert response[checksum_key] == checksum_value
 
 
 def add_proxy_details(kwargs):
