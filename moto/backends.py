@@ -402,7 +402,9 @@ def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ..
 @overload
 def get_backend(name: "Literal['ce']") -> "BackendDict[CostExplorerBackend]": ...
 @overload
-def get_backend(name: "Literal['clouddirectory']") -> "BackendDict[CloudDirectoryBackend]": ...
+def get_backend(
+    name: "Literal['clouddirectory']",
+) -> "BackendDict[CloudDirectoryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['cloudformation']",

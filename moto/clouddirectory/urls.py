@@ -1,4 +1,5 @@
 """clouddirectory base URL and path."""
+
 from .responses import CloudDirectoryResponse
 
 url_bases = [
@@ -12,4 +13,5 @@ url_paths = {
     "{0}/amazonclouddirectory/2017-01-11/tags/remove$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/directory$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/directory/get$": CloudDirectoryResponse.dispatch,
+    "{0}/amazonclouddirectory/2017-01-11/tags$": CloudDirectoryResponse.dispatch,
 }
