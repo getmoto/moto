@@ -1131,7 +1131,7 @@ def test_nested_projection_expression_using_scan_with_attr_expression_names():
     # Test a scan
     results = table.scan(
         FilterExpression=Key("forum_name").eq("key1"),
-        ProjectionExpression="nested.level1.id, nested.level2",
+        ProjectionExpression="#nst.level1.id, #nst.#lvl2",
         ExpressionAttributeNames={"#nst": "nested", "#lvl2": "level2"},
     )["Items"]
     assert results == [
