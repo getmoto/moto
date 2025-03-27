@@ -184,12 +184,6 @@ class S3Response(BaseResponse):
         self.bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.request = request
         if (
-            not self.body
-            and request.headers.get("Content-Encoding", "") == "aws-chunked"
-            and hasattr(request, "input_stream")
-        ):
-            self.body = request.input_stream
-        if (
             self.request.headers.get("x-amz-content-sha256")
             == "STREAMING-UNSIGNED-PAYLOAD-TRAILER"
         ):

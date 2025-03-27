@@ -38,6 +38,7 @@ from .exceptions import (
     DBClusterToBeDeletedHasActiveMembers,
     DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
+    DBParameterGroupAlreadyExistsError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
     DBProxyNotFoundFault,
@@ -121,7 +122,7 @@ class SnapshotAttributesMixin:
         if common_values:
             raise InvalidParameterCombination(
                 "A value may not appear in both the add list and remove list. "
-                + f"{common_values}"
+                + f"{list(common_values)}"
             )
         add = self.attributes[attribute_name] + values_to_add
         new_attribute_values = [value for value in add if value not in values_to_remove]
@@ -1247,12 +1248,8 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             )
             self.backend.db_parameter_groups[db_parameter_group_name] = default_group
             return [default_group]
-        else:
-            backend = rds_backends[self.account_id][self.region]
-            if self.db_parameter_group_name not in backend.db_parameter_groups:
-                raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
-            return [backend.db_parameter_groups[self.db_parameter_group_name]]
+        return [self.backend.db_parameter_groups[self.db_parameter_group_name]]
 
     def is_default_parameter_group(self, param_group_name: str) -> bool:
         return param_group_name.startswith(f"default.{self.engine.lower()}")  # type: ignore
@@ -2386,6 +2383,10 @@ class RDSBackend(BaseBackend):
                 db_kwargs.pop("new_db_instance_identifier")
             )
             self.databases[db_instance_identifier] = database
+        if "db_parameter_group_name" in db_kwargs:
+            db_parameter_group_name = db_kwargs["db_parameter_group_name"]
+            if db_parameter_group_name not in self.db_parameter_groups:
+                raise DBParameterGroupNotFoundError(db_parameter_group_name)
         preferred_backup_window = db_kwargs.get(
             "preferred_backup_window", database.preferred_backup_window
         )
@@ -2885,6 +2886,48 @@ class RDSBackend(BaseBackend):
         db_parameter_group = DBParameterGroup(self, **db_parameter_group_kwargs)
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
+
+    def copy_db_parameter_group(
+        self,
+        source_db_parameter_group_identifier: str,
+        target_db_parameter_group_identifier: str,
+        target_db_parameter_group_description: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> DBParameterGroup:
+        if source_db_parameter_group_identifier.startswith("arn:aws:rds:"):
+            source_db_parameter_group_identifier = (
+                source_db_parameter_group_identifier.split(":")[-1]
+            )
+        if source_db_parameter_group_identifier not in self.db_parameter_groups:
+            raise DBParameterGroupNotFoundError(source_db_parameter_group_identifier)
+        if target_db_parameter_group_identifier in self.db_parameter_groups:
+            raise DBParameterGroupAlreadyExistsError(
+                target_db_parameter_group_identifier
+            )
+        source_db_parameter_group = self.db_parameter_groups[
+            source_db_parameter_group_identifier
+        ]
+
+        target_db_parameter_group = DBParameterGroup(
+            backend=self,
+            db_parameter_group_name=target_db_parameter_group_identifier,
+            db_parameter_group_family=source_db_parameter_group.family,
+            description=target_db_parameter_group_description,
+            tags=tags,
+        )
+        self.db_parameter_groups[target_db_parameter_group_identifier] = (
+            target_db_parameter_group
+        )
+
+        iterable_source_parameters = [
+            {"ParameterName": name, **values}
+            for name, values in source_db_parameter_group.parameters.items()
+        ]
+        self.modify_db_parameter_group(
+            db_parameter_group_name=target_db_parameter_group_identifier,
+            db_parameter_group_parameters=iterable_source_parameters,
+        )
+        return target_db_parameter_group
 
     def describe_db_parameter_groups(
         self, db_parameter_group_kwargs: Dict[str, Any]

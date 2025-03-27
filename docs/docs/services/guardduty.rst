@@ -42,7 +42,9 @@ guardduty
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [X] enable_organization_admin_account
-- [ ] get_administrator_account
+- [X] get_administrator_account
+  Get administrator account details.
+
 - [ ] get_coverage_statistics
 - [X] get_detector
 - [X] get_filter
