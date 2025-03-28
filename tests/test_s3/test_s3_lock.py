@@ -169,6 +169,53 @@ def test_locked_object_governance_mode(bypass_governance_retention, bucket_name=
 
 @s3_aws_verified
 @pytest.mark.aws_verified
+def test_put_locked_object_with_checksum_algorithm(bucket_name=None):
+    s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
+    s3_client = s3_resource.meta.client
+
+    key_name = "file.txt"
+    seconds_lock = 10
+
+    enable_versioning(bucket_name, s3_client)
+
+    s3_client.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            "ObjectLockEnabled": "Enabled",
+            "Rule": {"DefaultRetention": {"Mode": "GOVERNANCE", "Days": 1}},
+        },
+    )
+
+    until = utcnow() + datetime.timedelta(seconds=seconds_lock)
+
+    import base64
+    import hashlib
+
+    sha = hashlib.sha256(b"test")
+    checksum = base64.b64encode(sha.digest()).decode("utf-8")
+
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ObjectLockMode="GOVERNANCE",
+        ObjectLockRetainUntilDate=until,
+        ChecksumAlgorithm="SHA256",
+        ChecksumSHA256=checksum,
+    )
+
+    versions_response = s3_client.list_object_versions(Bucket=bucket_name)
+    version_id = versions_response["Versions"][0]["VersionId"]
+    version = s3_resource.ObjectVersion(bucket_name, key_name, version_id)
+    response = version.head(ChecksumMode="ENABLED")
+
+    assert (
+        response["ResponseMetadata"]["HTTPHeaders"]["x-amz-checksum-sha256"] == checksum
+    )
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
 @pytest.mark.parametrize(
     "bypass_governance_retention",
     [True, False, None],
