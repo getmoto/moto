@@ -92,7 +92,9 @@ def test_resource_groups_tagging_api():
     rtapi_client = boto3.client("resourcegroupstaggingapi", region_name=region)
 
     api = client.create_graphql_api(
-        name="api-with-tags", authenticationType="API_KEY", tags={"key": "val", "key2": "val2"}
+        name="api-with-tags",
+        authenticationType="API_KEY",
+        tags={"key": "val", "key2": "val2"},
     )["graphqlApi"]
     client.create_graphql_api(name="api-no-tags", authenticationType="API_KEY")[
         "graphqlApi"
