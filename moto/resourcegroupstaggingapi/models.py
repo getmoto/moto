@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
+from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
@@ -36,7 +37,7 @@ from moto.utilities.utils import get_partition
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
-# Left: EC2 ElastiCache RDS ELB CloudFront Lambda EMR Glacier Kinesis Redshift Route53
+# Left: EC2 ElastiCache RDS ELB Lambda EMR Glacier Kinesis Redshift Route53
 # StorageGateway DynamoDB MachineLearning ACM DirectConnect DirectoryService CloudHSM
 # Inspector Elasticsearch
 
@@ -175,6 +176,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             return lexv2models_backends[self.account_id][self.region_name]
         return None
 
+    @property
+    def cloudfront_backend(self) -> CloudFrontBackend:
+        return cloudfront_backends[self.account_id][self.partition]
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -280,6 +285,22 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
             except Exception:
                 pass
+
+        # Cloudfront
+        if (
+            not resource_type_filters
+            or "cloudfront" in resource_type_filters
+            or "cloudfront:distributions" in resource_type_filters
+        ):
+            for dist in self.cloudfront_backend.distributions.values():
+                tags = self.cloudfront_backend.tagger.list_tags_for_resource(dist.arn)[
+                    "Tags"
+                ]
+                if (
+                    not tag_filter(tags) or len(tags) == 0
+                ):  # Skip if no tags, or invalid filter
+                    continue
+                yield {"ResourceARN": f"{dist.arn}", "Tags": tags}
 
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
