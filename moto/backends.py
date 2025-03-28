@@ -99,6 +99,7 @@ if TYPE_CHECKING:
     from moto.meteringmarketplace.models import MeteringMarketplaceBackend
     from moto.moto_api._internal.models import MotoAPIBackend
     from moto.mq.models import MQBackend
+    from moto.networkfirewall.models import NetworkFirewallBackend
     from moto.networkmanager.models import NetworkManagerBackend
     from moto.opensearch.models import OpenSearchServiceBackend
     from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
@@ -284,6 +285,7 @@ SERVICE_NAMES = Union[
     "Literal['moto_api']",
     "Literal['mq']",
     "Literal['neptune']",
+    "Literal['networkfirewall']",
     "Literal['networkmanager']",
     "Literal['opensearch']",
     "Literal['opensearchserverless']",
@@ -597,6 +599,10 @@ def get_backend(name: "Literal['moto_api']") -> "BackendDict[MotoAPIBackend]": .
 def get_backend(name: "Literal['mq']") -> "BackendDict[MQBackend]": ...
 @overload
 def get_backend(name: "Literal['neptune']") -> "BackendDict[RDSBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['networkfirewall']",
+) -> "BackendDict[NetworkFirewallBackend]": ...
 @overload
 def get_backend(
     name: "Literal['networkmanager']",
