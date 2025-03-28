@@ -16,7 +16,7 @@ lambda
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_layer_version_permission
+- [X] add_layer_version_permission
 - [X] add_permission
 - [X] create_alias
 - [ ] create_code_signing_config
@@ -63,7 +63,7 @@ lambda
 
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
-- [ ] get_layer_version_policy
+- [X] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [ ] get_runtime_management_config
@@ -127,7 +127,7 @@ lambda
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
-- [ ] remove_layer_version_permission
+- [X] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource

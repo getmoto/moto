@@ -2236,7 +2236,7 @@
 
 ## ds
 <details>
-<summary>28% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -2248,13 +2248,13 @@
 - [ ] create_computer
 - [ ] create_conditional_forwarder
 - [X] create_directory
-- [ ] create_log_subscription
+- [X] create_log_subscription
 - [X] create_microsoft_ad
 - [ ] create_snapshot
 - [X] create_trust
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
-- [ ] delete_log_subscription
+- [X] delete_log_subscription
 - [ ] delete_snapshot
 - [X] delete_trust
 - [ ] deregister_certificate
@@ -2287,7 +2287,7 @@
 - [ ] get_snapshot_limits
 - [ ] list_certificates
 - [ ] list_ip_routes
-- [ ] list_log_subscriptions
+- [X] list_log_subscriptions
 - [ ] list_schema_extensions
 - [X] list_tags_for_resource
 - [ ] register_certificate
@@ -5259,9 +5259,9 @@
 
 ## lambda
 <details>
-<summary>63% implemented</summary>
+<summary>67% implemented</summary>
 
-- [ ] add_layer_version_permission
+- [X] add_layer_version_permission
 - [X] add_permission
 - [X] create_alias
 - [ ] create_code_signing_config
@@ -5291,7 +5291,7 @@
 - [X] get_function_url_config
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
-- [ ] get_layer_version_policy
+- [X] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [ ] get_runtime_management_config
@@ -5318,7 +5318,7 @@
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
-- [ ] remove_layer_version_permission
+- [X] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource
@@ -5899,7 +5899,7 @@
 
 ## neptune
 <details>
-<summary>62% implemented</summary>
+<summary>63% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
@@ -5907,7 +5907,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
@@ -6895,7 +6895,7 @@
 
 ## rds
 <details>
-<summary>45% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -6907,7 +6907,7 @@
 - [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_blue_green_deployment
@@ -8366,7 +8366,7 @@
 
 ## securityhub
 <details>
-<summary>2% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -8396,7 +8396,7 @@
 - [ ] delete_members
 - [ ] describe_action_targets
 - [ ] describe_hub
-- [ ] describe_organization_configuration
+- [X] describe_organization_configuration
 - [ ] describe_products
 - [ ] describe_standards
 - [ ] describe_standards_controls
@@ -8407,9 +8407,9 @@
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [ ] enable_import_findings_for_product
-- [ ] enable_organization_admin_account
+- [X] enable_organization_admin_account
 - [ ] enable_security_hub
-- [ ] get_administrator_account
+- [X] get_administrator_account
 - [ ] get_configuration_policy
 - [ ] get_configuration_policy_association
 - [ ] get_enabled_standards
@@ -8443,7 +8443,7 @@
 - [ ] update_finding_aggregator
 - [ ] update_findings
 - [ ] update_insight
-- [ ] update_organization_configuration
+- [X] update_organization_configuration
 - [ ] update_security_control
 - [ ] update_security_hub_configuration
 - [ ] update_standards_control
@@ -8589,7 +8589,7 @@
 
 ## sesv2
 <details>
-<summary>17% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -8600,7 +8600,7 @@
 - [ ] create_custom_verification_email_template
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
-- [ ] create_email_identity
+- [X] create_email_identity
 - [ ] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
@@ -8631,7 +8631,7 @@
 - [ ] get_deliverability_test_report
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
-- [ ] get_email_identity
+- [X] get_email_identity
 - [ ] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
@@ -8646,7 +8646,7 @@
 - [X] list_dedicated_ip_pools
 - [ ] list_deliverability_test_reports
 - [ ] list_domain_deliverability_campaigns
-- [ ] list_email_identities
+- [X] list_email_identities
 - [ ] list_email_templates
 - [ ] list_export_jobs
 - [ ] list_import_jobs

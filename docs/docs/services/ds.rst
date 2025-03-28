@@ -34,7 +34,7 @@ ds
 - [X] create_directory
   Create a fake Simple Ad Directory.
 
-- [ ] create_log_subscription
+- [X] create_log_subscription
 - [X] create_microsoft_ad
   Create a fake Microsoft Ad Directory.
 
@@ -44,7 +44,7 @@ ds
 - [X] delete_directory
   Delete directory with the matching ID.
 
-- [ ] delete_log_subscription
+- [X] delete_log_subscription
 - [ ] delete_snapshot
 - [X] delete_trust
 - [ ] deregister_certificate
@@ -93,7 +93,7 @@ ds
 - [ ] get_snapshot_limits
 - [ ] list_certificates
 - [ ] list_ip_routes
-- [ ] list_log_subscriptions
+- [X] list_log_subscriptions
 - [ ] list_schema_extensions
 - [X] list_tags_for_resource
   List all tags on a directory.
