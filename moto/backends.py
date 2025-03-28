@@ -83,6 +83,7 @@ if TYPE_CHECKING:
     from moto.ivs.models import IVSBackend
     from moto.kafka.models import KafkaBackend
     from moto.kinesis.models import KinesisBackend
+    from moto.kinesisanalyticsv2.models import KinesisAnalyticsV2Backend
     from moto.kinesisvideo.models import KinesisVideoBackend
     from moto.kinesisvideoarchivedmedia.models import KinesisVideoArchivedMediaBackend
     from moto.kms.models import KmsBackend
@@ -266,6 +267,7 @@ SERVICE_NAMES = Union[
     "Literal['ivs']",
     "Literal['kafka']",
     "Literal['kinesis']",
+    "Literal['kinesisanalyticsv2']",
     "Literal['kinesisvideo']",
     "Literal['kinesis-video-archived-media']",
     "Literal['kms']",
@@ -547,6 +549,10 @@ def get_backend(name: "Literal['kinesis']") -> "BackendDict[KinesisBackend]": ..
 def get_backend(
     name: "Literal['kinesisvideo']",
 ) -> "BackendDict[KinesisVideoBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['kinesisanalyticsv2']",
+) -> "BackendDict[KinesisAnalyticsV2Backend]": ...
 @overload
 def get_backend(
     name: "Literal['kinesis-video-archived-media']",
