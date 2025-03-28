@@ -741,23 +741,28 @@
 
 ## batch
 <details>
-<summary>96% implemented</summary>
+<summary>77% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
+- [ ] create_consumable_resource
 - [X] create_job_queue
 - [X] create_scheduling_policy
 - [X] delete_compute_environment
+- [ ] delete_consumable_resource
 - [X] delete_job_queue
 - [X] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
+- [ ] describe_consumable_resource
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
 - [X] describe_scheduling_policies
 - [ ] get_job_queue_snapshot
+- [ ] list_consumable_resources
 - [X] list_jobs
+- [ ] list_jobs_by_consumable_resource
 - [X] list_scheduling_policies
 - [X] list_tags_for_resource
 - [X] register_job_definition
@@ -766,6 +771,7 @@
 - [X] terminate_job
 - [X] untag_resource
 - [X] update_compute_environment
+- [ ] update_consumable_resource
 - [X] update_job_queue
 - [X] update_scheduling_policy
 </details>
@@ -784,6 +790,7 @@
 - [X] create_model_customization_job
 - [ ] create_model_import_job
 - [ ] create_model_invocation_job
+- [ ] create_prompt_router
 - [ ] create_provisioned_model_throughput
 - [X] delete_custom_model
 - [ ] delete_guardrail
@@ -791,6 +798,7 @@
 - [ ] delete_inference_profile
 - [ ] delete_marketplace_model_endpoint
 - [X] delete_model_invocation_logging_configuration
+- [ ] delete_prompt_router
 - [ ] delete_provisioned_model_throughput
 - [ ] deregister_marketplace_model_endpoint
 - [X] get_custom_model
@@ -1681,7 +1689,7 @@
 
 ## comprehend
 <details>
-<summary>12% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1692,24 +1700,24 @@
 - [ ] classify_document
 - [ ] contains_pii_entities
 - [ ] create_dataset
-- [ ] create_document_classifier
-- [ ] create_endpoint
+- [X] create_document_classifier
+- [X] create_endpoint
 - [X] create_entity_recognizer
-- [ ] create_flywheel
-- [ ] delete_document_classifier
-- [ ] delete_endpoint
+- [X] create_flywheel
+- [X] delete_document_classifier
+- [X] delete_endpoint
 - [X] delete_entity_recognizer
-- [ ] delete_flywheel
+- [X] delete_flywheel
 - [ ] delete_resource_policy
 - [ ] describe_dataset
 - [ ] describe_document_classification_job
-- [ ] describe_document_classifier
+- [X] describe_document_classifier
 - [ ] describe_dominant_language_detection_job
-- [ ] describe_endpoint
+- [X] describe_endpoint
 - [ ] describe_entities_detection_job
 - [X] describe_entity_recognizer
 - [ ] describe_events_detection_job
-- [ ] describe_flywheel
+- [X] describe_flywheel
 - [ ] describe_flywheel_iteration
 - [ ] describe_key_phrases_detection_job
 - [ ] describe_pii_entities_detection_job
@@ -1729,15 +1737,15 @@
 - [ ] list_datasets
 - [ ] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
-- [ ] list_document_classifiers
+- [X] list_document_classifiers
 - [ ] list_dominant_language_detection_jobs
-- [ ] list_endpoints
+- [X] list_endpoints
 - [ ] list_entities_detection_jobs
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
 - [ ] list_events_detection_jobs
 - [ ] list_flywheel_iteration_history
-- [ ] list_flywheels
+- [X] list_flywheels
 - [ ] list_key_phrases_detection_jobs
 - [ ] list_pii_entities_detection_jobs
 - [ ] list_sentiment_detection_jobs
@@ -1749,7 +1757,7 @@
 - [ ] start_dominant_language_detection_job
 - [ ] start_entities_detection_job
 - [ ] start_events_detection_job
-- [ ] start_flywheel_iteration
+- [X] start_flywheel_iteration
 - [ ] start_key_phrases_detection_job
 - [ ] start_pii_entities_detection_job
 - [ ] start_sentiment_detection_job
@@ -1762,11 +1770,11 @@
 - [ ] stop_pii_entities_detection_job
 - [ ] stop_sentiment_detection_job
 - [ ] stop_targeted_sentiment_detection_job
-- [ ] stop_training_document_classifier
+- [X] stop_training_document_classifier
 - [X] stop_training_entity_recognizer
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_endpoint
+- [X] update_endpoint
 - [ ] update_flywheel
 </details>
 
@@ -3497,7 +3505,7 @@
 
 ## elbv2
 <details>
-<summary>66% implemented</summary>
+<summary>64% implemented</summary>
 
 - [X] add_listener_certificates
 - [X] add_tags
@@ -3534,6 +3542,7 @@
 - [ ] get_trust_store_ca_certificates_bundle
 - [ ] get_trust_store_revocation_content
 - [ ] modify_capacity_reservation
+- [ ] modify_ip_pools
 - [X] modify_listener
 - [X] modify_listener_attributes
 - [X] modify_load_balancer_attributes
@@ -3963,7 +3972,7 @@
 
 ## glue
 <details>
-<summary>29% implemented</summary>
+<summary>28% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -8259,6 +8268,8 @@
 - [ ] update_feature_group
 - [ ] update_feature_metadata
 - [ ] update_hub
+- [ ] update_hub_content
+- [ ] update_hub_content_reference
 - [ ] update_image
 - [ ] update_image_version
 - [ ] update_inference_component
@@ -9467,7 +9478,7 @@
 
 ## workspaces
 <details>
-<summary>17% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
@@ -9531,6 +9542,7 @@
 - [ ] modify_account
 - [ ] modify_certificate_based_auth_properties
 - [X] modify_client_properties
+- [ ] modify_endpoint_encryption_mode
 - [ ] modify_saml_properties
 - [X] modify_selfservice_permissions
 - [ ] modify_streaming_properties
@@ -9732,6 +9744,7 @@
 - frauddetector
 - freetier
 - gamelift
+- gameliftstreams
 - geo-maps
 - geo-places
 - geo-routes
@@ -9748,6 +9761,7 @@
 - internetmonitor
 - invoicing
 - iot-jobs-data
+- iot-managed-integrations
 - iotanalytics
 - iotdeviceadvisor
 - iotevents
