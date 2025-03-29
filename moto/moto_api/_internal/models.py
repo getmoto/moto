@@ -119,6 +119,17 @@ class MotoAPIBackend(BaseBackend):
             )
         )
 
+    def set_ecr_scan_finding_result(
+        self,
+        results: Dict[str, Any],
+        account_id: str,
+        region: str,
+    ) -> None:
+        from moto.ecr.models import ECRBackend, ecr_backends
+
+        backend: ECRBackend = ecr_backends[account_id][region]
+        backend.scan_finding_results.append(results)
+
     def set_inspector2_findings_result(
         self,
         results: Optional[List[List[Dict[str, Any]]]],
