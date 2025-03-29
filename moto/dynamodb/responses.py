@@ -13,9 +13,9 @@ from moto.dynamodb.parsing.expressions import (  # type: ignore
     ExpressionAttributeName,
     UpdateExpressionParser,
 )
-from moto.dynamodb.utils import find_duplicates
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import find_duplicates
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
@@ -27,7 +27,6 @@ from .exceptions import (
     ResourceNotFoundException,
     UnknownKeyType,
 )
-from .utils import find_path_overlaps
 
 TRANSACTION_MAX_ITEMS = 25
 

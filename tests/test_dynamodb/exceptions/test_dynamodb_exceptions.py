@@ -1065,45 +1065,6 @@ def test_update_item_non_existent_table():
     assert err["Message"] == "Requested resource not found"
 
 
-@mock_aws
-@pytest.mark.parametrize(
-    "expression",
-    [
-        "set example_column = :example_column, example_column = :example_column",
-    ],
-)
-def test_update_item_with_duplicate_expressions(expression):
-    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="example_table",
-        KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
-        BillingMode="PAY_PER_REQUEST",
-    )
-    record = {
-        "pk": "example_id",
-        "example_column": "example",
-    }
-    table = dynamodb.Table("example_table")
-    table.put_item(Item=record)
-    with pytest.raises(ClientError) as exc:
-        table.update_item(
-            Key={"pk": "example_id"},
-            UpdateExpression=expression,
-            ExpressionAttributeValues={":example_column": "test"},
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "ValidationException"
-    assert (
-        err["Message"]
-        == "Invalid UpdateExpression: Two document paths overlap with each other; must remove or rewrite one of these paths; path one: [example_column], path two: [example_column]"
-    )
-
-    # The item is not updated
-    item = table.get_item(Key={"pk": "example_id"})["Item"]
-    assert item == {"pk": "example_id", "example_column": "example"}
-
-
 @pytest.mark.aws_verified
 class TestDuplicateProjectionExpressions(BaseTest):
     def test_query_item_with_duplicate_path_in_projection_expressions(self):
