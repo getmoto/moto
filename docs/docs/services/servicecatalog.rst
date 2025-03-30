@@ -78,6 +78,8 @@ servicecatalog
 - [ ] list_organization_portfolio_access
 - [X] list_portfolio_access
 - [X] list_portfolios
+  TODO: Implement pagination and accept_language
+
 - [ ] list_portfolios_for_product
 - [ ] list_principals_for_portfolio
 - [ ] list_provisioned_product_plans

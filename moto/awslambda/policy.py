@@ -87,10 +87,13 @@ class Policy:
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
     def decode_policy(self, obj: Dict[str, Any]) -> "Policy":
-        policy = Policy(self.parent)  # type: ignore[no-untyped-call]
+        # Circumvent circular cimport
+        from moto.awslambda.models import LayerVersion
+
+        policy = Policy(self.parent)
         policy.revision = obj.get("RevisionId", "")
         # get function_arn or arn from parent
-        if hasattr(self.parent, "arn"):
+        if isinstance(self.parent, LayerVersion):
             resource_arn = self.parent.arn
         else:
             resource_arn = self.parent.function_arn
