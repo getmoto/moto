@@ -1712,18 +1712,6 @@
   "Location": "ap-southeast-1"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "ap-southeast-1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "ap-southeast-1"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "ap-southeast-1"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "ap-southeast-1"
  },
