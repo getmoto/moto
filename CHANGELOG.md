@@ -4,7 +4,7 @@ Moto Changelog
 
 5.1.2
 -----
-Docker Digest for 5.1.2: <autopopulateddigest>
+Docker Digest for 5.1.2: _sha256:3144ffd311b381594efde7ed4a41fb8fe2d66829ae5f3bf493f93f2ca1a8c82b_
 
     * New Services:
         * KinesisAnalyticsV2:
