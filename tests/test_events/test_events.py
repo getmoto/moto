@@ -2418,6 +2418,7 @@ def test_kms_key_is_created(auth_type, auth_parameters, with_headers):
         assert secret["Tags"] == [
             {"Key": "aws:secretsmanager:owningService", "Value": "events"}
         ]
+        assert secret["OwningService"] == "events"
 
         if auth_type == "BASIC":
             expected_secret = {"username": "un", "password": "pw"}
