@@ -5,13 +5,6 @@ from collections import deque
 
 from moto.dynamodb.models import DynamoType
 
-from ..exceptions import (
-    DuplicateUpdateExpression,
-    MockValidationException,
-    TooManyClauses,
-)
-from ..utils import extract_duplicates
-
 
 class Node(metaclass=abc.ABCMeta):
     def __init__(self, children=None):
@@ -27,43 +20,6 @@ class Node(metaclass=abc.ABCMeta):
 
     def set_parent(self, parent_node):
         self.parent = parent_node
-
-    def validate(self, limit_set_actions: bool = False) -> None:
-        if self.type == "UpdateExpression":
-            add_clauses = self.find_clauses([UpdateExpressionAddClause])
-            remove_clauses = self.find_clauses([UpdateExpressionRemoveClause])
-
-            # Only allow single ADD/REMOVE clauses
-            if len(add_clauses) > 1:
-                raise TooManyClauses("ADD")
-            if len(remove_clauses) > 1:
-                raise TooManyClauses("REMOVE")
-
-            add_actions = self.find_clauses([UpdateExpressionAddAction])
-            delete_actions = self.find_clauses([UpdateExpressionDeleteAction])
-            set_actions = self.find_clauses([UpdateExpressionSetAction])
-
-            # Cannot ADD/DELETE to the same path
-            add_paths = [a.get_value() for a in add_actions]
-            delete_paths = [a.get_value() for a in delete_actions]
-            if set(add_paths).intersection(delete_paths):
-                raise DuplicateUpdateExpression(names=[*add_paths, *delete_paths])
-
-            # Ensure SET has no duplicates
-            # We currently only check for duplicates
-            # We should also check for partial duplicates, i.e. [attr, attr.sub] is also invalid
-            set_attributes = [s.children[0].to_str() for s in set_actions]
-            duplicates = extract_duplicates(set_attributes)
-            if duplicates:
-                # There might be more than one attribute duplicated:
-                # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
-                raise DuplicateUpdateExpression(duplicates)
-
-            set_clauses = self.find_clauses([UpdateExpressionSetClause])
-            if limit_set_actions and len(set_clauses) > 1:
-                raise MockValidationException(
-                    'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
-                )
 
     def normalize(self):
         """
@@ -440,7 +396,8 @@ class DepthFirstTraverser(object):
             if isinstance(node, self.nodes_to_be_processed()):
                 node = self.process(node)
                 node.parent = parent_node
-                parent_node.children[child_id] = node
+                if parent_node:
+                    parent_node.children[child_id] = node
         return node
 
     def traverse(self, node):

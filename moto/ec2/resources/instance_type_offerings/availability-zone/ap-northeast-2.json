@@ -1204,18 +1204,6 @@
   "Location": "ap-northeast-2a"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "ap-northeast-2a"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "ap-northeast-2a"
  },
@@ -4497,18 +4485,6 @@
  },
  {
   "InstanceType": "m7i.xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "ap-northeast-2c"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "ap-northeast-2c"
  },
  {

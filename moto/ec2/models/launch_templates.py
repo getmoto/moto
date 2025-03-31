@@ -228,6 +228,22 @@ class LaunchTemplateBackend:
         self.launch_template_insert_order.append(template.id)
         return template
 
+    def modify_launch_template(
+        self,
+        default_version: str,
+        template_name: Optional[str] = None,
+        template_id: Optional[str] = None,
+    ) -> LaunchTemplate:
+        if template_name:
+            template_id = self.launch_template_name_to_ids.get(template_name)
+        if template_id is None:
+            raise MissingParameterError("launch template ID or launch template name")
+        if template_id not in self.launch_templates:
+            raise InvalidLaunchTemplateNameNotFoundError()
+        self.launch_templates[template_id].default_version_number = int(default_version)
+        template = self.launch_templates[template_id]
+        return template
+
     def get_launch_template(self, template_id: str) -> LaunchTemplate:
         return self.launch_templates[template_id]
 

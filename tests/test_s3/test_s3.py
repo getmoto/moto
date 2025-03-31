@@ -954,8 +954,9 @@ def test_upload_file_with_checksum_algorithm():
     )
     os.remove("rb.tmp")
 
-    actual_content = s3_resource.Object(bucket, "my_key.csv").get()["Body"].read()
-    assert random_bytes == actual_content
+    response = s3_resource.Object(bucket, "my_key.csv").get()
+    assert response["Body"].read() == random_bytes
+    assert response["ChecksumSHA256"] == "8j0+hoFVwRruAFmR9yBH39VPHu1nhd1gyBoUT+hAo/8="
 
 
 @mock_aws
@@ -3562,7 +3563,14 @@ def test_checksum_response(algorithm):
             Body=b"data",
             ChecksumAlgorithm=algorithm,
         )
-        assert f"Checksum{algorithm}" in response
+        checksum_key = f"Checksum{algorithm}"
+        assert checksum_key in response
+        checksum_value = response[checksum_key]
+        response = client.head_object(
+            Bucket=bucket_name, Key="test-key", ChecksumMode="ENABLED"
+        )
+        assert checksum_key in response
+        assert response[checksum_key] == checksum_value
 
 
 def add_proxy_details(kwargs):

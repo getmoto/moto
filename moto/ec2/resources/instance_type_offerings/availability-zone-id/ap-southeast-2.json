@@ -1740,18 +1740,6 @@
   "Location": "apse2-az1"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "apse2-az1"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "apse2-az1"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "apse2-az1"
  },
@@ -4345,18 +4333,6 @@
  },
  {
   "InstanceType": "m7i.xlarge",
-  "Location": "apse2-az2"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "apse2-az2"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "apse2-az2"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "apse2-az2"
  },
  {
