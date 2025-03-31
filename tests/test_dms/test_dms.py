@@ -204,3 +204,97 @@ def test_delete_replication_task_throws_resource_not_found_error():
     assert (
         ex.value.response["Error"]["Message"] == "Replication task could not be found."
     )
+
+
+@mock_aws
+def test_create_replication_instance():
+    client = boto3.client("dms", region_name="us-east-2")
+    
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance",
+        ReplicationInstanceClass="dms.t2.micro",
+        AllocatedStorage=50,
+        VpcSecurityGroupIds=["sg-12345"],
+        AvailabilityZone="us-east-2a",
+        ReplicationSubnetGroupIdentifier="default-subnet-group",
+        PreferredMaintenanceWindow="sun:06:00-sun:14:00",
+        MultiAZ=False,
+        EngineVersion="3.4.6",
+        AutoMinorVersionUpgrade=True,
+        Tags=[
+            {
+                "Key": "Name",
+                "Value": "Test Instance"
+            }
+        ],
+        PubliclyAccessible=True,
+        NetworkType="IPV4"
+    )
+    
+    # Check that we get back the expected structure
+    instance = response["ReplicationInstance"]
+    assert instance["ReplicationInstanceIdentifier"] == "test-instance"
+    assert instance["ReplicationInstanceClass"] == "dms.t2.micro"
+    assert instance["AllocatedStorage"] == 50
+    assert instance["AvailabilityZone"] == "us-east-2a"
+    assert instance["ReplicationInstanceStatus"] == "creating"
+    assert instance["MultiAZ"] is False
+    assert instance["EngineVersion"] == "3.4.6"
+    assert instance["AutoMinorVersionUpgrade"] is True
+    assert instance["PubliclyAccessible"] is True
+    assert instance["NetworkType"] == "IPV4"
+    
+    # Verify that the ARN has the correct format
+    arn = instance["ReplicationInstanceArn"]
+    assert arn.startswith("arn:aws:dms:us-east-2:")
+    assert ":rep:test-instance" in arn
+    
+
+
+@mock_aws
+def test_describe_replication_instances():
+    client = boto3.client("dms", region_name="eu-west-1")
+    
+    # Create a few instances
+    client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5"
+    )
+    
+    client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-2",
+        ReplicationInstanceClass="dms.t2.small",
+        EngineVersion="3.4.6"
+    )
+    
+    # Test listing all instances
+    response = client.describe_replication_instances()
+    instances = response["ReplicationInstances"]
+    assert len(instances) == 2
+    
+    # Test filtering by instance class
+    response = client.describe_replication_instances(
+        Filters=[
+            {
+                "Name": "replication-instance-class",
+                "Values": ["dms.t2.micro"]
+            }
+        ]
+    )
+    instances = response["ReplicationInstances"]
+    assert len(instances) == 1
+    assert instances[0]["ReplicationInstanceIdentifier"] == "test-instance-1"
+    
+    # Test filtering by engine version
+    response = client.describe_replication_instances(
+        Filters=[
+            {
+                "Name": "engine-version",
+                "Values": ["3.4.6"]
+            }
+        ]
+    )
+    instances = response["ReplicationInstances"]
+    assert len(instances) == 1
+    assert instances[0]["ReplicationInstanceIdentifier"] == "test-instance-2"
