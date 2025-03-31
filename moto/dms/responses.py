@@ -67,15 +67,38 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps(
             dict(ReplicationTasks=[t.to_dict() for t in replication_tasks])
         )
-    
-    def create_replication_instance(self):
+
+    def create_replication_instance(self) -> str:
         params = json.loads(self.body)
         replication_instance_identifier = params.get("ReplicationInstanceIdentifier")
         allocated_storage = params.get("AllocatedStorage")
         replication_instance_class = params.get("ReplicationInstanceClass")
-        vpc_security_group_ids = self._get_list_prefix("VpcSecurityGroupIds.member")
+        vpc_security_group_ids = self._get_param("VpcSecurityGroupIds")
+        if vpc_security_group_ids:
+            # If the parameter is directly available, use it
+            vpc_security_group_ids = (
+                vpc_security_group_ids.split(",")
+                if isinstance(vpc_security_group_ids, str)
+                else [vpc_security_group_ids]
+            )
+        else:
+            # If we need to extract from list prefix, get string values
+            vpc_security_group_list = self._get_list_prefix(
+                "VpcSecurityGroupIds.member"
+            )
+            vpc_security_group_ids = (
+                [
+                    sg_id.get("VpcSecurityGroupId", "")
+                    for sg_id in vpc_security_group_list
+                ]
+                if vpc_security_group_list
+                else None
+            )
+
         availability_zone = params.get("AvailabilityZone")
-        replication_subnet_group_identifier = params.get("ReplicationSubnetGroupIdentifier")
+        replication_subnet_group_identifier = params.get(
+            "ReplicationSubnetGroupIdentifier"
+        )
         preferred_maintenance_window = params.get("PreferredMaintenanceWindow")
         multi_az = params.get("MultiAZ")
         engine_version = params.get("EngineVersion")
@@ -107,24 +130,20 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             kerberos_authentication_settings=kerberos_authentication_settings,
         )
         return json.dumps({"ReplicationInstance": replication_instance.to_dict()})
-    
+
     def describe_replication_instances(self) -> str:
         data = json.loads(self.body)
         filters = data.get("Filters", [])
         max_records = data.get("MaxRecords")
         marker = data.get("Marker")
-        replication_instance_arn = data.get("ReplicationInstanceArn")
-        
+
         replication_instances = self.dms_backend.describe_replication_instances(
             filters=filters,
             max_records=max_records,
             marker=marker,
-            replication_instance_arn=replication_instance_arn
         )
-        
-        # Convert the instances to dicts
+
         instances_dict = [i.to_dict() for i in replication_instances]
-        
-        return json.dumps({
-            "ReplicationInstances": instances_dict
-        })
+
+        # TODO: Add Marker (optional) to the response
+        return json.dumps({"ReplicationInstances": instances_dict})

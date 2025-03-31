@@ -139,62 +139,57 @@ class DatabaseMigrationServiceBackend(BaseBackend):
             account_id=self.account_id,
             region_name=self.region_name,
         )
-        
-        # Check if instance with same id already exists
+
         if self.replication_instances.get(replication_instance.arn):
             raise ResourceAlreadyExistsFault(
                 "The resource you are attempting to create already exists."
             )
-            
-        # Store the instance
+
         self.replication_instances[replication_instance.arn] = replication_instance
-        
+
         return replication_instance
 
     def describe_replication_instances(
-        self, 
-        filters: Optional[List[Dict[str, Any]]] = None, 
+        self,
+        filters: Optional[List[Dict[str, Any]]] = None,
         max_records: Optional[int] = None,
         marker: Optional[str] = None,
-        replication_instance_arn: Optional[str] = None
     ) -> List["FakeReplicationInstance"]:
         """Get information about replication instances with optional filtering"""
+        ### TODO: Implement pagination
+
         replication_instances = list(self.replication_instances.values())
-        
-        # Filter by arn if provided
-        if replication_instance_arn:
-            replication_instances = [
-                instance for instance in replication_instances 
-                if instance.arn == replication_instance_arn
-            ]
-            
-        # Apply filters if provided
+
         if filters:
             for filter_obj in filters:
                 filter_name = filter_obj.get("Name", "")
                 filter_values = filter_obj.get("Values", [])
-                
+
                 if filter_name == "replication-instance-id":
                     replication_instances = [
-                        instance for instance in replication_instances 
+                        instance
+                        for instance in replication_instances
                         if instance.id in filter_values
                     ]
                 elif filter_name == "replication-instance-arn":
                     replication_instances = [
-                        instance for instance in replication_instances 
+                        instance
+                        for instance in replication_instances
                         if instance.arn in filter_values
                     ]
                 elif filter_name == "replication-instance-class":
                     replication_instances = [
-                        instance for instance in replication_instances 
+                        instance
+                        for instance in replication_instances
                         if instance.replication_instance_class in filter_values
                     ]
                 elif filter_name == "engine-version":
                     replication_instances = [
-                        instance for instance in replication_instances 
+                        instance
+                        for instance in replication_instances
                         if instance.engine_version in filter_values
                     ]
-            
+
         return replication_instances
 
 
@@ -311,9 +306,10 @@ class FakeReplicationInstance(BaseModel):
         self.id = replication_instance_identifier
         self.replication_instance_class = replication_instance_class
         self.region = region_name
-        self.allocated_storage = allocated_storage or 50  # Default value
+        self.allocated_storage = allocated_storage or 50
         self.vpc_security_groups = [
-            {"VpcSecurityGroupId": sg_id, "Status": "active"} for sg_id in (vpc_security_group_ids or [])
+            {"VpcSecurityGroupId": sg_id, "Status": "active"}
+            for sg_id in (vpc_security_group_ids or [])
         ]
         self.availability_zone = availability_zone
         self.replication_subnet_group_identifier = replication_subnet_group_identifier
@@ -328,27 +324,28 @@ class FakeReplicationInstance(BaseModel):
         self.resource_identifier = resource_identifier
         self.network_type = network_type
         self.kerberos_authentication_settings = kerberos_authentication_settings or {}
-        
         self.arn = f"arn:{get_partition(region_name)}:dms:{region_name}:{account_id}:rep:{self.id}"
         self.status = "creating"
         self.creation_date = utcnow()
-        
-        # Generate some dummy private/public IP addresses
         self.private_ip_addresses = ["10.0.0.1"]
         self.public_ip_addresses = ["54.0.0.1"] if publicly_accessible else []
-        self.ipv6_addresses = []
+        self.ipv6_addresses: List[str] = []
 
     def to_dict(self) -> Dict[str, Any]:
-        # Convert kerberos settings to the expected format
         kerberos_settings = None
         if self.kerberos_authentication_settings:
             kerberos_settings = {
-                "KeyCacheSecretId": self.kerberos_authentication_settings.get("KeyCacheSecretId"),
-                "KeyCacheSecretIamArn": self.kerberos_authentication_settings.get("KeyCacheSecretIamArn"),
-                "Krb5FileContents": self.kerberos_authentication_settings.get("Krb5FileContents")
+                "KeyCacheSecretId": self.kerberos_authentication_settings.get(
+                    "KeyCacheSecretId"
+                ),
+                "KeyCacheSecretIamArn": self.kerberos_authentication_settings.get(
+                    "KeyCacheSecretIamArn"
+                ),
+                "Krb5FileContents": self.kerberos_authentication_settings.get(
+                    "Krb5FileContents"
+                ),
             }
-        
-        # Create a dummy subnet group if one was specified
+
         subnet_group = None
         if self.replication_subnet_group_identifier:
             subnet_group = {
@@ -359,13 +356,17 @@ class FakeReplicationInstance(BaseModel):
                 "Subnets": [
                     {
                         "SubnetIdentifier": "subnet-12345",
-                        "SubnetAvailabilityZone": {"Name": self.availability_zone or "us-east-1a"},
-                        "SubnetStatus": "Active"
+                        "SubnetAvailabilityZone": {
+                            "Name": self.availability_zone or "us-east-1a"
+                        },
+                        "SubnetStatus": "Active",
                     }
                 ],
-                "SupportedNetworkTypes": [self.network_type] if self.network_type else ["IPV4"]
+                "SupportedNetworkTypes": [self.network_type]
+                if self.network_type
+                else ["IPV4"],
             }
-        
+
         return {
             "ReplicationInstanceIdentifier": self.id,
             "ReplicationInstanceClass": self.replication_instance_class,
@@ -382,17 +383,23 @@ class FakeReplicationInstance(BaseModel):
             "AutoMinorVersionUpgrade": self.auto_minor_version_upgrade,
             "KmsKeyId": self.kms_key_id,
             "ReplicationInstanceArn": self.arn,
-            "ReplicationInstancePublicIpAddress": self.public_ip_addresses[0] if self.public_ip_addresses else None,
-            "ReplicationInstancePrivateIpAddress": self.private_ip_addresses[0] if self.private_ip_addresses else None,
+            "ReplicationInstancePublicIpAddress": self.public_ip_addresses[0]
+            if self.public_ip_addresses
+            else None,
+            "ReplicationInstancePrivateIpAddress": self.private_ip_addresses[0]
+            if self.private_ip_addresses
+            else None,
             "ReplicationInstancePublicIpAddresses": self.public_ip_addresses,
             "ReplicationInstancePrivateIpAddresses": self.private_ip_addresses,
             "ReplicationInstanceIpv6Addresses": self.ipv6_addresses,
             "PubliclyAccessible": self.publicly_accessible,
-            "SecondaryAvailabilityZone": f"{self.availability_zone}b" if self.multi_az else None,
+            "SecondaryAvailabilityZone": f"{self.availability_zone}b"
+            if self.multi_az
+            else None,
             "FreeUntil": None,
             "DnsNameServers": self.dns_name_servers,
             "NetworkType": self.network_type,
-            "KerberosAuthenticationSettings": kerberos_settings
+            "KerberosAuthenticationSettings": kerberos_settings,
         }
 
 
