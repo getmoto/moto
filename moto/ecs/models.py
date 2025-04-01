@@ -77,9 +77,7 @@ class Cluster(BaseObject, CloudFormationModel):
         self.active_services_count = 0
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
         self.name = cluster_name
-        self.pending_tasks_count = 0
         self.registered_container_instances_count = 0
-        self.running_tasks_count = 0
         self.status = "ACTIVE"
         self.region_name = region_name
         self.settings = cluster_settings or [
@@ -90,6 +88,23 @@ class Cluster(BaseObject, CloudFormationModel):
         self.default_capacity_provider_strategy = default_capacity_provider_strategy
         self.tags = tags
         self.service_connect_defaults = service_connect_defaults
+
+        try:
+            # negative running count not allowed, set to 0 if so
+            running_tasks_count = max(int(getenv("MOTO_ECS_CLUSTER_RUNNING", 0)), 0)
+        except ValueError:
+            # Unable to parse value of MOTO_ECS_CLUSTER_RUNNING as an integer, set to default 0
+            running_tasks_count = 0
+
+        try:
+            # negative running count not allowed, set to 0 if so
+            pending_tasks_count = max(int(getenv("MOTO_ECS_CLUSTER_PENDING", 0)), 0)
+        except ValueError:
+            # Unable to parse value of MOTO_ECS_CLUSTER_PENDING as an integer, set to default 0
+            pending_tasks_count = 0
+
+        self.running_tasks_count = running_tasks_count
+        self.pending_tasks_count = pending_tasks_count
 
     @property
     def physical_resource_id(self) -> str:
