@@ -94,7 +94,7 @@ def test_transact_write_items__update_with_multiple_set_clauses(table_name=None)
                 {
                     "Update": {
                         "TableName": table_name,
-                        "Key": {"pk": {"S": "s"}},
+                        "Key": {"pk": {"S": "s"}, "sk": {"S": "t"}},
                         "UpdateExpression": "SET expire_at_utc = :expire_at_utc SET is_final = :true ADD version :one",
                         "ExpressionAttributeValues": {
                             ":true": {"BOOL": True},

@@ -24,7 +24,7 @@ quicksight
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
-- [ ] create_dashboard
+- [X] create_dashboard
 - [X] create_data_set
 - [ ] create_data_source
 - [ ] create_folder
@@ -75,7 +75,7 @@ quicksight
 - [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
 - [ ] describe_account_customization
-- [ ] describe_account_settings
+- [X] describe_account_settings
 - [ ] describe_account_subscription
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
@@ -86,7 +86,7 @@ quicksight
 - [ ] describe_brand_assignment
 - [ ] describe_brand_published_version
 - [ ] describe_custom_permissions
-- [ ] describe_dashboard
+- [X] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
 - [ ] describe_dashboard_snapshot_job
@@ -136,7 +136,7 @@ quicksight
 - [ ] list_brands
 - [ ] list_custom_permissions
 - [ ] list_dashboard_versions
-- [ ] list_dashboards
+- [X] list_dashboards
 - [ ] list_data_sets
 - [ ] list_data_sources
 - [ ] list_folder_members
@@ -187,7 +187,7 @@ quicksight
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
-- [ ] update_account_settings
+- [X] update_account_settings
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -212,7 +212,7 @@ quicksight
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
 - [ ] update_key_registration
-- [ ] update_public_sharing_settings
+- [X] update_public_sharing_settings
 - [ ] update_q_personalization_configuration
 - [ ] update_quick_sight_q_search_configuration
 - [ ] update_refresh_schedule

@@ -1003,7 +1003,7 @@
 
 ## cloudformation
 <details>
-<summary>39% implemented</summary>
+<summary>37% implemented</summary>
 
 - [ ] activate_organizations_access
 - [ ] activate_type
@@ -1014,6 +1014,7 @@
 - [ ] create_generated_template
 - [X] create_stack
 - [X] create_stack_instances
+- [ ] create_stack_refactor
 - [X] create_stack_set
 - [ ] deactivate_organizations_access
 - [ ] deactivate_type
@@ -1033,6 +1034,7 @@
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
 - [X] describe_stack_instance
+- [ ] describe_stack_refactor
 - [X] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [X] describe_stack_resources
@@ -1046,6 +1048,7 @@
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
+- [ ] execute_stack_refactor
 - [ ] get_generated_template
 - [X] get_stack_policy
 - [X] get_template
@@ -1061,6 +1064,8 @@
 - [ ] list_resource_scans
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
+- [ ] list_stack_refactor_actions
+- [ ] list_stack_refactors
 - [X] list_stack_resources
 - [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results
@@ -2244,7 +2249,7 @@
 
 ## ds
 <details>
-<summary>28% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -2256,13 +2261,13 @@
 - [ ] create_computer
 - [ ] create_conditional_forwarder
 - [X] create_directory
-- [ ] create_log_subscription
+- [X] create_log_subscription
 - [X] create_microsoft_ad
 - [ ] create_snapshot
 - [X] create_trust
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
-- [ ] delete_log_subscription
+- [X] delete_log_subscription
 - [ ] delete_snapshot
 - [X] delete_trust
 - [ ] deregister_certificate
@@ -2295,7 +2300,7 @@
 - [ ] get_snapshot_limits
 - [ ] list_certificates
 - [ ] list_ip_routes
-- [ ] list_log_subscriptions
+- [X] list_log_subscriptions
 - [ ] list_schema_extensions
 - [X] list_tags_for_resource
 - [ ] register_certificate
@@ -2966,7 +2971,7 @@
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_resource_discovery
 - [ ] modify_ipam_scope
-- [ ] modify_launch_template
+- [X] modify_launch_template
 - [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
@@ -5105,6 +5110,45 @@
 - [ ] list_fragments
 </details>
 
+## kinesisanalyticsv2
+<details>
+<summary>15% implemented</summary>
+
+- [ ] add_application_cloud_watch_logging_option
+- [ ] add_application_input
+- [ ] add_application_input_processing_configuration
+- [ ] add_application_output
+- [ ] add_application_reference_data_source
+- [ ] add_application_vpc_configuration
+- [X] create_application
+- [ ] create_application_presigned_url
+- [ ] create_application_snapshot
+- [ ] delete_application
+- [ ] delete_application_cloud_watch_logging_option
+- [ ] delete_application_input_processing_configuration
+- [ ] delete_application_output
+- [ ] delete_application_reference_data_source
+- [ ] delete_application_snapshot
+- [ ] delete_application_vpc_configuration
+- [X] describe_application
+- [ ] describe_application_operation
+- [ ] describe_application_snapshot
+- [ ] describe_application_version
+- [ ] discover_input_schema
+- [ ] list_application_operations
+- [ ] list_application_snapshots
+- [ ] list_application_versions
+- [X] list_applications
+- [X] list_tags_for_resource
+- [ ] rollback_application
+- [ ] start_application
+- [ ] stop_application
+- [X] tag_resource
+- [ ] untag_resource
+- [ ] update_application
+- [ ] update_application_maintenance_configuration
+</details>
+
 ## kinesisvideo
 <details>
 <summary>16% implemented</summary>
@@ -5268,9 +5312,9 @@
 
 ## lambda
 <details>
-<summary>63% implemented</summary>
+<summary>67% implemented</summary>
 
-- [ ] add_layer_version_permission
+- [X] add_layer_version_permission
 - [X] add_permission
 - [X] create_alias
 - [ ] create_code_signing_config
@@ -5300,7 +5344,7 @@
 - [X] get_function_url_config
 - [X] get_layer_version
 - [ ] get_layer_version_by_arn
-- [ ] get_layer_version_policy
+- [X] get_layer_version_policy
 - [X] get_policy
 - [ ] get_provisioned_concurrency_config
 - [ ] get_runtime_management_config
@@ -5327,7 +5371,7 @@
 - [ ] put_function_recursion_config
 - [ ] put_provisioned_concurrency_config
 - [ ] put_runtime_management_config
-- [ ] remove_layer_version_permission
+- [X] remove_layer_version_permission
 - [X] remove_permission
 - [X] tag_resource
 - [X] untag_resource
@@ -5908,7 +5952,7 @@
 
 ## neptune
 <details>
-<summary>62% implemented</summary>
+<summary>63% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
@@ -5916,7 +5960,7 @@
 - [ ] apply_pending_maintenance_action
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
 - [X] create_db_cluster_parameter_group
@@ -6649,7 +6693,7 @@
 
 ## quicksight
 <details>
-<summary>8% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_topic_reviewed_answer
@@ -6659,7 +6703,7 @@
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
-- [ ] create_dashboard
+- [X] create_dashboard
 - [X] create_data_set
 - [ ] create_data_source
 - [ ] create_folder
@@ -6710,7 +6754,7 @@
 - [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
 - [ ] describe_account_customization
-- [ ] describe_account_settings
+- [X] describe_account_settings
 - [ ] describe_account_subscription
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
@@ -6721,7 +6765,7 @@
 - [ ] describe_brand_assignment
 - [ ] describe_brand_published_version
 - [ ] describe_custom_permissions
-- [ ] describe_dashboard
+- [X] describe_dashboard
 - [ ] describe_dashboard_definition
 - [ ] describe_dashboard_permissions
 - [ ] describe_dashboard_snapshot_job
@@ -6771,7 +6815,7 @@
 - [ ] list_brands
 - [ ] list_custom_permissions
 - [ ] list_dashboard_versions
-- [ ] list_dashboards
+- [X] list_dashboards
 - [ ] list_data_sets
 - [ ] list_data_sources
 - [ ] list_folder_members
@@ -6817,7 +6861,7 @@
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_account_customization
-- [ ] update_account_settings
+- [X] update_account_settings
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -6842,7 +6886,7 @@
 - [ ] update_identity_propagation_config
 - [ ] update_ip_restriction
 - [ ] update_key_registration
-- [ ] update_public_sharing_settings
+- [X] update_public_sharing_settings
 - [ ] update_q_personalization_configuration
 - [ ] update_quick_sight_q_search_configuration
 - [ ] update_refresh_schedule
@@ -6904,7 +6948,7 @@
 
 ## rds
 <details>
-<summary>45% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -6916,7 +6960,7 @@
 - [X] cancel_export_task
 - [ ] copy_db_cluster_parameter_group
 - [X] copy_db_cluster_snapshot
-- [ ] copy_db_parameter_group
+- [X] copy_db_parameter_group
 - [X] copy_db_snapshot
 - [ ] copy_option_group
 - [ ] create_blue_green_deployment
@@ -7084,7 +7128,7 @@
 
 ## redshift
 <details>
-<summary>21% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -7162,7 +7206,7 @@
 - [ ] describe_hsm_configurations
 - [ ] describe_inbound_integrations
 - [ ] describe_integrations
-- [ ] describe_logging_status
+- [X] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
@@ -7178,10 +7222,10 @@
 - [ ] describe_table_restore_status
 - [X] describe_tags
 - [ ] describe_usage_limits
-- [ ] disable_logging
+- [X] disable_logging
 - [X] disable_snapshot_copy
 - [ ] disassociate_data_share_consumer
-- [ ] enable_logging
+- [X] enable_logging
 - [X] enable_snapshot_copy
 - [ ] failover_primary_compute
 - [X] get_cluster_credentials
@@ -8485,6 +8529,102 @@
 - [ ] untag_resource
 </details>
 
+## servicecatalog
+<details>
+<summary>7% implemented</summary>
+
+- [ ] accept_portfolio_share
+- [ ] associate_budget_with_resource
+- [ ] associate_principal_with_portfolio
+- [ ] associate_product_with_portfolio
+- [ ] associate_service_action_with_provisioning_artifact
+- [ ] associate_tag_option_with_resource
+- [ ] batch_associate_service_action_with_provisioning_artifact
+- [ ] batch_disassociate_service_action_from_provisioning_artifact
+- [ ] copy_product
+- [ ] create_constraint
+- [X] create_portfolio
+- [X] create_portfolio_share
+- [ ] create_product
+- [ ] create_provisioned_product_plan
+- [ ] create_provisioning_artifact
+- [ ] create_service_action
+- [ ] create_tag_option
+- [ ] delete_constraint
+- [X] delete_portfolio
+- [X] delete_portfolio_share
+- [ ] delete_product
+- [ ] delete_provisioned_product_plan
+- [ ] delete_provisioning_artifact
+- [ ] delete_service_action
+- [ ] delete_tag_option
+- [ ] describe_constraint
+- [ ] describe_copy_product_status
+- [ ] describe_portfolio
+- [ ] describe_portfolio_share_status
+- [X] describe_portfolio_shares
+- [ ] describe_product
+- [ ] describe_product_as_admin
+- [ ] describe_product_view
+- [ ] describe_provisioned_product
+- [ ] describe_provisioned_product_plan
+- [ ] describe_provisioning_artifact
+- [ ] describe_provisioning_parameters
+- [ ] describe_record
+- [ ] describe_service_action
+- [ ] describe_service_action_execution_parameters
+- [ ] describe_tag_option
+- [ ] disable_aws_organizations_access
+- [ ] disassociate_budget_from_resource
+- [ ] disassociate_principal_from_portfolio
+- [ ] disassociate_product_from_portfolio
+- [ ] disassociate_service_action_from_provisioning_artifact
+- [ ] disassociate_tag_option_from_resource
+- [ ] enable_aws_organizations_access
+- [ ] execute_provisioned_product_plan
+- [ ] execute_provisioned_product_service_action
+- [ ] get_aws_organizations_access_status
+- [ ] get_provisioned_product_outputs
+- [ ] import_as_provisioned_product
+- [ ] list_accepted_portfolio_shares
+- [ ] list_budgets_for_resource
+- [ ] list_constraints_for_portfolio
+- [ ] list_launch_paths
+- [ ] list_organization_portfolio_access
+- [X] list_portfolio_access
+- [X] list_portfolios
+- [ ] list_portfolios_for_product
+- [ ] list_principals_for_portfolio
+- [ ] list_provisioned_product_plans
+- [ ] list_provisioning_artifacts
+- [ ] list_provisioning_artifacts_for_service_action
+- [ ] list_record_history
+- [ ] list_resources_for_tag_option
+- [ ] list_service_actions
+- [ ] list_service_actions_for_provisioning_artifact
+- [ ] list_stack_instances_for_provisioned_product
+- [ ] list_tag_options
+- [ ] notify_provision_product_engine_workflow_result
+- [ ] notify_terminate_provisioned_product_engine_workflow_result
+- [ ] notify_update_provisioned_product_engine_workflow_result
+- [ ] provision_product
+- [ ] reject_portfolio_share
+- [ ] scan_provisioned_products
+- [ ] search_products
+- [ ] search_products_as_admin
+- [ ] search_provisioned_products
+- [ ] terminate_provisioned_product
+- [ ] update_constraint
+- [ ] update_portfolio
+- [ ] update_portfolio_share
+- [ ] update_product
+- [ ] update_provisioned_product
+- [ ] update_provisioned_product_properties
+- [ ] update_provisioning_artifact
+- [ ] update_service_action
+- [ ] update_tag_option
+</details>
+
 ## servicediscovery
 <details>
 <summary>90% implemented</summary>
@@ -8600,7 +8740,7 @@
 
 ## sesv2
 <details>
-<summary>17% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -8611,7 +8751,7 @@
 - [ ] create_custom_verification_email_template
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
-- [ ] create_email_identity
+- [X] create_email_identity
 - [ ] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
@@ -8642,7 +8782,7 @@
 - [ ] get_deliverability_test_report
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
-- [ ] get_email_identity
+- [X] get_email_identity
 - [ ] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
@@ -8657,7 +8797,7 @@
 - [X] list_dedicated_ip_pools
 - [ ] list_deliverability_test_reports
 - [ ] list_domain_deliverability_campaigns
-- [ ] list_email_identities
+- [X] list_email_identities
 - [ ] list_email_templates
 - [ ] list_export_jobs
 - [ ] list_import_jobs
@@ -8670,6 +8810,7 @@
 - [ ] put_account_sending_attributes
 - [ ] put_account_suppression_attributes
 - [ ] put_account_vdm_attributes
+- [ ] put_configuration_set_archiving_options
 - [ ] put_configuration_set_delivery_options
 - [ ] put_configuration_set_reputation_options
 - [ ] put_configuration_set_sending_options
@@ -9231,18 +9372,24 @@
 
 ## timestream-influxdb
 <details>
-<summary>63% implemented</summary>
+<summary>41% implemented</summary>
 
+- [ ] create_db_cluster
 - [X] create_db_instance
 - [ ] create_db_parameter_group
+- [ ] delete_db_cluster
 - [X] delete_db_instance
+- [ ] get_db_cluster
 - [X] get_db_instance
 - [ ] get_db_parameter_group
+- [ ] list_db_clusters
 - [X] list_db_instances
+- [ ] list_db_instances_for_cluster
 - [ ] list_db_parameter_groups
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_db_cluster
 - [ ] update_db_instance
 </details>
 
@@ -9733,7 +9880,6 @@
 - ds-data
 - ecr-public
 - eks-auth
-- elastic-inference
 - entityresolution
 - evidently
 - finspace
@@ -9783,7 +9929,6 @@
 - kinesis-video-signaling
 - kinesis-video-webrtc-storage
 - kinesisanalytics
-- kinesisanalyticsv2
 - launch-wizard
 - lex-models
 - lex-runtime
@@ -9872,7 +10017,6 @@
 - security-ir
 - securitylake
 - serverlessrepo
-- servicecatalog
 - servicecatalog-appregistry
 - simspaceweaver
 - sms
