@@ -461,8 +461,11 @@ def test_modify_db_instance_manage_master_user_password(
     with_custom_kms_key: bool, client
 ):
     db_id = "db-id"
-
-    custom_kms_key = f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    kms = boto3.client("kms", region_name=DEFAULT_REGION)
+    key = kms.create_key(KeyUsage="ENCRYPT_DECRYPT", KeySpec="SYMMETRIC_DEFAULT")[
+        "KeyMetadata"
+    ]
+    custom_kms_key = key["Arn"]
     custom_kms_key_args = (
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
@@ -485,22 +488,25 @@ def test_modify_db_instance_manage_master_user_password(
     assert db_instance.get("MasterUserSecret") is None
     master_user_secret = modify_response["DBInstance"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
-    assert (
-        master_user_secret["SecretArn"]
-        == "arn:aws:secretsmanager:us-west-2:123456789012:secret:rds!db-id"
+    assert str(master_user_secret["SecretArn"]).startswith(
+        f"arn:aws:secretsmanager:{DEFAULT_REGION}:{ACCOUNT_ID}:secret:rds!db"
     )
-    assert master_user_secret["SecretStatus"] == "active"
+    assert master_user_secret["SecretStatus"] == "creating"
     if with_custom_kms_key:
         assert master_user_secret["KmsKeyId"] == custom_kms_key
     else:
-        assert (
-            master_user_secret["KmsKeyId"]
-            == "arn:aws:kms:us-west-2:123456789012:key/db-id"
-        )
+        default_kms_key = kms.describe_key(KeyId="alias/aws/secretsmanager")[
+            "KeyMetadata"
+        ]["Arn"]
+        assert master_user_secret["KmsKeyId"] == default_kms_key
     assert len(describe_response["DBInstances"][0]["MasterUserSecret"].keys()) == 3
     assert (
-        modify_response["DBInstance"]["MasterUserSecret"]
-        == describe_response["DBInstances"][0]["MasterUserSecret"]
+        describe_response["DBInstances"][0]["MasterUserSecret"]["SecretStatus"]
+        == "active"
+    )
+    assert (
+        modify_response["DBInstance"]["MasterUserSecret"]["SecretArn"]
+        == describe_response["DBInstances"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBInstance"].get("MasterUserSecret") is None
 
