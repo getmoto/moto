@@ -17,6 +17,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    MutableMapping,
     Optional,
     Protocol,
     Tuple,
@@ -30,7 +31,7 @@ from moto.ec2.models import ec2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
 from moto.secretsmanager.models import FakeSecret, SecretsManagerBackend
-from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
+from moto.utilities.utils import ARN_PARTITION_REGEX, LowercaseDict, load_resource
 
 from .exceptions import (
     DBClusterNotFoundError,
@@ -974,7 +975,9 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
         "db-instance-id": FilterDef(
-            ["db_instance_arn", "db_instance_identifier"], "DB Instance Identifiers"
+            ["db_instance_arn", "db_instance_identifier"],
+            "DB Instance Identifiers",
+            case_insensitive=True,
         ),
         "dbi-resource-id": FilterDef(["dbi_resource_id"], "Dbi Resource Ids"),
         "domain": FilterDef(None, ""),
@@ -1139,6 +1142,14 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
                 option_suffix = option_suffix + "-" + semantic[1]
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
+
+    @property
+    def db_instance_identifier(self) -> str:
+        return self._db_instance_identifier
+
+    @db_instance_identifier.setter
+    def db_instance_identifier(self, value: str) -> None:
+        self._db_instance_identifier = value.lower()
 
     @property
     def db_subnet_group_name(self) -> Optional[str]:
@@ -2120,18 +2131,22 @@ class RDSBackend(BaseBackend):
             ARN_PARTITION_REGEX
             + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
-        self.clusters: Dict[str, DBCluster] = OrderedDict()
-        self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
-        self.databases: Dict[str, DBInstance] = OrderedDict()
-        self.database_snapshots: Dict[str, DBSnapshot] = OrderedDict()
-        self.cluster_snapshots: Dict[str, DBClusterSnapshot] = OrderedDict()
+        self.clusters: MutableMapping[str, DBCluster] = LowercaseDict()
+        self.global_clusters: MutableMapping[str, GlobalCluster] = LowercaseDict()
+        self.databases: MutableMapping[str, DBInstance] = LowercaseDict()
+        self.database_snapshots: MutableMapping[str, DBSnapshot] = LowercaseDict()
+        self.cluster_snapshots: MutableMapping[str, DBClusterSnapshot] = LowercaseDict()
         self.export_tasks: Dict[str, ExportTask] = OrderedDict()
         self.event_subscriptions: Dict[str, EventSubscription] = OrderedDict()
-        self.db_parameter_groups: Dict[str, DBParameterGroup] = {}
-        self.db_cluster_parameter_groups: Dict[str, DBClusterParameterGroup] = {}
-        self.option_groups: Dict[str, OptionGroup] = {}
+        self.db_parameter_groups: MutableMapping[str, DBParameterGroup] = (
+            LowercaseDict()
+        )
+        self.db_cluster_parameter_groups: MutableMapping[
+            str, DBClusterParameterGroup
+        ] = LowercaseDict()
+        self.option_groups: MutableMapping[str, OptionGroup] = LowercaseDict()
         self.security_groups: Dict[str, DBSecurityGroup] = {}
-        self.subnet_groups: Dict[str, DBSubnetGroup] = {}
+        self.subnet_groups: MutableMapping[str, DBSubnetGroup] = LowercaseDict()
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
         self.events: List[Event] = []
@@ -2277,7 +2292,8 @@ class RDSBackend(BaseBackend):
                     raise InvalidDBInstanceEngine(
                         str(database.engine), str(cluster.engine)
                     )
-        self.databases[database_id] = database
+        # TODO: we can do lower case dict, but maybe we just use the resource.identifer attribute to add it which will always be lower?
+        self.databases[database.db_instance_identifier] = database
         database.add_event("DB_INSTANCE_CREATE")
         database.save_automated_backup()
         return database
