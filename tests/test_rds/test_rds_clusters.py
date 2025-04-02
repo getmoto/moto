@@ -158,7 +158,11 @@ def test_modify_db_cluster_new_cluster_identifier(client):
 @mock_aws
 def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_key):
     cluster_id = "cluster-id"
-    custom_kms_key = f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    kms = boto3.client("kms", region_name=DEFAULT_REGION)
+    key = kms.create_key(KeyUsage="ENCRYPT_DECRYPT", KeySpec="SYMMETRIC_DEFAULT")[
+        "KeyMetadata"
+    ]
+    custom_kms_key = key["Arn"]
     custom_kms_key_args = (
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
@@ -188,22 +192,25 @@ def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_k
     assert create_response["DBCluster"].get("MasterUserSecret") is None
     master_user_secret = modify_response["DBCluster"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
-    assert (
-        master_user_secret["SecretArn"]
-        == f"arn:aws:secretsmanager:{DEFAULT_REGION}:123456789012:secret:rds!cluster-id"
+    assert str(master_user_secret["SecretArn"]).startswith(
+        f"arn:aws:secretsmanager:{DEFAULT_REGION}:{ACCOUNT_ID}:secret:rds!cluster"
     )
-    assert master_user_secret["SecretStatus"] == "active"
+    assert master_user_secret["SecretStatus"] == "creating"
     if with_custom_kms_key:
         assert master_user_secret["KmsKeyId"] == custom_kms_key
     else:
-        assert (
-            master_user_secret["KmsKeyId"]
-            == f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/cluster-id"
-        )
+        default_kms_key = kms.describe_key(KeyId="alias/aws/secretsmanager")[
+            "KeyMetadata"
+        ]["Arn"]
+        assert master_user_secret["KmsKeyId"] == default_kms_key
     assert len(describe_response["DBClusters"][0]["MasterUserSecret"].keys()) == 3
     assert (
-        modify_response["DBCluster"]["MasterUserSecret"]
-        == describe_response["DBClusters"][0]["MasterUserSecret"]
+        describe_response["DBClusters"][0]["MasterUserSecret"]["SecretStatus"]
+        == "active"
+    )
+    assert (
+        modify_response["DBCluster"]["MasterUserSecret"]["SecretArn"]
+        == describe_response["DBClusters"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBCluster"].get("MasterUserSecret") is None
 
