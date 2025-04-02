@@ -2148,18 +2148,6 @@
   "Location": "us-west-2a"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "us-west-2a"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "us-west-2a"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "us-west-2a"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "us-west-2a"
  },
@@ -5525,18 +5513,6 @@
  },
  {
   "InstanceType": "mac2.metal",
-  "Location": "us-west-2b"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "us-west-2b"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "us-west-2b"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "us-west-2b"
  },
  {
@@ -8933,18 +8909,6 @@
  },
  {
   "InstanceType": "mac2.metal",
-  "Location": "us-west-2c"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "us-west-2c"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "us-west-2c"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "us-west-2c"
  },
  {

@@ -595,7 +595,7 @@ ec2
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_resource_discovery
 - [ ] modify_ipam_scope
-- [ ] modify_launch_template
+- [X] modify_launch_template
 - [ ] modify_local_gateway_route
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute

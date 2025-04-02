@@ -104,6 +104,10 @@ backend_url_patterns = [
     ("kinesis", re.compile("https?://kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.control-kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.data-kinesis\\.(.+)\\.amazonaws\\.com")),
+    (
+        "kinesisanalyticsv2",
+        re.compile("https?://kinesisanalytics\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("kinesisvideo", re.compile("https?://kinesisvideo\\.(.+)\\.amazonaws.com")),
     (
         "kinesisvideoarchivedmedia",
@@ -190,6 +194,7 @@ backend_url_patterns = [
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
     ("securityhub", re.compile("https?://securityhub\\.(.+)\\.amazonaws\\.com")),
+    ("servicecatalog", re.compile("https?://servicecatalog\\.(.+)\\.amazonaws\\.com")),
     (
         "servicediscovery",
         re.compile("https?://(data-)?servicediscovery\\.(.+)\\.amazonaws\\.com"),

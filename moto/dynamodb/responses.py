@@ -15,6 +15,7 @@ from moto.dynamodb.parsing.expressions import (  # type: ignore
 )
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import find_duplicates
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
@@ -26,7 +27,6 @@ from .exceptions import (
     ResourceNotFoundException,
     UnknownKeyType,
 )
-from .utils import extract_duplicates
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -203,9 +203,9 @@ class ProjectionExpressionParser:
 
         if self.projection_expression:
             expressions = [x.strip() for x in self.projection_expression.split(",")]
-            duplicates = extract_duplicates(expressions)
+            duplicates = find_duplicates(expressions)
             if duplicates:
-                raise InvalidProjectionExpression(duplicates)
+                raise InvalidProjectionExpression(*duplicates)
             for expression in expressions:
                 check_projection_expression(expression)
             output = []
@@ -1290,11 +1290,7 @@ class DynamoHandler(BaseResponse):
                 )
 
                 update_expression = item["Update"]["UpdateExpression"]
-                UpdateExpressionParser.make(update_expression).validate(
-                    limit_set_actions=True
-                )
                 update_expression_ast = UpdateExpressionParser.make(update_expression)
-                update_expression_ast.validate(limit_set_actions=True)
                 attr_name_clauses = update_expression_ast.find_clauses(
                     [ExpressionAttributeName]
                 )
