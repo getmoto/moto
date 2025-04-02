@@ -48,6 +48,40 @@ def test_create_cluster_with_setting():
 
 
 @mock_aws
+def test_create_cluster_with_running_tasks():
+    running_tasks_count = 3
+    with mock.patch.dict(
+        os.environ, {"MOTO_ECS_CLUSTER_RUNNING": str(running_tasks_count)}
+    ):
+        client = boto3.client("ecs", region_name=ECS_REGION)
+
+        cluster = client.create_cluster(
+            clusterName="test_ecs_cluster",
+        )["cluster"]
+        assert cluster["clusterName"] == "test_ecs_cluster"
+        assert cluster["status"] == "ACTIVE"
+        assert cluster["runningTasksCount"] == running_tasks_count
+        assert cluster["pendingTasksCount"] == 0
+
+
+@mock_aws
+def test_create_cluster_with_pending_tasks():
+    pending_tasks_count = 3
+    with mock.patch.dict(
+        os.environ, {"MOTO_ECS_CLUSTER_PENDING": str(pending_tasks_count)}
+    ):
+        client = boto3.client("ecs", region_name=ECS_REGION)
+
+        cluster = client.create_cluster(
+            clusterName="test_ecs_cluster",
+        )["cluster"]
+        assert cluster["clusterName"] == "test_ecs_cluster"
+        assert cluster["status"] == "ACTIVE"
+        assert cluster["runningTasksCount"] == 0
+        assert cluster["pendingTasksCount"] == pending_tasks_count
+
+
+@mock_aws
 def test_create_cluster_with_capacity_providers():
     client = boto3.client("ecs", region_name=ECS_REGION)
     cluster = client.create_cluster(
