@@ -14,10 +14,10 @@ that go above and beyond the specification(s) for a number of reasons:
 
 import time
 
-from botocore.model import ServiceModel
+from botocore.model import ServiceModel, ShapeResolver
 from xmltodict import parse
 
-from moto.core.serialize import QuerySerializer
+from moto.core.serialize import QuerySerializer, XFormedAttributePicker
 
 
 def test_serialize_from_object() -> None:
@@ -143,3 +143,50 @@ def test_pretty_print_with_short_elements_and_list() -> None:
     serialized = serializer.serialize(empty_list_to_serialize)
     expected_shortened_list_element = "<DBInstances/>"
     assert expected_shortened_list_element in serialized["body"]
+
+
+class TestXFormedAttributePicker:
+    picker = XFormedAttributePicker()
+
+    def test_missing_attribute(self):
+        obj = dict()
+        value = self.picker(obj, "Attribute", None)
+        assert value is None
+
+    def test_serialization_key(self):
+        shape_map = {
+            "Foo": {
+                "type": "structure",
+                "members": {
+                    "Baz": {"shape": "StringType", "locationName": "other"},
+                },
+            },
+            "StringType": {"type": "string"},
+        }
+        resolver = ShapeResolver(shape_map)
+        shape = resolver.resolve_shape_ref(
+            {"shape": "StringType", "locationName": "other"}
+        )
+        assert shape
+        obj = {"other": "found me"}
+        value = self.picker(obj, "StringType", shape)
+        assert value == "found me"
+
+    def test_short_key(self):
+        class Role:
+            id = "unique-identifier"
+
+        value = self.picker(Role(), "RoleId", None)
+        assert value == "unique-identifier"
+
+    def test_transformed_key(self):
+        class DBInstance:
+            db_instance_class = "t2.medium"
+
+        value = self.picker(DBInstance(), "DBInstanceClass", None)
+        assert value == "t2.medium"
+
+    def test_untransformed_key(self):
+        obj = {"PascalCasedAttr": True}
+        value = self.picker(obj, "PascalCasedAttr", None)
+        assert value is True

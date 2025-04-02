@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from unittest import SkipTest, mock
@@ -321,3 +322,137 @@ def test_get_layer_with_no_layer_versions():
         )["LatestMatchingVersion"]["Version"]
         == 3
     )
+
+
+@mock_aws
+def test_add_layer_version_permission():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    resp = conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+        CompatibleArchitectures=["x86_64"],
+    )
+    layer_version = resp["Version"]
+    resp = conn.add_layer_version_permission(
+        LayerName=layer_name,
+        VersionNumber=layer_version,
+        StatementId="xaccount",
+        Action="lambda:GetLayerVersion",
+        Principal="432143214321",
+        OrganizationId="o-123456",
+    )
+    assert "RevisionId" in resp
+    assert "Statement" in resp
+    res = json.loads(resp["Statement"])
+    assert res["Action"] == "lambda:GetLayerVersion"
+
+
+@mock_aws
+def test_get_layer_version_policy():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    resp = conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+        CompatibleArchitectures=["x86_64"],
+    )
+    layer_version = resp["Version"]
+    conn.add_layer_version_permission(
+        LayerName=layer_name,
+        VersionNumber=layer_version,
+        StatementId="xaccount",
+        Action="lambda:GetLayerVersion",
+        Principal="432143214321",
+    )
+    resp = conn.get_layer_version_policy(
+        LayerName=layer_name, VersionNumber=layer_version
+    )
+    assert "Policy" in resp
+    assert "RevisionId" in resp
+    res = json.loads(resp["Policy"])
+    assert res["Statement"][0]["Action"] == "lambda:GetLayerVersion"
+    assert (
+        res["Statement"][0]["Resource"]
+        == f"arn:aws:lambda:us-west-2:123456789012:layer:{layer_name}:1"
+    )
+
+
+@mock_aws
+def test_remove_layer_version_permission():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
+    bucket_name = str(uuid4())
+    s3_conn = boto3.client("s3", _lambda_region)
+    s3_conn.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": _lambda_region},
+    )
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    resp = conn.publish_layer_version(
+        LayerName=layer_name,
+        Content={"ZipFile": get_test_zip_file1()},
+        CompatibleRuntimes=["python3.6"],
+        LicenseInfo="MIT",
+        CompatibleArchitectures=["x86_64"],
+    )
+    layer_version = resp["Version"]
+    conn.add_layer_version_permission(
+        LayerName=layer_name,
+        VersionNumber=layer_version,
+        StatementId="xaccount",
+        Action="lambda:GetLayerVersion",
+        Principal="432143214321",
+    )
+    resp = conn.get_layer_version_policy(
+        LayerName=layer_name, VersionNumber=layer_version
+    )
+    assert "Policy" in resp
+
+    resp = conn.remove_layer_version_permission(
+        LayerName=layer_name,
+        VersionNumber=layer_version,
+        StatementId="xaccount",
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 204
+    with pytest.raises(ClientError) as exc:
+        conn.get_layer_version_policy(
+            LayerName=layer_name, VersionNumber=layer_version
+        )["Policy"]
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "The resource you requested does not exist."

@@ -461,8 +461,11 @@ def test_modify_db_instance_manage_master_user_password(
     with_custom_kms_key: bool, client
 ):
     db_id = "db-id"
-
-    custom_kms_key = f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    kms = boto3.client("kms", region_name=DEFAULT_REGION)
+    key = kms.create_key(KeyUsage="ENCRYPT_DECRYPT", KeySpec="SYMMETRIC_DEFAULT")[
+        "KeyMetadata"
+    ]
+    custom_kms_key = key["Arn"]
     custom_kms_key_args = (
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
@@ -485,22 +488,25 @@ def test_modify_db_instance_manage_master_user_password(
     assert db_instance.get("MasterUserSecret") is None
     master_user_secret = modify_response["DBInstance"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
-    assert (
-        master_user_secret["SecretArn"]
-        == "arn:aws:secretsmanager:us-west-2:123456789012:secret:rds!db-id"
+    assert str(master_user_secret["SecretArn"]).startswith(
+        f"arn:aws:secretsmanager:{DEFAULT_REGION}:{ACCOUNT_ID}:secret:rds!db"
     )
-    assert master_user_secret["SecretStatus"] == "active"
+    assert master_user_secret["SecretStatus"] == "creating"
     if with_custom_kms_key:
         assert master_user_secret["KmsKeyId"] == custom_kms_key
     else:
-        assert (
-            master_user_secret["KmsKeyId"]
-            == "arn:aws:kms:us-west-2:123456789012:key/db-id"
-        )
+        default_kms_key = kms.describe_key(KeyId="alias/aws/secretsmanager")[
+            "KeyMetadata"
+        ]["Arn"]
+        assert master_user_secret["KmsKeyId"] == default_kms_key
     assert len(describe_response["DBInstances"][0]["MasterUserSecret"].keys()) == 3
     assert (
-        modify_response["DBInstance"]["MasterUserSecret"]
-        == describe_response["DBInstances"][0]["MasterUserSecret"]
+        describe_response["DBInstances"][0]["MasterUserSecret"]["SecretStatus"]
+        == "active"
+    )
+    assert (
+        modify_response["DBInstance"]["MasterUserSecret"]["SecretArn"]
+        == describe_response["DBInstances"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBInstance"].get("MasterUserSecret") is None
 
@@ -2311,6 +2317,151 @@ def test_create_db_parameter_group_duplicate(client):
             DBParameterGroupFamily="mysql5.6",
             Description="test parameter group",
         )
+
+
+@pytest.mark.parametrize(
+    "source_db_parameter_group_identifier",
+    (
+        "source-parameter-group",
+        f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:source-parameter-group",
+    ),
+    ids=("by_name", "by_arn"),
+)
+@mock_aws
+def test_copy_db_parameter_group(source_db_parameter_group_identifier: str, client):
+    client.create_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test source parameter group",
+    )
+
+    client.modify_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        Parameters=[
+            {
+                "ParameterName": "foo",
+                "ParameterValue": "foo_val_1",
+                "Description": "test param",
+                "ApplyMethod": "immediate",
+            }
+        ],
+    )
+
+    target_db_parameter_group = client.copy_db_parameter_group(
+        SourceDBParameterGroupIdentifier=source_db_parameter_group_identifier,
+        TargetDBParameterGroupIdentifier="target-parameter-group",
+        TargetDBParameterGroupDescription="test target parameter group",
+    )
+
+    assert (
+        target_db_parameter_group["DBParameterGroup"]["DBParameterGroupName"]
+        == "target-parameter-group"
+    )
+    assert (
+        target_db_parameter_group["DBParameterGroup"]["DBParameterGroupFamily"]
+        == "mysql5.6"
+    )
+    assert (
+        target_db_parameter_group["DBParameterGroup"]["Description"]
+        == "test target parameter group"
+    )
+    assert target_db_parameter_group["DBParameterGroup"]["DBParameterGroupArn"] == (
+        f"arn:aws:rds:{DEFAULT_REGION}:{ACCOUNT_ID}:pg:target-parameter-group"
+    )
+
+    client.modify_db_parameter_group(
+        DBParameterGroupName="target-parameter-group",
+        Parameters=[
+            {
+                "ParameterName": "foo",
+                "ParameterValue": "foo_val_2",
+            }
+        ],
+    )
+
+    source_db_parameters = client.describe_db_parameters(
+        DBParameterGroupName="source-parameter-group"
+    )
+    assert source_db_parameters["Parameters"][0]["ParameterValue"] == "foo_val_1"
+
+    target_db_parameters = client.describe_db_parameters(
+        DBParameterGroupName="target-parameter-group"
+    )
+    assert target_db_parameters["Parameters"][0]["ParameterName"] == "foo"
+    assert target_db_parameters["Parameters"][0]["ParameterValue"] == "foo_val_2"
+    assert target_db_parameters["Parameters"][0]["Description"] == "test param"
+    assert target_db_parameters["Parameters"][0]["ApplyMethod"] == "immediate"
+
+
+@mock_aws
+def test_copy_db_parameter_group_with_tags(client):
+    client.create_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test source parameter group",
+        Tags=[{"Key": "foo1", "Value": "bar1"}],
+    )
+
+    target_db_parameter_group_no_tags = client.copy_db_parameter_group(
+        SourceDBParameterGroupIdentifier="source-parameter-group",
+        TargetDBParameterGroupIdentifier="target-parameter-group-no-tags",
+        TargetDBParameterGroupDescription="test target parameter group, no tags",
+    )
+    result_no_tags = client.list_tags_for_resource(
+        ResourceName=target_db_parameter_group_no_tags["DBParameterGroup"][
+            "DBParameterGroupArn"
+        ]
+    )
+    assert len(result_no_tags["TagList"]) == 0
+
+    target_db_parameter_group_new_tags = client.copy_db_parameter_group(
+        SourceDBParameterGroupIdentifier="source-parameter-group",
+        TargetDBParameterGroupIdentifier="target-parameter-group-new-tags",
+        TargetDBParameterGroupDescription="test target parameter group, new tags",
+        Tags=[{"Key": "foo2", "Value": "bar2"}],
+    )
+    result_new_tags = client.list_tags_for_resource(
+        ResourceName=target_db_parameter_group_new_tags["DBParameterGroup"][
+            "DBParameterGroupArn"
+        ]
+    )
+    assert result_new_tags["TagList"] == [{"Key": "foo2", "Value": "bar2"}]
+
+
+@mock_aws
+def test_copy_db_parameter_group_non_existent_source(client):
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_parameter_group(
+            SourceDBParameterGroupIdentifier="non-existent",
+            TargetDBParameterGroupIdentifier="target-parameter-group",
+            TargetDBParameterGroupDescription="test target parameter group",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBParameterGroupNotFound"
+
+
+@mock_aws
+def test_copy_db_parameter_group_target_already_exists(client):
+    client.create_db_parameter_group(
+        DBParameterGroupName="source-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test source parameter group",
+    )
+
+    client.create_db_parameter_group(
+        DBParameterGroupName="target-parameter-group",
+        DBParameterGroupFamily="mysql5.6",
+        Description="test target parameter group",
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.copy_db_parameter_group(
+            SourceDBParameterGroupIdentifier="source-parameter-group",
+            TargetDBParameterGroupIdentifier="target-parameter-group",
+            TargetDBParameterGroupDescription="test target parameter group",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DBParameterGroupAlreadyExists"
 
 
 @mock_aws

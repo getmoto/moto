@@ -2048,18 +2048,6 @@
   "Location": "eu-central-1"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "eu-central-1"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "eu-central-1"
  },

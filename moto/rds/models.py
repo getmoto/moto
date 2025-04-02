@@ -5,6 +5,7 @@ import math
 import os
 import re
 import string
+import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime
 from functools import lru_cache, partialmethod
@@ -28,6 +29,7 @@ from moto.core.utils import unix_time, utcnow
 from moto.ec2.models import ec2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
+from moto.secretsmanager.models import FakeSecret, SecretsManagerBackend
 from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
 
 from .exceptions import (
@@ -38,6 +40,7 @@ from .exceptions import (
     DBClusterToBeDeletedHasActiveMembers,
     DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
+    DBParameterGroupAlreadyExistsError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
     DBProxyNotFoundFault,
@@ -121,7 +124,7 @@ class SnapshotAttributesMixin:
         if common_values:
             raise InvalidParameterCombination(
                 "A value may not appear in both the add list and remove list. "
-                + f"{common_values}"
+                + f"{list(common_values)}"
             )
         add = self.attributes[attribute_name] + values_to_add
         new_attribute_values = [value for value in add if value not in values_to_remove]
@@ -373,6 +376,74 @@ class GlobalCluster(RDSBaseModel):
         return members
 
 
+class MasterUserSecret:
+    """Class to manage the master user password for RDS clusters/instances."""
+
+    def __init__(self, resource: DBCluster | DBInstance, kms_key_id: str | None):
+        self.resource = resource
+        self.kms = resource.backend.kms
+        self.secretsmanager = resource.backend.secretsmanager
+        self.secret = self._create_secret(kms_key_id)
+        self._status = "creating"
+
+    def delete_secret(self) -> None:
+        self.secretsmanager.delete_secret(
+            self.secret.arn,
+            recovery_window_in_days=None,
+            force_delete_without_recovery=True,
+        )
+
+    def rotate_secret(self) -> None:
+        self._status = "rotating"
+        self.secretsmanager.rotate_secret(self.secret.arn, rotate_immediately=True)
+
+    @property
+    def kms_key_id(self) -> str:
+        assert self.secret.kms_key_id is not None
+        key = self.kms.describe_key(self.secret.kms_key_id)
+        return key.arn
+
+    @property
+    def secret_arn(self) -> str:
+        return self.secret.arn
+
+    @property
+    def secret_status(self) -> str:
+        status_to_return = self._status
+        # Poor man's state manager - look into using moto's state manager.
+        if status_to_return in ["creating", "rotating"]:
+            self._status = "active"
+        return status_to_return
+
+    def _create_secret(self, kms_key_id: Optional[str]) -> FakeSecret:
+        secret = self.secretsmanager.create_managed_secret(
+            service_name="rds",
+            secret_id=self._generate_secret_name(),
+            secret_string="P@55w0rd!",
+            description=self._generate_secret_description(),
+            kms_key_id=kms_key_id,
+            tags=self._generate_secret_tags(),
+        )
+        return secret
+
+    def _generate_secret_name(self) -> str:
+        unique_id = str(uuid.uuid4())
+        secret_name = f"rds!{self.resource.resource_type}-{unique_id}"
+        return secret_name
+
+    def _generate_secret_description(self) -> str:
+        resource_type = self.resource.__class__.__name__[2:].lower()
+        description = f"The secret associated with the primary RDS DB {resource_type}: {self.resource.arn}"
+        return description
+
+    def _generate_secret_tags(self) -> list[dict[str, str]]:
+        resource_type = self.resource.__class__.__name__
+        tags = [
+            {"Key": f"aws:rds:primary{resource_type}Arn", "Value": self.resource.arn},
+        ]
+        return tags
+
+
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
@@ -408,6 +479,8 @@ class DBCluster(RDSBaseModel):
         vpc_security_group_ids: Optional[List[str]] = None,
         deletion_protection: Optional[bool] = False,
         kms_key_id: Optional[str] = None,
+        manage_master_user_password: Optional[bool] = False,
+        master_user_secret_kms_key_id: Optional[str] = None,
         **kwargs: Any,
     ):
         super().__init__(backend)
@@ -464,17 +537,13 @@ class DBCluster(RDSBaseModel):
             raise InvalidParameterValue(
                 "The parameter MasterUsername must be provided and must not be blank."
             )
-        else:
+        self.manage_master_user_password = manage_master_user_password
+        if self.manage_master_user_password:
+            self.master_user_secret = MasterUserSecret(
+                self, master_user_secret_kms_key_id
+            )
+        elif not self.global_cluster_identifier and not self.engine == "neptune":
             self.master_user_password = master_user_password or ""
-
-        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
-        self.manage_master_user_password = kwargs.get(
-            "manage_master_user_password", False
-        )
-        self.master_user_secret_status = kwargs.get(
-            "master_user_secret_status", "active"
-        )
-
         self.availability_zones = kwargs.get("availability_zones")
         if not self.availability_zones:
             self.availability_zones = [
@@ -645,17 +714,6 @@ class DBCluster(RDSBaseModel):
     @property
     def http_endpoint_enabled(self) -> bool:
         return True if self.enable_http_endpoint else False
-
-    @property
-    def master_user_secret(self) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
-        secret_info = {
-            "SecretArn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.resource_id}",
-            "SecretStatus": self.master_user_secret_status,
-            "KmsKeyId": self.master_user_secret_kms_key_id
-            if self.master_user_secret_kms_key_id is not None
-            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.resource_id}",
-        }
-        return secret_info if self.manage_master_user_password else None
 
     @property
     def db_cluster_parameter_group(self) -> str:
@@ -976,6 +1034,8 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         enable_cloudwatch_logs_exports: Optional[List[str]] = None,
         ca_certificate_identifier: str = "rds-ca-default",
         availability_zone: Optional[str] = None,
+        manage_master_user_password: Optional[bool] = False,
+        master_user_secret_kms_key_id: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -989,13 +1049,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             )
         self.log_file_manager = LogFileManager(self.engine)
         self.iops = iops
-        self.master_user_secret_kms_key_id = kwargs.get("master_user_secret_kms_key_id")
-        self.master_user_secret_status = kwargs.get(
-            "master_user_secret_status", "active"
-        )
-        self.manage_master_user_password = kwargs.get(
-            "manage_master_user_password", False
-        )
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
         self.db_instance_identifier = db_instance_identifier
         self.source_db_identifier = source_db_instance_identifier
@@ -1058,7 +1111,13 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             )
             self.license_model = license_model
             self.master_username = master_username
-            self.master_user_password = master_user_password
+            self.manage_master_user_password = manage_master_user_password
+            if self.manage_master_user_password:
+                self.master_user_secret = MasterUserSecret(
+                    self, master_user_secret_kms_key_id
+                )
+            else:
+                self.master_user_password = master_user_password
             self.preferred_backup_window = preferred_backup_window
             msg = valid_preferred_maintenance_window(
                 self.preferred_maintenance_window,
@@ -1247,12 +1306,8 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             )
             self.backend.db_parameter_groups[db_parameter_group_name] = default_group
             return [default_group]
-        else:
-            backend = rds_backends[self.account_id][self.region]
-            if self.db_parameter_group_name not in backend.db_parameter_groups:
-                raise DBParameterGroupNotFoundError(self.db_parameter_group_name)
 
-            return [backend.db_parameter_groups[self.db_parameter_group_name]]
+        return [self.backend.db_parameter_groups[self.db_parameter_group_name]]
 
     def is_default_parameter_group(self, param_group_name: str) -> bool:
         return param_group_name.startswith(f"default.{self.engine.lower()}")  # type: ignore
@@ -1263,17 +1318,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         db_family = f"{self.engine.lower()}{minor_engine_version}"  # type: ignore
 
         return db_family, f"default.{db_family}"
-
-    @property
-    def master_user_secret(self) -> Dict[str, Any] | None:  # type: ignore[misc]
-        secret_info = {
-            "SecretArn": f"arn:{self.partition}:secretsmanager:{self.region}:{self.account_id}:secret:rds!{self.resource_id}",
-            "SecretStatus": self.master_user_secret_status,
-            "KmsKeyId": self.master_user_secret_kms_key_id
-            if self.master_user_secret_kms_key_id is not None
-            else f"arn:{self.partition}:kms:{self.region}:{self.account_id}:key/{self.resource_id}",
-        }
-        return secret_info if self.manage_master_user_password else None
 
     @property
     def address(self) -> str:
@@ -1357,7 +1401,24 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.is_replica = True
         self.replicas = []
 
-    def update(self, db_kwargs: Dict[str, Any]) -> None:
+    def update(
+        self,
+        manage_master_user_password: Optional[bool] = None,
+        master_user_secret_kms_key_id: Optional[str] = None,
+        rotate_master_user_password: Optional[bool] = None,
+        **db_kwargs: Dict[str, Any],
+    ) -> None:
+        if manage_master_user_password is True:
+            self.master_user_secret = MasterUserSecret(
+                self, master_user_secret_kms_key_id
+            )
+        elif manage_master_user_password is False:
+            self.master_user_secret.delete_secret()
+            del self.master_user_secret
+
+        if rotate_master_user_password is True:
+            self.master_user_secret.rotate_secret()
+
         for key, value in db_kwargs.items():
             if value is not None:
                 setattr(self, key, value)
@@ -1520,6 +1581,7 @@ class DBInstanceClustered(DBInstance):
         self.db_cluster_identifier: str = db_cluster_identifier
         self.is_cluster_writer = True if not self.cluster.members else False
         self.promotion_tier = promotion_tier
+        self.manage_master_user_password = False
 
     @property
     def allocated_storage(self) -> int:
@@ -2093,6 +2155,10 @@ class RDSBackend(BaseBackend):
     def kms(self) -> KmsBackend:
         return kms_backends[self.account_id][self.region_name]
 
+    @property
+    def secretsmanager(self) -> SecretsManagerBackend:
+        return self.get_backend("secretsmanager", self.region_name, self.account_id)  # type: ignore[return-value]
+
     def _validate_kms_key(self, kms_key_id: str) -> str:
         key = kms_key_id
         kms_backend = self.kms
@@ -2113,10 +2179,10 @@ class RDSBackend(BaseBackend):
 
     def get_backend(
         self,
-        service: Literal["kms"] | Literal["rds"],
+        service: Literal["kms"] | Literal["rds"] | Literal["secretsmanager"],
         region: str,
         account_id: Optional[str] = None,
-    ) -> KmsBackend | RDSBackend:
+    ) -> KmsBackend | RDSBackend | SecretsManagerBackend:
         from moto.backends import get_backend as get_moto_backend
 
         if account_id is None:
@@ -2307,7 +2373,7 @@ class RDSBackend(BaseBackend):
         database = self.databases[database_id]
         if database.is_replica:
             database.is_replica = False
-            database.update(db_kwargs)
+            database.update(**db_kwargs)
 
         return database
 
@@ -2320,7 +2386,7 @@ class RDSBackend(BaseBackend):
 
         # Shouldn't really copy here as the instance is duplicated. RDS replicas have different instances.
         replica = copy.copy(primary)
-        replica.update(db_kwargs)
+        replica.update(**db_kwargs)
         replica.set_as_replica()
         self.databases[database_id] = replica
         primary.add_replica(replica)
@@ -2386,6 +2452,10 @@ class RDSBackend(BaseBackend):
                 db_kwargs.pop("new_db_instance_identifier")
             )
             self.databases[db_instance_identifier] = database
+        if "db_parameter_group_name" in db_kwargs:
+            db_parameter_group_name = db_kwargs["db_parameter_group_name"]
+            if db_parameter_group_name not in self.db_parameter_groups:
+                raise DBParameterGroupNotFoundError(db_parameter_group_name)
         preferred_backup_window = db_kwargs.get(
             "preferred_backup_window", database.preferred_backup_window
         )
@@ -2398,10 +2468,7 @@ class RDSBackend(BaseBackend):
             )
             if msg:
                 raise RDSClientError("InvalidParameterValue", msg)
-        if db_kwargs.get("rotate_master_user_password") and db_kwargs.get(
-            "apply_immediately"
-        ):
-            db_kwargs["master_user_secret_status"] = "rotating"
+
         if db_kwargs.get("rotate_master_user_password") and not db_kwargs.get(
             "apply_immediately"
         ):
@@ -2409,12 +2476,8 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterCombination",
                 "You must specify apply immediately when rotating the master user password.",
             )
-        database.update(db_kwargs)
-        initial_state = copy.copy(database)
-        database.master_user_secret_status = (
-            "active"  # already set the final state in the background
-        )
-        return initial_state
+        database.update(**db_kwargs)
+        return database
 
     def reboot_db_instance(self, db_instance_identifier: str) -> DBInstance:
         return self.describe_db_instances(db_instance_identifier)[0]
@@ -2607,6 +2670,8 @@ class RDSBackend(BaseBackend):
                     snapshot_type="manual",
                 )
             database = self.databases.pop(db_instance_identifier)
+            if database.manage_master_user_password:
+                database.master_user_secret.delete_secret()
             if database.is_replica:
                 primary = self.find_db_from_id(database.source_db_instance_identifier)  # type: ignore
                 primary.remove_replica(database)
@@ -2886,6 +2951,48 @@ class RDSBackend(BaseBackend):
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
 
+    def copy_db_parameter_group(
+        self,
+        source_db_parameter_group_identifier: str,
+        target_db_parameter_group_identifier: str,
+        target_db_parameter_group_description: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> DBParameterGroup:
+        if source_db_parameter_group_identifier.startswith("arn:aws:rds:"):
+            source_db_parameter_group_identifier = (
+                source_db_parameter_group_identifier.split(":")[-1]
+            )
+        if source_db_parameter_group_identifier not in self.db_parameter_groups:
+            raise DBParameterGroupNotFoundError(source_db_parameter_group_identifier)
+        if target_db_parameter_group_identifier in self.db_parameter_groups:
+            raise DBParameterGroupAlreadyExistsError(
+                target_db_parameter_group_identifier
+            )
+        source_db_parameter_group = self.db_parameter_groups[
+            source_db_parameter_group_identifier
+        ]
+
+        target_db_parameter_group = DBParameterGroup(
+            backend=self,
+            db_parameter_group_name=target_db_parameter_group_identifier,
+            db_parameter_group_family=source_db_parameter_group.family,
+            description=target_db_parameter_group_description,
+            tags=tags,
+        )
+        self.db_parameter_groups[target_db_parameter_group_identifier] = (
+            target_db_parameter_group
+        )
+
+        iterable_source_parameters = [
+            {"ParameterName": name, **values}
+            for name, values in source_db_parameter_group.parameters.items()
+        ]
+        self.modify_db_parameter_group(
+            db_parameter_group_name=target_db_parameter_group_identifier,
+            db_parameter_group_parameters=iterable_source_parameters,
+        )
+        return target_db_parameter_group
+
     def describe_db_parameter_groups(
         self, db_parameter_group_kwargs: Dict[str, Any]
     ) -> List[DBParameterGroup]:
@@ -2955,7 +3062,7 @@ class RDSBackend(BaseBackend):
         if kwargs.get("rotate_master_user_password") and kwargs.get(
             "apply_immediately"
         ):
-            kwargs["master_user_secret_status"] = "rotating"
+            cluster.master_user_secret.rotate_secret()
         elif kwargs.get("rotate_master_user_password") and not kwargs.get(
             "apply_immediately"
         ):
@@ -2963,6 +3070,15 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterCombination",
                 "You must specify apply immediately when rotating the master user password.",
             )
+
+        if "manage_master_user_password" in kwargs:
+            manage_master_user_password = kwargs.pop("manage_master_user_password")
+            if manage_master_user_password:
+                kms_key_id = kwargs.pop("master_user_secret_kms_key_id", None)
+                cluster.master_user_secret = MasterUserSecret(cluster, kms_key_id)
+            else:
+                cluster.master_user_secret.delete_secret()
+                del cluster.master_user_secret
 
         kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
@@ -2985,7 +3101,6 @@ class RDSBackend(BaseBackend):
 
         # Already set the final status in the background
         cluster.status = "available"
-        cluster.master_user_secret_status = "active"
 
         return initial_state
 
@@ -3131,7 +3246,8 @@ class RDSBackend(BaseBackend):
             global_id = cluster.global_cluster_identifier or ""
             if global_id in self.global_clusters:
                 self.remove_from_global_cluster(global_id, cluster_identifier)
-
+            if cluster.manage_master_user_password:
+                cluster.master_user_secret.delete_secret()
             if snapshot_name:
                 self.create_db_cluster_snapshot(cluster_identifier, snapshot_name)
             return self.clusters.pop(cluster_identifier)
@@ -3835,6 +3951,10 @@ class Event(XFormedAttributeAccessMixin):
         "DB_INSTANCE_CREATE": {
             "Categories": ["creation"],
             "Message": "DB instance created",
+        },
+        "DB_INSTANCE_RESET_MASTER_CREDENTIALS": {
+            "Categories": ["configuration change"],
+            "Message": "Reset master credentials",
         },
         "DB_SNAPSHOT_CREATE_AUTOMATED_START": {
             "Categories": ["creation"],

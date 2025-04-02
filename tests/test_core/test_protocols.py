@@ -70,9 +70,19 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
     result = case["result"] if "error" not in case else _create_exception(case)
     resp = serializer.serialize(result)  # _to_response(result)
     assert resp["body"] == case["response"]["body"]
+    assert "Content-Type" in resp["headers"]
+    protocol_to_content_type = {
+        "ec2": "text/xml",
+        "json": "application/x-amz-json-1.0",
+        "query": "text/xml",
+        "rest-xml": "text/xml",
+        "rest-json": "application/json",
+    }
+    assert resp["headers"]["Content-Type"] == protocol_to_content_type[protocol]
     headers_expected = case["response"]["headers"]
-    # TODO: Get rid of this once we get the headers sorted for all responses
+    # TODO: Get rid of this if once we get the headers sorted for all responses
     if headers_expected:
+        del resp["headers"]["Content-Type"]
         assert resp["headers"] == headers_expected
     assert resp["status_code"] == case["response"]["status_code"]
 

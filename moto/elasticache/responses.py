@@ -306,7 +306,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
       <LogFormat>{{ log_delivery_configuration.LogFormat }}</LogFormat>
       {% endfor %}
     </LogDeliveryConfigurations>
-    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
     <TransitEncryptionMode>preferred</TransitEncryptionMode>
   </PendingModifiedValues>
   {% endif %}
@@ -343,7 +343,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
     <CustomerAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</CustomerAvailabilityZone>
     <CustomerOutpostArn>{{ cache_cluster.preferred_output_arn }}</CustomerOutpostArn>
   </CacheNodes>
-  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
   <SecurityGroups>
   {% for security_group_id in cache_cluster.security_group_ids %}
     <SecurityGroupId>{{ security_group_id }}</SecurityGroupId>
@@ -357,7 +357,7 @@ CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://ela
   {% endif %}
   <AuthTokenEnabled>true</AuthTokenEnabled>
   <AuthTokenLastModifiedDate>{{ cache_cluster.cache_cluster_create_time }}</AuthTokenLastModifiedDate>
-  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
   <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
   <ARN>{{ cache_cluster.arn }}</ARN>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
@@ -432,7 +432,7 @@ DESCRIBE_CACHE_CLUSTERS_TEMPLATE = """<DescribeCacheClustersResponse xmlns="http
           </member>
 {% endfor %}
         </CacheNodes>
-        <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+        <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
         <SecurityGroups>
 {% for security_group in cache_cluster.security_groups %}
           <member>
@@ -446,7 +446,7 @@ DESCRIBE_CACHE_CLUSTERS_TEMPLATE = """<DescribeCacheClustersResponse xmlns="http
         <SnapshotWindow>{{ cache_cluster.snapshot_window }}</SnapshotWindow>
         <AuthTokenEnabled>{{ cache_cluster.auth_token_enabled }}</AuthTokenEnabled>
         <AuthTokenLastModifiedDate>{{ cache_cluster.auth_token_last_modified_date }}</AuthTokenLastModifiedDate>
-        <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+        <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
         <AtRestEncryptionEnabled>{{ cache_cluster.at_rest_encryption_enabled }}</AtRestEncryptionEnabled>
         <ARN>{{ cache_cluster.arn }}</ARN>
         <ReplicationGroupLogDeliveryEnabled>{{ cache_cluster.replication_group_log_delivery_enabled }}</ReplicationGroupLogDeliveryEnabled>
@@ -516,7 +516,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
       <LogFormat>{{ log_delivery_configuration.LogFormat }}</LogFormat>
       {% endfor %}
     </LogDeliveryConfigurations>
-    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+    <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
     <TransitEncryptionMode>preferred</TransitEncryptionMode>
   </PendingModifiedValues>
   {% endif %}
@@ -553,7 +553,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
     <CustomerAvailabilityZone>{{ cache_cluster.preferred_availability_zone }}</CustomerAvailabilityZone>
     <CustomerOutpostArn>{{ cache_cluster.preferred_output_arn }}</CustomerOutpostArn>
   </CacheNodes>
-  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade }}</AutoMinorVersionUpgrade>
+  <AutoMinorVersionUpgrade>{{ cache_cluster.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
   <SecurityGroups>
   {% for security_group_id in cache_cluster.security_group_ids %}
     <SecurityGroupId>{{ security_group_id }}</SecurityGroupId>
@@ -567,7 +567,7 @@ DELETE_CACHE_CLUSTER_TEMPLATE = """<DeleteCacheClusterResponse xmlns="http://ela
   {% endif %}
   <AuthTokenEnabled>true</AuthTokenEnabled>
   <AuthTokenLastModifiedDate>{{ cache_cluster.cache_cluster_create_time }}</AuthTokenLastModifiedDate>
-  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled }}</TransitEncryptionEnabled>
+  <TransitEncryptionEnabled>{{ cache_cluster.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
   <AtRestEncryptionEnabled>true</AtRestEncryptionEnabled>
   <ARN>{{ cache_cluster.arn }}</ARN>
   <ReplicationGroupLogDeliveryEnabled>true</ReplicationGroupLogDeliveryEnabled>
