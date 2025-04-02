@@ -496,6 +496,42 @@
   "Location": "me-central-1"
  },
  {
+  "InstanceType": "m7gd.12xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.16xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.2xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.4xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.8xlarge",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.large",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.medium",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.metal",
+  "Location": "me-central-1"
+ },
+ {
+  "InstanceType": "m7gd.xlarge",
+  "Location": "me-central-1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "me-central-1"
  },

@@ -1940,18 +1940,6 @@
   "Location": "eu-central-1a"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "eu-central-1a"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "eu-central-1a"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "eu-central-1a"
  },
@@ -4973,18 +4961,6 @@
  },
  {
   "InstanceType": "m8g.xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "eu-central-1b"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "eu-central-1b"
  },
  {

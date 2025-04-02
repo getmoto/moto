@@ -90,7 +90,7 @@ redshift
 - [ ] describe_hsm_configurations
 - [ ] describe_inbound_integrations
 - [ ] describe_integrations
-- [ ] describe_logging_status
+- [X] describe_logging_status
 - [ ] describe_node_configuration_options
 - [ ] describe_orderable_cluster_options
 - [ ] describe_partners
@@ -106,10 +106,10 @@ redshift
 - [ ] describe_table_restore_status
 - [X] describe_tags
 - [ ] describe_usage_limits
-- [ ] disable_logging
+- [X] disable_logging
 - [X] disable_snapshot_copy
 - [ ] disassociate_data_share_consumer
-- [ ] enable_logging
+- [X] enable_logging
 - [X] enable_snapshot_copy
 - [ ] failover_primary_compute
 - [X] get_cluster_credentials

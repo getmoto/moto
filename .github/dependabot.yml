@@ -9,6 +9,14 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "other_langs/tests_go"
+    schedule:
+      interval: "monthly"
+    groups:
+      go-deps:
+        patterns:
+          - "*"
   - package-ecosystem: "maven"
     directory: "other_langs/tests_java"
     schedule:
