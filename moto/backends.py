@@ -321,6 +321,7 @@ SERVICE_NAMES = Union[
     "Literal['scheduler']",
     "Literal['sdb']",
     "Literal['secretsmanager']",
+    "Literal['servicecatalogappregistry']",
     "Literal['servicediscovery']",
     "Literal['service-quotas']",
     "Literal['ses']",
@@ -710,6 +711,8 @@ def get_backend(name: "Literal['sdb']") -> "BackendDict[SimpleDBBackend]": ...
 def get_backend(
     name: "Literal['secretsmanager']",
 ) -> "BackendDict[SecretsManagerBackend]": ...
+@overload
+def get_backend(name: "Literal['servicecatalogappregistry']") -> "BackendDict[AppRegistryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['servicediscovery']",
