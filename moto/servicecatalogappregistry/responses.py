@@ -1,10 +1,17 @@
 """Handles incoming servicecatalogappregistry requests, invokes methods, returns responses."""
 
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
+from moto.servicecatalogappregistry.exceptions import ValidationException
 
-from .models import AppRegistryBackend, servicecatalogappregistry_backends
+from .models import (
+    Application,
+    AppRegistryBackend,
+    AssociatedResource,
+    servicecatalogappregistry_backends,
+)
 
 
 class AppRegistryResponse(BaseResponse):
@@ -16,12 +23,8 @@ class AppRegistryResponse(BaseResponse):
     @property
     def servicecatalogappregistry_backend(self) -> AppRegistryBackend:
         """Return backend instance specific for this region."""
-        # TODO
-        # servicecatalogappregistry_backends is not yet typed
-        # Please modify moto/backends.py to add the appropriate type annotations for this service
         return servicecatalogappregistry_backends[self.current_account][self.region]
 
-    # add methods from here
 
     def create_application(self) -> str:
         name = self._get_param("name")
@@ -43,5 +46,43 @@ class AppRegistryResponse(BaseResponse):
             json_list.append(app.to_json())
         return json.dumps({"applications": json_list})
 
+    def associate_resource(self) -> str:
+        application = unquote(self._get_param("application"))
+        resource_type = self._get_param("resourceType")
+        resource = unquote(self._get_param("resource"))
+        options = self._get_param("options")
+        app = None
+        app = self._find_app_by_any_value(application)
+        if options is None:
+            options = []
+        new_resource = AssociatedResource(
+            resource_type, resource, options, app, self.current_account, self.region
+        )
+        self.servicecatalogappregistry_backend.applications[
+            app.arn
+        ].associated_resources[resource] = new_resource
+        return json.dumps(
+            {"applicationArn": app.arn, "resourceArn": resource, "options": options}
+        )
 
-# add templates from here
+    def list_associated_resources(self) -> str:
+        application = unquote(self._get_param("application"))
+        app = self._find_app_by_any_value(application)
+        return_list = []
+        for resource in app.associated_resources.values():
+            return_list.append(resource.to_json())
+        return json.dumps({"resources": return_list})
+
+    def _find_app_by_any_value(self, search: str) -> Application:
+        app = None
+        if search in self.servicecatalogappregistry_backend.applications:
+            app = self.servicecatalogappregistry_backend.applications[search]
+        else:
+            for a in self.servicecatalogappregistry_backend.applications.values():
+                if search == a.id:
+                    app = a
+                elif search == a.name:
+                    app = a
+        if app is None:
+            raise ValidationException
+        return app
