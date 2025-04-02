@@ -25,7 +25,6 @@ class AppRegistryResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return servicecatalogappregistry_backends[self.current_account][self.region]
 
-
     def create_application(self) -> str:
         name = self._get_param("name")
         description = self._get_param("description")

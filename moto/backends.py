@@ -712,7 +712,9 @@ def get_backend(
     name: "Literal['secretsmanager']",
 ) -> "BackendDict[SecretsManagerBackend]": ...
 @overload
-def get_backend(name: "Literal['servicecatalogappregistry']") -> "BackendDict[AppRegistryBackend]": ...
+def get_backend(
+    name: "Literal['servicecatalogappregistry']",
+) -> "BackendDict[AppRegistryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['servicediscovery']",
