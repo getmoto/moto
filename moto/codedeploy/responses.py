@@ -165,11 +165,9 @@ class CodeDeployResponse(BaseResponse):
     def list_deployment_groups(self) -> str:
         application_name = self._get_param("applicationName")
         next_token = self._get_param("nextToken", "")
-        deployment_groups = (
-            self.codedeploy_backend.list_deployment_groups(
-                application_name=application_name,
-                next_token=next_token,
-            )
+        deployment_groups = self.codedeploy_backend.list_deployment_groups(
+            application_name=application_name,
+            next_token=next_token,
         )
         return json.dumps(
             dict(

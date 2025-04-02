@@ -55,6 +55,7 @@ class CodeDeployDefault(str, Enum):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}.{self.value}"
 
+
 class AlarmConfiguration(BaseModel):
     def __init__(
         self,
@@ -164,8 +165,8 @@ class DeploymentInfo(BaseModel):
 
         # Boto docs mention that the time fields should be datetime, but AWS API says number
         self.create_time = iso_8601_datetime_with_milliseconds()
-        self.start_time = None # iso_8601_datetime_with_milliseconds()
-        self.complete_time = None # iso_8601_datetime_with_milliseconds()
+        self.start_time = None  # iso_8601_datetime_with_milliseconds()
+        self.complete_time = None  # iso_8601_datetime_with_milliseconds()
 
         # summary of deployment status of the instances in the deployment
         self.deployment_overview = {
@@ -235,6 +236,7 @@ class DeploymentInfo(BaseModel):
             "overrideAlarmConfiguration": self.override_alarm_configuration,
         }
 
+
 class CodeDeployBackend(BaseBackend):
     """Implementation of CodeDeploy APIs."""
 
@@ -269,7 +271,7 @@ class CodeDeployBackend(BaseBackend):
 
     def batch_get_deployments(self, deployment_ids: List[str]) -> List[DeploymentInfo]:
         deployments = []
-        for id in deployment_ids:           
+        for id in deployment_ids:
             if id in self.deployments:
                 deployment_info = self.deployments[id]
                 deployments.append(deployment_info)
@@ -377,7 +379,6 @@ class CodeDeployBackend(BaseBackend):
             raise ApplicationDoesNotExistException(
                 f"The application {application_name} does not exist with the user or AWS account."
             )
-        
 
         dg = DeploymentGroup(
             self.applications[application_name],
@@ -422,12 +423,12 @@ class CodeDeployBackend(BaseBackend):
             raise DeploymentGroupNameRequiredException(
                 "If applicationName is specified, then deploymentGroupName must be specified."
             )
-        
+
         if deployment_group_name and not application_name:
             raise ApplicationNameRequiredException(
                 "If deploymentGroupName is specified, applicationName must be specified."
             )
-        
+
         # return deployments that match the all filters for each provided filter
         return [
             deployment.deployment_id
@@ -448,7 +449,8 @@ class CodeDeployBackend(BaseBackend):
     ) -> List[str]:
         return [
             deployment_group.deployment_group_id
-            for deployment_group in self.deployment_groups.values() if application_name == deployment_group.application.application_name
+            for deployment_group in self.deployment_groups.values()
+            if application_name == deployment_group.application.application_name
         ]
 
 

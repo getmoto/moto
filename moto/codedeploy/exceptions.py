@@ -13,11 +13,13 @@ class ApplicationDoesNotExistException(CodeDeployException):
     def __init__(self, message: str):
         super().__init__("ApplicationDoesNotExistException", message)
 
+
 class DeploymentDoesNotExistException(CodeDeployException):
     code = 400
 
     def __init__(self, message: str):
         super().__init__("DeploymentDoesNotExistException", message)
+
 
 class ApplicationAlreadyExistsException(CodeDeployException):
     code = 400
@@ -25,11 +27,13 @@ class ApplicationAlreadyExistsException(CodeDeployException):
     def __init__(self, message: str):
         super().__init__("ApplicationAlreadyExistsException", message)
 
+
 class ApplicationNameRequiredException(CodeDeployException):
     code = 400
 
     def __init__(self, message: str):
         super().__init__("ApplicationNameRequiredException", message)
+
 
 class DeploymentGroupAlreadyExistsException(CodeDeployException):
     code = 400

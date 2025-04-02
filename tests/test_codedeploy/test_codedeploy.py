@@ -16,7 +16,9 @@ def test_create_application():
     for platform in ["Server", "Lambda", "ECS"]:
         name = f"test-application-{platform}"
         response = client.create_application(
-            applicationName=name, computePlatform=platform, tags=[{"Key": "Name", "Value": "Test"}]
+            applicationName=name,
+            computePlatform=platform,
+            tags=[{"Key": "Name", "Value": "Test"}],
         )
         assert "applicationId" in response
 
@@ -268,34 +270,31 @@ def test_get_deployment():
 def test_batch_get_applications_invalid_name():
     client = boto3.client("codedeploy", region_name="us-east-2")
     with pytest.raises(ClientError) as exc:
-        client.batch_get_applications(applicationNames=["app_does_not_exist"])  
+        client.batch_get_applications(applicationNames=["app_does_not_exist"])
     assert exc.value.response["Error"]["Code"] == "ApplicationDoesNotExistException"
 
 
 @mock_aws
 def test_batch_get_applications():
     client = boto3.client("codedeploy", region_name="us-east-2")
-    client.create_application(
-        applicationName="sample_app1", computePlatform="Lambda"
-    )
-    client.create_application(
-        applicationName="sample_app2", computePlatform="Server"
-    )
-    client.create_application(
-        applicationName="sample_app3", computePlatform="ECS"
-    )
+    client.create_application(applicationName="sample_app1", computePlatform="Lambda")
+    client.create_application(applicationName="sample_app2", computePlatform="Server")
+    client.create_application(applicationName="sample_app3", computePlatform="ECS")
 
-    resp = client.batch_get_applications(applicationNames=["sample_app1", "sample_app2", "sample_app3"])
+    resp = client.batch_get_applications(
+        applicationNames=["sample_app1", "sample_app2", "sample_app3"]
+    )
 
     assert len(resp["applicationsInfo"]) == 3
+
 
 @mock_aws
 def test_batch_get_deployments():
     client = boto3.client("codedeploy", region_name="us-east-2")
-    
+
     deployment_ids = []
     # create 2 deployments
-    for i in range(0,2):
+    for i in range(0, 2):
         application_name = f"sample_app{i}"
         deployment_group_name = f"sample_deployment_group{i}"
         service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
@@ -307,7 +306,7 @@ def test_batch_get_deployments():
             deploymentGroupName=deployment_group_name,
             serviceRoleArn=service_role_arn,
         )
-        
+
         resp = client.create_deployment(
             applicationName=application_name,
             deploymentGroupName=deployment_group_name,
@@ -327,6 +326,7 @@ def test_batch_get_deployments():
 
     resp = client.batch_get_deployments(deploymentIds=deployment_ids)
     assert len(resp["deploymentsInfo"]) == len(deployment_ids)
+
 
 @mock_aws
 def test_list_applications():
@@ -398,9 +398,9 @@ def test_list_deployments():
     resp = client.list_deployments()
     assert len(resp["deployments"]) == 2
 
+
 @mock_aws
 def test_list_deployment_groups():
-
     client = boto3.client("codedeploy", region_name="ap-southeast-1")
 
     application_name = "mytestapp"
@@ -419,7 +419,7 @@ def test_list_deployment_groups():
         deploymentGroupName=deployment_group_name,
         serviceRoleArn=service_role_arn,
     )
-    
+
     client.create_deployment_group(
         applicationName=application_name,
         deploymentGroupName=deployment_group_name2,
@@ -428,5 +428,3 @@ def test_list_deployment_groups():
 
     resp = client.list_deployment_groups(applicationName=application_name)
     assert len(resp["deploymentGroups"]) == 2
-    
-    
