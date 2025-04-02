@@ -286,7 +286,6 @@ def test_batch_get_applications():
     )
 
     resp = client.batch_get_applications(applicationNames=["sample_app1", "sample_app2", "sample_app3"])
-    print(resp)
 
     assert len(resp["applicationsInfo"]) == 3
 
@@ -327,8 +326,6 @@ def test_batch_get_deployments():
         deployment_ids.append(resp["deploymentId"])
 
     resp = client.batch_get_deployments(deploymentIds=deployment_ids)
-    print(resp)
-
     assert len(resp["deploymentsInfo"]) == len(deployment_ids)
 
 @mock_aws
