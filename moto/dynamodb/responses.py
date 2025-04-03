@@ -6,11 +6,16 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.dynamodb.comparisons import create_condition_expression_parser
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
 from moto.dynamodb.models.utilities import dynamo_json_dump
-from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
+from moto.dynamodb.parsing.expressions import (  # type: ignore
+    ExpressionAttributeName,
+    UpdateExpressionParser,
+)
 from moto.dynamodb.parsing.key_condition_expression import parse_expression
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import find_duplicates
 from moto.utilities.aws_headers import amz_crc32
 
 from .exceptions import (
@@ -22,7 +27,6 @@ from .exceptions import (
     ResourceNotFoundException,
     UnknownKeyType,
 )
-from .utils import extract_duplicates
 
 TRANSACTION_MAX_ITEMS = 25
 
@@ -153,6 +157,17 @@ def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) ->
                 )
 
 
+def validate_attribute_names_used(
+    attribute_names: Optional[Dict[str, str]], names_used: List[str]
+) -> None:
+    if attribute_names:
+        for name in attribute_names:
+            if name not in names_used:
+                raise MockValidationException(
+                    f"Value provided in ExpressionAttributeNames unused in expressions: keys: {{{name}}}"
+                )
+
+
 def check_projection_expression(expression: str) -> None:
     if expression.upper() in ReservedKeywords.get_reserved_keywords():
         raise MockValidationException(
@@ -166,6 +181,45 @@ def check_projection_expression(expression: str) -> None:
         raise MockValidationException(
             "ProjectionExpression: Attribute name contains white space"
         )
+
+
+class ProjectionExpressionParser:
+    def __init__(
+        self,
+        projection_expression: Optional[str],
+        expression_attribute_names: Optional[Dict[str, str]],
+    ):
+        self.projection_expression = projection_expression
+        self.expression_attribute_names = (
+            expression_attribute_names if expression_attribute_names else {}
+        )
+
+        self.expr_attr_names_found: List[str] = []
+
+    def parse(self) -> List[List[str]]:
+        """
+        lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
+        """
+
+        if self.projection_expression:
+            expressions = [x.strip() for x in self.projection_expression.split(",")]
+            duplicates = find_duplicates(expressions)
+            if duplicates:
+                raise InvalidProjectionExpression(*duplicates)
+            for expression in expressions:
+                check_projection_expression(expression)
+            output = []
+            for nested_expr in expressions:
+                nested_array = []
+                for expr in nested_expr.split("."):
+                    if self.expression_attribute_names.get(expr):
+                        self.expr_attr_names_found.append(expr)
+                        nested_array.append(self.expression_attribute_names[expr])
+                    else:
+                        nested_array.append(expr)
+                output.append(nested_array)
+            return output
+        return []
 
 
 class DynamoHandler(BaseResponse):
@@ -499,6 +553,16 @@ class DynamoHandler(BaseResponse):
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
 
+        parser = create_condition_expression_parser(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        parser.parse()
+        validate_attribute_names_used(
+            expression_attribute_names, parser.expr_attr_names_found
+        )
+
         if condition_expression:
             overwrite = False
 
@@ -597,8 +661,13 @@ class DynamoHandler(BaseResponse):
             raise ProvidedKeyDoesNotExist
 
         expression_attribute_names = expression_attribute_names or {}
-        projection_expressions = self._adjust_projection_expression(
+        parser = ProjectionExpressionParser(
             projection_expression, expression_attribute_names
+        )
+        projection_expressions = parser.parse()
+
+        validate_attribute_names_used(
+            expression_attribute_names, parser.expr_attr_names_found
         )
 
         item = self.dynamodb_backend.get_item(name, key, projection_expressions)
@@ -649,8 +718,12 @@ class DynamoHandler(BaseResponse):
                 "ExpressionAttributeNames", {}
             )
 
-            projection_expressions = self._adjust_projection_expression(
+            parser = ProjectionExpressionParser(
                 projection_expression, expression_attribute_names
+            )
+            projection_expressions = parser.parse()
+            validate_attribute_names_used(
+                expression_attribute_names, parser.expr_attr_names_found
             )
 
             results["Responses"][table_name] = []
@@ -693,9 +766,17 @@ class DynamoHandler(BaseResponse):
         filter_expression = self._get_filter_expression()
         expression_attribute_values = self._get_expr_attr_values()
 
-        projection_expressions = self._adjust_projection_expression(
+        condition_parser = create_condition_expression_parser(
+            filter_expression, expression_attribute_names, expression_attribute_values
+        )
+        condition_parser.parse()
+        expression_attribute_names_used = condition_parser.expr_attr_names_found
+
+        projection_parser = ProjectionExpressionParser(
             projection_expression, expression_attribute_names
         )
+        projection_expressions = projection_parser.parse()
+        expression_attribute_names_used += projection_parser.expr_attr_names_found
 
         filter_kwargs = {}
 
@@ -704,11 +785,19 @@ class DynamoHandler(BaseResponse):
             schema = self.dynamodb_backend.get_schema(
                 table_name=name, index_name=index_name
             )
-            hash_key, range_comparison, range_values = parse_expression(
+            (
+                hash_key,
+                range_comparison,
+                range_values,
+                expression_attribute_names_used_by_key_condition,
+            ) = parse_expression(
                 key_condition_expression=key_condition_expression,
                 expression_attribute_names=expression_attribute_names,
                 expression_attribute_values=expression_attribute_values,
                 schema=schema,
+            )
+            expression_attribute_names_used += (
+                expression_attribute_names_used_by_key_condition
             )
         else:
             # 'KeyConditions': {u'forum_name': {u'ComparisonOperator': u'EQ', u'AttributeValueList': [{u'S': u'the-key'}]}}
@@ -749,6 +838,10 @@ class DynamoHandler(BaseResponse):
                             range_values = []
             if query_filters:
                 filter_kwargs.update(query_filters)
+
+        validate_attribute_names_used(
+            expression_attribute_names, expression_attribute_names_used
+        )
         index_name = self.body.get("IndexName")
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
@@ -785,30 +878,6 @@ class DynamoHandler(BaseResponse):
 
         return dynamo_json_dump(result)
 
-    def _adjust_projection_expression(
-        self, projection_expression: Optional[str], expr_attr_names: Dict[str, str]
-    ) -> List[List[str]]:
-        """
-        lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
-        """
-
-        def _adjust(expression: str) -> str:
-            return (expr_attr_names or {}).get(expression, expression)
-
-        if projection_expression:
-            expressions = [x.strip() for x in projection_expression.split(",")]
-            duplicates = extract_duplicates(expressions)
-            if duplicates:
-                raise InvalidProjectionExpression(duplicates)
-            for expression in expressions:
-                check_projection_expression(expression)
-            return [
-                [_adjust(expr) for expr in nested_expr.split(".")]
-                for nested_expr in expressions
-            ]
-
-        return []
-
     @include_consumed_capacity()
     def scan(self) -> str:
         name = self.body["TableName"]
@@ -825,7 +894,25 @@ class DynamoHandler(BaseResponse):
         filter_expression = self._get_filter_expression()
         expression_attribute_values = self._get_expr_attr_values()
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
+
+        filter_parser = create_condition_expression_parser(
+            filter_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        try:
+            filter_parser.parse()
+        except ValueError as err:
+            raise MockValidationException(f"Bad Filter Expression: {err}")
+        expression_attribute_names_used = filter_parser.expr_attr_names_found
+
         projection_expression = self._get_projection_expression()
+        projection_parser = ProjectionExpressionParser(
+            projection_expression, expression_attribute_names
+        )
+        projection_expressions = projection_parser.parse()
+        expression_attribute_names_used += projection_parser.expr_attr_names_found
+
         exclusive_start_key = self.body.get("ExclusiveStartKey")
         limit = self.body.get("Limit")
         index_name = self.body.get("IndexName")
@@ -849,8 +936,8 @@ class DynamoHandler(BaseResponse):
                 f"The Segment parameter is zero-based and must be less than parameter TotalSegments: Segment: {segment} is not less than TotalSegments: {total_segments}"
             )
 
-        projection_expressions = self._adjust_projection_expression(
-            projection_expression, expression_attribute_names
+        validate_attribute_names_used(
+            expression_attribute_names, expression_attribute_names_used
         )
 
         try:
@@ -900,6 +987,16 @@ class DynamoHandler(BaseResponse):
             "ReturnValuesOnConditionCheckFailure"
         )
 
+        parser = create_condition_expression_parser(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        parser.parse()
+        validate_attribute_names_used(
+            expression_attribute_names, parser.expr_attr_names_found
+        )
+
         item = self.dynamodb_backend.delete_item(
             name,
             key,
@@ -937,8 +1034,17 @@ class DynamoHandler(BaseResponse):
                 raise MockValidationException(
                     "Invalid UpdateExpression: The expression can not be empty;"
                 )
+            update_expression_ast = UpdateExpressionParser.make(update_expression)
+            attr_name_clauses = update_expression_ast.find_clauses(
+                [ExpressionAttributeName]
+            )
+            expression_attribute_names_used = [
+                attr.get_attribute_name_placeholder() for attr in attr_name_clauses
+            ]
+
         else:
             update_expression = ""
+            expression_attribute_names_used = []
 
         return_values_on_condition_check_failure = self.body.get(
             "ReturnValuesOnConditionCheckFailure"
@@ -969,6 +1075,16 @@ class DynamoHandler(BaseResponse):
         condition_expression = self.body.get("ConditionExpression")
         expression_attribute_names = self.body.get("ExpressionAttributeNames", {})
         expression_attribute_values = self._get_expr_attr_values()
+        condition_parser = create_condition_expression_parser(
+            condition_expression,
+            expression_attribute_names,
+            expression_attribute_values,
+        )
+        condition_parser.parse()
+        expression_attribute_names_used += condition_parser.expr_attr_names_found
+        validate_attribute_names_used(
+            expression_attribute_names, expression_attribute_names_used
+        )
 
         item = self.dynamodb_backend.update_item(
             name,
@@ -1135,6 +1251,24 @@ class DynamoHandler(BaseResponse):
         transact_items = self.body["TransactItems"]
         # Validate first - we should error before we start the transaction
         for item in transact_items:
+            # This logic is common among all types of write items
+            item_values = list(item.values())[
+                0
+            ]  # Each item only has one of Put, Update, Delete, ConditionCheck
+            condition_expression = item_values.get("ConditionExpression")
+            expression_attribute_names = item_values.get("ExpressionAttributeNames", {})
+            expression_attribute_values = item_values.get(
+                "ExpressionAttributeValues", {}
+            )
+
+            parser = create_condition_expression_parser(
+                condition_expression,
+                expression_attribute_names,
+                expression_attribute_values,
+            )
+            parser.parse()
+            expression_attribute_names_used = parser.expr_attr_names_found
+
             if "Put" in item:
                 if item["Put"].get("ExpressionAttributeValues") == {}:
                     raise ExpressionAttributeValuesEmpty
@@ -1142,6 +1276,7 @@ class DynamoHandler(BaseResponse):
                 item_attrs = item["Put"]["Item"]
                 table = self.dynamodb_backend.get_table(item["Put"]["TableName"])
                 validate_put_has_empty_keys(item_attrs, table)
+
             if "Update" in item:
                 if item["Update"].get("ExpressionAttributeValues") == {}:
                     raise ExpressionAttributeValuesEmpty
@@ -1153,10 +1288,20 @@ class DynamoHandler(BaseResponse):
                     table,
                     custom_error_msg="One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: {}",
                 )
+
                 update_expression = item["Update"]["UpdateExpression"]
-                UpdateExpressionParser.make(update_expression).validate(
-                    limit_set_actions=True
+                update_expression_ast = UpdateExpressionParser.make(update_expression)
+                attr_name_clauses = update_expression_ast.find_clauses(
+                    [ExpressionAttributeName]
                 )
+                expression_attribute_names_used += [
+                    attr.get_attribute_name_placeholder() for attr in attr_name_clauses
+                ]
+
+            validate_attribute_names_used(
+                expression_attribute_names, expression_attribute_names_used
+            )
+
         self.dynamodb_backend.transact_write_items(transact_items)
         response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)

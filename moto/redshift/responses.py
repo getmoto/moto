@@ -763,3 +763,59 @@ class RedshiftResponse(BaseResponse):
                 }
             }
         )
+
+    def enable_logging(self) -> str:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        bucket_name = self._get_param("BucketName")
+        s3_key_prefix = self._get_param("S3KeyPrefix")
+        log_destination_type = self._get_param("LogDestinationType")
+        log_exports = self._get_param("LogExports")
+        config = self.redshift_backend.enable_logging(
+            cluster_identifier=cluster_identifier,
+            bucket_name=bucket_name,
+            s3_key_prefix=s3_key_prefix,
+            log_destination_type=log_destination_type,
+            log_exports=log_exports,
+        )
+        return self.get_response(
+            {
+                "EnableLoggingResponse": {
+                    "EnableLoggingResult": config,
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
+    def disable_logging(self) -> str:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        config = self.redshift_backend.disable_logging(
+            cluster_identifier=cluster_identifier,
+        )
+        return self.get_response(
+            {
+                "DisableLoggingResponse": {
+                    "DisableLoggingResult": config,
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )
+
+    def describe_logging_status(self) -> str:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        config = self.redshift_backend.describe_logging_status(
+            cluster_identifier=cluster_identifier,
+        )
+        return self.get_response(
+            {
+                "DescribeLoggingStatusResponse": {
+                    "DescribeLoggingStatusResult": config,
+                    "ResponseMetadata": {
+                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
+                    },
+                }
+            }
+        )

@@ -747,3 +747,30 @@ def test_launch_template_describe_with_tags():
     assert lt["LatestVersionNumber"] == 1
     assert len(lt["Tags"]) == 1
     assert lt["Tags"][0] == {"Key": "test1", "Value": "value1"}
+
+
+@mock_aws
+def test_modify_launch_template_by_name():
+    cli = boto3.client("ec2", region_name="us-east-1")
+
+    template_name = str(uuid4())
+    create_resp = cli.create_launch_template(
+        LaunchTemplateName=template_name, LaunchTemplateData={"ImageId": "ami-abc123"}
+    )
+
+    version_resp = cli.create_launch_template_version(
+        LaunchTemplateId=create_resp["LaunchTemplate"]["LaunchTemplateId"],
+        LaunchTemplateData={"ImageId": "ami-def456"},
+    )
+
+    resp = cli.modify_launch_template(
+        LaunchTemplateId=create_resp["LaunchTemplate"]["LaunchTemplateId"],
+        DefaultVersion="2",
+    )
+
+    assert "DefaultVersionNumber" in resp["LaunchTemplate"]
+    version = version_resp["LaunchTemplateVersion"]
+    assert resp["LaunchTemplate"]["DefaultVersionNumber"] == 2
+    assert (
+        version["LaunchTemplateId"] == create_resp["LaunchTemplate"]["LaunchTemplateId"]
+    )

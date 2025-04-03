@@ -44,10 +44,7 @@ from moto.dynamodb.models.table_export import TableExport
 from moto.dynamodb.models.table_import import TableImport
 from moto.dynamodb.parsing import partiql
 from moto.dynamodb.parsing.executors import UpdateExpressionExecutor
-from moto.dynamodb.parsing.expressions import (  # type: ignore
-    ExpressionAttributeName,
-    UpdateExpressionParser,
-)
+from moto.dynamodb.parsing.expressions import UpdateExpressionParser  # type: ignore
 from moto.dynamodb.parsing.validators import UpdateExpressionValidator
 
 
@@ -445,7 +442,6 @@ class DynamoDBBackend(BaseBackend):
             # Parse expression to get validation errors
             update_expression_ast = UpdateExpressionParser.make(update_expression)
             update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
-            update_expression_ast.validate()
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
             # Covers cases where table has hash and range keys, ``key`` param
@@ -530,23 +526,6 @@ class DynamoDBBackend(BaseBackend):
             except ItemSizeTooLarge:
                 raise ItemSizeToUpdateTooLarge()
 
-            # Ensure all ExpressionAttributeNames are requested
-            # Either in the Condition, or in the UpdateExpression
-            attr_name_clauses = update_expression_ast.find_clauses(
-                [ExpressionAttributeName]
-            )
-            attr_names_in_expression = [
-                attr.get_attribute_name_placeholder() for attr in attr_name_clauses
-            ]
-            attr_names_in_condition = condition_expression_parser.expr_attr_names_found
-            for attr_name in expression_attribute_names or []:
-                if (
-                    attr_name not in attr_names_in_expression
-                    and attr_name not in attr_names_in_condition
-                ):
-                    raise MockValidationException(
-                        f"Value provided in ExpressionAttributeNames unused in expressions: keys: {{{attr_name}}}"
-                    )
         else:
             item.update_with_attribute_updates(attribute_updates)  # type: ignore
         if table.stream_shard is not None:
@@ -698,10 +677,10 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_values=expression_attribute_values,
                     )
                 errors.append((None, None, None))
-            except MultipleTransactionsException:
+            except (MultipleTransactionsException, MockValidationException):
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
-                raise MultipleTransactionsException()
+                raise
             except ConditionalCheckFailed as e:
                 errors.append(("ConditionalCheckFailed", str(e.message), original_item))  # type: ignore
             except Exception as e:  # noqa: E722 Do not use bare except

@@ -11147,6 +11147,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dax": {
                 "Value": "dax",
                 "endpoint": {
@@ -19173,6 +19182,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "qbusiness": {
+                "Value": "qbusiness",
+                "endpoint": {
+                  "Value": "qbusiness.ap-southeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "qldb": {
                 "Value": "qldb",
                 "endpoint": {
@@ -23517,6 +23535,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "polly": {
+                "Value": "polly",
+                "endpoint": {
+                  "Value": "polly.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "privatelink": {
                 "Value": "privatelink"
               },
@@ -23725,6 +23752,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24076,6 +24112,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ds": {
+                "Value": "ds",
+                "endpoint": {
+                  "Value": "ds.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -24277,6 +24322,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "lambda": {
                 "Value": "lambda",
                 "endpoint": {
@@ -24306,6 +24360,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -24382,6 +24445,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -24446,6 +24518,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "savingsplans": {
@@ -42842,6 +42923,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "qbusiness": {
+                "Value": "qbusiness",
+                "endpoint": {
+                  "Value": "qbusiness.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "qldb": {
                 "Value": "qldb",
                 "endpoint": {
@@ -46792,6 +46882,15 @@
                 "Value": "datasync",
                 "endpoint": {
                   "Value": "datasync.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.eu-west-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53205,6 +53304,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ds": {
+                "Value": "ds",
+                "endpoint": {
+                  "Value": "ds.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -53406,6 +53514,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "lambda": {
                 "Value": "lambda",
                 "endpoint": {
@@ -53435,6 +53552,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -53511,6 +53637,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-groups": {
                 "Value": "resource-groups",
                 "endpoint": {
@@ -53575,6 +53710,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "secretsmanager": {
@@ -56741,15 +56885,6 @@
                 "Value": "costexplorer",
                 "endpoint": {
                   "Value": "ce.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "cur": {
-                "Value": "cur",
-                "endpoint": {
-                  "Value": "cur.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

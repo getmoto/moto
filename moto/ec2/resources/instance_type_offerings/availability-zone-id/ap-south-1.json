@@ -1460,18 +1460,6 @@
   "Location": "aps1-az1"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "aps1-az1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "aps1-az1"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "aps1-az1"
- },
- {
   "InstanceType": "p4d.24xlarge",
   "Location": "aps1-az1"
  },
@@ -5745,18 +5733,6 @@
  },
  {
   "InstanceType": "m7i.xlarge",
-  "Location": "aps1-az3"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "aps1-az3"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "aps1-az3"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "aps1-az3"
  },
  {

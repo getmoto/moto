@@ -33,12 +33,36 @@ from moto.route53.exceptions import (
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
+from ..utilities.id_generator import ExistingIds, ResourceIdentifier, Tags, moto_id
 from .utils import PAGINATION_MODEL, validate_domain_name
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 
 
-def create_route53_zone_id() -> str:
+class HostedZoneIdentifier(ResourceIdentifier):
+    service = "route53"
+    resource = "hosted_zone"
+
+    def __init__(self, account_id: str, name: str, delegation_set_id: Optional[str]):
+        # the region is left blank as route53 is a global service
+        super().__init__(
+            account_id=account_id,
+            region="",
+            name=".".join((name, delegation_set_id or "")),
+        )
+
+    def generate(self, existing_ids: ExistingIds = None, tags: Tags = None) -> str:
+        return create_route53_zone_id(
+            resource_identifier=self, existing_ids=existing_ids, tags=tags
+        )
+
+
+@moto_id
+def create_route53_zone_id(  # type: ignore
+    resource_identifier: ResourceIdentifier,
+    existing_ids: ExistingIds = None,
+    tags: Tags = None,
+) -> str:
     # New ID's look like this Z1RWWTK7Y8UDDQ
     return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
 
@@ -564,7 +588,9 @@ class Route53Backend(BaseBackend):
     ) -> FakeZone:
         if self._has_prev_conflicting_domain(name, delegation_set_id):
             raise ConflictingDomainExists(name, delegation_set_id)
-        new_id = create_route53_zone_id()
+        new_id = HostedZoneIdentifier(
+            self.account_id, name, delegation_set_id
+        ).generate(existing_ids=list(self.zones.keys()))
         caller_reference = caller_reference or create_route53_caller_reference()
         delegation_set = self.create_reusable_delegation_set(
             caller_reference=f"DelSet_{name}", delegation_set_id=delegation_set_id
