@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from moto.cloudwatch.models import CloudWatchBackend
     from moto.codebuild.models import CodeBuildBackend
     from moto.codecommit.models import CodeCommitBackend
+    from moto.codedeploy.models import CodeDeployBackend
     from moto.codepipeline.models import CodePipelineBackend
     from moto.cognitoidentity.models import CognitoIdentityBackend
     from moto.cognitoidp.models import CognitoIdpBackend
@@ -218,6 +219,7 @@ SERVICE_NAMES = Union[
     "Literal['cloudwatch']",
     "Literal['codebuild']",
     "Literal['codecommit']",
+    "Literal['codedeploy']",
     "Literal['codepipeline']",
     "Literal['cognito-identity']",
     "Literal['cognito-idp']",
@@ -419,6 +421,8 @@ def get_backend(name: "Literal['codecommit']") -> "BackendDict[CodeCommitBackend
 def get_backend(
     name: "Literal['codepipeline']",
 ) -> "BackendDict[CodePipelineBackend]": ...
+@overload
+def get_backend(name: "Literal['codedeploy']") -> "BackendDict[CodeDeployBackend]": ...
 @overload
 def get_backend(
     name: "Literal['cognito-identity']",

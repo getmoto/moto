@@ -35,6 +35,7 @@ backend_url_patterns = [
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
     ("codebuild", re.compile("https?://codebuild\\.(.+)\\.amazonaws\\.com")),
     ("codecommit", re.compile("https?://codecommit\\.(.+)\\.amazonaws\\.com")),
+    ("codedeploy", re.compile("https?://codedeploy\\.(.+)\\.amazonaws\\.com")),
     ("codepipeline", re.compile("https?://codepipeline\\.(.+)\\.amazonaws\\.com")),
     ("cognitoidentity", re.compile("https?://cognito-identity\\.(.+)\\.amazonaws.com")),
     ("cognitoidp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
