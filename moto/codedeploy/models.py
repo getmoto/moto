@@ -60,7 +60,7 @@ class AlarmConfiguration(BaseModel):
     def __init__(
         self,
         alarms: Optional[List[Dict[str, Any]]] = None,
-        enabled: Optional[bool] = None,
+        enabled: Optional[bool] = False,
         ignore_poll_alarm_failure: bool = False,
     ):
         self.alarms = alarms or []
@@ -100,14 +100,16 @@ class DeploymentGroup(BaseModel):
         self.service_role_arn = service_role_arn
         self.trigger_configurations = trigger_configurations or []
         self.alarm_configuration = alarm_configuration
-        self.auto_rollback_configuration = auto_rollback_configuration
+        self.auto_rollback_configuration = auto_rollback_configuration or {}
         self.outdated_instances_strategy = outdated_instances_strategy
-        self.deployment_style = deployment_style
-        self.blue_green_deployment_configuration = blue_green_deployment_configuration
-        self.load_balancer_info = load_balancer_info
-        self.ec2_tag_set = ec2_tag_set
+        self.deployment_style = deployment_style or {}
+        self.blue_green_deployment_configuration = (
+            blue_green_deployment_configuration or {}
+        )
+        self.load_balancer_info = load_balancer_info or {}
+        self.ec2_tag_set = ec2_tag_set or {}
         self.ecs_services = ecs_services or []
-        self.on_premises_tag_set = on_premises_tag_set
+        self.on_premises_tag_set = on_premises_tag_set or {}
         self.tags = tags
         self.termination_hook_enabled = termination_hook_enabled
         self.deployment_group_id = str(uuid.uuid4())
@@ -116,14 +118,14 @@ class DeploymentGroup(BaseModel):
         return {
             "applicationName": self.application.application_name,
             "deploymentGroupName": self.deployment_group_name,
-            "deploymentConfigName": f"CodeDeployDefault.{self.deployment_config_name}",
-            "c2TagFilters": self.ec2_tag_filters,
+            "deploymentConfigName": str(self.deployment_config_name),
+            "ec2TagFilters": self.ec2_tag_filters,
             "onPremisesInstanceTagFilters": self.on_premises_instance_tag_filters,
             "autoScalingGroups": self.auto_scaling_groups,
             "serviceRoleArn": self.service_role_arn,
             "targetRevision": {},  # TODO
             "triggerConfigurations": self.trigger_configurations,
-            "alarmConfiguration": self.alarm_configuration,
+            "alarmConfiguration": {},  # TODO
             "autoRollbackConfiguration": self.auto_rollback_configuration,
             "deploymentStyle": self.deployment_style,
             "outdatedInstancesStrategy": self.outdated_instances_strategy,
@@ -182,11 +184,7 @@ class DeploymentInfo(BaseModel):
         # the means by which the deployment was created: {user, autoscaling, codeDeployRollback, CodeDeployAutoUpdate}
         self.creator = "user" if not creator else creator
 
-        self.deployment_config_name = (
-            CodeDeployDefault.OneAtATime
-            if deployment_config_name is None
-            else deployment_config_name
-        )
+        self.deployment_config_name = deployment_config_name
 
         self.ignore_application_stop_failures = ignore_application_stop_failures
         self.target_instances = targetInstances
@@ -244,8 +242,7 @@ class CodeDeployBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.applications: Dict[str, Application] = {}
         self.deployments: Dict[str, DeploymentInfo] = {}
-        self.deployment_groups: Dict[str, DeploymentGroup] = {}
-        self.tagger = TaggingService()
+        self.deployment_groups: Dict[str, Dict[str, DeploymentGroup]] = {}
 
     def get_application(self, application_name: str) -> Application:
         if application_name not in self.applications:
@@ -268,6 +265,24 @@ class CodeDeployBackend(BaseBackend):
                 f"The deployment {deployment_id} does not exist with the user or AWS account."
             )
         return self.deployments[deployment_id]
+
+    def get_deployment_group(
+        self, application_name: str, deployment_group_name: str
+    ) -> DeploymentGroup:
+        if application_name not in self.applications:
+            raise ApplicationDoesNotExistException(
+                f"The application {application_name} does not exist with the user or AWS account."
+            )
+
+        # application can also exist but just not associated with a deployment group
+        if (
+            application_name not in self.deployment_groups
+            or deployment_group_name not in self.deployment_groups[application_name]
+        ):
+            raise DeploymentGroupDoesNotExistException(
+                f"The deployment group {deployment_group_name} does not exist with the user or AWS account."
+            )
+        return self.deployment_groups[application_name][deployment_group_name]
 
     def batch_get_deployments(self, deployment_ids: List[str]) -> List[DeploymentInfo]:
         deployments = []
@@ -315,7 +330,9 @@ class CodeDeployBackend(BaseBackend):
         # assume required for now
 
         if deployment_group_name:
-            if deployment_group_name not in self.deployment_groups:
+            if deployment_group_name not in self.deployment_groups.get(
+                application_name, {}
+            ):
                 raise DeploymentGroupDoesNotExistException(
                     "Deployment group name does not exist."
                 )
@@ -326,13 +343,13 @@ class CodeDeployBackend(BaseBackend):
 
         if not deployment_config_name:
             # get the deployment from the deployment group if config name is not specified
-            deployment_config_name = self.deployment_groups[
+            deployment_config_name = self.deployment_groups[application_name][
                 deployment_group_name
             ].deployment_config_name
 
         deployment = DeploymentInfo(
             self.applications[application_name],
-            self.deployment_groups[deployment_group_name],
+            self.deployment_groups[application_name][deployment_group_name],
             revision,
             deployment_config_name,
             description,
@@ -348,6 +365,7 @@ class CodeDeployBackend(BaseBackend):
         self.deployments[deployment.deployment_id] = deployment
         return deployment.deployment_id
 
+    # TODO support all optional fields
     def create_deployment_group(
         self,
         application_name: str,
@@ -370,15 +388,19 @@ class CodeDeployBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
         termination_hook_enabled: Optional[bool] = None,
     ) -> str:
-        if deployment_group_name in self.deployment_groups:
-            raise DeploymentGroupAlreadyExistsException(
-                f"Deployment group {deployment_group_name} already exists."
-            )
-
         if application_name not in self.applications:
             raise ApplicationDoesNotExistException(
                 f"The application {application_name} does not exist with the user or AWS account."
             )
+
+        if deployment_group_name in self.deployment_groups.get(application_name, {}):
+            raise DeploymentGroupAlreadyExistsException(
+                f"Deployment group {deployment_group_name} already exists."
+            )
+
+        # if deployment_config_name is not specified, use the default
+        if not deployment_config_name:
+            deployment_config_name = CodeDeployDefault.OneAtATime
 
         dg = DeploymentGroup(
             self.applications[application_name],
@@ -401,7 +423,11 @@ class CodeDeployBackend(BaseBackend):
             tags,
             termination_hook_enabled,
         )
-        self.deployment_groups[dg.deployment_group_name] = dg
+
+        if application_name not in self.deployment_groups:
+            self.deployment_groups[application_name] = {}
+        self.deployment_groups[application_name][dg.deployment_group_name] = dg
+
         return dg.deployment_group_id
 
     # TODO: implement pagination
@@ -429,28 +455,42 @@ class CodeDeployBackend(BaseBackend):
                 "If deploymentGroupName is specified, applicationName must be specified."
             )
 
-        # return deployments that match the all filters for each provided filter
+        def matches_filters(deployment: DeploymentInfo) -> bool:
+            if application_name and deployment.application_name != application_name:
+                return False
+            if deployment_group_name:
+                if application_name not in self.deployment_groups:
+                    return False
+                if (
+                    deployment_group_name
+                    not in self.deployment_groups[application_name]
+                ):
+                    return False
+                if deployment.deployment_group_name != deployment_group_name:
+                    return False
+                if (
+                    include_only_statuses
+                    and deployment.status not in include_only_statuses
+                ):
+                    return False
+            return True
+
         return [
             deployment.deployment_id
             for deployment in self.deployments.values()
-            if (not application_name or deployment.application_name == application_name)
-            and (
-                not deployment_group_name
-                or deployment.deployment_group_name == deployment_group_name
-            )
-            and (
-                not include_only_statuses or deployment.status in include_only_statuses
-            )
+            if matches_filters(deployment)
         ]
 
     # TODO: implement pagination
     def list_deployment_groups(
         self, application_name: str, next_token: str
     ) -> List[str]:
+        if application_name not in self.deployment_groups:
+            return []
+
         return [
             deployment_group.deployment_group_id
-            for deployment_group in self.deployment_groups.values()
-            if application_name == deployment_group.application.application_name
+            for deployment_group in self.deployment_groups[application_name].values()
         ]
 
 

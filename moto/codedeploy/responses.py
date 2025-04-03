@@ -45,6 +45,15 @@ class CodeDeployResponse(BaseResponse):
         )
         return json.dumps({"deploymentInfo": deployment.to_dict()})
 
+    def get_deployment_group(self) -> str:
+        application_name = self._get_param("applicationName")
+        deployment_group_name = self._get_param("deploymentGroupName")
+        deployment_group = self.codedeploy_backend.get_deployment_group(
+            application_name=application_name,
+            deployment_group_name=deployment_group_name,
+        )
+        return json.dumps({"deploymentGroupInfo": deployment_group.to_dict()})
+
     def batch_get_deployments(self) -> str:
         deployment_ids = self._get_param("deploymentIds")
         deployments = self.codedeploy_backend.batch_get_deployments(

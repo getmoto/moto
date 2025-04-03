@@ -317,6 +317,65 @@ def test_get_deployment_nonexistent_deployment():
 
 
 @mock_aws
+def test_get_deployment_group():
+    client = boto3.client("codedeploy", region_name="eu-west-1")
+    application_name = "mytestapp"
+    deployment_group_name = "mytestdeploymentgroup"
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+
+    client.create_application(
+        applicationName=application_name, computePlatform="Lambda"
+    )
+    client.create_deployment_group(
+        applicationName=application_name,
+        deploymentGroupName=deployment_group_name,
+        serviceRoleArn=service_role_arn,
+    )
+
+    response = client.get_deployment_group(
+        applicationName=application_name, deploymentGroupName=deployment_group_name
+    )
+    assert "deploymentGroupInfo" in response
+    deployment_group_info = response["deploymentGroupInfo"]
+
+    # required fields
+    assert deployment_group_info["applicationName"] == application_name
+    assert deployment_group_info["deploymentGroupName"] == deployment_group_name
+    assert deployment_group_info["serviceRoleArn"] == service_role_arn
+
+    # TODO assert other fields to be added
+    # assert "alarmConfiguration" in deployment_group_info
+
+
+@mock_aws
+def test_get_deployment_group_nonexistent_app():
+    client = boto3.client("codedeploy", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.get_deployment_group(
+            applicationName="nonexistent-app-name",
+            deploymentGroupName="mytestdeploymentgroup",
+        )
+    assert exc.value.response["Error"]["Code"] == "ApplicationDoesNotExistException"
+
+
+@mock_aws
+def test_get_deployment_group_nonexistent_group():
+    client = boto3.client("codedeploy", region_name="eu-west-1")
+    application_name = "mytestapp"
+
+    client.create_application(
+        applicationName=application_name, computePlatform="Lambda"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.get_deployment_group(
+            applicationName=application_name,
+            deploymentGroupName="nonexistent-group-name",
+        )
+    assert exc.value.response["Error"]["Code"] == "DeploymentGroupDoesNotExistException"
+
+
+@mock_aws
 def test_batch_get_applications_invalid_name():
     client = boto3.client("codedeploy", region_name="us-east-2")
     with pytest.raises(ClientError) as exc:
