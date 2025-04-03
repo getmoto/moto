@@ -174,6 +174,33 @@ def test_create_deployment_nonexistent_app():
 
 
 @mock_aws
+def test_create_deployment_nonexistent_group():
+    client = boto3.client("codedeploy", region_name="eu-west-1")
+    application_name = "mytestapp"
+
+    client.create_application(
+        applicationName=application_name, computePlatform="Lambda"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_deployment(
+            applicationName=application_name,
+            deploymentGroupName="non-existent-group-name",
+            revision={
+                "revisionType": "S3",
+                "s3Location": {
+                    "bucket": "my-bucket",
+                    "key": "my-key",
+                    "bundleType": "zip",
+                    "version": "1",
+                    "eTag": "my-etag",
+                },
+            },
+        )
+    assert exc.value.response["Error"]["Code"] == "DeploymentGroupDoesNotExistException"
+
+
+@mock_aws
 def test_create_deployment_group():
     client = boto3.client("codedeploy", region_name="eu-west-1")
     application_name = "mytestapp"
@@ -191,6 +218,21 @@ def test_create_deployment_group():
     )
 
     assert "deploymentGroupId" in response
+
+
+@mock_aws
+def test_create_deployment_group_app_nonexistent():
+    client = boto3.client("codedeploy", region_name="eu-west-1")
+    deployment_group_name = "mytestdeploymentgroup"
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_deployment_group(
+            applicationName="nonexistent-app-name",
+            deploymentGroupName=deployment_group_name,
+            serviceRoleArn=service_role_arn,
+        )
+    assert exc.value.response["Error"]["Code"] == "ApplicationDoesNotExistException"
 
 
 @mock_aws
@@ -264,6 +306,14 @@ def test_get_deployment():
     assert response["deploymentInfo"]["revision"]["string"]["sha256"] == revision_sha256
     assert response["deploymentInfo"]["status"] == "Created"
     assert "createTime" in response["deploymentInfo"]
+
+
+@mock_aws
+def test_get_deployment_nonexistent_deployment():
+    client = boto3.client("codedeploy", region_name="eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.get_deployment(deploymentId="nonexistent-deployment-id")
+    assert exc.value.response["Error"]["Code"] == "DeploymentDoesNotExistException"
 
 
 @mock_aws
@@ -397,6 +447,22 @@ def test_list_deployments():
 
     resp = client.list_deployments()
     assert len(resp["deployments"]) == 2
+
+
+@mock_aws
+def test_list_deployments_group_required():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    with pytest.raises(ClientError) as exc:
+        client.list_deployments(applicationName="mytestapp")
+    assert exc.value.response["Error"]["Code"] == "DeploymentGroupNameRequiredException"
+
+
+@mock_aws
+def test_list_deployments_app_required():
+    client = boto3.client("codedeploy", region_name="ap-southeast-1")
+    with pytest.raises(ClientError) as exc:
+        client.list_deployments(deploymentGroupName="mygroupname")
+    assert exc.value.response["Error"]["Code"] == "ApplicationNameRequiredException"
 
 
 @mock_aws
