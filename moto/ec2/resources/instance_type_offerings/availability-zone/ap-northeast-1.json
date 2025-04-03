@@ -628,6 +628,14 @@
   "Location": "ap-northeast-1a"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "ap-northeast-1a"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "ap-northeast-1a"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "ap-northeast-1a"
  },

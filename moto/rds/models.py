@@ -38,6 +38,7 @@ from .exceptions import (
     DBClusterToBeDeletedHasActiveMembers,
     DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
+    DBParameterGroupAlreadyExistsError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
     DBProxyNotFoundFault,
@@ -2885,6 +2886,48 @@ class RDSBackend(BaseBackend):
         db_parameter_group = DBParameterGroup(self, **db_parameter_group_kwargs)
         self.db_parameter_groups[db_parameter_group_id] = db_parameter_group
         return db_parameter_group
+
+    def copy_db_parameter_group(
+        self,
+        source_db_parameter_group_identifier: str,
+        target_db_parameter_group_identifier: str,
+        target_db_parameter_group_description: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> DBParameterGroup:
+        if source_db_parameter_group_identifier.startswith("arn:aws:rds:"):
+            source_db_parameter_group_identifier = (
+                source_db_parameter_group_identifier.split(":")[-1]
+            )
+        if source_db_parameter_group_identifier not in self.db_parameter_groups:
+            raise DBParameterGroupNotFoundError(source_db_parameter_group_identifier)
+        if target_db_parameter_group_identifier in self.db_parameter_groups:
+            raise DBParameterGroupAlreadyExistsError(
+                target_db_parameter_group_identifier
+            )
+        source_db_parameter_group = self.db_parameter_groups[
+            source_db_parameter_group_identifier
+        ]
+
+        target_db_parameter_group = DBParameterGroup(
+            backend=self,
+            db_parameter_group_name=target_db_parameter_group_identifier,
+            db_parameter_group_family=source_db_parameter_group.family,
+            description=target_db_parameter_group_description,
+            tags=tags,
+        )
+        self.db_parameter_groups[target_db_parameter_group_identifier] = (
+            target_db_parameter_group
+        )
+
+        iterable_source_parameters = [
+            {"ParameterName": name, **values}
+            for name, values in source_db_parameter_group.parameters.items()
+        ]
+        self.modify_db_parameter_group(
+            db_parameter_group_name=target_db_parameter_group_identifier,
+            db_parameter_group_parameters=iterable_source_parameters,
+        )
+        return target_db_parameter_group
 
     def describe_db_parameter_groups(
         self, db_parameter_group_kwargs: Dict[str, Any]

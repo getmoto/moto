@@ -6216,6 +6216,14 @@
   "Location": "apne1-az4"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "apne1-az4"
+ },
+ {
   "InstanceType": "c7i-flex.2xlarge",
   "Location": "apne1-az4"
  },
