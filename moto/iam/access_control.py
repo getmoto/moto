@@ -485,6 +485,8 @@ class IAMPolicyStatement:
             if not self._check_conditions(incoming_condition_values):
                 return PermissionResult.DENIED
 
+            # For trust policies, which doesn't contain resource segments
+            # if the previous checks passed the actions is PERMITTED
             if not self._statement.get("Resource"):
                 return PermissionResult.PERMITTED
 
@@ -546,6 +548,7 @@ class IAMPolicyStatement:
             actual_values: List[str] = []
 
             for context_key in condition.context_keys:
+                # TODO: expand functionality for covering internal data sources with backend component
                 if (
                     incoming_condition_values
                     and context_key in incoming_condition_values
