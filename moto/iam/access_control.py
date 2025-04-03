@@ -42,8 +42,13 @@ from moto.s3.exceptions import (
 from moto.sts.models import sts_backends
 from moto.utilities.utils import get_partition
 
+from .exceptions import IAMNotFoundException
 from .models import IAMBackend, Policy, iam_backends
-from .utils import REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK, format_conditions
+from .policy_conditions import TrustRelationShipConditions
+from .utils import (
+    REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK,
+    format_incoming_conditional_values,
+)
 
 log = logging.getLogger(__name__)
 
@@ -264,7 +269,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
                 permitted = True
 
         if self._is_assuming_role_operation(resource):
-            permitted = self._check_role_trust_relationship(resource)
+            permitted = permitted and self._check_role_trust_relationship(resource)
 
         if not permitted:
             self._raise_access_denied()
@@ -272,19 +277,18 @@ class IAMRequestBase(object, metaclass=ABCMeta):
     def _is_assuming_role_operation(self, resource_arn: str) -> bool:
         if ":role" not in resource_arn.lower():
             return False
-
-        if not self.backend.has_role_by_arn(resource_arn):
+        try:
+            self.backend.get_role_by_arn(resource_arn)
+            return self._action in REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK
+        except IAMNotFoundException:
             return False
-
-        self.backend.get_role_by_arn(resource_arn)
-        return self._action in REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK
 
     def _check_role_trust_relationship(
         self,
         role_arn: str,
     ) -> bool:
         target_principal = self._access_key.arn
-        target_conditions = format_conditions(self._data)
+        incoming_condition_values = format_incoming_conditional_values(self._data)
 
         role = self.backend.get_role_by_arn(role_arn)
         role_assume_policy = IAMPolicy(role.assume_role_policy_document)
@@ -293,7 +297,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
             self._action,
             role_arn,
             target_principal,
-            target_conditions,
+            incoming_condition_values,
         )
 
         return permission_result == PermissionResult.PERMITTED
@@ -424,7 +428,7 @@ class IAMPolicy:
         action: str,
         resource: str = "*",
         principal: Optional[str] = None,
-        conditions: Optional[Dict[str, Dict[str, str]]] = None,
+        incoming_condition_values: Optional[Dict[str, str]] = None,
     ) -> "PermissionResult":
         permitted = False
         if isinstance(self._policy_json["Statement"], list):
@@ -434,7 +438,7 @@ class IAMPolicy:
                     action,
                     resource,
                     principal,
-                    conditions,
+                    incoming_condition_values,
                 )
                 if permission_result == PermissionResult.DENIED:
                     return permission_result
@@ -443,7 +447,7 @@ class IAMPolicy:
         else:  # dict
             iam_policy_statement = IAMPolicyStatement(self._policy_json["Statement"])
             return iam_policy_statement.is_action_permitted(
-                action, resource, principal, conditions
+                action, resource, principal, incoming_condition_values
             )
 
         if permitted:
@@ -461,7 +465,7 @@ class IAMPolicyStatement:
         action: str,
         resource: str = "*",
         principal: Optional[str] = None,
-        conditions: Optional[Dict[str, Dict[str, str]]] = None,
+        incoming_condition_values: Optional[Dict[str, str]] = None,
     ) -> "PermissionResult":
         is_action_concerned = False
 
@@ -478,7 +482,7 @@ class IAMPolicyStatement:
             elif principal and not self._check_principal(principal):
                 return PermissionResult.DENIED
 
-            if conditions and not self._check_conditions(conditions):
+            if not self._check_conditions(incoming_condition_values):
                 return PermissionResult.DENIED
 
             if not self._statement.get("Resource"):
@@ -530,12 +534,28 @@ class IAMPolicyStatement:
             or principal in aws_expected_principals
         )
 
-    def _check_conditions(self, conditions: Dict[str, Dict[str, str]]) -> bool:
+    def _check_conditions(
+        self, incoming_condition_values: Optional[Dict[str, str]]
+    ) -> bool:
         expected_conditions = self._statement.get("Condition")
         if not expected_conditions:
             return True
 
-        return conditions == expected_conditions
+        trust_conditions = TrustRelationShipConditions(expected_conditions)
+        for condition in trust_conditions:
+            actual_values: List[str] = []
+
+            for context_key in condition.context_keys:
+                if (
+                    incoming_condition_values
+                    and context_key in incoming_condition_values
+                ):
+                    actual_values.append(incoming_condition_values[context_key])
+
+            if not condition.verify_condition(actual_values):
+                return False
+
+        return True
 
     @staticmethod
     def _match(pattern: str, string: str) -> Optional[Match[str]]:

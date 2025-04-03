@@ -2202,20 +2202,6 @@ class IAMBackend(BaseBackend):
                 return role
         raise IAMNotFoundException(f"Role {arn} not found")
 
-    def has_role_by_name(self, role_name: str) -> bool:
-        for role in self.get_roles():
-            if role.name == role_name:
-                return True
-
-        return False
-
-    def has_role_by_arn(self, role_arn: str) -> bool:
-        for role in self.get_roles():
-            if role.arn == role_arn:
-                return True
-
-        return False
-
     def delete_role(self, role_name: str) -> None:
         role = self.get_role(role_name)
         for instance_profile in self.get_instance_profiles():
