@@ -3408,6 +3408,7 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </Filter>
   <Destination>
     <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
+    <Account>{{ rule["Destination"]["Account"] }}</Account>
   </Destination>
 </Rule>
 {% endfor %}
