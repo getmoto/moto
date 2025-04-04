@@ -178,7 +178,7 @@ class CamelToUnderscoresWalker:
         return x
 
 
-class CaseInsensitiveDict(_CaseInsensitiveDict[str]):
+class CaseInsensitiveDict(_CaseInsensitiveDict):  # type: ignore[type-arg]
     """Proxy for requests.structures.CaseInsensitiveDict"""
 
     pass
