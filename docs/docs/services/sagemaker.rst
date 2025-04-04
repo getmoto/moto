@@ -356,8 +356,6 @@ sagemaker
 - [ ] update_feature_group
 - [ ] update_feature_metadata
 - [ ] update_hub
-- [ ] update_hub_content
-- [ ] update_hub_content_reference
 - [ ] update_image
 - [ ] update_image_version
 - [ ] update_inference_component
