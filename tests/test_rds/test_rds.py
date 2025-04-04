@@ -3616,7 +3616,7 @@ def snapshot_validation_helper(exc, expected_message):
 
 
 @mock_aws
-def test_db_instance_identifier_is_lower_cased(client):
+def test_db_instance_identifier_is_case_insensitive(client):
     instance = create_db_instance(DBInstanceIdentifier="FooBar")
     assert instance["DBInstanceIdentifier"] == "foobar"
 

@@ -31,7 +31,7 @@ from moto.ec2.models import ec2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
 from moto.secretsmanager.models import FakeSecret, SecretsManagerBackend
-from moto.utilities.utils import ARN_PARTITION_REGEX, LowercaseDict, load_resource
+from moto.utilities.utils import ARN_PARTITION_REGEX, CaseInsensitiveDict, load_resource
 
 from .exceptions import (
     DBClusterNotFoundError,
@@ -448,7 +448,9 @@ class MasterUserSecret:
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
-            ["db_cluster_arn", "db_cluster_identifier"], "DB Cluster Identifiers"
+            ["db_cluster_arn", "db_cluster_identifier"],
+            "DB Cluster Identifiers",
+            case_insensitive=True,
         ),
         "engine": FilterDef(["engine"], "Engine Names"),
     }
@@ -628,6 +630,14 @@ class DBCluster(RDSBaseModel):
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
                 )
         self.license_model = license_model
+
+    @property
+    def db_cluster_identifier(self) -> str:
+        return self._db_cluster_identifier
+
+    @db_cluster_identifier.setter
+    def db_cluster_identifier(self, value: str) -> None:
+        self._db_cluster_identifier = value.lower()
 
     @property
     def db_subnet_group(self) -> str:
@@ -1589,7 +1599,7 @@ class DBInstanceClustered(DBInstance):
                 f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
             )
         self.cluster = self.backend.clusters[db_cluster_identifier]
-        self.db_cluster_identifier: str = db_cluster_identifier
+        self.db_cluster_identifier: str = self.cluster.db_cluster_identifier
         self.is_cluster_writer = True if not self.cluster.members else False
         self.promotion_tier = promotion_tier
         self.manage_master_user_password = False
@@ -2131,22 +2141,24 @@ class RDSBackend(BaseBackend):
             ARN_PARTITION_REGEX
             + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
-        self.clusters: MutableMapping[str, DBCluster] = LowercaseDict()
-        self.global_clusters: MutableMapping[str, GlobalCluster] = LowercaseDict()
-        self.databases: MutableMapping[str, DBInstance] = LowercaseDict()
-        self.database_snapshots: MutableMapping[str, DBSnapshot] = LowercaseDict()
-        self.cluster_snapshots: MutableMapping[str, DBClusterSnapshot] = LowercaseDict()
+        self.clusters: MutableMapping[str, DBCluster] = CaseInsensitiveDict()
+        self.global_clusters: MutableMapping[str, GlobalCluster] = CaseInsensitiveDict()
+        self.databases: MutableMapping[str, DBInstance] = CaseInsensitiveDict()
+        self.database_snapshots: MutableMapping[str, DBSnapshot] = CaseInsensitiveDict()
+        self.cluster_snapshots: MutableMapping[str, DBClusterSnapshot] = (
+            CaseInsensitiveDict()
+        )
         self.export_tasks: Dict[str, ExportTask] = OrderedDict()
         self.event_subscriptions: Dict[str, EventSubscription] = OrderedDict()
         self.db_parameter_groups: MutableMapping[str, DBParameterGroup] = (
-            LowercaseDict()
+            CaseInsensitiveDict()
         )
         self.db_cluster_parameter_groups: MutableMapping[
             str, DBClusterParameterGroup
-        ] = LowercaseDict()
-        self.option_groups: MutableMapping[str, OptionGroup] = LowercaseDict()
+        ] = CaseInsensitiveDict()
+        self.option_groups: MutableMapping[str, OptionGroup] = CaseInsensitiveDict()
         self.security_groups: Dict[str, DBSecurityGroup] = {}
-        self.subnet_groups: MutableMapping[str, DBSubnetGroup] = LowercaseDict()
+        self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
         self.events: List[Event] = []
@@ -2292,8 +2304,7 @@ class RDSBackend(BaseBackend):
                     raise InvalidDBInstanceEngine(
                         str(database.engine), str(cluster.engine)
                     )
-        # TODO: we can do lower case dict, but maybe we just use the resource.identifer attribute to add it which will always be lower?
-        self.databases[database.db_instance_identifier] = database
+        self.databases[database_id] = database
         database.add_event("DB_INSTANCE_CREATE")
         database.save_automated_backup()
         return database
@@ -3096,7 +3107,7 @@ class RDSBackend(BaseBackend):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
 
-        kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier", None)
+        kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
                 k = "parameter_group"
