@@ -4,6 +4,7 @@ from unittest import SkipTest
 
 import boto3
 import pytest
+import requests
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
@@ -348,17 +349,22 @@ def test_publish_to_sqs_msg_attr_different_formats():
 
 @mock_aws
 def test_publish_sms():
+    nr = "+15551234567"
+    msg = "my message"
     client = boto3.client("sns", region_name="us-east-1")
 
-    result = client.publish(PhoneNumber="+15551234567", Message="my message")
+    result = client.publish(PhoneNumber=nr, Message=msg)
 
     assert "MessageId" in result
     if not settings.TEST_SERVER_MODE:
         sns_backend = sns_backends[ACCOUNT_ID]["us-east-1"]
-        assert sns_backend.sms_messages[result["MessageId"]] == (
-            "+15551234567",
-            "my message",
-        )
+        assert sns_backend.sms_messages[result["MessageId"]] == (nr, msg)
+
+        resp = requests.get("http://motoapi.amazonaws.com/moto-api/data.json")
+        sms = resp.json()["sns"]["SMS"]
+        assert sms == [
+            {"message": msg, "message_id": result["MessageId"], "phone_number": nr}
+        ]
 
 
 @mock_aws
