@@ -20,4 +20,3 @@ include moto/ssm/resources/ecs/optimized_amis/*.json
 include moto/support/resources/*.json
 recursive-include moto/moto_server *
 recursive-include tests *
-recursive-exclude tests/terraformtests *
