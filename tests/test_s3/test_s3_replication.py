@@ -154,6 +154,7 @@ def test_create_and_retrieve_replication_with_multiple_rules():
                     "Destination": {"Bucket": "thirdbucket"},
                     "Status": "Disabled",
                 },
+                {"Destination": {"Bucket": "x-account-bucket", "Account":"1234567890"}, "Status": "Enabled"},
             ],
         },
     )
@@ -169,6 +170,7 @@ def test_create_and_retrieve_replication_with_multiple_rules():
     assert "ID" in first_rule
     assert first_rule["Priority"] == 1
     assert first_rule["Status"] == "Enabled"
+    import pytest; pytest.set_trace()
     assert first_rule["Destination"] == {"Bucket": "secondbucket"}
 
     second = rules[1]
@@ -176,3 +178,4 @@ def test_create_and_retrieve_replication_with_multiple_rules():
     assert second["Priority"] == 2
     assert second["Status"] == "Disabled"
     assert second["Destination"] == {"Bucket": "thirdbucket"}
+
