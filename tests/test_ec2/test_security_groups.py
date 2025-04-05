@@ -1000,7 +1000,7 @@ def test_security_group_filter_ip_permission():
             "IpProtocol": "tcp",
             "FromPort": from_port,
             "ToPort": to_port,
-            "IpRanges": [],
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         },
     ]
 
@@ -1994,7 +1994,7 @@ def test_revoke_security_group_ingress():
                 "FromPort": 8080,
                 "ToPort": 8080,
                 "IpProtocol": "TCP",
-                "IpRanges": [{"CidrIp": "10.0.0.1/32"}],
+                "IpRanges": [{"CidrIp": "10.0.0.1/32"}, {"CidrIp": "10.0.0.10/32"}],
             },
         ],
     )
@@ -2004,11 +2004,11 @@ def test_revoke_security_group_ingress():
     )
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
-    assert len(ingress_rules) == 2
+    assert len(ingress_rules) == 3
 
-    # revoke 1 of the 2 ingress rules
+    # revoke 1 of the 3 ingress rules
     ec2.revoke_security_group_ingress(
-        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[0]["SecurityGroupRuleId"]]
+        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[-1]["SecurityGroupRuleId"]]
     )
 
     response = ec2.describe_security_group_rules(
@@ -2016,7 +2016,7 @@ def test_revoke_security_group_ingress():
     )
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
-    assert len(ingress_rules) == 1
+    assert len(ingress_rules) == 2
 
 
 @mock_aws()
