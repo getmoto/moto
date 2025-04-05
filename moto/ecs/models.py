@@ -1117,7 +1117,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         if service_connect_defaults is not None:
             cluster.service_connect_defaults = service_connect_defaults
         return cluster
-    
+
     def update_cluster_resources(
         self,
         cluster: Cluster,
@@ -1434,9 +1434,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
                     )
-                    self.update_cluster_resources(
-                        cluster, 1
-                    )
+                    self.update_cluster_resources(cluster, 1)
                     tasks.append(task)
                     self.tasks[cluster.name][task.task_arn] = task
                     placed_count += 1
@@ -1662,9 +1660,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tasks[task].resource_requirements,  # type: ignore[arg-type]
                         removing=True,
                     )
-                    self.update_cluster_resources(
-                        cluster, -1, task_state="RUNNING"
-                    )
+                    self.update_cluster_resources(cluster, -1, task_state="RUNNING")
                 tasks[task].last_status = "STOPPED"
                 tasks[task].desired_status = "STOPPED"
                 tasks[task].stopped_reason = reason
@@ -1806,7 +1802,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             for prop_name, prop_val in service_properties.items():
                 if prop_val is not None:
                     current_service.__setattr__(prop_name, prop_val)
-                    if prop_name == "desired_count":                        
+                    if prop_name == "desired_count":
                         current_service.__setattr__("running_count", prop_val)
                         current_service.__setattr__("pending_count", 0)
                         self.update_cluster_resources(

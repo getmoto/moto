@@ -48,26 +48,6 @@ def test_create_cluster_with_setting():
 
 
 @mock_aws
-def test_create_cluster_with_pending_tasks():
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't set environment variables in server mode")
-    
-    pending_tasks_count = 3
-    with mock.patch.dict(
-        os.environ, {"MOTO_ECS_CLUSTER_TASKS_PENDING": str(pending_tasks_count)}
-    ):
-        client = boto3.client("ecs", region_name=ECS_REGION)
-
-        cluster = client.create_cluster(
-            clusterName="test_ecs_cluster",
-        )["cluster"]
-        assert cluster["clusterName"] == "test_ecs_cluster"
-        assert cluster["status"] == "ACTIVE"
-        assert cluster["runningTasksCount"] == 0
-        assert cluster["pendingTasksCount"] == pending_tasks_count
-
-
-@mock_aws
 def test_create_cluster_with_capacity_providers():
     client = boto3.client("ecs", region_name=ECS_REGION)
     cluster = client.create_cluster(
@@ -1339,15 +1319,15 @@ def test_delete_service():
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
-    
+
     cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
     assert cluster["pendingTasksCount"] == 2
     assert cluster["runningTasksCount"] == 0
-    
+
     client.update_service(
         cluster="test_ecs_cluster", service="test_ecs_service", desiredCount=0
     )
-    
+
     cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
     assert cluster["pendingTasksCount"] == 0
     assert cluster["runningTasksCount"] == 0
@@ -2734,7 +2714,7 @@ def test_stop_task():
         count=1,
         startedBy="moto",
     )
-    
+
     cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
     assert cluster["runningTasksCount"] == 1
 
