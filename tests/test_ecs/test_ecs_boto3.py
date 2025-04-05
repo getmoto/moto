@@ -52,7 +52,7 @@ def test_create_cluster_with_pending_tasks():
     if not settings.TEST_DECORATOR_MODE:
         raise SkipTest("Can't set environment variables in server mode")
     
-    gstpending_tasks_count = 3
+    pending_tasks_count = 3
     with mock.patch.dict(
         os.environ, {"MOTO_ECS_CLUSTER_TASKS_PENDING": str(pending_tasks_count)}
     ):
@@ -716,6 +716,9 @@ def test_create_service():
     assert nc["subnets"][0] == subnet.id
     assert nc["securityGroups"][0] == sg.id
 
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 2
+
 
 @mock_aws
 def test_create_running_service():
@@ -742,6 +745,10 @@ def test_create_running_service():
         assert response["service"]["runningCount"] == running_service_count
         assert response["service"]["pendingCount"] == 1
 
+        cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+        assert cluster["runningTasksCount"] == running_service_count
+        assert cluster["pendingTasksCount"] == 1
+
 
 @mock_aws
 def test_create_running_service_bad_env_var():
@@ -763,6 +770,9 @@ def test_create_running_service_bad_env_var():
 
         assert response["service"]["runningCount"] == 0
 
+        cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+        assert cluster["runningTasksCount"] == 0
+
 
 @mock_aws
 def test_create_running_service_negative_env_var():
@@ -783,6 +793,9 @@ def test_create_running_service_negative_env_var():
         )
 
         assert response["service"]["runningCount"] == 0
+
+        cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+        assert cluster["runningTasksCount"] == 0
 
 
 @mock_aws
@@ -1326,9 +1339,19 @@ def test_delete_service():
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
+    
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 2
+    assert cluster["runningTasksCount"] == 0
+    
     client.update_service(
         cluster="test_ecs_cluster", service="test_ecs_service", desiredCount=0
     )
+    
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 0
+    assert cluster["runningTasksCount"] == 0
+
     response = client.delete_service(
         cluster="test_ecs_cluster", service="test_ecs_service"
     )
@@ -1352,6 +1375,10 @@ def test_delete_service():
         response["service"]["taskDefinition"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
     )
+
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 0
+    assert cluster["runningTasksCount"] == 0
 
     # service should still exist, just in the INACTIVE state
     service = client.describe_services(
@@ -2707,11 +2734,18 @@ def test_stop_task():
         count=1,
         startedBy="moto",
     )
+    
+    cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
+    assert cluster["runningTasksCount"] == 1
+
     stop_response = client.stop_task(
         cluster="test_ecs_cluster",
         task=run_response["tasks"][0].get("taskArn"),
         reason="moto testing",
     )
+
+    cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
+    assert cluster["runningTasksCount"] == 0
 
     assert stop_response["task"]["taskArn"] == run_response["tasks"][0].get("taskArn")
     assert stop_response["task"]["lastStatus"] == "STOPPED"
