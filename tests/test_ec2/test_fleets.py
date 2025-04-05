@@ -59,8 +59,8 @@ class launch_template_context:
 
 
 @pytest.mark.aws_verified
-@ec2_aws_verified
-def test_launch_template_is_created_properly():
+@ec2_aws_verified()
+def test_launch_template_is_created_properly(ec2_client=None):
     with launch_template_context() as ctxt:
         template = ctxt.ec2.describe_launch_templates()["LaunchTemplates"][0]
         assert template["DefaultVersionNumber"] == 1
@@ -411,8 +411,8 @@ def test_create_fleet_using_launch_template_config__overrides():
 
 
 @pytest.mark.aws_verified
-@ec2_aws_verified
-def test_delete_fleet():
+@ec2_aws_verified()
+def test_delete_fleet(ec2_client=None):
     with launch_template_context() as ctxt:
         fleet_res = ctxt.ec2.create_fleet(
             LaunchTemplateConfigs=[
