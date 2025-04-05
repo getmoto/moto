@@ -13,8 +13,8 @@ from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 TEST_REGION = "us-east-1"
 
 
-@pytest.fixture()
-def route53_moto_server() -> Iterable[str]:
+@pytest.fixture
+def moto_server() -> Iterable[str]:
     """Fixture to run a mocked AWS server for testing."""
     # Note: pass `port=0` to get a random free port.
     server = ThreadedMotoServer(port=0)
@@ -119,12 +119,12 @@ def test_create_query_logging_config_bad_args():
 
 @mock_aws
 @pytest.mark.parametrize("route53_region", ["us-west-1", TEST_REGION])
-def test_create_query_logging_config_good_args(route53_moto_server, route53_region):
+def test_create_query_logging_config_good_args(moto_server, route53_region):  # pylint: disable=redefined-outer-name
     """Test a valid create_logging_config() request."""
     client = boto3.client(
         "route53",
         region_name=route53_region,
-        endpoint_url=route53_moto_server if route53_region != TEST_REGION else None,
+        endpoint_url=moto_server if route53_region != TEST_REGION else None,
     )
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
