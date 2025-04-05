@@ -79,6 +79,7 @@ class Cluster(BaseObject, CloudFormationModel):
         self.name = cluster_name
         self.registered_container_instances_count = 0
         self.running_tasks_count = 0
+        self.pending_tasks_count = 0
         self.status = "ACTIVE"
         self.region_name = region_name
         self.settings = cluster_settings or [
@@ -89,17 +90,6 @@ class Cluster(BaseObject, CloudFormationModel):
         self.default_capacity_provider_strategy = default_capacity_provider_strategy
         self.tags = tags
         self.service_connect_defaults = service_connect_defaults
-
-        try:
-            # negative running count not allowed, set to 0 if so
-            pending_tasks_count = max(
-                int(getenv("MOTO_ECS_CLUSTER_TASKS_PENDING", 0)), 0
-            )
-        except ValueError:
-            # Unable to parse value of MOTO_ECS_CLUSTER_PENDING as an integer, set to default 0
-            pending_tasks_count = 0
-
-        self.pending_tasks_count = pending_tasks_count
 
     @property
     def physical_resource_id(self) -> str:
@@ -1034,12 +1024,6 @@ class EC2ContainerServiceBackend(BaseBackend):
     MOTO_ECS_SERVICE_RUNNING=2
 
     Every describe_services() will return runningCount AND deployment of 2
-
-    Set the environment variable MOTO_ECS_CLUSTER_TASKS_PENDING to a number of pending tasks you want. For example:
-    
-    MOTO_ECS_CLUSTER_TASKS_PENDING=2
-    
-    Every describe_clusters() will return pending_tasks_count of 2
     """
 
     def __init__(self, region_name: str, account_id: str):
