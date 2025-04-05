@@ -398,7 +398,7 @@ class Route53(BaseResponse):
         log_group_arn = json_body["CloudWatchLogsLogGroupArn"]
 
         query_logging_config = self.backend.create_query_logging_config(
-            self.region, hosted_zone_id, log_group_arn
+            hosted_zone_id, log_group_arn
         )
 
         template = Template(CREATE_QUERY_LOGGING_CONFIG_RESPONSE)
