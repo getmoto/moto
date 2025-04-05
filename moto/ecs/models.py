@@ -78,6 +78,7 @@ class Cluster(BaseObject, CloudFormationModel):
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
         self.name = cluster_name
         self.registered_container_instances_count = 0
+        self.running_tasks_count = 0
         self.status = "ACTIVE"
         self.region_name = region_name
         self.settings = cluster_settings or [
@@ -91,19 +92,13 @@ class Cluster(BaseObject, CloudFormationModel):
 
         try:
             # negative running count not allowed, set to 0 if so
-            running_tasks_count = max(int(getenv("MOTO_ECS_CLUSTER_RUNNING", 0)), 0)
-        except ValueError:
-            # Unable to parse value of MOTO_ECS_CLUSTER_RUNNING as an integer, set to default 0
-            running_tasks_count = 0
-
-        try:
-            # negative running count not allowed, set to 0 if so
-            pending_tasks_count = max(int(getenv("MOTO_ECS_CLUSTER_PENDING", 0)), 0)
+            pending_tasks_count = max(
+                int(getenv("MOTO_ECS_CLUSTER_TASKS_PENDING", 0)), 0
+            )
         except ValueError:
             # Unable to parse value of MOTO_ECS_CLUSTER_PENDING as an integer, set to default 0
             pending_tasks_count = 0
 
-        self.running_tasks_count = running_tasks_count
         self.pending_tasks_count = pending_tasks_count
 
     @property
@@ -1038,6 +1033,12 @@ class EC2ContainerServiceBackend(BaseBackend):
     MOTO_ECS_SERVICE_RUNNING=2
 
     Every describe_services() will return runningCount AND deployment of 2
+
+    Set the environment variable MOTO_ECS_CLUSTER_TASKS_PENDING to a number of pending tasks you want. For example:
+    
+    MOTO_ECS_CLUSTER_TASKS_PENDING=2
+    
+    Every describe_clusters() will return pending_tasks_count of 2
     """
 
     def __init__(self, region_name: str, account_id: str):
@@ -1131,6 +1132,20 @@ class EC2ContainerServiceBackend(BaseBackend):
         if service_connect_defaults is not None:
             cluster.service_connect_defaults = service_connect_defaults
         return cluster
+    
+    def update_cluster_resources(
+        self,
+        cluster: Cluster,
+        task_num: int,
+        task_state: Optional[str] = "RUNNING",
+    ) -> None:
+        """
+        Modify the number tasks running on the cluster.
+        """
+        if task_state == "RUNNING":
+            cluster.running_tasks_count += task_num
+        elif task_state == "PENDING":
+            cluster.pending_tasks_count += task_num
 
     def put_cluster_capacity_providers(
         self,
@@ -1433,6 +1448,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                     )
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
+                    )
+                    self.update_cluster_resources(
+                        cluster, 1
                     )
                     tasks.append(task)
                     self.tasks[cluster.name][task.task_arn] = task
