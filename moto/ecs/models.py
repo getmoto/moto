@@ -77,9 +77,9 @@ class Cluster(BaseObject, CloudFormationModel):
         self.active_services_count = 0
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
         self.name = cluster_name
-        self.pending_tasks_count = 0
         self.registered_container_instances_count = 0
         self.running_tasks_count = 0
+        self.pending_tasks_count = 0
         self.status = "ACTIVE"
         self.region_name = region_name
         self.settings = cluster_settings or [
@@ -577,6 +577,7 @@ class Service(BaseObject, CloudFormationModel):
 
         self.running_count = ecs_running_count
         self.pending_count = desired_count - ecs_running_count
+
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
@@ -1117,6 +1118,20 @@ class EC2ContainerServiceBackend(BaseBackend):
             cluster.service_connect_defaults = service_connect_defaults
         return cluster
 
+    def update_cluster_resources(
+        self,
+        cluster: Cluster,
+        task_num: int,
+        task_state: Optional[str] = "RUNNING",
+    ) -> None:
+        """
+        Modify the number tasks running on the cluster.
+        """
+        if task_state == "RUNNING":
+            cluster.running_tasks_count += task_num
+        elif task_state == "PENDING":
+            cluster.pending_tasks_count += task_num
+
     def put_cluster_capacity_providers(
         self,
         cluster_name: str,
@@ -1419,6 +1434,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     self.update_container_instance_resources(
                         container_instance, resource_requirements
                     )
+                    self.update_cluster_resources(cluster, 1)
                     tasks.append(task)
                     self.tasks[cluster.name][task.task_arn] = task
                     placed_count += 1
@@ -1644,6 +1660,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         tasks[task].resource_requirements,  # type: ignore[arg-type]
                         removing=True,
                     )
+                    self.update_cluster_resources(cluster, -1, task_state="RUNNING")
                 tasks[task].last_status = "STOPPED"
                 tasks[task].desired_status = "STOPPED"
                 tasks[task].stopped_reason = reason
@@ -1708,6 +1725,13 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster_service_pair = f"{cluster.name}:{service_name}"
         self.services[cluster_service_pair] = service
 
+        self.update_cluster_resources(
+            cluster, service.running_count, task_state="RUNNING"
+        )
+        self.update_cluster_resources(
+            cluster, service.pending_count, task_state="PENDING"
+        )
+
         return service
 
     def list_services(
@@ -1764,6 +1788,15 @@ class EC2ContainerServiceBackend(BaseBackend):
         force_new_deployment = service_properties.pop("force_new_deployment", False)
         cluster_service_pair = f"{cluster.name}:{service_name}"
 
+        # Zero out the service's logged tasks on the cluster.
+        service = self._get_service(cluster_str, service_name)
+        self.update_cluster_resources(
+            cluster, -service.running_count, task_state="RUNNING"
+        )
+        self.update_cluster_resources(
+            cluster, -service.pending_count, task_state="PENDING"
+        )
+
         if cluster_service_pair in self.services:
             current_service = self.services[cluster_service_pair]
             for prop_name, prop_val in service_properties.items():
@@ -1772,6 +1805,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                     if prop_name == "desired_count":
                         current_service.__setattr__("running_count", prop_val)
                         current_service.__setattr__("pending_count", 0)
+                        self.update_cluster_resources(
+                            cluster, prop_val, task_state="RUNNING"
+                        )
             if task_definition_str:
                 self.describe_task_definition(task_definition_str)
                 current_service.task_definition = task_definition_str
@@ -1802,6 +1838,12 @@ class EC2ContainerServiceBackend(BaseBackend):
             # A service is not immediately removed - just marked as inactive
             # It is only deleted later on
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ecs.html#ECS.Client.delete_service
+            self.update_cluster_resources(
+                cluster, -service.running_count, task_state="RUNNING"
+            )
+            self.update_cluster_resources(
+                cluster, -service.pending_count, task_state="PENDING"
+            )
             service.status = "INACTIVE"
             service.pending_count = 0
             return service
