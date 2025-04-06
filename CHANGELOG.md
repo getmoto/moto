@@ -4,7 +4,7 @@ Moto Changelog
 
 5.1.3
 -----
-Docker Digest for 5.1.3: <autopopulateddigest>
+Docker Digest for 5.1.3: _sha256:c96adff67d2bf82c3a61a6f1155db5300be44d82a9403919a6ff994d0e5438b7_
 
     New Methods:
         * DMS:
