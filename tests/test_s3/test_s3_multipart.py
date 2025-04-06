@@ -441,6 +441,67 @@ def test_multipart_etag_quotes_stripped():
 
 @mock_aws
 @reduced_min_part_size
+def test_multipart_checksum():
+    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_resource.create_bucket(Bucket="foobar")
+
+    part1 = b"0" * REDUCED_PART_SIZE
+    part1_checksum = "iInetw=="
+    part2 = b"1" * REDUCED_PART_SIZE
+    part2_checksum = "5C3cKQ=="
+    composite_checksum = "dBZW3w=="
+    multipart = client.create_multipart_upload(
+        Bucket="foobar", Key="the-key", ChecksumAlgorithm="CRC32"
+    )
+    up1 = client.upload_part(
+        Body=BytesIO(part1),
+        PartNumber=1,
+        Bucket="foobar",
+        Key="the-key",
+        UploadId=multipart["UploadId"],
+        ChecksumCRC32=part1_checksum,
+    )
+    up2 = client.upload_part(
+        Body=BytesIO(part2),
+        PartNumber=2,
+        Bucket="foobar",
+        Key="the-key",
+        UploadId=multipart["UploadId"],
+        ChecksumCRC32=part2_checksum,
+    )
+
+    client.complete_multipart_upload(
+        Bucket="foobar",
+        Key="the-key",
+        MultipartUpload={
+            "Parts": [
+                {"ETag": up1["ETag"], "PartNumber": 1, "ChecksumCRC32": part1_checksum},
+                {"ETag": up2["ETag"], "PartNumber": 2, "ChecksumCRC32": part2_checksum},
+            ]
+        },
+        UploadId=multipart["UploadId"],
+    )
+
+    # assert object attributes response contains composite checksum *without* the -2 suffix
+    object_attributes_response = client.get_object_attributes(
+        Bucket="foobar", Key="the-key", ObjectAttributes=["Checksum"]
+    )
+    object_attributes_response.pop("ResponseMetadata")
+    assert set(object_attributes_response.keys()) == {"Checksum", "LastModified"}
+    assert object_attributes_response["Checksum"] == {
+        "ChecksumCRC32": composite_checksum,
+        "ChecksumType": "COMPOSITE",
+    }
+
+    # assert get object response contains composite checksum *with* the -2 suffix
+    get_response = client.get_object(Bucket="foobar", Key="the-key")
+    assert get_response["ChecksumCRC32"] == f"{composite_checksum}-2"
+    assert get_response["ChecksumType"] == "COMPOSITE"
+
+
+@mock_aws
+@reduced_min_part_size
 def test_multipart_duplicate_upload():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
