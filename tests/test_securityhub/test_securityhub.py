@@ -1,13 +1,13 @@
 """Unit tests for securityhub-supported APIs."""
 
 import os
-from unittest import mock
+from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 
 
@@ -254,46 +254,48 @@ def test_multiple_accounts_in_organization():
         assert admin_response_1["Administrator"]["MemberStatus"] == "ENABLED"
 
 
-# Test passes here but fails on Github Actions CI
-# @mock_aws
-# def test_organization_auto_enable_disabled():
-#     admin_account_id = "111111111111"
-#     member_account_id = "222222222222"
+@mock_aws
+def test_organization_auto_enable_disabled():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Test runs successfully locally, but not in CI")
 
-#     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
-#         admin_client = boto3.client("securityhub", region_name="us-east-1")
+    admin_account_id = "111111111111"
+    member_account_id = "222222222222"
 
-#         admin_client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
 
-#         admin_client.update_organization_configuration(
-#             AutoEnable=False,
-#             AutoEnableStandards="NONE",
-#         )
+        admin_client.enable_organization_admin_account(AdminAccountId=admin_account_id)
 
-#         config_response = admin_client.describe_organization_configuration()
-#         assert config_response["AutoEnable"] is False
+        admin_client.update_organization_configuration(
+            AutoEnable=False,
+            AutoEnableStandards="NONE",
+        )
 
-#         admin_response = admin_client.get_administrator_account()
-#         assert "Administrator" in admin_response
-#         assert admin_response["Administrator"]["AccountId"] == admin_account_id
+        config_response = admin_client.describe_organization_configuration()
+        assert config_response["AutoEnable"] is False
 
-#     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
-#         member_client = boto3.client("securityhub", region_name="us-east-1")
-#         member_admin_response = member_client.get_administrator_account()
+        admin_response = admin_client.get_administrator_account()
+        assert "Administrator" in admin_response
+        assert admin_response["Administrator"]["AccountId"] == admin_account_id
 
-#         assert "Administrator" not in member_admin_response
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
+        member_client = boto3.client("securityhub", region_name="us-east-1")
+        member_admin_response = member_client.get_administrator_account()
 
-#     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
-#         admin_client = boto3.client("securityhub", region_name="us-east-1")
-#         admin_client.update_organization_configuration(AutoEnable=True)
+        assert "Administrator" not in member_admin_response
 
-#     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
-#         member_client = boto3.client("securityhub", region_name="us-east-1")
-#         member_admin_response = member_client.get_administrator_account()
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_client.update_organization_configuration(AutoEnable=True)
 
-#         assert "Administrator" in member_admin_response
-#         assert member_admin_response["Administrator"]["AccountId"] == admin_account_id
-#         assert member_admin_response["Administrator"]["MemberStatus"] == "ENABLED"
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
+        member_client = boto3.client("securityhub", region_name="us-east-1")
+        member_admin_response = member_client.get_administrator_account()
+
+        assert "Administrator" in member_admin_response
+        assert member_admin_response["Administrator"]["AccountId"] == admin_account_id
+        assert member_admin_response["Administrator"]["MemberStatus"] == "ENABLED"
 
 
 @mock_aws
