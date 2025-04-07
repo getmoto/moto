@@ -5,6 +5,8 @@ import pkgutil
 from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
 from uuid import UUID
 
+from requests.structures import CaseInsensitiveDict as _CaseInsensitiveDict
+
 DEFAULT_PARTITION = "aws"
 REGION_PREFIX_TO_PARTITION = {
     # (region prefix, aws partition)
@@ -174,3 +176,9 @@ class CamelToUnderscoresWalker:
     @staticmethod
     def parse_scalar(x: Any) -> Any:  # type: ignore[misc]
         return x
+
+
+class CaseInsensitiveDict(_CaseInsensitiveDict):  # type: ignore[type-arg]
+    """Proxy for requests.structures.CaseInsensitiveDict"""
+
+    pass
