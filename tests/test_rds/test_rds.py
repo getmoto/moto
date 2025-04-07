@@ -1398,9 +1398,10 @@ def test_describe_option_group_options(client):
         )
 
 
-@pytest.mark.aws_verified
 @aws_verified
-def test_modify_option_group(client):
+@pytest.mark.aws_verified
+def test_modify_option_group():
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
     option_group_name = f"og-{str(uuid4())[0:6]}"
     client.create_option_group(
         OptionGroupName=option_group_name,
