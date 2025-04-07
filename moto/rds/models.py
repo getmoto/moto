@@ -3937,7 +3937,7 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
         super().__init__(backend)
         self.name = db_parameter_group_name
         self.description = description
-        self.family = db_parameter_group_family
+        self.family: str | None = db_parameter_group_family
         self.tags = tags or []
         self.parameters: Dict[str, Any] = defaultdict(dict)
 
