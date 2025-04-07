@@ -2441,6 +2441,7 @@
 - [ ] associate_ipam_byoasn
 - [ ] associate_ipam_resource_discovery
 - [ ] associate_nat_gateway_address
+- [ ] associate_route_server
 - [X] associate_route_table
 - [ ] associate_security_group_vpc
 - [X] associate_subnet_cidr_block
@@ -2521,6 +2522,9 @@
 - [ ] create_reserved_instances_listing
 - [ ] create_restore_image_task
 - [X] create_route
+- [ ] create_route_server
+- [ ] create_route_server_endpoint
+- [ ] create_route_server_peer
 - [X] create_route_table
 - [X] create_security_group
 - [X] create_snapshot
@@ -2599,6 +2603,9 @@
 - [ ] delete_public_ipv4_pool
 - [ ] delete_queued_reserved_instances
 - [X] delete_route
+- [ ] delete_route_server
+- [ ] delete_route_server_endpoint
+- [ ] delete_route_server_peer
 - [X] delete_route_table
 - [X] delete_security_group
 - [X] delete_snapshot
@@ -2744,6 +2751,9 @@
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
 - [ ] describe_reserved_instances_offerings
+- [ ] describe_route_server_endpoints
+- [ ] describe_route_server_peers
+- [ ] describe_route_servers
 - [X] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
@@ -2821,6 +2831,7 @@
 - [ ] disable_image_deprecation
 - [ ] disable_image_deregistration_protection
 - [ ] disable_ipam_organization_admin_account
+- [ ] disable_route_server_propagation
 - [ ] disable_serial_console_access
 - [ ] disable_snapshot_block_public_access
 - [X] disable_transit_gateway_route_table_propagation
@@ -2836,6 +2847,7 @@
 - [ ] disassociate_ipam_byoasn
 - [ ] disassociate_ipam_resource_discovery
 - [ ] disassociate_nat_gateway_address
+- [ ] disassociate_route_server
 - [X] disassociate_route_table
 - [ ] disassociate_security_group_vpc
 - [X] disassociate_subnet_cidr_block
@@ -2856,6 +2868,7 @@
 - [ ] enable_image_deregistration_protection
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
+- [ ] enable_route_server_propagation
 - [ ] enable_serial_console_access
 - [ ] enable_snapshot_block_public_access
 - [X] enable_transit_gateway_route_table_propagation
@@ -2902,6 +2915,9 @@
 - [ ] get_network_insights_access_scope_content
 - [X] get_password_data
 - [ ] get_reserved_instances_exchange_quote
+- [ ] get_route_server_associations
+- [ ] get_route_server_propagations
+- [ ] get_route_server_routing_database
 - [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
 - [ ] get_snapshot_block_public_access_state
@@ -2964,6 +2980,7 @@
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
 - [ ] modify_reserved_instances
+- [ ] modify_route_server
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute
 - [ ] modify_snapshot_tier
@@ -7852,6 +7869,7 @@
 - [ ] delete_access_point_for_object_lambda
 - [X] delete_access_point_policy
 - [ ] delete_access_point_policy_for_object_lambda
+- [ ] delete_access_point_scope
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
 - [ ] delete_bucket_policy
@@ -7878,6 +7896,7 @@
 - [ ] get_access_point_policy_for_object_lambda
 - [X] get_access_point_policy_status
 - [ ] get_access_point_policy_status_for_object_lambda
+- [ ] get_access_point_scope
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
@@ -7898,6 +7917,7 @@
 - [ ] list_access_grants_instances
 - [ ] list_access_grants_locations
 - [ ] list_access_points
+- [ ] list_access_points_for_directory_buckets
 - [ ] list_access_points_for_object_lambda
 - [ ] list_caller_access_grants
 - [ ] list_jobs
@@ -7910,6 +7930,7 @@
 - [ ] put_access_point_configuration_for_object_lambda
 - [X] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
+- [ ] put_access_point_scope
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
 - [ ] put_bucket_replication
@@ -8515,7 +8536,7 @@
 
 ## servicecatalog
 <details>
-<summary>7% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] accept_portfolio_share
 - [ ] associate_budget_with_resource
@@ -8544,7 +8565,7 @@
 - [ ] delete_tag_option
 - [ ] describe_constraint
 - [ ] describe_copy_product_status
-- [ ] describe_portfolio
+- [X] describe_portfolio
 - [ ] describe_portfolio_share_status
 - [X] describe_portfolio_shares
 - [ ] describe_product

@@ -336,3 +336,47 @@ def test_describe_portfolio_shares():
     )
 
     assert len(org_response_after_delete["PortfolioShareDetails"]) == 0
+
+
+@mock_aws
+def test_describe_portfolio():
+    """Test describe_portfolio API."""
+    client = boto3.client("servicecatalog", region_name="us-east-1")
+
+    create_response = client.create_portfolio(
+        DisplayName="Test Portfolio",
+        Description="Test Portfolio Description",
+        ProviderName="Test Provider",
+        Tags=[{"Key": "testkey", "Value": "testvalue"}],
+        IdempotencyToken="test-token",
+    )
+
+    portfolio_id = create_response["PortfolioDetail"]["Id"]
+
+    describe_response = client.describe_portfolio(Id=portfolio_id)
+
+    assert "PortfolioDetail" in describe_response
+    portfolio_detail = describe_response["PortfolioDetail"]
+
+    assert portfolio_detail["Id"] == portfolio_id
+    assert "ARN" in portfolio_detail
+    assert portfolio_detail["DisplayName"] == "Test Portfolio"
+    assert portfolio_detail["Description"] == "Test Portfolio Description"
+    assert portfolio_detail["ProviderName"] == "Test Provider"
+    assert "CreatedTime" in portfolio_detail
+
+    assert "Tags" in describe_response
+    tags = describe_response["Tags"]
+    assert len(tags) == 1
+    assert tags[0]["Key"] == "testkey"
+    assert tags[0]["Value"] == "testvalue"
+
+    assert "TagOptions" in describe_response
+    assert "Budgets" in describe_response
+
+    non_existent_response = client.describe_portfolio(Id="non-existent-id")
+    assert "PortfolioDetail" in non_existent_response
+    assert non_existent_response["PortfolioDetail"] == {}
+    assert non_existent_response["Tags"] == []
+    assert non_existent_response["TagOptions"] == []
+    assert non_existent_response["Budgets"] == []

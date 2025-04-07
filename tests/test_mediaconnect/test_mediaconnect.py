@@ -48,6 +48,7 @@ def _create_flow_config(name, **kwargs):
     source_failover_config = kwargs.get("source_failover_config", {})
     sources = kwargs.get("sources", [])
     vpc_interfaces = kwargs.get("vpc_interfaces", [])
+    maintenance = kwargs.get("maintenance", {})
     flow_config = dict(Name=name)
     optional_flow_config = dict(
         AvailabilityZone=availability_zone,
@@ -57,6 +58,7 @@ def _create_flow_config(name, **kwargs):
         SourceFailoverConfig=source_failover_config,
         Sources=sources,
         VpcInterfaces=vpc_interfaces,
+        Maintenance=maintenance,
     )
     for key, value in optional_flow_config.items():
         if value:
@@ -91,6 +93,21 @@ def test_create_flow_succeeds():
     _check_mediaconnect_arn(
         type_="source", arn=response["Flow"]["Sources"][0]["SourceArn"], name="Source-A"
     )
+
+
+@mock_aws
+def test_create_flow_with_maintenance_succeeds():
+    client = boto3.client("mediaconnect", region_name=region)
+    channel_config = _create_flow_config(
+        "test-Flow-2",
+        maintenance={"MaintenanceDay": "Sunday", "MaintenanceStartHour": "02:00"},
+    )
+
+    response = client.create_flow(**channel_config)
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["Flow"]["Maintenance"]["MaintenanceDay"] == "Sunday"
+    assert response["Flow"]["Maintenance"]["MaintenanceStartHour"] == "02:00"
 
 
 @mock_aws

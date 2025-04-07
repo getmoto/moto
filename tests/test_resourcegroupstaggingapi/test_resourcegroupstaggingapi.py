@@ -471,7 +471,7 @@ def test_get_tag_values_event_bus():
 
 @mock_aws
 def test_get_tag_values_cloudfront():
-    client = boto3.client("cloudfront")
+    client = boto3.client("cloudfront", "us-east-1")
     for i in range(1, 3):
         caller_reference = f"distribution{i}"
         origin_id = f"origin{i}"
@@ -506,7 +506,7 @@ def test_get_tag_values_cloudfront():
                 "Tags": {"Items": [{"Key": "Test", "Value": f"Test{i}"}]},
             }
         )
-    rtapi = boto3.client("resourcegroupstaggingapi")
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
 
     # Test tag filtering
     resp = rtapi.get_resources(
