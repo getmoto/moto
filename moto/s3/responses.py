@@ -2111,7 +2111,7 @@ class S3Response(BaseResponse):
                     if part_number > 1:
                         raise RangeNotSatisfiable
                     response_headers["content-range"] = (
-                        f"bytes 0-{full_key.size -1}/{full_key.size}"  # type: ignore
+                        f"bytes 0-{full_key.size - 1}/{full_key.size}"  # type: ignore
                     )
                     return 206, response_headers, ""
 

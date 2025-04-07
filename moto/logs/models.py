@@ -1451,7 +1451,7 @@ class LogsBackend(BaseBackend):
                 )
                 raw_logs = "\n".join(
                     [
-                        f"{datetime.fromtimestamp(log['timestamp']/1000).strftime('%Y-%m-%dT%H:%M:%S.000Z')} {log['message']}"
+                        f"{datetime.fromtimestamp(log['timestamp'] / 1000).strftime('%Y-%m-%dT%H:%M:%S.000Z')} {log['message']}"
                         for log in logs
                     ]
                 )

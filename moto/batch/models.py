@@ -796,7 +796,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 environment["MOTO_HOST"] = settings.moto_server_host()
                 environment["MOTO_PORT"] = settings.moto_server_port()
                 environment["MOTO_HTTP_ENDPOINT"] = (
-                    f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                    f"{environment['MOTO_HOST']}:{environment['MOTO_PORT']}"
                 )
 
                 if network_name:

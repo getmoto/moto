@@ -125,7 +125,7 @@ def test_tag_limit_exceeded():
     instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[0]
     tag_list = []
     for i in range(51):
-        tag_list.append({"Key": f"{i+1:02d}", "Value": ""})
+        tag_list.append({"Key": f"{i + 1:02d}", "Value": ""})
 
     with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[instance.id], Tags=tag_list)

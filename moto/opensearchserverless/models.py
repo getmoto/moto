@@ -139,7 +139,7 @@ class OSEndpoint(BaseModel):
         self.security_group_ids = security_group_ids
         self.subnet_ids = subnet_ids
         self.vpc_id = vpc_id
-        self.id = f"vpce-0{mock_random.get_random_string(length=16,lower_case=True)}"
+        self.id = f"vpce-0{mock_random.get_random_string(length=16, lower_case=True)}"
         self.status = "ACTIVE"
 
     def to_dict(self) -> Dict[str, Any]:

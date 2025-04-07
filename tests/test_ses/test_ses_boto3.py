@@ -1193,8 +1193,7 @@ def test_create_ses_template():
         Template={
             "TemplateName": "MyTemplate",
             "SubjectPart": "Greetings, {{name}}!",
-            "TextPart": "Dear {{name}},"
-            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "TextPart": "Dear {{name}},\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
             "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
@@ -1247,8 +1246,7 @@ def test_render_template():
         Template={
             "TemplateName": "MyTestTemplate",
             "SubjectPart": "Greetings, {{name}}!",
-            "TextPart": "Dear {{name}},"
-            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "TextPart": "Dear {{name}},\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
             "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
         }
@@ -1268,8 +1266,7 @@ def test_render_template():
         Template={
             "TemplateName": "MyTestTemplate1",
             "SubjectPart": "Greetings, {{name}}!",
-            "TextPart": "Dear {{name}},"
-            "\r\nYour favorite animal is {{favoriteanimal}}.",
+            "TextPart": "Dear {{name}},\r\nYour favorite animal is {{favoriteanimal}}.",
             "HtmlPart": "<h1>Hello {{name}},"
             "</h1><p>Your favorite animal is {{favoriteanimal  }}.</p>",
         }
@@ -1334,7 +1331,7 @@ def test_update_ses_template():
     template = {
         "TemplateName": "MyTemplateToUpdate",
         "SubjectPart": "Greetings, {{name}}!",
-        "TextPart": "Dear {{name}}," "\r\nYour favorite animal is {{favoriteanimal}}.",
+        "TextPart": "Dear {{name}},\r\nYour favorite animal is {{favoriteanimal}}.",
         "HtmlPart": "<h1>Hello {{name}},"
         "</h1><p>Your favorite animal is {{favoriteanimal}}.</p>",
     }

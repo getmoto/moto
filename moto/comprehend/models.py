@@ -1,7 +1,7 @@
 """ComprehendBackend class with methods for supported APIs."""
 
 import random
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -360,19 +360,19 @@ class ComprehendBackend(BaseBackend):
 
     def create_document_classifier(
         self,
-        document_classifier_name,
-        version_name,
-        data_access_role_arn,
-        tags,
-        input_data_config,
-        output_data_config,
-        client_request_token,
-        language_code,
-        volume_kms_key_id,
-        vpc_config,
-        mode,
-        model_kms_key_id,
-        model_policy,
+        document_classifier_name: str,
+        version_name: str,
+        data_access_role_arn: str,
+        tags: List[Dict[str, str]],
+        input_data_config: Dict[str, Any],
+        output_data_config: Dict[str, Any],
+        client_request_token: str,
+        language_code: str,
+        volume_kms_key_id: str,
+        vpc_config: Dict[str, List[str]],
+        mode: str,
+        model_kms_key_id: str,
+        model_policy: str,
     ) -> str:
         classifier = DocumentClassifier(
             region_name=self.region_name,
@@ -420,15 +420,15 @@ class ComprehendBackend(BaseBackend):
 
     def create_flywheel(
         self,
-        flywheel_name,
-        active_model_arn,
-        data_access_role_arn,
-        task_config,
-        model_type,
-        data_lake_s3_uri,
-        data_security_config,
-        client_request_token,
-        tags,
+        flywheel_name: str,
+        active_model_arn: str,
+        data_access_role_arn: str,
+        task_config: Dict[str, Any],
+        model_type: str,
+        data_lake_s3_uri: str,
+        data_security_config: Dict[str, Any],
+        client_request_token: str,
+        tags: List[Dict[str, str]],
     ) -> Tuple[str, str]:
         flywheel = Flywheel(
             region_name=self.region_name,
@@ -447,33 +447,36 @@ class ComprehendBackend(BaseBackend):
         return flywheel.arn, active_model_arn
 
     def describe_document_classifier(
-        self, document_classifier_arn
+        self, document_classifier_arn: str
     ) -> DocumentClassifier:
         if document_classifier_arn not in self.classifiers:
             raise ResourceNotFound
         return self.classifiers[document_classifier_arn]
 
-    def describe_endpoint(self, endpoint_arn) -> Endpoint:
+    def describe_endpoint(self, endpoint_arn: str) -> Endpoint:
         if endpoint_arn not in self.endpoints:
             raise ResourceNotFound
         return self.endpoints[endpoint_arn]
 
-    def describe_flywheel(self, flywheel_arn) -> Flywheel:
+    def describe_flywheel(self, flywheel_arn: str) -> Flywheel:
         if flywheel_arn not in self.flywheels:
             raise ResourceNotFound
         return self.flywheels[flywheel_arn]
 
-    def delete_document_classifier(self, document_classifier_arn) -> str:
+    def delete_document_classifier(self, document_classifier_arn: str) -> None:
         self.classifiers.pop(document_classifier_arn, None)
 
-    def delete_endpoint(self, endpoint_arn) -> None:
+    def delete_endpoint(self, endpoint_arn: str) -> None:
         self.endpoints.pop(endpoint_arn, None)
 
-    def delete_flywheel(self, flywheel_arn) -> None:
+    def delete_flywheel(self, flywheel_arn: str) -> None:
         self.flywheels.pop(flywheel_arn, None)
 
     def list_document_classifiers(
-        self, filter=None, next_token=None, max_results=None
+        self,
+        filter: Optional[Dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
     ) -> Tuple[List[Dict[str, Any]], None]:
         """
         List document classifiers with optional filtering.
@@ -501,7 +504,10 @@ class ComprehendBackend(BaseBackend):
         return classifiers, None
 
     def list_endpoints(
-        self, filter=None, next_token=None, max_results=None
+        self,
+        filter: Optional[Dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
     ) -> Tuple[List[Dict[str, Any]], None]:
         """
         List endpoints with optional filtering.
@@ -527,7 +533,10 @@ class ComprehendBackend(BaseBackend):
         return endpoints, None
 
     def list_flywheels(
-        self, filter=None, next_token=None, max_results=None
+        self,
+        filter: Optional[Dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
     ) -> Tuple[List[Dict[str, Any]], None]:
         """
         List flywheels with optional filtering.
@@ -549,7 +558,7 @@ class ComprehendBackend(BaseBackend):
         # Return the list of flywheels and a placeholder for next_token
         return flywheels, None
 
-    def stop_training_document_classifier(self, document_classifier_arn) -> None:
+    def stop_training_document_classifier(self, document_classifier_arn: str) -> None:
         if document_classifier_arn not in self.classifiers:
             raise ResourceNotFound
         classifier = self.describe_document_classifier(document_classifier_arn)
@@ -557,7 +566,7 @@ class ComprehendBackend(BaseBackend):
             classifier.status = "STOP_REQUESTED"
 
     def start_flywheel_iteration(
-        self, flywheel_arn, client_request_token
+        self, flywheel_arn: str, client_request_token: str
     ) -> Tuple[str, int]:
         if flywheel_arn not in self.flywheels:
             raise ResourceNotFound
@@ -566,11 +575,11 @@ class ComprehendBackend(BaseBackend):
 
     def update_endpoint(
         self,
-        endpoint_arn,
-        desired_model_arn,
-        desired_inference_units,
-        desired_data_access_role_arn,
-        flywheel_arn,
+        endpoint_arn: str,
+        desired_model_arn: str,
+        desired_inference_units: str,
+        desired_data_access_role_arn: str,
+        flywheel_arn: str,
     ) -> str:
         return desired_model_arn
 

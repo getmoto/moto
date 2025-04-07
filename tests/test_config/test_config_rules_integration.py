@@ -288,7 +288,7 @@ def test_config_rules_source_errors():  # pylint: disable=too-many-statements
     err = exc.value.response["Error"]
     assert err["Code"] == "InsufficientPermissionsException"
     assert (
-        f'The AWS Lambda function {custom_rule["Source"]["SourceIdentifier"]} '
+        f"The AWS Lambda function {custom_rule['Source']['SourceIdentifier']} "
         f"cannot be invoked. Check the specified function ARN, and check the "
         f"function's permissions" in err["Message"]
     )

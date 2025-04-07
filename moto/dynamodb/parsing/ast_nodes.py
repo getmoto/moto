@@ -241,9 +241,9 @@ class ExpressionSelector(LeafNode):
         try:
             super().__init__(children=[int(selection_index)])
         except ValueError:
-            assert (
-                False
-            ), "Expression selector must be an int, this is a bug in the moto library."
+            assert False, (
+                "Expression selector must be an int, this is a bug in the moto library."
+            )
 
     def get_index(self):
         return self.children[0]
