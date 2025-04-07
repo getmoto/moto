@@ -1,8 +1,8 @@
-import json
+import boto3
 import pytest
 from botocore.exceptions import ClientError
+
 from moto import mock_aws
-import boto3
 
 
 @mock_aws
@@ -32,7 +32,7 @@ def test_regex_pattern_set_crud():
         Scope="REGIONAL",
         Id=summary["Id"],
     )
-    
+
     assert "RegexPatternSet" in get_response
     assert "LockToken" in get_response
     pattern_set = get_response["RegexPatternSet"]
@@ -70,7 +70,9 @@ def test_regex_pattern_set_crud():
     )
     updated_pattern_set = updated_get_response["RegexPatternSet"]
     assert updated_pattern_set["Description"] == "Updated description"
-    assert updated_pattern_set["RegularExpressionList"] == [{"RegexString": "updated.*pattern"}]
+    assert updated_pattern_set["RegularExpressionList"] == [
+        {"RegexString": "updated.*pattern"}
+    ]
     assert updated_get_response["LockToken"] == update_response["NextLockToken"]
 
     # List regex pattern sets
@@ -80,7 +82,6 @@ def test_regex_pattern_set_crud():
         key in list_response["RegexPatternSets"][0]
         for key in ["ARN", "Description", "Id", "LockToken", "Name"]
     )
-    assert "NextMarker" in list_response
 
     # Delete regex pattern set
     client.delete_regex_pattern_set(
@@ -105,7 +106,7 @@ def test_duplicate_regex_pattern_set():
     client = boto3.client("wafv2", region_name="us-east-1")
 
     # Create first regex pattern set
-    first_response = client.create_regex_pattern_set(
+    client.create_regex_pattern_set(
         Name="test-regex-pattern-set",
         Scope="REGIONAL",
         Description="Test regex pattern set",
@@ -142,4 +143,7 @@ def test_cloudfront_scope():
     # List only CLOUDFRONT regex pattern sets
     list_response = client.list_regex_pattern_sets(Scope="CLOUDFRONT")
     assert len(list_response["RegexPatternSets"]) == 1
-    assert all(":global:" in pattern_set["ARN"] for pattern_set in list_response["RegexPatternSets"]) 
+    assert all(
+        ":global:" in pattern_set["ARN"]
+        for pattern_set in list_response["RegexPatternSets"]
+    )

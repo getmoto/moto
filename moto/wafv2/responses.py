@@ -560,7 +560,9 @@ class WAFV2Response(BaseResponse):
             scope, limit=limit, next_marker=next_marker
         )
         response = {
-            "RegexPatternSets": [pattern_set.to_short_dict() for pattern_set in pattern_sets],
+            "RegexPatternSets": [
+                pattern_set.to_short_dict() for pattern_set in pattern_sets
+            ],
             "NextMarker": next_marker,
         }
         response_headers = {"Content-Type": "application/json"}

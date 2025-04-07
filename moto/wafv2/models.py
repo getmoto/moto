@@ -19,7 +19,12 @@ from .exceptions import (
     WAFV2DuplicateItemException,
     WAFV2InsufficientInformationException,
 )
-from .utils import make_arn_for_ip_set, make_arn_for_rule_group, make_arn_for_wacl, make_arn_for_regex_pattern_set
+from .utils import (
+    make_arn_for_ip_set,
+    make_arn_for_regex_pattern_set,
+    make_arn_for_rule_group,
+    make_arn_for_wacl,
+)
 
 if TYPE_CHECKING:
     from moto.apigateway.models import Stage
