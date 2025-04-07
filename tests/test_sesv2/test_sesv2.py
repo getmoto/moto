@@ -815,3 +815,35 @@ def test_delete_dedicated_ip_pool():
     with pytest.raises(ClientError) as e:
         client.get_dedicated_ip_pool(PoolName=target_pool_name)
     assert e.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_create_email_identity_policy():
+    client = boto3.client("sesv2", region_name="ap-southeast-1")
+    resp = client.create_email_identity_policy()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_delete_email_identity_policy():
+    client = boto3.client("sesv2", region_name="eu-west-1")
+    resp = client.delete_email_identity_policy()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_update_email_identity_policy():
+    client = boto3.client("sesv2", region_name="ap-southeast-1")
+    resp = client.update_email_identity_policy()
+
+    raise Exception("NotYetImplemented")
+
+
+@mock_aws
+def test_get_email_identity_policies():
+    client = boto3.client("sesv2", region_name="ap-southeast-1")
+    resp = client.get_email_identity_policies()
+
+    raise Exception("NotYetImplemented")
