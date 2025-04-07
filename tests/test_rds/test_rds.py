@@ -461,8 +461,11 @@ def test_modify_db_instance_manage_master_user_password(
     with_custom_kms_key: bool, client
 ):
     db_id = "db-id"
-
-    custom_kms_key = f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    kms = boto3.client("kms", region_name=DEFAULT_REGION)
+    key = kms.create_key(KeyUsage="ENCRYPT_DECRYPT", KeySpec="SYMMETRIC_DEFAULT")[
+        "KeyMetadata"
+    ]
+    custom_kms_key = key["Arn"]
     custom_kms_key_args = (
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
@@ -485,22 +488,25 @@ def test_modify_db_instance_manage_master_user_password(
     assert db_instance.get("MasterUserSecret") is None
     master_user_secret = modify_response["DBInstance"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
-    assert (
-        master_user_secret["SecretArn"]
-        == "arn:aws:secretsmanager:us-west-2:123456789012:secret:rds!db-id"
+    assert str(master_user_secret["SecretArn"]).startswith(
+        f"arn:aws:secretsmanager:{DEFAULT_REGION}:{ACCOUNT_ID}:secret:rds!db"
     )
-    assert master_user_secret["SecretStatus"] == "active"
+    assert master_user_secret["SecretStatus"] == "creating"
     if with_custom_kms_key:
         assert master_user_secret["KmsKeyId"] == custom_kms_key
     else:
-        assert (
-            master_user_secret["KmsKeyId"]
-            == "arn:aws:kms:us-west-2:123456789012:key/db-id"
-        )
+        default_kms_key = kms.describe_key(KeyId="alias/aws/secretsmanager")[
+            "KeyMetadata"
+        ]["Arn"]
+        assert master_user_secret["KmsKeyId"] == default_kms_key
     assert len(describe_response["DBInstances"][0]["MasterUserSecret"].keys()) == 3
     assert (
-        modify_response["DBInstance"]["MasterUserSecret"]
-        == describe_response["DBInstances"][0]["MasterUserSecret"]
+        describe_response["DBInstances"][0]["MasterUserSecret"]["SecretStatus"]
+        == "active"
+    )
+    assert (
+        modify_response["DBInstance"]["MasterUserSecret"]["SecretArn"]
+        == describe_response["DBInstances"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBInstance"].get("MasterUserSecret") is None
 
@@ -1392,9 +1398,10 @@ def test_describe_option_group_options(client):
         )
 
 
-@pytest.mark.aws_verified
 @aws_verified
-def test_modify_option_group(client):
+@pytest.mark.aws_verified
+def test_modify_option_group():
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
     option_group_name = f"og-{str(uuid4())[0:6]}"
     client.create_option_group(
         OptionGroupName=option_group_name,
@@ -3607,3 +3614,40 @@ def snapshot_validation_helper(exc, expected_message):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == expected_message
+
+
+@mock_aws
+def test_db_instance_identifier_is_case_insensitive(client):
+    instance = create_db_instance(DBInstanceIdentifier="FooBar")
+    assert instance["DBInstanceIdentifier"] == "foobar"
+
+    for identifier in "foobar", "FOOBAR":
+        response = client.describe_db_instances(DBInstanceIdentifier=identifier)
+        assert response["DBInstances"][0]["DBInstanceIdentifier"] == "foobar"
+
+    response = client.modify_db_instance(
+        DBInstanceIdentifier="fOObAR",
+        NewDBInstanceIdentifier="XxYy",
+    )
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
+    response = client.reboot_db_instance(DBInstanceIdentifier="XXyy")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
+    response = client.create_db_instance_read_replica(
+        DBInstanceIdentifier="rEplIcA",
+        SourceDBInstanceIdentifier="xxyy",
+        DBInstanceClass="db.m1.small",
+    )
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "replica"
+
+    response = client.promote_read_replica(DBInstanceIdentifier="RePLiCa")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "replica"
+
+    response = client.delete_db_instance(DBInstanceIdentifier="xXyY")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+    response = client.delete_db_instance(DBInstanceIdentifier="REPlica")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "replica"
+
+    response = client.describe_db_instances()
+    assert len(response["DBInstances"]) == 0

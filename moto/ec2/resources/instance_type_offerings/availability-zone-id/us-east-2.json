@@ -1980,18 +1980,6 @@
   "Location": "use2-az1"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "use2-az1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "use2-az1"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "use2-az1"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "use2-az1"
  },
@@ -5136,18 +5124,6 @@
   "Location": "use2-az2"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "use2-az2"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "use2-az2"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "use2-az2"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "use2-az2"
  },
@@ -8205,18 +8181,6 @@
  },
  {
   "InstanceType": "mac2.metal",
-  "Location": "use2-az3"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "use2-az3"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "use2-az3"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "use2-az3"
  },
  {

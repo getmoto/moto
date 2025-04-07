@@ -1,6 +1,102 @@
 Moto Changelog
 ==============
 
+
+5.1.3
+-----
+Docker Digest for 5.1.3: _sha256:c96adff67d2bf82c3a61a6f1155db5300be44d82a9403919a6ff994d0e5438b7_
+
+    New Methods:
+        * DMS:
+            * create_replication_instance()
+            * describe_replication_instances()
+
+        * Service Catalog:
+            * describe_portfolio()
+
+    Miscellaneous:
+        * ACM: request_certificate() now correctly handles IPv4-addresses
+        * DynamoDB: update_item(): Fixed a bug where the PathOverlap-exception was thrown erroneously
+        * EC2: Improved the behaviour of SecurityGroupRules with multiple IP ranges
+        * MediaConnect: create_flow() now supports the Maintenance-parameter
+        * RDS: Managed Secrets are now actually created in Secrets Manager
+        * S3: delete_objects(): The BypassGovernanceMode-parameter is now compatible with botocore==1.27.25
+        * SNS: SMS messages are now exposed via the Moto API
+
+
+5.1.2
+-----
+Docker Digest for 5.1.2: _sha256:3144ffd311b381594efde7ed4a41fb8fe2d66829ae5f3bf493f93f2ca1a8c82b_
+
+    * New Services:
+        * KinesisAnalyticsV2:
+            * create_application()
+            * describe_application()
+            * list_applications()
+            * list_tags_for_resource()
+            * tag_resource()
+
+        * Service Catalog:
+            * create_portfolio()
+            * create_portfolio_share()
+            * delete_portfolio()
+            * delete_portfolio_share()
+            * describe_portfolio_shares()
+            * list_portfolio_access()
+            * list_portfolios()
+
+    * New Methods:
+        * DirectoryServices:
+            * create_log_subscription()
+            * delete_log_subscription()
+            * list_log_subscriptions()
+
+        * EC2:
+            * modify_launch_template()
+
+        * Glue:
+            * get_data_catalog_encryption_settings()
+            * put_data_catalog_encryption_settings()
+
+        * Lambda:
+            * add_layer_version_permission()
+            * get_layer_version_policy()
+            * remove_layer_version_permission()
+
+        * RDS:
+            * copy_db_parameter_group()
+
+        * SESv2:
+            * create_email_identity()
+            * get_email_identity()
+            * list_email_identities()
+
+        * QuickSight:
+            * create_dashboard()
+            * describe_account_settings()
+            * describe_dashboard()
+            * list_dashboards()
+            * update_account_settings()
+            * update_public_sharing_settings()
+
+    * Miscellaneous:
+        * ApplicationAutoscaling: register_scalable_target() now returns the ScalableTargetARN-attribute
+        * Autoscaling: create_auto_scaling_group() now supports the LaunchTemplate-parameter
+        * DynamoDB: Add validation around attribute name use checks
+        * DynamoDB: Add path overlap checks for all updates
+        * ECS: create_service() now supports the role-parameter
+        * ECR: describe_image_scan_findings() now allows the configuration of custom results
+        * EKS: create_cluster() now supports the RemoteNetworkConfig-parameter
+        * ElastiCache: create_cache_cluster() now supports parameters AutoMinorVersionUpgrade and TransitEncryptionEnabled
+        * NetworkManager: list_core_networks() now returns the OwnerAccountId-attribute
+        * ResourceGroupTaggingAPI: get_resources() now supports AppSync's GraphQL-API resources
+        * ResourceGroupTaggingAPI: get_resources() now supports CloudFront's Distribution resources
+        * RDS: create_db_cluster() now supports the AutoMinorVersionUpgrade-parameter
+        * S3: get_object()/head_object() now return the 'x-amz-checksum-' header when appropriate
+        * TimestreamWrite: list_tables() no longer requires the DatabaseName-parameter
+        * WAF: Resources in CloudFront scope now use the us-east-1 region in the ARN, instead of 'global'
+
+
 5.1.1
 -----
 Docker Digest for 5.1.1: _sha256:a4c04c53a892ad81741a2e006b85d0f98eab42ad988efb360429cb4ba6818323_

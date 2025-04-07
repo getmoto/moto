@@ -1,10 +1,17 @@
-import os
+from contextlib import nullcontext
 from functools import wraps
+from uuid import uuid4
+
+import boto3
 
 from moto import mock_aws
+from tests import allow_aws_request
 
 
-def ec2_aws_verified(func):
+def ec2_aws_verified(
+    create_vpc: bool = False,
+    create_sg: bool = False,
+):
     """
     Function that is verified to work against AWS.
     Can be run against AWS at any time by setting:
@@ -12,23 +19,43 @@ def ec2_aws_verified(func):
 
     If this environment variable is not set, the function runs in a `mock_aws` context.
 
-    This decorator will:
-      - Create a bucket
-      - Run the test and pass the bucket_name as an argument
-      - Delete the objects and the bucket itself
     """
 
-    @wraps(func)
-    def pagination_wrapper():
-        allow_aws = (
-            os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
+    def inner(func):
+        @wraps(func)
+        def pagination_wrapper(**kwargs):
+            context = nullcontext() if allow_aws_request() else mock_aws()
+
+            with context:
+                return _invoke_func(create_vpc, create_sg, func=func, kwargs=kwargs)
+
+        return pagination_wrapper
+
+    return inner
+
+
+def _invoke_func(create_vpc: bool, create_sg: bool, func, kwargs):
+    ec2_client = boto3.client("ec2", "us-east-1")
+    kwargs["ec2_client"] = ec2_client
+
+    vpc_id = sg_id = None
+    if create_vpc:
+        vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/24")
+        vpc_id = vpc["Vpc"]["VpcId"]
+        kwargs["vpc_id"] = vpc_id
+
+    if create_sg:
+        sg_name = f"test_{str(uuid4())[0:6]}"
+        sg = ec2_client.create_security_group(
+            Description="test", GroupName=sg_name, VpcId=vpc_id
         )
+        sg_id = sg["GroupId"]
+        kwargs["sg_id"] = sg_id
 
-        if allow_aws:
-            resp = func()
-        else:
-            with mock_aws():
-                resp = func()
-        return resp
-
-    return pagination_wrapper
+    try:
+        func(**kwargs)
+    finally:
+        if sg_id:
+            ec2_client.delete_security_group(GroupId=sg_id)
+        if vpc_id:
+            ec2_client.delete_vpc(VpcId=vpc_id)

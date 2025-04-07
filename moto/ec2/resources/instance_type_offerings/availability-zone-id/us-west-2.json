@@ -2168,18 +2168,6 @@
   "Location": "usw2-az1"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "usw2-az1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "usw2-az1"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "usw2-az1"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "usw2-az1"
  },
@@ -5568,18 +5556,6 @@
   "Location": "usw2-az2"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "usw2-az2"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "usw2-az2"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "usw2-az2"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "usw2-az2"
  },
@@ -8936,18 +8912,6 @@
   "Location": "usw2-az3"
  },
  {
-  "InstanceType": "p2.16xlarge",
-  "Location": "usw2-az3"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "usw2-az3"
- },
- {
-  "InstanceType": "p2.xlarge",
-  "Location": "usw2-az3"
- },
- {
   "InstanceType": "p3.16xlarge",
   "Location": "usw2-az3"
  },
@@ -8973,6 +8937,10 @@
  },
  {
   "InstanceType": "p5e.48xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "usw2-az3"
  },
  {

@@ -13781,7 +13781,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -13890,7 +13890,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14001,7 +14001,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14116,7 +14116,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14220,7 +14220,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14333,7 +14333,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14447,7 +14447,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14552,7 +14552,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14659,7 +14659,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14757,7 +14757,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14845,7 +14845,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -14935,7 +14935,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20193,7 +20193,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20341,7 +20341,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20508,7 +20508,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20704,7 +20704,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -20815,7 +20815,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21010,7 +21010,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21126,7 +21126,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21258,7 +21258,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21360,7 +21360,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21447,7 +21447,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21534,7 +21534,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -21629,7 +21629,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -25837,12 +25837,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 98304
+   "TotalGpuMemoryInMiB": 91552
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -25956,12 +25956,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26075,12 +26075,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 98304
+   "TotalGpuMemoryInMiB": 91552
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26194,12 +26194,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26310,12 +26310,12 @@
      "Count": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 196608
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26429,12 +26429,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26545,12 +26545,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26664,12 +26664,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -36517,7 +36517,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36672,7 +36672,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -36843,7 +36843,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37046,7 +37046,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37164,7 +37164,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37366,7 +37366,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37489,7 +37489,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37628,7 +37628,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37731,7 +37731,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -37833,7 +37833,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -53963,7 +53963,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -54749,7 +54749,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -55189,7 +55189,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -55310,7 +55310,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -55439,7 +55439,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -55903,7 +55903,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -56333,7 +56333,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56442,7 +56442,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56553,7 +56553,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56668,7 +56668,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56772,7 +56772,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56885,7 +56885,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -56999,7 +56999,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57104,7 +57104,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57211,7 +57211,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57309,7 +57309,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57397,7 +57397,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -57487,7 +57487,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61726,7 +61726,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -61874,7 +61874,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62041,7 +62041,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62237,7 +62237,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62348,7 +62348,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62543,7 +62543,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62659,7 +62659,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62791,7 +62791,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62893,7 +62893,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -62980,7 +62980,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63067,7 +63067,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63162,7 +63162,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -63613,352 +63613,6 @@
    "DefaultCores": 4,
    "DefaultThreadsPerCore": 2,
    "DefaultVCpus": 8
-  }
- },
- "p2.16xlarge": {
-  "AutoRecoverySupported": true,
-  "BareMetal": false,
-  "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
-  "EbsInfo": {
-   "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 10000,
-    "BaselineIops": 65000,
-    "BaselineThroughputInMBps": 1250.0,
-    "MaximumBandwidthInMbps": 10000,
-    "MaximumIops": 65000,
-    "MaximumThroughputInMBps": 1250.0
-   },
-   "EbsOptimizedSupport": "default",
-   "EncryptionSupport": "supported",
-   "NvmeSupport": "unsupported"
-  },
-  "FreeTierEligible": false,
-  "GpuInfo": {
-   "Gpus": [
-    {
-     "Count": 16,
-     "Manufacturer": "NVIDIA",
-     "MemoryInfo": {
-      "SizeInMiB": 12288
-     },
-     "Name": "K80"
-    }
-   ],
-   "TotalGpuMemoryInMiB": 196608
-  },
-  "HibernationSupported": false,
-  "Hypervisor": "xen",
-  "InstanceStorageSupported": false,
-  "InstanceType": "p2.16xlarge",
-  "MemoryInfo": {
-   "SizeInMiB": 749568
-  },
-  "NetworkInfo": {
-   "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
-   "EnaSrdSupported": false,
-   "EnaSupport": "supported",
-   "EncryptionInTransitSupported": false,
-   "Ipv4AddressesPerInterface": 30,
-   "Ipv6AddressesPerInterface": 30,
-   "Ipv6Supported": true,
-   "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 8,
-   "NetworkCards": [
-    {
-     "BaselineBandwidthInGbps": 5.0,
-     "MaximumNetworkInterfaces": 8,
-     "NetworkCardIndex": 0,
-     "NetworkPerformance": "25 Gigabit",
-     "PeakBandwidthInGbps": 20.0
-    }
-   ],
-   "NetworkPerformance": "25 Gigabit"
-  },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
-  "PlacementGroupInfo": {
-   "SupportedStrategies": [
-    "cluster",
-    "partition",
-    "spread"
-   ]
-  },
-  "ProcessorInfo": {
-   "Manufacturer": "Intel",
-   "SupportedArchitectures": [
-    "x86_64"
-   ],
-   "SustainedClockSpeedInGhz": 2.3
-  },
-  "SupportedBootModes": [
-   "legacy-bios"
-  ],
-  "SupportedRootDeviceTypes": [
-   "ebs"
-  ],
-  "SupportedUsageClasses": [
-   "on-demand",
-   "spot"
-  ],
-  "SupportedVirtualizationTypes": [
-   "hvm"
-  ],
-  "VCpuInfo": {
-   "DefaultCores": 32,
-   "DefaultThreadsPerCore": 2,
-   "DefaultVCpus": 64,
-   "ValidCores": [
-    2,
-    4,
-    6,
-    8,
-    10,
-    12,
-    14,
-    16,
-    18,
-    20,
-    22,
-    24,
-    26,
-    28,
-    30,
-    32
-   ],
-   "ValidThreadsPerCore": [
-    1,
-    2
-   ]
-  }
- },
- "p2.8xlarge": {
-  "AutoRecoverySupported": true,
-  "BareMetal": false,
-  "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
-  "EbsInfo": {
-   "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 5000,
-    "BaselineIops": 32500,
-    "BaselineThroughputInMBps": 625.0,
-    "MaximumBandwidthInMbps": 5000,
-    "MaximumIops": 32500,
-    "MaximumThroughputInMBps": 625.0
-   },
-   "EbsOptimizedSupport": "default",
-   "EncryptionSupport": "supported",
-   "NvmeSupport": "unsupported"
-  },
-  "FreeTierEligible": false,
-  "GpuInfo": {
-   "Gpus": [
-    {
-     "Count": 8,
-     "Manufacturer": "NVIDIA",
-     "MemoryInfo": {
-      "SizeInMiB": 12288
-     },
-     "Name": "K80"
-    }
-   ],
-   "TotalGpuMemoryInMiB": 98304
-  },
-  "HibernationSupported": false,
-  "Hypervisor": "xen",
-  "InstanceStorageSupported": false,
-  "InstanceType": "p2.8xlarge",
-  "MemoryInfo": {
-   "SizeInMiB": 499712
-  },
-  "NetworkInfo": {
-   "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
-   "EnaSrdSupported": false,
-   "EnaSupport": "supported",
-   "EncryptionInTransitSupported": false,
-   "Ipv4AddressesPerInterface": 30,
-   "Ipv6AddressesPerInterface": 30,
-   "Ipv6Supported": true,
-   "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 8,
-   "NetworkCards": [
-    {
-     "BaselineBandwidthInGbps": 5.0,
-     "MaximumNetworkInterfaces": 8,
-     "NetworkCardIndex": 0,
-     "NetworkPerformance": "10 Gigabit",
-     "PeakBandwidthInGbps": 20.0
-    }
-   ],
-   "NetworkPerformance": "10 Gigabit"
-  },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
-  "PlacementGroupInfo": {
-   "SupportedStrategies": [
-    "cluster",
-    "partition",
-    "spread"
-   ]
-  },
-  "ProcessorInfo": {
-   "Manufacturer": "Intel",
-   "SupportedArchitectures": [
-    "x86_64"
-   ],
-   "SustainedClockSpeedInGhz": 2.7
-  },
-  "SupportedBootModes": [
-   "legacy-bios"
-  ],
-  "SupportedRootDeviceTypes": [
-   "ebs"
-  ],
-  "SupportedUsageClasses": [
-   "on-demand",
-   "spot"
-  ],
-  "SupportedVirtualizationTypes": [
-   "hvm"
-  ],
-  "VCpuInfo": {
-   "DefaultCores": 16,
-   "DefaultThreadsPerCore": 2,
-   "DefaultVCpus": 32,
-   "ValidCores": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16
-   ],
-   "ValidThreadsPerCore": [
-    1,
-    2
-   ]
-  }
- },
- "p2.xlarge": {
-  "AutoRecoverySupported": true,
-  "BareMetal": false,
-  "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
-  "EbsInfo": {
-   "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 750,
-    "BaselineIops": 6000,
-    "BaselineThroughputInMBps": 93.75,
-    "MaximumBandwidthInMbps": 750,
-    "MaximumIops": 6000,
-    "MaximumThroughputInMBps": 93.75
-   },
-   "EbsOptimizedSupport": "default",
-   "EncryptionSupport": "supported",
-   "NvmeSupport": "unsupported"
-  },
-  "FreeTierEligible": false,
-  "GpuInfo": {
-   "Gpus": [
-    {
-     "Count": 1,
-     "Manufacturer": "NVIDIA",
-     "MemoryInfo": {
-      "SizeInMiB": 12288
-     },
-     "Name": "K80"
-    }
-   ],
-   "TotalGpuMemoryInMiB": 12288
-  },
-  "HibernationSupported": false,
-  "Hypervisor": "xen",
-  "InstanceStorageSupported": false,
-  "InstanceType": "p2.xlarge",
-  "MemoryInfo": {
-   "SizeInMiB": 62464
-  },
-  "NetworkInfo": {
-   "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
-   "EnaSrdSupported": false,
-   "EnaSupport": "supported",
-   "EncryptionInTransitSupported": false,
-   "Ipv4AddressesPerInterface": 15,
-   "Ipv6AddressesPerInterface": 15,
-   "Ipv6Supported": true,
-   "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 4,
-   "NetworkCards": [
-    {
-     "BaselineBandwidthInGbps": 1.25,
-     "MaximumNetworkInterfaces": 4,
-     "NetworkCardIndex": 0,
-     "NetworkPerformance": "High",
-     "PeakBandwidthInGbps": 10.0
-    }
-   ],
-   "NetworkPerformance": "High"
-  },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
-  "PlacementGroupInfo": {
-   "SupportedStrategies": [
-    "cluster",
-    "partition",
-    "spread"
-   ]
-  },
-  "ProcessorInfo": {
-   "Manufacturer": "Intel",
-   "SupportedArchitectures": [
-    "x86_64"
-   ],
-   "SustainedClockSpeedInGhz": 2.7
-  },
-  "SupportedBootModes": [
-   "legacy-bios"
-  ],
-  "SupportedRootDeviceTypes": [
-   "ebs"
-  ],
-  "SupportedUsageClasses": [
-   "on-demand",
-   "spot"
-  ],
-  "SupportedVirtualizationTypes": [
-   "hvm"
-  ],
-  "VCpuInfo": {
-   "DefaultCores": 2,
-   "DefaultThreadsPerCore": 2,
-   "DefaultVCpus": 4,
-   "ValidCores": [
-    1,
-    2
-   ],
-   "ValidThreadsPerCore": [
-    1,
-    2
-   ]
   }
  },
  "p3.16xlarge": {
@@ -79021,7 +78675,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -79154,7 +78808,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -79295,7 +78949,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -79807,7 +79461,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -80247,7 +79901,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -80368,7 +80022,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80497,7 +80151,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80961,7 +80615,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -81391,7 +81045,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -81500,7 +81154,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -81611,7 +81265,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -81726,7 +81380,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -81830,7 +81484,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -81943,7 +81597,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -82057,7 +81711,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -82162,7 +81816,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -82269,7 +81923,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -82367,7 +82021,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -82455,7 +82109,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -82545,7 +82199,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -87093,7 +86747,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -87241,7 +86895,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -87408,7 +87062,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -87604,7 +87258,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -87715,7 +87369,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -87910,7 +87564,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -88026,7 +87680,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -88158,7 +87812,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -88260,7 +87914,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -88347,7 +88001,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -88434,7 +88088,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -88529,7 +88183,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -98245,7 +97899,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -98393,7 +98047,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -98560,7 +98214,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -98756,7 +98410,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -98867,7 +98521,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99062,7 +98716,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99178,7 +98832,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99310,7 +98964,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99412,7 +99066,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99499,7 +99153,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99586,7 +99240,7 @@
   },
   "NitroEnclavesSupport": "unsupported",
   "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -99681,7 +99335,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
