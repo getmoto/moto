@@ -1519,9 +1519,16 @@ class S3Response(BaseResponse):
             self.headers.get("x-amz-checksum-mode") == "ENABLED"
             and key.checksum_algorithm
         ):
+            qualified_checksum = key.checksum_value
+            if key.checksum_type == "COMPOSITE":
+                qualified_checksum = f"{key.checksum_value}-{key.checksum_parts}"
+
             response_headers[f"x-amz-checksum-{key.checksum_algorithm.lower()}"] = (
-                key.checksum_value
+                qualified_checksum
             )
+
+            if key.checksum_type:
+                response_headers["x-amz-checksum-type"] = key.checksum_type
 
         response_headers.update(key.metadata)
         response_headers.update({"Accept-Ranges": "bytes"})
@@ -3443,6 +3450,7 @@ S3_OBJECT_ATTRIBUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       {% if "CRC32C" in checksum %}<ChecksumCRC32C>{{ checksum["CRC32C"] }}</ChecksumCRC32C>{% endif %}
       {% if "SHA1" in checksum %}<ChecksumSHA1>{{ checksum["SHA1"] }}</ChecksumSHA1>{% endif %}
       {% if "SHA256" in checksum %}<ChecksumSHA256>{{ checksum["SHA256"] }}</ChecksumSHA256>{% endif %}
+      {% if "type" in checksum %}<ChecksumType>{{ checksum["type"] }}</ChecksumType>{% endif %}
       </Checksum>
     {% endif %}
     {% if size is not none %}<ObjectSize>{{ size }}</ObjectSize>{% endif %}
