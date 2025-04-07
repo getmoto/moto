@@ -332,6 +332,14 @@ class GlobalCluster(RDSBaseModel):
         self.status = "available"
 
     @property
+    def global_cluster_identifier(self) -> str:
+        return self._global_cluster_identifier
+
+    @global_cluster_identifier.setter
+    def global_cluster_identifier(self, value: str) -> None:
+        self._global_cluster_identifier = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.global_cluster_identifier
 
@@ -897,9 +905,12 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"],
             "DB Cluster Identifiers",
+            case_insensitive=True,
         ),
         "db-cluster-snapshot-id": FilterDef(
-            ["db_cluster_snapshot_identifier"], "DB Cluster Snapshot Identifiers"
+            ["db_cluster_snapshot_identifier"],
+            "DB Cluster Snapshot Identifiers",
+            case_insensitive=True,
         ),
         "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
         "engine": FilterDef(["cluster.engine"], "Engine Names"),
@@ -945,6 +956,14 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         self.storage_encrypted = self.cluster.storage_encrypted
 
     @property
+    def db_cluster_snapshot_identifier(self) -> str:
+        return self._db_cluster_snapshot_identifier
+
+    @db_cluster_snapshot_identifier.setter
+    def db_cluster_snapshot_identifier(self, value: str) -> None:
+        self._db_cluster_snapshot_identifier = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.db_cluster_snapshot_identifier
 
@@ -983,7 +1002,9 @@ class DBLogFile(XFormedAttributeAccessMixin):
 class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     BOTOCORE_MODEL = "DBInstance"
     SUPPORTED_FILTERS = {
-        "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
+        "db-cluster-id": FilterDef(
+            ["db_cluster_identifier"], "DB Cluster Identifiers", case_insensitive=True
+        ),
         "db-instance-id": FilterDef(
             ["db_instance_arn", "db_instance_identifier"],
             "DB Instance Identifiers",
@@ -1732,9 +1753,10 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         "db-instance-id": FilterDef(
             ["database.db_instance_arn", "database.db_instance_identifier"],
             "DB Instance Identifiers",
+            case_insensitive=True,
         ),
         "db-snapshot-id": FilterDef(
-            ["db_snapshot_identifier"], "DB Snapshot Identifiers"
+            ["db_snapshot_identifier"], "DB Snapshot Identifiers", case_insensitive=True
         ),
         "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
         "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
@@ -1783,6 +1805,14 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         self.instance_create_time = database.created
         self.master_username = database.master_username
         self.port = database.port
+
+    @property
+    def db_snapshot_identifier(self) -> str:
+        return self._db_snapshot_identifier
+
+    @db_snapshot_identifier.setter
+    def db_snapshot_identifier(self, value: str) -> None:
+        self._db_snapshot_identifier = value.lower()
 
     @property
     def resource_id(self) -> str:
@@ -1969,6 +1999,14 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         self.subnet_group_status = "Complete"
         self.tags = tags
         self.vpc_id = self._subnets[0].vpc_id
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
 
     @property
     def resource_id(self) -> str:
@@ -3849,6 +3887,14 @@ class OptionGroup(RDSBaseModel):
         self.tags = tags or []
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.name
 
@@ -3894,6 +3940,14 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
         self.family = db_parameter_group_family
         self.tags = tags or []
         self.parameters: Dict[str, Any] = defaultdict(dict)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
 
     @property
     def resource_id(self) -> str:
@@ -3959,6 +4013,14 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
         self.description = description
         self.db_parameter_group_family = family
         self.parameters: Dict[str, Any] = defaultdict(dict)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
 
     @property
     def resource_id(self) -> str:
