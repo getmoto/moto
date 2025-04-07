@@ -342,7 +342,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             self.ip_address_count = len(self.ip_addresses)
 
 
-class ResolverQueryLogConfig(BaseModel):  # pylint: disable=too-many-instance-attributes
+class ResolverQueryLogConfig(BaseModel):
     """Representation of a fake Route53 Resolver Query Log Config."""
 
     MAX_TAGS_PER_QUERY_LOG_CONFIG = 50
@@ -356,7 +356,7 @@ class ResolverQueryLogConfig(BaseModel):  # pylint: disable=too-many-instance-at
         name: str,
         destination_arn: str,
         creator_request_id: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.id = config_id
@@ -364,7 +364,6 @@ class ResolverQueryLogConfig(BaseModel):  # pylint: disable=too-many-instance-at
         self.destination_arn = destination_arn
         self.creator_request_id = creator_request_id
 
-        # Constructed members
         self.status = "CREATED"
         self.share_status = "NOT_SHARED"
         self.association_count = 0
@@ -390,7 +389,7 @@ class ResolverQueryLogConfig(BaseModel):  # pylint: disable=too-many-instance-at
         }
 
 
-class ResolverQueryLogConfigAssociation(BaseModel):  # pylint: disable=too-few-public-methods
+class ResolverQueryLogConfigAssociation(BaseModel):
     """Representation of an association between a VPC and a query logging configuration."""
 
     def __init__(
@@ -405,7 +404,6 @@ class ResolverQueryLogConfigAssociation(BaseModel):  # pylint: disable=too-few-p
         self.resolver_query_log_config_id = resolver_query_log_config_id
         self.resource_id = resource_id
 
-        # Constructed members
         self.status = "ACTIVE"
         self.error = "NONE"
         self.error_message = ""

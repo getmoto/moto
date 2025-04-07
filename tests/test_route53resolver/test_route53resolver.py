@@ -12,7 +12,6 @@ from moto import mock_aws
 def test_create_resolver_query_log_config():
     client = boto3.client("route53resolver", region_name="us-east-1")
 
-    # Create a query log config
     response = client.create_resolver_query_log_config(
         Name="test-query-log-config",
         DestinationArn="arn:aws:s3:::test-bucket",
@@ -20,7 +19,6 @@ def test_create_resolver_query_log_config():
         Tags=[{"Key": "Environment", "Value": "Test"}],
     )
 
-    # Verify the response
     assert "ResolverQueryLogConfig" in response
     config = response["ResolverQueryLogConfig"]
 
