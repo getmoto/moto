@@ -43,7 +43,7 @@ servicecatalog
 - [ ] delete_tag_option
 - [ ] describe_constraint
 - [ ] describe_copy_product_status
-- [ ] describe_portfolio
+- [X] describe_portfolio
 - [ ] describe_portfolio_share_status
 - [X] describe_portfolio_shares
   TODO: Implement pagination

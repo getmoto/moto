@@ -25837,12 +25837,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 98304
+   "TotalGpuMemoryInMiB": 91552
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -25956,12 +25956,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26075,12 +26075,12 @@
      "Count": 4,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 98304
+   "TotalGpuMemoryInMiB": 91552
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26194,12 +26194,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26310,12 +26310,12 @@
      "Count": 8,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 196608
+   "TotalGpuMemoryInMiB": 183104
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26429,12 +26429,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26545,12 +26545,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -26664,12 +26664,12 @@
      "Count": 1,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
-      "SizeInMiB": 24576
+      "SizeInMiB": 22888
      },
      "Name": "A10G"
     }
    ],
-   "TotalGpuMemoryInMiB": 24576
+   "TotalGpuMemoryInMiB": 22888
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -53963,7 +53963,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -54749,7 +54749,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -55189,7 +55189,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -55310,7 +55310,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -55439,7 +55439,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -55903,7 +55903,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -78675,7 +78675,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -78808,7 +78808,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -78949,7 +78949,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -79461,7 +79461,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -79901,7 +79901,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
@@ -80022,7 +80022,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80151,7 +80151,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 50,
@@ -80615,7 +80615,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "Ipv4AddressesPerInterface": 30,
