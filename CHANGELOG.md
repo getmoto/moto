@@ -19,7 +19,7 @@ Docker Digest for 5.1.3: _sha256:c96adff67d2bf82c3a61a6f1155db5300be44d82a940391
         * DynamoDB: update_item(): Fixed a bug where the PathOverlap-exception was thrown erroneously
         * EC2: Improved the behaviour of SecurityGroupRules with multiple IP ranges
         * MediaConnect: create_flow() now supports the Maintenance-parameter
-        * RDS: Managed Secrets are now actually created in KMS
+        * RDS: Managed Secrets are now actually created in Secrets Manager
         * S3: delete_objects(): The BypassGovernanceMode-parameter is now compatible with botocore==1.27.25
         * SNS: SMS messages are now exposed via the Moto API
 
