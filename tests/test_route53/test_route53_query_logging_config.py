@@ -129,17 +129,13 @@ def test_create_query_logging_config_bad_args():
 @pytest.mark.parametrize("route53_region", ["us-west-1", TEST_REGION])
 def test_create_query_logging_config_good_args(moto_server, route53_region):  # pylint: disable=redefined-outer-name
     """Test a valid create_logging_config() request."""
-    endpoint_url = None
+    client_kwargs = {"region_name": route53_region}
     if route53_region != TEST_REGION:
         if settings.TEST_SERVER_MODE:
             pytest.skip("Can't start a new server in server mode")
-        endpoint_url = moto_server()
+        client_kwargs["endpoint_url"] = moto_server()
 
-    client = boto3.client(
-        "route53",
-        region_name=route53_region,
-        endpoint_url=endpoint_url,
-    )
+    client = boto3.client("route53", **client_kwargs)
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
     hosted_zone_test_name = f"route53_query_log_{mock_random.get_random_hex(6)}.test"
