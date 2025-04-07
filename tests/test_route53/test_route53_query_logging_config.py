@@ -1,10 +1,10 @@
-from typing import Iterable
+from typing import Callable, Iterable
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
@@ -14,14 +14,22 @@ TEST_REGION = "us-east-1"
 
 
 @pytest.fixture
-def moto_server() -> Iterable[str]:
+def moto_server() -> Iterable[Callable[[], str]]:
+    servers = []
     """Fixture to run a mocked AWS server for testing."""
+
     # Note: pass `port=0` to get a random free port.
-    server = ThreadedMotoServer(port=0)
-    server.start()
-    host, port = server.get_host_and_port()
-    yield f"http://{host}:{port}"
-    server.stop()
+    def _start_server() -> str:
+        threaded_server = ThreadedMotoServer(port=0)
+        threaded_server.start()
+        host, port = threaded_server.get_host_and_port()
+        servers.append(threaded_server)
+        return f"http://{host}:{port}"
+
+    yield _start_server
+
+    for server in servers:
+        server.stop()
 
 
 def create_hosted_zone_id(route53_client, hosted_zone_test_name):
@@ -121,10 +129,16 @@ def test_create_query_logging_config_bad_args():
 @pytest.mark.parametrize("route53_region", ["us-west-1", TEST_REGION])
 def test_create_query_logging_config_good_args(moto_server, route53_region):  # pylint: disable=redefined-outer-name
     """Test a valid create_logging_config() request."""
+    endpoint_url = None
+    if route53_region != TEST_REGION:
+        if settings.TEST_SERVER_MODE:
+            pytest.skip("Can't start a new server in server mode")
+        endpoint_url = moto_server()
+
     client = boto3.client(
         "route53",
         region_name=route53_region,
-        endpoint_url=moto_server if route53_region != TEST_REGION else None,
+        endpoint_url=endpoint_url,
     )
     logs_client = boto3.client("logs", region_name=TEST_REGION)
 
