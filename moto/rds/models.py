@@ -2690,7 +2690,7 @@ class RDSBackend(BaseBackend):
         if database.status != "available":
             raise InvalidDBInstanceStateError(db_instance_identifier, "stop")
         if db_snapshot_identifier:
-            self.create_auto_snapshot(db_instance_identifier, db_snapshot_identifier)
+            self.create_db_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = "stopped"
         return database
 
