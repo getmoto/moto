@@ -289,6 +289,7 @@ def test_start_database(client):
     assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
     response = client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
     assert response["DBSnapshots"][0]["DBSnapshotIdentifier"] == "rocky4570-rds-snap"
+    assert response["DBSnapshots"][0]["SnapshotType"] == "manual"
     response = client.start_db_instance(
         DBInstanceIdentifier=mydb["DBInstanceIdentifier"]
     )
