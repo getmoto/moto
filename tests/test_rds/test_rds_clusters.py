@@ -1868,3 +1868,36 @@ def test_db_cluster_writer_promotion(client):
         if i["IsClusterWriter"]
     )
     assert writer == "test-instance-2"
+
+
+@mock_aws
+def test_db_cluster_identifier_is_case_insensitive(client):
+    cluster = client.create_db_cluster(
+        DBClusterIdentifier="FooBar",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+    )["DBCluster"]
+    assert cluster["DBClusterIdentifier"] == "foobar"
+
+    for identifier in "foobar", "FOOBAR":
+        response = client.describe_db_clusters(DBClusterIdentifier=identifier)
+        assert response["DBClusters"][0]["DBClusterIdentifier"] == "foobar"
+
+    response = client.modify_db_cluster(
+        DBClusterIdentifier="fOObAR",
+        NewDBClusterIdentifier="XxYy",
+    )
+    assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"
+
+    instance = create_db_instance(
+        DBInstanceIdentifier="clustered-instance",
+        DBClusterIdentifier="XxYy",
+        Engine="aurora-postgresql",
+    )
+    assert instance["DBClusterIdentifier"] == "xxyy"
+    client.delete_db_instance(DBInstanceIdentifier="clustered-instance")
+
+    response = client.delete_db_cluster(DBClusterIdentifier="xXyY")
+    assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"

@@ -27,6 +27,7 @@ class Flow(BaseModel):
         self.description = "A Moto test flow"
         self.flow_arn = f"arn:{get_partition(region_name)}:mediaconnect:{region_name}:{account_id}:flow:{self.id}:{self.name}"
         self.egress_ip = "127.0.0.1"
+        self.maintenance = kwargs.get("maintenance", {})
         if self.source and not self.sources:
             self.sources = [
                 self.source,
@@ -47,6 +48,10 @@ class Flow(BaseModel):
             "status": self.status,
             "vpcInterfaces": self.vpc_interfaces,
         }
+
+        if self.maintenance:
+            data["maintenance"] = self.maintenance
+
         if include:
             new_data = {k: v for k, v in data.items() if k in include}
             if "sourceType" in include:
@@ -122,6 +127,7 @@ class MediaConnectBackend(BaseBackend):
         source_failover_config: Dict[str, Any],
         sources: List[Dict[str, Any]],
         vpc_interfaces: List[Dict[str, Any]],
+        maintenance: Optional[List[Dict[str, Any]]] = None,
     ) -> Flow:
         flow = Flow(
             account_id=self.account_id,
@@ -134,6 +140,7 @@ class MediaConnectBackend(BaseBackend):
             source_failover_config=source_failover_config,
             sources=sources,
             vpc_interfaces=vpc_interfaces,
+            maintenance=maintenance,
         )
         self._create_flow_add_details(flow)
         self._flows[flow.flow_arn] = flow

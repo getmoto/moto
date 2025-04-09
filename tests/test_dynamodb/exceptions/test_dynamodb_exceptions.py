@@ -367,6 +367,28 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
             "Invalid UpdateExpression: Two document paths overlap with each other;"
         )
 
+    def test_update_item_with_shared_root_but_different_overall(self):
+        # Can update an item where the first part of the expressions is duplicate but not the rest
+        nested = {"key1": "value1", "key2": "value2", "key3": "value3"}
+        item = {"pk": "1", "name": "test", "nested": nested}
+        self.table.put_item(Item=item)
+        self.table.update_item(
+            Key={"pk": "1"},
+            UpdateExpression="SET #root.#child1=:key1,#root.#child2=:key2",
+            ExpressionAttributeNames={
+                "#root": "nested",
+                "#child1": "key1",
+                "#child2": "key2",
+            },
+            ExpressionAttributeValues={":key1": "new value1", ":key2": "new value2"},
+        )
+        item = self.table.get_item(Key={"pk": "1"})["Item"]
+        assert item["nested"] == {
+            "key1": "new value1",
+            "key2": "new value2",
+            "key3": "value3",
+        }
+
     def test_delete_and_add_on_different_set(self):
         self.table.update_item(
             Key={"pk": "the-key"},
