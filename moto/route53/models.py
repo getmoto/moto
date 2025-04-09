@@ -37,6 +37,10 @@ from ..utilities.id_generator import ExistingIds, ResourceIdentifier, Tags, moto
 from .utils import PAGINATION_MODEL, validate_domain_name
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
+LOGS_GROUP_REGION = "us-east-1"
+LOGS_GROUP_ARN_REGEX = re.compile(
+    rf"arn:aws:logs:{LOGS_GROUP_REGION}:\d{{12}}:log-group:.+"
+)
 
 
 class HostedZoneIdentifier(ResourceIdentifier):
@@ -901,21 +905,8 @@ class Route53Backend(BaseBackend):
     def get_health_check_status(self) -> None:
         pass  # Logic implemented in responses.py
 
-    @staticmethod
-    def _validate_arn(region: str, arn: str) -> None:
-        match = re.match(
-            rf"arn:{get_partition(region)}:logs:{region}:\d{{12}}:log-group:.+", arn
-        )
-        if not arn or not match:
-            raise InvalidCloudWatchArn()
-
-        # The CloudWatch Logs log group must be in the "us-east-1" region.
-        match = re.match(r"^(?:[^:]+:){3}(?P<region>[^:]+).*", arn)
-        if not match or match.group("region") != "us-east-1":
-            raise InvalidCloudWatchArn()
-
     def create_query_logging_config(
-        self, region: str, hosted_zone_id: str, log_group_arn: str
+        self, hosted_zone_id: str, log_group_arn: str
     ) -> QueryLoggingConfig:
         """Process the create_query_logging_config request."""
         # Does the hosted_zone_id exist?
@@ -927,7 +918,8 @@ class Route53Backend(BaseBackend):
             raise NoSuchHostedZone(hosted_zone_id)
 
         # Ensure CloudWatch Logs log ARN is valid, otherwise raise an error.
-        self._validate_arn(region, log_group_arn)
+        if not log_group_arn or not re.match(LOGS_GROUP_ARN_REGEX, log_group_arn):
+            raise InvalidCloudWatchArn()
 
         # Note:  boto3 checks the resource policy permissions before checking
         # whether the log group exists.  moto doesn't have a way of checking
@@ -939,7 +931,9 @@ class Route53Backend(BaseBackend):
 
         from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
 
-        log_groups = logs_backends[self.account_id][region].describe_log_groups()
+        log_groups = logs_backends[self.account_id][
+            LOGS_GROUP_REGION
+        ].describe_log_groups()
         for entry in log_groups[0] if log_groups else []:
             if log_group_arn == f"{entry.arn}:*":
                 break
