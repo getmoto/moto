@@ -4,11 +4,16 @@ import datetime
 import re
 from typing import Any, Dict, List
 
+from moto.cloudformation.exceptions import ValidationError
+from moto.cloudformation.models import cloudformation_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.resourcegroups.models import FakeResourceGroup
-from moto.servicecatalogappregistry.exceptions import ValidationException
+from moto.servicecatalogappregistry.exceptions import (
+    ResourceNotFoundException,
+    ValidationException,
+)
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -67,6 +72,13 @@ class AssociatedResource(BaseBackend):
                 self.name = resource.split("/")[1]
             else:
                 self.name = resource
+            cf_backend = cloudformation_backends[account_id][region_name]
+            try:
+                cf_backend.get_stack(self.name)
+            except ValidationError:
+                raise ResourceNotFoundException(
+                    f"No CloudFormation stack called '{self.name}' found"
+                )
         elif resource_type == "RESOURCE_TAG_VALUE":
             tags = {
                 "EnableAWSServiceCatalogAppRegistry": "true",

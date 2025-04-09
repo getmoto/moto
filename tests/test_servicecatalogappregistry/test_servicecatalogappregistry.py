@@ -80,6 +80,23 @@ Resources:
 
 
 @mock_aws
+def test_associate_resource_cloudformation_validation_error():
+    client = boto3.client("servicecatalog-appregistry", region_name="us-east-1")
+    create = client.create_application(name="testapp", description="blah")
+    stack_name = "foo"
+    with pytest.raises(ClientError) as exc:
+        client.associate_resource(
+            application=create["application"]["id"],
+            resource=stack_name,
+            resourceType="CFN_STACK",
+            options=["APPLY_APPLICATION_TAG"],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"No CloudFormation stack called '{stack_name}' found"
+
+
+@mock_aws
 def test_associate_resource_fails_resource_type():
     client = boto3.client("servicecatalog-appregistry", region_name="us-east-1")
     create = client.create_application(name="testapp", description="blah")
