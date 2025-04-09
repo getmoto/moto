@@ -341,27 +341,36 @@ class SESV2Backend(BaseBackend):
         return self.email_identities[email_identity]
 
     def create_email_identity_policy(self, email_identity, policy_name, policy):
-        # Check if the email identity exists
         email_id = self.get_email_identity(email_identity)
-        
-        # Store the policy
+
         email_id.policies[policy_name] = policy
-        
+
         return
 
     def delete_email_identity_policy(self, email_identity, policy_name):
-        # implement here
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+
+        email_id = self.email_identities[email_identity]
+
+        if policy_name in email_id.policies:
+            del email_id.policies[policy_name]
+
         return
 
     def update_email_identity_policy(self, email_identity, policy_name, policy):
-        # implement here
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+
+        email_id = self.email_identities[email_identity]
+
+        email_id.policies[policy_name] = policy
+
         return
 
     def get_email_identity_policies(self, email_identity):
-        # Check if the email identity exists
         email_id = self.get_email_identity(email_identity)
-        
-        # Return the policies
+
         return email_id.policies
 
 

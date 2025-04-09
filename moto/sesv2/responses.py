@@ -226,7 +226,6 @@ class SESV2Response(BaseResponse):
         return json.dumps(dict(DedicatedIpPool=dedicated_ip_pool.to_dict()))
 
     def create_email_identity_policy(self) -> str:
-        print("MADE IT HERE")
         email_identity = self._get_param("EmailIdentity")
         policy_name = self._get_param("PolicyName")
         policy = self._get_param("Policy")
@@ -244,8 +243,7 @@ class SESV2Response(BaseResponse):
             email_identity=email_identity,
             policy_name=policy_name,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return json.dumps({})
 
     def update_email_identity_policy(self):
         email_identity = self._get_param("EmailIdentity")
@@ -256,8 +254,7 @@ class SESV2Response(BaseResponse):
             policy_name=policy_name,
             policy=policy,
         )
-        # TODO: adjust response
-        return json.dumps(dict())
+        return json.dumps({})
 
     def get_email_identity_policies(self) -> str:
         email_identity = self._get_param("EmailIdentity")
