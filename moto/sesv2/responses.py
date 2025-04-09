@@ -236,7 +236,7 @@ class SESV2Response(BaseResponse):
         )
         return json.dumps({})
 
-    def delete_email_identity_policy(self):
+    def delete_email_identity_policy(self) -> str:
         email_identity = self._get_param("EmailIdentity")
         policy_name = self._get_param("PolicyName")
         self.sesv2_backend.delete_email_identity_policy(
@@ -245,7 +245,7 @@ class SESV2Response(BaseResponse):
         )
         return json.dumps({})
 
-    def update_email_identity_policy(self):
+    def update_email_identity_policy(self) -> str:
         email_identity = self._get_param("EmailIdentity")
         policy_name = self._get_param("PolicyName")
         policy = self._get_param("Policy")
