@@ -341,7 +341,12 @@ class SESV2Backend(BaseBackend):
         return self.email_identities[email_identity]
 
     def create_email_identity_policy(self, email_identity, policy_name, policy):
-        # implement here
+        # Check if the email identity exists
+        email_id = self.get_email_identity(email_identity)
+        
+        # Store the policy
+        email_id.policies[policy_name] = policy
+        
         return
 
     def delete_email_identity_policy(self, email_identity, policy_name):
@@ -353,8 +358,11 @@ class SESV2Backend(BaseBackend):
         return
 
     def get_email_identity_policies(self, email_identity):
-        # implement here
-        return policies
+        # Check if the email identity exists
+        email_id = self.get_email_identity(email_identity)
+        
+        # Return the policies
+        return email_id.policies
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

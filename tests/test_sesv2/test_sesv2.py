@@ -1,6 +1,7 @@
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+import json
 
 from moto import mock_aws, settings
 from moto.ses.models import Message, RawMessage, ses_backends
@@ -819,11 +820,43 @@ def test_delete_dedicated_ip_pool():
 
 @mock_aws
 def test_create_email_identity_policy():
-    client = boto3.client("sesv2", region_name="ap-southeast-1")
-    resp = client.create_email_identity_policy()
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+    policy_name = "MyPolicy"
+    policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::123456789012:root"
+                },
+                "Action": [
+                    "ses:SendEmail",
+                    "ses:SendRawEmail"
+                ],
+                "Resource": f"arn:aws:ses:us-east-1:123456789012:identity/{email_identity}"
+            }
+        ]
+    })
+    
+    # Create an email identity first
+    client.create_email_identity(EmailIdentity=email_identity)
 
-    raise Exception("NotYetImplemented")
+    print("email_identity - test: ", email_identity)
+    print("policy_name - test: ", policy_name)
+    print("policy - test: ", policy)
+    
+    # Execute
+    response = client.create_email_identity_policy(
+        EmailIdentity=email_identity,
+        PolicyName=policy_name,
+        Policy=policy
+    ) 
 
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    
 
 @mock_aws
 def test_delete_email_identity_policy():
@@ -843,7 +876,42 @@ def test_update_email_identity_policy():
 
 @mock_aws
 def test_get_email_identity_policies():
-    client = boto3.client("sesv2", region_name="ap-southeast-1")
-    resp = client.get_email_identity_policies()
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+    policy_name = "MyPolicy"
+    policy = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "AWS": "arn:aws:iam::123456789012:root"
+                },
+                "Action": [
+                    "ses:SendEmail",
+                    "ses:SendRawEmail"
+                ],
+                "Resource": f"arn:aws:ses:ap-southeast-1:123456789012:identity/{email_identity}"
+            }
+        ]
+    })
+    
+    # Create an email identity and policy
+    client.create_email_identity(EmailIdentity=email_identity)
+    client.create_email_identity_policy(
+        EmailIdentity=email_identity,
+        PolicyName=policy_name,
+        Policy=policy
+    )
+    
+    # Execute
+    response = client.get_email_identity_policies(
+        EmailIdentity=email_identity
+    )
 
-    raise Exception("NotYetImplemented")
+    print("response: ", response)
+    
+    # Verify
+    assert policy_name in response["Policies"]
+    assert response["Policies"][policy_name] == policy

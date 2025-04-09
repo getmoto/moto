@@ -16,7 +16,6 @@ timestream-influxdb
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_db_cluster
 - [X] create_db_instance
   
         dbParameterGroupIdentifier argument is not yet handled
@@ -28,22 +27,17 @@ timestream-influxdb
         
 
 - [ ] create_db_parameter_group
-- [ ] delete_db_cluster
 - [X] delete_db_instance
-- [ ] get_db_cluster
 - [X] get_db_instance
 - [ ] get_db_parameter_group
-- [ ] list_db_clusters
 - [X] list_db_instances
   
         Pagination is not yet implemented
         
 
-- [ ] list_db_instances_for_cluster
 - [ ] list_db_parameter_groups
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_db_cluster
 - [ ] update_db_instance
 
