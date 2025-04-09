@@ -448,6 +448,10 @@ def get_response_restxml_template(service, operation):
         list(client._service_model._service_description["operations"].keys()),
     )
     op_model = client._service_model.operation_model(aws_operation_name)
+    # Resolves https://github.com/getmoto/moto/issues/8726
+    if not hasattr(op_model.output_shape, "output"):
+        # Response has no output
+        return ""
     result_wrapper = op_model._operation_model["output"]["shape"]
     response_wrapper = result_wrapper.replace("Result", "Response")
     metadata = op_model.metadata
