@@ -140,19 +140,17 @@ class SecurityGroups(EC2BaseResponse):
         self.error_on_dryrun()
 
         for kwargs in self._process_rules_from_querystring():
-            rule, group = self.ec2_backend.authorize_security_group_egress(**kwargs)
-        self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+            rules, group = self.ec2_backend.authorize_security_group_egress(**kwargs)
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE)
-        return template.render(rule=rule, group=group)
+        return template.render(rules=rules, group=group)
 
     def authorize_security_group_ingress(self) -> str:
         self.error_on_dryrun()
 
         for kwargs in self._process_rules_from_querystring():
-            rule, group = self.ec2_backend.authorize_security_group_ingress(**kwargs)
-        self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+            rules, group = self.ec2_backend.authorize_security_group_ingress(**kwargs)
         template = self.response_template(AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE)
-        return template.render(rule=rule, group=group)
+        return template.render(rules=rules, group=group)
 
     def create_security_group(self) -> str:
         name = self._get_param("GroupName")
@@ -165,9 +163,6 @@ class SecurityGroups(EC2BaseResponse):
         group = self.ec2_backend.create_security_group(
             name, description, vpc_id=vpc_id, tags=tags
         )
-        if group:
-            self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
-            self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
         template = self.response_template(CREATE_SECURITY_GROUP_RESPONSE)
         return template.render(group=group)
 
@@ -240,20 +235,14 @@ class SecurityGroups(EC2BaseResponse):
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
             del args["sgrule_tags"]
-            group = self.ec2_backend.update_security_group_rule_descriptions_ingress(
-                **args
-            )
-        self.ec2_backend.sg_old_ingress_ruls[group.id] = group.ingress_rules.copy()
+            self.ec2_backend.update_security_group_rule_descriptions_ingress(**args)
         return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS
 
     def update_security_group_rule_descriptions_egress(self) -> str:
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
             del args["sgrule_tags"]
-            group = self.ec2_backend.update_security_group_rule_descriptions_egress(
-                **args
-            )
-        self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
+            self.ec2_backend.update_security_group_rule_descriptions_egress(**args)
         return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS
 
     def modify_security_group_rules(self) -> str:
@@ -283,60 +272,40 @@ DESCRIBE_SECURITY_GROUP_RULES_RESPONSE = """
 <DescribeSecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
   <requestId>{{ request_id }}</requestId>
   <securityGroupRuleSet>
-        {% for rule in rules %}
-          {% for ip_range in rule.ip_ranges %}
-            <item>
-                <fromPort>{{ rule.from_port if rule.from_port is not none else -1 }}</fromPort>
-                <toPort>{{ rule.to_port if rule.to_port is not none else -1 }}</toPort>
-                {% if ip_range['CidrIp'] %}<cidrIpv4>{{ ip_range['CidrIp'] }}</cidrIpv4>{% endif %}
-                {% if ip_range['CidrIpv6'] %}<cidrIpv6>{{ ip_range['CidrIpv6'] }}</cidrIpv6>{% endif %}
-                <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                <groupId>{{ rule.group_id }}</groupId>
-                <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-                {% if ip_range['Description'] %}<description>{{ ip_range['Description'] }}</description>{% endif %}
-                <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
-                <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
-                {% if (rule.source_groups | length) > 0 %}
-                <referencedGroupInfo>
-                  <groupId>{{ rule.source_groups[0]['GroupId'] }}</groupId><userId>{{ rule.source_groups[0]['OwnerId'] }}</userId>
-                </referencedGroupInfo>
-                {% endif %}
-                <tagSet>
-                {% for tag in rule.get_tags() %}
-                    <item>
-                      <key>{{ tag.key }}</key>
-                      <value>{{ tag.value }}</value>
-                    </item>
-                {% endfor %}
-                </tagSet> 
-            </item>
-          {% endfor %}
-          {% if rule.ip_ranges | length == 0 %}
-            <item>
-                <fromPort>{{ rule.from_port if rule.from_port is not none else -1 }}</fromPort>
-                <toPort>{{ rule.to_port if rule.to_port is not none else -1 }}</toPort>
-                <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-                {% if rule.prefix_list_ids | length > 0 %}<prefixListId>{{ rule.prefix_list_ids[0]['PrefixListId'] }}</prefixListId>{% endif %}
-                <groupId>{{ rule.group_id }}</groupId>
-                <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-                <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
-                <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
-                {% if (rule.source_groups | length) > 0 %}
-                <referencedGroupInfo>
-                  <groupId>{{ rule.source_groups[0]['GroupId'] }}</groupId><userId>{{ rule.source_groups[0]['OwnerId'] }}</userId>
-                </referencedGroupInfo>
-                {% endif %}
-                <tagSet>
-                {% for tag in rule.get_tags() %}
-                    <item>
-                      <key>{{ tag.key }}</key>
-                      <value>{{ tag.value }}</value>
-                    </item>
-                {% endfor %}
-                </tagSet> 
-            </item>
-          {% endif %}
-        {% endfor %}
+    {% for rule in rules %}
+        <item>
+            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
+            <groupId>{{ rule.group_id }}</groupId>
+            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
+            <fromPort>{{ rule.from_port if rule.from_port is not none else -1 }}</fromPort>
+            <toPort>{{ rule.to_port if rule.to_port is not none else -1 }}</toPort>
+            <isEgress>{{ 'true' if rule.is_egress else 'false' }}</isEgress>
+            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
+            {% if rule.ip_range %}
+              {% if rule.ip_range['CidrIp'] %}<cidrIpv4>{{ rule.ip_range['CidrIp'] }}</cidrIpv4>{% endif %}
+              {% if rule.ip_range['CidrIpv6'] %}<cidrIpv6>{{ rule.ip_range['CidrIpv6'] }}</cidrIpv6>{% endif %}
+              {% if rule.ip_range['Description'] %}<description>{{ rule.ip_range['Description'] }}</description>{% endif %}
+            {% endif %}
+            {% if rule.source_group %}
+              <referencedGroupInfo>
+                <groupId>{{ rule.source_group['GroupId'] }}</groupId><userId>{{ rule.source_group['OwnerId'] }}</userId>
+              </referencedGroupInfo>
+              {% if rule.source_group['Description'] %}<description>{{ rule.source_group['Description'] }}</description>{% endif %}
+            {% endif %}
+            {% if rule.prefix_list_id %}
+              <prefixListId>{{ rule.prefix_list_id['PrefixListId'] }}</prefixListId>
+              {% if rule.prefix_list_id['Description'] %}<description>{{ rule.prefix_list_id['Description'] }}</description>{% endif %}
+            {% endif %}
+            <tagSet>
+            {% for tag in rule.get_tags() %}
+                <item>
+                  <key>{{ tag.key }}</key>
+                  <value>{{ tag.value }}</value>
+                </item>
+            {% endfor %}
+            </tagSet> 
+        </item>
+    {% endfor %}
   </securityGroupRuleSet>
 </DescribeSecurityGroupRulesResponse>"""
 
@@ -505,15 +474,35 @@ AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressRes
     <requestId>b1f67202-c2c2-4ba4-8464-c8b1d8f5af7a</requestId>
     <return>true</return>
     <securityGroupRuleSet>
-    {% for item in rule.ip_ranges %}
+    {% for rule in rules %}
         <item>
-            {% if item.CidrIp %}
-            <cidrIpv4>{{ item.CidrIp }}</cidrIpv4>
+            {% if rule.ip_range %}
+                {% if rule.ip_range.CidrIp %}
+                <cidrIpv4>{{ rule.ip_range.CidrIp }}</cidrIpv4>
+                {% endif %}
+                {% if rule.ip_range.CidrIpv6 %}
+                <cidrIpv6>{{ rule.ip_range.CidrIpv6 }}</cidrIpv6>
+                {% endif %}
+                <description>{{ rule.ip_range.Description or '' }}</description>
             {% endif %}
-            {% if item.CidrIpv6 %}
-            <cidrIpv6>{{ item.CidrIpv6 }}</cidrIpv6>
+            {% if rule.prefix_list_id %}
+                <prefixListId>{{ rule.prefix_list_id.PrefixListId }}</prefixListId>
+                <description>{{ rule.prefix_list_id.Description or '' }}</description>
             {% endif %}
-            <description>{{ item.Description or '' }}</description>
+            {% if rule.source_group %}
+                <referencedGroupInfo>
+                    {% if rule.source_group.OwnerId and rule.source_group.OwnerId != "" %}
+                    <userId>{{ rule.source_group.OwnerId }}</userId>
+                    {% endif %}
+                    {% if rule.source_group.GroupId and rule.source_group.GroupId != "" %}
+                    <groupId>{{ rule.source_group.GroupId }}</groupId>
+                    {% endif %}
+                    {% if rule.source_group.VpcId and rule.source_group.VpcId != "" %}
+                    <vpcId>{{ rule.source_group.VpcId }}</vpcId>
+                    {% endif %}
+                </referencedGroupInfo>
+                <description>{{ rule.source_group.Description or '' }}</description>
+            {% endif %}
             {% if rule.from_port is not none %}
             <fromPort>{{ rule.from_port }}</fromPort>
             {% endif %}
@@ -533,52 +522,6 @@ AUTHORIZE_SECURITY_GROUP_INGRESS_RESPONSE = """<AuthorizeSecurityGroupIngressRes
                     </item>
                 {% endfor %}
             </tagSet> 
-        </item>
-    {% endfor %}
-    {% for item in rule.prefix_list_ids %}
-        <item>
-            <prefixListId>{{ item.PrefixListId }}</prefixListId>
-            <description>{{ item.Description or '' }}</description>
-            {% if rule.from_port is not none %}
-            <fromPort>{{ rule.from_port }}</fromPort>
-            {% endif %}
-            <groupId>{{ group.id }}</groupId>
-            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-            <isEgress>false</isEgress>
-            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
-            {% if rule.to_port is not none %}
-            <toPort>{{ rule.to_port }}</toPort>
-            {% endif %}
-        </item>
-    {% endfor %}
-    {% for item in rule.source_groups %}
-        <item>
-            {% if item.Description and item.Description != "" %}
-            <description>{{ item.Description }}</description>
-            {% endif %}
-            {% if rule.from_port is not none %}
-            <fromPort>{{ rule.from_port }}</fromPort>
-            {% endif %}
-            <groupId>{{ group.id }}</groupId>
-            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-            <isEgress>true</isEgress>
-            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
-            {% if rule.to_port is not none %}
-            <toPort>{{ rule.to_port }}</toPort>
-            {% endif %}
-            <referencedGroupInfo>
-                {% if item.OwnerId and item.OwnerId != "" %}
-                <userId>{{ item.OwnerId }}</userId>
-                {% endif %}
-                {% if item.GroupId and item.GroupId != "" %}
-                <groupId>{{ item.GroupId }}</groupId>
-                {% endif %}
-                {% if item.VpcId and item.VpcId != "" %}
-                <vpcId>{{ item.VpcId }}</vpcId>
-                {% endif %}
-            </referencedGroupInfo>
         </item>
     {% endfor %}
     </securityGroupRuleSet>
@@ -593,15 +536,35 @@ AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE = """<AuthorizeSecurityGroupEgressRespo
     <requestId>b1f67202-c2c2-4ba4-8464-c8b1d8f5af7a</requestId>
     <return>true</return>
     <securityGroupRuleSet>
-    {% for item in rule.ip_ranges %}
+    {% for rule in rules %}
         <item>
-            {% if item.CidrIp %}
-            <cidrIpv4>{{ item.CidrIp }}</cidrIpv4>
+            {% if rule.ip_range %}
+                {% if rule.ip_range.CidrIp %}
+                <cidrIpv4>{{ rule.ip_range.CidrIp }}</cidrIpv4>
+                {% endif %}
+                {% if rule.ip_range.CidrIpv6 %}
+                <cidrIpv6>{{ rule.ip_range.CidrIpv6 }}</cidrIpv6>
+                {% endif %}
+                <description>{{ rule.ip_range.Description or '' }}</description>
             {% endif %}
-            {% if item.CidrIpv6 %}
-            <cidrIpv6>{{ item.CidrIpv6 }}</cidrIpv6>
+            {% if rule.prefix_list_id %}
+                <prefixListId>{{ rule.prefix_list_id.PrefixListId }}</prefixListId>
+                <description>{{ rule.prefix_list_id.Description or '' }}</description>
             {% endif %}
-            <description>{{ item.Description or '' }}</description>
+            {% if rule.source_group %}
+                <referencedGroupInfo>
+                    {% if rule.source_group.OwnerId and rule.source_group.OwnerId != "" %}
+                    <userId>{{ rule.source_group.OwnerId }}</userId>
+                    {% endif %}
+                    {% if rule.source_group.GroupId and rule.source_group.GroupId != "" %}
+                    <groupId>{{ rule.source_group.GroupId }}</groupId>
+                    {% endif %}
+                    {% if rule.source_group.VpcId and rule.source_group.VpcId != "" %}
+                    <vpcId>{{ rule.source_group.VpcId }}</vpcId>
+                    {% endif %}
+                </referencedGroupInfo>
+                <description>{{ rule.source_group.Description or '' }}</description>
+            {% endif %}
             {% if rule.from_port is not none %}
             <fromPort>{{ rule.from_port }}</fromPort>
             {% endif %}
@@ -621,52 +584,6 @@ AUTHORIZE_SECURITY_GROUP_EGRESS_RESPONSE = """<AuthorizeSecurityGroupEgressRespo
                     </item>
                 {% endfor %}
             </tagSet> 
-        </item>
-    {% endfor %}
-    {% for item in rule.prefix_list_ids %}
-        <item>
-            <prefixListId>{{ item.PrefixListId }}</prefixListId>
-            <description>{{ item.Description or '' }}</description>
-            {% if rule.from_port is not none %}
-            <fromPort>{{ rule.from_port }}</fromPort>
-            {% endif %}
-            <groupId>{{ group.id }}</groupId>
-            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-            <isEgress>true</isEgress>
-            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
-            {% if rule.to_port is not none %}
-            <toPort>{{ rule.to_port }}</toPort>
-            {% endif %}
-        </item>
-    {% endfor %}
-    {% for item in rule.source_groups %}
-        <item>
-            {% if item.Description and item.Description != "" %}
-            <description>{{ item.Description }}</description>
-            {% endif %}
-            {% if rule.from_port is not none %}
-            <fromPort>{{ rule.from_port }}</fromPort>
-            {% endif %}
-            <groupId>{{ group.id }}</groupId>
-            <groupOwnerId>{{ rule.owner_id }}</groupOwnerId>
-            <ipProtocol>{{ rule.ip_protocol }}</ipProtocol>
-            <isEgress>true</isEgress>
-            <securityGroupRuleId>{{ rule.id }}</securityGroupRuleId>
-            {% if rule.to_port is not none %}
-            <toPort>{{ rule.to_port }}</toPort>
-            {% endif %}
-            <referencedGroupInfo>
-                {% if item.OwnerId and item.OwnerId != "" %}
-                <userId>{{ item.OwnerId }}</userId>
-                {% endif %}
-                {% if item.GroupId and item.GroupId != "" %}
-                <groupId>{{ item.GroupId }}</groupId>
-                {% endif %}
-                {% if item.VpcId and item.VpcId != "" %}
-                <vpcId>{{ item.VpcId }}</vpcId>
-                {% endif %}
-            </referencedGroupInfo>
         </item>
     {% endfor %}
     </securityGroupRuleSet>

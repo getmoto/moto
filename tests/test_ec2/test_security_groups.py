@@ -13,6 +13,7 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2 import ec2_backends
 from tests import aws_verified
+from tests.test_ec2 import ec2_aws_verified
 
 REGION = "us-east-1"
 
@@ -1000,7 +1001,7 @@ def test_security_group_filter_ip_permission():
             "IpProtocol": "tcp",
             "FromPort": from_port,
             "ToPort": to_port,
-            "IpRanges": [],
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         },
     ]
 
@@ -1970,16 +1971,9 @@ def test_filter_group_name():
     assert security_groups[0].group_name == sg1.group_name
 
 
-@mock_aws
-def test_revoke_security_group_ingress():
-    ec2 = boto3.client("ec2", region_name=REGION)
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-
-    sg = ec2.create_security_group(
-        Description="Test SG", GroupName=str(uuid4()), VpcId=vpc["Vpc"]["VpcId"]
-    )
-    sg_id = sg["GroupId"]
+@ec2_aws_verified(create_vpc=True, create_sg=True)
+def test_revoke_security_group_ingress(ec2_client=None, vpc_id=None, sg_id=None):
+    ec2 = ec2_client
 
     ec2.authorize_security_group_ingress(
         GroupId=sg_id,
@@ -1994,7 +1988,7 @@ def test_revoke_security_group_ingress():
                 "FromPort": 8080,
                 "ToPort": 8080,
                 "IpProtocol": "TCP",
-                "IpRanges": [{"CidrIp": "10.0.0.1/32"}],
+                "IpRanges": [{"CidrIp": "10.0.0.1/32"}, {"CidrIp": "10.0.0.10/32"}],
             },
         ],
     )
@@ -2004,11 +1998,11 @@ def test_revoke_security_group_ingress():
     )
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
-    assert len(ingress_rules) == 2
+    assert len(ingress_rules) == 3
 
-    # revoke 1 of the 2 ingress rules
+    # revoke 1 of the 3 ingress rules
     ec2.revoke_security_group_ingress(
-        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[0]["SecurityGroupRuleId"]]
+        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[-1]["SecurityGroupRuleId"]]
     )
 
     response = ec2.describe_security_group_rules(
@@ -2016,25 +2010,16 @@ def test_revoke_security_group_ingress():
     )
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
-    assert len(ingress_rules) == 1
+    assert len(ingress_rules) == 2
 
 
-@mock_aws()
-def test_invalid_security_group_id_in_rules_search():
-    ec2 = boto3.client("ec2", region_name=REGION)
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    vpc_id = vpc["Vpc"]["VpcId"]
-    group_name = "test-group"
-
-    response = ec2.create_security_group(
-        Description="Inventing a security group", GroupName=group_name, VpcId=vpc_id
-    )
-    group_id = response["GroupId"]
-
+@ec2_aws_verified(create_vpc=True, create_sg=True)
+def test_invalid_security_group_id_in_rules_search(
+    ec2_client=None, vpc_id=None, sg_id=None
+):
     # assert error with invalid sg id
     with pytest.raises(ClientError) as e:
-        ec2.describe_security_group_rules(
+        ec2_client.describe_security_group_rules(
             Filters=[{"Name": "group-id", "Values": ["foobar"]}]
         )
     error = e.value.response["Error"]
@@ -2042,37 +2027,31 @@ def test_invalid_security_group_id_in_rules_search():
     assert "The security group ID 'foobar' is malformed" in error["Message"]
 
     # assert with non-existent sg
-    response = ec2.describe_security_group_rules(
+    response = ec2_client.describe_security_group_rules(
         Filters=[{"Name": "group-id", "Values": ["sg-005216b55886f0fdc"]}]
     )
     assert len(response["SecurityGroupRules"]) == 0
 
     # assert with no rules
-    response = ec2.describe_security_group_rules(
-        Filters=[{"Name": "group-id", "Values": [group_id]}]
+    response = ec2_client.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg_id]}]
     )
     assert len(response["SecurityGroupRules"]) == 1
 
 
-@aws_verified
+@ec2_aws_verified(create_vpc=True, create_sg=True)
 @pytest.mark.aws_verified
 @pytest.mark.parametrize("is_ingress", [True, False], ids=["ingress", "egress"])
-def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_ingress):
+def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(
+    is_ingress, ec2_client=None, vpc_id=None, sg_id=None
+):
     is_egress = not is_ingress
     sts = boto3.client("sts", "us-east-1")
     account_id = sts.get_caller_identity()["Account"]
 
-    ec2_client = boto3.client("ec2", "us-east-1")
-    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/24")
-    vpc_id = vpc["Vpc"]["VpcId"]
-    sg_id = pl_id = None
+    pl_id = None
 
     try:
-        sg = ec2_client.create_security_group(
-            Description="test", GroupName=f"test_{str(uuid4())[0:6]}", VpcId=vpc_id
-        )
-        sg_id = sg["GroupId"]
-
         prefix_list = ec2_client.create_managed_prefix_list(
             PrefixListName=f"test{str(uuid4())[0:6]}",
             AddressFamily="IPv4",
