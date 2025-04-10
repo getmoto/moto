@@ -478,7 +478,12 @@ class OverlappingPathsValidator(DepthFirstTraverser):  # type: ignore[misc]
         for action in actions:
             path = action.children[0]
             path_name = path.children[0]
-            if isinstance(path_name, ExpressionAttributeName):
+            # for some reason, if we only have a root expression ('#path1', '#path2'),
+            # AWS only checks for direct matches, not path overlaps
+            if (
+                isinstance(path_name, ExpressionAttributeName)
+                and len(path.children) == 1
+            ):
                 expression_attribute_name_paths.append(
                     self.expression_attribute_names[
                         path_name.get_attribute_name_placeholder()
@@ -487,8 +492,6 @@ class OverlappingPathsValidator(DepthFirstTraverser):  # type: ignore[misc]
             else:
                 plaintext_paths.append(path.to_str())
 
-        # for some reason, AWS only checks expression attribute names for
-        # direct matches, not path overlaps
         overlapping_paths = find_path_overlaps(plaintext_paths)
         if overlapping_paths:
             # There might be more than one attribute duplicated:

@@ -1234,7 +1234,7 @@ class S3Response(BaseResponse):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(self.body, strip_whitespace=False)
         bypass_retention = (
-            self.headers.get("x-amz-bypass-governance-retention") == "True"
+            self.headers.get("x-amz-bypass-governance-retention", "").lower() == "true"
         )
 
         objects = body_dict["Delete"].get("Object", [])

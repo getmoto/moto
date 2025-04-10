@@ -162,3 +162,25 @@ class ServiceCatalogResponse(BaseResponse):
         }
 
         return json.dumps(response)
+
+    def describe_portfolio(self) -> str:
+        """Handle describe_portfolio request."""
+        params = json.loads(self.body)
+        accept_language = params.get("AcceptLanguage")
+        id = params.get("Id")
+
+        portfolio_detail, tags, tag_options, budgets = (
+            self.servicecatalog_backend.describe_portfolio(
+                accept_language=accept_language,
+                id=id,
+            )
+        )
+
+        response = {
+            "PortfolioDetail": portfolio_detail,
+            "Tags": tags,
+            "TagOptions": tag_options,
+            "Budgets": budgets,
+        }
+
+        return json.dumps(response)
