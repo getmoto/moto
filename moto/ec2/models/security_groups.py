@@ -1185,18 +1185,18 @@ class SecurityGroupBackend:
 
         if not dry_run:
             for rule in security_group_rules:
-                if any(
-                    [rule["SecurityGroupRuleId"] == r.id for r in group.ingress_rules]
-                ):
-                    old_rule = group.get_ingress_rule_by_id(rule["SecurityGroupRuleId"])
-                    group.ingress_rules.remove(old_rule)
+                old_ingress_rule = group.get_ingress_rule_by_id(rule["SecurityGroupRuleId"])
+                old_egress_rule = group.get_egress_rule_by_id(rule["SecurityGroupRuleId"])
 
-                    ip_ranges = []
+                if old_ingress_rule:
+                    group.ingress_rules.remove(old_ingress_rule)
+
+                    ip_range = {}
 
                     if rule["CidrIpv4"]:
-                        ip_ranges = [{"CidrIp": rule["CidrIpv4"]}]
+                        ip_range = {"CidrIp": rule["CidrIpv4"]}
                     elif rule["CidrIpv6"]:
-                        ip_ranges = [{"CidrIpv6": rule["CidrIpv6"]}]
+                        ip_range = {"CidrIpv6": rule["CidrIpv6"]}
 
                     group.add_ingress_rule(
                         SecurityRule(
@@ -1205,18 +1205,15 @@ class SecurityGroupBackend:
                             group_id=group.group_id,
                             from_port=rule["FromPort"],
                             to_port=rule["ToPort"],
-                            ip_ranges=ip_ranges,
-                            source_groups=rule["SourceSecurityGroupId"],
-                            prefix_list_ids=rule["PrefixListIds"],
+                            ip_range=ip_range,
+                            source_group=rule["SourceSecurityGroupId"],
+                            prefix_list_id=rule["PrefixListIds"],
                             id=rule["SecurityGroupRuleId"],
                         )
                     )
                     break
-                if any(
-                    [rule["SecurityGroupRuleId"] == r.id for r in group.egress_rules]
-                ):
-                    old_rule = group.get_egress_rule_by_id(rule["SecurityGroupRuleId"])
-                    group.egress_rules.remove(old_rule)
+                if old_egress_rule:
+                    group.egress_rules.remove(old_egress_rule)
 
                     group.add_egress_rule(
                         SecurityRule(
@@ -1225,9 +1222,9 @@ class SecurityGroupBackend:
                             group_id=group.group_id,
                             from_port=rule["FromPort"],
                             to_port=rule["ToPort"],
-                            ip_ranges=rule["IpRanges"],
-                            source_groups=rule["SourceSecurityGroupId"],
-                            prefix_list_ids=rule["PrefixListIds"],
+                            ip_range=rule["IpRanges"],
+                            source_group=rule["SourceSecurityGroupId"],
+                            prefix_list_id=rule["PrefixListIds"],
                             id=rule["SecurityGroupRuleId"],
                         )
                     )
