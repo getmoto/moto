@@ -264,6 +264,7 @@ class SecurityGroups(EC2BaseResponse):
 
         return MODIFY_SECURITY_GROUP_RULES
 
+
 CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <return>true</return>

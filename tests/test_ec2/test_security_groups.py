@@ -2338,7 +2338,6 @@ def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_i
 
 @mock_aws()
 def test_create_and_modify_ingress_rule():
-
     ec2 = boto3.resource("ec2", REGION)
     client = boto3.client("ec2", REGION)
 
@@ -2377,15 +2376,19 @@ def test_create_and_modify_ingress_rule():
 
     response = client.modify_security_group_rules(
         GroupId=security_group.id,
-        SecurityGroupRules=[{
-            "SecurityGroupRuleId": auth_response["SecurityGroupRules"][0]["SecurityGroupRuleId"],
-            "SecurityGroupRule": {
-                "IpProtocol": "tcp",
-                "FromPort": 23,
-                "ToPort": 2232,
-                "CidrIpv4": "123.123.123.123/32",
+        SecurityGroupRules=[
+            {
+                "SecurityGroupRuleId": auth_response["SecurityGroupRules"][0][
+                    "SecurityGroupRuleId"
+                ],
+                "SecurityGroupRule": {
+                    "IpProtocol": "tcp",
+                    "FromPort": 23,
+                    "ToPort": 2232,
+                    "CidrIpv4": "123.123.123.123/32",
+                },
             }
-        }],
+        ],
         DryRun=False,
     )
 
@@ -2395,7 +2398,7 @@ def test_create_and_modify_ingress_rule():
         ],
         SecurityGroupRuleIds=[
             auth_response["SecurityGroupRules"][0]["SecurityGroupRuleId"],
-        ]
+        ],
     )
 
     assert response
