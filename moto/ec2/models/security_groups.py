@@ -1185,8 +1185,12 @@ class SecurityGroupBackend:
 
         if not dry_run:
             for rule in security_group_rules:
-                old_ingress_rule = group.get_ingress_rule_by_id(rule["SecurityGroupRuleId"])
-                old_egress_rule = group.get_egress_rule_by_id(rule["SecurityGroupRuleId"])
+                old_ingress_rule = group.get_ingress_rule_by_id(
+                    rule["SecurityGroupRuleId"]
+                )
+                old_egress_rule = group.get_egress_rule_by_id(
+                    rule["SecurityGroupRuleId"]
+                )
 
                 if old_ingress_rule:
                     group.ingress_rules.remove(old_ingress_rule)
