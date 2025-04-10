@@ -121,7 +121,7 @@ def test_duplicate_regex_pattern_set():
             Description="Duplicate regex pattern set",
             RegularExpressionList=[{"RegexString": "duplicate.*pattern"}],
         )
-    assert e.value.response["Error"]["Code"] == "WAFDuplicateItemException"
+    assert e.value.response["Error"]["Code"] == "WafV2DuplicateItem"
 
 
 @mock_aws

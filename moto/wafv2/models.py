@@ -885,6 +885,13 @@ class WAFV2Backend(BaseBackend):
             raise WAFNonexistentItemException()
         return group
 
+    def _is_duplicate_regex_pattern_set(self, name: str, scope: str) -> bool:
+        """Check if a regex pattern set with the same name exists in the same scope"""
+        return any(
+            pattern_set.name == name and pattern_set.scope == scope
+            for pattern_set in self.regex_pattern_sets.values()
+        )
+
     def create_regex_pattern_set(
         self,
         name: str,
@@ -902,7 +909,7 @@ class WAFV2Backend(BaseBackend):
             scope=scope,
         )
 
-        if arn in self.regex_pattern_sets or self._is_duplicate_name(name):
+        if self._is_duplicate_regex_pattern_set(name, scope):
             raise WAFV2DuplicateItemException()
 
         new_regex_pattern_set = FakeRegexPatternSet(
