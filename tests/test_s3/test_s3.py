@@ -3587,3 +3587,47 @@ def enable_versioning(bucket_name, s3_client):
     while resp.get("Status") != "Enabled":
         sleep(0.1)
         resp = s3_client.get_bucket_versioning(Bucket=bucket_name)
+
+
+@mock_aws
+def test_put_bucket_inventory_configuration():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = "mybucket"
+    bucket2 = "mybucket2"
+    id = "my-inventory-config"
+    inventory_configuration = {
+        "Destination": {
+            "S3BucketDestination": {
+                "AccountId": DEFAULT_ACCOUNT_ID,
+                "Bucket": bucket2,
+                "Format": "CSV",
+                "Prefix": "test",
+                "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+            }
+        },
+        "IsEnabled": True,
+        "Filter": {"Prefix": "folder1/"},
+        "Id": id,
+        "IncludedObjectVersions": "All",
+        "OptionalFields": ["Size"],
+        "Schedule": {"Frequency": "Daily"},
+    }
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+    resp = client.put_bucket_inventory_configuration(
+        Bucket=bucket,
+        Id=id,
+        InventoryConfiguration=inventory_configuration,
+        ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+@pytest.mark.skip()
+def test_get_bucket_inventory_configuration():
+    client = boto3.client("s3", region_name="eu-west-1")
+    resp = client.get_bucket_inventory_configuration()
+
+    raise Exception("NotYetImplemented")
