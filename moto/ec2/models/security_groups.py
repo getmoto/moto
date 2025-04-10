@@ -44,9 +44,10 @@ class SecurityRule(TaggedEC2Resource):
         is_egress: bool = True,
         tags: Dict[str, str] = {},
         description: str = "",
+        id: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
-        self.id = random_security_group_rule_id()
+        self.id = id if id else random_security_group_rule_id()
         self.ip_protocol = str(ip_protocol) if ip_protocol else None
         self.ip_ranges = ip_ranges or []
         self.source_groups = source_groups or []
@@ -319,6 +320,18 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     ) -> None:
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
+
+    def get_ingress_rule_by_id(self, rule_id: str) -> Optional[SecurityRule]:
+        for rule in self.ingress_rules:
+            if rule.id == rule_id:
+                return rule
+        return None
+
+    def get_egress_rule_by_id(self, rule_id: str) -> Optional[SecurityRule]:
+        for rule in self.egress_rules:
+            if rule.id == rule_id:
+                return rule
+        return None
 
     @property
     def physical_resource_id(self) -> str:
@@ -1225,6 +1238,76 @@ class SecurityGroupBackend:
             ):
                 self._sg_update_description(security_rule, rule)
         return group
+
+    def modify_security_group_rules(
+        self,
+        group_id: str,
+        security_group_rules: List[Dict[str, Any]],
+        dry_run: bool,
+    ) -> bool:
+        group = self.get_security_group_from_id(group_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_id)
+
+        for rule in security_group_rules:
+            if rule not in group.ingress_rules and rule not in group.egress_rules:
+                raise InvalidPermissionNotFoundError()
+            if not rule["SecurityGroupRuleId"]:
+                raise InvalidPermissionNotFoundError()
+
+        if not dry_run:
+            for rule in security_group_rules:
+                if any(
+                    [rule["SecurityGroupRuleId"] == r.id for r in group.ingress_rules]
+                ):
+                    old_rule = group.get_ingress_rule_by_id(rule["SecurityGroupRuleId"])
+                    group.ingress_rules.remove(old_rule)
+
+                    ip_ranges = []
+
+                    if rule["CidrIpv4"]:
+                        ip_ranges = [{"CidrIp": rule["CidrIpv4"]}]
+                    elif rule["CidrIpv6"]:
+                        ip_ranges = [{"CidrIpv6": rule["CidrIpv6"]}]
+
+                    group.add_ingress_rule(
+                        SecurityRule(
+                            self,
+                            ip_protocol=rule["IpProtocol"],
+                            group_id=group.group_id,
+                            from_port=rule["FromPort"],
+                            to_port=rule["ToPort"],
+                            ip_ranges=ip_ranges,
+                            source_groups=rule["SourceSecurityGroupId"],
+                            prefix_list_ids=rule["PrefixListIds"],
+                            id=rule["SecurityGroupRuleId"],
+                        )
+                    )
+                    break
+                if any(
+                    [rule["SecurityGroupRuleId"] == r.id for r in group.egress_rules]
+                ):
+                    old_rule = group.get_egress_rule_by_id(rule["SecurityGroupRuleId"])
+                    group.egress_rules.remove(old_rule)
+
+                    group.add_egress_rule(
+                        SecurityRule(
+                            self,
+                            ip_protocol=rule["IpProtocol"],
+                            group_id=group.group_id,
+                            from_port=rule["FromPort"],
+                            to_port=rule["ToPort"],
+                            ip_ranges=rule["IpRanges"],
+                            source_groups=rule["SourceSecurityGroupId"],
+                            prefix_list_ids=rule["PrefixListIds"],
+                            id=rule["SecurityGroupRuleId"],
+                        )
+                    )
+                    break
+
+                # If we reach here, it means that the rule was not found in either ingress or egress rules
+                raise InvalidPermissionNotFoundError()
+        return True
 
     def _sg_update_description(
         self, security_rule: SecurityRule, rule: SecurityRule

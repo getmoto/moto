@@ -2334,3 +2334,71 @@ def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_i
         if sg_id:
             ec2_client.delete_security_group(GroupId=sg_id)
         ec2_client.delete_vpc(VpcId=vpc_id)
+
+
+@mock_aws()
+def test_create_and_modify_ingress_rule():
+
+    ec2 = boto3.resource("ec2", REGION)
+    client = boto3.client("ec2", REGION)
+
+    with pytest.raises(ClientError) as ex:
+        client.create_security_group(GroupName="test", Description="test", DryRun=True)
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
+    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
+    )
+
+    sec_name = str(uuid4())
+    security_group = ec2.create_security_group(GroupName=sec_name, Description="test")
+
+    assert security_group.group_name == sec_name
+    assert security_group.description == "test"
+
+    ingress_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 22,
+            "ToPort": 2222,
+            "IpRanges": [{"CidrIp": "123.123.123.123/32"}],
+        }
+    ]
+
+    auth_response = security_group.authorize_ingress(IpPermissions=ingress_permissions)
+
+    assert len(security_group.ip_permissions) == 1
+    assert security_group.ip_permissions[0]["ToPort"] == 2222
+    assert security_group.ip_permissions[0]["IpProtocol"] == "tcp"
+    assert security_group.ip_permissions[0]["IpRanges"] == [
+        {"CidrIp": "123.123.123.123/32"}
+    ]
+
+    response = client.modify_security_group_rules(
+        GroupId=security_group.id,
+        SecurityGroupRules=[{
+            "SecurityGroupRuleId": auth_response["SecurityGroupRules"][0]["SecurityGroupRuleId"],
+            "SecurityGroupRule": {
+                "IpProtocol": "tcp",
+                "FromPort": 23,
+                "ToPort": 2232,
+                "CidrIpv4": "123.123.123.123/32",
+            }
+        }],
+        DryRun=False,
+    )
+
+    updated_security_group = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [security_group.id]},
+        ],
+        SecurityGroupRuleIds=[
+            auth_response["SecurityGroupRules"][0]["SecurityGroupRuleId"],
+        ]
+    )
+
+    assert response
+    assert len(updated_security_group["SecurityGroupRules"]) == 1
+    assert updated_security_group["SecurityGroupRules"][0]["ToPort"] == 2232
+    assert updated_security_group["SecurityGroupRules"][0]["IpProtocol"] == "tcp"

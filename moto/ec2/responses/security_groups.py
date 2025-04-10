@@ -256,6 +256,13 @@ class SecurityGroups(EC2BaseResponse):
         self.ec2_backend.sg_old_egress_ruls[group.id] = group.egress_rules.copy()
         return UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS
 
+    def modify_security_group_rules(self) -> str:
+        self.error_on_dryrun()
+
+        for kwargs in self._process_rules_from_querystring():
+            self.ec2_backend.modify_security_group_rules(**kwargs)
+
+        return MODIFY_SECURITY_GROUP_RULES
 
 CREATE_SECURITY_GROUP_RESPONSE = """<CreateSecurityGroupResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
@@ -679,3 +686,7 @@ UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_EGRESS = """<UpdateSecurityGroupRuleDesc
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </UpdateSecurityGroupRuleDescriptionsEgressResponse>"""
+
+MODIFY_SECURITY_GROUP_RULES = """<ModifySecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <return>true</return>
+</ModifySecurityGroupRulesResponse>"""
