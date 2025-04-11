@@ -2118,7 +2118,7 @@
 
 ## dms
 <details>
-<summary>4% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2132,7 +2132,7 @@
 - [ ] create_instance_profile
 - [ ] create_migration_project
 - [ ] create_replication_config
-- [ ] create_replication_instance
+- [X] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
 - [ ] delete_certificate
@@ -2184,7 +2184,7 @@
 - [ ] describe_refresh_schemas_status
 - [ ] describe_replication_configs
 - [ ] describe_replication_instance_task_logs
-- [ ] describe_replication_instances
+- [X] describe_replication_instances
 - [ ] describe_replication_subnet_groups
 - [ ] describe_replication_table_statistics
 - [ ] describe_replication_task_assessment_results
@@ -2441,7 +2441,6 @@
 - [ ] associate_ipam_byoasn
 - [ ] associate_ipam_resource_discovery
 - [ ] associate_nat_gateway_address
-- [ ] associate_route_server
 - [X] associate_route_table
 - [ ] associate_security_group_vpc
 - [X] associate_subnet_cidr_block
@@ -2522,9 +2521,6 @@
 - [ ] create_reserved_instances_listing
 - [ ] create_restore_image_task
 - [X] create_route
-- [ ] create_route_server
-- [ ] create_route_server_endpoint
-- [ ] create_route_server_peer
 - [X] create_route_table
 - [X] create_security_group
 - [X] create_snapshot
@@ -2603,9 +2599,6 @@
 - [ ] delete_public_ipv4_pool
 - [ ] delete_queued_reserved_instances
 - [X] delete_route
-- [ ] delete_route_server
-- [ ] delete_route_server_endpoint
-- [ ] delete_route_server_peer
 - [X] delete_route_table
 - [X] delete_security_group
 - [X] delete_snapshot
@@ -2751,9 +2744,6 @@
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
 - [ ] describe_reserved_instances_offerings
-- [ ] describe_route_server_endpoints
-- [ ] describe_route_server_peers
-- [ ] describe_route_servers
 - [X] describe_route_tables
 - [ ] describe_scheduled_instance_availability
 - [ ] describe_scheduled_instances
@@ -2831,7 +2821,6 @@
 - [ ] disable_image_deprecation
 - [ ] disable_image_deregistration_protection
 - [ ] disable_ipam_organization_admin_account
-- [ ] disable_route_server_propagation
 - [ ] disable_serial_console_access
 - [ ] disable_snapshot_block_public_access
 - [X] disable_transit_gateway_route_table_propagation
@@ -2847,7 +2836,6 @@
 - [ ] disassociate_ipam_byoasn
 - [ ] disassociate_ipam_resource_discovery
 - [ ] disassociate_nat_gateway_address
-- [ ] disassociate_route_server
 - [X] disassociate_route_table
 - [ ] disassociate_security_group_vpc
 - [X] disassociate_subnet_cidr_block
@@ -2868,7 +2856,6 @@
 - [ ] enable_image_deregistration_protection
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
-- [ ] enable_route_server_propagation
 - [ ] enable_serial_console_access
 - [ ] enable_snapshot_block_public_access
 - [X] enable_transit_gateway_route_table_propagation
@@ -2915,9 +2902,6 @@
 - [ ] get_network_insights_access_scope_content
 - [X] get_password_data
 - [ ] get_reserved_instances_exchange_quote
-- [ ] get_route_server_associations
-- [ ] get_route_server_propagations
-- [ ] get_route_server_routing_database
 - [ ] get_security_groups_for_vpc
 - [ ] get_serial_console_access_status
 - [ ] get_snapshot_block_public_access_state
@@ -2980,7 +2964,6 @@
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
 - [ ] modify_reserved_instances
-- [ ] modify_route_server
 - [ ] modify_security_group_rules
 - [ ] modify_snapshot_attribute
 - [ ] modify_snapshot_tier
@@ -7869,7 +7852,6 @@
 - [ ] delete_access_point_for_object_lambda
 - [X] delete_access_point_policy
 - [ ] delete_access_point_policy_for_object_lambda
-- [ ] delete_access_point_scope
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
 - [ ] delete_bucket_policy
@@ -7896,7 +7878,6 @@
 - [ ] get_access_point_policy_for_object_lambda
 - [X] get_access_point_policy_status
 - [ ] get_access_point_policy_status_for_object_lambda
-- [ ] get_access_point_scope
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
@@ -7917,7 +7898,6 @@
 - [ ] list_access_grants_instances
 - [ ] list_access_grants_locations
 - [ ] list_access_points
-- [ ] list_access_points_for_directory_buckets
 - [ ] list_access_points_for_object_lambda
 - [ ] list_caller_access_grants
 - [ ] list_jobs
@@ -7930,7 +7910,6 @@
 - [ ] put_access_point_configuration_for_object_lambda
 - [X] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
-- [ ] put_access_point_scope
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
 - [ ] put_bucket_replication
@@ -8745,7 +8724,7 @@
 
 ## sesv2
 <details>
-<summary>20% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -8757,7 +8736,7 @@
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
 - [X] create_email_identity
-- [ ] create_email_identity_policy
+- [X] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
 - [ ] create_import_job
@@ -8769,7 +8748,7 @@
 - [ ] delete_custom_verification_email_template
 - [X] delete_dedicated_ip_pool
 - [ ] delete_email_identity
-- [ ] delete_email_identity_policy
+- [X] delete_email_identity_policy
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint
 - [ ] delete_suppressed_destination
@@ -8788,7 +8767,7 @@
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
 - [X] get_email_identity
-- [ ] get_email_identity_policies
+- [X] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
 - [ ] get_import_job
@@ -8841,7 +8820,7 @@
 - [ ] update_contact
 - [ ] update_contact_list
 - [ ] update_custom_verification_email_template
-- [ ] update_email_identity_policy
+- [X] update_email_identity_policy
 - [ ] update_email_template
 </details>
 

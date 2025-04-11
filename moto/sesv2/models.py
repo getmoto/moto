@@ -340,5 +340,44 @@ class SESV2Backend(BaseBackend):
             raise NotFoundException(email_identity)
         return self.email_identities[email_identity]
 
+    def create_email_identity_policy(
+        self, email_identity: str, policy_name: str, policy: str
+    ) -> None:
+        email_id = self.get_email_identity(email_identity)
+
+        email_id.policies[policy_name] = policy
+
+        return
+
+    def delete_email_identity_policy(
+        self, email_identity: str, policy_name: str
+    ) -> None:
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+
+        email_id = self.email_identities[email_identity]
+
+        if policy_name in email_id.policies:
+            del email_id.policies[policy_name]
+
+        return
+
+    def update_email_identity_policy(
+        self, email_identity: str, policy_name: str, policy: str
+    ) -> None:
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+
+        email_id = self.email_identities[email_identity]
+
+        email_id.policies[policy_name] = policy
+
+        return
+
+    def get_email_identity_policies(self, email_identity: str) -> Dict[str, Any]:
+        email_id = self.get_email_identity(email_identity)
+
+        return email_id.policies
+
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")
