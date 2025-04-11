@@ -138,12 +138,12 @@ def test_cloudfront_scope():
 
     assert "Summary" in create_response
     summary = create_response["Summary"]
-    assert ":global:" in summary["ARN"]
+    assert ":us-east-1:" in summary["ARN"]
 
     # List only CLOUDFRONT regex pattern sets
     list_response = client.list_regex_pattern_sets(Scope="CLOUDFRONT")
     assert len(list_response["RegexPatternSets"]) == 1
     assert all(
-        ":global:" in pattern_set["ARN"]
+        ":us-east-1:" in pattern_set["ARN"]
         for pattern_set in list_response["RegexPatternSets"]
     )

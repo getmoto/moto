@@ -33,5 +33,5 @@ def make_arn_for_regex_pattern_set(
     Generate an ARN for a WAFv2 Regex Pattern Set
     """
     if scope == "CLOUDFRONT":
-        region_name = "global"
+        region_name = "us-east-1"
     return f"arn:aws:wafv2:{region_name}:{account_id}:regional/regexpatternset/{name}/{_id}"
