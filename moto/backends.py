@@ -134,6 +134,7 @@ if TYPE_CHECKING:
     from moto.scheduler.models import EventBridgeSchedulerBackend
     from moto.sdb.models import SimpleDBBackend
     from moto.secretsmanager.models import SecretsManagerBackend
+    from moto.servicecatalogappregistry.models import AppRegistryBackend
     from moto.servicediscovery.models import ServiceDiscoveryBackend
     from moto.servicequotas.models import ServiceQuotasBackend
     from moto.ses.models import SESBackend
@@ -322,6 +323,7 @@ SERVICE_NAMES = Union[
     "Literal['scheduler']",
     "Literal['sdb']",
     "Literal['secretsmanager']",
+    "Literal['servicecatalogappregistry']",
     "Literal['servicediscovery']",
     "Literal['service-quotas']",
     "Literal['ses']",
@@ -713,6 +715,10 @@ def get_backend(name: "Literal['sdb']") -> "BackendDict[SimpleDBBackend]": ...
 def get_backend(
     name: "Literal['secretsmanager']",
 ) -> "BackendDict[SecretsManagerBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['servicecatalogappregistry']",
+) -> "BackendDict[AppRegistryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['servicediscovery']",
