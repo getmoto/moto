@@ -24,3 +24,14 @@ make_arn_for_wacl = partial(make_arn, resource="webacl")
 make_arn_for_ip_set = partial(make_arn, resource="ipset")
 make_arn_for_logging_configuration = partial(make_arn, resource="loggingconfiguration")
 make_arn_for_rule_group = partial(make_arn, resource="rulegroup")
+
+
+def make_arn_for_regex_pattern_set(
+    name: str, account_id: str, region_name: str, _id: str, scope: str
+) -> str:
+    """
+    Generate an ARN for a WAFv2 Regex Pattern Set
+    """
+    if scope == "CLOUDFRONT":
+        region_name = "us-east-1"
+    return f"arn:aws:wafv2:{region_name}:{account_id}:regional/regexpatternset/{name}/{_id}"
