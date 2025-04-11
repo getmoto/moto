@@ -2068,6 +2068,7 @@ def test_revoke_security_group_ingress(ec2_client=None, vpc_id=None, sg_id=None)
 
 
 @ec2_aws_verified(create_vpc=True, create_sg=True)
+@pytest.mark.aws_verified
 def test_invalid_security_group_id_in_rules_search(
     ec2_client=None, vpc_id=None, sg_id=None
 ):
@@ -2079,6 +2080,19 @@ def test_invalid_security_group_id_in_rules_search(
     error = e.value.response["Error"]
     assert "InvalidGroupId.Malformed" == error["Code"]
     assert "The security group ID 'foobar' is malformed" in error["Message"]
+
+    # assert error with non-existent sgr id
+    non_existent_sgr_id = "sgr-0f80c7e764c18b3c0"
+    with pytest.raises(ClientError) as e:
+        ec2_client.describe_security_group_rules(
+            SecurityGroupRuleIds=[non_existent_sgr_id]
+        )
+    error = e.value.response["Error"]
+    assert "InvalidSecurityGroupRuleId.NotFound" == error["Code"]
+    assert (
+        f"The security group rule ID '{non_existent_sgr_id}' does not exist"
+        in error["Message"]
+    )
 
     # assert with non-existent sg
     response = ec2_client.describe_security_group_rules(
