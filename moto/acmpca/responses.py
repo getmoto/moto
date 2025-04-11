@@ -1,6 +1,7 @@
 """Handles incoming acmpca requests, invokes methods, returns responses."""
 
 import base64
+import binascii
 import json
 
 from moto.core.responses import BaseResponse
@@ -59,7 +60,7 @@ class ACMPCAResponse(BaseResponse):
             try:
                 decoded_chain = base64.b64decode(certificate_chain)
                 response["CertificateChain"] = decoded_chain.decode("utf-8")
-            except (base64.binascii.Error, AttributeError):
+            except (binascii.Error, AttributeError):
                 response["CertificateChain"] = (
                     certificate_chain.decode("utf-8")
                     if isinstance(certificate_chain, bytes)
