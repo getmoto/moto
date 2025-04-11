@@ -417,7 +417,7 @@ def test_import_certificate_authority_certificate():
     # Verify certificate format
     assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
     assert "-----END CERTIFICATE-----" in resp["Certificate"]
-    
+
     # Verify certificate chain format
     assert "-----BEGIN CERTIFICATE-----" in resp["CertificateChain"]
     assert "-----END CERTIFICATE-----" in resp["CertificateChain"]
