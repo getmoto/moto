@@ -4912,7 +4912,7 @@ def test_query_with_gsi_reverse_paginated():
             TableName=table_name,
             Item={
                 "pri": {"S": f"pri_{i}"},
-                "alt": {"S": f"alt_{i//4}"},
+                "alt": {"S": f"alt_{i // 4}"},
             },
         )
 

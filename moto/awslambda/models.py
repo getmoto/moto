@@ -983,7 +983,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             env_vars["MOTO_HOST"] = settings.moto_server_host()
             moto_port = settings.moto_server_port()
             env_vars["MOTO_PORT"] = moto_port
-            env_vars["MOTO_HTTP_ENDPOINT"] = f'{env_vars["MOTO_HOST"]}:{moto_port}'
+            env_vars["MOTO_HTTP_ENDPOINT"] = f"{env_vars['MOTO_HOST']}:{moto_port}"
 
             if settings.is_test_proxy_mode():
                 env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
@@ -992,9 +992,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
 
-            with _DockerDataVolumeContext(
-                self
-            ) as data_vol, _DockerDataVolumeLayerContext(self) as layer_context:
+            with (
+                _DockerDataVolumeContext(self) as data_vol,
+                _DockerDataVolumeLayerContext(self) as layer_context,
+            ):
                 try:
                     run_kwargs: Dict[str, Any] = dict()
                     network_name = settings.moto_network_name()

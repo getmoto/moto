@@ -547,9 +547,9 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "Snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "Snapshot should have no permissions."
+    )
 
     ADD_GROUP_ARGS = {
         "SnapshotId": snapshot.id,
@@ -578,15 +578,15 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert attributes["CreateVolumePermissions"] == [
-        {"Group": "all"}
-    ], "This snapshot should have public group permissions."
+    assert attributes["CreateVolumePermissions"] == [{"Group": "all"}], (
+        "This snapshot should have public group permissions."
+    )
 
     # Add is idempotent
     ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
-    assert attributes["CreateVolumePermissions"] == [
-        {"Group": "all"}
-    ], "This snapshot should have public group permissions."
+    assert attributes["CreateVolumePermissions"] == [{"Group": "all"}], (
+        "This snapshot should have public group permissions."
+    )
 
     # Remove 'all' group and confirm
     with pytest.raises(ClientError):
@@ -602,15 +602,15 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "This snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "This snapshot should have no permissions."
+    )
 
     # Remove is idempotent
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "This snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "This snapshot should have no permissions."
+    )
 
     # Error: Add with group != 'all'
     with pytest.raises(ClientError) as cm:

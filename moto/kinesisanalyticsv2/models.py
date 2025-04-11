@@ -56,7 +56,7 @@ class Application(BaseModel):
         self, cloud_watch_logging_options: Optional[List[Dict[str, str]]]
     ) -> List[Dict[str, str]] | None:
         cloud_watch_logging_option_descriptions = []
-        option_id = f"{str(random.randint(1,100))}.1"
+        option_id = f"{str(random.randint(1, 100))}.1"
 
         # Leaving out RoleARN since it is provided only sometimes for backwards
         # compatibility. Current API versions do not have the resource-level

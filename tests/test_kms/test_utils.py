@@ -26,11 +26,11 @@ from moto.kms.utils import (
 ENCRYPTION_CONTEXT_VECTORS = [
     (
         {"this": "is", "an": "encryption", "context": "example"},
-        b"an" b"encryption" b"context" b"example" b"this" b"is",
+        b"anencryptioncontextexamplethisis",
     ),
     (
         {"a_this": "one", "b_is": "actually", "c_in": "order"},
-        b"a_this" b"one" b"b_is" b"actually" b"c_in" b"order",
+        b"a_thisoneb_isactuallyc_inorder",
     ),
 ]
 CIPHERTEXT_BLOB_VECTORS = [
@@ -214,9 +214,7 @@ def test_decrypt_invalid_ciphertext():
     master_key = Key("nop", "nop", "nop", "nop", "nop", "nop")
     master_key_map = {master_key.id: master_key}
     ciphertext_blob = (
-        master_key.id.encode("utf-8") + b"123456789012"
-        b"1234567890123456"
-        b"some ciphertext"
+        master_key.id.encode("utf-8") + b"1234567890121234567890123456some ciphertext"
     )
 
     with pytest.raises(InvalidCiphertextException):

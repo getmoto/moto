@@ -131,7 +131,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             message = f"1 validation error detected: {messages[0]}"
         elif len(messages) > 1:
             message = (
-                f'{len(messages)} validation errors detected: {"; ".join(messages)}'
+                f"{len(messages)} validation errors detected: {'; '.join(messages)}"
             )
         if message:
             raise AWSValidationException(message)
