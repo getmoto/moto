@@ -535,7 +535,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     or resource_type in resource_type_filters
                 ):
                     for resource in resource_source.values():
-                        tags = format_tags(resource.tags)
+                        bot_tags = self.lexv2_backend.list_tags_for_resource(
+                            resource.arn
+                        )
+
+                        tags = format_tags(bot_tags)
                         if not tags or not tag_filter(tags):
                             continue
                         yield {
