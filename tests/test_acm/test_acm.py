@@ -1,3 +1,4 @@
+import datetime
 import os
 import uuid
 from ipaddress import IPv4Address
@@ -860,3 +861,24 @@ def test_elbv2_acm_in_use_by():
         _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
     ][0]
     assert cert["InUse"]
+
+
+@mock_aws
+def test_certificate_expiration_status():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Status"] == "ISSUED"
+
+    expiry_time = resp["Certificate"]["NotAfter"]
+
+    # Test before expiry (1 second before)
+    with freeze_time(expiry_time - datetime.timedelta(seconds=1)):
+        resp = client.describe_certificate(CertificateArn=arn)
+        assert resp["Certificate"]["Status"] == "ISSUED"
+
+    # Test after expiry
+    with freeze_time(expiry_time + datetime.timedelta(days=1)):  # 1 day after
+        resp = client.describe_certificate(CertificateArn=arn)
+        assert resp["Certificate"]["Status"] == "EXPIRED"
