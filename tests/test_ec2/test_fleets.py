@@ -329,6 +329,114 @@ def test_create_fleet_request_with_tags():
 
 
 @mock_aws
+def test_create_fleet_request_with_instance_tags_and_fleet_type_instant():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    launch_template_id, _ = get_launch_template(conn)
+    tags = [
+        {"Key": "Name", "Value": "test-fleet"},
+        {"Key": "Another", "Value": "tag"},
+    ]
+    fleet_res = conn.create_fleet(
+        DryRun=False,
+        SpotOptions={
+            "AllocationStrategy": "lowestPrice",
+            "InstanceInterruptionBehavior": "terminate",
+        },
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": launch_template_id,
+                    "Version": "1",
+                },
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "OnDemandTargetCapacity": 1,
+            "SpotTargetCapacity": 2,
+            "TotalTargetCapacity": 3,
+        },
+        Type="instant",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+        TagSpecifications=[
+            {
+                "ResourceType": "instance",
+                "Tags": tags,
+            },
+        ],
+    )
+    fleet_id = fleet_res["FleetId"]
+
+    instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
+    instances = conn.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in instance_res["ActiveInstances"]]
+    )
+    for instance in instances["Reservations"][0]["Instances"]:
+        for tag in tags:
+            assert tag in instance["Tags"]
+
+
+@mock_aws
+def test_create_fleet_request_rejects_instance_tags_when_type_request():
+    conn = boto3.client("ec2", region_name="us-west-2")
+
+    launch_template_id, _ = get_launch_template(conn)
+    tags = [
+        {"Key": "Name", "Value": "test-fleet"},
+        {"Key": "Another", "Value": "tag"},
+    ]
+    tags_instance = [
+        {"Key": "test", "Value": "value"},
+        {"Key": "Name", "Value": "test"},
+    ]
+    fleet_res = conn.create_fleet(
+        DryRun=False,
+        SpotOptions={
+            "AllocationStrategy": "lowestPrice",
+            "InstanceInterruptionBehavior": "terminate",
+        },
+        LaunchTemplateConfigs=[
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateId": launch_template_id,
+                    "Version": "1",
+                },
+            },
+        ],
+        TargetCapacitySpecification={
+            "DefaultTargetCapacityType": "spot",
+            "OnDemandTargetCapacity": 1,
+            "SpotTargetCapacity": 2,
+            "TotalTargetCapacity": 3,
+        },
+        Type="request",
+        ValidFrom="2020-01-01T00:00:00Z",
+        ValidUntil="2020-12-31T00:00:00Z",
+        TagSpecifications=[
+            {
+                "ResourceType": "instance",
+                "Tags": tags,
+            },
+        ],
+    )
+    fleet_id = fleet_res["FleetId"]
+
+    instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
+    instances = conn.describe_instances(
+        InstanceIds=[i["InstanceId"] for i in instance_res["ActiveInstances"]]
+    )
+    for instance in instances["Reservations"][0]["Instances"]:
+        for tag in tags_instance:
+            assert tag in instance["Tags"]
+        for tag in tags:
+            # When fleet_type="request", TagSpecifications with ResourceType="instance" are ignored
+            # according to the AWS spec. So we assert that these tags are not applied to instances.
+            assert tag not in instance["Tags"]
+
+
+@mock_aws
 @pytest.mark.parametrize(
     "overrides", [{"InstanceType": "t2.nano"}, {"AvailabilityZone": "us-west-1"}]
 )

@@ -42,9 +42,15 @@ class Fleet(TaggedEC2Resource):
         self.fleet_type = fleet_type
         self.valid_from = valid_from or datetime.datetime.now(tz=datetime.timezone.utc)
         self.valid_until = valid_until
-        tag_map = convert_tag_spec(tag_specifications).get("fleet", {})
-        self.add_tags(tag_map)
+        tag_spec = convert_tag_spec(tag_specifications)
+        self.add_tags(tag_spec.get("fleet", {}))
         self.tags = self.get_tags()
+        # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_fleet.html
+        # If the fleet type is instant, specify a resource type of fleet to tag the fleet or instance to tag the instances at launch.
+        # If the fleet type is maintain or request, specify a resource type of fleet to tag the fleet. You cannot specify a resource type of instance. To tag instances at launch, specify the tags in a launch template.
+        instance_tags = (
+            tag_spec.get("instance", {}) if self.fleet_type == "instant" else {}
+        )
 
         self.state = "active"
         self.fulfilled_capacity = 0.0
@@ -76,6 +82,7 @@ class Fleet(TaggedEC2Resource):
         for spec in launch_specs_from_config:
             tag_spec_set = spec.get("TagSpecification", [])
             tags = convert_tag_spec(tag_spec_set)
+            tags["instance"] = tags.get("instance", {}) | instance_tags
             self.launch_specs.append(
                 SpotFleetLaunchSpec(
                     ebs_optimized=spec.get("EbsOptimized"),
