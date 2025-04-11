@@ -64,8 +64,8 @@ jobs:
         git config --local user.name "Moto Admin"
         git add moto/__init__.py
         git add setup.cfg
-        git commit -m "Pre-Release: Up Version Number"
-        git push
+        git commit -m "Pre-Release: Up Version Number" || echo "No Changes!"
+        git push || echo "No Changes!"
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
     - name: Tag version on Github

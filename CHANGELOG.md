@@ -2,6 +2,28 @@ Moto Changelog
 ==============
 
 
+5.1.3
+-----
+Docker Digest for 5.1.3: _sha256:c96adff67d2bf82c3a61a6f1155db5300be44d82a9403919a6ff994d0e5438b7_
+
+    New Methods:
+        * DMS:
+            * create_replication_instance()
+            * describe_replication_instances()
+
+        * Service Catalog:
+            * describe_portfolio()
+
+    Miscellaneous:
+        * ACM: request_certificate() now correctly handles IPv4-addresses
+        * DynamoDB: update_item(): Fixed a bug where the PathOverlap-exception was thrown erroneously
+        * EC2: Improved the behaviour of SecurityGroupRules with multiple IP ranges
+        * MediaConnect: create_flow() now supports the Maintenance-parameter
+        * RDS: Managed Secrets are now actually created in Secrets Manager
+        * S3: delete_objects(): The BypassGovernanceMode-parameter is now compatible with botocore==1.27.25
+        * SNS: SMS messages are now exposed via the Moto API
+
+
 5.1.2
 -----
 Docker Digest for 5.1.2: _sha256:3144ffd311b381594efde7ed4a41fb8fe2d66829ae5f3bf493f93f2ca1a8c82b_

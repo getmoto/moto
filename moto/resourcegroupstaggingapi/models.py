@@ -559,11 +559,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": group.arn, "Tags": tags}
 
         # RDS resources
-        resource_map: Dict[str, Dict[str, Any]] = {
-            "rds:cluster": self.rds_backend.clusters,
-            "rds:db": self.rds_backend.databases,
-            "rds:snapshot": self.rds_backend.database_snapshots,
-            "rds:cluster-snapshot": self.rds_backend.cluster_snapshots,
+        resource_map: dict[str, dict[str, Any]] = {
+            "rds:cluster": dict(self.rds_backend.clusters),
+            "rds:db": dict(self.rds_backend.databases),
+            "rds:snapshot": dict(self.rds_backend.database_snapshots),
+            "rds:cluster-snapshot": dict(self.rds_backend.cluster_snapshots),
             "rds:db-proxy": self.rds_backend.db_proxies,
         }
         for resource_type, resource_source in resource_map.items():
