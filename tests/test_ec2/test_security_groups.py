@@ -633,6 +633,42 @@ def test_security_group_rule_filtering_group_id():
 
 
 @mock_aws
+def test_describe_security_group_rules_by_id():
+    ec2 = boto3.resource("ec2", region_name=REGION)
+    conn = boto3.client("ec2", region_name=REGION)
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = conn.create_security_group(
+        GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
+    )
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27018,
+            "IpRanges": [
+                {"CidrIp": "1.2.3.4/32"},
+                {"CidrIp": "2.3.4.5/32"},
+            ],
+        }
+    ]
+    conn.authorize_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=ip_permissions
+    )
+    result = conn.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+    )
+    assert len(result["SecurityGroupRules"]) == 3
+    sgr_ids = [sgr["SecurityGroupRuleId"] for sgr in result["SecurityGroupRules"]]
+    sgr_id_not_included = sgr_ids.pop(0)
+    result = conn.describe_security_group_rules(SecurityGroupRuleIds=sgr_ids)
+    sgr_ids_returned = [
+        sgr["SecurityGroupRuleId"] for sgr in result["SecurityGroupRules"]
+    ]
+    assert sgr_ids_returned == sgr_ids
+    assert sgr_id_not_included not in sgr_ids_returned
+
+
+@mock_aws
 def test_security_group_rule_filtering_tags():
     # Setup
     ec2 = boto3.resource("ec2", REGION)
