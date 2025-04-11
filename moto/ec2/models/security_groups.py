@@ -81,6 +81,10 @@ class SecurityRule(TaggedEC2Resource):
         )
         self.ip_protocol = proto if proto else self.ip_protocol
         self.add_tags(tags)
+        self.filters = {
+            "group-id": self.filter_group_id,
+            "security-group-rule-id": self.filter_id,
+        }
 
     @property
     def owner_id(self) -> str:
@@ -120,6 +124,30 @@ class SecurityRule(TaggedEC2Resource):
             else:
                 setattr(new, k, copy.deepcopy(v, memodict))
         return new
+
+    def filter_id(self, values: List[Any]) -> bool:
+        for value in values:
+            if aws_api_matches(value, self.id):
+                return True
+        return False
+
+    def filter_group_id(self, values: List[Any]) -> bool:
+        for value in values:
+            if aws_api_matches(value, self.group_id):
+                return True
+        return False
+
+    def matches_filter(self, key: str, filter_value: Any) -> Any:
+        if is_tag_filter(key):
+            return tag_filter_matches(self, key, filter_value)
+        else:
+            return self.filters[key](filter_value)
+
+    def matches_filters(self, filters: Any) -> bool:
+        for key, value in filters.items():
+            if not self.matches_filter(key, value):
+                return False
+        return True
 
 
 class GroupedSecurityRuleView:
