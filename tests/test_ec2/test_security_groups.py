@@ -670,11 +670,29 @@ def test_security_group_rule_filtering_tags():
         Filters=[{"Name": "tag:Partner", "Values": ["test"]}]
     )
 
+    response3 = client.describe_security_group_rules(
+        Filters=[{"Name": "tag-key", "Values": ["Partner"]}]
+    )
+
+    response4 = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [sg["GroupId"]]},
+            {"Name": "tag-key", "Values": ["Partner"]},
+        ]
+    )
+
     # Verify
     assert response1["SecurityGroupRules"][0]["Tags"] == tags
     assert "Tags" in response2["SecurityGroupRules"][0]
     assert response2["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
     assert response2["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
+    assert len(response3["SecurityGroupRules"]) == 1
+    assert response3["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response3["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
+    assert len(response4["SecurityGroupRules"]) == 1
+    assert response4["SecurityGroupRules"][0]["GroupId"] == sg["GroupId"]
+    assert response4["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response4["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
 
 
 @mock_aws
