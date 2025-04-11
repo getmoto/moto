@@ -460,6 +460,114 @@ class WAFV2Response(BaseResponse):
         lock_token = group_dict.pop("LockToken")
         return 200, {}, json.dumps(dict(RuleGroup=group_dict, LockToken=lock_token))
 
+    def create_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        description = body.get("Description", "")
+        regular_expressions = body.get("RegularExpressionList", [])
+        tags = body.get("Tags", [])
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        regex_pattern_set = self.wafv2_backend.create_regex_pattern_set(
+            name=name,
+            scope=scope,
+            description=description,
+            regular_expressions=regular_expressions,
+            tags=tags,
+        )
+        response = {"Summary": regex_pattern_set.to_short_dict()}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    def get_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        regex_pattern_set = self.wafv2_backend.get_regex_pattern_set(
+            name=name,
+            scope=scope,
+            id=_id,
+        )
+        pattern_set_dict = regex_pattern_set.to_dict()
+        lock_token = pattern_set_dict.pop("LockToken")
+        response = {
+            "RegexPatternSet": pattern_set_dict,
+            "LockToken": lock_token,
+        }
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    def update_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+        description = body.get("Description")
+        regular_expressions = body.get("RegularExpressionList")
+        lock_token = body.get("LockToken")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        updated_pattern_set = self.wafv2_backend.update_regex_pattern_set(
+            name=name,
+            scope=scope,
+            id=_id,
+            description=description,
+            regular_expressions=regular_expressions,
+            lock_token=lock_token,
+        )
+        response = {"NextLockToken": updated_pattern_set.lock_token}
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
+    def delete_regex_pattern_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body.get("Name")
+        scope = body.get("Scope")
+        _id = body.get("Id")
+        lock_token = body.get("LockToken")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        self.wafv2_backend.delete_regex_pattern_set(
+            name=name,
+            scope=scope,
+            id=_id,
+            lock_token=lock_token,
+        )
+        return 200, {}, "{}"
+
+    def list_regex_pattern_sets(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope")
+        limit = self._get_int_param("Limit")
+        next_marker = self._get_param("NextMarker")
+
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+
+        pattern_sets, next_marker = self.wafv2_backend.list_regex_pattern_sets(
+            scope, limit=limit, next_marker=next_marker
+        )
+        response = {
+            "RegexPatternSets": [
+                pattern_set.to_short_dict() for pattern_set in pattern_sets
+            ],
+            "NextMarker": next_marker,
+        }
+        response_headers = {"Content-Type": "application/json"}
+        return 200, response_headers, json.dumps(response)
+
 
 # notes about region and scope
 # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)

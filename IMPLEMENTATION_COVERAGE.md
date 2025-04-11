@@ -9569,7 +9569,7 @@
 - [ ] check_capacity
 - [ ] create_api_key
 - [X] create_ip_set
-- [ ] create_regex_pattern_set
+- [X] create_regex_pattern_set
 - [X] create_rule_group
 - [X] create_web_acl
 - [ ] delete_api_key
@@ -9577,7 +9577,7 @@
 - [X] delete_ip_set
 - [X] delete_logging_configuration
 - [ ] delete_permission_policy
-- [ ] delete_regex_pattern_set
+- [X] delete_regex_pattern_set
 - [X] delete_rule_group
 - [X] delete_web_acl
 - [ ] describe_all_managed_products
@@ -9592,7 +9592,7 @@
 - [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
-- [ ] get_regex_pattern_set
+- [X] get_regex_pattern_set
 - [X] get_rule_group
 - [ ] get_sampled_requests
 - [X] get_web_acl
@@ -9604,7 +9604,7 @@
 - [X] list_logging_configurations
 - [ ] list_managed_rule_sets
 - [ ] list_mobile_sdk_releases
-- [ ] list_regex_pattern_sets
+- [X] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [X] list_rule_groups
 - [X] list_tags_for_resource
@@ -9616,7 +9616,7 @@
 - [X] untag_resource
 - [X] update_ip_set
 - [ ] update_managed_rule_set_version_expiry_date
-- [ ] update_regex_pattern_set
+- [X] update_regex_pattern_set
 - [X] update_rule_group
 - [X] update_web_acl
 </details>
