@@ -353,7 +353,6 @@ class S3Response(BaseResponse):
     ) -> Union[str, TYPE_RESPONSE]:
         querystring = self._get_querystring(request, full_url)
         method = request.method
-
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
             # If no bucket specified, list all buckets
@@ -886,7 +885,15 @@ class S3Response(BaseResponse):
                 bucket_name, ownership=ownership_rule
             )
             return ""
+        elif "inventory" in querystring:
+            inventory_config = self._inventory_config_from_body()
+            import pytest
 
+            pytest.set_trace()
+            self.backend.put_bucket_inventory_configuration(
+                bucket_name, inventory_config
+            )
+            return ""
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use any location constraint
@@ -2468,6 +2475,11 @@ class S3Response(BaseResponse):
         config = parsed_xml["ReplicationConfiguration"]
         return config
 
+    def _inventory_config_from_body(self) -> Dict[str, Any]:
+        parsed_xml = xmltodict.parse(self.body)
+        config = parsed_xml["InventoryConfiguration"]
+        return config
+
     def _key_response_delete(
         self, bucket_name: str, query: Dict[str, Any], key_name: str
     ) -> TYPE_RESPONSE:
@@ -2649,6 +2661,20 @@ class S3Response(BaseResponse):
                 if header_key not in headers or (url_value != headers[header_key]):
                     return True
         return False
+
+    def get_bucket_inventory_configuration(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        params = self._get_params()
+        bucket = params.get("Bucket")
+        id = params.get("Id")
+        expected_bucket_owner = params.get("ExpectedBucketOwner")
+        inventory_configuration = self.s3_backend.get_bucket_inventory_configuration(
+            bucket=bucket,
+            id=id,
+            expected_bucket_owner=expected_bucket_owner,
+        )
+        template = self.response_template(GET_BUCKET_INVENTORY_CONFIGURATION_TEMPLATE)
+        return template.render(inventory_configuration=inventory_configuration)
 
 
 S3ResponseInstance = S3Response()

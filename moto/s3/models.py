@@ -1650,6 +1650,21 @@ class FakeBucket(CloudFormationModel):
 class FakeTableStorageBucket(FakeBucket): ...
 
 
+class FakeBucketInventoryConfiguration(BaseModel):
+    def __init__(
+        self,
+        id: str,
+        destination: Dict[str, Any],
+        is_enabled: bool,
+        schedule: Dict[str, Any],
+        filters: Optional[Dict[str, Any]] = None,
+    ):
+        self.destination = destination
+        self.is_enabled = is_enabled
+        self.schedule = schedule
+        self.filters = filters
+
+
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
     """
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
@@ -1718,6 +1733,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self.table_buckets: Dict[str, FakeTableStorageBucket] = {}
         self.tagger = TaggingService()
         self._pagination_tokens: Dict[str, str] = {}
+        self.inventory_configs: Dict[str, FakeBucketInventoryConfiguration] = {}
 
     def reset(self) -> None:
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
@@ -3126,6 +3142,27 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # Listed for the implementation coverage
         # Implementation part of responses.py
         pass
+
+    def put_bucket_inventory_configuration(
+        self, bucket, inventory_configuration
+    ) -> None:
+        inv_config = FakeBucketInventoryConfiguration(
+            id=inventory_configuration["Id"],
+            destination=inventory_configuration["Destination"],
+            is_enabled=inventory_configuration["IsEnabled"],
+            schedule=inventory_configuration["Schedule"],
+            filters=inventory_configuration.get("Filter"),
+        )
+
+        self.inventory_configurations[inv_config.id] = inv_config
+
+        return
+
+    def get_bucket_inventory_configuration(
+        self, bucket, id, expected_bucket_owner
+    ) -> FakeBucketInventoryConfiguration:
+        inv_config = self.inventory_configurations.get(id)
+        return inv_config
 
 
 class S3BackendDict(BackendDict[S3Backend]):
