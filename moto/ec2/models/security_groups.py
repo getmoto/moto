@@ -14,6 +14,7 @@ from ..exceptions import (
     InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
+    InvalidSecurityGroupRuleIdNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
     RulesPerSecurityGroupLimitExceededError,
@@ -642,62 +643,31 @@ class SecurityGroupBackend:
 
     def describe_security_group_rules(
         self,
-        group_ids: Optional[List[str]] = None,
-        sg_rule_ids: List[str] = [],
-        filters: Any = None,
+        sg_rule_ids: list[str],
+        filters: dict[str, list[str]],
     ) -> List[SecurityRule]:
-        results = []
-
-        if sg_rule_ids:
-            for id_and_group in self.groups.values():
-                for group in id_and_group.values():
-                    for rule in itertools.chain(
-                        group.egress_rules, group.ingress_rules
-                    ):
-                        if rule.id in sg_rule_ids:
-                            results.append(rule)
-
-            return results
-
-        if group_ids:
-            all_sgs = self.describe_security_groups(group_ids=group_ids)
-            for group in all_sgs:
-                results.extend(group.ingress_rules)
-                results.extend(group.egress_rules)
-
-            return results
-
-        if filters and "group-id" in filters:
+        if "group-id" in filters:
             for group_id in filters["group-id"]:
                 if not is_valid_security_group_id(group_id):
                     raise InvalidGroupIdMalformedError(group_id)
-
-            matches = self.describe_security_groups(
-                group_ids=group_ids, filters=filters
-            )
-            for group in matches:
-                results.extend(group.ingress_rules)
-                results.extend(group.egress_rules)
-
-            return results
-
-        all_sgs = self.describe_security_groups()
-
-        for group in all_sgs:
-            results.extend(self._match_sg_rules(group.ingress_rules, filters))
-            results.extend(self._match_sg_rules(group.egress_rules, filters))
-
-        return results
-
-    @staticmethod
-    def _match_sg_rules(  # type: ignore[misc]
-        rules_list: List[SecurityRule], filters: Any
-    ) -> List[SecurityRule]:
-        results = []
-        for rule in rules_list:
-            if rule.match_tags(filters):
-                results.append(rule)
-        return results
+        rules = [
+            rule
+            for vpc_and_group in self.groups.values()
+            for group in vpc_and_group.values()
+            for rule in list(itertools.chain(group.egress_rules, group.ingress_rules))
+        ]
+        if sg_rule_ids:
+            # If sg_rule_ids is provided, we convert it into a filter.
+            if "security-group-rule-id" not in filters:
+                filters["security-group-rule-id"] = []
+            rule_ids = [rule.id for rule in rules]
+            for rule_id in sg_rule_ids:
+                if rule_id not in rule_ids:
+                    raise InvalidSecurityGroupRuleIdNotFoundError(rule_id)
+                filters["security-group-rule-id"].append(rule_id)
+        if filters:
+            rules = [rule for rule in rules if rule.matches_filters(filters)]
+        return rules
 
     def _delete_security_group(self, vpc_id: Optional[str], group_id: str) -> None:
         vpc_id = vpc_id or self.default_vpc.id  # type: ignore[attr-defined]
