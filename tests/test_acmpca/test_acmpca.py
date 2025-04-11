@@ -399,9 +399,11 @@ def test_import_certificate_authority_certificate():
     assert err["Message"] == "Malformed certificate."
 
     cert = create_cert()
+    chain = create_cert()
     client.import_certificate_authority_certificate(
         CertificateAuthorityArn=ca_arn,
         Certificate=cert,
+        CertificateChain=chain,
     )
 
     ca = client.describe_certificate_authority(CertificateAuthorityArn=ca_arn)[
@@ -412,7 +414,13 @@ def test_import_certificate_authority_certificate():
     assert "NotAfter" in ca
 
     resp = client.get_certificate_authority_certificate(CertificateAuthorityArn=ca_arn)
+    # Verify certificate format
     assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
+    assert "-----END CERTIFICATE-----" in resp["Certificate"]
+
+    # Verify certificate chain format
+    assert "-----BEGIN CERTIFICATE-----" in resp["CertificateChain"]
+    assert "-----END CERTIFICATE-----" in resp["CertificateChain"]
 
 
 @mock_aws
