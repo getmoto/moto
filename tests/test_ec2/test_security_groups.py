@@ -903,21 +903,21 @@ def test_description_in_ip_permissions():
     )
     assert len(result["SecurityGroupRules"]) == 3
 
-    assert result["SecurityGroupRules"][0]["Description"] == "austin"
-    assert result["SecurityGroupRules"][0]["CidrIpv4"] == "1.2.3.4/32"
-    assert result["SecurityGroupRules"][0]["IsEgress"] is False
-    assert result["SecurityGroupRules"][0]["FromPort"] == 27017
-    assert result["SecurityGroupRules"][0]["ToPort"] == 27018
+    assert result["SecurityGroupRules"][0]["IsEgress"] is True
+    assert result["SecurityGroupRules"][0]["FromPort"] == -1
+    assert result["SecurityGroupRules"][0]["ToPort"] == -1
 
-    assert result["SecurityGroupRules"][1]["Description"] == "powers"
-    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][1]["Description"] == "austin"
+    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "1.2.3.4/32"
     assert result["SecurityGroupRules"][1]["IsEgress"] is False
     assert result["SecurityGroupRules"][1]["FromPort"] == 27017
     assert result["SecurityGroupRules"][1]["ToPort"] == 27018
 
-    assert result["SecurityGroupRules"][2]["IsEgress"] is True
-    assert result["SecurityGroupRules"][2]["FromPort"] == -1
-    assert result["SecurityGroupRules"][2]["ToPort"] == -1
+    assert result["SecurityGroupRules"][2]["Description"] == "powers"
+    assert result["SecurityGroupRules"][2]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][2]["IsEgress"] is False
+    assert result["SecurityGroupRules"][2]["FromPort"] == 27017
+    assert result["SecurityGroupRules"][2]["ToPort"] == 27018
 
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
     group = result["SecurityGroups"][0]
