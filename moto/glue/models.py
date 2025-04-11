@@ -104,16 +104,25 @@ class FakeDevEndpoint(BaseModel):
         self.last_modified_timestamp = self.created_timestamp
         self.status = "READY"
         self.availability_zone = "us-east-1a"
-        self.vpc_id = "vpc-12345678"
-        self.yarn_endpoint_address = f"yarn-{endpoint_name}.glue.amazonaws.com"
         self.private_address = "10.0.0.1"
-        self.public_address = f"{endpoint_name}.glue.amazonaws.com"
+        # TODO: Get the vpc id from the subnet using the subnet_id
+        self.vpc_id = "vpc-12345678" if subnet_id != "subnet-default" else None
+        self.yarn_endpoint_address = (
+            f"yarn-{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
+        self.public_address = (
+            f"{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
         self.zeppelin_remote_spark_interpreter_port = 9007
         self.public_key = pubkey
         self.public_keys = [self.public_key]
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
+        response = {
             "EndpointName": self.endpoint_name,
             "RoleArn": self.role_arn,
             "SecurityGroupIds": self.security_group_ids,
@@ -121,7 +130,6 @@ class FakeDevEndpoint(BaseModel):
             "YarnEndpointAddress": self.yarn_endpoint_address,
             "PrivateAddress": self.private_address,
             "ZeppelinRemoteSparkInterpreterPort": self.zeppelin_remote_spark_interpreter_port,
-            "PublicAddress": self.public_address,
             "Status": self.status,
             "WorkerType": self.worker_type,
             "GlueVersion": self.glue_version,
@@ -138,10 +146,19 @@ class FakeDevEndpoint(BaseModel):
             "SecurityConfiguration": self.security_configuration,
             "Arguments": self.arguments,
         }
+        if self.public_address:
+            response["PublicAddress"] = self.public_address
+        return response
 
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "get_connections": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "get_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -184,18 +201,13 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "endpoint_name",
         },
-        "get_job_runs": {
-            "input_token": "next_token",
-            "limit_key": "max_results",
-            "limit_default": 100,
-            "unique_attribute": "job_run_id",
-        },
     }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.databases: Dict[str, FakeDatabase] = OrderedDict()
         self.crawlers: Dict[str, FakeCrawler] = OrderedDict()
+        self.connections: Dict[str, FakeConnection] = OrderedDict()
         self.jobs: Dict[str, FakeJob] = OrderedDict()
         self.job_runs: Dict[str, FakeJobRun] = OrderedDict()
         self.sessions: Dict[str, FakeSession] = OrderedDict()
@@ -205,6 +217,7 @@ class GlueBackend(BaseBackend):
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
+        self.data_catalog_encryption_settings: Dict[str, Dict[str, Any]] = {}
 
     def create_database(
         self,
@@ -506,11 +519,6 @@ class GlueBackend(BaseBackend):
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
         return job.get_job_run(run_id)
-
-    @paginate(pagination_model=PAGINATION_MODEL)
-    def get_job_runs(self, job_name: str) -> List["FakeJobRun"]:
-        job = self.get_job(job_name)
-        return job.get_job_runs()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> List["FakeJob"]:
@@ -1190,6 +1198,74 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
 
+    def create_connection(
+        self, catalog_id: str, connection_input: Dict[str, Any], tags: Dict[str, str]
+    ) -> str:
+        name = connection_input.get("Name", "")
+        if name in self.connections:
+            raise AlreadyExistsException(f"Connection {name} already exists")
+        connection = FakeConnection(self, catalog_id, connection_input, tags)
+        self.connections[name] = connection
+        return connection.status
+
+    def get_connection(
+        self,
+        catalog_id: str,
+        name: str,
+        hide_password: bool,
+        apply_override_for_compute_environment: str,
+    ) -> "FakeConnection":
+        # TODO: Implement filtering
+        connection = self.connections.get(name)
+        if not connection:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        return connection
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_connections(
+        self, catalog_id: str, filter: Dict[str, Any], hide_password: bool
+    ) -> List["FakeConnection"]:
+        # TODO: Implement filtering
+        return [connection for connection in self.connections.values()]
+
+    def put_data_catalog_encryption_settings(
+        self,
+        catalog_id: Optional[str],
+        data_catalog_encryption_settings: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        if catalog_id is None:
+            catalog_id = self.account_id
+
+        self.data_catalog_encryption_settings[catalog_id] = (
+            data_catalog_encryption_settings
+        )
+        return {}
+
+    def get_data_catalog_encryption_settings(
+        self, catalog_id: Optional[str]
+    ) -> Dict[str, Any]:
+        if catalog_id is None or catalog_id == "":
+            catalog_id = self.account_id
+
+        settings = self.data_catalog_encryption_settings.get(catalog_id, {})
+
+        if not isinstance(settings, dict):
+            settings = {}
+
+        response: Dict[str, Any] = {
+            "DataCatalogEncryptionSettings": {
+                "EncryptionAtRest": settings.get(
+                    "EncryptionAtRest", {"CatalogEncryptionMode": "DISABLED"}
+                ),
+                "ConnectionPasswordEncryption": settings.get(
+                    "ConnectionPasswordEncryption",
+                    {"ReturnConnectionPasswordEncrypted": False},
+                ),
+            }
+        }
+
+        return response
+
 
 class FakeDatabase(BaseModel):
     def __init__(
@@ -1348,7 +1424,7 @@ class FakeCrawler(BaseModel):
         tags: Dict[str, str],
         backend: GlueBackend,
     ):
-        self.name = name
+        self.name: str = name
         self.role = role
         self.database_name = database_name
         self.description = description
@@ -1555,11 +1631,6 @@ class FakeJob:
                 job_run.advance()
                 return job_run
         raise JobRunNotFoundException(run_id)
-
-    def get_job_runs(self) -> List["FakeJobRun"]:
-        for job_run in self.job_runs:
-            job_run.advance()
-        return self.job_runs
 
 
 class FakeJobRun(ManagedState):
@@ -1883,6 +1954,40 @@ class FakeTrigger(BaseModel):
             data["EventBatchingCondition"] = self.event_batching_condition
 
         return data
+
+
+class FakeConnection(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        catalog_id: str,
+        connection_input: Dict[str, Any],
+        tags: Dict[str, str],
+    ) -> None:
+        self.catalog_id = catalog_id
+        self.connection_input = connection_input
+        self.created_time = utcnow()
+        self.updated_time = utcnow()
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:connection/{self.connection_input['Name']}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+        self.status = "READY"
+        self.name = self.connection_input.get("Name")
+        self.description = self.connection_input.get("Description")
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "Connection": self.connection_input,
+            "CreationTime": self.created_time.isoformat(),
+            "LastUpdatedTime": self.updated_time.isoformat(),
+            "CatalogId": self.catalog_id,
+            "Status": self.status,
+            "PhysicalConnectionRequirements": self.connection_input.get(
+                "PhysicalConnectionRequirements"
+            ),
+        }
 
 
 glue_backends = BackendDict(GlueBackend, "glue")
