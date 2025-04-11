@@ -627,6 +627,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         region_name: str,
         endpoint_config_name: str,
         production_variants: List[Dict[str, Any]],
+        async_inference_config: Dict[str, Any],
         data_capture_config: Dict[str, Any],
         tags: List[Dict[str, Any]],
         kms_key_id: str,
@@ -639,6 +640,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         )
         self.arn = (self.endpoint_config_arn,)
         self.production_variants = production_variants or []
+        self.async_inference_config = async_inference_config
         self.data_capture_config = data_capture_config or {}
         self.tags = tags or []
         self.kms_key_id = kms_key_id
@@ -3559,6 +3561,7 @@ class SageMakerModelBackend(BaseBackend):
         endpoint_config_name: str,
         production_variants: List[Dict[str, Any]],
         data_capture_config: Dict[str, Any],
+        async_inference_config: Dict[str, Any],
         tags: List[Dict[str, str]],
         kms_key_id: str,
     ) -> FakeEndpointConfig:
@@ -3567,6 +3570,7 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             endpoint_config_name=endpoint_config_name,
             production_variants=production_variants,
+            async_inference_config=async_inference_config,
             data_capture_config=data_capture_config,
             tags=tags,
             kms_key_id=kms_key_id,
