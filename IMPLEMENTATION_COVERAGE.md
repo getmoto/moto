@@ -9357,7 +9357,7 @@
 - [X] detect_document_text
 - [ ] get_adapter
 - [ ] get_adapter_version
-- [ ] get_document_analysis
+- [X] get_document_analysis
 - [X] get_document_text_detection
 - [ ] get_expense_analysis
 - [ ] get_lending_analysis
@@ -9365,7 +9365,7 @@
 - [ ] list_adapter_versions
 - [ ] list_adapters
 - [ ] list_tags_for_resource
-- [ ] start_document_analysis
+- [X] start_document_analysis
 - [X] start_document_text_detection
 - [ ] start_expense_analysis
 - [ ] start_lending_analysis

@@ -93,3 +93,48 @@ def test_textract_get_text_detection_without_job_id():
     data = json.loads(resp.data.decode("utf-8"))
     assert data["__type"] == "InvalidJobIdException"
     assert data["message"] == "An invalid job identifier was passed."
+
+
+@mock_aws
+def test_textract_start_document_analysis():
+    backend = server.create_backend_app("textract")
+    test_client = backend.test_client()
+
+    headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentAnalysis"}
+    request_body = {
+        "DocumentLocation": {
+            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version"}
+        },
+        "FeatureTypes": ["TABLES", "FORMS"],
+    }
+
+    resp = test_client.post("/", headers=headers, json=request_body)
+    data = json.loads(resp.data.decode("utf-8"))
+    assert resp.status_code == 200
+    assert isinstance(data["JobId"], str)
+
+
+@mock_aws
+def test_textract_get_document_analysis():
+    backend = server.create_backend_app("textract")
+    test_client = backend.test_client()
+
+    headers = {"X-Amz-Target": "X-Amz-Target=Textract.StartDocumentAnalysis"}
+    request_body = {
+        "DocumentLocation": {
+            "S3Object": {"Bucket": "bucket", "Name": "name", "Version": "version"}
+        },
+        "FeatureTypes": ["TABLES", "FORMS"],
+    }
+
+    resp = test_client.post("/", headers=headers, json=request_body)
+    start_job_data = json.loads(resp.data.decode("utf-8"))
+
+    headers = {"X-Amz-Target": "X-Amz-Target=Textract.GetDocumentAnalysis"}
+    request_body = {
+        "JobId": start_job_data["JobId"],
+    }
+    resp = test_client.post("/", headers=headers, json=request_body)
+    assert resp.status_code == 200
+    data = json.loads(resp.data.decode("utf-8"))
+    assert data["JobStatus"] == "SUCCEEDED"
