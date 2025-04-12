@@ -23,6 +23,7 @@ from .list_secrets.filters import (
     description_filter,
     filter_all,
     name_filter,
+    owning_service_filter,
     tag_key,
     tag_value,
 )
@@ -49,9 +50,7 @@ _filter_functions = {
     "tag-key": tag_key,
     "tag-value": tag_value,
     "primary-region": filter_primary_region,
-    # Other services do not create secrets in Moto (yet)
-    # So if you're looking for any Secrets owned by a Service, you'll never get any results
-    "owning-service": lambda x, y: False,
+    "owning-service": owning_service_filter,
 }
 
 
