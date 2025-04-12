@@ -72,12 +72,7 @@ def _matches(
     return is_match
 
 
-class SecretsManager(BaseModel):
-    def __init__(self, region_name: str):
-        self.region = region_name
-
-
-class FakeSecret:
+class FakeSecret(BaseModel):
     def __init__(
         self,
         account_id: str,
