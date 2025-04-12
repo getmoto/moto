@@ -3,6 +3,7 @@ import unittest
 
 import boto3
 import pytest
+import requests
 
 import moto.server as server
 from moto import mock_aws, settings
@@ -1024,3 +1025,20 @@ def test_batch_get_secret_value_with_filters():
 
     json_data = json.loads(batch_get_secret_values.data.decode("utf-8"))
     assert len(json_data["SecretValues"]) == len(matched) == 2
+
+
+@mock_aws
+def test_data_api() -> None:
+    base_url = (
+        "http://localhost:5000"
+        if settings.TEST_SERVER_MODE
+        else "http://motoapi.amazonaws.com"
+    )
+    data_url = f"{base_url}/moto-api/data.json"
+    conn = boto3.client("secretsmanager", region_name="us-west-1")
+    conn.create_secret(Name="test-secret")
+    data = requests.post(data_url).json()
+    secrets = data["secretsmanager"]["FakeSecret"]
+    assert len(secrets) == 1
+    secret = secrets[0]
+    assert secret["name"] == "test-secret"
