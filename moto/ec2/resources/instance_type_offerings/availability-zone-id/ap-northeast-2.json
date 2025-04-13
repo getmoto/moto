@@ -6156,6 +6156,46 @@
   "Location": "apne2-az4"
  },
  {
+  "InstanceType": "r6id.12xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.16xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.24xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.2xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.32xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.4xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.8xlarge",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.large",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.metal",
+  "Location": "apne2-az4"
+ },
+ {
+  "InstanceType": "r6id.xlarge",
+  "Location": "apne2-az4"
+ },
+ {
   "InstanceType": "r7g.12xlarge",
   "Location": "apne2-az4"
  },
