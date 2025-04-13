@@ -133,8 +133,20 @@ class CognitoIdentityBackend(BaseBackend):
         return pool.to_json()
 
     def get_id(self, identity_pool_id: str) -> str:
+        # This call does not have to be authenticated, which means we do not know to which region it was sent originally
+        # But the identity_pool_id is always prefixed with the region, so we just that to determine the right region
+        #
+        # Note that this does mean that we lose a potential error scenario,
+        # where the user requests an ID for identity pool `us-west-1:...` in us-west-2
+        # But because we don't always know that the request was sent to us-west-2, there's nothing we can do
+        #
+        region = identity_pool_id.split(":")[0]
+        backend: CognitoIdentityBackend = cognitoidentity_backends[self.account_id][
+            region
+        ]
+
         identity_id = {"IdentityId": get_random_identity_id(self.region_name)}
-        self.pools_identities[identity_pool_id]["Identities"].append(identity_id)
+        backend.pools_identities[identity_pool_id]["Identities"].append(identity_id)
         return json.dumps(identity_id)
 
     def get_credentials_for_identity(self, identity_id: str) -> str:
