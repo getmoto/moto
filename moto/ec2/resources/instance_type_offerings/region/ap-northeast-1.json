@@ -1140,6 +1140,14 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "ap-northeast-1"
  },

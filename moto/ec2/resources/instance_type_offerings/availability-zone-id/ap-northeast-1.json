@@ -1104,6 +1104,14 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "apne1-az1"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "apne1-az1"
  },
@@ -3921,6 +3929,14 @@
  },
  {
   "InstanceType": "i7ie.large",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
   "Location": "apne1-az2"
  },
  {
@@ -6833,6 +6849,14 @@
  },
  {
   "InstanceType": "i7ie.large",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
   "Location": "apne1-az4"
  },
  {
