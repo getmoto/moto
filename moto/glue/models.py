@@ -201,6 +201,12 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "endpoint_name",
         },
+        "get_job_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "job_run_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -519,6 +525,11 @@ class GlueBackend(BaseBackend):
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
         return job.get_job_run(run_id)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_job_runs(self, job_name: str) -> List["FakeJobRun"]:
+        job = self.get_job(job_name)
+        return job.get_job_runs()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> List["FakeJob"]:
@@ -1631,6 +1642,11 @@ class FakeJob:
                 job_run.advance()
                 return job_run
         raise JobRunNotFoundException(run_id)
+
+    def get_job_runs(self) -> List["FakeJobRun"]:
+        for job_run in self.job_runs:
+            job_run.advance()
+        return self.job_runs
 
 
 class FakeJobRun(ManagedState):
