@@ -130,6 +130,16 @@ class MissingVersion(S3ClientError):
         super().__init__("NoSuchVersion", "The specified version does not exist.")
 
 
+class MissingInventoryConfig(S3ClientError):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchInventoryConfig",
+            "The specified inventory configuration does not exist.",
+        )
+
+
 class InvalidVersion(S3ClientError):
     code = 400
 

@@ -3599,7 +3599,7 @@ def test_put_and_get_bucket_inventory_configuration():
         "Destination": {
             "S3BucketDestination": {
                 "AccountId": DEFAULT_ACCOUNT_ID,
-                "Bucket": bucket2,
+                "Bucket": f"arn:aws:s3:::{bucket2}",
                 "Format": "CSV",
                 "Prefix": "test",
                 "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
@@ -3609,7 +3609,7 @@ def test_put_and_get_bucket_inventory_configuration():
         "Filter": {"Prefix": "folder1/"},
         "Id": id,
         "IncludedObjectVersions": "All",
-        "OptionalFields": ["Size"],
+        "OptionalFields": ["Size", "ETag"],
         "Schedule": {"Frequency": "Daily"},
     }
 
@@ -3626,5 +3626,32 @@ def test_put_and_get_bucket_inventory_configuration():
     # Retrieve the configuration
     resp = client.get_bucket_inventory_configuration(Bucket=bucket, Id=id)
     assert resp["InventoryConfiguration"]["Id"] == id
-    assert resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Bucket"] == f"arn:aws:s3:::{bucket2}"
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"][
+            "AccountId"
+        ]
+        == DEFAULT_ACCOUNT_ID
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Bucket"]
+        == f"arn:aws:s3:::{bucket2}"
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Format"]
+        == "CSV"
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Prefix"]
+        == "test"
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"][
+            "Encryption"
+        ]["SSEKMS"]["KeyId"]
+        == "key-12345"
+    )
     assert resp["InventoryConfiguration"]["IsEnabled"] is True
+    assert resp["InventoryConfiguration"]["Filter"]["Prefix"] == "folder1/"
+    assert resp["InventoryConfiguration"]["IncludedObjectVersions"] == "All"
+    assert resp["InventoryConfiguration"]["OptionalFields"] == ["Size", "ETag"]
+    assert resp["InventoryConfiguration"]["Schedule"]["Frequency"] == "Daily"

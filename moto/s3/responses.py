@@ -1088,15 +1088,16 @@ class S3Response(BaseResponse):
         template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
         return template.render(public_block_config=public_block_config)
 
-
-    def get_bucket_inventory_configuration(self):
-        config_id = self.querystring['id'][0]
+    def get_bucket_inventory_configuration(self) -> str:
+        config_id = self.querystring["id"][0]
         inventory_configuration = self.backend.get_bucket_inventory_configuration(
-            bucket=self.bucket_name,
-            id=config_id
+            bucket=self.bucket_name, id=config_id
         )
         template = self.response_template(S3_BUCKET_INVENTORY_CONFIGURATION)
-        return template.render(inventory_config=inventory_configuration)
+        return template.render(
+            inventory_config=inventory_configuration,
+            s3_bucket_config=inventory_configuration.destination["S3BucketDestination"],
+        )
 
     def _bucket_response_delete(
         self, bucket_name: str, querystring: Dict[str, Any]
@@ -3368,20 +3369,41 @@ S3_BUCKET_INVENTORY_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
 <InventoryConfiguration>
    <Destination>
       <S3BucketDestination>
-        {{inventory_config.destination}}
+            {%if s3_bucket_config.get('AccountId') %}
+            <AccountId>{{s3_bucket_config['AccountId']}}</AccountId>
+            {% endif %}
+            <Bucket>{{s3_bucket_config['Bucket']}}</Bucket>
+            <Format>{{s3_bucket_config['Format']}}</Format>
+            {%if s3_bucket_config.get('Prefix') %}
+            <Prefix>{{s3_bucket_config['Prefix']}}</Prefix>
+            {% endif %}
+            {% if s3_bucket_config.get('Encryption') %}
+            <Encryption>
+                ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
+                {% if s3_bucket_config['Encryption'].get('SSE-KMS') %}
+                <SSE-KMS>
+                    <KeyId>{{s3_bucket_config['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
+                </SSE-KMS>
+                {% else %}
+                <SSES3/>
+                {% endif %}
+            </Encryption>
+            {% endif %}
       </S3BucketDestination>
    </Destination>
-   <IsEnabled>boolean</IsEnabled>
+   <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
    <Filter>
-      <Prefix>string</Prefix>
+      <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
    </Filter>
    <Id>{{inventory_config.id}}</Id>
-   <IncludedObjectVersions>string</IncludedObjectVersions>
+   <IncludedObjectVersions>All</IncludedObjectVersions>
    <OptionalFields>
-      <Field>string</Field>
+        {% for field in inventory_config.optional_fields['Field'] %}
+        <Field>{{ field }}</Field>
+        {% endfor %}
    </OptionalFields>
    <Schedule>
-      <Frequency>string</Frequency>
+      <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
    </Schedule>
 </InventoryConfiguration>
 """

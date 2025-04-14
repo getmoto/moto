@@ -58,6 +58,7 @@ from moto.s3.exceptions import (
     MalformedXML,
     MethodNotAllowed,
     MissingBucket,
+    MissingInventoryConfig,
     MissingKey,
     NoSuchPublicAccessBlockConfiguration,
     NoSuchUpload,
@@ -1658,12 +1659,14 @@ class FakeBucketInventoryConfiguration(BaseModel):
         is_enabled: bool,
         schedule: Dict[str, Any],
         filters: Optional[Dict[str, Any]] = None,
+        optional_fields: Optional[List[str]] = None,
     ):
         self.id = id
         self.destination = destination
         self.is_enabled = is_enabled
         self.schedule = schedule
         self.filters = filters
+        self.optional_fields = optional_fields
 
 
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
@@ -3145,7 +3148,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         pass
 
     def put_bucket_inventory_configuration(
-        self, bucket, inventory_configuration
+        self, bucket: str, inventory_configuration: Dict[str, Any]
     ) -> None:
         inv_config = FakeBucketInventoryConfiguration(
             id=inventory_configuration["Id"],
@@ -3153,17 +3156,18 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             is_enabled=inventory_configuration["IsEnabled"],
             schedule=inventory_configuration["Schedule"],
             filters=inventory_configuration.get("Filter"),
+            optional_fields=inventory_configuration.get("OptionalFields"),
         )
 
         self.inventory_configs[inv_config.id] = inv_config
-        import pytest; pytest.set_trace()
-
         return
 
     def get_bucket_inventory_configuration(
         self, bucket: str, id: str, expected_bucket_owner: Optional[str] = None
     ) -> FakeBucketInventoryConfiguration:
         inv_config = self.inventory_configs.get(id)
+        if inv_config is None:
+            raise MissingInventoryConfig()
         return inv_config
 
 
