@@ -260,7 +260,7 @@ def test_describe_certificate_with_pca_cert():
     assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
     assert resp["Certificate"]["Issuer"] == "Amazon"
     assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
-    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
+    assert resp["Certificate"]["Status"] == "ISSUED"
     assert resp["Certificate"]["Type"] == "PRIVATE"
     assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
     assert "Options" in resp["Certificate"]
