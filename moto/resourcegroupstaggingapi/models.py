@@ -19,7 +19,10 @@ from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
-from moto.kinesisanalyticsv2.models import KinesisAnalyticsV2Backend, kinesisanalyticsv2_backends
+from moto.kinesisanalyticsv2.models import (
+    KinesisAnalyticsV2Backend,
+    kinesisanalyticsv2_backends,
+)
 from moto.kms.models import KmsBackend, kms_backends
 from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends

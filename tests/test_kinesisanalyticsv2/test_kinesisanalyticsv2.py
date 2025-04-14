@@ -382,6 +382,7 @@ def test_list_applications():
     assert app_summaries[0].get("ApplicationVersionId") == 1
     assert app_summaries[0].get("RuntimeEnvironment") == "FLINK-1_20"
 
+
 @mock_aws
 def test_resource_groups_tagging_api():
     region = "us-east-2"
