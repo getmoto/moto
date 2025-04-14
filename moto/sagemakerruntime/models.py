@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -10,8 +10,6 @@ class SageMakerRuntimeBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.async_results: Dict[str, Dict[str, Tuple[str, str]]] = {}
-        self.results: Dict[str, Dict[bytes, Tuple[str, str, str, str]]] = {}
         self.results_queue: List[Tuple[str, str, str, str]] = []
         self.async_results_queue: List[Tuple[bool, str]] = []
 
@@ -51,20 +49,15 @@ class SageMakerRuntimeBackend(BaseBackend):
             details = client.invoke_endpoint(EndpointName="asdf", Body="qwer")
 
         """
-        if endpoint_name not in self.results:
-            self.results[endpoint_name] = {}
-        if unique_repr in self.results[endpoint_name]:
-            return self.results[endpoint_name][unique_repr]
         if self.results_queue:
-            self.results[endpoint_name][unique_repr] = self.results_queue.pop(0)
+            return self.results_queue.pop(0)
         else:
-            self.results[endpoint_name][unique_repr] = (
+            return (
                 "body",
                 "content_type",
                 "invoked_production_variant",
                 "custom_attributes",
             )
-        return self.results[endpoint_name][unique_repr]
 
     def invoke_endpoint_async(
         self, endpoint_name: str, input_location: str
@@ -105,10 +98,6 @@ class SageMakerRuntimeBackend(BaseBackend):
             details = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
 
         """
-        if endpoint_name not in self.async_results:
-            self.async_results[endpoint_name] = {}
-        if input_location in self.async_results[endpoint_name]:
-            return self.async_results[endpoint_name][input_location]
         if self.async_results_queue:
             is_failure, data = self.async_results_queue.pop(0)
         elif self.results_queue:  # Backward compatibility
@@ -138,11 +127,10 @@ class SageMakerRuntimeBackend(BaseBackend):
             output_bucket, result_location, value=data.encode("utf-8")
         )
 
-        self.async_results[endpoint_name][input_location] = (
+        return (
             f"s3://{output_bucket}/{output_location}",
             f"s3://{output_bucket}/{failure_location}",
         )
-        return self.async_results[endpoint_name][input_location]
 
 
 sagemakerruntime_backends = BackendDict(SageMakerRuntimeBackend, "sagemaker-runtime")
