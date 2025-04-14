@@ -317,6 +317,12 @@ class CertBundle(BaseModel):
             )
 
     def check(self) -> None:
+        # Check for certificate expiration
+        now = utcnow()
+        if self._not_valid_after(self._cert) <= now:
+            self.status = "EXPIRED"
+            return
+
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.

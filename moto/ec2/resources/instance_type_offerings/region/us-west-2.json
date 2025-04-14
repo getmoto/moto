@@ -1232,6 +1232,14 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "us-west-2"
  },
