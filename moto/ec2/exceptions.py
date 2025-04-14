@@ -197,6 +197,14 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
         )
 
 
+class InvalidSecurityGroupRuleIdNotFoundError(EC2ClientError):
+    def __init__(self, name: Any):
+        super().__init__(
+            "InvalidSecurityGroupRuleId.NotFound",
+            f"The security group rule ID '{name}' does not exist",
+        )
+
+
 class InvalidPermissionNotFoundError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(

@@ -832,6 +832,14 @@
   "Location": "eu-west-2"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "eu-west-2"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "eu-west-2"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "eu-west-2"
  },

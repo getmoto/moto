@@ -196,20 +196,10 @@ class SecurityGroups(EC2BaseResponse):
         return template.render(groups=groups)
 
     def describe_security_group_rules(self) -> str:
-        group_id = self._get_param("GroupId")
-        sg_rule_ids = self._get_param("SecurityGroupRuleId.1")
-        filters = self._filters_from_querystring()
-
         self.error_on_dryrun()
-
-        # if sg rule ids are not None then wrap in a list
-        # as expected by ec2_backend.describe_security_group_rules
-        if sg_rule_ids:
-            sg_rule_ids = [sg_rule_ids]
-
-        rules = self.ec2_backend.describe_security_group_rules(
-            group_id, sg_rule_ids, filters
-        )
+        sg_rule_ids = self._get_multi_param("SecurityGroupRuleId")
+        filters = self._filters_from_querystring()
+        rules = self.ec2_backend.describe_security_group_rules(sg_rule_ids, filters)
         template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
         return template.render(rules=rules)
 
