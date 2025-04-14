@@ -19,6 +19,7 @@ from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
+from moto.kinesisanalyticsv2.models import KinesisAnalyticsV2Backend, kinesisanalyticsv2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
@@ -88,6 +89,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.account_id][self.region_name]
+
+    @property
+    def kinesisanalyticsv2_backend(self) -> KinesisAnalyticsV2Backend:
+        return kinesisanalyticsv2_backends[self.account_id][self.region_name]
 
     @property
     def kms_backend(self) -> KmsBackend:
@@ -509,6 +514,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     yield {"ResourceARN": glue_arn, "Tags": tags}
 
         # Kinesis
+
+        # KinesisAnalyticsV2
+        if self.kinesisanalyticsv2_backend and (
+            not resource_type_filters or "kinesisanalyticsv2" in resource_type_filters
+        ):
+            for application in self.kinesisanalyticsv2_backend.applications.values():
+                tags = self.kinesisanalyticsv2_backend.tagger.list_tags_for_resource(
+                    application.application_arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": application.application_arn,
+                    "Tags": tags,
+                }
 
         # KMS
         if not resource_type_filters or "kms" in resource_type_filters:
