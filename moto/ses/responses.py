@@ -392,13 +392,14 @@ class EmailResponse(BaseResponse):
         params = self._get_params()
         next_token = params.get("NextToken")
         max_items = params.get("MaxItems")
-        configuration_sets = self.backend.list_configuration_sets(
+        configuration_sets, next_token = self.backend.list_configuration_sets(
             next_token=next_token,
             max_items=max_items,
         )
+        config_set_names = [c.configuration_set_name for c in configuration_sets]
         template = self.response_template(LIST_CONFIGURATION_SETS_TEMPLATE)
         return template.render(
-            configuration_sets=configuration_sets, next_token=next_token
+            configuration_sets=config_set_names, next_token=next_token
         )
 
 
