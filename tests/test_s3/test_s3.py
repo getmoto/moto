@@ -3590,7 +3590,7 @@ def enable_versioning(bucket_name, s3_client):
 
 
 @mock_aws
-def test_put_bucket_inventory_configuration():
+def test_put_and_get_bucket_inventory_configuration():
     client = boto3.client("s3", region_name="us-east-1")
     bucket = "mybucket"
     bucket2 = "mybucket2"
@@ -3623,11 +3623,8 @@ def test_put_bucket_inventory_configuration():
     )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-
-@mock_aws
-@pytest.mark.skip()
-def test_get_bucket_inventory_configuration():
-    client = boto3.client("s3", region_name="eu-west-1")
-    resp = client.get_bucket_inventory_configuration()
-
-    raise Exception("NotYetImplemented")
+    # Retrieve the configuration
+    resp = client.get_bucket_inventory_configuration(Bucket=bucket, Id=id)
+    assert resp["InventoryConfiguration"]["Id"] == id
+    assert resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Bucket"] == f"arn:aws:s3:::{bucket2}"
+    assert resp["InventoryConfiguration"]["IsEnabled"] is True

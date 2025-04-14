@@ -554,7 +554,8 @@ class S3Response(BaseResponse):
             return self.get_bucket_accelerate_configuration()
         elif "publicAccessBlock" in querystring:
             return self.get_public_access_block()
-
+        elif "inventory" in querystring:
+            return self.get_bucket_inventory_configuration()
         elif "versions" in querystring:
             return self.list_object_versions()
         elif "encryption" in querystring:
@@ -887,9 +888,6 @@ class S3Response(BaseResponse):
             return ""
         elif "inventory" in querystring:
             inventory_config = self._inventory_config_from_body()
-            import pytest
-
-            pytest.set_trace()
             self.backend.put_bucket_inventory_configuration(
                 bucket_name, inventory_config
             )
@@ -1089,6 +1087,16 @@ class S3Response(BaseResponse):
         public_block_config = self.backend.get_public_access_block(self.bucket_name)
         template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
         return template.render(public_block_config=public_block_config)
+
+
+    def get_bucket_inventory_configuration(self):
+        config_id = self.querystring['id'][0]
+        inventory_configuration = self.backend.get_bucket_inventory_configuration(
+            bucket=self.bucket_name,
+            id=config_id
+        )
+        template = self.response_template(S3_BUCKET_INVENTORY_CONFIGURATION)
+        return template.render(inventory_config=inventory_configuration)
 
     def _bucket_response_delete(
         self, bucket_name: str, querystring: Dict[str, Any]
@@ -2662,20 +2670,6 @@ class S3Response(BaseResponse):
                     return True
         return False
 
-    def get_bucket_inventory_configuration(self, request, full_url, headers):
-        self.setup_class(request, full_url, headers)
-        params = self._get_params()
-        bucket = params.get("Bucket")
-        id = params.get("Id")
-        expected_bucket_owner = params.get("ExpectedBucketOwner")
-        inventory_configuration = self.s3_backend.get_bucket_inventory_configuration(
-            bucket=bucket,
-            id=id,
-            expected_bucket_owner=expected_bucket_owner,
-        )
-        template = self.response_template(GET_BUCKET_INVENTORY_CONFIGURATION_TEMPLATE)
-        return template.render(inventory_configuration=inventory_configuration)
-
 
 S3ResponseInstance = S3Response()
 
@@ -3368,6 +3362,28 @@ S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
   <BlockPublicPolicy>{{public_block_config.block_public_policy}}</BlockPublicPolicy>
   <RestrictPublicBuckets>{{public_block_config.restrict_public_buckets}}</RestrictPublicBuckets>
 </PublicAccessBlockConfiguration>
+"""
+
+S3_BUCKET_INVENTORY_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
+<InventoryConfiguration>
+   <Destination>
+      <S3BucketDestination>
+        {{inventory_config.destination}}
+      </S3BucketDestination>
+   </Destination>
+   <IsEnabled>boolean</IsEnabled>
+   <Filter>
+      <Prefix>string</Prefix>
+   </Filter>
+   <Id>{{inventory_config.id}}</Id>
+   <IncludedObjectVersions>string</IncludedObjectVersions>
+   <OptionalFields>
+      <Field>string</Field>
+   </OptionalFields>
+   <Schedule>
+      <Frequency>string</Frequency>
+   </Schedule>
+</InventoryConfiguration>
 """
 
 S3_BUCKET_LOCK_CONFIGURATION = """

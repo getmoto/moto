@@ -1659,6 +1659,7 @@ class FakeBucketInventoryConfiguration(BaseModel):
         schedule: Dict[str, Any],
         filters: Optional[Dict[str, Any]] = None,
     ):
+        self.id = id
         self.destination = destination
         self.is_enabled = is_enabled
         self.schedule = schedule
@@ -3154,14 +3155,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             filters=inventory_configuration.get("Filter"),
         )
 
-        self.inventory_configurations[inv_config.id] = inv_config
+        self.inventory_configs[inv_config.id] = inv_config
+        import pytest; pytest.set_trace()
 
         return
 
     def get_bucket_inventory_configuration(
-        self, bucket, id, expected_bucket_owner
+        self, bucket: str, id: str, expected_bucket_owner: Optional[str] = None
     ) -> FakeBucketInventoryConfiguration:
-        inv_config = self.inventory_configurations.get(id)
+        inv_config = self.inventory_configs.get(id)
         return inv_config
 
 
