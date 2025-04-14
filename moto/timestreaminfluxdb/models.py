@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (
@@ -13,6 +14,21 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import random_id, validate_name
+
+PAGINATION_MODEL = {
+    "list_db_parameter_groups": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    },
+    "list_db_clusters": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    },
+}
 
 
 class InstanceStatus(str, Enum):
@@ -269,6 +285,279 @@ class TimestreamInfluxDBBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def create_db_parameter_group(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        parameters: Optional[Dict[str, Any]] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> tuple:
+        validate_name(name)
+
+        for param_group in getattr(self, "db_parameter_groups", {}).values():
+            if param_group["name"] == name:
+                raise ConflictException(
+                    f"A DB parameter group with the name {name} already exists"
+                )
+
+        if not hasattr(self, "db_parameter_groups"):
+            self.db_parameter_groups = {}
+
+        param_group_id = random_id()
+
+        arn = f"arn:aws:timestream-influxdb:{self.region_name}:{self.account_id}:db-parameter-group/{param_group_id}"
+
+        param_group = {
+            "id": param_group_id,
+            "name": name,
+            "arn": arn,
+            "description": description or "",
+            "parameters": parameters or {},
+        }
+
+        self.db_parameter_groups[param_group_id] = param_group
+
+        if tags:
+            self.tag_resource(arn, tags)
+
+        return (
+            param_group["id"],
+            param_group["name"],
+            param_group["arn"],
+            param_group["description"],
+            param_group["parameters"],
+        )
+
+    def get_db_parameter_group(self, identifier: str) -> tuple:
+        
+        if not hasattr(self, "db_parameter_groups"):
+            raise ResourceNotFoundException(
+                f"DB parameter group with identifier {identifier} not found"
+            )
+
+        param_group = self.db_parameter_groups.get(identifier)
+        if not param_group:
+            raise ResourceNotFoundException(
+                f"DB parameter group with identifier {identifier} not found"
+            )
+
+        return (
+            param_group["id"],
+            param_group["name"],
+            param_group["arn"],
+            param_group["description"],
+            param_group["parameters"],
+        )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_db_parameter_groups(self) -> List[Dict[str, Any]]:
+       
+        if not hasattr(self, "db_parameter_groups") or not self.db_parameter_groups:
+            return []
+
+        items = []
+        for param_group_id, param_group in self.db_parameter_groups.items():
+            items.append(
+                {
+                    "id": param_group["id"],
+                    "name": param_group["name"],
+                    "arn": param_group["arn"],
+                    "description": param_group["description"],
+                }
+            )
+
+        return items
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_db_clusters(self) -> List[Dict[str, Any]]:
+      
+        if not hasattr(self, "db_clusters") or not self.db_clusters:
+            return []
+
+        items = []
+        for cluster_id, cluster in self.db_clusters.items():
+            if cluster.get("status") == "DELETED":
+                continue
+
+            items.append(
+                {
+                    "id": cluster["id"],
+                    "name": cluster["name"],
+                    "arn": cluster["arn"],
+                    "status": cluster["status"],
+                    "endpoint": cluster["endpoint"],
+                    "readerEndpoint": cluster["readerEndpoint"],
+                    "port": cluster["port"],
+                    "deploymentType": cluster["deploymentType"],
+                    "dbInstanceType": cluster["dbInstanceType"],
+                    "networkType": cluster["networkType"],
+                    "dbStorageType": cluster["dbStorageType"],
+                    "allocatedStorage": cluster["allocatedStorage"],
+                }
+            )
+
+        return items
+
+    def get_db_cluster(self, db_cluster_id: str) -> tuple:
+       
+        if not hasattr(self, "db_clusters"):
+            raise ResourceNotFoundException(
+                f"DB cluster with ID {db_cluster_id} not found"
+            )
+
+        cluster = self.db_clusters.get(db_cluster_id)
+        if not cluster:
+            raise ResourceNotFoundException(
+                f"DB cluster with ID {db_cluster_id} not found"
+            )
+
+        return (
+            cluster["id"],
+            cluster["name"],
+            cluster["arn"],
+            cluster["status"],
+            cluster["endpoint"],
+            cluster["readerEndpoint"],
+            cluster["port"],
+            cluster["deploymentType"],
+            cluster["dbInstanceType"],
+            cluster["networkType"],
+            cluster["dbStorageType"],
+            cluster["allocatedStorage"],
+            cluster["publiclyAccessible"],
+            cluster["dbParameterGroupIdentifier"],
+            cluster["logDeliveryConfiguration"],
+            cluster["influxAuthParametersSecretArn"],
+            cluster["vpcSubnetIds"],
+            cluster["vpcSecurityGroupIds"],
+            cluster["failoverMode"],
+        )
+
+    def create_db_cluster(
+        self,
+        name: str,
+        password: str,
+        username: Optional[str] = None,
+        organization: Optional[str] = None,
+        bucket: Optional[str] = None,
+        port: Optional[int] = None,
+        db_parameter_group_identifier: Optional[str] = None,
+        db_instance_type: str = None,
+        db_storage_type: Optional[str] = None,
+        allocated_storage: int = None,
+        network_type: Optional[str] = None,
+        publicly_accessible: Optional[bool] = None,
+        vpc_subnet_ids: List[str] = None,
+        vpc_security_group_ids: List[str] = None,
+        deployment_type: str = None,
+        failover_mode: Optional[str] = None,
+        log_delivery_configuration: Optional[Dict[str, Any]] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> tuple:
+        if not name:
+            raise ValidationException("DB cluster name is required")
+        if not password:
+            raise ValidationException("Password is required")
+        if not db_instance_type:
+            raise ValidationException("DB instance type is required")
+        if not allocated_storage:
+            raise ValidationException("Allocated storage is required")
+        if not vpc_subnet_ids:
+            raise ValidationException("VPC subnet IDs are required")
+        if not vpc_security_group_ids:
+            raise ValidationException("VPC security group IDs are required")
+        if not deployment_type:
+            raise ValidationException("Deployment type is required")
+
+        validate_name(name)
+
+        if not hasattr(self, "db_clusters"):
+            self.db_clusters = {}
+
+        for cluster in self.db_clusters.values():
+            if cluster.get("name") == name:
+                raise ConflictException(
+                    f"A DB cluster with the name {name} already exists"
+                )
+
+        if db_instance_type not in [t.value for t in InstanceType]:
+            raise ValidationException(f"Unknown DB instance type {db_instance_type}")
+
+        if db_storage_type and db_storage_type not in [t.value for t in DBStorageType]:
+            raise ValidationException(f"Unknown DB storage type {db_storage_type}")
+
+        if network_type and network_type not in [t.value for t in NetworkType]:
+            raise ValidationException(f"Unknown network type {network_type}")
+
+        if deployment_type != "MULTI_NODE_READ_REPLICAS":
+            raise ValidationException(f"Invalid deployment type {deployment_type}")
+
+        if failover_mode and failover_mode not in ["AUTOMATIC", "NO_FAILOVER"]:
+            raise ValidationException(f"Invalid failover mode {failover_mode}")
+
+        if port:
+            if not isinstance(port, int) or port < 1024 or port > 65535:
+                raise ValidationException("Port must be between 1024 and 65535")
+            excluded_ranges = [(2375, 2376), (7788, 7799), (8090, 8090), (51678, 51680)]
+            for start, end in excluded_ranges:
+                if start <= port <= end:
+                    raise ValidationException(f"Port {port} is not allowed")
+        else:
+            port = 8086  # Default port
+
+        # Generate a unique ID for the cluster
+        cluster_id = random_id()
+
+        # Create the ARN
+        arn = f"arn:aws:timestream-influxdb:{self.region_name}:{self.account_id}:db-cluster/{cluster_id}"
+
+        # Create the endpoint
+        endpoint = f"{cluster_id}-{self.endpoint_id}.timestream-influxdb.{self.region_name}.on.aws"
+
+        # Create reader endpoint for MULTI_NODE_READ_REPLICAS deployment
+        reader_endpoint = f"{cluster_id}-{self.endpoint_id}.reader.timestream-influxdb.{self.region_name}.on.aws"
+
+        # Create the cluster
+        cluster = {
+            "id": cluster_id,
+            "name": name,
+            "arn": arn,
+            "status": "CREATING",
+            "endpoint": endpoint,
+            "readerEndpoint": reader_endpoint,
+            "port": port,
+            "deploymentType": deployment_type,
+            "dbInstanceType": db_instance_type,
+            "networkType": network_type or NetworkType.IPV4,
+            "dbStorageType": db_storage_type or DBStorageType.InfluxIOIncludedT1,
+            "allocatedStorage": allocated_storage,
+            "publiclyAccessible": publicly_accessible or False,
+            "dbParameterGroupIdentifier": db_parameter_group_identifier,
+            "logDeliveryConfiguration": log_delivery_configuration or {},
+            "influxAuthParametersSecretArn": f"arn:aws:secretsmanager:{self.region_name}:{self.account_id}:secret:timestream-influxdb/{cluster_id}/auth-params-{random_id(6)}",
+            "vpcSubnetIds": vpc_subnet_ids,
+            "vpcSecurityGroupIds": vpc_security_group_ids,
+            "failoverMode": failover_mode or "AUTOMATIC",
+            "username": username,
+            "organization": organization,
+            "bucket": bucket,
+        }
+
+        # Store the cluster
+        self.db_clusters[cluster_id] = cluster
+
+        # Update status to AVAILABLE (in real AWS this would happen after creation)
+        self.db_clusters[cluster_id]["status"] = "AVAILABLE"
+
+        # Add tags if provided
+        if tags:
+            self.tag_resource(arn, tags)
+
+        return (
+            cluster_id,
+            "AVAILABLE",  # In real AWS this would initially return CREATING
+        )
 
 
 timestreaminfluxdb_backends = BackendDict(
