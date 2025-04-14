@@ -865,6 +865,8 @@ def test_elbv2_acm_in_use_by():
 
 @mock_aws
 def test_certificate_expiration_status():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 
