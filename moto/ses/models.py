@@ -504,7 +504,7 @@ class SESBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_configuration_sets(self) -> List[ConfigurationSet]:
-        return [c for c in self.config_sets.values()]
+        return list(self.config_sets.values())
 
     def _list_all_configuration_sets(self) -> List[ConfigurationSet]:
         return list(self.config_sets.values())
