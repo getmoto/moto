@@ -21,7 +21,7 @@ class SageMakerRuntimeBackend(BaseBackend):
 
         You can use a dedicated API to override this, by configuring a queue of expected results.
 
-        A request to `get_query_results` will take the first result from that queue. Subsequent requests using the same details will return the same result. Other requests using a different QueryExecutionId will take the next result from the queue, or return static data if the queue is empty.
+        A request to `get_query_results` will take the first result from that queue.
 
         Configuring this queue by making an HTTP request to `/moto-api/static/sagemaker/endpoint-results`. An example invocation looks like this:
 
@@ -66,8 +66,6 @@ class SageMakerRuntimeBackend(BaseBackend):
         This call will return static data by default.
 
         You can use a dedicated API to override this, by configuring a queue of expected results.
-        Subsequent requests using the same `InputLocation` will return the same result.
-        Other requests using a different `InputLocation` will take the next result from the queue.
         Please note that for backward compatibility, if the async queue is empty, the sync queue will be used, if configured.
 
         Configuring this queue by making an HTTP request to `/moto-api/static/sagemaker/async-endpoint-results`.
