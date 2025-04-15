@@ -9,7 +9,6 @@ from moto.servicecatalogappregistry.exceptions import ValidationException
 from .models import (
     Application,
     AppRegistryBackend,
-    AssociatedResource,
     servicecatalogappregistry_backends,
 )
 
@@ -54,15 +53,13 @@ class AppRegistryResponse(BaseResponse):
         app = self._find_app_by_any_value(application)
         if options is None:
             options = []
-        new_resource = AssociatedResource(
-            resource_type, resource, options, app, self.current_account, self.region
+        new_resource = self.servicecatalogappregistry_backend.associate_resource(
+            app.arn,
+            resource_type,
+            resource,
+            options,
         )
-        self.servicecatalogappregistry_backend.applications[
-            app.arn
-        ].associated_resources[resource] = new_resource
-        return json.dumps(
-            {"applicationArn": app.arn, "resourceArn": resource, "options": options}
-        )
+        return json.dumps(new_resource)
 
     def list_associated_resources(self) -> str:
         application = unquote(self._get_param("application"))
