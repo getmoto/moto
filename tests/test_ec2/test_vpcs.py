@@ -1238,3 +1238,21 @@ def test_describe_prefix_lists():
         ]
     )
     assert len(result_filtered["PrefixLists"]) == 1
+
+
+@mock_aws
+def test_delete_vpc_with_subnet_dependency():
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    assert exc.value.response["Error"]["Code"] == "DependencyViolation"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"The vpc '{vpc['VpcId']}' has dependencies and cannot be deleted."
+    )
+
+    client.delete_subnet(SubnetId=subnet["SubnetId"])
+    client.delete_vpc(VpcId=vpc["VpcId"])

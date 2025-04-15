@@ -775,6 +775,13 @@ class VPCBackend:
         return matches
 
     def delete_vpc(self, vpc_id: str) -> VPC:
+        # Refuse to delete if there are dependent subnets
+        subnets = self.describe_subnets(filters={"vpc-id": vpc_id})  # type: ignore[attr-defined]
+        if subnets:
+            raise DependencyViolationError(
+                f"The vpc '{vpc_id}' has dependencies and cannot be deleted."
+            )
+
         # Do not delete if any VPN Gateway is attached
         vpn_gateways = self.describe_vpn_gateways(filters={"attachment.vpc-id": vpc_id})  # type: ignore[attr-defined]
         vpn_gateways = [
