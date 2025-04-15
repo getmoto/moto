@@ -1344,7 +1344,10 @@ class BatchBackend(BaseBackend):
                     "Error executing request, Exception : Instance role is required."
                 )
             for profile in self.iam_backend.get_instance_profiles():
-                if profile.arn == cr["instanceRole"]:
+                if (
+                    profile.arn == cr["instanceRole"]
+                    or profile.name == cr["instanceRole"]
+                ):
                     break
             else:
                 raise InvalidParameterValueException(
