@@ -529,9 +529,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 else:
                     # Get default Subnet
                     zone = self._placement.zone
-                    nic_subnet = self.ec2_backend.get_default_subnet(
+                    default_subnets = self.ec2_backend.get_default_subnets(
                         availability_zone=zone
                     )
+                    nic_subnet = default_subnets[0]
 
                 group_ids = nic.get("SecurityGroupId") or []
                 if security_groups:
