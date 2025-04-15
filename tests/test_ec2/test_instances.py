@@ -2836,3 +2836,75 @@ def test_instance_with_ipv6_address():
 
     assert len(instance["NetworkInterfaces"]) == 1
     assert len(instance["NetworkInterfaces"][0]["Ipv6Addresses"]) == 1
+
+
+@mock_aws
+def test_instance_without_default_subnet():
+    # Ensure that in an account without a default subnet, launching instances without specifying a subnet raises.
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    # Delete all VPCs and subnets
+    subnets = client.describe_subnets()
+    for subnet in subnets["Subnets"]:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+    vpcs = client.describe_vpcs()
+    for vpc in vpcs["Vpcs"]:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+
+    # RunInstances must raise
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    assert exc.value.response["Error"]["Code"] == "VPCIdNotSpecified"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC."
+    )
+
+    # Create default VPC but without default subnets
+    default_vpc_id = client.create_default_vpc()["Vpc"]["VpcId"]
+    subnets = client.describe_subnets()
+    for subnet in subnets["Subnets"]:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+
+    # Ensure RunInstances raises
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    assert exc.value.response["Error"]["Code"] == "MissingInput"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"No subnets found for the default VPC '{default_vpc_id}'. Please specify a subnet."
+    )
+
+    # Create default subnet in an AZ
+    client.create_default_subnet(AvailabilityZone="us-east-1c")
+
+    # Ensure RunInstances without a subnet, in a different AZ raises
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            MinCount=1,
+            MaxCount=1,
+            Placement={"AvailabilityZone": "us-east-1b"},
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidInput"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "No default subnet for availability zone: 'us-east-1b'."
+    )
+
+    # Ensure RunInstances without a subnet where a default subnet exists succeeds
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "us-east-1c"},
+    )
+
+    # Create another VPC and subnet
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    # Ensure RunInstances with a subnet specified succeeds
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SubnetId=subnet["SubnetId"]
+    )

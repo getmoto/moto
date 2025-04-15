@@ -59,6 +59,16 @@ class DependencyViolationError(EC2ClientError):
         super().__init__("DependencyViolation", message)
 
 
+class MissingInputError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("MissingInput", message)
+
+
+class InvalidInputError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidInput", message)
+
+
 class MissingParameterError(EC2ClientError):
     def __init__(self, parameter: str):
         super().__init__(
@@ -111,6 +121,14 @@ class InvalidKeyPairFormatError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "InvalidKeyPair.Format", "Key is not in valid OpenSSH public key format"
+        )
+
+
+class VPCIdNotSpecifiedError(EC2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "VPCIdNotSpecified",
+            "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC.",
         )
 
 

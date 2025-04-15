@@ -21,14 +21,17 @@ from moto.packages.boto.ec2.instance import Reservation
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
+    InvalidInputError,
     InvalidInstanceIdError,
     InvalidInstanceTypeError,
     InvalidParameterCombination,
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
     InvalidSubnetIdError,
+    MissingInputError,
     OperationDisableApiStopNotPermitted,
     OperationNotPermitted4,
+    VPCIdNotSpecifiedError,
 )
 from ..utils import (
     convert_tag_spec,
@@ -529,7 +532,26 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 else:
                     # Get default Subnet
                     default_subnets = self.ec2_backend.get_default_subnets()
-                    nic_subnet = default_subnets[self._placement.zone]
+
+                    default_subnet = None
+
+                    if self.subnet_id is None:
+                        default_vpc = self.ec2_backend.get_default_vpc()
+                        if default_vpc is None:
+                            raise VPCIdNotSpecifiedError()
+
+                        if not default_subnets:
+                            raise MissingInputError(
+                                f"No subnets found for the default VPC '{default_vpc.id}'. Please specify a subnet."
+                            )
+
+                        default_subnet = default_subnets.get(self._placement.zone)
+                        if default_subnet is None:
+                            raise InvalidInputError(
+                                f"No default subnet for availability zone: '{self._placement.zone}'."
+                            )
+
+                    nic_subnet = default_subnet or self.subnet_id  # type: ignore[assignment]
 
                 group_ids = nic.get("SecurityGroupId") or []
                 if security_groups:
