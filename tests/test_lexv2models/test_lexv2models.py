@@ -346,34 +346,33 @@ def test_bot_alias():
 @mock_aws
 def test_resource_policy():
     client = boto3.client("lexv2-models", region_name="eu-west-1")
+    arn = "arn:aws:lex:us-east-1:123456789012:bot/MyLexBot/ABCDEF123456"
     resp = client.create_resource_policy(
-        resourceArn="test_resource_arn",
+        resourceArn=arn,
         policy="test_resource_policy",
     )
-    assert resp["resourceArn"] == "test_resource_arn"
+    assert resp["resourceArn"] == arn
     assert resp.get("revisionId")
 
-    desc_resp = client.describe_resource_policy(
-        resourceArn="test_resource_arn",
-    )
-    assert desc_resp["resourceArn"] == "test_resource_arn"
+    desc_resp = client.describe_resource_policy(resourceArn=arn)
+    assert desc_resp["resourceArn"] == arn
     assert desc_resp["policy"] == "test_resource_policy"
     assert desc_resp.get("revisionId")
 
     update_resp = client.update_resource_policy(
-        resourceArn="test_resource_arn",
+        resourceArn=arn,
         policy="test_resource_policy_updated",
         expectedRevisionId=resp["revisionId"],
     )
 
-    assert update_resp["resourceArn"] == "test_resource_arn"
+    assert update_resp["resourceArn"] == arn
     assert update_resp["revisionId"] != resp["revisionId"]
 
     delete_resp = client.delete_resource_policy(
-        resourceArn="test_resource_arn",
+        resourceArn=arn,
         expectedRevisionId=update_resp["revisionId"],
     )
-    assert delete_resp["resourceArn"] == "test_resource_arn"
+    assert delete_resp["resourceArn"] == arn
 
 
 @mock_aws
