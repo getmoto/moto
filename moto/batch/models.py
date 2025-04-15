@@ -1549,11 +1549,13 @@ class BatchBackend(BaseBackend):
                 for item in sorted(compute_env_order, key=lambda x: x["order"])
             ]
             env_objects = []
-            # Check each ARN exists, then make a list of compute env's
-            for arn in ordered_compute_environments:
-                env = self.get_compute_environment_by_arn(arn)
+            # Check each compute env exists, then make a list of them
+            for identifier in ordered_compute_environments:
+                env = self.get_compute_environment(identifier)
                 if env is None:
-                    raise ClientException(f"Compute environment {arn} does not exist")
+                    raise ClientException(
+                        f"Compute environment {identifier} does not exist"
+                    )
                 env_objects.append(env)
         except Exception:
             raise ClientException("computeEnvironmentOrder is malformed")
