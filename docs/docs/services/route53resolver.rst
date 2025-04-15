@@ -18,7 +18,7 @@ route53resolver
 
 - [ ] associate_firewall_rule_group
 - [X] associate_resolver_endpoint_ip_address
-- [ ] associate_resolver_query_log_config
+- [X] associate_resolver_query_log_config
 - [X] associate_resolver_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
@@ -32,7 +32,7 @@ route53resolver
         calculating the create_resolver_endpoint() IpAddresses.
         
 
-- [ ] create_resolver_query_log_config
+- [X] create_resolver_query_log_config
 - [X] create_resolver_rule
   Return description for a newly created resolver rule.
 

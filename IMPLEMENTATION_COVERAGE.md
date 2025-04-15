@@ -741,28 +741,23 @@
 
 ## batch
 <details>
-<summary>77% implemented</summary>
+<summary>96% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
-- [ ] create_consumable_resource
 - [X] create_job_queue
 - [X] create_scheduling_policy
 - [X] delete_compute_environment
-- [ ] delete_consumable_resource
 - [X] delete_job_queue
 - [X] delete_scheduling_policy
 - [X] deregister_job_definition
 - [X] describe_compute_environments
-- [ ] describe_consumable_resource
 - [X] describe_job_definitions
 - [X] describe_job_queues
 - [X] describe_jobs
 - [X] describe_scheduling_policies
 - [ ] get_job_queue_snapshot
-- [ ] list_consumable_resources
 - [X] list_jobs
-- [ ] list_jobs_by_consumable_resource
 - [X] list_scheduling_policies
 - [X] list_tags_for_resource
 - [X] register_job_definition
@@ -771,7 +766,6 @@
 - [X] terminate_job
 - [X] untag_resource
 - [X] update_compute_environment
-- [ ] update_consumable_resource
 - [X] update_job_queue
 - [X] update_scheduling_policy
 </details>
@@ -790,7 +784,6 @@
 - [X] create_model_customization_job
 - [ ] create_model_import_job
 - [ ] create_model_invocation_job
-- [ ] create_prompt_router
 - [ ] create_provisioned_model_throughput
 - [X] delete_custom_model
 - [ ] delete_guardrail
@@ -798,7 +791,6 @@
 - [ ] delete_inference_profile
 - [ ] delete_marketplace_model_endpoint
 - [X] delete_model_invocation_logging_configuration
-- [ ] delete_prompt_router
 - [ ] delete_provisioned_model_throughput
 - [ ] deregister_marketplace_model_endpoint
 - [X] get_custom_model
@@ -1003,7 +995,7 @@
 
 ## cloudformation
 <details>
-<summary>37% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] activate_organizations_access
 - [ ] activate_type
@@ -1014,7 +1006,6 @@
 - [ ] create_generated_template
 - [X] create_stack
 - [X] create_stack_instances
-- [ ] create_stack_refactor
 - [X] create_stack_set
 - [ ] deactivate_organizations_access
 - [ ] deactivate_type
@@ -1034,7 +1025,6 @@
 - [ ] describe_stack_drift_detection_status
 - [X] describe_stack_events
 - [X] describe_stack_instance
-- [ ] describe_stack_refactor
 - [X] describe_stack_resource
 - [ ] describe_stack_resource_drifts
 - [X] describe_stack_resources
@@ -1048,7 +1038,6 @@
 - [ ] detect_stack_set_drift
 - [ ] estimate_template_cost
 - [X] execute_change_set
-- [ ] execute_stack_refactor
 - [ ] get_generated_template
 - [X] get_stack_policy
 - [X] get_template
@@ -1064,8 +1053,6 @@
 - [ ] list_resource_scans
 - [ ] list_stack_instance_resource_drifts
 - [X] list_stack_instances
-- [ ] list_stack_refactor_actions
-- [ ] list_stack_refactors
 - [X] list_stack_resources
 - [ ] list_stack_set_auto_deployment_targets
 - [X] list_stack_set_operation_results
@@ -2131,7 +2118,7 @@
 
 ## dms
 <details>
-<summary>4% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2145,7 +2132,7 @@
 - [ ] create_instance_profile
 - [ ] create_migration_project
 - [ ] create_replication_config
-- [ ] create_replication_instance
+- [X] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
 - [ ] delete_certificate
@@ -2197,7 +2184,7 @@
 - [ ] describe_refresh_schemas_status
 - [ ] describe_replication_configs
 - [ ] describe_replication_instance_task_logs
-- [ ] describe_replication_instances
+- [X] describe_replication_instances
 - [ ] describe_replication_subnet_groups
 - [ ] describe_replication_table_statistics
 - [ ] describe_replication_task_assessment_results
@@ -3510,7 +3497,7 @@
 
 ## elbv2
 <details>
-<summary>64% implemented</summary>
+<summary>66% implemented</summary>
 
 - [X] add_listener_certificates
 - [X] add_tags
@@ -3547,7 +3534,6 @@
 - [ ] get_trust_store_ca_certificates_bundle
 - [ ] get_trust_store_revocation_content
 - [ ] modify_capacity_reservation
-- [ ] modify_ip_pools
 - [X] modify_listener
 - [X] modify_listener_attributes
 - [X] modify_load_balancer_attributes
@@ -7662,18 +7648,18 @@
 
 ## route53resolver
 <details>
-<summary>27% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] associate_firewall_rule_group
 - [X] associate_resolver_endpoint_ip_address
-- [ ] associate_resolver_query_log_config
+- [X] associate_resolver_query_log_config
 - [X] associate_resolver_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
 - [ ] create_outpost_resolver
 - [X] create_resolver_endpoint
-- [ ] create_resolver_query_log_config
+- [X] create_resolver_query_log_config
 - [X] create_resolver_rule
 - [ ] delete_firewall_domain_list
 - [ ] delete_firewall_rule
@@ -8312,8 +8298,6 @@
 - [ ] update_feature_group
 - [ ] update_feature_metadata
 - [ ] update_hub
-- [ ] update_hub_content
-- [ ] update_hub_content_reference
 - [ ] update_image
 - [ ] update_image_version
 - [ ] update_inference_component
@@ -8531,7 +8515,7 @@
 
 ## servicecatalog
 <details>
-<summary>7% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] accept_portfolio_share
 - [ ] associate_budget_with_resource
@@ -8560,7 +8544,7 @@
 - [ ] delete_tag_option
 - [ ] describe_constraint
 - [ ] describe_copy_product_status
-- [ ] describe_portfolio
+- [X] describe_portfolio
 - [ ] describe_portfolio_share_status
 - [X] describe_portfolio_shares
 - [ ] describe_product
@@ -8740,7 +8724,7 @@
 
 ## sesv2
 <details>
-<summary>20% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -8752,7 +8736,7 @@
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
 - [X] create_email_identity
-- [ ] create_email_identity_policy
+- [X] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
 - [ ] create_import_job
@@ -8764,7 +8748,7 @@
 - [ ] delete_custom_verification_email_template
 - [X] delete_dedicated_ip_pool
 - [ ] delete_email_identity
-- [ ] delete_email_identity_policy
+- [X] delete_email_identity_policy
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint
 - [ ] delete_suppressed_destination
@@ -8783,7 +8767,7 @@
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
 - [X] get_email_identity
-- [ ] get_email_identity_policies
+- [X] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
 - [ ] get_import_job
@@ -8810,7 +8794,6 @@
 - [ ] put_account_sending_attributes
 - [ ] put_account_suppression_attributes
 - [ ] put_account_vdm_attributes
-- [ ] put_configuration_set_archiving_options
 - [ ] put_configuration_set_delivery_options
 - [ ] put_configuration_set_reputation_options
 - [ ] put_configuration_set_sending_options
@@ -8837,7 +8820,7 @@
 - [ ] update_contact
 - [ ] update_contact_list
 - [ ] update_custom_verification_email_template
-- [ ] update_email_identity_policy
+- [X] update_email_identity_policy
 - [ ] update_email_template
 </details>
 
@@ -9372,24 +9355,18 @@
 
 ## timestream-influxdb
 <details>
-<summary>41% implemented</summary>
+<summary>63% implemented</summary>
 
-- [ ] create_db_cluster
 - [X] create_db_instance
 - [ ] create_db_parameter_group
-- [ ] delete_db_cluster
 - [X] delete_db_instance
-- [ ] get_db_cluster
 - [X] get_db_instance
 - [ ] get_db_parameter_group
-- [ ] list_db_clusters
 - [X] list_db_instances
-- [ ] list_db_instances_for_cluster
 - [ ] list_db_parameter_groups
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_db_cluster
 - [ ] update_db_instance
 </details>
 
@@ -9571,7 +9548,7 @@
 - [ ] check_capacity
 - [ ] create_api_key
 - [X] create_ip_set
-- [ ] create_regex_pattern_set
+- [X] create_regex_pattern_set
 - [X] create_rule_group
 - [X] create_web_acl
 - [ ] delete_api_key
@@ -9579,7 +9556,7 @@
 - [X] delete_ip_set
 - [X] delete_logging_configuration
 - [ ] delete_permission_policy
-- [ ] delete_regex_pattern_set
+- [X] delete_regex_pattern_set
 - [X] delete_rule_group
 - [X] delete_web_acl
 - [ ] describe_all_managed_products
@@ -9594,7 +9571,7 @@
 - [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
-- [ ] get_regex_pattern_set
+- [X] get_regex_pattern_set
 - [X] get_rule_group
 - [ ] get_sampled_requests
 - [X] get_web_acl
@@ -9606,7 +9583,7 @@
 - [X] list_logging_configurations
 - [ ] list_managed_rule_sets
 - [ ] list_mobile_sdk_releases
-- [ ] list_regex_pattern_sets
+- [X] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [X] list_rule_groups
 - [X] list_tags_for_resource
@@ -9618,14 +9595,14 @@
 - [X] untag_resource
 - [X] update_ip_set
 - [ ] update_managed_rule_set_version_expiry_date
-- [ ] update_regex_pattern_set
+- [X] update_regex_pattern_set
 - [X] update_rule_group
 - [X] update_web_acl
 </details>
 
 ## workspaces
 <details>
-<summary>16% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
@@ -9689,7 +9666,6 @@
 - [ ] modify_account
 - [ ] modify_certificate_based_auth_properties
 - [X] modify_client_properties
-- [ ] modify_endpoint_encryption_mode
 - [ ] modify_saml_properties
 - [X] modify_selfservice_permissions
 - [ ] modify_streaming_properties
@@ -9880,6 +9856,7 @@
 - ds-data
 - ecr-public
 - eks-auth
+- elastic-inference
 - entityresolution
 - evidently
 - finspace
@@ -9890,7 +9867,6 @@
 - frauddetector
 - freetier
 - gamelift
-- gameliftstreams
 - geo-maps
 - geo-places
 - geo-routes
@@ -9907,7 +9883,6 @@
 - internetmonitor
 - invoicing
 - iot-jobs-data
-- iot-managed-integrations
 - iotanalytics
 - iotdeviceadvisor
 - iotevents

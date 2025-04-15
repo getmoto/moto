@@ -1,5 +1,6 @@
 import base64
 import datetime
+import ipaddress
 import re
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -7,7 +8,7 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.x509 import OID_COMMON_NAME, DNSName, NameOID
+from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -48,6 +49,10 @@ RnGfN8j8KLDVmWyTYMk8V+6j0LI4+4zFh2upqGMQHL3VFVFWBek6vCDWhB/b
  -----END CERTIFICATE-----"""
 # Added aws root CA as AWS returns chain you gave it + root CA (provided or not)
 # so for now a cheap response is just give any old root CA
+
+IPV4_REGEX = re.compile(
+    r"(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
+)
 
 
 def datetime_to_epoch(date: datetime.datetime) -> float:
@@ -165,7 +170,14 @@ class CertBundle(BaseModel):
         unique_sans: Set[str] = set(sans) if sans else set()
 
         unique_sans.add(domain_name)
-        unique_dns_names = [DNSName(item) for item in unique_sans]
+        # SSL treats IP addresses differently from regular host names
+        # https://cabforum.org/working-groups/server/guidance-ip-addresses-certificates/
+        unique_dns_names = [
+            IPAddress(ipaddress.IPv4Address(name))
+            if IPV4_REGEX.match(name)
+            else DNSName(name)
+            for name in unique_sans
+        ]
 
         key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend()
@@ -305,6 +317,12 @@ class CertBundle(BaseModel):
             )
 
     def check(self) -> None:
+        # Check for certificate expiration
+        now = utcnow()
+        if self._not_valid_after(self._cert) <= now:
+            self.status = "EXPIRED"
+            return
+
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.
@@ -334,7 +352,7 @@ class CertBundle(BaseModel):
             san_obj = None
         sans = []
         if san_obj is not None:
-            sans = [item.value for item in san_obj.value]
+            sans = [str(item.value) for item in san_obj.value]
 
         result: Dict[str, Any] = {
             "Certificate": {

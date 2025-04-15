@@ -4299,7 +4299,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -15112,7 +15118,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -17878,7 +17890,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -23343,6 +23361,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identity-center": {
+                "Value": "identity-center",
+                "endpoint": {
+                  "Value": "sso.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "identitystore": {
                 "Value": "identitystore",
                 "endpoint": {
@@ -23587,6 +23614,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24286,6 +24322,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "guardduty": {
+                "Value": "guardduty",
+                "endpoint": {
+                  "Value": "guardduty.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -24308,6 +24353,15 @@
                 "Value": "kinesis",
                 "endpoint": {
                   "Value": "kinesis.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesisanalytics": {
+                "Value": "kinesisanalytics",
+                "endpoint": {
+                  "Value": "kinesisanalytics.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24340,10 +24394,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
                   "Value": "license-manager-linux-subscriptions.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24360,6 +24432,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "network-firewall": {
                 "Value": "network-firewall",
@@ -24449,6 +24530,15 @@
                 "Value": "redshift-serverless",
                 "endpoint": {
                   "Value": "redshift-serverless.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25848,6 +25938,15 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-managed-integrations": {
+                "Value": "iot-managed-integrations",
+                "endpoint": {
+                  "Value": "api.iotmanagedintegrations.ca-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27585,6 +27684,15 @@
                 "Value": "emr",
                 "endpoint": {
                   "Value": "elasticmapreduce.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31937,7 +32045,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -33245,6 +33359,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "qdeveloper": {
+                "Value": "qdeveloper",
+                "endpoint": {
+                  "Value": "q.eu-central-1.amazonaws.com"
                 }
               },
               "qldb": {
@@ -40252,6 +40372,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "osis": {
+                "Value": "osis",
+                "endpoint": {
+                  "Value": "osis.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "outposts": {
                 "Value": "outposts",
                 "endpoint": {
@@ -41520,7 +41649,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -42096,6 +42231,15 @@
                 "Value": "iot-jobs-data",
                 "endpoint": {
                   "Value": "data.jobs.iot.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-managed-integrations": {
+                "Value": "iot-managed-integrations",
+                "endpoint": {
+                  "Value": "api.iotmanagedintegrations.eu-west-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50719,6 +50863,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "managedservices": {
+                "Value": "managedservices",
+                "endpoint": {
+                  "Value": "amscm.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "marketplace": {
                 "Value": "marketplace"
               },
@@ -53505,6 +53658,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kinesisanalytics": {
+                "Value": "kinesisanalytics",
+                "endpoint": {
+                  "Value": "kinesisanalytics.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kms": {
                 "Value": "kms",
                 "endpoint": {
@@ -53532,10 +53694,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
                   "Value": "license-manager-linux-subscriptions.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53552,6 +53732,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "network-firewall": {
                 "Value": "network-firewall",
@@ -53641,6 +53830,15 @@
                 "Value": "redshift-serverless",
                 "endpoint": {
                   "Value": "redshift-serverless.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resource-explorer-2": {
+                "Value": "resource-explorer-2",
+                "endpoint": {
+                  "Value": "resource-explorer-2.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56954,7 +57152,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "deepcomposer": {
                 "Value": "deepcomposer",
@@ -58479,15 +58683,6 @@
               },
               "privatelink": {
                 "Value": "privatelink"
-              },
-              "privatenetworks": {
-                "Value": "privatenetworks",
-                "endpoint": {
-                  "Value": "private-networks.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "proton": {
                 "Value": "proton",
@@ -60095,7 +60290,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -61279,15 +61480,6 @@
               "privatelink": {
                 "Value": "privatelink"
               },
-              "privatenetworks": {
-                "Value": "privatenetworks",
-                "endpoint": {
-                  "Value": "private-networks.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "proton": {
                 "Value": "proton",
                 "endpoint": {
@@ -62384,6 +62576,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.us-gov-east-1.amazonaws.com"
+                }
+              },
               "controltower": {
                 "Value": "controltower",
                 "endpoint": {
@@ -63208,6 +63406,15 @@
               },
               "rosa": {
                 "Value": "rosa"
+              },
+              "route53": {
+                "Value": "route53",
+                "endpoint": {
+                  "Value": "route53.us-gov.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "route53-application-recovery-controller": {
                 "Value": "route53-application-recovery-controller"
@@ -64979,6 +65186,15 @@
               },
               "rosa": {
                 "Value": "rosa"
+              },
+              "route53": {
+                "Value": "route53",
+                "endpoint": {
+                  "Value": "route53.us-gov.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "route53-application-recovery-controller": {
                 "Value": "route53-application-recovery-controller"
@@ -68336,7 +68552,13 @@
                 }
               },
               "deadline-cloud": {
-                "Value": "deadline-cloud"
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "detective": {
                 "Value": "detective",
@@ -69714,15 +69936,6 @@
               },
               "privatelink": {
                 "Value": "privatelink"
-              },
-              "privatenetworks": {
-                "Value": "privatenetworks",
-                "endpoint": {
-                  "Value": "private-networks.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
               },
               "proton": {
                 "Value": "proton",

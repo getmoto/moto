@@ -13,6 +13,7 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.ec2 import ec2_backends
 from tests import aws_verified
+from tests.test_ec2 import ec2_aws_verified
 
 REGION = "us-east-1"
 
@@ -632,6 +633,42 @@ def test_security_group_rule_filtering_group_id():
 
 
 @mock_aws
+def test_describe_security_group_rules_by_id():
+    ec2 = boto3.resource("ec2", region_name=REGION)
+    conn = boto3.client("ec2", region_name=REGION)
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = conn.create_security_group(
+        GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
+    )
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27018,
+            "IpRanges": [
+                {"CidrIp": "1.2.3.4/32"},
+                {"CidrIp": "2.3.4.5/32"},
+            ],
+        }
+    ]
+    conn.authorize_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=ip_permissions
+    )
+    result = conn.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+    )
+    assert len(result["SecurityGroupRules"]) == 3
+    sgr_ids = [sgr["SecurityGroupRuleId"] for sgr in result["SecurityGroupRules"]]
+    sgr_id_not_included = sgr_ids.pop(0)
+    result = conn.describe_security_group_rules(SecurityGroupRuleIds=sgr_ids)
+    sgr_ids_returned = [
+        sgr["SecurityGroupRuleId"] for sgr in result["SecurityGroupRules"]
+    ]
+    assert sgr_ids_returned == sgr_ids
+    assert sgr_id_not_included not in sgr_ids_returned
+
+
+@mock_aws
 def test_security_group_rule_filtering_tags():
     # Setup
     ec2 = boto3.resource("ec2", REGION)
@@ -669,11 +706,29 @@ def test_security_group_rule_filtering_tags():
         Filters=[{"Name": "tag:Partner", "Values": ["test"]}]
     )
 
+    response3 = client.describe_security_group_rules(
+        Filters=[{"Name": "tag-key", "Values": ["Partner"]}]
+    )
+
+    response4 = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [sg["GroupId"]]},
+            {"Name": "tag-key", "Values": ["Partner"]},
+        ]
+    )
+
     # Verify
     assert response1["SecurityGroupRules"][0]["Tags"] == tags
     assert "Tags" in response2["SecurityGroupRules"][0]
     assert response2["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
     assert response2["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
+    assert len(response3["SecurityGroupRules"]) == 1
+    assert response3["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response3["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
+    assert len(response4["SecurityGroupRules"]) == 1
+    assert response4["SecurityGroupRules"][0]["GroupId"] == sg["GroupId"]
+    assert response4["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response4["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
 
 
 @mock_aws
@@ -884,21 +939,21 @@ def test_description_in_ip_permissions():
     )
     assert len(result["SecurityGroupRules"]) == 3
 
-    assert result["SecurityGroupRules"][0]["Description"] == "austin"
-    assert result["SecurityGroupRules"][0]["CidrIpv4"] == "1.2.3.4/32"
-    assert result["SecurityGroupRules"][0]["IsEgress"] is False
-    assert result["SecurityGroupRules"][0]["FromPort"] == 27017
-    assert result["SecurityGroupRules"][0]["ToPort"] == 27018
+    assert result["SecurityGroupRules"][0]["IsEgress"] is True
+    assert result["SecurityGroupRules"][0]["FromPort"] == -1
+    assert result["SecurityGroupRules"][0]["ToPort"] == -1
 
-    assert result["SecurityGroupRules"][1]["Description"] == "powers"
-    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][1]["Description"] == "austin"
+    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "1.2.3.4/32"
     assert result["SecurityGroupRules"][1]["IsEgress"] is False
     assert result["SecurityGroupRules"][1]["FromPort"] == 27017
     assert result["SecurityGroupRules"][1]["ToPort"] == 27018
 
-    assert result["SecurityGroupRules"][2]["IsEgress"] is True
-    assert result["SecurityGroupRules"][2]["FromPort"] == -1
-    assert result["SecurityGroupRules"][2]["ToPort"] == -1
+    assert result["SecurityGroupRules"][2]["Description"] == "powers"
+    assert result["SecurityGroupRules"][2]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][2]["IsEgress"] is False
+    assert result["SecurityGroupRules"][2]["FromPort"] == 27017
+    assert result["SecurityGroupRules"][2]["ToPort"] == 27018
 
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
     group = result["SecurityGroups"][0]
@@ -1000,7 +1055,7 @@ def test_security_group_filter_ip_permission():
             "IpProtocol": "tcp",
             "FromPort": from_port,
             "ToPort": to_port,
-            "IpRanges": [],
+            "IpRanges": [{"CidrIp": "0.0.0.0/0"}],
         },
     ]
 
@@ -1970,16 +2025,9 @@ def test_filter_group_name():
     assert security_groups[0].group_name == sg1.group_name
 
 
-@mock_aws
-def test_revoke_security_group_ingress():
-    ec2 = boto3.client("ec2", region_name=REGION)
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-
-    sg = ec2.create_security_group(
-        Description="Test SG", GroupName=str(uuid4()), VpcId=vpc["Vpc"]["VpcId"]
-    )
-    sg_id = sg["GroupId"]
+@ec2_aws_verified(create_vpc=True, create_sg=True)
+def test_revoke_security_group_ingress(ec2_client=None, vpc_id=None, sg_id=None):
+    ec2 = ec2_client
 
     ec2.authorize_security_group_ingress(
         GroupId=sg_id,
@@ -1994,7 +2042,7 @@ def test_revoke_security_group_ingress():
                 "FromPort": 8080,
                 "ToPort": 8080,
                 "IpProtocol": "TCP",
-                "IpRanges": [{"CidrIp": "10.0.0.1/32"}],
+                "IpRanges": [{"CidrIp": "10.0.0.1/32"}, {"CidrIp": "10.0.0.10/32"}],
             },
         ],
     )
@@ -2004,11 +2052,11 @@ def test_revoke_security_group_ingress():
     )
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
-    assert len(ingress_rules) == 2
+    assert len(ingress_rules) == 3
 
-    # revoke 1 of the 2 ingress rules
+    # revoke 1 of the 3 ingress rules
     ec2.revoke_security_group_ingress(
-        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[0]["SecurityGroupRuleId"]]
+        GroupId=sg_id, SecurityGroupRuleIds=[ingress_rules[-1]["SecurityGroupRuleId"]]
     )
 
     response = ec2.describe_security_group_rules(
@@ -2016,63 +2064,62 @@ def test_revoke_security_group_ingress():
     )
 
     ingress_rules = [r for r in response["SecurityGroupRules"] if not r["IsEgress"]]
-    assert len(ingress_rules) == 1
+    assert len(ingress_rules) == 2
 
 
-@mock_aws()
-def test_invalid_security_group_id_in_rules_search():
-    ec2 = boto3.client("ec2", region_name=REGION)
-
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    vpc_id = vpc["Vpc"]["VpcId"]
-    group_name = "test-group"
-
-    response = ec2.create_security_group(
-        Description="Inventing a security group", GroupName=group_name, VpcId=vpc_id
-    )
-    group_id = response["GroupId"]
-
+@ec2_aws_verified(create_vpc=True, create_sg=True)
+@pytest.mark.aws_verified
+def test_invalid_security_group_id_in_rules_search(
+    ec2_client=None, vpc_id=None, sg_id=None
+):
     # assert error with invalid sg id
     with pytest.raises(ClientError) as e:
-        ec2.describe_security_group_rules(
+        ec2_client.describe_security_group_rules(
             Filters=[{"Name": "group-id", "Values": ["foobar"]}]
         )
     error = e.value.response["Error"]
     assert "InvalidGroupId.Malformed" == error["Code"]
     assert "The security group ID 'foobar' is malformed" in error["Message"]
 
+    # assert error with non-existent sgr id
+    non_existent_sgr_id = "sgr-0f80c7e764c18b3c0"
+    with pytest.raises(ClientError) as e:
+        ec2_client.describe_security_group_rules(
+            SecurityGroupRuleIds=[non_existent_sgr_id]
+        )
+    error = e.value.response["Error"]
+    assert "InvalidSecurityGroupRuleId.NotFound" == error["Code"]
+    assert (
+        f"The security group rule ID '{non_existent_sgr_id}' does not exist"
+        in error["Message"]
+    )
+
     # assert with non-existent sg
-    response = ec2.describe_security_group_rules(
+    response = ec2_client.describe_security_group_rules(
         Filters=[{"Name": "group-id", "Values": ["sg-005216b55886f0fdc"]}]
     )
     assert len(response["SecurityGroupRules"]) == 0
 
     # assert with no rules
-    response = ec2.describe_security_group_rules(
-        Filters=[{"Name": "group-id", "Values": [group_id]}]
+    response = ec2_client.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg_id]}]
     )
     assert len(response["SecurityGroupRules"]) == 1
 
 
-@aws_verified
+@ec2_aws_verified(create_vpc=True, create_sg=True)
 @pytest.mark.aws_verified
 @pytest.mark.parametrize("is_ingress", [True, False], ids=["ingress", "egress"])
-def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_ingress):
+def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(
+    is_ingress, ec2_client=None, vpc_id=None, sg_id=None
+):
     is_egress = not is_ingress
     sts = boto3.client("sts", "us-east-1")
     account_id = sts.get_caller_identity()["Account"]
 
-    ec2_client = boto3.client("ec2", "us-east-1")
-    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/24")
-    vpc_id = vpc["Vpc"]["VpcId"]
-    sg_id = pl_id = None
+    pl_id = None
 
     try:
-        sg = ec2_client.create_security_group(
-            Description="test", GroupName=f"test_{str(uuid4())[0:6]}", VpcId=vpc_id
-        )
-        sg_id = sg["GroupId"]
-
         prefix_list = ec2_client.create_managed_prefix_list(
             PrefixListName=f"test{str(uuid4())[0:6]}",
             AddressFamily="IPv4",
@@ -2331,6 +2378,3 @@ def test_authorize_security_group_rules_with_different_ipranges_or_prefixes(is_i
     finally:
         if pl_id:
             ec2_client.delete_managed_prefix_list(PrefixListId=pl_id)
-        if sg_id:
-            ec2_client.delete_security_group(GroupId=sg_id)
-        ec2_client.delete_vpc(VpcId=vpc_id)

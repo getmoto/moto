@@ -535,7 +535,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     or resource_type in resource_type_filters
                 ):
                     for resource in resource_source.values():
-                        tags = format_tags(resource.tags)
+                        bot_tags = self.lexv2_backend.list_tags_for_resource(
+                            resource.arn
+                        )
+
+                        tags = format_tags(bot_tags)
                         if not tags or not tag_filter(tags):
                             continue
                         yield {
@@ -559,11 +563,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": group.arn, "Tags": tags}
 
         # RDS resources
-        resource_map: Dict[str, Dict[str, Any]] = {
-            "rds:cluster": self.rds_backend.clusters,
-            "rds:db": self.rds_backend.databases,
-            "rds:snapshot": self.rds_backend.database_snapshots,
-            "rds:cluster-snapshot": self.rds_backend.cluster_snapshots,
+        resource_map: dict[str, dict[str, Any]] = {
+            "rds:cluster": dict(self.rds_backend.clusters),
+            "rds:db": dict(self.rds_backend.databases),
+            "rds:snapshot": dict(self.rds_backend.database_snapshots),
+            "rds:cluster-snapshot": dict(self.rds_backend.cluster_snapshots),
             "rds:db-proxy": self.rds_backend.db_proxies,
         }
         for resource_type, resource_source in resource_map.items():

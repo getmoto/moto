@@ -289,6 +289,7 @@ def test_start_database(client):
     assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
     response = client.describe_db_snapshots(DBSnapshotIdentifier="rocky4570-rds-snap")
     assert response["DBSnapshots"][0]["DBSnapshotIdentifier"] == "rocky4570-rds-snap"
+    assert response["DBSnapshots"][0]["SnapshotType"] == "manual"
     response = client.start_db_instance(
         DBInstanceIdentifier=mydb["DBInstanceIdentifier"]
     )
@@ -1398,9 +1399,10 @@ def test_describe_option_group_options(client):
         )
 
 
-@pytest.mark.aws_verified
 @aws_verified
-def test_modify_option_group(client):
+@pytest.mark.aws_verified
+def test_modify_option_group():
+    client = boto3.client("rds", region_name=DEFAULT_REGION)
     option_group_name = f"og-{str(uuid4())[0:6]}"
     client.create_option_group(
         OptionGroupName=option_group_name,
@@ -3613,3 +3615,40 @@ def snapshot_validation_helper(exc, expected_message):
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
     assert err["Message"] == expected_message
+
+
+@mock_aws
+def test_db_instance_identifier_is_case_insensitive(client):
+    instance = create_db_instance(DBInstanceIdentifier="FooBar")
+    assert instance["DBInstanceIdentifier"] == "foobar"
+
+    for identifier in "foobar", "FOOBAR":
+        response = client.describe_db_instances(DBInstanceIdentifier=identifier)
+        assert response["DBInstances"][0]["DBInstanceIdentifier"] == "foobar"
+
+    response = client.modify_db_instance(
+        DBInstanceIdentifier="fOObAR",
+        NewDBInstanceIdentifier="XxYy",
+    )
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
+    response = client.reboot_db_instance(DBInstanceIdentifier="XXyy")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+
+    response = client.create_db_instance_read_replica(
+        DBInstanceIdentifier="rEplIcA",
+        SourceDBInstanceIdentifier="xxyy",
+        DBInstanceClass="db.m1.small",
+    )
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "replica"
+
+    response = client.promote_read_replica(DBInstanceIdentifier="RePLiCa")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "replica"
+
+    response = client.delete_db_instance(DBInstanceIdentifier="xXyY")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "xxyy"
+    response = client.delete_db_instance(DBInstanceIdentifier="REPlica")
+    assert response["DBInstance"]["DBInstanceIdentifier"] == "replica"
+
+    response = client.describe_db_instances()
+    assert len(response["DBInstances"]) == 0

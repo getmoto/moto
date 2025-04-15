@@ -1,10 +1,17 @@
+import datetime
 import os
 import uuid
+from ipaddress import IPv4Address
 from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from cryptography.x509 import (
+    IPAddress,
+    SubjectAlternativeName,
+    load_pem_x509_certificate,
+)
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -163,6 +170,29 @@ def test_delete_certificate():
         assert err.response["Error"]["Code"] == "ResourceNotFoundException"
     else:
         raise RuntimeError("Should have raised ResourceNotFoundException")
+
+
+@mock_aws
+def test_request_certificate_for_ip():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = client.request_certificate(DomainName="10.0.0.1")["CertificateArn"]
+
+    try:
+        cert_arn = client.describe_certificate(CertificateArn=arn)["Certificate"][
+            "CertificateArn"
+        ]
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
+
+    resp = client.get_certificate(CertificateArn=cert_arn)
+
+    cert = load_pem_x509_certificate(resp["Certificate"].encode("utf-8"))
+    san = cert.extensions[0].value
+    assert isinstance(san, SubjectAlternativeName)
+
+    ip_address = san.get_values_for_type(IPAddress)[0]
+    assert isinstance(ip_address, IPv4Address)
+    assert ip_address.compressed == "10.0.0.1"
 
 
 @mock_aws
@@ -831,3 +861,26 @@ def test_elbv2_acm_in_use_by():
         _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
     ][0]
     assert cert["InUse"]
+
+
+@mock_aws
+def test_certificate_expiration_status():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Status"] == "ISSUED"
+
+    expiry_time = resp["Certificate"]["NotAfter"]
+
+    # Test before expiry (1 second before)
+    with freeze_time(expiry_time - datetime.timedelta(seconds=1)):
+        resp = client.describe_certificate(CertificateArn=arn)
+        assert resp["Certificate"]["Status"] == "ISSUED"
+
+    # Test after expiry
+    with freeze_time(expiry_time + datetime.timedelta(days=1)):  # 1 day after
+        resp = client.describe_certificate(CertificateArn=arn)
+        assert resp["Certificate"]["Status"] == "EXPIRED"

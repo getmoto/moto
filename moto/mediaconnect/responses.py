@@ -23,6 +23,7 @@ class MediaConnectResponse(BaseResponse):
         source_failover_config = self._get_param("sourceFailoverConfig")
         sources = self._get_param("sources")
         vpc_interfaces = self._get_param("vpcInterfaces")
+        maintenance = self._get_param("maintenance")
         flow = self.mediaconnect_backend.create_flow(
             availability_zone=availability_zone,
             entitlements=entitlements,
@@ -32,6 +33,7 @@ class MediaConnectResponse(BaseResponse):
             source_failover_config=source_failover_config,
             sources=sources,
             vpc_interfaces=vpc_interfaces,
+            maintenance=maintenance,
         )
         return json.dumps(dict(flow=flow.to_dict()))
 

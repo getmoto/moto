@@ -275,5 +275,25 @@ class ServiceCatalogBackend(BaseBackend):
 
         return None, portfolio_share_details
 
+    def describe_portfolio(
+        self, accept_language: Optional[str], id: str
+    ) -> Tuple[
+        Dict[str, Any], List[Dict[str, str]], List[Dict[str, Any]], List[Dict[str, str]]
+    ]:
+        # TODO: Implement accept_language
+
+        if id not in self.portfolios:
+            return {}, [], [], []
+
+        portfolio = self.portfolios[id]
+        portfolio_detail = portfolio.to_dict()
+
+        tags = portfolio.tags
+
+        tag_options: List[Dict[str, Any]] = []
+        budgets: List[Dict[str, Any]] = []
+
+        return portfolio_detail, tags, tag_options, budgets
+
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")
