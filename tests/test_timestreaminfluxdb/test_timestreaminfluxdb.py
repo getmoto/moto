@@ -284,7 +284,6 @@ def test_list_db_instances():
 def test_create_db_parameter_group():
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
-    # Create a parameter group
     response = client.create_db_parameter_group(
         name="test-parameter-group",
         description="Test parameter group for unit tests",
@@ -298,7 +297,6 @@ def test_create_db_parameter_group():
         tags={"Environment": "Test", "Project": "Moto"},
     )
 
-    # Verify the response
     assert response["name"] == "test-parameter-group"
     assert response["description"] == "Test parameter group for unit tests"
     assert response["parameters"]["InfluxDBv2"]["fluxLogEnabled"] is True
@@ -312,7 +310,6 @@ def test_create_db_parameter_group():
 def test_get_db_parameter_group():
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
-    # Create a parameter group first
     create_response = client.create_db_parameter_group(
         name="test-parameter-group",
         description="Test parameter group for unit tests",
@@ -321,10 +318,8 @@ def test_get_db_parameter_group():
 
     param_group_id = create_response["id"]
 
-    # Get the parameter group
     get_response = client.get_db_parameter_group(identifier=param_group_id)
 
-    # Verify the response
     assert get_response["id"] == param_group_id
     assert get_response["name"] == "test-parameter-group"
     assert get_response["description"] == "Test parameter group for unit tests"
@@ -332,7 +327,6 @@ def test_get_db_parameter_group():
     assert get_response["parameters"]["InfluxDBv2"]["logLevel"] == "debug"
     assert "arn" in get_response
 
-    # Try to get a non-existent parameter group
     with pytest.raises(ClientError) as exc:
         client.get_db_parameter_group(identifier="non-existent-id")
 
@@ -343,12 +337,10 @@ def test_get_db_parameter_group():
 def test_list_db_parameter_groups():
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
-    # Verify empty list initially
     list_response = client.list_db_parameter_groups()
     assert len(list_response["items"]) == 0
     assert "nextToken" not in list_response
 
-    # Create multiple parameter groups
     param_groups = []
     for i in range(5):
         response = client.create_db_parameter_group(
@@ -363,22 +355,18 @@ def test_list_db_parameter_groups():
         )
         param_groups.append(response)
 
-    # List all parameter groups
     list_response = client.list_db_parameter_groups()
     assert len(list_response["items"]) == 5
 
-    # Test pagination
     list_response = client.list_db_parameter_groups(maxResults=2)
     assert len(list_response["items"]) == 2
     assert "nextToken" in list_response
 
-    # Get next page using the token
     next_token = list_response["nextToken"]
     list_response = client.list_db_parameter_groups(nextToken=next_token, maxResults=2)
     assert len(list_response["items"]) == 2
     assert "nextToken" in list_response
 
-    # Get the final page
     next_token = list_response["nextToken"]
     list_response = client.list_db_parameter_groups(nextToken=next_token, maxResults=2)
     assert len(list_response["items"]) == 1
@@ -389,12 +377,10 @@ def test_list_db_parameter_groups():
 def test_list_db_clusters():
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
-    # Verify empty list initially
     list_response = client.list_db_clusters()
     assert len(list_response["items"]) == 0
     assert "nextToken" not in list_response
 
-    # Create multiple DB clusters
     cluster_ids = []
     for i in range(5):
         response = client.create_db_cluster(
@@ -408,11 +394,9 @@ def test_list_db_clusters():
         )
         cluster_ids.append(response["dbClusterId"])
 
-    # List all DB clusters
     list_response = client.list_db_clusters()
     assert len(list_response["items"]) == 5
 
-    # Verify each cluster has all required fields
     for item in list_response["items"]:
         assert "id" in item
         assert "name" in item
@@ -427,18 +411,15 @@ def test_list_db_clusters():
         assert "dbStorageType" in item
         assert "allocatedStorage" in item
 
-    # Test pagination
     list_response = client.list_db_clusters(maxResults=2)
     assert len(list_response["items"]) == 2
     assert "nextToken" in list_response
 
-    # Get next page using the token
     next_token = list_response["nextToken"]
     list_response = client.list_db_clusters(nextToken=next_token, maxResults=2)
     assert len(list_response["items"]) == 2
     assert "nextToken" in list_response
 
-    # Get the final page
     next_token = list_response["nextToken"]
     list_response = client.list_db_clusters(nextToken=next_token, maxResults=2)
     assert len(list_response["items"]) == 1
@@ -449,7 +430,6 @@ def test_list_db_clusters():
 def test_get_db_cluster():
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
-    # Create a DB cluster first
     create_response = client.create_db_cluster(
         name="test-cluster",
         password="password123",
@@ -462,10 +442,8 @@ def test_get_db_cluster():
 
     cluster_id = create_response["dbClusterId"]
 
-    # Get the DB cluster
     get_response = client.get_db_cluster(dbClusterId=cluster_id)
 
-    # Verify the response contains all expected fields
     assert get_response["id"] == cluster_id
     assert get_response["name"] == "test-cluster"
     assert get_response["status"] == "AVAILABLE"
@@ -481,7 +459,6 @@ def test_get_db_cluster():
     assert len(get_response["vpcSubnetIds"]) == 2
     assert len(get_response["vpcSecurityGroupIds"]) == 1
 
-    # Test with non-existent ID
     with pytest.raises(ClientError) as exc:
         client.get_db_cluster(dbClusterId="non-existent-id")
 
@@ -492,7 +469,6 @@ def test_get_db_cluster():
 def test_create_db_cluster():
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
 
-    # Create a DB cluster with minimum required parameters
     response = client.create_db_cluster(
         name="test-cluster",
         password="password123",
@@ -503,11 +479,9 @@ def test_create_db_cluster():
         deploymentType="MULTI_NODE_READ_REPLICAS",
     )
 
-    # Verify the response
     assert "dbClusterId" in response
     assert response["dbClusterStatus"] == "AVAILABLE"
 
-    # Test creating a cluster with the same name (should fail)
     with pytest.raises(ClientError) as exc:
         client.create_db_cluster(
             name="test-cluster",
@@ -521,7 +495,6 @@ def test_create_db_cluster():
 
     assert exc.value.response["Error"]["Code"] == "ConflictException"
 
-    # Test with invalid instance type
     with pytest.raises(ClientError) as exc:
         client.create_db_cluster(
             name="test-cluster-2",
@@ -535,7 +508,6 @@ def test_create_db_cluster():
 
     assert exc.value.response["Error"]["Code"] == "ValidationException"
 
-    # Test with invalid deployment type
     with pytest.raises(ClientError) as exc:
         client.create_db_cluster(
             name="test-cluster-3",
@@ -549,7 +521,6 @@ def test_create_db_cluster():
 
     assert exc.value.response["Error"]["Code"] == "ValidationException"
 
-    # Test with all optional parameters
     response = client.create_db_cluster(
         name="test-cluster-full",
         username="admin",
@@ -573,6 +544,5 @@ def test_create_db_cluster():
         tags={"Environment": "Test", "Project": "Moto"},
     )
 
-    # Verify the response for the full parameter set
     assert "dbClusterId" in response
     assert response["dbClusterStatus"] == "AVAILABLE"

@@ -330,7 +330,6 @@ class TimestreamInfluxDBBackend(BaseBackend):
         )
 
     def get_db_parameter_group(self, identifier: str) -> tuple:
-        
         if not hasattr(self, "db_parameter_groups"):
             raise ResourceNotFoundException(
                 f"DB parameter group with identifier {identifier} not found"
@@ -352,7 +351,6 @@ class TimestreamInfluxDBBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_db_parameter_groups(self) -> List[Dict[str, Any]]:
-       
         if not hasattr(self, "db_parameter_groups") or not self.db_parameter_groups:
             return []
 
@@ -371,7 +369,6 @@ class TimestreamInfluxDBBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_db_clusters(self) -> List[Dict[str, Any]]:
-      
         if not hasattr(self, "db_clusters") or not self.db_clusters:
             return []
 
@@ -400,7 +397,6 @@ class TimestreamInfluxDBBackend(BaseBackend):
         return items
 
     def get_db_cluster(self, db_cluster_id: str) -> tuple:
-       
         if not hasattr(self, "db_clusters"):
             raise ResourceNotFoundException(
                 f"DB cluster with ID {db_cluster_id} not found"
@@ -497,28 +493,25 @@ class TimestreamInfluxDBBackend(BaseBackend):
             raise ValidationException(f"Invalid failover mode {failover_mode}")
 
         if port:
-            if not isinstance(port, int) or port < 1024 or port > 65535:
-                raise ValidationException("Port must be between 1024 and 65535")
+            if not isinstance(port, int) or port < 1150 or port > 65535:
+                raise ValidationException("Port must be between 1150 and 65535")
             excluded_ranges = [(2375, 2376), (7788, 7799), (8090, 8090), (51678, 51680)]
             for start, end in excluded_ranges:
                 if start <= port <= end:
                     raise ValidationException(f"Port {port} is not allowed")
         else:
-            port = 8086  # Default port
+            # RDS for MySQL and Aurora MySQL - 3306
+            # RDS for PostgreSQL and Aurora PostgreSQL - 5432
+            port = 8086  # Default port for InfluxDB
 
-        # Generate a unique ID for the cluster
         cluster_id = random_id()
 
-        # Create the ARN
         arn = f"arn:aws:timestream-influxdb:{self.region_name}:{self.account_id}:db-cluster/{cluster_id}"
 
-        # Create the endpoint
         endpoint = f"{cluster_id}-{self.endpoint_id}.timestream-influxdb.{self.region_name}.on.aws"
 
-        # Create reader endpoint for MULTI_NODE_READ_REPLICAS deployment
         reader_endpoint = f"{cluster_id}-{self.endpoint_id}.reader.timestream-influxdb.{self.region_name}.on.aws"
 
-        # Create the cluster
         cluster = {
             "id": cluster_id,
             "name": name,
@@ -544,19 +537,16 @@ class TimestreamInfluxDBBackend(BaseBackend):
             "bucket": bucket,
         }
 
-        # Store the cluster
         self.db_clusters[cluster_id] = cluster
 
-        # Update status to AVAILABLE (in real AWS this would happen after creation)
         self.db_clusters[cluster_id]["status"] = "AVAILABLE"
 
-        # Add tags if provided
         if tags:
             self.tag_resource(arn, tags)
 
         return (
             cluster_id,
-            "AVAILABLE",  # In real AWS this would initially return CREATING
+            "AVAILABLE",
         )
 
 
