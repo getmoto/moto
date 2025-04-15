@@ -98,6 +98,14 @@ class InvalidKeyPairFormatError(EC2ClientError):
         )
 
 
+class VPCIdNotSpecifiedError(EC2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "VPCIdNotSpecified",
+            "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC.",
+        )
+
+
 class InvalidVPCIdError(EC2ClientError):
     def __init__(self, vpc_id: Any):
         super().__init__("InvalidVpcID.NotFound", f"VpcID {vpc_id} does not exist.")

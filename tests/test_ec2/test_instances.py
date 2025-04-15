@@ -2836,3 +2836,42 @@ def test_instance_with_ipv6_address():
 
     assert len(instance["NetworkInterfaces"]) == 1
     assert len(instance["NetworkInterfaces"][0]["Ipv6Addresses"]) == 1
+
+
+@mock_aws
+def test_instance_without_default_subnet():
+    # Ensure that in an account without a default subnet, launching instances without specifying a subnet raises.
+    client = boto3.client("ec2", region_name="us-east-1")
+
+    # Delete all VPCs and subnets
+    subnets = client.describe_subnets()
+    for subnet in subnets["Subnets"]:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+    vpcs = client.describe_vpcs()
+    for vpc in vpcs["Vpcs"]:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+
+    # RunInstances must raise
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    assert exc.value.response["Error"]["Code"] == "VPCIdNotSpecified"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC."
+    )
+
+    # Create a VPC and subnet
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    # RunInstances with subnet must succeed
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2, SubnetId=subnet["SubnetId"]
+    )
+
+    # Create default VPC and subnet
+    client.create_default_vpc()
+    client.create_default_subnet(AvailabilityZone="us-east-1a")
+
+    # RunInstances without subnet must succeed
+    client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
