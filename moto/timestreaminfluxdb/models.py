@@ -352,7 +352,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         )
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_db_parameter_groups(self) -> List[Dict[str, Any]]:
+    def list_db_parameter_groups(self) -> List[Dict[str, str]]:
         if not hasattr(self, "db_parameter_groups") or not self.db_parameter_groups:
             return []
 
@@ -370,7 +370,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         return items
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_db_clusters(self) -> List[Dict[str, Any]]:
+    def list_db_clusters(self) -> List[Dict[str, object]]:
         if not hasattr(self, "db_clusters") or not self.db_clusters:
             return []
 
