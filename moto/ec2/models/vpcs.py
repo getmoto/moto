@@ -782,6 +782,8 @@ class VPCBackend:
                 f"The vpc '{vpc_id}' has dependencies and cannot be deleted."
             )
 
+        # TODO: Refuse to delete if there are dependent IGW
+
         # Do not delete if any VPN Gateway is attached
         vpn_gateways = self.describe_vpn_gateways(filters={"attachment.vpc-id": vpc_id})  # type: ignore[attr-defined]
         vpn_gateways = [
