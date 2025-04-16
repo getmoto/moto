@@ -1361,13 +1361,13 @@ def test_update_stack_deleted_resources_can_reference_deleted_resources():
             "AWSTemplateFormatVersion": "2010-09-09",
             "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
             "Resources": {
-                "VPC": {
-                    "Type": "AWS::EC2::VPC",
-                    "Properties": {"CidrBlock": "10.0.0.0/16"},
-                },
                 "Subnet": {
                     "Type": "AWS::EC2::Subnet",
                     "Properties": {"VpcId": {"Ref": "VPC"}, "CidrBlock": "10.0.0.0/24"},
+                },
+                "VPC": {
+                    "Type": "AWS::EC2::VPC",
+                    "Properties": {"CidrBlock": "10.0.0.0/16"},
                 },
             },
         }
